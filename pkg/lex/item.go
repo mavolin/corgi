@@ -6,6 +6,9 @@ type Item struct {
 	Type ItemType
 	// Value is the value of the item, if any.
 	Val string
+	// Err is the error.
+	// It is only set when Type is Error.
+	Err error
 	// Line is the line where the item starts.
 	Line int
 	// Col is the column after which the item starts.
