@@ -32,7 +32,7 @@ const (
 	Ident   // identifier
 	Literal // after a '.', '#' etc.
 	Code    // after a minus, if, etc.
-	Text    // the text after an element, pipe etc.
+	Text    // the text after an element, pipe etc. that needs HTML escaping
 
 	Comment // '//'
 
