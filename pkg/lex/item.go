@@ -26,8 +26,8 @@ const (
 	Error ItemType = iota
 	EOF
 
-	Indent   // indention level increased
-	Unindent // indention level decreased
+	Indent // indention level increased
+	Dedent // indention level decreased
 
 	Ident   // identifier
 	Literal // after a '.', '#' etc.
