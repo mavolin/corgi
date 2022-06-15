@@ -1,6 +1,8 @@
 package lex
 
 import (
+	"fmt"
+	"unicode"
 	"unicode/utf8"
 )
 
@@ -47,13 +49,15 @@ const eof rune = -1
 
 type stateFn func() stateFn
 
-// NewLexer creates a new lexer.
-func NewLexer(in string) *Lexer {
+// New creates a new lexer.
+func New(in string) *Lexer {
 	return &Lexer{
-		in:    in,
-		items: make(chan Item),
-		line:  1,
-		col:   1,
+		in:        in,
+		items:     make(chan Item),
+		startLine: 1,
+		line:      1,
+		startCol:  1,
+		col:       1,
 	}
 }
 
@@ -73,9 +77,9 @@ func (l *Lexer) Stop() {
 	}
 }
 
-// Run starts a new goroutine that lexes the input.
+// Lex starts a new goroutine that lexes the input.
 // The lexical items can be retrieved by calling Next.
-func (l *Lexer) Run() {
+func (l *Lexer) Lex() {
 	go func() {
 		state := l.start
 
@@ -109,7 +113,7 @@ func (l *Lexer) next() rune {
 		l.prevLineLen = l.col
 		l.col = 1
 	} else {
-		l.col += w
+		l.col++
 	}
 
 	l.prevWidth = w
@@ -152,7 +156,17 @@ Next:
 // rune will be the rune after s.
 //
 // s must not contain any newlines.
+// The only exception is s being just a newline, i.e. s = "\n".
 func (l *Lexer) nextString(s string) {
+	if s == "\n" {
+		l.pos++
+		l.line++
+		l.prevLineLen = l.col
+		l.col = 1
+
+		return
+	}
+
 	l.pos += len(s)
 	l.col += len(s)
 }
@@ -171,13 +185,42 @@ Next:
 
 		for _, r := range rs {
 			if r == next {
-				break Next
+				continue Next
 			}
 		}
+
+		break
 	}
 
 	l.backup()
-	return
+}
+
+// consumeIdent consumes an upcoming Ident.
+//
+// An Ident starts with a unicode letter or underscore.
+// It is followed by any number of unicode letters, decimal digits, or
+// underscores.
+// This is the same pattern as Go uses for its identifiers.
+func (l *Lexer) consumeIdent() {
+	next := l.next()
+	if next != '_' && !unicode.IsLetter(next) {
+		l.backup()
+		return
+	}
+
+	for {
+		next = l.next()
+		switch {
+		case next == eof:
+			return
+		case next == '_':
+		case next >= '0' && next <= '9':
+		case unicode.IsLetter(next):
+		default:
+			l.backup()
+			return
+		}
+	}
 }
 
 // ======================================= backup =======================================
@@ -186,7 +229,7 @@ Next:
 // backup can only be called once per next.
 func (l *Lexer) backup() {
 	l.pos -= l.prevWidth
-	l.col -= l.prevWidth
+	l.col--
 
 	if l.col <= 0 {
 		l.col = l.prevLineLen
@@ -198,6 +241,10 @@ func (l *Lexer) backup() {
 
 // peek is the same as next but without increasing position.
 func (l *Lexer) peek() rune {
+	if l.pos >= len(l.in) {
+		return eof
+	}
+
 	defer l.backup()
 	return l.next()
 }
@@ -207,7 +254,7 @@ func (l *Lexer) peek() rune {
 // If not or if the remaining input is less than s's length, false is returned.
 func (l *Lexer) peekIsString(s string) bool {
 	endPos := l.pos + len(s)
-	if endPos >= len(l.in) {
+	if endPos > len(l.in) {
 		return false
 	}
 
@@ -231,35 +278,72 @@ func (l *Lexer) ignore() {
 // If the end of file is reached, ignoreRunes will stop at the end of file and
 // return.
 // The current rune will be eof.
-func (l *Lexer) ignoreRunes(rs ...rune) {
-	l.nextRunes(rs...)
+//
+// It returns true if at least one rune was ignored.
+func (l *Lexer) ignoreRunes(rs ...rune) bool {
 	l.ignore()
+	l.nextRunes(rs...)
+
+	ignored := l.pos > l.startPos
+	l.ignore()
+
+	return ignored
 }
 
 // ignoreWhitespace is short for l.ignoreRunes(' ', '\t').
-func (l *Lexer) ignoreWhitespace() {
-	l.ignoreRunes(' ', '\t')
+func (l *Lexer) ignoreWhitespace() bool {
+	return l.ignoreRunes(' ', '\t')
 }
 
 // ignoreUntil ignores all upcoming runes until one matching r is found or the
 // end of file is encountered.
-// Upon returning, the next() rune will be one of rs or eof.
+//
+// If the end of file is reached, ignoreUntil will stop with the end of file
+// as current rune return.
+//
+// Otherwise, upon returning, the next() rune will be one of rs .
 func (l *Lexer) ignoreUntil(rs ...rune) {
+Next:
 	for {
 		next := l.next()
 		if next == eof {
-			break
+			l.ignore()
+			return
 		}
 
 		for _, r := range rs {
 			if next == r {
-				break
+				break Next
 			}
 		}
 	}
 
 	l.backup()
 	l.ignore()
+}
+
+// ==================================== isLineEmpty =====================================
+
+// isLineEmpty checks if the rest of the current line is empty.
+func (l *Lexer) isLineEmpty() bool {
+	for i := l.pos; i < len(l.in); i++ {
+		switch l.in[i] {
+		case '\n':
+			return true
+		case ' ', '\t':
+		default: // not an empty line
+			return false
+		}
+	}
+
+	return true
+}
+
+// ====================================== content =======================================
+
+// contentEmpty reports whether any content has been lexed.
+func (l *Lexer) contentEmpty() bool {
+	return l.pos < l.startPos
 }
 
 // ======================================= Indent =======================================
@@ -275,17 +359,17 @@ const (
 	// It does not return an error when it encounters more than one increase
 	// in indentation levels.
 	singleIncrease
-	// all consumes all indentation changes.
+	// allIndents consumes all indentation changes.
 	// If it encounters an increase by more than one level, it returns
 	// ErrIndentationIncrease.
-	all
+	allIndents
 )
 
 // consumeIndent consumes the upcoming indentation.
 // For that it first skips all empty lines.
 // Then, when it encounters a line with content, it consumes all indentation
 // before it and determines the delta in indentation, which it returns.
-// This will either be a number negative number indicating by how many numbers
+// This will either be a negative number indicating by how many levels
 // the indention was removed, 0 to indicate no change in indentation, or 1 to
 // indicate an increase in indention.
 //
@@ -296,102 +380,53 @@ const (
 // Otherwise, consumeIndent will panic.
 //
 // If consumeIndent encounters the end of file, it will return 0 and nil.
-func (l *Lexer) consumeIndent(mode indentConsumptionMode) (dlvl int, err error) {
+func (l *Lexer) consumeIndent(mode indentConsumptionMode) (dlvl int, skippedLines int, err error) {
 	if l.col != 1 {
-		panic("consumeIndent called with non-start-of-line position")
+		panic(fmt.Sprintf("consumeIndent called with non-start-of-line position (%d:%d)", l.line, l.col))
 	}
 
-	for {
-		if mode == all {
-			dlvl, err, stop := l.consumeAllLineIndent()
-			if stop {
-				return dlvl, err
-			}
-		} else {
-			dlvl, err, stop := l.consumeOtherLineIndent(mode)
-			if stop {
-				return dlvl, err
-			}
-		}
-	}
-}
-
-func (l *Lexer) consumeAllLineIndent() (dlvl int, err error, stop bool) {
-	indent := l.next()
-	switch indent {
-	case eof:
-		return 0, nil, true
-	case '\n': // empty line
-		return 0, nil, false
-	case ' ', '\t': // indent
-		// handled below
-	default: // no indent
-		dlvl = -l.indentLvl
-		l.indentLvl = 0
-
-		l.backup()
-		return dlvl, nil, true
-	}
-
-	count := 1
-
-	for n := l.next(); n == ' ' || n == '\t'; n = l.next() {
-		if n != indent {
-			return 0, ErrMixedIndentation, true
-		}
-
-		count++
-	}
-
-	l.backup()
-
-	switch l.peek() {
-	case eof:
-		return 0, nil, true
-	case '\n': // empty line
-		return 0, nil, false
-	}
-
-	// this is our first indent, use it for reference
-	if l.indent == 0 {
-		l.indent = indent
-		l.indentLen = count
-		l.indentRefLine = l.line
-
-		l.indentLvl = 1
-		return 1, nil, true
-	}
-
-	// illegal switching between tabs and spaces or inconsistent indentation
-	if indent != l.indent || count%l.indentLen != 0 {
-		return 0, &IndentationError{
-			Expect:    l.indent,
-			ExpectLen: l.indentLen,
-			RefLine:   l.indentRefLine,
-			Actual:    indent,
-			ActualLen: count,
-		}, true
-	}
-
-	newLvl := count / l.indentLen
-	dlvl = newLvl - l.indentLvl
-	if dlvl > 1 {
-		return 0, ErrIndentationIncrease, true
-	}
-
-	l.indentLvl = newLvl
-	return dlvl, nil, true
-}
-
-func (l *Lexer) consumeOtherLineIndent(mode indentConsumptionMode) (dlvl int, err error, stop bool) {
 	l.ignore()
 
+	switch mode {
+	case noIncrease:
+		for {
+			dlvl, stop, err := l.consumeNoIncreaseLineIndent()
+			if stop {
+				return dlvl, skippedLines, err
+			}
+
+			skippedLines++
+		}
+	case singleIncrease:
+		for {
+			dlvl, stop, err := l.consumeSingleIncreaseLineIndent()
+			if stop {
+				return dlvl, skippedLines, err
+			}
+
+			skippedLines++
+		}
+	case allIndents:
+		for {
+			dlvl, stop, err := l.consumeAllLineIndent()
+			if stop {
+				return dlvl, skippedLines, err
+			}
+
+			skippedLines++
+		}
+	default:
+		panic(fmt.Sprintf("unknown indent consumption mode: %d", mode))
+	}
+}
+
+func (l *Lexer) consumeNoIncreaseLineIndent() (dlvl int, stop bool, err error) {
 	indent := l.next()
 	switch indent {
 	case eof:
-		return 0, nil, true
+		return 0, true, nil
 	case '\n': // empty line
-		return 0, nil, false
+		return 0, false, nil
 	case ' ', '\t': // indent
 		// handled below
 	default: // no indent
@@ -399,48 +434,207 @@ func (l *Lexer) consumeOtherLineIndent(mode indentConsumptionMode) (dlvl int, er
 		l.indentLvl = 0
 
 		l.backup()
-		return dlvl, nil, true
+		return dlvl, true, nil
+	}
+
+	if l.indentLvl == 0 {
+		l.backup()
+
+		if l.isLineEmpty() {
+			l.nextUntil('\n')
+			l.next()
+			return 0, false, nil
+		}
+
+		return 0, true, nil
 	}
 
 	count := 1
 
 	limit := l.indentLvl*l.indentLen - 1
-	if mode == singleIncrease {
-		limit += l.indentLen
-	}
 
+Next:
 	for i := 0; i < limit; i++ {
-		switch n := l.next(); n {
+		switch next := l.next(); next {
 		case eof:
-			return 0, nil, true
+			return 0, true, nil
 		case ' ', '\t':
-			if n != indent {
-				return 0, ErrMixedIndentation, true
+			if next != indent {
+				return 0, true, ErrMixedIndentation
 			}
 
 			count++
 		default:
-			break
+			l.backup()
+			break Next
 		}
 	}
 
 	switch l.peek() {
 	case eof:
-		return 0, nil, true
+		return 0, true, nil
 	case '\n': // empty line
-		return 0, nil, false
+		l.next()
+		return 0, false, nil
 	case ' ', '\t': // possibly empty line
-	Peek:
-		for i := l.pos + 1; i < len(l.in); i++ {
-			switch l.in[i] {
-			case '\n':
-				return 0, nil, false
-			case ' ', '\t':
-			default: // not an empty line
-				break Peek
+		if l.isLineEmpty() {
+			l.nextUntil('\n')
+			l.next()
+			return 0, false, nil
+		}
+	}
+
+	// illegal switching between tabs and spaces or inconsistent indentation
+	if indent != l.indent || count%l.indentLen != 0 {
+		return 0, true, &IndentationError{
+			Expect:    l.indent,
+			ExpectLen: l.indentLen,
+			RefLine:   l.indentRefLine,
+			Actual:    indent,
+			ActualLen: count,
+		}
+	}
+
+	newLvl := count / l.indentLen
+	dlvl = newLvl - l.indentLvl
+
+	l.indentLvl = newLvl
+	return dlvl, true, nil
+}
+
+func (l *Lexer) consumeSingleIncreaseLineIndent() (dlvl int, stop bool, err error) {
+	indent := l.next()
+	switch indent {
+	case eof:
+		return 0, true, nil
+	case '\n': // empty line
+		return 0, false, nil
+	case ' ', '\t': // indent
+		// handled below
+	default: // no indent
+		dlvl = -l.indentLvl
+		l.indentLvl = 0
+
+		l.backup()
+		return dlvl, true, nil
+	}
+
+	// this is our first indent, use it for reference
+	if l.indent == 0 {
+		count := 1
+
+		for n := l.next(); n == ' ' || n == '\t'; n = l.next() {
+			if n != indent {
+				return 0, true, ErrMixedIndentation
 			}
+
+			count++
 		}
 
+		if l.peek() == eof {
+			return 0, true, nil
+		}
+
+		l.backup()
+		if l.peek() == '\n' { // empty line
+			return 0, false, nil
+		}
+
+		l.indent = indent
+		l.indentLen = count
+		l.indentRefLine = l.line
+		l.indentLvl = 1
+
+		return 1, true, nil
+	}
+
+	count := 1
+
+	limit := (l.indentLvl+1)*l.indentLen - 1
+
+Next:
+	for i := 0; i < limit; i++ {
+		switch next := l.next(); next {
+		case eof:
+			return 0, true, nil
+		case ' ', '\t':
+			if next != indent {
+				return 0, true, ErrMixedIndentation
+			}
+
+			count++
+		default:
+			l.backup()
+			break Next
+		}
+	}
+
+	switch l.peek() {
+	case eof:
+		return 0, true, nil
+	case '\n': // empty line
+		l.next()
+		return 0, false, nil
+	case ' ', '\t': // possibly empty line
+		if l.isLineEmpty() {
+			l.nextUntil('\n')
+			l.next()
+			return 0, false, nil
+		}
+	}
+
+	// illegal switching between tabs and spaces or inconsistent indentation
+	if indent != l.indent || count%l.indentLen != 0 {
+		return 0, true, &IndentationError{
+			Expect:    l.indent,
+			ExpectLen: l.indentLen,
+			RefLine:   l.indentRefLine,
+			Actual:    indent,
+			ActualLen: count,
+		}
+	}
+
+	newLvl := count / l.indentLen
+	dlvl = newLvl - l.indentLvl
+
+	l.indentLvl = newLvl
+	return dlvl, true, nil
+}
+
+func (l *Lexer) consumeAllLineIndent() (dlvl int, stop bool, err error) {
+	indent := l.next()
+	switch indent {
+	case eof:
+		return 0, true, nil
+	case '\n': // empty line
+		return 0, false, nil
+	case ' ', '\t': // indent
+		// handled below
+	default: // no indent
+		dlvl = -l.indentLvl
+		l.indentLvl = 0
+
+		l.backup()
+		return dlvl, true, nil
+	}
+
+	count := 1
+
+	for next := l.next(); next == ' ' || next == '\t'; next = l.next() {
+		if next != indent {
+			return 0, true, ErrMixedIndentation
+		}
+
+		count++
+	}
+
+	if l.peek() == eof {
+		return 0, true, nil
+	}
+
+	l.backup()
+	if l.peek() == '\n' { // empty line
+		return 0, false, nil
 	}
 
 	// this is our first indent, use it for reference
@@ -450,28 +644,52 @@ func (l *Lexer) consumeOtherLineIndent(mode indentConsumptionMode) (dlvl int, er
 		l.indentRefLine = l.line
 
 		l.indentLvl = 1
-		return 1, nil, true
+		return 1, true, nil
 	}
 
 	// illegal switching between tabs and spaces or inconsistent indentation
 	if indent != l.indent || count%l.indentLen != 0 {
-		return 0, &IndentationError{
+		return 0, true, &IndentationError{
 			Expect:    l.indent,
 			ExpectLen: l.indentLen,
 			RefLine:   l.indentRefLine,
 			Actual:    indent,
 			ActualLen: count,
-		}, true
+		}
 	}
 
 	newLvl := count / l.indentLen
 	dlvl = newLvl - l.indentLvl
 	if dlvl > 1 {
-		return 0, ErrIndentationIncrease, true
+		return 0, true, ErrIndentationIncrease
 	}
 
 	l.indentLvl = newLvl
-	return dlvl, nil, true
+	return dlvl, true, nil
+}
+
+// ==================================== newlineOrEOF ====================================
+
+// newlineOrEOF skips all whitespaces.
+// It then asserts that the next rune is either a newline or the end of file.
+//
+// If it encounters the end of file, it returns l.eof.
+//
+// If it encounters a newline, it consumes and ignores it and returns next.
+//
+// If it encounters another character, it returns with l.error.
+func (l *Lexer) newlineOrEOF(next stateFn) stateFn {
+	l.ignoreWhitespace()
+
+	switch l.next() {
+	case eof:
+		return l.eof
+	case '\n':
+		l.ignore()
+		return next
+	default:
+		return l.error(&UnknownItemError{Expected: "a newline"})
+	}
 }
 
 // ======================================== emit ========================================
@@ -481,7 +699,7 @@ func (l *Lexer) consumeOtherLineIndent(mode indentConsumptionMode) (dlvl int, er
 func (l *Lexer) emit(t ItemType) {
 	l.items <- Item{
 		Type: t,
-		Val:  string(l.in[l.startPos:l.pos]),
+		Val:  l.in[l.startPos:l.pos],
 		Line: l.startLine,
 		Col:  l.startCol,
 	}
@@ -495,22 +713,19 @@ func (l *Lexer) emit(t ItemType) {
 //
 // If delta is 0, emitIndent will do nothing.
 func (l *Lexer) emitIndent(delta int) {
-	if delta == 0 {
-		return
-	}
+	if delta != 0 {
+		typ := Indent
+		if delta < 0 {
+			delta = -delta
+			typ = Dedent
+		}
 
-	typ := Indent
-	if delta < 0 {
-		delta = -delta
-		typ = Dedent
-	}
-
-	for i := 0; i < delta; i++ {
-		l.items <- Item{
-			Type: typ,
-			Val:  string(l.indent),
-			Line: l.startLine,
-			Col:  l.startCol,
+		for i := 0; i < delta; i++ {
+			l.items <- Item{
+				Type: typ,
+				Line: l.startLine,
+				Col:  l.startCol,
+			}
 		}
 	}
 
@@ -519,22 +734,90 @@ func (l *Lexer) emitIndent(delta int) {
 	l.startCol = l.col
 }
 
-// emitError sends an Error item in the items channel using the result of
-// calling fmt.Sprintf with the passed arguments as value.
+// emitIdent calls consumeIdent and then does one of the following:
 //
-// It then returns a nil stateFn, indicating the lexer should stop.
-func (l *Lexer) error(err error) stateFn {
-	l.items <- Item{
-		Type: Error,
-		Err:  err,
-		Line: l.startLine,
-		Col:  l.startLine,
+// If the content is not empty, it emits an item of type t.
+// If it is empty and ifEmptyErr is set and the end of file is not reached,
+// ifEmptyErr is emitted.
+func (l *Lexer) emitIdent(ifEmptyErr error) stateFn {
+	l.consumeIdent()
+
+	empty := l.contentEmpty()
+	if !empty {
+		l.emit(Ident)
+	}
+
+	if l.next() == eof {
+		return l.eof
+	}
+
+	l.backup()
+
+	if ifEmptyErr != nil && empty {
+		return l.error(ifEmptyErr)
 	}
 
 	return nil
 }
 
-// eof emits an EOF item for the current position, not the starting postion.
+// emitUntil consumes all runes until it reaches one of rs or the end of file.
+//
+// If the content is not empty, it emits an item of type t.
+// If it is empty and ifEmptyErr is set and the end of file is not reached,
+// ifEmptyErr is emitted.
+//
+// If the next rune is one of rs, it returns nil.
+// The next call rule will yield that rune.
+//
+// If the next rune is the end of file, it returns l.eof.
+func (l *Lexer) emitUntil(t ItemType, ifEmptyErr error, rs ...rune) stateFn {
+	peek := l.nextUntil(rs...)
+
+	empty := l.contentEmpty()
+	if !empty {
+		l.emit(t)
+	}
+
+	if peek == eof {
+		return l.eof
+	}
+
+	if ifEmptyErr != nil && empty {
+		return l.error(ifEmptyErr)
+	}
+
+	return nil
+}
+
+// emitError returns a function that sends an Error item in the items channel
+// for the current position.
+//
+// It then returns a nil stateFn, indicating the lexer should stop.
+func (l *Lexer) error(err error) stateFn {
+	if err == nil {
+		panic("error called with nil error")
+	}
+
+	return func() stateFn {
+		i := Item{
+			Type: Error,
+			Err:  err,
+			Line: l.line,
+			Col:  l.col - 1,
+		}
+
+		if i.Col == 0 {
+			i.Line--
+			i.Col = l.prevLineLen
+		}
+
+		l.items <- i
+
+		return nil
+	}
+}
+
+// eof emits an EOF item for the current position, not the starting position.
 func (l *Lexer) eof() stateFn {
 	l.items <- Item{
 		Type: EOF,
