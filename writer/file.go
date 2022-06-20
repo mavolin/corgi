@@ -29,6 +29,10 @@ func (w *Writer) writeFile() error {
 		return err
 	}
 
+	if err := w.writeInit(); err != nil {
+		return err
+	}
+
 	if err := w.writeScope(w.files.Peek()[0].Scope, nil); err != nil {
 		return err
 	}
@@ -37,6 +41,150 @@ func (w *Writer) writeFile() error {
 		"return nil\n" +
 			"}\n")
 }
+
+// ============================================================================
+// Init
+// ======================================================================================
+
+func (w *Writer) writeInit() error {
+	return w.writeInitFile(*w.main, make(map[string]struct{}))
+}
+
+func (w *Writer) writeInitFile(f file.File, alreadyProcessed map[string]struct{}) error {
+	if err := w.writeInitScope(f.Scope); err != nil {
+		return err
+	}
+
+	if f.Extend != nil {
+		_, ok := alreadyProcessed[f.Extend.File.Source+"/"+f.Extend.File.Name]
+		if !ok {
+			alreadyProcessed[f.Extend.File.Source+"/"+f.Extend.File.Name] = struct{}{}
+
+			if err := w.writeInitFile(f.Extend.File, alreadyProcessed); err != nil {
+				return err
+			}
+		}
+	}
+
+	for _, use := range w.main.Uses {
+		for _, uf := range use.Files {
+			_, ok := alreadyProcessed[uf.Source+"/"+uf.Name]
+			if ok {
+				continue
+			}
+
+			alreadyProcessed[uf.Source+"/"+uf.Name] = struct{}{}
+
+			if err := w.writeInitFile(uf, alreadyProcessed); err != nil {
+				return err
+			}
+		}
+	}
+
+	return w.writeInitIncludes(f.Scope)
+}
+
+func (w *Writer) writeInitIncludes(s file.Scope) error {
+Items:
+	for _, itm := range s {
+		switch itm := itm.(type) {
+		case file.Include:
+			cincl, ok := itm.Include.(file.CorgiInclude)
+			if !ok {
+				continue Items
+			}
+
+			if err := w.writeInitScope(cincl.File.Scope); err != nil {
+				return err
+			}
+		case file.Block:
+			if err := w.writeInitIncludes(itm.Body); err != nil {
+				return err
+			}
+		case file.Element:
+			if err := w.writeInitIncludes(itm.Body); err != nil {
+				return err
+			}
+		case file.If:
+			if err := w.writeInitIncludes(itm.Then); err != nil {
+				return err
+			}
+
+			for _, ei := range itm.ElseIfs {
+				if err := w.writeInitIncludes(ei.Then); err != nil {
+					return err
+				}
+			}
+
+			if itm.Else != nil {
+				if err := w.writeInitIncludes(itm.Else.Then); err != nil {
+					return err
+				}
+			}
+		case file.IfBlock:
+			if err := w.writeInitIncludes(itm.Then); err != nil {
+				return err
+			}
+
+			if itm.Else != nil {
+				if err := w.writeInitIncludes(itm.Else.Then); err != nil {
+					return err
+				}
+			}
+		case file.Switch:
+			for _, c := range itm.Cases {
+				if err := w.writeInitIncludes(c.Then); err != nil {
+					return err
+				}
+			}
+
+			if itm.Default != nil {
+				if err := w.writeInitIncludes(itm.Default.Then); err != nil {
+					return err
+				}
+			}
+		case file.For:
+			if err := w.writeInitIncludes(itm.Body); err != nil {
+				return err
+			}
+		case file.While:
+			if err := w.writeInitIncludes(itm.Body); err != nil {
+				return err
+			}
+		case file.Mixin:
+			if err := w.writeInitIncludes(itm.Body); err != nil {
+				return err
+			}
+		case file.MixinCall:
+			if err := w.writeInitIncludes(itm.Body); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (w *Writer) writeInitScope(s file.Scope) error {
+	for _, itm := range s {
+		m, ok := itm.(file.Mixin)
+		if !ok {
+			continue
+		}
+
+		if m.Name != "init" {
+			continue
+		}
+
+		return w.writeScope(m.Body, nil)
+	}
+
+	return nil
+}
+
+// ============================================================================
+// Content
+// ======================================================================================
 
 func (w *Writer) writeScope(s file.Scope, e *elem) error {
 	for _, itm := range s {

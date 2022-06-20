@@ -6,6 +6,7 @@ package link
 
 import (
 	"github.com/mavolin/corgi/corgi/file"
+	"github.com/mavolin/corgi/corgi/parse"
 	"github.com/mavolin/corgi/corgi/resource"
 )
 
@@ -13,12 +14,13 @@ type Linker struct {
 	rSources []resource.Source
 	rFiles   []file.File
 
-	f *file.File
+	f    *file.File
+	mode parse.Mode
 }
 
 // New creates a new *Linker that links the given file.
-func New(f *file.File) *Linker {
-	return &Linker{f: f}
+func New(f *file.File, mode parse.Mode) *Linker {
+	return &Linker{f: f, mode: mode}
 }
 
 // AddResourceSource adds a resource source to the linker.

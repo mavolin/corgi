@@ -48,7 +48,7 @@ func (l *Linker) fileExtend() error {
 
 	minify.Minify(pf)
 
-	pfLinker := New(pf)
+	pfLinker := New(pf, parse.ModeExtend)
 	pfLinker.rSources = l.rSources
 
 	if err = pfLinker.Link(); err != nil {
@@ -81,7 +81,7 @@ func (l *Linker) fileUse(use *file.Use) error {
 
 	for i, pf := range parsedFiles {
 		pf := pf
-		pfLinker := New(&pf)
+		pfLinker := New(&pf, parse.ModeUse)
 		pfLinker.rFiles = append(parsedFiles[:i], parsedFiles[i+1:]...) //nolint:gocritic
 
 		if err = pfLinker.Link(); err != nil {
@@ -111,7 +111,7 @@ func (l *Linker) fileInclude(s file.Scope, context parse.Context) error {
 					return errors.Wrapf(err, "%s/%s:%d:%d", l.f.Source, l.f.Name, itm.Line, itm.Col)
 				}
 
-				pfLinker := New(pf)
+				pfLinker := New(pf, parse.ModeInclude)
 				if err = pfLinker.Link(); err != nil {
 					return errors.Wrapf(err, "%s/%s:%d:%d", l.f.Source, l.f.Name, itm.Line, itm.Col)
 				}

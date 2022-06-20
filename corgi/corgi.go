@@ -64,7 +64,7 @@ func (h *ParseHelper) Parse() (*file.File, error) {
 
 	minify.Minify(f)
 
-	l := link.New(f)
+	l := link.New(f, parse.ModeMain)
 
 	for _, src := range h.rSources {
 		l.AddResourceSource(src)

@@ -57,6 +57,78 @@ func (e *UseNamespaceError) Error() string {
 }
 
 // ============================================================================
+// InitCallError
+// ======================================================================================
+
+type InitCallError struct {
+	Source string
+	File   string
+	Line   int
+	Col    int
+}
+
+var _ error = (*InitCallError)(nil)
+
+func (e *InitCallError) Error() string {
+	return fmt.Sprintf("%s/%s:%d:%d: cannot call special mixin init",
+		e.Source, e.File, e.Line, e.Col)
+}
+
+// ============================================================================
+// InitError
+// ======================================================================================
+
+type InitError struct {
+	Source string
+	File   string
+	Line   int
+	Col    int
+}
+
+var _ error = (*InitError)(nil)
+
+func (e *InitError) Error() string {
+	return fmt.Sprintf("%s/%s:%d:%d: init mixins can only be placed at the top-level of non-main files",
+		e.Source, e.File, e.Line, e.Col)
+}
+
+// ============================================================================
+// InitParamsError
+// ======================================================================================
+
+type InitParamsError struct {
+	Source string
+	File   string
+	Line   int
+	Col    int
+}
+
+var _ error = (*InitParamsError)(nil)
+
+func (e *InitParamsError) Error() string {
+	return fmt.Sprintf("%s/%s:%d:%d: special mixin init cannot have parameters",
+		e.Source, e.File, e.Line, e.Col)
+}
+
+// ============================================================================
+// InitParamsError
+// ======================================================================================
+
+type InitBodyError struct {
+	Source string
+	File   string
+	Line   int
+	Col    int
+}
+
+var _ error = (*InitBodyError)(nil)
+
+func (e *InitBodyError) Error() string {
+	return fmt.Sprintf("%s/%s:%d:%d: special mixin init's body can only contain code",
+		e.Source, e.File, e.Line, e.Col)
+}
+
+// ============================================================================
 // MixinNotFoundError
 // ======================================================================================
 
