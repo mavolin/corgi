@@ -12,7 +12,6 @@ import (
 )
 
 type Writer struct {
-
 	// mixin calls were in right now
 	mixins stack.Stack[file.MixinCall]
 	// files available in the current block.
@@ -86,41 +85,11 @@ func (w *Writer) writeToFile(s string) error {
 	return err
 }
 
-func (w *Writer) writeUnescaped(s string) error {
+func (w *Writer) writeRawUnescaped(s string) error {
 	return w.writeUnescapedStringExpression(strconv.Quote(s))
 }
 
-func (w *Writer) writeUnescapedStringExpression(s string) error {
-	return w.writeToFile(
-		"err = _writeutil.Write(_w, " + s + ")\n" +
-			"if err != nil {\n" +
-			"    return err\n" +
-			"}\n")
-}
-
-func (w *Writer) writeEscapedHTMLStringExpression(s string) error {
-	return w.writeToFile(
-		"err = _writeutil.Write(_w, string(_writeutil.EscapeHTML(" + s + ")))\n" +
-			"if err != nil {\n" +
-			"    return err\n" +
-			"}\n")
-}
-
-func (w *Writer) writeEscapedCSSExpression(s string) error {
-	return w.writeToFile(
-		"err = _writeutil.WriteEscapedCSS(_w, " + s + ")\n" +
-			"if err != nil {\n" +
-			"    return err\n" +
-			"}\n")
-}
-
-func (w *Writer) writeEscapedJSStrExpression(s string) error {
-	return w.writeToFile(
-		"err = _writeutil.WriteEscapedJSStr(_w, " + s + ")\n" +
-			"if err != nil {\n" +
-			"    return err\n" +
-			"}\n")
-}
+// ================================ Pre Escaped Strings =================================
 
 func (w *Writer) writePreEscapedHTML(s string) error {
 	s = string(writeutil.EscapeHTML(s))
@@ -132,21 +101,11 @@ func (w *Writer) writePreEscapedHTML(s string) error {
 			"}\n")
 }
 
-func (w *Writer) writePreEscapedCSS(s string) error {
-	s = string(writeutil.EscapeCSS(s))
+// ==================================== Expressions =====================================
 
+func (w *Writer) writeUnescapedStringExpression(s string) error {
 	return w.writeToFile(
-		"err = _writeutil.Write(_w, " + strconv.Quote(s) + ")\n" +
-			"if err != nil {\n" +
-			"    return err\n" +
-			"}\n")
-}
-
-func (w *Writer) writePreEscapedJSStr(s string) error {
-	s = string(writeutil.EscapeJSStr(s))
-
-	return w.writeToFile(
-		"err = _writeutil.Write(_w, " + strconv.Quote(s) + ")\n" +
+		"err = _writeutil.Write(_w, " + s + ")\n" +
 			"if err != nil {\n" +
 			"    return err\n" +
 			"}\n")
@@ -168,6 +127,14 @@ func (w *Writer) writeHTMLExpression(s string) error {
 			"}\n")
 }
 
+func (w *Writer) writeEscapedHTMLStringExpression(s string) error {
+	return w.writeToFile(
+		"err = _writeutil.Write(_w, string(_writeutil.EscapeHTML(" + s + ")))\n" +
+			"if err != nil {\n" +
+			"    return err\n" +
+			"}\n")
+}
+
 func (w *Writer) writeJSExpression(s string) error {
 	return w.writeToFile(
 		"err = _writeutil.WriteJS(_w, " + s + ")\n" +
@@ -183,6 +150,8 @@ func (w *Writer) writeUnescapedExpression(s string) error {
 			"    return err\n" +
 			"}\n")
 }
+
+// ======================================= Buffer =======================================
 
 func (w *Writer) writeToBuf(s string) error {
 	return w.writeToFile(
@@ -210,6 +179,8 @@ func (w *Writer) writeBuf() error {
 			"}\n")
 }
 
+// ===================================== Attributes =====================================
+
 func (w *Writer) writeAttr(name string, val string, mirror bool) error {
 	return w.writeToFile(
 		"err = _writeutil.WriteAttr(_w, " + strconv.Quote(name) + ", " + val + ", " +
@@ -223,54 +194,6 @@ func (w *Writer) writeAttrUnescaped(name string, val string, mirror bool) error 
 	return w.writeToFile(
 		"err = _writeutil.WriteAttrUnescaped(_w, " + strconv.Quote(name) + ", " + val + ", " +
 			strconv.FormatBool(mirror) + ")\n" +
-			"if err != nil {\n" +
-			"    return err\n" +
-			"}\n")
-}
-
-func (w *Writer) writeUnsafeAttr(name string, val string) error {
-	return w.writeToFile(
-		"err = _writeutil.WriteUnsafeAttr(_w, " + strconv.Quote(name) + ", " + val + ")\n" +
-			"if err != nil {\n" +
-			"    return err\n" +
-			"}\n")
-}
-
-func (w *Writer) writeCSSAttr(name string, val string) error {
-	return w.writeToFile(
-		"err = _writeutil.WriteCSSAttr(_w, " + strconv.Quote(name) + ", " + val + ")\n" +
-			"if err != nil {\n" +
-			"    return err\n" +
-			"}\n")
-}
-
-func (w *Writer) writeHTMLAttr(name string, val string) error {
-	return w.writeToFile(
-		"err = _writeutil.WriteHTMLAttr(_w, " + strconv.Quote(name) + ", " + val + ")\n" +
-			"if err != nil {\n" +
-			"    return err\n" +
-			"}\n")
-}
-
-func (w *Writer) writeJSAttr(name string, val string) error {
-	return w.writeToFile(
-		"err = _writeutil.WriteJSAttr(_w, " + strconv.Quote(name) + ", " + val + ")\n" +
-			"if err != nil {\n" +
-			"    return err\n" +
-			"}\n")
-}
-
-func (w *Writer) writeURLAttr(name string, val string) error {
-	return w.writeToFile(
-		"err = _writeutil.WriteURLAttr(_w, " + strconv.Quote(name) + ", " + val + ")\n" +
-			"if err != nil {\n" +
-			"    return err\n" +
-			"}\n")
-}
-
-func (w *Writer) writeSrcsetAttr(name string, val string) error {
-	return w.writeToFile(
-		"err = _writeutil.WriteSrcsetAttr(_w, " + strconv.Quote(name) + ", " + val + ")\n" +
 			"if err != nil {\n" +
 			"    return err\n" +
 			"}\n")

@@ -118,7 +118,7 @@ func (w *Writer) writeComment(c file.Comment) error {
 		comment = xmlCommentEscaper.Replace(c.Comment)
 	}
 
-	return w.writeUnescaped("<!--" + comment + "-->")
+	return w.writeRawUnescaped("<!--" + comment + "-->")
 }
 
 // ============================================================================
@@ -250,7 +250,7 @@ func (w *Writer) writeElement(e file.Element, extraAttributes func(e *elem) erro
 
 	ew := elem{e: e}
 
-	if err := w.writeUnescaped("<" + e.Name); err != nil {
+	if err := w.writeRawUnescaped("<" + e.Name); err != nil {
 		return err
 	}
 
@@ -277,7 +277,7 @@ func (w *Writer) writeElement(e file.Element, extraAttributes func(e *elem) erro
 	}
 
 	if !e.SelfClosing && !voidelem.Is(e.Name) {
-		if err := w.writeUnescaped("</" + e.Name + ">"); err != nil {
+		if err := w.writeRawUnescaped("</" + e.Name + ">"); err != nil {
 			return err
 		}
 	}
@@ -294,7 +294,7 @@ func (w *Writer) writeElement(e file.Element, extraAttributes func(e *elem) erro
 func (w *Writer) writeAttribute(attr file.Attribute) error {
 	switch attr := attr.(type) {
 	case file.AttributeLiteral:
-		err := w.writeUnescaped(" " + attr.Name + `="` + string(writeutil.EscapeHTML(attr.Value)) + `"`)
+		err := w.writeRawUnescaped(" " + attr.Name + `="` + string(writeutil.EscapeHTML(attr.Value)) + `"`)
 		if err != nil {
 			return err
 		}
@@ -303,10 +303,10 @@ func (w *Writer) writeAttribute(attr file.Attribute) error {
 		if iexp != "" {
 			if iexp == "true" {
 				if w.main.Type == file.TypeHTML {
-					return w.writeUnescaped(" " + attr.Name)
+					return w.writeRawUnescaped(" " + attr.Name)
 				}
 
-				return w.writeUnescaped(" " + attr.Name + `="` + attr.Name + `"`)
+				return w.writeRawUnescaped(" " + attr.Name + `="` + attr.Name + `"`)
 			} else if iexp == "false" {
 				return nil
 			}
@@ -318,89 +318,17 @@ func (w *Writer) writeAttribute(attr file.Attribute) error {
 					unq = string(writeutil.EscapeHTML(unq))
 				}
 
-				return w.writeUnescaped(" " + attr.Name + `="` + unq + `"`)
+				return w.writeRawUnescaped(" " + attr.Name + `="` + unq + `"`)
 			}
 		}
 
-		switch attrType(attr.Name) {
-		case contentTypePlain:
-			err := w.expression(attr.Value, func(val string) error {
-				if attr.NoEscape {
-					return w.writeAttrUnescaped(attr.Name, val, w.main.Type == file.TypeHTML)
-				}
-
-				return w.writeAttr(attr.Name, val, w.main.Type != file.TypeHTML)
-			}, nil)
-			if err != nil {
-				return err
+		return w.expression(attr.Value, func(val string) error {
+			if attr.NoEscape {
+				return w.writeAttrUnescaped(attr.Name, val, w.main.Type != file.TypeHTML)
 			}
-		case contentTypeCSS:
-			err := w.expression(attr.Value, func(val string) error {
-				if attr.NoEscape {
-					return w.writeAttrUnescaped(attr.Name, val, w.main.Type != file.TypeHTML)
-				}
 
-				return w.writeCSSAttr(attr.Name, val)
-			}, nil)
-			if err != nil {
-				return err
-			}
-		case contentTypeHTML:
-			err := w.expression(attr.Value, func(val string) error {
-				if attr.NoEscape {
-					return w.writeAttrUnescaped(attr.Name, val, w.main.Type != file.TypeHTML)
-				}
-
-				return w.writeHTMLAttr(attr.Name, val)
-			}, nil)
-			if err != nil {
-				return err
-			}
-		case contentTypeJS:
-			err := w.expression(attr.Value, func(val string) error {
-				if attr.NoEscape {
-					return w.writeAttrUnescaped(attr.Name, val, w.main.Type != file.TypeHTML)
-				}
-
-				return w.writeJSAttr(attr.Name, val)
-			}, nil)
-			if err != nil {
-				return err
-			}
-		case contentTypeURL:
-			err := w.expression(attr.Value, func(val string) error {
-				if attr.NoEscape {
-					return w.writeAttrUnescaped(attr.Name, val, w.main.Type != file.TypeHTML)
-				}
-
-				return w.writeURLAttr(attr.Name, val)
-			}, nil)
-			if err != nil {
-				return err
-			}
-		case contentTypeSrcset:
-			err := w.expression(attr.Value, func(val string) error {
-				if attr.NoEscape {
-					return w.writeAttrUnescaped(attr.Name, val, w.main.Type != file.TypeHTML)
-				}
-
-				return w.writeSrcsetAttr(attr.Name, val)
-			}, nil)
-			if err != nil {
-				return err
-			}
-		case contentTypeUnsafe:
-			err := w.expression(attr.Value, func(val string) error {
-				if attr.NoEscape {
-					return w.writeAttrUnescaped(attr.Name, val, w.main.Type != file.TypeHTML)
-				}
-
-				return w.writeUnsafeAttr(attr.Name, val)
-			}, nil)
-			if err != nil {
-				return err
-			}
-		}
+			return w.writeAttr(attr.Name, val, w.main.Type != file.TypeHTML)
+		}, nil)
 	}
 
 	return nil
@@ -422,7 +350,7 @@ func (w *Writer) closeTag(e *elem) error {
 	}
 
 	if e.needBuf || len(e.e.Classes) != 0 {
-		if err := w.writeUnescaped(` class="`); err != nil {
+		if err := w.writeRawUnescaped(` class="`); err != nil {
 			return err
 		}
 
@@ -466,7 +394,7 @@ func (w *Writer) closeTag(e *elem) error {
 			}
 
 			if len(e.e.Classes) > 0 {
-				if err := w.writeUnescaped(" "); err != nil {
+				if err := w.writeRawUnescaped(" "); err != nil {
 					return err
 				}
 			}
@@ -484,17 +412,17 @@ func (w *Writer) closeTag(e *elem) error {
 			}
 		}
 
-		if err := w.writeUnescaped(`"`); err != nil {
+		if err := w.writeRawUnescaped(`"`); err != nil {
 			return err
 		}
 	}
 
 	if e.e.SelfClosing {
-		if err := w.writeUnescaped("/>"); err != nil {
+		if err := w.writeRawUnescaped("/>"); err != nil {
 			return err
 		}
 	} else {
-		if err := w.writeUnescaped(">"); err != nil {
+		if err := w.writeRawUnescaped(">"); err != nil {
 			return err
 		}
 	}
@@ -559,7 +487,7 @@ func (w *Writer) writeInclude(incl file.Include, e *elem) error {
 			}
 		}
 
-		if err := w.writeUnescaped(incl.Text); err != nil {
+		if err := w.writeRawUnescaped(incl.Text); err != nil {
 			return err
 		}
 	}
@@ -869,7 +797,7 @@ func (w *Writer) writeText(t file.Text, e *elem) error {
 
 	switch e.e.Name {
 	case "style", "script":
-		return w.writeUnescaped(t.Text)
+		return w.writeRawUnescaped(t.Text)
 	default:
 		return w.writePreEscapedHTML(t.Text)
 	}
@@ -881,23 +809,12 @@ func (w *Writer) writeText(t file.Text, e *elem) error {
 
 func (w *Writer) writeInterpolation(i file.Interpolation, e *elem) error {
 	return w.expression(i.Expression, func(val string) error {
-		if i.EscapeMode == file.EscapeModeNoEscape {
+		if i.NoEscape {
 			return w.writeUnescapedExpression(val)
 		}
 
 		if w.main.Type == file.TypeXML {
 			return w.writeHTMLExpression(val)
-		}
-
-		if i.EscapeMode == file.EscapeModeEscaped {
-			switch e.e.Name {
-			case "style":
-				return w.writeEscapedCSSExpression(val)
-			case "script":
-				return w.writeEscapedJSStrExpression(val)
-			default:
-				return w.writeHTMLExpression(val)
-			}
 		}
 
 		switch e.e.Name {
@@ -916,7 +833,7 @@ func (w *Writer) writeInterpolation(i file.Interpolation, e *elem) error {
 // ======================================================================================
 
 func (w *Writer) writeInlineElement(ie file.InlineElement) error {
-	if err := w.writeUnescaped("<" + ie.Name); err != nil {
+	if err := w.writeRawUnescaped("<" + ie.Name); err != nil {
 		return err
 	}
 
@@ -927,7 +844,7 @@ func (w *Writer) writeInlineElement(ie file.InlineElement) error {
 	}
 
 	if len(ie.Classes) > 0 {
-		if err := w.writeUnescaped(` class="`); err != nil {
+		if err := w.writeRawUnescaped(` class="`); err != nil {
 			return err
 		}
 
@@ -935,7 +852,7 @@ func (w *Writer) writeInlineElement(ie file.InlineElement) error {
 			switch c := c.(type) {
 			case file.ClassLiteral:
 				if i > 0 {
-					if err := w.writeUnescaped(` ` + c.Name); err != nil {
+					if err := w.writeRawUnescaped(` ` + c.Name); err != nil {
 						return err
 					}
 				} else {
@@ -967,10 +884,10 @@ func (w *Writer) writeInlineElement(ie file.InlineElement) error {
 	}
 
 	if ie.SelfClosing {
-		return w.writeUnescaped("/>")
+		return w.writeRawUnescaped("/>")
 	}
 
-	if err := w.writeUnescaped(">"); err != nil {
+	if err := w.writeRawUnescaped(">"); err != nil {
 		return err
 	}
 
@@ -981,33 +898,18 @@ func (w *Writer) writeInlineElement(ie file.InlineElement) error {
 	switch val := ie.Value.(type) {
 	case file.Text:
 		switch {
-		case ie.EscapeMode == file.EscapeModeNoEscape:
-			if err := w.writeUnescaped(val.Text); err != nil {
+		case ie.NoEscape:
+			if err := w.writeRawUnescaped(val.Text); err != nil {
 				return err
 			}
 		case w.main.Type == file.TypeXML:
 			if err := w.writePreEscapedHTML(val.Text); err != nil {
 				return err
 			}
-		case ie.EscapeMode == file.EscapeModeEscaped:
-			switch ie.Name {
-			case "style":
-				if err := w.writePreEscapedCSS(val.Text); err != nil {
-					return err
-				}
-			case "script":
-				if err := w.writePreEscapedJSStr(val.Text); err != nil {
-					return err
-				}
-			default:
-				if err := w.writePreEscapedHTML(val.Text); err != nil {
-					return err
-				}
-			}
 		default:
 			switch ie.Name {
 			case "style", "script":
-				if err := w.writeUnescaped(val.Text); err != nil {
+				if err := w.writeRawUnescaped(val.Text); err != nil {
 					return err
 				}
 			default:
@@ -1018,23 +920,12 @@ func (w *Writer) writeInlineElement(ie file.InlineElement) error {
 		}
 	case file.Expression:
 		err := w.expression(val, func(val string) error {
-			if ie.EscapeMode == file.EscapeModeNoEscape {
+			if ie.NoEscape {
 				return w.writeUnescapedExpression(val)
 			}
 
 			if w.main.Type == file.TypeXML {
 				return w.writeHTMLExpression(val)
-			}
-
-			if ie.EscapeMode == file.EscapeModeEscaped {
-				switch ie.Name {
-				case "style":
-					return w.writeEscapedCSSExpression(val)
-				case "script":
-					return w.writeEscapedJSStrExpression(val)
-				default:
-					return w.writeHTMLExpression(val)
-				}
 			}
 
 			switch ie.Name {
@@ -1051,7 +942,7 @@ func (w *Writer) writeInlineElement(ie file.InlineElement) error {
 		}
 	}
 
-	return w.writeUnescaped("</" + ie.Name + ">")
+	return w.writeRawUnescaped("</" + ie.Name + ">")
 }
 
 // ============================================================================
@@ -1059,28 +950,17 @@ func (w *Writer) writeInlineElement(ie file.InlineElement) error {
 // ======================================================================================
 
 func (w *Writer) writeInlineText(it file.InlineText, e *elem) error {
-	if it.EscapeMode == file.EscapeModeNoEscape {
-		return w.writeUnescaped(it.Text)
+	if it.NoEscape {
+		return w.writeRawUnescaped(it.Text)
 	}
 
 	if w.main.Type == file.TypeXML {
 		return w.writePreEscapedHTML(it.Text)
 	}
 
-	if it.EscapeMode == file.EscapeModeEscaped {
-		switch e.e.Name {
-		case "style":
-			return w.writePreEscapedCSS(it.Text)
-		case "script":
-			return w.writePreEscapedJSStr(it.Text)
-		default:
-			return w.writePreEscapedHTML(it.Text)
-		}
-	}
-
 	switch e.e.Name {
 	case "style", "script":
-		return w.writeUnescaped(it.Text)
+		return w.writeRawUnescaped(it.Text)
 	default:
 		return w.writePreEscapedHTML(it.Text)
 	}
@@ -1203,7 +1083,7 @@ func (w *Writer) writeFilter(f file.Filter) error {
 			cf.Source, cf.Name, f.Line, f.Col, f.Name)
 	}
 
-	return w.writeUnescaped(string(text))
+	return w.writeRawUnescaped(string(text))
 }
 
 // ============================================================================

@@ -2,7 +2,6 @@ package writeutil
 
 import (
 	"encoding"
-	"errors"
 	"fmt"
 	"io"
 	"reflect"
@@ -20,43 +19,11 @@ func Write(w io.Writer, s string) error {
 }
 
 // ============================================================================
-// Contextual Escape
-// ======================================================================================
-
-func WriteEscapedCSS(w io.Writer, a any) error {
-	css, ok := a.(CSS)
-	if ok {
-		return Write(w, string(css))
-	}
-
-	s, err := Stringify(a, false)
-	if err != nil {
-		return err
-	}
-
-	return Write(w, string(EscapeCSS(s)))
-}
-
-func WriteEscapedJSStr(w io.Writer, a any) error {
-	css, ok := a.(JS)
-	if ok {
-		return Write(w, string(css))
-	}
-
-	s, err := Stringify(a, false)
-	if err != nil {
-		return err
-	}
-
-	return Write(w, string(EscapeJSStr(s)))
-}
-
-// ============================================================================
 // Contextual Text
 // ======================================================================================
 
 func WriteAnyUnescaped(w io.Writer, a any) error {
-	s, err := Stringify(a, false)
+	s, err := Stringify(a, nil)
 	if err != nil {
 		return err
 	}
@@ -66,11 +33,18 @@ func WriteAnyUnescaped(w io.Writer, a any) error {
 
 func WriteCSS(w io.Writer, a any) error {
 	css, ok := a.(CSS)
-	if !ok {
-		return errors.New("unsafe interpolation of CSS")
+	if ok {
+		return Write(w, string(css))
 	}
 
-	return Write(w, string(css))
+	s, err := Stringify(a, func(s string) string {
+		return string(EscapeCSS(s))
+	})
+	if err != nil {
+		return err
+	}
+
+	return Write(w, s)
 }
 
 func WriteHTML(w io.Writer, a any) error {
@@ -79,7 +53,9 @@ func WriteHTML(w io.Writer, a any) error {
 		return Write(w, string(html))
 	}
 
-	s, err := Stringify(a, true)
+	s, err := Stringify(a, func(s string) string {
+		return `"` + string(EscapeHTML(s)) + `"`
+	})
 	if err != nil {
 		return err
 	}
@@ -88,12 +64,12 @@ func WriteHTML(w io.Writer, a any) error {
 }
 
 func WriteJS(w io.Writer, a any) error {
-	js, ok := a.(JS)
-	if !ok {
-		return errors.New("unsafe interpolation in JavaScript code")
+	s, err := JSify(a)
+	if err != nil {
+		return err
 	}
 
-	return Write(w, string(js))
+	return Write(w, s)
 }
 
 // ============================================================================
@@ -115,7 +91,9 @@ func WriteAttr(w io.Writer, name string, val any, mirror bool) error {
 	case HTMLAttr:
 		return Write(w, " "+name+`="`+string(val)+`"`)
 	default:
-		s, err := Stringify(val, true)
+		s, err := Stringify(val, func(s string) string {
+			return string(EscapeHTML(s))
+		})
 		if err != nil {
 			return err
 		}
@@ -137,7 +115,7 @@ func WriteAttrUnescaped(w io.Writer, name string, val any, mirror bool) error {
 
 		return nil
 	default:
-		s, err := Stringify(val, false)
+		s, err := Stringify(val, nil)
 		if err != nil {
 			return err
 		}
@@ -146,72 +124,13 @@ func WriteAttrUnescaped(w io.Writer, name string, val any, mirror bool) error {
 	}
 }
 
-func WriteUnsafeAttr(w io.Writer, name string, val any) error {
-	attr, ok := val.(HTMLAttr)
-	if !ok {
-		return errors.New("unsafe interpolation in attribute `" + name + "`")
-	}
-
-	return Write(w, " "+name+`="`+string(EscapeCSS(string(attr)))+`"`)
-}
-
-func WriteCSSAttr(w io.Writer, name string, val any) error {
-	css, ok := val.(CSS)
-	if !ok {
-		return errors.New("unsafe interpolation in CSS attribute `" + name + "`")
-	}
-
-	return Write(w, " "+name+`="`+string(EscapeCSS(string(css)))+`"`)
-}
-
-func WriteHTMLAttr(w io.Writer, name string, val any) error {
-	html, ok := val.(HTML)
-	if !ok {
-		return errors.New("unsafe interpolation in HTML attribute `" + name + "`")
-	}
-
-	return Write(w, " "+name+`="`+string(EscapeHTML(string(html)))+`"`)
-}
-
-func WriteJSAttr(w io.Writer, name string, val any) error {
-	js, ok := val.(JS)
-	if !ok {
-		return errors.New("unsafe interpolation in JavaScript attribute `" + name + "`")
-	}
-
-	return Write(w, " "+name+`="`+string(EscapeHTML(string(js)))+`"`)
-}
-
-func WriteURLAttr(w io.Writer, name string, val any) error {
-	switch val := val.(type) {
-	case string:
-		if IsSafeURL(val) {
-			return Write(w, " "+name+`="`+string(EscapeHTML(val))+`"`)
-		}
-
-		return errors.New("unsafe interpolation in URL attribute `" + name + "`")
-	case URL:
-		return Write(w, " "+name+`="`+string(val)+`"`)
-	}
-
-	return errors.New("unsafe interpolation in URL attribute `" + name + "`")
-}
-
-func WriteSrcsetAttr(w io.Writer, name string, val any) error {
-	srcset, ok := val.(CSS)
-	if !ok {
-		return errors.New("unsafe interpolation in srcset attribute `" + name + "`")
-	}
-
-	return Write(w, " "+name+`="`+string(EscapeHTML(string(srcset)))+`"`)
-}
-
-// Stringify converts the passed value to an escaped string.
-func Stringify(val any, escaped bool) (string, error) {
-	if val == nil {
-		return "", nil
-	}
-
+// Stringify converts the passed value to a string.
+//
+// If escaper is not nil, it will call it on val, if val is a string, []rune,
+// implements fmt.Stringer, or implements encoding.TextMarshaler.
+//
+// If val is nil, it will return "".
+func Stringify(val any, escaper func(string) string) (string, error) {
 	if val == nil {
 		return "", nil
 	}
@@ -227,8 +146,8 @@ func Stringify(val any, escaped bool) (string, error) {
 
 	switch rval.Kind() {
 	case reflect.String:
-		if escaped {
-			return string(EscapeHTML(rval.String())), nil
+		if escaper != nil {
+			return escaper(rval.String()), nil
 		}
 
 		return rval.String(), nil
@@ -244,14 +163,14 @@ func Stringify(val any, escaped bool) (string, error) {
 
 	switch val := rval.Interface().(type) {
 	case []rune:
-		if escaped {
-			return string(EscapeHTML(string(val))), nil
+		if escaper != nil {
+			return escaper(string(val)), nil
 		}
 
 		return string(val), nil
 	case fmt.Stringer:
-		if escaped {
-			return string(EscapeHTML(val.String())), nil
+		if escaper != nil {
+			return escaper(val.String()), nil
 		}
 
 		return val.String(), nil
@@ -261,8 +180,8 @@ func Stringify(val any, escaped bool) (string, error) {
 			return "", err
 		}
 
-		if escaped {
-			return string(EscapeHTML(string(bytes))), nil
+		if escaper != nil {
+			return escaper(string(bytes)), nil
 		}
 
 		return string(bytes), nil

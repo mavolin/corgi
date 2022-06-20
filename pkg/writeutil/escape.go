@@ -34,11 +34,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 import (
-	"bytes"
+	"encoding/json"
 	"fmt"
-	"io"
 	"strings"
-	"unicode"
 	"unicode/utf8"
 )
 
@@ -93,24 +91,18 @@ type (
 	// converted to sanitized JSON when presented in a JavaScript context.
 	JS string
 
-	// URL encapsulates a known safe URL or URL substring (see RFC 3986).
-	// A URL like `javascript:checkThatFormNotEditedBeforeLeavingPage()`
-	// from a trusted source should go in the page, but by default dynamic
-	// `javascript:` URLs are filtered out since they are a frequently
-	// exploited injection vector.
+	// JSStr encapsulates a sequence of characters meant to be embedded
+	// between quotes in a JavaScript expression.
+	// The string must match a series of StringCharacters:
+	//   StringCharacter :: SourceCharacter but not `\` or LineTerminator
+	//                    | EscapeSequence
+	// Note that LineContinuations are not allowed.
+	// JSStr("foo\\nbar") is fine, but JSStr("foo\\\nbar") is not.
 	//
 	// Use of this type presents a security risk:
 	// the encapsulated content should come from a trusted source,
 	// as it will be included verbatim in the template output.
-	URL string
-
-	// Srcset encapsulates a known safe srcset attribute
-	// (see https://w3c.github.io/html/semantics-embedded-content.html#element-attrdef-img-srcset).
-	//
-	// Use of this type presents a security risk:
-	// the encapsulated content should come from a trusted source,
-	// as it will be included verbatim in the template output.
-	Srcset string
+	JSStr string
 )
 
 // ============================================================================
@@ -208,103 +200,82 @@ func EscapeHTML(s string) HTML {
 // JS
 // ======================================================================================
 
-var (
-	jsLowUni = []byte(`\u00`)
-	hex      = []byte("0123456789ABCDEF")
-
-	jsBackslash = []byte(`\\`)
-	jsApos      = []byte(`\'`)
-	jsQuot      = []byte(`\"`)
-	jsLt        = []byte(`\u003C`)
-	jsGt        = []byte(`\u003E`)
-	jsAmp       = []byte(`\u0026`)
-	jsEq        = []byte(`\u003D`)
-)
-
-// escapedJSWriter writes to w the escaped JavaScript equivalent of the plain
-// text data b.
-func escapedJSWriter(w io.Writer, b []byte) {
-	last := 0
-	for i := 0; i < len(b); i++ {
-		c := b[i]
-
-		if !jsIsSpecial(rune(c)) {
-			// fast path: nothing to do
-			continue
-		}
-		w.Write(b[last:i])
-
-		if c < utf8.RuneSelf {
-			// Quotes, slashes and angle brackets get quoted.
-			// Control characters get written as \u00XX.
-			switch c {
-			case '\\':
-				w.Write(jsBackslash)
-			case '\'':
-				w.Write(jsApos)
-			case '"':
-				w.Write(jsQuot)
-			case '<':
-				w.Write(jsLt)
-			case '>':
-				w.Write(jsGt)
-			case '&':
-				w.Write(jsAmp)
-			case '=':
-				w.Write(jsEq)
-			default:
-				w.Write(jsLowUni)
-				t, b := c>>4, c&0x0f
-				w.Write(hex[t : t+1])
-				w.Write(hex[b : b+1])
-			}
-		} else {
-			// Unicode rune.
-			r, size := utf8.DecodeRune(b[i:])
-			if unicode.IsPrint(r) {
-				w.Write(b[i : i+size])
-			} else {
-				fmt.Fprintf(w, "\\u%04X", r)
-			}
-			i += size - 1
-		}
-		last = i + 1
+// JSify converts the passed value to a JavaScript value.
+func JSify(val any) (string, error) {
+	switch t := val.(type) {
+	case JS:
+		return string(t), nil
+	case JSStr:
+		return `"` + string(t) + `"`, nil
+	case json.Marshaler:
+		// Do not treat as a Stringer.
+	case fmt.Stringer:
+		val = t.String()
 	}
-	w.Write(b[last:])
+
+	jsonVal, err := json.Marshal(val)
+	if err != nil {
+		return "", err
+	}
+
+	if len(jsonVal) == 0 {
+		// In, `x=y/{{.}}*z` a json.Marshaler that produces "" should
+		// not cause the output `x=y/*z`.
+		return " null ", nil
+	}
+	first, _ := utf8.DecodeRune(jsonVal)
+	last, _ := utf8.DecodeLastRune(jsonVal)
+	var buf strings.Builder
+	// Prevent IdentifierNames and NumericLiterals from running into
+	// keywords: in, instanceof, typeof, void
+	pad := isJSIdentPart(first) || isJSIdentPart(last)
+	if pad {
+		buf.WriteByte(' ')
+	}
+	written := 0
+	// Make sure that json.Marshal escapes codepoints U+2028 & U+2029
+	// so it falls within the subset of JSON which is valid JS.
+	for i := 0; i < len(jsonVal); {
+		r, n := utf8.DecodeRune(jsonVal[i:])
+		repl := ""
+		if r == 0x2028 {
+			repl = `\u2028`
+		} else if r == 0x2029 {
+			repl = `\u2029`
+		}
+		if repl != "" {
+			buf.Write(jsonVal[written:i])
+			buf.WriteString(repl)
+			written = i + n
+		}
+		i += n
+	}
+	if buf.Len() != 0 {
+		buf.Write(jsonVal[written:])
+		if pad {
+			buf.WriteByte(' ')
+		}
+		return buf.String(), nil
+	}
+	return string(jsonVal), nil
 }
 
-// EscapeJSStr returns the escaped JavaScript equivalent of the plain text data
-// s.
-func EscapeJSStr(s string) JS {
-	// Avoid allocation if we can.
-	if strings.IndexFunc(s, jsIsSpecial) < 0 {
-		return JS(s)
-	}
-	var b bytes.Buffer
-	escapedJSWriter(&b, []byte(s))
-	return JS(b.String())
-}
-
-func jsIsSpecial(r rune) bool {
-	switch r {
-	case '\\', '\'', '"', '<', '>', '&', '=':
+// isJSIdentPart reports whether the given rune is a JS identifier part.
+// It does not handle all the non-Latin letters, joiners, and combining marks,
+// but it does handle every codepoint that can occur in a numeric literal or
+// a keyword.
+func isJSIdentPart(r rune) bool {
+	switch {
+	case r == '$':
+		return true
+	case '0' <= r && r <= '9':
+		return true
+	case 'A' <= r && r <= 'Z':
+		return true
+	case r == '_':
+		return true
+	case 'a' <= r && r <= 'z':
 		return true
 	}
-	return r < ' ' || utf8.RuneSelf <= r
-}
-
-// ============================================================================
-// URL
-// ======================================================================================
-
-// IsSafeURL is true if s is a relative URL or if URL has a protocol in
-// (http, https, mailto).
-func IsSafeURL(s string) bool {
-	if protocol, _, ok := strings.Cut(s, ":"); ok && !strings.Contains(protocol, "/") {
-		if !strings.EqualFold(protocol, "http") && !strings.EqualFold(protocol, "https") &&
-			!strings.EqualFold(protocol, "mailto") {
-			return false
-		}
-	}
-	return true
+	return false
 }

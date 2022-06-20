@@ -1672,10 +1672,6 @@ func (l *Lexer) _hash() stateFn {
 		l.nextString("!")
 		l.emit(NoEscape)
 		peek = l.peek()
-	case '%':
-		l.nextString("%")
-		l.emit(Escaped)
-		peek = l.peek()
 	}
 
 	if peek == '[' {
