@@ -136,11 +136,13 @@ func goGetCorgi() {
 }
 
 func format(args *args) {
-	gofmt := exec.Command("gofmt", "-w", args.OutputFile)
+	gofmt := exec.Command("gofmt", "-w", args.OutputFile) //nolint:gosec
 	if err := gofmt.Run(); err == nil {
 		log.Println("formatted output")
 	} else {
-		log.Println("could not format output (the generated function is still fully functional):", err.Error())
+		log.Println("could not format output "+
+			"(this could mean that there is an erroneous Go expression in your template):",
+			err.Error())
 	}
 }
 
