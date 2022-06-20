@@ -14,15 +14,15 @@ func (l *Lexer) start() stateFn {
 	switch {
 	case l.peekIsString("//"):
 		return l.comment(l.start)
-	case l.peekIsString("extend"):
+	case l.peekIsWord("extend"):
 		return l.extend
-	case l.peekIsString("import"):
+	case l.peekIsWord("import"):
 		return l.import_
-	case l.peekIsString("use"):
+	case l.peekIsWord("use"):
 		return l.use
 	case l.peekIsString("-"):
 		return l.code(l.start)
-	case l.peekIsString("func"):
+	case l.peekIsWord("func"):
 		return l.func_
 	default:
 		return l.nextHTML

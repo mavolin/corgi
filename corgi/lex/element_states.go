@@ -929,7 +929,9 @@ Next:
 	for {
 		switch l.peek() {
 		case '.':
+			l.next()
 			if l.isLineEmpty() {
+				l.backup()
 				return l.dotBlock
 			}
 
