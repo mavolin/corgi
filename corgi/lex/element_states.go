@@ -935,6 +935,8 @@ Next:
 				return l.dotBlock
 			}
 
+			l.backup()
+
 			if endState := l._class(); endState != nil {
 				return endState
 			}
