@@ -43,7 +43,7 @@ func (p *Parser) start() (stateFn, error) {
 // Extend
 // ======================================================================================
 
-func (p *Parser) extend() (stateFn, error) {
+func (p *Parser) extend() (_ stateFn, err error) {
 	extend := p.next()
 	if p.mode == ModeUse {
 		return nil, p.error(extend, ErrUseExtends)
@@ -55,8 +55,12 @@ func (p *Parser) extend() (stateFn, error) {
 	}
 
 	p.f.Extend = &file.Extend{
-		Path: lit.Val,
-		Pos:  file.Pos{Line: extend.Line, Col: extend.Col},
+		Pos: file.Pos{Line: extend.Line, Col: extend.Col},
+	}
+
+	p.f.Extend.Path, err = strconv.Unquote(lit.Val)
+	if err != nil {
+		return nil, p.error(lit, errors.Wrap(err, "invalid extend path"))
 	}
 
 	return p.afterExtend, nil
