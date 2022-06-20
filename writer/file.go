@@ -33,6 +33,10 @@ func (w *Writer) writeFile() error {
 		return err
 	}
 
+	if err := w.writeDoctype(); err != nil {
+		return err
+	}
+
 	if err := w.writeScope(w.files.Peek()[0].Scope, nil); err != nil {
 		return err
 	}
@@ -177,6 +181,28 @@ func (w *Writer) writeInitScope(s file.Scope) error {
 		}
 
 		return w.writeScope(m.Body, nil)
+	}
+
+	return nil
+}
+
+// ============================================================================
+// Doctype
+// ======================================================================================
+
+func (w *Writer) writeDoctype() error {
+	base := w.files.Peek()[0]
+
+	if base.Prolog != "" {
+		if err := w.writeRawUnescaped("<?xml " + base.Prolog + "?>\n"); err != nil {
+			return err
+		}
+	}
+
+	if base.Doctype != "" {
+		if err := w.writeRawUnescaped("<!doctype " + base.Doctype + ">\n"); err != nil {
+			return err
+		}
 	}
 
 	return nil
