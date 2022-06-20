@@ -626,18 +626,24 @@ func (p *Parser) comment() (*file.Comment, error) {
 // Include
 // ======================================================================================
 
-func (p *Parser) include() (*file.Include, error) {
+func (p *Parser) include() (_ *file.Include, err error) {
 	includeItm := p.next() // lex.Include
 
-	fileItm := p.next()
-	if fileItm.Type != lex.Literal {
-		return nil, p.unexpectedItem(fileItm, lex.Literal)
+	pathItm := p.next()
+	if pathItm.Type != lex.Literal {
+		return nil, p.unexpectedItem(pathItm, lex.Literal)
 	}
 
-	return &file.Include{
-		Path: fileItm.Val,
-		Pos:  file.Pos{Line: includeItm.Line, Col: includeItm.Col},
-	}, nil
+	incl := file.Include{
+		Pos: file.Pos{Line: includeItm.Line, Col: includeItm.Col},
+	}
+
+	incl.Path, err = strconv.Unquote(pathItm.Val)
+	if err != nil {
+		return nil, p.error(pathItm, err)
+	}
+
+	return &incl, nil
 }
 
 // ============================================================================
@@ -1254,7 +1260,7 @@ func (p *Parser) element() (*file.Element, error) {
 		e.Body = file.Scope{
 			file.Interpolation{
 				Expression: expr,
-				NoEscape:   true,
+				EscapeMode: file.EscapeModeNoEscape,
 			},
 		}
 		return e, nil
@@ -1611,7 +1617,7 @@ func (p *Parser) assign() (*file.Interpolation, error) {
 	switch next.Type {
 	case lex.Assign:
 	case lex.AssignNoEscape:
-		interpolation.NoEscape = true
+		interpolation.EscapeMode = file.EscapeModeNoEscape
 	default:
 		return nil, p.unexpectedItem(next, lex.Assign, lex.AssignNoEscape)
 	}
@@ -1695,13 +1701,9 @@ func (p *Parser) mixinCall() (_ *file.MixinCall, err error) {
 		c.Name = file.Ident(p.next().Val)
 	}
 
-	if p.peek().Type == lex.LParen {
-		args, err := p.mixinArgs()
-		if err != nil {
-			return nil, err
-		}
-
-		c.Args = args
+	c.Args, err = p.mixinArgs()
+	if err != nil {
+		return nil, err
 	}
 
 	if p.peek().Type == lex.MixinBlockShortcut {
@@ -1733,6 +1735,11 @@ func (p *Parser) mixinCall() (_ *file.MixinCall, err error) {
 }
 
 func (p *Parser) mixinArgs() (args []file.MixinArg, err error) {
+	lparenItm := p.peek()
+	if lparenItm.Type != lex.LParen {
+		return nil, nil
+	}
+
 	p.next() // lex.LParen
 
 	if p.peek().Type == lex.RParen {
@@ -1747,6 +1754,8 @@ func (p *Parser) mixinArgs() (args []file.MixinArg, err error) {
 		if name.Type != lex.Ident {
 			return nil, p.unexpectedItem(name, lex.Ident)
 		}
+
+		arg.Pos = file.Pos{Line: name.Line, Col: name.Col}
 
 		arg.Name = file.Ident(name.Val)
 

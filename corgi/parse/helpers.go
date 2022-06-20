@@ -273,7 +273,7 @@ func (p *Parser) text(required bool) (itms []file.ScopeItem, err error) {
 func (p *Parser) hash() (file.ScopeItem, error) {
 	p.next() // lex.Hash
 
-	var noEscape bool
+	var em file.EscapeMode
 
 	switch p.peek().Type {
 	case lex.MixinCall:
@@ -285,7 +285,9 @@ func (p *Parser) hash() (file.ScopeItem, error) {
 		return *c, nil
 	case lex.NoEscape:
 		p.next()
-		noEscape = true
+		em = file.EscapeModeNoEscape
+	case lex.Escaped:
+		em = file.EscapeModeEscaped
 	}
 
 	if p.peek().Type == lex.LBracket {
@@ -300,11 +302,11 @@ func (p *Parser) hash() (file.ScopeItem, error) {
 			return nil, p.unexpectedItem(p.next(), lex.RBracket)
 		}
 
-		return file.InlineText{Text: textItm.Val, NoEscape: noEscape}, nil
+		return file.InlineText{Text: textItm.Val, EscapeMode: em}, nil
 	}
 
 	if p.peek().Type != lex.LBrace {
-		e, err := p.inlineElement(noEscape)
+		e, err := p.inlineElement(em)
 		if err != nil {
 			return nil, err
 		}
@@ -323,11 +325,11 @@ func (p *Parser) hash() (file.ScopeItem, error) {
 		return nil, p.unexpectedItem(p.next(), lex.RBrace)
 	}
 
-	return file.Interpolation{Expression: e, NoEscape: noEscape}, nil
+	return file.Interpolation{Expression: e, EscapeMode: em}, nil
 }
 
-func (p *Parser) inlineElement(noEscape bool) (*file.InlineElement, error) {
-	ie := file.InlineElement{NoEscape: noEscape}
+func (p *Parser) inlineElement(escapeMode file.EscapeMode) (*file.InlineElement, error) {
+	ie := file.InlineElement{EscapeMode: escapeMode}
 
 	elem, err := p.elementHeader()
 	if err != nil {

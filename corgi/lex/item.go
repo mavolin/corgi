@@ -107,6 +107,7 @@ const (
 
 	Hash     // '#'
 	NoEscape // '!' after a hash
+	Escaped  // '%' after a hash
 
 	TagVoid // '/'
 )

@@ -27,15 +27,15 @@ type FuncChainItm struct {
 
 func (FuncChainItm) _typeNilCheckChainItm() {}
 
-// IsSet reports whether base and any possibly chained elements resolve to
-// non-nil values.
+// IsSet reports whether base and all chained elements resolve to non-nil
+// values.
 // It also checks if slice/array indexes are in bounds and if map keys exists.
 func IsSet(base any, chain ...NilCheckChainItm) bool {
 	val := reflect.ValueOf(base)
 
 	for _, itm := range chain {
 		var ok bool
-		val, ok = deref(reflect.ValueOf(base))
+		val, ok = deref(val)
 		if !ok {
 			return false
 		}

@@ -135,7 +135,14 @@ func (w *Writer) writeBlock(b file.Block, e *elem) error {
 			}
 
 			if filledBlock.Name == b.Name {
-				return w.writeScope(filledBlock.Body, e)
+				tmp := w.mixins.Pop()
+
+				if err := w.writeScope(filledBlock.Body, e); err != nil {
+					return err
+				}
+
+				w.mixins.Push(tmp)
+				return nil
 			}
 		}
 
@@ -182,6 +189,14 @@ func (w *Writer) writeBlock(b file.Block, e *elem) error {
 	return nil
 }
 
+type block struct {
+	scope []file.ScopeItem
+
+	// files are the files starting at the file providing this block to the
+	// main file
+	files []file.File
+}
+
 func (w *Writer) resolveBlock(s file.Scope, name file.Ident, bs []block, otherFiles []file.File) []block {
 	for _, itm := range s {
 		filledBlock, ok := itm.(file.Block)
@@ -206,14 +221,6 @@ func (w *Writer) resolveBlock(s file.Scope, name file.Ident, bs []block, otherFi
 	}
 
 	return bs
-}
-
-type block struct {
-	scope []file.ScopeItem
-
-	// files are the files starting at the file providing this block to the
-	// main file
-	files []file.File
 }
 
 // ============================================================================
@@ -420,24 +427,32 @@ func (w *Writer) closeTag(e *elem) error {
 		}
 
 		for i, c := range e.e.Classes {
-			if i > 0 {
-				if err := w.writeUnescaped(" "); err != nil {
-					return err
-				}
-			}
-
 			switch c := c.(type) {
 			case file.ClassLiteral:
-				if err := w.writeUnescaped(c.Name); err != nil {
-					return err
+				if i > 0 {
+					if err := w.writePreEscapedHTML(" " + c.Name); err != nil {
+						return err
+					}
+				} else {
+					if err := w.writePreEscapedHTML(c.Name); err != nil {
+						return err
+					}
 				}
 			case file.ClassExpression:
 				err := w.expression(c.Name, func(val string) error {
 					if c.NoEscape {
-						return w.writeUnescaped(val)
+						if i > 0 {
+							return w.writeUnescapedStringExpression(`" "+` + val)
+						}
+
+						return w.writeUnescapedStringExpression(val)
 					}
 
-					return w.writeEscaped(val)
+					if i > 0 {
+						return w.writeEscapedHTMLStringExpression(`" "+` + val)
+					}
+
+					return w.writeEscapedHTMLStringExpression(val)
 				}, nil)
 				if err != nil {
 					return err
@@ -849,16 +864,14 @@ func (w *Writer) writeWhile(wh file.While, e *elem) error {
 
 func (w *Writer) writeText(t file.Text, e *elem) error {
 	if w.main.Type == file.TypeXML {
-		return w.writeEscaped(t.Text)
+		return w.writePreEscapedHTML(t.Text)
 	}
 
 	switch e.e.Name {
-	case "style":
-		return w.writeEscapedCSS(t.Text)
-	case "script":
+	case "style", "script":
 		return w.writeUnescaped(t.Text)
 	default:
-		return w.writeEscaped(t.Text)
+		return w.writePreEscapedHTML(t.Text)
 	}
 }
 
@@ -868,21 +881,32 @@ func (w *Writer) writeText(t file.Text, e *elem) error {
 
 func (w *Writer) writeInterpolation(i file.Interpolation, e *elem) error {
 	return w.expression(i.Expression, func(val string) error {
-		if i.NoEscape {
-			return w.writeAnyUnescaped(val)
+		if i.EscapeMode == file.EscapeModeNoEscape {
+			return w.writeUnescapedExpression(val)
 		}
 
 		if w.main.Type == file.TypeXML {
-			return w.writeHTML(val)
+			return w.writeHTMLExpression(val)
+		}
+
+		if i.EscapeMode == file.EscapeModeEscaped {
+			switch e.e.Name {
+			case "style":
+				return w.writeEscapedCSSExpression(val)
+			case "script":
+				return w.writeEscapedJSStrExpression(val)
+			default:
+				return w.writeHTMLExpression(val)
+			}
 		}
 
 		switch e.e.Name {
 		case "style":
-			return w.writeCSS(val)
+			return w.writeCSSExpression(val)
 		case "script":
-			return w.writeJS(val)
+			return w.writeJSExpression(val)
 		default:
-			return w.writeHTML(val)
+			return w.writeHTMLExpression(val)
 		}
 	}, nil)
 }
@@ -903,7 +927,7 @@ func (w *Writer) writeInlineElement(ie file.InlineElement) error {
 	}
 
 	if len(ie.Classes) > 0 {
-		if err := w.writeUnescaped(`" class="`); err != nil {
+		if err := w.writeUnescaped(` class="`); err != nil {
 			return err
 		}
 
@@ -915,7 +939,7 @@ func (w *Writer) writeInlineElement(ie file.InlineElement) error {
 						return err
 					}
 				} else {
-					if err := w.writeEscaped(c.Name); err != nil {
+					if err := w.writePreEscapedHTML(c.Name); err != nil {
 						return err
 					}
 				}
@@ -923,17 +947,17 @@ func (w *Writer) writeInlineElement(ie file.InlineElement) error {
 				err := w.expression(c.Name, func(val string) error {
 					if c.NoEscape {
 						if i > 0 {
-							return w.writeUnescaped(` ` + val)
+							return w.writeUnescapedStringExpression(`" "+` + val)
 						}
 
-						return w.writeEscaped(val)
+						return w.writeUnescapedStringExpression(val)
 					}
 
 					if i > 0 {
-						return w.writeEscaped(` ` + val)
+						return w.writeEscapedHTMLStringExpression(`" "+` + val)
 					}
 
-					return w.writeEscaped(val)
+					return w.writeEscapedHTMLStringExpression(val)
 				}, nil)
 				if err != nil {
 					return err
@@ -956,49 +980,70 @@ func (w *Writer) writeInlineElement(ie file.InlineElement) error {
 
 	switch val := ie.Value.(type) {
 	case file.Text:
-		if ie.NoEscape {
+		switch {
+		case ie.EscapeMode == file.EscapeModeNoEscape:
 			if err := w.writeUnescaped(val.Text); err != nil {
 				return err
 			}
-		}
-
-		if w.main.Type == file.TypeXML {
-			if err := w.writeEscaped(val.Text); err != nil {
+		case w.main.Type == file.TypeXML:
+			if err := w.writePreEscapedHTML(val.Text); err != nil {
 				return err
 			}
-		}
-
-		switch ie.Name {
-		case "style":
-			if err := w.writeEscapedCSS(val.Text); err != nil {
-				return err
-			}
-		case "script":
-			if err := w.writeUnescaped(val.Text); err != nil {
-				return err
+		case ie.EscapeMode == file.EscapeModeEscaped:
+			switch ie.Name {
+			case "style":
+				if err := w.writePreEscapedCSS(val.Text); err != nil {
+					return err
+				}
+			case "script":
+				if err := w.writePreEscapedJSStr(val.Text); err != nil {
+					return err
+				}
+			default:
+				if err := w.writePreEscapedHTML(val.Text); err != nil {
+					return err
+				}
 			}
 		default:
-			if err := w.writeEscaped(val.Text); err != nil {
-				return err
+			switch ie.Name {
+			case "style", "script":
+				if err := w.writeUnescaped(val.Text); err != nil {
+					return err
+				}
+			default:
+				if err := w.writePreEscapedHTML(val.Text); err != nil {
+					return err
+				}
 			}
 		}
 	case file.Expression:
 		err := w.expression(val, func(val string) error {
-			if ie.NoEscape {
-				return w.writeAnyUnescaped(val)
+			if ie.EscapeMode == file.EscapeModeNoEscape {
+				return w.writeUnescapedExpression(val)
 			}
 
 			if w.main.Type == file.TypeXML {
-				return w.writeHTML(val)
+				return w.writeHTMLExpression(val)
+			}
+
+			if ie.EscapeMode == file.EscapeModeEscaped {
+				switch ie.Name {
+				case "style":
+					return w.writeEscapedCSSExpression(val)
+				case "script":
+					return w.writeEscapedJSStrExpression(val)
+				default:
+					return w.writeHTMLExpression(val)
+				}
 			}
 
 			switch ie.Name {
 			case "style":
-				return w.writeCSS(val)
+				return w.writeCSSExpression(val)
 			case "script":
-				return w.writeJS(val)
+				return w.writeJSExpression(val)
 			default:
-				return w.writeHTML(val)
+				return w.writeHTMLExpression(val)
 			}
 		}, nil)
 		if err != nil {
@@ -1014,21 +1059,30 @@ func (w *Writer) writeInlineElement(ie file.InlineElement) error {
 // ======================================================================================
 
 func (w *Writer) writeInlineText(it file.InlineText, e *elem) error {
-	if it.NoEscape {
+	if it.EscapeMode == file.EscapeModeNoEscape {
 		return w.writeUnescaped(it.Text)
 	}
 
 	if w.main.Type == file.TypeXML {
-		return w.writeEscaped(it.Text)
+		return w.writePreEscapedHTML(it.Text)
+	}
+
+	if it.EscapeMode == file.EscapeModeEscaped {
+		switch e.e.Name {
+		case "style":
+			return w.writePreEscapedCSS(it.Text)
+		case "script":
+			return w.writePreEscapedJSStr(it.Text)
+		default:
+			return w.writePreEscapedHTML(it.Text)
+		}
 	}
 
 	switch e.e.Name {
-	case "style":
-		return w.writeEscapedCSS(it.Text)
-	case "script":
+	case "style", "script":
 		return w.writeUnescaped(it.Text)
 	default:
-		return w.writeEscaped(it.Text)
+		return w.writePreEscapedHTML(it.Text)
 	}
 }
 

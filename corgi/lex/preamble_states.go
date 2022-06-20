@@ -44,10 +44,22 @@ func (l *Lexer) extend() stateFn {
 		return l.error(&UnknownItemError{Expected: "a space"})
 	}
 
-	endState := l.emitUntil(Literal, &UnknownItemError{Expected: "a file to extend"}, ' ', '\t', '\n')
-	if endState != nil {
+	switch l.peek() {
+	case eof:
+		return l.eof
+	case '\n':
+		return l.error(&EOLError{After: "an string"})
+	case '`', '"':
+		// handled below
+	default: // invalid
+		return l.error(&UnknownItemError{Expected: "a string"})
+	}
+
+	if endState := l._string(); endState != nil {
 		return endState
 	}
+
+	l.emit(Literal)
 
 	return l.newlineOrEOF(l.start)
 }
@@ -149,7 +161,7 @@ func (l *Lexer) _singleImport() stateFn {
 	case eof:
 		l.next()
 		return nil
-	case '"':
+	case '"', '`':
 		// handled below
 	default: // an alias
 		if endState := l._importAlias(); endState != nil {
@@ -298,7 +310,7 @@ func (l *Lexer) _singleUse() stateFn {
 	case eof:
 		l.next()
 		return nil
-	case '"':
+	case '"', '`':
 		// handled below
 	default: // an alias
 		if endState := l._useAlias(); endState != nil {

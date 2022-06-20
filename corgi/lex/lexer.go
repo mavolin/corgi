@@ -261,6 +261,26 @@ func (l *Lexer) peekIsString(s string) bool {
 	return l.in[l.pos:endPos] == s
 }
 
+// peekIsWord peeks ahead to see if the next runes match s.
+// Additionally, it asserts that after the occurrence of s, a space, tab,
+// newline, or EOF must follow.
+//
+// If either of these conditions is not met, false is returned.
+func (l *Lexer) peekIsWord(s string) bool {
+	if !l.peekIsString(s) {
+		return false
+	}
+
+	afterIndex := l.pos + len(s)
+
+	if len(l.in) <= afterIndex { // eof
+		return true
+	}
+
+	after := l.in[afterIndex]
+	return after == ' ' || after == '\t' || after == '\n'
+}
+
 // ======================================= ignore =======================================
 
 // ignore ignores the input up to this point.

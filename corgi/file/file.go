@@ -75,6 +75,7 @@ type Pos struct {
 
 type (
 	Extend struct {
+		// Path is the unquoted path to the file.
 		Path string
 		File File
 
@@ -85,8 +86,8 @@ type (
 	Import struct {
 		// Alias is the alias of the import, if any.
 		Alias GoIdent
-		// Path is the literal path of the import, with quotes still present.
-		Path GoLiteral
+		// Path is the unquoted path of the import.
+		Path string
 
 		Pos // for linking
 		// Source is the source of the first file that made this import.

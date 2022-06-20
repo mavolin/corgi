@@ -49,6 +49,8 @@ func (l *Linker) fileExtend() error {
 	minify.Minify(pf)
 
 	pfLinker := New(pf)
+	pfLinker.rSources = l.rSources
+
 	if err = pfLinker.Link(); err != nil {
 		return err
 	}

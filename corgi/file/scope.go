@@ -297,6 +297,18 @@ func (Text) _typeScopeItem()          {}
 func (Text) _typeInlineElementValue() {}
 
 // ============================================================================
+// EscapeMode
+// ======================================================================================
+
+type EscapeMode uint8
+
+const (
+	EscapeModeNone     EscapeMode = iota // no '!' or '%'
+	EscapeModeNoEscape                   // '!'
+	EscapeModeEscaped                    // '%'
+)
+
+// ============================================================================
 // Interpolation
 // ======================================================================================
 
@@ -308,9 +320,7 @@ type Interpolation struct {
 	// Expression is the expression that is interpolated.
 	Expression Expression
 
-	// NoEscape indicates whether the result of the interpolation should be
-	// escaped.
-	NoEscape bool
+	EscapeMode EscapeMode
 }
 
 func (Interpolation) _typeScopeItem() {}
@@ -330,9 +340,7 @@ type InlineElement struct {
 
 	SelfClosing bool
 
-	// NoEscape indicates whether the content of the element should be
-	// escaped.
-	NoEscape bool
+	EscapeMode EscapeMode
 
 	// Value is the value of the element.
 	Value InlineElementValue
@@ -357,8 +365,8 @@ type InlineElementValue interface {
 type InlineText struct {
 	// Text is the interpolated text.
 	Text string
-	// NoEscape indicates whether the text should be escaped.
-	NoEscape bool
+
+	EscapeMode EscapeMode
 }
 
 func (InlineText) _typeScopeItem() {}

@@ -164,7 +164,9 @@ Uses:
 	for _, use := range l.f.Uses {
 		switch {
 		case use.Namespace == "." && c.Namespace == "":
+			fallthrough
 		case use.Namespace == c.Namespace:
+			// handled below
 		case use.Namespace == "_":
 			continue Uses
 		default:

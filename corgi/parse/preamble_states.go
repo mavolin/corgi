@@ -122,28 +122,34 @@ func (p *Parser) import_() (stateFn, error) {
 	}
 }
 
-func (p *Parser) singleImport() error {
+func (p *Parser) singleImport() (err error) {
 	var alias file.GoIdent
 
-	path := p.next()
-	first := path
-	if path.Type == lex.Ident { // not the path, but the alias
-		first = path
-		alias = file.GoIdent(path.Val)
-		path = p.next()
+	pathItm := p.next()
+	first := pathItm
+	if pathItm.Type == lex.Ident { // not the path, but the alias
+		first = pathItm
+		alias = file.GoIdent(pathItm.Val)
+		pathItm = p.next()
 	}
 
-	if path.Type != lex.Literal {
-		return p.unexpectedItem(path, lex.Literal)
+	if pathItm.Type != lex.Literal {
+		return p.unexpectedItem(pathItm, lex.Literal)
 	}
 
-	p.f.Imports = append(p.f.Imports, file.Import{
+	imp := file.Import{
 		Alias:  alias,
-		Path:   file.GoLiteral(path.Val),
 		Pos:    file.Pos{Line: first.Line, Col: first.Col},
 		Source: p.f.Source,
 		File:   p.f.Name,
-	})
+	}
+
+	imp.Path, err = strconv.Unquote(pathItm.Val)
+	if err != nil {
+		return p.error(pathItm, errors.Wrap(err, "invalid use string"))
+	}
+
+	p.f.Imports = append(p.f.Imports, imp)
 
 	return nil
 }

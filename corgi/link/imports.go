@@ -2,9 +2,6 @@ package link
 
 import (
 	"path/filepath"
-	"strconv"
-
-	"github.com/pkg/errors"
 
 	"github.com/mavolin/corgi/corgi/file"
 )
@@ -128,19 +125,11 @@ func (l *Linker) resolveIncludeImports(s file.Scope) error {
 //
 // In all other cases it adds the import.
 func (l *Linker) addImport(imp file.Import) (err error) {
-	impNamespace, impUnqPath, err := resolveNamespace(imp)
-	if err != nil {
-		return err
-	}
+	impNamespace := resolveNamespace(imp)
 
 	if imp.Alias == "." || imp.Alias == "_" {
 		for _, cmp := range l.f.Imports {
-			_, cmpUnqPath, err := resolveNamespace(cmp)
-			if err != nil {
-				return err
-			}
-
-			if cmpUnqPath == impUnqPath {
+			if cmp.Path == imp.Path {
 				return nil
 			}
 		}
@@ -151,11 +140,7 @@ func (l *Linker) addImport(imp file.Import) (err error) {
 	}
 
 	for i, cmp := range l.f.Imports {
-		cmpNamespace, cmpUnqPath, err := resolveNamespace(cmp)
-		if err != nil {
-			return err
-		}
-
+		cmpNamespace := resolveNamespace(cmp)
 		if cmpNamespace == "_" {
 			l.f.Imports[i].Alias = imp.Alias
 			return nil
@@ -167,7 +152,7 @@ func (l *Linker) addImport(imp file.Import) (err error) {
 
 		// both have no alias, or both have the same alias and both have the
 		// same path -> don't add this import, it already exists
-		if impUnqPath == cmpUnqPath {
+		if imp.Path == cmp.Path {
 			return nil
 		}
 
@@ -190,17 +175,12 @@ func (l *Linker) addImport(imp file.Import) (err error) {
 	return nil
 }
 
-func resolveNamespace(imp file.Import) (namespace string, unquotedPath string, err error) {
-	namespace = string(imp.Alias)
-
-	unquotedPath, err = strconv.Unquote(string(imp.Path))
-	if err != nil {
-		return "", "", errors.Wrapf(err, "invalid import path %s", string(imp.Path))
-	}
+func resolveNamespace(imp file.Import) string {
+	namespace := string(imp.Alias)
 
 	if namespace == "" {
-		namespace = filepath.Base(unquotedPath)
+		namespace = filepath.Base(imp.Path)
 	}
 
-	return namespace, unquotedPath, nil
+	return namespace
 }

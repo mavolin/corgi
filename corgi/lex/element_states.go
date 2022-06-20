@@ -22,39 +22,39 @@ func (l *Lexer) nextHTML() stateFn {
 	switch {
 	case l.peek() == eof:
 		return l.eof
-	case l.peekIsString("doctype"):
+	case l.peekIsWord("doctype"):
 		return l.doctype
 	case l.peekIsString("//"):
 		return l.comment(l.nextHTML)
-	case l.peekIsString("-"):
+	case l.peekIsWord("-"):
 		return l.code(l.nextHTML)
-	case l.peekIsString("include "):
+	case l.peekIsWord("include"):
 		return l.include
-	case l.peekIsString("block "):
+	case l.peekIsWord("block"):
 		return l.block
-	case l.peekIsString("append "):
+	case l.peekIsWord("append"):
 		return l.blockAppend
-	case l.peekIsString("prepend "):
+	case l.peekIsWord("prepend"):
 		return l.blockPrepend
-	case l.peekIsString("mixin"):
+	case l.peekIsWord("mixin"):
 		return l.mixin
-	case l.peekIsString("if block"):
+	case l.peekIsWord("if block"):
 		return l.ifBlock
-	case l.peekIsString("if "):
+	case l.peekIsWord("if"):
 		return l.if_
-	case l.peekIsString("else if "):
+	case l.peekIsWord("else if"):
 		return l.elseIf
-	case l.peekIsString("else"):
+	case l.peekIsWord("else"), l.peekIsWord("else:"): // block expansion
 		return l.else_
-	case l.peekIsString("switch"):
+	case l.peekIsWord("switch"):
 		return l.switch_
-	case l.peekIsString("case "):
+	case l.peekIsWord("case "):
 		return l.case_
-	case l.peekIsString("default"):
+	case l.peekIsWord("default"), l.peekIsWord("default:"): // block expansion
 		return l.caseDefault
-	case l.peekIsString("for "):
+	case l.peekIsWord("for"):
 		return l.for_
-	case l.peekIsString("while "):
+	case l.peekIsWord("while"):
 		return l.while
 	case l.peekIsString("&"):
 		return l.and
@@ -272,10 +272,22 @@ func (l *Lexer) include() stateFn {
 		return l.error(&UnknownItemError{Expected: "a space"})
 	}
 
-	endState := l.emitUntil(Literal, &EOLError{In: "an include keyword"}, ' ', '\t', '\n')
-	if endState != nil {
+	switch l.peek() {
+	case eof:
+		return l.eof
+	case '\n':
+		return l.error(&EOLError{After: "a string"})
+	case '`', '"':
+		// handled below
+	default: // invalid
+		return l.error(&UnknownItemError{Expected: "a string"})
+	}
+
+	if endState := l._string(); endState != nil {
 		return endState
 	}
+
+	l.emit(Literal)
 
 	return l.newlineOrEOF(l.nextHTML)
 }
@@ -603,6 +615,10 @@ func (l *Lexer) ifBlock() stateFn {
 	l.emit(IfBlock)
 
 	if !l.ignoreWhitespace() {
+		if l.isLineEmpty() {
+			return l.newlineOrEOF(l.nextHTML)
+		}
+
 		return l.error(&UnknownItemError{Expected: "a space"})
 	}
 
@@ -899,7 +915,7 @@ func (l *Lexer) divOrDotBlock() stateFn {
 // It emits an Element item.
 func (l *Lexer) element() stateFn {
 	endState := l.emitUntil(Element, &UnknownItemError{Expected: "an element name"},
-		'=', '.', '#', '(', ' ', '\t', '\n')
+		'=', ':', '.', '#', '(', ' ', '\t', '\n')
 	if endState != nil {
 		return endState
 	}
@@ -977,7 +993,7 @@ func (l *Lexer) _class() stateFn {
 	l.emit(Class)
 
 	endState := l.emitUntil(Literal, &UnknownItemError{Expected: "a class name"},
-		'.', '#', '(', '[', '{', ' ', '\t', '\n')
+		'.', '#', '(', '[', '{', '=', ':', ' ', '\t', '\n')
 	if endState != nil {
 		return endState
 	}
@@ -994,7 +1010,8 @@ func (l *Lexer) _id() stateFn {
 	l.nextString("#")
 	l.emit(ID)
 
-	endState := l.emitUntil(Literal, &UnknownItemError{Expected: "an id"}, '.', '#', '[', '{', '(', ' ', '\t', '\n')
+	endState := l.emitUntil(Literal, &UnknownItemError{Expected: "an id"},
+		'.', '#', '[', '{', '(', '=', ':', ' ', '\t', '\n')
 	if endState != nil {
 		return endState
 	}
@@ -1654,6 +1671,10 @@ func (l *Lexer) _hash() stateFn {
 	case '!':
 		l.nextString("!")
 		l.emit(NoEscape)
+		peek = l.peek()
+	case '%':
+		l.nextString("%")
+		l.emit(Escaped)
 		peek = l.peek()
 	}
 

@@ -87,14 +87,42 @@ func (w *Writer) writeToFile(s string) error {
 }
 
 func (w *Writer) writeUnescaped(s string) error {
+	return w.writeUnescapedStringExpression(strconv.Quote(s))
+}
+
+func (w *Writer) writeUnescapedStringExpression(s string) error {
 	return w.writeToFile(
-		"err = _writeutil.Write(_w, " + strconv.Quote(s) + ")\n" +
+		"err = _writeutil.Write(_w, " + s + ")\n" +
 			"if err != nil {\n" +
 			"    return err\n" +
 			"}\n")
 }
 
-func (w *Writer) writeEscaped(s string) error {
+func (w *Writer) writeEscapedHTMLStringExpression(s string) error {
+	return w.writeToFile(
+		"err = _writeutil.Write(_w, string(_writeutil.EscapeHTML(" + s + ")))\n" +
+			"if err != nil {\n" +
+			"    return err\n" +
+			"}\n")
+}
+
+func (w *Writer) writeEscapedCSSExpression(s string) error {
+	return w.writeToFile(
+		"err = _writeutil.WriteEscapedCSS(_w, " + s + ")\n" +
+			"if err != nil {\n" +
+			"    return err\n" +
+			"}\n")
+}
+
+func (w *Writer) writeEscapedJSStrExpression(s string) error {
+	return w.writeToFile(
+		"err = _writeutil.WriteEscapedJSStr(_w, " + s + ")\n" +
+			"if err != nil {\n" +
+			"    return err\n" +
+			"}\n")
+}
+
+func (w *Writer) writePreEscapedHTML(s string) error {
 	s = string(writeutil.EscapeHTML(s))
 
 	return w.writeToFile(
@@ -104,7 +132,7 @@ func (w *Writer) writeEscaped(s string) error {
 			"}\n")
 }
 
-func (w *Writer) writeEscapedCSS(s string) error {
+func (w *Writer) writePreEscapedCSS(s string) error {
 	s = string(writeutil.EscapeCSS(s))
 
 	return w.writeToFile(
@@ -114,7 +142,17 @@ func (w *Writer) writeEscapedCSS(s string) error {
 			"}\n")
 }
 
-func (w *Writer) writeCSS(s string) error {
+func (w *Writer) writePreEscapedJSStr(s string) error {
+	s = string(writeutil.EscapeJSStr(s))
+
+	return w.writeToFile(
+		"err = _writeutil.Write(_w, " + strconv.Quote(s) + ")\n" +
+			"if err != nil {\n" +
+			"    return err\n" +
+			"}\n")
+}
+
+func (w *Writer) writeCSSExpression(s string) error {
 	return w.writeToFile(
 		"err = _writeutil.WriteCSS(_w, " + s + ")\n" +
 			"if err != nil {\n" +
@@ -122,7 +160,7 @@ func (w *Writer) writeCSS(s string) error {
 			"}\n")
 }
 
-func (w *Writer) writeHTML(s string) error {
+func (w *Writer) writeHTMLExpression(s string) error {
 	return w.writeToFile(
 		"err = _writeutil.WriteHTML(_w, " + s + ")\n" +
 			"if err != nil {\n" +
@@ -130,7 +168,7 @@ func (w *Writer) writeHTML(s string) error {
 			"}\n")
 }
 
-func (w *Writer) writeJS(s string) error {
+func (w *Writer) writeJSExpression(s string) error {
 	return w.writeToFile(
 		"err = _writeutil.WriteJS(_w, " + s + ")\n" +
 			"if err != nil {\n" +
@@ -138,7 +176,7 @@ func (w *Writer) writeJS(s string) error {
 			"}\n")
 }
 
-func (w *Writer) writeAnyUnescaped(s string) error {
+func (w *Writer) writeUnescapedExpression(s string) error {
 	return w.writeToFile(
 		"err = _writeutil.WriteAnyUnescaped(_w, " + s + ")\n" +
 			"if err != nil {\n" +

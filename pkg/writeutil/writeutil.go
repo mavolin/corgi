@@ -19,8 +19,36 @@ func Write(w io.Writer, s string) error {
 	return err
 }
 
-func WriteEscaped(w io.Writer, s string) error {
-	return Write(w, string(EscapeHTML(s)))
+// ============================================================================
+// Contextual Escape
+// ======================================================================================
+
+func WriteEscapedCSS(w io.Writer, a any) error {
+	css, ok := a.(CSS)
+	if ok {
+		return Write(w, string(css))
+	}
+
+	s, err := Stringify(a, false)
+	if err != nil {
+		return err
+	}
+
+	return Write(w, string(EscapeCSS(s)))
+}
+
+func WriteEscapedJSStr(w io.Writer, a any) error {
+	css, ok := a.(JS)
+	if ok {
+		return Write(w, string(css))
+	}
+
+	s, err := Stringify(a, false)
+	if err != nil {
+		return err
+	}
+
+	return Write(w, string(EscapeJSStr(s)))
 }
 
 // ============================================================================
@@ -60,17 +88,12 @@ func WriteHTML(w io.Writer, a any) error {
 }
 
 func WriteJS(w io.Writer, a any) error {
-	a, ok := a.(JS)
+	js, ok := a.(JS)
 	if !ok {
 		return errors.New("unsafe interpolation in JavaScript code")
 	}
 
-	s, err := Stringify(a, false)
-	if err != nil {
-		return err
-	}
-
-	return Write(w, s)
+	return Write(w, string(js))
 }
 
 // ============================================================================
@@ -126,7 +149,7 @@ func WriteAttrUnescaped(w io.Writer, name string, val any, mirror bool) error {
 func WriteUnsafeAttr(w io.Writer, name string, val any) error {
 	attr, ok := val.(HTMLAttr)
 	if !ok {
-		return errors.New("unsafe interpolation in attribute")
+		return errors.New("unsafe interpolation in attribute `" + name + "`")
 	}
 
 	return Write(w, " "+name+`="`+string(EscapeCSS(string(attr)))+`"`)
@@ -135,7 +158,7 @@ func WriteUnsafeAttr(w io.Writer, name string, val any) error {
 func WriteCSSAttr(w io.Writer, name string, val any) error {
 	css, ok := val.(CSS)
 	if !ok {
-		return errors.New("unsafe interpolation in CSS attribute")
+		return errors.New("unsafe interpolation in CSS attribute `" + name + "`")
 	}
 
 	return Write(w, " "+name+`="`+string(EscapeCSS(string(css)))+`"`)
@@ -144,7 +167,7 @@ func WriteCSSAttr(w io.Writer, name string, val any) error {
 func WriteHTMLAttr(w io.Writer, name string, val any) error {
 	html, ok := val.(HTML)
 	if !ok {
-		return errors.New("unsafe interpolation in HTML attribute")
+		return errors.New("unsafe interpolation in HTML attribute `" + name + "`")
 	}
 
 	return Write(w, " "+name+`="`+string(EscapeHTML(string(html)))+`"`)
@@ -153,7 +176,7 @@ func WriteHTMLAttr(w io.Writer, name string, val any) error {
 func WriteJSAttr(w io.Writer, name string, val any) error {
 	js, ok := val.(JS)
 	if !ok {
-		return errors.New("unsafe interpolation in JavaScript attribute")
+		return errors.New("unsafe interpolation in JavaScript attribute `" + name + "`")
 	}
 
 	return Write(w, " "+name+`="`+string(EscapeHTML(string(js)))+`"`)
@@ -166,18 +189,18 @@ func WriteURLAttr(w io.Writer, name string, val any) error {
 			return Write(w, " "+name+`="`+string(EscapeHTML(val))+`"`)
 		}
 
-		return errors.New("unsafe interpolation in URL attribute")
+		return errors.New("unsafe interpolation in URL attribute `" + name + "`")
 	case URL:
 		return Write(w, " "+name+`="`+string(val)+`"`)
 	}
 
-	return errors.New("unsafe interpolation in URL attribute")
+	return errors.New("unsafe interpolation in URL attribute `" + name + "`")
 }
 
 func WriteSrcsetAttr(w io.Writer, name string, val any) error {
 	srcset, ok := val.(CSS)
 	if !ok {
-		return errors.New("unsafe interpolation in srcset attribute")
+		return errors.New("unsafe interpolation in srcset attribute `" + name + "`")
 	}
 
 	return Write(w, " "+name+`="`+string(EscapeHTML(string(srcset)))+`"`)

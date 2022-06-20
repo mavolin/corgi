@@ -273,7 +273,8 @@ func escapedJSWriter(w io.Writer, b []byte) {
 	w.Write(b[last:])
 }
 
-// EscapeJSStr returns the escaped JavaScript equivalent of the plain text data s.
+// EscapeJSStr returns the escaped JavaScript equivalent of the plain text data
+// s.
 func EscapeJSStr(s string) JS {
 	// Avoid allocation if we can.
 	if strings.IndexFunc(s, jsIsSpecial) < 0 {
@@ -300,8 +301,8 @@ func jsIsSpecial(r rune) bool {
 // (http, https, mailto).
 func IsSafeURL(s string) bool {
 	if protocol, _, ok := strings.Cut(s, ":"); ok && !strings.Contains(protocol, "/") {
-		if !strings.EqualFold(protocol, "http") && !strings.EqualFold(protocol, "https") && !strings.EqualFold(protocol,
-			"mailto") {
+		if !strings.EqualFold(protocol, "http") && !strings.EqualFold(protocol, "https") &&
+			!strings.EqualFold(protocol, "mailto") {
 			return false
 		}
 	}

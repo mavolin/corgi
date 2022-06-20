@@ -1,6 +1,8 @@
 package writer
 
 import (
+	"strconv"
+
 	"github.com/mavolin/corgi/corgi/file"
 )
 
@@ -27,7 +29,7 @@ func (w *Writer) writeImports() error {
 	}
 
 	for _, imp := range w.main.Imports {
-		if err := w.writeToFile(string(imp.Path) + "\n"); err != nil {
+		if err := w.writeToFile(strconv.Quote(imp.Path) + "\n"); err != nil {
 			return err
 		}
 	}
@@ -66,6 +68,10 @@ func (w *Writer) writeGlobalCodeFile(f *file.File, alreadyWritten map[string]str
 				if err := w.writeToFile(c.Code + "\n"); err != nil {
 					return err
 				}
+			}
+
+			if err := w.writeGlobalCodeScope(uf.Scope, alreadyWritten); err != nil {
+				return err
 			}
 		}
 	}
