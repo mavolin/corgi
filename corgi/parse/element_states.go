@@ -1260,7 +1260,7 @@ func (p *Parser) element() (*file.Element, error) {
 		e.Body = file.Scope{
 			file.Interpolation{
 				Expression: expr,
-				EscapeMode: file.EscapeModeNoEscape,
+				NoEscape:   true,
 			},
 		}
 		return e, nil
@@ -1611,13 +1611,13 @@ func (p *Parser) pipe() (itms []file.ScopeItem, err error) {
 // ======================================================================================
 
 func (p *Parser) assign() (*file.Interpolation, error) {
-	var interpolation file.Interpolation
+	var interp file.Interpolation
 
 	next := p.next()
 	switch next.Type {
 	case lex.Assign:
 	case lex.AssignNoEscape:
-		interpolation.EscapeMode = file.EscapeModeNoEscape
+		interp.NoEscape = true
 	default:
 		return nil, p.unexpectedItem(next, lex.Assign, lex.AssignNoEscape)
 	}
@@ -1627,9 +1627,9 @@ func (p *Parser) assign() (*file.Interpolation, error) {
 		return nil, err
 	}
 
-	interpolation.Expression = exp
+	interp.Expression = exp
 
-	return &interpolation, nil
+	return &interp, nil
 }
 
 // ============================================================================
