@@ -1,6 +1,7 @@
 // Package require provides a type to express optionality.
 package require
 
+// Required is a type used to express optionality.
 type Required uint8
 
 const (

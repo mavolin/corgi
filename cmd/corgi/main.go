@@ -36,11 +36,10 @@ func main() {
 				Required: true,
 			},
 			&cli.StringSliceFlag{
-				Name:        "resource",
-				Aliases:     []string{"r"},
-				DefaultText: "$projectRoot/corgi",
-				Usage:       "add `DIR` to the list of resource directories",
-				TakesFile:   true,
+				Name:      "resource",
+				Aliases:   []string{"r"},
+				Usage:     "add `DIR` to the list of resource directories",
+				TakesFile: true,
 			},
 			&cli.BoolFlag{
 				Name:  "ignorecorgi",
@@ -49,7 +48,7 @@ func main() {
 			&cli.StringFlag{
 				Name:        "filetype",
 				Aliases:     []string{"t"},
-				Usage:       "overwrite the file type of the generated file (html, xhtml, xml)",
+				Usage:       "overwrite the file type of the file (html, xhtml, xml)",
 				DefaultText: "html",
 				Value:       "",
 			},

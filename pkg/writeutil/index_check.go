@@ -4,33 +4,33 @@ import (
 	"reflect"
 )
 
-type NilCheckChainItm interface {
-	_typeNilCheckChainItm()
+type IsSetChainItem interface {
+	_typeIsSetChainItem()
 }
 
 type IndexChainItm struct {
 	Index any
 }
 
-func (IndexChainItm) _typeNilCheckChainItm() {}
+func (IndexChainItm) _typeIsSetChainItem() {}
 
-type FieldChainItm struct {
+type FieldChainItem struct {
 	Name string
 }
 
-func (FieldChainItm) _typeNilCheckChainItm() {}
+func (FieldChainItem) _typeIsSetChainItem() {}
 
-type FuncChainItm struct {
+type FuncChainItem struct {
 	Name string
 	Args []any
 }
 
-func (FuncChainItm) _typeNilCheckChainItm() {}
+func (FuncChainItem) _typeIsSetChainItem() {}
 
 // IsSet reports whether base and all chained elements resolve to non-nil
-// values.
+// values of their respective types.
 // It also checks if slice/array indexes are in bounds and if map keys exists.
-func IsSet(base any, chain ...NilCheckChainItm) bool {
+func IsSet(base any, chain ...IsSetChainItem) bool {
 	val := reflect.ValueOf(base)
 
 	for _, itm := range chain {
@@ -74,7 +74,7 @@ func IsSet(base any, chain ...NilCheckChainItm) bool {
 			default:
 				return false
 			}
-		case FieldChainItm:
+		case FieldChainItem:
 			if val.Kind() != reflect.Struct {
 				return false
 			}
@@ -83,7 +83,7 @@ func IsSet(base any, chain ...NilCheckChainItm) bool {
 			if !val.IsValid() {
 				return false
 			}
-		case FuncChainItm:
+		case FuncChainItem:
 			rargs := make([]reflect.Value, len(itm.Args))
 			for i, arg := range itm.Args {
 				rargs[i] = reflect.ValueOf(arg)

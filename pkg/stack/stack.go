@@ -8,19 +8,19 @@ type Stack[T any] struct {
 	s []T
 }
 
-func New[T any](initialSize int) Stack[T] {
-	return Stack[T]{s: make([]T, 0, initialSize)}
+// New creates a new Stack with the given initial capacity.
+func New[T any](initialCap int) Stack[T] {
+	return Stack[T]{s: make([]T, 0, initialCap)}
 }
 
+// Push puts elem on top of the stack.
 func (s *Stack[T]) Push(elem T) {
 	s.s = append(s.s, elem)
 }
 
-// Swap swaps the top element for the passed element.
-func (s *Stack[T]) Swap(elem T) {
-	s.s[len(s.s)-1] = elem
-}
-
+// Pop takes the top most element from the stack and removes it.
+//
+// If the stack is of length 0, Pop will panic.
 func (s *Stack[T]) Pop() T {
 	i := len(s.s) - 1
 
@@ -29,10 +29,14 @@ func (s *Stack[T]) Pop() T {
 	return elem
 }
 
+// Peek returns the element at the top of the stack without removing it.
+//
+// If the stack is of length 0, Peek will panic.
 func (s *Stack[T]) Peek() T {
 	return s.s[len(s.s)-1]
 }
 
+// Len returns the length of the stack.
 func (s *Stack[T]) Len() int {
 	return len(s.s)
 }

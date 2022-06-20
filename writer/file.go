@@ -13,6 +13,8 @@ import (
 	"github.com/mavolin/corgi/pkg/writeutil"
 )
 
+// This file contains code that produces the body of the generated function.
+
 func (w *Writer) writeFile() error {
 	if err := w.writeToFile("{\n"); err != nil {
 		return err
@@ -29,15 +31,15 @@ func (w *Writer) writeFile() error {
 		return err
 	}
 
-	if err := w.writeInit(); err != nil {
+	if err = w.writeInit(); err != nil {
 		return err
 	}
 
-	if err := w.writeDoctype(); err != nil {
+	if err = w.writeDoctype(); err != nil {
 		return err
 	}
 
-	if err := w.writeScope(w.files.Peek()[0].Scope, nil); err != nil {
+	if err = w.writeScope(w.files.Peek()[0].Scope, nil); err != nil {
 		return err
 	}
 
@@ -1455,13 +1457,13 @@ func (w *Writer) nilCheckIfCondition(e file.NilCheckExpression) error {
 			// it's a func
 			split := strings.SplitAfterN(expr.Expression, "(", 2)
 			if len(split) == 1 {
-				err = w.writeToFile("_writeutil.FieldChainItm{Name: \"" + expr.Expression + "\"}")
+				err = w.writeToFile("_writeutil.FieldChainItem{Name: \"" + expr.Expression + "\"}")
 				if err != nil {
 					return err
 				}
 			} else {
 				args := split[1][:len(split)-1]
-				err = w.writeToFile("_writeutil.FuncChainItm{Name: \"" + split[0] + "\", Args: []any{" + args + "}}")
+				err = w.writeToFile("_writeutil.FuncChainItem{Name: \"" + split[0] + "\", Args: []any{" + args + "}}")
 				if err != nil {
 					return err
 				}

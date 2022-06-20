@@ -38,7 +38,7 @@ const (
 	Text       // the text after an element, pipe etc. that needs HTML escaping
 
 	CodeStart // '-'
-	Code      // after a minus
+	Code      // after CodeStart
 
 	Ternary     // '?' at the start of code
 	TernaryElse // ':' after the ifTrue
@@ -100,7 +100,7 @@ const (
 
 	Filter // ':'
 
-	DotBlock     // '.' after an element, e.g. 'p.'
+	DotBlock     // '.' e.g., after an element, such as 'p.'
 	DotBlockLine // used at the start of each line in a DotBlock
 
 	Pipe // '|'
