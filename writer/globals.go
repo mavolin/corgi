@@ -83,11 +83,6 @@ func (w *Writer) writeGlobalCodeScope(s file.Scope, alreadyWritten map[string]st
 Items:
 	for _, itm := range s {
 		switch itm := itm.(type) {
-		case file.Code:
-			if err := w.writeToFile(itm.Code + "\n"); err != nil {
-				return err
-			}
-
 		case file.Include:
 			ci, ok := itm.Include.(file.CorgiInclude)
 			if !ok {
@@ -102,68 +97,6 @@ Items:
 				if err := w.writeToFile(c.Code + "\n"); err != nil {
 					return err
 				}
-			}
-		case file.Block:
-			if err := w.writeGlobalCodeScope(itm.Body, alreadyWritten); err != nil {
-				return err
-			}
-		case file.Element:
-			if err := w.writeGlobalCodeScope(itm.Body, alreadyWritten); err != nil {
-				return err
-			}
-		case file.If:
-			if err := w.writeGlobalCodeScope(itm.Then, alreadyWritten); err != nil {
-				return err
-			}
-
-			for _, ei := range itm.ElseIfs {
-				if err := w.writeGlobalCodeScope(ei.Then, alreadyWritten); err != nil {
-					return err
-				}
-			}
-
-			if itm.Else != nil {
-				if err := w.writeGlobalCodeScope(itm.Else.Then, alreadyWritten); err != nil {
-					return err
-				}
-			}
-		case file.IfBlock:
-			if err := w.writeGlobalCodeScope(itm.Then, alreadyWritten); err != nil {
-				return err
-			}
-
-			if itm.Else != nil {
-				if err := w.writeGlobalCodeScope(itm.Else.Then, alreadyWritten); err != nil {
-					return err
-				}
-			}
-		case file.Switch:
-			for _, c := range itm.Cases {
-				if err := w.writeGlobalCodeScope(c.Then, alreadyWritten); err != nil {
-					return err
-				}
-			}
-
-			if itm.Default != nil {
-				if err := w.writeGlobalCodeScope(itm.Default.Then, alreadyWritten); err != nil {
-					return err
-				}
-			}
-		case file.For:
-			if err := w.writeGlobalCodeScope(itm.Body, alreadyWritten); err != nil {
-				return err
-			}
-		case file.While:
-			if err := w.writeGlobalCodeScope(itm.Body, alreadyWritten); err != nil {
-				return err
-			}
-		case file.Mixin:
-			if err := w.writeGlobalCodeScope(itm.Body, alreadyWritten); err != nil {
-				return err
-			}
-		case file.MixinCall:
-			if err := w.writeGlobalCodeScope(itm.Body, alreadyWritten); err != nil {
-				return err
 			}
 		}
 	}
