@@ -19,28 +19,35 @@ func Minify(f *file.File) {
 
 func minifyText(s file.Scope) file.Scope {
 Items:
-	for i := 1; i < len(s); i++ {
+	for i := 0; i < len(s); i++ {
 		switch itm := s[i].(type) {
 		case file.InlineText:
 			if itm.NoEscape {
 				continue Items
 			}
 
-			// check if we can collapse it with the previous item
-			prevText, ok := s[i-1].(file.Text)
-			if ok {
-				prevText.Text += itm.Text
-				s[i-1] = prevText
+			if i >= 1 {
+				// check if we can collapse it with the previous item
+				prevText, ok := s[i-1].(file.Text)
+				if ok {
+					prevText.Text += itm.Text
+					s[i-1] = prevText
 
-				copy(s[i:], s[i+1:])
-				s = s[:len(s)-1]
+					copy(s[i:], s[i+1:])
+					s = s[:len(s)-1]
 
-				i--
-			} else {
-				// so we can collapse it next iteration, if possible
-				s[i] = file.Text{Text: itm.Text}
+					i--
+					continue Items
+				}
 			}
+
+			// convert so we can collapse it next iteration, if possible
+			s[i] = file.Text{Text: itm.Text}
 		case file.Text:
+			if i < 1 {
+				continue Items
+			}
+
 			// check if we can collapse it with the previous item
 			prevText, ok := s[i-1].(file.Text)
 			if !ok {
