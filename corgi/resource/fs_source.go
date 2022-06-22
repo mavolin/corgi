@@ -45,7 +45,7 @@ func (s *FSSource) ReadCorgiFile(name string) (*File, error) {
 
 	return &File{
 		Name:     name,
-		Source:   s.name,
+		Source:   s,
 		Contents: string(data),
 	}, nil
 }
@@ -116,7 +116,6 @@ func (s *FSSource) ReadCorgiLib(name string) ([]File, error) {
 		if f != nil {
 			files = append(files, *f)
 		}
-
 	}
 
 	if len(files) == 0 {
@@ -155,7 +154,11 @@ func (s *FSSource) ReadFile(name string) (*File, error) {
 
 	return &File{
 		Name:     name,
-		Source:   s.name,
+		Source:   s,
 		Contents: string(data),
 	}, nil
+}
+
+func (s *FSSource) Name() string {
+	return s.name
 }

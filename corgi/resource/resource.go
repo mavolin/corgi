@@ -37,6 +37,14 @@ type (
 		//
 		// If no file is found, ReadFile should return nil, nil.
 		ReadFile(name string) (*File, error)
+
+		// Name returns the name of the source.
+		// It should be unique to the source.
+		// Ideally, it should be the path to the source root, without a
+		// trailing slash.
+		//
+		// It must be the same for all files returned by the source.
+		Name() string
 	}
 
 	// File represents a read resource file.
@@ -46,13 +54,8 @@ type (
 		//
 		// It includes the file's file extension.
 		Name string
-		// Source is the name of the source.
-		// It should be unique to the source.
-		// Ideally, it should be the path to the source root, without a
-		// trailing slash.
-		//
-		// It must be the same for all files returned by the source.
-		Source string
+		// Source is the file's source.
+		Source Source
 		// Contents are the contents of the file.
 		Contents string
 	}

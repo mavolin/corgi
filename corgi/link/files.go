@@ -40,7 +40,7 @@ func (l *Linker) fileExtend() error {
 		return err
 	}
 
-	p := parse.New(parse.ModeExtend, parse.ContextRegular, rf.Source, rf.Name, rf.Contents)
+	p := parse.New(parse.ModeExtend, parse.ContextRegular, rf.Source.Name(), rf.Name, rf.Contents)
 	pf, err := p.Parse()
 	if err != nil {
 		return err
@@ -49,7 +49,7 @@ func (l *Linker) fileExtend() error {
 	minify.Minify(pf)
 
 	pfLinker := New(pf, parse.ModeExtend)
-	pfLinker.rSources = l.rSources
+	pfLinker.AddResourceSource(rf.Source)
 
 	if err = pfLinker.Link(); err != nil {
 		return err
@@ -68,7 +68,7 @@ func (l *Linker) fileUse(use *file.Use) error {
 	parsedFiles := make([]file.File, len(rFiles))
 
 	for i, libFile := range rFiles {
-		p := parse.New(parse.ModeUse, parse.ContextRegular, libFile.Source, libFile.Name, libFile.Contents)
+		p := parse.New(parse.ModeUse, parse.ContextRegular, libFile.Source.Name(), libFile.Name, libFile.Contents)
 		pf, err := p.Parse()
 		if err != nil {
 			return err
@@ -83,6 +83,8 @@ func (l *Linker) fileUse(use *file.Use) error {
 		pf := pf
 		pfLinker := New(&pf, parse.ModeUse)
 		pfLinker.rFiles = append(parsedFiles[:i], parsedFiles[i+1:]...) //nolint:gocritic
+
+		pfLinker.AddResourceSource(rFiles[i].Source)
 
 		if err = pfLinker.Link(); err != nil {
 			return err
@@ -105,13 +107,15 @@ func (l *Linker) fileInclude(s file.Scope, context parse.Context) error {
 			}
 
 			if strings.HasSuffix(itm.Path, resource.Extension) {
-				p := parse.New(parse.ModeInclude, context, rf.Source, rf.Name, rf.Contents)
+				p := parse.New(parse.ModeInclude, context, rf.Source.Name(), rf.Name, rf.Contents)
 				pf, err := p.Parse()
 				if err != nil {
 					return errors.Wrapf(err, "%s/%s:%d:%d", l.f.Source, l.f.Name, itm.Line, itm.Col)
 				}
 
 				pfLinker := New(pf, parse.ModeInclude)
+				pfLinker.AddResourceSource(rf.Source)
+
 				if err = pfLinker.Link(); err != nil {
 					return errors.Wrapf(err, "%s/%s:%d:%d", l.f.Source, l.f.Name, itm.Line, itm.Col)
 				}
