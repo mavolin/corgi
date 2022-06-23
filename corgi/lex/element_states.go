@@ -942,7 +942,7 @@ Next:
 				return endState
 			}
 		case '#':
-			if endState := l._id; endState() != nil {
+			if endState := l._id(); endState != nil {
 				return endState
 			}
 		case '(':

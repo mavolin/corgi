@@ -88,7 +88,7 @@ func (p *Parser) ternary() (*file.TernaryExpression, error) {
 		return nil, p.unexpectedItem(next, lex.TernaryElse)
 	}
 
-	texpr.IfTrue, err = p.expression()
+	texpr.IfFalse, err = p.expression()
 	if err != nil {
 		return nil, err
 	}
@@ -119,10 +119,19 @@ func (p *Parser) nilCheck(checkExpr file.GoExpression) (_ *file.NilCheckExpressi
 
 	p.next() // lex.LParen
 
-	ncExpr.Default, err = p.expression()
+	defautlExprStartItm := p.peek()
+
+	defaultExprI, err := p.expression()
 	if err != nil {
 		return nil, err
 	}
+
+	defaultExpr, ok := defaultExprI.(file.GoExpression)
+	if !ok {
+		return nil, p.error(defautlExprStartItm, ErrNilCheckDefault)
+	}
+
+	ncExpr.Default = &defaultExpr
 
 	next := p.next()
 	if next.Type != lex.RParen {

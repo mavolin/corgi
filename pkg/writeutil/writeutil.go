@@ -108,17 +108,17 @@ func WriteJS(w io.Writer, a any) error {
 func WriteAttr(w io.Writer, name string, val any, mirror bool) error {
 	switch val := val.(type) {
 	case bool:
-		if val {
-			if mirror {
-				return Write(w, " "+name+`="`+name+`"`)
-			}
-
-			return Write(w, " "+name)
+		if !val {
+			return nil
 		}
 
-		return nil
+		if mirror {
+			return Write(w, ` `+name+`="`+name+`"`)
+		}
+
+		return Write(w, " "+name)
 	case HTMLAttr:
-		return Write(w, " "+name+`="`+string(val)+`"`)
+		return Write(w, ` `+name+`="`+string(val)+`"`)
 	default:
 		s, err := Stringify(val, func(s string) string {
 			return string(EscapeHTML(s))
@@ -127,7 +127,7 @@ func WriteAttr(w io.Writer, name string, val any, mirror bool) error {
 			return err
 		}
 
-		return Write(w, " "+name+`="`+s+`"`)
+		return Write(w, ` `+name+`="`+s+`"`)
 	}
 }
 
@@ -144,7 +144,7 @@ func WriteAttrUnescaped(w io.Writer, name string, val any, mirror bool) error {
 	case bool:
 		if val {
 			if mirror {
-				return Write(w, " "+name+`="`+name+`"`)
+				return Write(w, ` `+name+`="`+name+`"`)
 			}
 
 			return Write(w, " "+name)
@@ -157,7 +157,7 @@ func WriteAttrUnescaped(w io.Writer, name string, val any, mirror bool) error {
 			return err
 		}
 
-		return Write(w, " "+name+`="`+s+`"`)
+		return Write(w, ` `+name+`="`+s+`"`)
 	}
 }
 

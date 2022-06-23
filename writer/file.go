@@ -758,7 +758,7 @@ func (w *Writer) writeIf(if_ file.If, e *elem) error {
 			closed = false
 		}
 
-		if err := w.writeToFile("\n}"); err != nil {
+		if err := w.writeToFile("}"); err != nil {
 			return err
 		}
 	}
@@ -1308,7 +1308,7 @@ func (w *Writer) expression(e file.Expression, ifVal func(val string) error, noV
 }
 
 func (w *Writer) ifElse(cond file.GoExpression, ifTrue, ifFalse func() error) error {
-	if err := w.writeToFile("if " + cond.Expression + " {"); err != nil {
+	if err := w.writeToFile("if " + cond.Expression + " {\n"); err != nil {
 		return err
 	}
 
@@ -1324,7 +1324,7 @@ func (w *Writer) ifElse(cond file.GoExpression, ifTrue, ifFalse func() error) er
 		return nil
 	}
 
-	if err := w.writeToFile("} else {"); err != nil {
+	if err := w.writeToFile("} else {\n"); err != nil {
 		return err
 	}
 
@@ -1332,7 +1332,7 @@ func (w *Writer) ifElse(cond file.GoExpression, ifTrue, ifFalse func() error) er
 		return err
 	}
 
-	return w.writeToFile("}")
+	return w.writeToFile("}\n")
 }
 
 // nilCheckExpr writes a nil check expression that processes the resolved

@@ -49,6 +49,7 @@ var (
 	// ErrTernaryCondition is the error returned if a nil check is used in a
 	// ternary expression.
 	ErrTernaryCondition = errors.New("cannot use nil check or ternary expression as ternary condition")
+	ErrNilCheckDefault  = errors.New("cannot use nil check or ternary expression as nil-check default")
 
 	ErrIndexExpression = errors.New("index expression has unclosed brackets")
 

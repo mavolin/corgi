@@ -76,7 +76,7 @@ type NilCheckExpression struct {
 	Chain []ValueExpression
 
 	// Default represents the optional default value.
-	Default Expression
+	Default *GoExpression
 
 	Pos
 }

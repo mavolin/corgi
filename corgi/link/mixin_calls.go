@@ -86,7 +86,7 @@ func (l *Linker) linkMixinCallsScope(s file.Scope, scopes *stack.Stack[file.Scop
 			itm.Mixin = m
 			s[i] = itm
 
-			if err = l.checkMixinParams(*m, itm); err != nil {
+			if err = l.checkMixinArgs(*m, itm); err != nil {
 				return err
 			}
 
@@ -206,7 +206,7 @@ Uses:
 	}
 }
 
-func (l *Linker) checkMixinParams(m file.Mixin, c file.MixinCall) error {
+func (l *Linker) checkMixinArgs(m file.Mixin, c file.MixinCall) error {
 	args := make(map[string]filePos, len(c.Args))
 
 Args:
@@ -231,6 +231,25 @@ Args:
 
 		for _, param := range m.Params {
 			if param.Name == arg.Name {
+				if param.Default != nil {
+					continue Args
+				}
+
+				nce, ok := arg.Value.(*file.NilCheckExpression)
+				if !ok {
+					continue Args
+				}
+
+				if nce.Default == nil {
+					return &MissingNilCheckDefaultError{
+						Source: l.f.Source,
+						File:   l.f.Name,
+						Line:   arg.Line,
+						Col:    arg.Col,
+						Name:   string(param.Name),
+					}
+				}
+
 				continue Args
 			}
 		}
