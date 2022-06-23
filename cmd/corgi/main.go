@@ -49,13 +49,13 @@ func main() {
 				Name:        "filetype",
 				Aliases:     []string{"t"},
 				Usage:       "overwrite the file type of the file (html, xhtml, xml)",
-				DefaultText: "html",
+				DefaultText: "",
 				Value:       "",
 			},
 			&cli.StringFlag{
 				Name:        "filename",
 				Aliases:     []string{"f"},
-				Usage:       "overwrite the filename of the generated file",
+				Usage:       "overwrite the name of the generated file",
 				DefaultText: "corgi_file.corgi.go",
 			},
 			&cli.BoolFlag{

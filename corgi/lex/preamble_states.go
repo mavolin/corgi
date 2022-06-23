@@ -358,6 +358,7 @@ func (l *Lexer) _useAlias() stateFn {
 	case '\n':
 		return l.error(&EOLError{After: "a use alias"})
 	default:
+		l.backup()
 		return nil
 	}
 }
