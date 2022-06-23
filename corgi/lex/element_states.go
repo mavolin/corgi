@@ -895,6 +895,7 @@ func (l *Lexer) while() stateFn {
 func (l *Lexer) divOrDotBlock() stateFn {
 	if l.next() != '.' {
 		l.backup()
+		l.emit(Div)
 		return l.behindElement
 	}
 
