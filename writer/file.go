@@ -1295,7 +1295,7 @@ func (w *Writer) expression(e file.Expression, ifVal func(val string) error, noV
 
 		if e.Default != nil {
 			ifNil = func() error {
-				return w.expression(e.Default, ifVal, noVal)
+				return ifVal(e.Default.Expression)
 			}
 		} else if noVal != nil {
 			ifNil = noVal

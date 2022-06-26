@@ -35,6 +35,7 @@ var (
 	ErrUsePlacement    = errors.New("use statements must be declared directly after imports")
 
 	ErrExtendDoctype = errors.New("files extending other files may not define a doctype or prolog")
+	ErrExtendFunc    = errors.New("extended files may not define a func")
 
 	// ErrUseExtends is the error returned if a file, that is being parsed in
 	// ModeUse, has an extend statement.

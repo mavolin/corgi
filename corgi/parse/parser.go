@@ -31,7 +31,7 @@ const (
 	// If it extends another file, it may not define a doctype.
 	ModeMain Mode = iota + 1
 	// ModeExtend represents the parsing of an extended file.
-	// Extended templates may define an output function, which is ignored.
+	// Extended templates must not define an output function.
 	// They may also extend other templates.
 	//
 	// If it extends another file, it may not define a doctype.

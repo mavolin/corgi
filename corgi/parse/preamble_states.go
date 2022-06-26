@@ -360,8 +360,11 @@ func (p *Parser) afterGlobalCode() (stateFn, error) {
 
 func (p *Parser) func_() (stateFn, error) {
 	funcItm := p.next()
-	if p.mode == ModeUse {
+	switch p.mode {
+	case ModeUse:
 		return nil, p.error(funcItm, ErrUseFunc)
+	case ModeExtend:
+		return nil, p.error(funcItm, ErrExtendFunc)
 	}
 
 	ident := p.next()
