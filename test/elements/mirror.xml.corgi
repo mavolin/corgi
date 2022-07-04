@@ -1,0 +1,4 @@
+func MirrorXML()
+input(disabled)
+input(disabled=true)
+input(disabled=false)

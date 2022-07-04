@@ -83,6 +83,17 @@ func (l *Lexer) _expression(allowNewlines bool, terminators ...rune) stateFn {
 		inRawString bool
 	)
 
+	// in case our terminator is any of those things
+	switch l.next() {
+	case '"':
+		inString = true
+	case '`':
+		inString = true
+		inRawString = true
+	case '(', '[', '{':
+		parenCount++
+	}
+
 	for {
 		next := l.next()
 
@@ -109,6 +120,8 @@ func (l *Lexer) _expression(allowNewlines bool, terminators ...rune) stateFn {
 						l.startLine, l.startCol),
 				})
 			}
+
+			l.emit(Expression)
 
 			return l.eof
 		case '(', '[', '{':

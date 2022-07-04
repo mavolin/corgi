@@ -1,0 +1,7 @@
+func TernaryExpression()
+
+p= ?true("abc" : "def")
+p= ?false("jkl" : "mno")
+p= ?"foo" == "bar"("pqr" : "stu")
+p= ?("foo" == "bar" || "fooz" == "fooz")("vwx" : "yza")
+p= ?false("bcd" : ?true("efg" : "hij"))

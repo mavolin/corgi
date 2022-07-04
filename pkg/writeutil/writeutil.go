@@ -161,6 +161,12 @@ func WriteAttrUnescaped(w io.Writer, name string, val any, mirror bool) error {
 	}
 }
 
+var (
+	runeSliceType      = reflect.TypeOf(([]rune)(nil))
+	stringerType       = reflect.TypeOf((*fmt.Stringer)(nil)).Elem()
+	textMarshallerType = reflect.TypeOf((*encoding.TextMarshaler)(nil)).Elem()
+)
+
 // Stringify converts the passed value to a string.
 //
 // It accepts values of type string, all ints, all uints, all floats, bool,
@@ -182,7 +188,65 @@ func Stringify(val any, escaper func(string) string) (string, error) {
 			return "", nil
 		}
 
+		rtyp := rval.Type()
+		switch {
+		case rtyp == runeSliceType:
+			val := rval.Interface().([]rune)
+			if escaper != nil {
+				return escaper(string(val)), nil
+			}
+
+			return string(val), nil
+		case rtyp.Implements(stringerType):
+			val := rval.Interface().(fmt.Stringer)
+			if escaper != nil {
+				return escaper(val.String()), nil
+			}
+
+			return val.String(), nil
+		case rtyp.Implements(textMarshallerType):
+			data, err := rval.Interface().(encoding.TextMarshaler).MarshalText()
+			if err != nil {
+				return "", err
+			}
+
+			if escaper != nil {
+				return escaper(string(data)), nil
+			}
+
+			return string(data), nil
+		}
+
 		rval = rval.Elem()
+	}
+
+	rtyp := rval.Type()
+	switch {
+	case rtyp == runeSliceType:
+		val := rval.Interface().([]rune)
+		if escaper != nil {
+			return escaper(string(val)), nil
+		}
+
+		return string(val), nil
+	case rtyp.Implements(stringerType):
+		val := rval.Interface().(fmt.Stringer)
+		if escaper != nil {
+			return escaper(val.String()), nil
+		}
+
+		return val.String(), nil
+	case rtyp.Implements(textMarshallerType):
+		data, err := rval.Interface().(encoding.TextMarshaler).MarshalText()
+		if err != nil {
+			return "", err
+		}
+
+		if escaper != nil {
+			return escaper(string(data)), nil
+		}
+
+		return string(data), nil
 	}
 
 	switch rval.Kind() {
@@ -202,31 +266,5 @@ func Stringify(val any, escaper func(string) string) (string, error) {
 		return strconv.FormatBool(rval.Bool()), nil
 	}
 
-	switch val := rval.Interface().(type) {
-	case []rune:
-		if escaper != nil {
-			return escaper(string(val)), nil
-		}
-
-		return string(val), nil
-	case fmt.Stringer:
-		if escaper != nil {
-			return escaper(val.String()), nil
-		}
-
-		return val.String(), nil
-	case encoding.TextMarshaler:
-		bytes, err := val.MarshalText()
-		if err != nil {
-			return "", err
-		}
-
-		if escaper != nil {
-			return escaper(string(bytes)), nil
-		}
-
-		return string(bytes), nil
-	}
-
-	return "", fmt.Errorf("writeutil.Stringify: unsupported type %T", val)
+	return "", fmt.Errorf("writeutil.Stringify: unsupported type %T", rval.Interface())
 }

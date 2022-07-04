@@ -10,7 +10,7 @@ func (l *Linker) checkNamespaceCollisions() error {
 
 func (l *Linker) checkUseNamespaceCollisions() error {
 	for i, use := range l.f.Uses {
-		if use.Namespace == "." {
+		if use.Namespace == "." || use.Namespace == "_" {
 			continue
 		}
 

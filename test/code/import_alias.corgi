@@ -1,0 +1,5 @@
+import linkedlist "container/list"
+
+func ImportAlias()
+- _ = linkedlist.New()
+p

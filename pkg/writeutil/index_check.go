@@ -31,11 +31,11 @@ func (FuncChainItem) _typeIsSetChainItem() {}
 // values of their respective types.
 // It also checks if slice/array indexes are in bounds and if map keys exists.
 func IsSet(base any, chain ...IsSetChainItem) bool {
-	val := reflect.ValueOf(base)
+	rval := reflect.ValueOf(base)
 
 	for _, itm := range chain {
 		var ok bool
-		val, ok = deref(val)
+		rval, ok = deref(rval)
 		if !ok {
 			return false
 		}
@@ -44,7 +44,7 @@ func IsSet(base any, chain ...IsSetChainItem) bool {
 		case IndexChainItm:
 			indexVal := reflect.ValueOf(itm.Index)
 
-			switch val.Kind() {
+			switch rval.Kind() {
 			case reflect.Array, reflect.Slice:
 				var indexNum int
 
@@ -57,30 +57,30 @@ func IsSet(base any, chain ...IsSetChainItem) bool {
 					return false
 				}
 
-				if indexNum < 0 || indexNum >= val.Len() {
+				if indexNum < 0 || indexNum >= rval.Len() {
 					return false
 				}
 
-				val = val.Index(indexNum)
+				rval = rval.Index(indexNum)
 			case reflect.Map:
-				if val.Type().Key() != indexVal.Type() {
+				if rval.Type().Key() != indexVal.Type() {
 					return false
 				}
 
-				val = val.MapIndex(indexVal)
-				if !val.IsValid() {
+				rval = rval.MapIndex(indexVal)
+				if !rval.IsValid() {
 					return false
 				}
 			default:
 				return false
 			}
 		case FieldChainItem:
-			if val.Kind() != reflect.Struct {
+			if rval.Kind() != reflect.Struct {
 				return false
 			}
 
-			val = val.FieldByName(itm.Name)
-			if !val.IsValid() {
+			rval = rval.FieldByName(itm.Name)
+			if !rval.IsValid() {
 				return false
 			}
 		case FuncChainItem:
@@ -89,12 +89,12 @@ func IsSet(base any, chain ...IsSetChainItem) bool {
 				rargs[i] = reflect.ValueOf(arg)
 			}
 
-			val = val.MethodByName(itm.Name)
-			if !val.IsValid() {
+			rval = rval.MethodByName(itm.Name)
+			if !rval.IsValid() {
 				return false
 			}
 
-			rret := val.Call(rargs)
+			rret := rval.Call(rargs)
 			if len(rret) == 2 {
 				err, ok := rret[1].Interface().(error)
 				if !ok {
@@ -106,21 +106,22 @@ func IsSet(base any, chain ...IsSetChainItem) bool {
 				}
 			}
 
-			val = rret[0]
+			rval = rret[0]
 		}
 	}
 
-	return true
+	_, ok := deref(rval)
+	return ok
 }
 
-func deref(val reflect.Value) (reflect.Value, bool) {
-	for val.Kind() == reflect.Pointer {
-		if val.IsNil() {
+func deref(rval reflect.Value) (reflect.Value, bool) {
+	for rval.Kind() == reflect.Pointer {
+		if rval.IsNil() {
 			return reflect.Value{}, false
 		}
 
-		val = val.Elem()
+		rval = rval.Elem()
 	}
 
-	return val, true
+	return rval, true
 }

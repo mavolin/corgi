@@ -209,6 +209,7 @@ func (l *Lexer) _importAlias() stateFn {
 	case '\n':
 		return l.error(&EOLError{After: "an import alias"})
 	default:
+		l.backup()
 		return nil
 	}
 }

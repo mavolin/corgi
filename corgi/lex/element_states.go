@@ -48,7 +48,7 @@ func (l *Lexer) nextHTML() stateFn {
 		return l.else_
 	case l.peekIsWord("switch"):
 		return l.switch_
-	case l.peekIsWord("case "):
+	case l.peekIsWord("case"):
 		return l.case_
 	case l.peekIsWord("default"), l.peekIsWord("default:"): // block expansion
 		return l.caseDefault
@@ -223,12 +223,15 @@ func (l *Lexer) htmlComment(next stateFn) stateFn {
 
 		for dIndent >= 0 {
 			peek := l.nextUntil('\n')
-			// even emit empty lines so that these are reflected in the HTML output
-			l.emit(Text)
-
 			if peek == eof {
+				if !l.contentEmpty() {
+					l.emit(Text)
+				}
 				return l.eof
 			}
+
+			// even emit empty lines so that these are reflected in the HTML output
+			l.emit(Text)
 
 			l.nextString("\n")
 			l.ignore()
@@ -642,7 +645,7 @@ func (l *Lexer) if_() stateFn { //nolint:revive
 		return l.error(&UnknownItemError{Expected: "a space"})
 	}
 
-	if endState := l._expression(true, ':', '\n'); endState != nil {
+	if endState := l._expression(true, '\n'); endState != nil {
 		return endState
 	}
 
@@ -893,7 +896,7 @@ func (l *Lexer) while() stateFn {
 //
 // It assumes the next rune is either a '.' or a '#'.
 func (l *Lexer) divOrDotBlock() stateFn {
-	if l.next() != '.' {
+	if l.next() != '.' { // it's a '#'
 		l.backup()
 		l.emit(Div)
 		return l.behindElement
@@ -916,7 +919,7 @@ func (l *Lexer) divOrDotBlock() stateFn {
 // It emits an Element item.
 func (l *Lexer) element() stateFn {
 	endState := l.emitUntil(Element, &UnknownItemError{Expected: "an element name"},
-		'=', ':', '.', '#', '(', ' ', '\t', '\n')
+		'=', ':', '.', '#', '(', '/', ' ', '\t', '\n')
 	if endState != nil {
 		return endState
 	}
@@ -1432,9 +1435,13 @@ Args:
 		return l.nextHTML
 	}
 
-	for dIndent == 0 {
+	for dIndent >= 0 {
 		peek := l.nextUntil('\n')
 		if peek == eof {
+			if !l.contentEmpty() {
+				l.emit(Text)
+			}
+
 			return l.eof
 		}
 

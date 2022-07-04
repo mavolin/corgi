@@ -53,7 +53,7 @@ var _ error = (*UseNamespaceError)(nil)
 
 func (e *UseNamespaceError) Error() string {
 	return fmt.Sprintf("%s/%s:%d: namespace collision with `use` in line %d",
-		e.Source, e.File, e.Line, e.Line)
+		e.Source, e.File, e.Line, e.OtherLine)
 }
 
 // ============================================================================

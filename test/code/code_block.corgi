@@ -1,0 +1,5 @@
+func CodeBlock(executed *bool)
+-
+  _ = "foo"
+  *executed = true
+p

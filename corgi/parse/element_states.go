@@ -1664,18 +1664,25 @@ func (p *Parser) filter() (_ *file.Filter, err error) {
 		return &f, nil
 	}
 
+	p.next() // lex.Indent
+
 	var b strings.Builder
 
 	for p.peek().Type == lex.Text {
-		b.WriteString(p.next().Val)
+		b.WriteString(p.next().Val + "\n")
 	}
 
 	dedentItm := p.next()
-	if dedentItm.Type != lex.Dedent {
+	if dedentItm.Type != lex.Dedent && dedentItm.Type != lex.EOF {
 		return nil, p.unexpectedItem(dedentItm, lex.Dedent)
 	}
 
-	f.Body = file.Text{Text: b.String()}
+	text := b.String()
+	if len(text) > 0 {
+		text = text[:len(text)-1] // rm trailing newline
+	}
+
+	f.Body = file.Text{Text: text}
 	return &f, nil
 }
 

@@ -37,7 +37,7 @@ func (p *Parser) expression() (file.Expression, error) {
 
 	exprItm := p.next()
 	expr := file.GoExpression{
-		Expression: exprItm.Val,
+		Expression: trimRightWhitespace(exprItm.Val),
 		Pos:        file.Pos{Line: exprItm.Line, Col: exprItm.Col},
 	}
 
@@ -104,6 +104,11 @@ func (p *Parser) ternary() (*file.TernaryExpression, error) {
 func (p *Parser) nilCheck(checkExpr file.GoExpression) (_ *file.NilCheckExpression, err error) {
 	var ncExpr file.NilCheckExpression
 
+	for strings.HasPrefix(checkExpr.Expression, "*") {
+		ncExpr.Deref += "*"
+		checkExpr.Expression = checkExpr.Expression[1:]
+	}
+
 	ncExpr.Root, ncExpr.Chain, err = p.parseValueExpression(checkExpr)
 	if err != nil {
 		return nil, err
@@ -119,7 +124,7 @@ func (p *Parser) nilCheck(checkExpr file.GoExpression) (_ *file.NilCheckExpressi
 
 	p.next() // lex.LParen
 
-	defautlExprStartItm := p.peek()
+	defaultExprStartItm := p.peek()
 
 	defaultExprI, err := p.expression()
 	if err != nil {
@@ -128,7 +133,7 @@ func (p *Parser) nilCheck(checkExpr file.GoExpression) (_ *file.NilCheckExpressi
 
 	defaultExpr, ok := defaultExprI.(file.GoExpression)
 	if !ok {
-		return nil, p.error(defautlExprStartItm, ErrNilCheckDefault)
+		return nil, p.error(defaultExprStartItm, ErrNilCheckDefault)
 	}
 
 	ncExpr.Default = &defaultExpr

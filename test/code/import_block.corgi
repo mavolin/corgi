@@ -1,0 +1,8 @@
+import
+  "time"
+  "container/list"
+
+func ImportBlock()
+- _ = time.Now()
+- _ = list.New()
+p

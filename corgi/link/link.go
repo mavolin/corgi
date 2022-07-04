@@ -1,7 +1,7 @@
 // Package link links implements a linker for corgi files.
 // It resolves imports and links mixin calls.
-// Furthermore, it validates that there are no checkNamespaceCollisions collisions from uses
-// or from redeclared checkNamespaceCollisions.
+// Furthermore, it validates that there are no namespace collisions from uses
+// or from redeclared namespaces.
 package link
 
 import (

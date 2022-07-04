@@ -1,0 +1,20 @@
+func Attributes()
+
+input(disabled)
+input(disabled=true)
+input(disabled=false)
+div(
+  id="multiline",
+  aria-label="foo"
+)
+div(id="trailing-comma",)
+div(id="expr"+"ession")
+div((onclick)="foo()")
+div(id!="unescaped\" style=\"color: red;")
+div(id="escaped\" style=\"color: red;")
+.shorthand1
+#shorthand2
+.foo.bar#shorthand3.fooz(style="color: red;")
+#shorthand4.bar.foo.fooz(style="color: blue;")
+div.this.is(class="the class", class="combination test element")
+

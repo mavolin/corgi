@@ -115,13 +115,12 @@ Items:
 // minifyAndScope searches the scope for file.Elements and calls
 // minifyAndElement on them.
 func minifyAndScope(s file.Scope) {
-	for i, itm := range s {
-		switch itm := itm.(type) {
+	for i := 0; i < len(s); i++ {
+		switch itm := s[i].(type) {
 		case file.Block:
 			minifyAndScope(itm.Body)
 		case file.Element:
-			itm = minifyAndElement(itm)
-			s[i] = itm
+			s[i] = minifyAndElement(itm)
 		case file.If:
 			minifyAndScope(itm.Then)
 
@@ -157,8 +156,8 @@ func minifyAndScope(s file.Scope) {
 }
 
 func minifyAndElement(e file.Element) file.Element {
-	for i, itm := range e.Body {
-		switch itm := itm.(type) {
+	for i := 0; i < len(e.Body); i++ {
+		switch itm := e.Body[i].(type) {
 		case file.And:
 			e.Classes = append(e.Classes, itm.Classes...)
 			e.Attributes = append(e.Attributes, itm.Attributes...)
@@ -166,11 +165,11 @@ func minifyAndElement(e file.Element) file.Element {
 			copy(e.Body[i:], e.Body[i+1:])
 			e.Body = e.Body[:len(e.Body)-1]
 
+			i--
 		case file.Block:
 			minifyAndScope(itm.Body)
 		case file.Element:
-			itm = minifyAndElement(itm)
-			e.Body[i] = itm
+			e.Body[i] = minifyAndElement(itm)
 		case file.If:
 			minifyAndScope(itm.Then)
 

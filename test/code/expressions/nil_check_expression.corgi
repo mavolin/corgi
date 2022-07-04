@@ -1,0 +1,54 @@
+func NilCheckExpression()
+
+- chain := struct{F *struct{S []string}}{F: nil}
+p= chain.F.S[1]?
+p= chain.F.S[1]?("default")
+- chain = struct{F *struct{S []string}}{F: &struct{S []string}{S: nil}}
+p= chain.F.S[1]?("default")
+- chain = struct{F *struct{S []string}}{F: &struct{S []string}{S: []string{"abc"}}}
+p= chain.F.S[1]?("default")
+- chain = struct{F *struct{S []string}}{F: &struct{S []string}{S: []string{"abc", "def"}}}
+p= chain.F.S[1]?("no default")
+
+mixin greet(name="world")
+  | Hello #{name}!
+
+- t := struct{F *string}{F: nil}
+
+a(href=*t.F?) Click me!
+a(href=*t.F?("bar")) Click me!
+
+p= *t.F?
+p= *t.F?("bar")
+
+p #+greet(name=*t.F?)
+p #+greet(name=*t.F?("universe"))
+
+p The value is: #{*t.F?}
+p The value is: #{*t.F?("unknown")}
+
+if t.F?
+  p The value is: #{*t.F}
+else
+  p The value is not accessible.
+
+-
+  s := "foo"
+  t = struct{F *string}{F: &s}
+
+a(href=*t.F?) Click me!
+a(href=*t.F?("bar")) Click me!
+
+p= *t.F?
+p= *t.F?("bar")
+
+p #+greet(name=*t.F?)
+p #+greet(name=*t.F?("universe"))
+
+p The value is: #{*t.F?}
+p The value is: #{*t.F?("unknown")}
+
+if t.F?
+  p The value is: #{*t.F}
+else
+  p The value is not accessible.

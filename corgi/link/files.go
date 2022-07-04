@@ -106,7 +106,7 @@ func (l *Linker) fileInclude(s file.Scope, context parse.Context) error {
 				return errors.Wrapf(err, "%s/%s:%d:%d", l.f.Source, l.f.Name, itm.Line, itm.Col)
 			}
 
-			if strings.HasSuffix(itm.Path, resource.Extension) {
+			if strings.HasSuffix(rf.Name, resource.Extension) {
 				p := parse.New(parse.ModeInclude, context, rf.Source.Name(), rf.Name, rf.Contents)
 				pf, err := p.Parse()
 				if err != nil {
@@ -114,7 +114,7 @@ func (l *Linker) fileInclude(s file.Scope, context parse.Context) error {
 				}
 
 				pfLinker := New(pf, parse.ModeInclude)
-				pfLinker.AddResourceSource(rf.Source)
+				pfLinker.rSources = l.rSources
 
 				if err = pfLinker.Link(); err != nil {
 					return errors.Wrapf(err, "%s/%s:%d:%d", l.f.Source, l.f.Name, itm.Line, itm.Col)

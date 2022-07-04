@@ -1,0 +1,49 @@
+import
+  "strings"
+  "net"
+  "github.com/mavolin/corgi/pkg/writeutil"
+
+func GoExpression(val string)
+
+p= val
+
+p= uint(12)
+p= uint8(23)
+p= uint16(34)
+p= uint32(45)
+p= uint64(56)
+p= int(65)
+p= int8(54)
+p= int16(43)
+p= int32(32)
+p= int64(21)
+p= returnInt(910)
+p= 12 * 34 - 56
+
+p= "abc"
+p= `def`
+p= "jkl" + "mno"
+p= ("pqr" + "stu")
+p= returnString("vwx")
+p= []rune("yza")
+
+p= true
+p= false
+p= returnBool(true)
+p= "abc" == "def"
+
+p= writeutil.HTML("<strong>bcd</strong>")
+p(foo=writeutil.HTMLAttr("efg\" bar=\"hij"))
+style= writeutil.CSS("color: red;")
+script= writeutil.JS("\"klm\"")
+script= writeutil.JSStr("nop\"+\"qrs")
+
+-
+  var b strings.Builder
+  b.WriteString("tuv")
+//- fmt.Stringer is impl on *Builder, not Builder
+p= &b
+
+p= net.IPv4(1, 2, 3, 4)
+
+p= nil

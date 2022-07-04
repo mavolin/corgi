@@ -1453,10 +1453,22 @@ func (w *Writer) expression(e file.Expression, ifVal func(val string) error, noV
 	case file.GoExpression:
 		return ifVal(e.Expression)
 	case file.TernaryExpression:
+		if err := w.flushRawBuf(); err != nil {
+			return err
+		}
+
 		return w.ifElse(e.Condition, func() error {
-			return w.expression(e.IfTrue, ifVal, noVal)
+			if err := w.expression(e.IfTrue, ifVal, noVal); err != nil {
+				return err
+			}
+
+			return w.flushRawBuf()
 		}, func() error {
-			return w.expression(e.IfFalse, ifVal, noVal)
+			if err := w.expression(e.IfFalse, ifVal, noVal); err != nil {
+				return err
+			}
+
+			return w.flushRawBuf()
 		})
 	case file.NilCheckExpression:
 		var ifNil func() error
@@ -1508,6 +1520,10 @@ func (w *Writer) ifElse(cond file.GoExpression, ifTrue, ifFalse func() error) er
 func (w *Writer) nilCheckExpr(
 	e file.NilCheckExpression, notNil func(val string) error, isNil func() error,
 ) error {
+	if err := w.flushRawBuf(); err != nil {
+		return err
+	}
+
 	err := w.writeToFile("if ")
 	if err != nil {
 		return err
@@ -1525,6 +1541,10 @@ func (w *Writer) nilCheckExpr(
 		return err
 	}
 
+	if err := w.flushRawBuf(); err != nil {
+		return err
+	}
+
 	if isNil == nil {
 		return w.writeToFile("}\n")
 	}
@@ -1537,12 +1557,17 @@ func (w *Writer) nilCheckExpr(
 		return err
 	}
 
+	if err := w.flushRawBuf(); err != nil {
+		return err
+	}
+
 	return w.writeToFile("}\n")
 }
 
 func nilCheckToGoExpression(e file.NilCheckExpression) string {
 	var b strings.Builder
 
+	b.WriteString(e.Deref)
 	b.WriteString(e.Root.Expression)
 
 	for _, chainExpr := range e.Chain {

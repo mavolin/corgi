@@ -1,0 +1,5 @@
+import "time"
+
+func InlineImport()
+- _ = time.Now()
+p

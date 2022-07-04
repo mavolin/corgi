@@ -75,6 +75,10 @@ type NilCheckExpression struct {
 	// Chain is a list of GoExpression that yield the desired value.
 	Chain []ValueExpression
 
+	// Deref contains optional dereference operators (*) to be applied to the
+	// resolved value in case the value is accessible.
+	Deref string
+
 	// Default represents the optional default value.
 	Default *GoExpression
 

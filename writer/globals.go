@@ -29,7 +29,13 @@ func (w *Writer) writeImports() error {
 	}
 
 	for _, imp := range w.main.Imports {
-		if err := w.writeToFile(strconv.Quote(imp.Path) + "\n"); err != nil {
+		if imp.Alias != "" {
+			if err = w.writeToFile(string(imp.Alias) + " "); err != nil {
+				return err
+			}
+		}
+
+		if err = w.writeToFile(strconv.Quote(imp.Path) + "\n"); err != nil {
 			return err
 		}
 	}

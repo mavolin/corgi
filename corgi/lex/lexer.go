@@ -363,7 +363,7 @@ func (l *Lexer) isLineEmpty() bool {
 
 // contentEmpty reports whether any content has been lexed.
 func (l *Lexer) contentEmpty() bool {
-	return l.pos < l.startPos
+	return l.pos <= l.startPos
 }
 
 // ======================================= Indent =======================================
