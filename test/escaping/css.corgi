@@ -1,0 +1,13 @@
+import "github.com/mavolin/corgi/pkg/writeutil"
+
+func CSS()
+
+- a := "'"
+- b := writeutil.CSS(".test { color: green; }")
+
+style.
+  .#{a} {
+    display: none;
+  }
+
+  #{b}

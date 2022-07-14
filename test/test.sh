@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 function main() {
+  ./rm_generated_files.sh
   test
   local test_status=$?
 

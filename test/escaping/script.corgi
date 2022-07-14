@@ -1,0 +1,21 @@
+import "github.com/mavolin/corgi/pkg/writeutil"
+
+func Script()
+
+-
+  c := struct{
+      A string
+      B struct{C int}
+    }{
+      A: "foo",
+      B: struct{C int}{C: 123},
+    }
+
+- d := writeutil.JS("foo();")
+- e := writeutil.JSStr("\\n")
+script.
+  let a = #{123};
+  let b = #{"abc\n"};
+  let c = #{c};
+  #{d}
+  let e = #{e};
