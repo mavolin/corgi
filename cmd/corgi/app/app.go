@@ -71,6 +71,12 @@ func Run(args []string) error {
 }
 
 func run(ctx *cli.Context) error {
+	//goland:noinspection GoBoolExpressions
+	if meta.Version == meta.DevelopVersion {
+		log.Println("you're running a development version of corgi, to get the stable release, " +
+			"run `go get -u github.com/mavolin/corgi/cmd/corgi@latest`")
+	}
+
 	args, err := parseArgs(ctx)
 	if err != nil {
 		return err

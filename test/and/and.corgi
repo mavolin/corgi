@@ -1,0 +1,22 @@
+func And()
+
+- b := true
+
+a
+  &#my-id
+  &.foo
+  &(href="https://github.com")
+  if b
+    &.bar.fooz
+    &(rel="external")
+  | Wow, this is so cool!
+
+- b = false
+a
+  &#my-id
+  &.foo
+  &(href="https://github.com")
+  if b
+    &.bar.fooz
+    &(rel="external")
+  | Wow, this is so cool!

@@ -1,0 +1,9 @@
+func Comments()
+
+p Hello
+// I'm included
+p World!
+//
+  As is
+  this block
+//- However, I am not.

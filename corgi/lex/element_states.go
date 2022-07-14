@@ -160,7 +160,7 @@ func (l *Lexer) _corgiComment() stateFn {
 		return nil
 	}
 
-	for dIndent >= 0 {
+	for {
 		peek := l.nextUntil('\n')
 		if peek == eof {
 			return l.eof
@@ -176,9 +176,11 @@ func (l *Lexer) _corgiComment() stateFn {
 
 		// emit the change in indentation relative to when we encountered the '//-'
 		l.emitIndent(dIndent + 1)
-	}
 
-	return nil
+		if dIndent < 0 {
+			return nil
+		}
+	}
 }
 
 // htmlComment lexes an HTML comment.
@@ -221,7 +223,7 @@ func (l *Lexer) htmlComment(next stateFn) stateFn {
 			return next
 		}
 
-		for dIndent >= 0 {
+		for {
 			peek := l.nextUntil('\n')
 			if peek == eof {
 				if !l.contentEmpty() {
@@ -251,10 +253,10 @@ func (l *Lexer) htmlComment(next stateFn) stateFn {
 				for i := 0; i < skippedLines; i++ {
 					l.emit(Text)
 				}
+			} else {
+				return next
 			}
 		}
-
-		return next
 	}
 }
 

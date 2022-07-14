@@ -1233,6 +1233,8 @@ func (w *Writer) writeInlineElement(ie file.InlineElement) error {
 				}
 			}
 		}
+
+		w.writeRawUnescaped(`"`)
 	}
 
 	if ie.SelfClosing {

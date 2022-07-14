@@ -11,7 +11,6 @@ import (
 
 func TestEmptyElement(t *testing.T) {
 	t.Parallel()
-
 	compile.Compile(t, "empty_element.corgi", compile.Options{})
 }
 
@@ -24,19 +23,16 @@ func TestVoidElements(t *testing.T) {
 
 func TestAttributes(t *testing.T) {
 	t.Parallel()
-
 	compile.Compile(t, "attributes.corgi", compile.Options{})
 }
 
 func TestBlockExpansion(t *testing.T) {
 	t.Parallel()
-
 	compile.Compile(t, "block_expansion.corgi", compile.Options{})
 }
 
 func TestSelfClosing(t *testing.T) {
 	t.Parallel()
-
 	compile.Compile(t, "self_closing.corgi", compile.Options{})
 }
 

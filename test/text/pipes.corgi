@@ -1,0 +1,10 @@
+func Pipes()
+
+p
+  | Roses are red
+  | Violets are blue,
+p
+  | Sugar is sweet
+  | And so are
+  strong  you
+  | .

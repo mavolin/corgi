@@ -1,0 +1,5 @@
+func InlineText()
+
+p.
+  There are #![<em>four</em>] lights,
+  just like there are four trailing spaces.#[    ]

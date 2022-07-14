@@ -1,0 +1,12 @@
+func InlineElement()
+
+p Suddenly, I feel so #strong[strong]!
+
+- s := "strong"
+p Suddenly, I feel so #strong{s}!
+- t := "</strong>free<strong>"
+p And without escaping, I feel so #!strong{t}!
+
+p.
+  Attributes #span(style="font-size: 120%")[work].
+  So do classes: #strong.yellow[Look, I'm yellow!]

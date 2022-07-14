@@ -6,7 +6,7 @@ function main() {
 
   # don't delete on test failure to allow debugging
   if [ $test_status -eq 0 ]; then
-    ./remove_generated_files.sh
+    ./rm_generated_files.sh
   fi
 
   exit $test_status
