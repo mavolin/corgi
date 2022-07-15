@@ -159,14 +159,7 @@ func (l *Linker) checkAndsScopeItem(itm file.ScopeItem, andAllowed bool) (bool, 
 			return false, nil
 		}
 
-		afterInclude, err := l.checkAnds(ci.File.Scope, andAllowed)
-		if err != nil {
-			return false, err
-		}
-
-		if !afterInclude {
-			return false, nil
-		}
+		return l.checkAnds(ci.File.Scope, andAllowed)
 	case file.If:
 		afterIf, err := l.checkAnds(itm.Then, andAllowed)
 		if err != nil {
@@ -189,15 +182,10 @@ func (l *Linker) checkAndsScopeItem(itm file.ScopeItem, andAllowed bool) (bool, 
 		}
 
 		if itm.Else != nil {
-			afterElse, err := l.checkAnds(itm.Else.Then, andAllowed)
-			if err != nil {
-				return false, err
-			}
-
-			if !afterElse {
-				return false, nil
-			}
+			return l.checkAnds(itm.Else.Then, andAllowed)
 		}
+
+		return true, nil
 	case file.IfBlock:
 		afterIf, err := l.checkAnds(itm.Then, andAllowed)
 		if err != nil {
@@ -209,15 +197,10 @@ func (l *Linker) checkAndsScopeItem(itm file.ScopeItem, andAllowed bool) (bool, 
 		}
 
 		if itm.Else != nil {
-			afterElse, err := l.checkAnds(itm.Else.Then, andAllowed)
-			if err != nil {
-				return false, err
-			}
-
-			if !afterElse {
-				return false, nil
-			}
+			return l.checkAnds(itm.Else.Then, andAllowed)
 		}
+
+		return true, nil
 	case file.Switch:
 		for _, c := range itm.Cases {
 			afterCase, err := l.checkAnds(c.Then, andAllowed)
@@ -231,45 +214,93 @@ func (l *Linker) checkAndsScopeItem(itm file.ScopeItem, andAllowed bool) (bool, 
 		}
 
 		if itm.Default != nil {
-			afterCase, err := l.checkAnds(itm.Default.Then, andAllowed)
-			if err != nil {
-				return false, err
-			}
-
-			if !afterCase {
-				return false, nil
-			}
+			return l.checkAnds(itm.Default.Then, andAllowed)
 		}
+
+		return true, nil
 	case file.For:
-		afterFor, err := l.checkAnds(itm.Body, andAllowed)
-		if err != nil {
-			return false, err
-		}
-
-		if !afterFor {
-			return false, nil
-		}
+		return l.checkAndsFor(itm, andAllowed)
 	case file.While:
-		afterWhile, err := l.checkAnds(itm.Body, andAllowed)
-		if err != nil {
-			return false, err
-		}
-
-		if !afterWhile {
-			return false, nil
-		}
+		return l.checkAndsWhile(itm, andAllowed)
 	case file.MixinCall:
-		afterCall, err := l.checkAndsMixinCall(itm, andAllowed)
-		if err != nil {
-			return false, err
-		}
-
-		if !afterCall {
-			return false, nil
-		}
+		return l.checkAndsMixinCall(itm, andAllowed)
 	}
 
 	return false, nil
+}
+
+func (l *Linker) checkAndsFor(f file.For, andAllowed bool) (bool, error) {
+	if len(f.Body) == 0 {
+		return andAllowed, nil
+	}
+
+	// CheckAndsScopeItem will only return true if the first item is an and or
+	// an and nested in an if, switch, for, or while.
+	// If the first item in a for loop is an and, then all other items must
+	// also be (nested) ands.
+	firstIsAnd, err := l.checkAndsScopeItem(f.Body[0], andAllowed)
+	if err != nil {
+		return false, err
+	}
+
+	if !firstIsAnd {
+		andAllowed = false
+	}
+
+	for _, itm := range f.Body {
+		afterItm, err := l.checkAndsScopeItem(itm, andAllowed)
+		if err != nil {
+			return false, err
+		}
+
+		if firstIsAnd && !afterItm {
+			return false, &LoopAndError{
+				Source: l.f.Source,
+				File:   l.f.Name,
+				Line:   f.Line,
+				Col:    f.Col,
+			}
+		}
+	}
+
+	return andAllowed, nil
+}
+
+func (l *Linker) checkAndsWhile(w file.While, andAllowed bool) (bool, error) {
+	if len(w.Body) == 0 {
+		return andAllowed, nil
+	}
+
+	// CheckAndsScopeItem will only return true if the first item is an and or
+	// an and nested in an if, switch, for, or while.
+	// If the first item in a for loop is an and, then all other items must
+	// also be (nested) ands.
+	firstIsAnd, err := l.checkAndsScopeItem(w.Body[0], andAllowed)
+	if err != nil {
+		return false, err
+	}
+
+	if !firstIsAnd {
+		andAllowed = false
+	}
+
+	for _, itm := range w.Body {
+		afterItm, err := l.checkAndsScopeItem(itm, andAllowed)
+		if err != nil {
+			return false, err
+		}
+
+		if firstIsAnd && !afterItm {
+			return false, &LoopAndError{
+				Source: l.f.Source,
+				File:   l.f.Name,
+				Line:   w.Line,
+				Col:    w.Col,
+			}
+		}
+	}
+
+	return andAllowed, nil
 }
 
 func (l *Linker) checkAndsMixinCall(m file.MixinCall, andAllowed bool) (bool, error) {

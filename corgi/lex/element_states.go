@@ -321,6 +321,7 @@ func (l *Lexer) code(next stateFn) stateFn {
 			l.ignore()
 			// handled below
 		default: // a single line of code
+			l.backup()
 			// special case: empty line, for ✨visuals✨
 			if l.isLineEmpty() {
 				l.ignoreWhitespace()
@@ -921,7 +922,7 @@ func (l *Lexer) divOrDotBlock() stateFn {
 // It emits an Element item.
 func (l *Lexer) element() stateFn {
 	endState := l.emitUntil(Element, &UnknownItemError{Expected: "an element name"},
-		'=', ':', '.', '#', '(', '/', ' ', '\t', '\n')
+		'!', '=', ':', '.', '#', '(', '/', ' ', '\t', '\n')
 	if endState != nil {
 		return endState
 	}
@@ -1003,7 +1004,7 @@ func (l *Lexer) _class() stateFn {
 	l.emit(Class)
 
 	endState := l.emitUntil(Literal, &UnknownItemError{Expected: "a class name"},
-		'.', '#', '(', '[', '{', '=', ':', ' ', '\t', '\n')
+		'.', '#', '(', '[', '{', '!', '=', ':', ' ', '\t', '\n')
 	if endState != nil {
 		return endState
 	}
@@ -1021,7 +1022,7 @@ func (l *Lexer) _id() stateFn {
 	l.emit(ID)
 
 	endState := l.emitUntil(Literal, &UnknownItemError{Expected: "an id"},
-		'.', '#', '[', '{', '(', '=', ':', ' ', '\t', '\n')
+		'.', '#', '[', '{', '(', '!', '=', ':', ' ', '\t', '\n')
 	if endState != nil {
 		return endState
 	}

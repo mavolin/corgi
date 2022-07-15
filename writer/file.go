@@ -49,7 +49,7 @@ func (w *Writer) writeFile() error {
 	}
 
 	return w.writeToFile(
-		"return nil\n" +
+		"    return nil\n" +
 			"}\n")
 }
 
@@ -518,25 +518,9 @@ func (w *Writer) closeTag(e *elem) error {
 
 	e.isClosed = true
 
-	var inIf bool
-
-	// we can omit the if, if the tag has no body
-	if len(e.e.Body) > 0 {
-		// Check if the next item will fill the elements body.
-		// If so, we can save ourselves the if not closed check.
-		switch e.e.Body[0].(type) {
-		case file.Comment:
-		case file.Text:
-		case file.Interpolation:
-		case file.InlineElement:
-		case file.InlineText:
-		case file.Filter:
-		case file.Element:
-		case file.Mixin:
-		default:
-			inIf = true
-		}
-	}
+	// Check if the next item will fill the elements body.
+	// If so, we can save ourselves the if not closed check.
+	inIf := !isFirstContent(e.e.Body)
 
 	if inIf {
 		if err := w.flushRawBuf(); err != nil {
@@ -1068,6 +1052,12 @@ func (w *Writer) writeSwitchCases(sw file.Switch, e *elem) error {
 // ======================================================================================
 
 func (w *Writer) writeFor(f file.For, e *elem) error {
+	if e != nil && isFirstContent(f.Body) {
+		if err := w.closeTag(e); err != nil {
+			return err
+		}
+	}
+
 	if err := w.flushRawBuf(); err != nil {
 		return err
 	}
@@ -1110,6 +1100,16 @@ func (w *Writer) writeFor(f file.For, e *elem) error {
 // ======================================================================================
 
 func (w *Writer) writeWhile(wh file.While, e *elem) error {
+	if e != nil && isFirstContent(wh.Body) {
+		if err := w.closeTag(e); err != nil {
+			return err
+		}
+	}
+
+	if err := w.flushRawBuf(); err != nil {
+		return err
+	}
+
 	err := w.writeToFile("for " + wh.Condition.Expression + " {\n")
 	if err != nil {
 		return err

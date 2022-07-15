@@ -342,6 +342,24 @@ func (e *IllegalAndError) Error() string {
 }
 
 // ============================================================================
+// LoopAndError
+// ======================================================================================
+
+type LoopAndError struct {
+	Source string
+	File   string
+	Line   int
+	Col    int
+}
+
+var _ error = (*LoopAndError)(nil)
+
+func (e *LoopAndError) Error() string {
+	return fmt.Sprintf("%s/%s:%d:%d: loops cannot use `&` while also writing to an element's body",
+		e.Source, e.File, e.Line, e.Col)
+}
+
+// ============================================================================
 // SelfClosingContentError
 // ======================================================================================
 

@@ -1147,9 +1147,11 @@ func (p *Parser) switch_() (_ *file.Switch, err error) {
 // ======================================================================================
 
 func (p *Parser) for_() (*file.For, error) {
-	p.next() // lex.For
+	forItm := p.next()
 
-	var f file.For
+	f := file.For{
+		Pos: file.Pos{Line: forItm.Line, Col: forItm.Col},
+	}
 
 	ident1Itm := p.next()
 	if ident1Itm.Type != lex.Ident {
@@ -1201,7 +1203,7 @@ func (p *Parser) for_() (*file.For, error) {
 func (p *Parser) while() (_ *file.While, err error) {
 	whileItm := p.next() // lex.While
 
-	var w file.While
+	w := file.While{Pos: file.Pos{Line: whileItm.Line, Col: whileItm.Col}}
 
 	cond, err := p.expression()
 	if err != nil {

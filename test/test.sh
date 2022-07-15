@@ -14,9 +14,9 @@ function main() {
 }
 
 function test() {
-  go test github.com/mavolin/corgi/test/... -tags prepare_integration_test || return $?
+  go test github.com/mavolin/corgi/test/... -count=1 -tags prepare_integration_test || return $?
 
-  go test github.com/mavolin/corgi/test/... -tags integration_test  || return $?
+  go test github.com/mavolin/corgi/test/... -count=1 -tags integration_test  || return $?
   return $?
 }
 

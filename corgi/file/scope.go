@@ -249,6 +249,8 @@ type For struct {
 	Range Expression
 
 	Body Scope
+
+	Pos
 }
 
 func (For) _typeScopeItem() {}
@@ -263,6 +265,8 @@ type While struct {
 	Condition GoExpression
 
 	Body Scope
+
+	Pos
 }
 
 func (While) _typeScopeItem() {}

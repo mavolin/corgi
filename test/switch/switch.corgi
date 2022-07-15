@@ -1,0 +1,17 @@
+func Switch(s string)
+
+p
+  switch s
+    case "foo", "bar"
+      | foo, bar
+    case "abc", "def", "jkl"
+      | alphabet
+
+p
+  switch
+    case s == "foo"
+      | foo
+    case s == "bar"
+      | bar
+    default
+      | something else
