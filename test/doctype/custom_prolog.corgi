@@ -1,0 +1,3 @@
+func CustomProlog()
+
+doctype xml foo bar

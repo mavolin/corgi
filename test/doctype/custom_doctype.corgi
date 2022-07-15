@@ -1,0 +1,3 @@
+func CustomDoctype()
+
+doctype foo bar
