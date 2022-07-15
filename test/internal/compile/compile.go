@@ -23,6 +23,13 @@ type Options struct {
 	FileType file.Type
 	// OutName overwrites the name of the output file.
 	OutName string
+
+	// Package sets the name of the package in which the generated function
+	// will be placed.
+	//
+	// If not set, the name of the directory in which the calling file is
+	// located, will be used.
+	Package string
 }
 
 func init() {
@@ -34,7 +41,7 @@ func init() {
 func Compile(t *testing.T, name string, o Options) {
 	t.Helper()
 
-	args := []string{"-p", callingPackage(t)}
+	args := []string{"-p", callingPackage(t, o)}
 
 	if o.OutName != "" {
 		args = append(args, "-f", o.OutName)
@@ -60,8 +67,12 @@ func Compile(t *testing.T, name string, o Options) {
 // name from the return of runtime.FuncForPC(pc).Name().
 var packageRegexp = regexp.MustCompile(`^(?:[^/]+/)*(?P<package>[^.]+)(?:\.[^.]+)?\.[^.]+$`)
 
-func callingPackage(t *testing.T) string {
+func callingPackage(t *testing.T, o Options) string {
 	t.Helper()
+
+	if o.Package != "" {
+		return o.Package
+	}
 
 	pc, _, _, ok := runtime.Caller(2)
 	if !ok {

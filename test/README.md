@@ -2,12 +2,12 @@ This directory contains integration tests for corgi files.
 
 ## How to Run the Tests
 
-Since corgi templates are compiled to Go functions, you must first the preparation tests,
-which will generate the functions then used in the real tests.
+Since corgi templates are compiled to Go functions, you must first run the preparation tests,
+which will generate the functions then used in the "real" tests.
 
 All preparation tests have the `prepare_integration_test` build tag.
 
-Then you may run the integration test using the `integration_test` build tag.
+After generating, you may then run the integration test using the `integration_test` build tag.
 
 You may also use the `test.sh` script, which will automatically build corgi, run the tests,
 and then will delete the generated functions.
@@ -19,7 +19,7 @@ To then delete the generated files, run `rm_generated_files.sh`.
 ## Test Coverage
 
 Because lexer, parser, linker, and writer are not tested individually, 
-but all through the integration tests found in this package,
+but all through the integration tests found in here,
 in order to obtain the test coverage of corgi,
 you must run the integration tests with the `-coverpkg` flag.
 
