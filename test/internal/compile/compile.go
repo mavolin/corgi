@@ -1,10 +1,9 @@
-// Package compile provides an utility function to compile files in preperation
+// Package compile provides an utility function to compile files in preparation
 // tests.
 package compile
 
 import (
 	"log"
-	"os"
 	"regexp"
 	"runtime"
 	"testing"
@@ -15,8 +14,6 @@ import (
 	"github.com/mavolin/corgi/corgi/file"
 	"github.com/mavolin/corgi/test/internal/voidwriter"
 )
-
-var corgiPath = os.Args[len(os.Args)-1] // go test adds some flags, so this works best
 
 type Options struct {
 	// FileType overwrites the file type of the file to compile.

@@ -44,10 +44,11 @@ issues:
   exclude-rules:
     - linters:
         - revive
-      source: "^func (?:\\(\\w+ \\**\\w+\\) )?(?:func|import|import|if|else|switch|case|default|for)_\\("
+      source: "(?:func|import|import|if|else|switch|case|default|for)_"
     - linters:
-        - revive
-      source: "(?:func|import|import|if|else|switch|case|default|for)_(?:, \\w+) :="
+        - deadcode
+        - unused
+      path: test/...
     # prevent errors on type assertions with field access
     - linters:
         - errorlint

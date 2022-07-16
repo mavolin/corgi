@@ -123,7 +123,6 @@ func corgiFS() (fs.FS, string, error) {
 						return os.DirFS(filepath.Join(abs, "corgi")), rel, nil
 					}
 				}
-
 			}
 		}
 
