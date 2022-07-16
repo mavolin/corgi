@@ -7,7 +7,7 @@ jobs:
     name: Lint
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Repostitory
+      - name: Checkout Repository
         uses: actions/checkout@v2
       - name: Lint Project
         uses: reviewdog/action-golangci-lint@v1
