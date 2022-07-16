@@ -1,0 +1,7 @@
+func Include()
+
+head
+  style
+    include "style.css"
+body
+  include "nacho"

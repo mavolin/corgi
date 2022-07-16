@@ -49,7 +49,7 @@ func (w *Writer) writeFile() error {
 	}
 
 	return w.writeToFile(
-		"    return nil\n" +
+		"return nil\n" +
 			"}\n")
 }
 
