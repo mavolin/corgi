@@ -45,6 +45,10 @@ func (l *Linker) Link() error {
 		return err
 	}
 
+	if err := l.checkMixins(); err != nil {
+		return err
+	}
+
 	if err := l.linkMixinCalls(); err != nil {
 		return err
 	}
