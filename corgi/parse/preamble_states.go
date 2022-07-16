@@ -32,10 +32,8 @@ func (p *Parser) start() (stateFn, error) {
 		return p.globalCode, nil
 	case lex.Func:
 		return p.func_, nil
-	case lex.Doctype:
-		return p.doctype, nil
 	default:
-		return p.nextHTML, nil
+		return p.doctypeOrBlock, nil
 	}
 }
 

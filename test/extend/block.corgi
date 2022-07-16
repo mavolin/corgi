@@ -1,0 +1,12 @@
+extend "base"
+
+func Block()
+
+block title
+  | Learn Corgi
+
+block body
+  p.
+    Head over to
+    #a(href="https://mavolin.gitbook.io/corgi")[GitBook]
+    to learn corgi!

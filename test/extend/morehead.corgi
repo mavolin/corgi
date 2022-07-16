@@ -1,0 +1,2 @@
+append head
+  link(rel="stylesheet", href="/bar.css")

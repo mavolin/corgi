@@ -1,0 +1,17 @@
+extend "base"
+
+use "morehead"
+
+func Append()
+
+append vars
+  - lang = "de"
+
+block title
+  | Lerne Corgi
+
+block body
+  p.
+    Schau bei
+    #a(href="https://mavolin.gitbook.io/corgi")[GitBook]
+    vorbei, um corgi zu lernen!

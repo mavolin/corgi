@@ -11,21 +11,49 @@ import (
 	"github.com/mavolin/corgi/internal/require"
 )
 
+func (p *Parser) doctypeOrBlock() (_ stateFn, err error) {
+	if p.mode == ModeMain && p.f.Func.Name == "" {
+		return nil, p.unexpectedItem(p.next(), lex.Func)
+	}
+
+	for {
+		peek := p.peek()
+		switch peek.Type {
+		case lex.Doctype:
+			return p.doctype()
+		// only extendable blocks may appear before a doctype
+		case lex.Block:
+			b, err := p.block(require.Always, require.Always)
+			if err != nil {
+				return nil, err
+			}
+
+			p.f.Scope = append(p.f.Scope, *b)
+		default:
+			return p.nextHTML, nil
+		}
+	}
+}
+
 func (p *Parser) nextHTML() (_ stateFn, err error) {
 	if p.mode == ModeMain && p.f.Func.Name == "" {
 		return nil, p.unexpectedItem(p.next(), lex.Func)
 	}
 
 	if p.mode == ModeInclude {
-		p.f.Scope, err = p.scope()
+		s, err := p.scope()
 		if err != nil {
 			return nil, err
 		}
+
+		p.f.Scope = append(p.f.Scope, s...)
 	} else {
-		p.f.Scope, err = p.globalScope()
+		s, err := p.globalScope()
 		if err != nil {
 			return nil, err
 		}
+
+		p.f.Scope = append(p.f.Scope, s...)
 	}
 
 	return nil, nil
@@ -484,8 +512,6 @@ var xhtmlRegexp = regexp.MustCompile(`^html PUBLIC ["'][^ ]+ XHTML `)
 //goland:noinspection HttpUrlsUsage
 func (p *Parser) doctype() (stateFn, error) {
 	switch {
-	case p.mode == ModeMain && p.f.Func.Name == "":
-		return nil, p.unexpectedItem(p.next(), lex.Func)
 	case p.mode == ModeUse:
 		return nil, p.error(p.next(), ErrUseDoctype)
 	case p.f.Extend != nil:
