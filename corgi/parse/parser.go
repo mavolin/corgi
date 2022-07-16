@@ -28,19 +28,19 @@ const (
 	// ModeMain represents the parsing of a main file.
 	// A main file must define an output function and may extend other files.
 	//
-	// If it extends another file, it may not define a doctype.
+	// If the file extends another file, it may not define a doctype.
 	ModeMain Mode = iota + 1
 	// ModeExtend represents the parsing of an extended file.
 	// Extended templates must not define an output function.
 	// They may also extend other templates.
 	//
-	// If it extends another file, it may not define a doctype.
+	// If the file extends another file, it may not define a doctype.
 	ModeExtend
 	// ModeInclude represents the parsing of an included corgi file.
 	// Included files may define an output function, which is ignored.
-	// They may also extend other files.
+	// They must not extend other files.
 	//
-	// If it extends another file, it may not define a doctype.
+	// Included files also don't have global code, but only regular code.
 	ModeInclude
 	// ModeUse represents the parsing of a file that was imported through a use
 	// directive.

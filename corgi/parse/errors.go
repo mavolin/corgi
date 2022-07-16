@@ -47,6 +47,10 @@ var (
 	// ModeUse, has a doctype statement.
 	ErrUseDoctype = errors.New("used files cannot define a doctype")
 
+	// ErrIncludeExtends is the error returned if a file, that is being parsed
+	// in ModeInclude, has an extend statement.
+	ErrIncludeExtends = errors.New("included files cannot extend other files")
+
 	// ErrTernaryCondition is the error returned if a nil check is used in a
 	// ternary expression.
 	ErrTernaryCondition = errors.New("cannot use nil check or ternary expression as ternary condition")

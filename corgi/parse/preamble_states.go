@@ -29,6 +29,11 @@ func (p *Parser) start() (stateFn, error) {
 	case lex.Use:
 		return p.use, nil
 	case lex.CodeStart:
+		// all code in included files is regular code
+		if p.mode == ModeInclude {
+			return p.nextHTML, nil
+		}
+
 		return p.globalCode, nil
 	case lex.Func:
 		return p.func_, nil
@@ -43,8 +48,11 @@ func (p *Parser) start() (stateFn, error) {
 
 func (p *Parser) extend() (_ stateFn, err error) {
 	extend := p.next()
-	if p.mode == ModeUse {
+	switch p.mode {
+	case ModeUse:
 		return nil, p.error(extend, ErrUseExtends)
+	case ModeInclude:
+		return nil, p.error(extend, ErrIncludeExtends)
 	}
 
 	lit := p.next()

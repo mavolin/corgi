@@ -23,12 +23,17 @@ func (p *Parser) doctypeOrBlock() (_ stateFn, err error) {
 			return p.doctype()
 		// only extendable blocks may appear before a doctype
 		case lex.Block:
-			b, err := p.block(require.Always, require.Always)
-			if err != nil {
-				return nil, err
+			if p.mode == ModeExtend {
+				b, err := p.block(require.Always, require.Always)
+				if err != nil {
+					return nil, err
+				}
+
+				p.f.Scope = append(p.f.Scope, *b)
+				break
 			}
 
-			p.f.Scope = append(p.f.Scope, *b)
+			fallthrough
 		default:
 			return p.nextHTML, nil
 		}
@@ -79,16 +84,6 @@ Loop:
 
 			s = append(s, *c)
 			continue Loop
-		case lex.CodeStart:
-			c, err := p.code()
-			if err != nil {
-				return nil, err
-			}
-
-			if c != nil { // empty line of code
-				s = append(s, *c)
-			}
-			continue Loop
 		case lex.Mixin:
 			m, err := p.mixin()
 			if err != nil {
@@ -101,6 +96,16 @@ Loop:
 
 		if p.mode != ModeUse && p.f.Extend == nil {
 			switch peek.Type {
+			case lex.CodeStart:
+				c, err := p.code()
+				if err != nil {
+					return nil, err
+				}
+
+				if c != nil { // empty line of code
+					s = append(s, *c)
+				}
+				continue Loop
 			case lex.Include:
 				incl, err := p.include()
 				if err != nil {
