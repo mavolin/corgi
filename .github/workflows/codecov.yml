@@ -21,9 +21,9 @@ jobs:
           flags: unit
       - name: Generate Coverage Report for Integration Tests
         working-directory: test/
-        run: ./codecov.sh -coverprofile coverage.txt
+        run: ./codecov.sh -coverprofile
       - name: Upload Integration Test Coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
-         directory: test/
+         files: ./test/prepare_coverage.txt,./test/integration_coverage.txt
          flags: integration

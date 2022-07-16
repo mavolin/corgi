@@ -24,6 +24,13 @@ in order to obtain the test coverage of corgi,
 you must run the integration tests with the `-coverpkg` flag.
 
 You may also run the `codecov.sh` utility script,
-which will print the current coverage to the terminal.
+which will print the current coverage of the preparation and integration tests to the terminal.
+
 Optionally, you may also specify an `-html` flag to open a browser with a generated HTML report,
-or the `-coverprofile FILE` flag to generate a cover profile file. 
+for the preparation test.
+
+Lastly, you may also specify the -coverprofile flag to generate to coverage profiles,
+`prepare_coverage.txt` and `integration_coverage.txt`, 
+that contain coverage information for the preparation and integration tests, respectively.
+
+`-html` and `-coverprofile` are mutually exclusive.
