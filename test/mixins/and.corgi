@@ -1,0 +1,10 @@
+func And()
+
+mixin foo()
+  p: block
+
+div
+  +foo
+    &.fooz.bar
+    block.
+      Content

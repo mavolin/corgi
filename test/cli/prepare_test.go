@@ -18,3 +18,8 @@ func TestFileName(t *testing.T) {
 		OutName: "tacos.go",
 	})
 }
+
+func TestFormat(t *testing.T) {
+	t.Parallel()
+	compile.Compile(t, "format.corgi", compile.Options{Format: true})
+}

@@ -1,0 +1,6 @@
+use baz "foo/bar"
+
+func ExternalAlias()
+
+p
+  +baz.Fooz

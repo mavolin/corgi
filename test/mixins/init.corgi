@@ -1,0 +1,6 @@
+use "foo/init"
+
+func Init(executed *bool)
+
+//- so that we don't get an unused import error
+p

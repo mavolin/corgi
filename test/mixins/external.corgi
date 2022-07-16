@@ -1,0 +1,6 @@
+use "foo/bar"
+
+func External()
+
+p
+  +bar.Fooz

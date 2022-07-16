@@ -23,6 +23,8 @@ type Options struct {
 	FileType file.Type
 	// OutName overwrites the name of the output file.
 	OutName string
+	// Format calls gofmt on the output file.
+	Format bool
 
 	// Package sets the name of the package in which the generated function
 	// will be placed.
@@ -45,6 +47,10 @@ func Compile(t *testing.T, name string, o Options) {
 
 	if o.OutName != "" {
 		args = append(args, "-f", o.OutName)
+	}
+
+	if !o.Format {
+		args = append(args, "-nofmt")
 	}
 
 	switch o.FileType {

@@ -30,7 +30,7 @@ func (l *Lexer) nextHTML() stateFn {
 		return l.code(l.nextHTML)
 	case l.peekIsWord("include"):
 		return l.include
-	case l.peekIsWord("block"):
+	case l.peekIsWord("block"), l.peekIsWord("block."), l.peekIsWord("block:"):
 		return l.block
 	case l.peekIsWord("append"):
 		return l.blockAppend

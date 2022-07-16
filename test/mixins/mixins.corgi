@@ -1,0 +1,15 @@
+func Mixins()
+
+mixin myMixin(foo string, bar string = "baz", foobar = "foozbaz", fooz = nil)
+  p
+    | #{foo}, #{bar}, #{foobar}
+    if fooz != nil
+      | , ${fooz}
+
+mixin noArgs(favDog = "corgi")
+  | My favorite dogs are #{favDog}s.
+
+div
+  +myMixin(foo="abc", foobar="def")
+div
+  +noArgs
