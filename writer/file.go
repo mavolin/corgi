@@ -272,7 +272,7 @@ func (w *Writer) writeScopeItem(itm file.ScopeItem, e *elem) error {
 	case file.Filter:
 		return w.writeFilter(itm)
 	case file.Element:
-		return w.writeElement(itm, nil)
+		return w.writeElement(itm)
 	case file.Mixin:
 		return nil
 	default:
@@ -410,7 +410,7 @@ func (w *Writer) resolveBlock(s file.Scope, name file.Ident, bs []block, otherFi
 // Element
 // ======================================================================================
 
-func (w *Writer) writeElement(e file.Element, extraAttributes func(e *elem) error) error {
+func (w *Writer) writeElement(e file.Element) error {
 	var inContext bool
 
 	for _, itm := range e.Body {
@@ -445,15 +445,20 @@ func (w *Writer) writeElement(e file.Element, extraAttributes func(e *elem) erro
 		}
 	}
 
-	if extraAttributes != nil {
-		if err := extraAttributes(&ew); err != nil {
+	ea := w.extraAttributes.Peek()
+	if ea != nil {
+		if err := ea(&ew); err != nil {
 			return err
 		}
 	}
 
+	w.extraAttributes.Push(nil)
+
 	if err := w.writeScope(e.Body, &ew); err != nil {
 		return err
 	}
+
+	w.extraAttributes.Pop()
 
 	if err := w.closeElement(&ew); err != nil {
 		return err
@@ -518,11 +523,16 @@ func (w *Writer) closeTag(e *elem) error {
 
 	e.isClosed = true
 
-	// Check if the next item will fill the elements body.
+	// Check if the first item fills the elements body or the element has an
+	// empty body.
 	// If so, we can save ourselves the if not closed check.
-	inIf := !isFirstContent(e.e.Body)
+	//
+	// It is safe to check this even if closeTag is called after the
+	// first element has been written, as in that case isClosed will always be
+	// true.
+	noIf := firstAlwaysWritesBody(e.e.Body) || len(e.e.Body) == 0
 
-	if inIf {
+	if !noIf {
 		if err := w.flushRawBuf(); err != nil {
 			return err
 		}
@@ -546,7 +556,7 @@ func (w *Writer) closeTag(e *elem) error {
 		w.writeRawUnescaped(">")
 	}
 
-	if inIf {
+	if !noIf {
 		if err := w.flushRawBuf(); err != nil {
 			return err
 		}
@@ -757,7 +767,7 @@ func (w *Writer) writeInclude(incl file.Include, e *elem) error {
 	case file.CorgiInclude:
 		return w.writeScope(incl.File.Scope, e)
 	case file.RawInclude:
-		if e != nil && !e.isClosed {
+		if e != nil {
 			if err := w.closeTag(e); err != nil {
 				return err
 			}
@@ -1052,7 +1062,7 @@ func (w *Writer) writeSwitchCases(sw file.Switch, e *elem) error {
 // ======================================================================================
 
 func (w *Writer) writeFor(f file.For, e *elem) error {
-	if e != nil && isFirstContent(f.Body) {
+	if e != nil && !isFirstAnd(f.Body) {
 		if err := w.closeTag(e); err != nil {
 			return err
 		}
@@ -1100,7 +1110,7 @@ func (w *Writer) writeFor(f file.For, e *elem) error {
 // ======================================================================================
 
 func (w *Writer) writeWhile(wh file.While, e *elem) error {
-	if e != nil && isFirstContent(wh.Body) {
+	if e != nil && !isFirstAnd(wh.Body) {
 		if err := w.closeTag(e); err != nil {
 			return err
 		}
@@ -1322,6 +1332,8 @@ func (w *Writer) writeMixinCall(c file.MixinCall, e *elem) error {
 
 Params:
 	for _, param := range c.Mixin.Params {
+		// Go doesn't allow 'foo := nil', hence manually set the type.
+		// This seems sensible, as 'nil' will probably be a common default.
 		if param.Type == "" && param.Default.Expression == "nil" {
 			param.Type = "any"
 		}
@@ -1371,42 +1383,32 @@ Params:
 		}
 	}
 
-	for _, itm := range c.Mixin.Body {
-		switch itm := itm.(type) {
-		case file.Element:
-			if err := w.closeTag(e); err != nil {
-				return err
-			}
+	w.extraAttributes.Push(w.writeMixinAnds(c.Body))
 
-			err := w.writeElement(itm, func(e *elem) error {
-				return w.writeMixinAnds(c.Body, e)
-			})
-			if err != nil {
-				return err
-			}
-		default:
-			if err := w.writeScopeItem(itm, e); err != nil {
-				return err
-			}
-		}
+	if err := w.writeScope(c.Mixin.Body, e); err != nil {
+		return err
 	}
+
+	w.extraAttributes.Pop()
 
 	return w.writeToFile("}\n")
 }
 
-func (w *Writer) writeMixinAnds(s file.Scope, e *elem) error {
-	for _, itm := range s {
-		_, skip := itm.(file.Block)
-		if skip {
-			continue
+func (w *Writer) writeMixinAnds(s file.Scope) func(e *elem) error {
+	return func(e *elem) error {
+		for _, itm := range s {
+			_, skip := itm.(file.Block)
+			if skip {
+				continue
+			}
+
+			if err := w.writeScopeItem(itm, e); err != nil {
+				return err
+			}
 		}
 
-		if err := w.writeScopeItem(itm, e); err != nil {
-			return err
-		}
+		return nil
 	}
-
-	return nil
 }
 
 // ============================================================================

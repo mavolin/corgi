@@ -2,18 +2,19 @@ package writer
 
 import "github.com/mavolin/corgi/corgi/file"
 
-// isFirstContent reports whether the first written item in the passed scope
-// writes content (as opposed to an attribute).
-func isFirstContent(s file.Scope) bool {
+// isFirstAnd reports whether the next written item is an &.
+// If it encounters a conditional, it reports true if any of 'thens' have an &
+// as first item.
+func isFirstAnd(s file.Scope) bool {
 	if len(s) == 0 {
 		return false
 	}
 
 	switch itm := s[0].(type) {
 	case file.And:
-		return false
+		return true
 	case file.IfBlock:
-		if isFirstContent(itm.Then) {
+		if isFirstAnd(itm.Then) {
 			return true
 		}
 
@@ -21,14 +22,14 @@ func isFirstContent(s file.Scope) bool {
 			return false
 		}
 
-		return isFirstContent(itm.Else.Then)
+		return isFirstAnd(itm.Else.Then)
 	case file.If:
-		if isFirstContent(itm.Then) {
+		if isFirstAnd(itm.Then) {
 			return true
 		}
 
 		for _, ei := range itm.ElseIfs {
-			if isFirstContent(ei.Then) {
+			if isFirstAnd(ei.Then) {
 				return true
 			}
 		}
@@ -37,10 +38,10 @@ func isFirstContent(s file.Scope) bool {
 			return false
 		}
 
-		return isFirstContent(itm.Else.Then)
+		return isFirstAnd(itm.Else.Then)
 	case file.Switch:
 		for _, c := range itm.Cases {
-			if isFirstContent(c.Then) {
+			if isFirstAnd(c.Then) {
 				return true
 			}
 		}
@@ -49,15 +50,80 @@ func isFirstContent(s file.Scope) bool {
 			return false
 		}
 
-		return isFirstContent(itm.Default.Then)
+		return isFirstAnd(itm.Default.Then)
 	case file.For:
-		return isFirstContent(itm.Body)
+		return isFirstAnd(itm.Body)
 	case file.While:
-		return isFirstContent(itm.Body)
+		return isFirstAnd(itm.Body)
 	case file.MixinCall:
-		return isFirstContent(itm.Mixin.Body)
+		return isFirstAnd(itm.Mixin.Body)
 	case file.Mixin:
-		return isFirstContent(s[1:])
+		return isFirstAnd(s[1:])
+	default:
+		return false
+	}
+}
+
+// firstAlwaysWritesBody reports whether the first written element in the scope
+// writes to the body of the element (as opposed to its attributes).
+//
+// If it encounters a conditional, it only reports true if all 'thens' write to
+// the body including the default/else.
+// If no default/else is present, it will return false.
+func firstAlwaysWritesBody(s file.Scope) bool {
+	if len(s) == 0 {
+		return false
+	}
+
+	switch itm := s[0].(type) {
+	case file.And:
+		return false
+	case file.IfBlock:
+		if !firstAlwaysWritesBody(itm.Then) {
+			return false
+		}
+
+		if itm.Else == nil {
+			return false
+		}
+
+		return firstAlwaysWritesBody(itm.Else.Then)
+	case file.If:
+		if !firstAlwaysWritesBody(itm.Then) {
+			return false
+		}
+
+		for _, ei := range itm.ElseIfs {
+			if !firstAlwaysWritesBody(ei.Then) {
+				return false
+			}
+		}
+
+		if itm.Else == nil {
+			return false
+		}
+
+		return firstAlwaysWritesBody(itm.Else.Then)
+	case file.Switch:
+		for _, c := range itm.Cases {
+			if !firstAlwaysWritesBody(c.Then) {
+				return false
+			}
+		}
+
+		if itm.Default == nil {
+			return false
+		}
+
+		return firstAlwaysWritesBody(itm.Default.Then)
+	case file.For:
+		return firstAlwaysWritesBody(itm.Body)
+	case file.While:
+		return firstAlwaysWritesBody(itm.Body)
+	case file.MixinCall:
+		return firstAlwaysWritesBody(itm.Mixin.Body)
+	case file.Mixin:
+		return firstAlwaysWritesBody(s[1:])
 	default:
 		return true
 	}

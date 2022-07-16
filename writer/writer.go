@@ -19,6 +19,14 @@ type Writer struct {
 	// Starts with the current file, up till the main file.
 	files stack.Stack[[]file.File]
 
+	// extraAttributes is a stack of functions that add extra attributes to the
+	// elements being written.
+	// It is used by mixin calls with &s in their body.
+	// Each time writeElement is called, it will peek at the top of the stack
+	// and call it when writing attributes and then put nil on top when writing
+	// its body.
+	extraAttributes stack.Stack[func(e *elem) error]
+
 	main        *file.File // convenience
 	packageName string
 	out         io.Writer
@@ -35,6 +43,9 @@ type Writer struct {
 	// wroteClose indicates whether the last writeToFile call set _close to
 	// false.
 	// It is set to false after every writeToFile call.
+	//
+	// This is here to prevent unnecessary consecutive '_close = false'
+	// statements when writing to rawBuf.
 	wroteClose bool
 }
 
@@ -63,15 +74,19 @@ func New(f *file.File, packageName string) *Writer {
 		next = next.File.Extend
 	}
 
-	fileStack := stack.New[[]file.File](50)
-	fileStack.Push(files)
-
-	return &Writer{
-		files:       fileStack,
+	w := &Writer{
 		main:        f,
 		packageName: packageName,
 		mixins:      stack.New[file.MixinCall](50),
 	}
+
+	w.files = stack.New[[]file.File](50)
+	w.files.Push(files)
+
+	w.extraAttributes = stack.New[func(e *elem) error](250)
+	w.extraAttributes.Push(nil)
+
+	return w
 }
 
 func (w *Writer) Write(out io.Writer) error {
