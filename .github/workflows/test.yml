@@ -12,5 +12,8 @@ jobs:
         uses: actions/setup-go@v3
         with:
           go-version: '>=1.18.0'
-      - name: Run Tests
+      - name: Run Unit Tests
         run: go test -race ./...
+      - name: Run Integration Tests
+        working-directory: test/
+        run: ./test.sh

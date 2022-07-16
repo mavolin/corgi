@@ -13,7 +13,17 @@ jobs:
         uses: actions/setup-go@v3
         with:
           go-version: '>=1.18.0'
-      - name: Generate Coverage Report
-        run: go test --race -coverprofile=coverage.txt -covermode=atomic ./...
+      - name: Generate Coverage Report for Unit Tests
+        run: go test -coverprofile coverage.txt -covermode atomic ./...
       - name: Upload Coverage to Codecov
-        uses: codecov/codecov-action@v2
+        uses: codecov/codecov-action@v3
+        with:
+          flags: unit
+      - name: Generate Coverage Report for Integration Tests
+        working-directory: test/
+        run: ./codecov.sh -coverprofile coverage.txt
+      - name: Upload Coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+         directory: test/
+         flags: integration
