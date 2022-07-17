@@ -5,7 +5,7 @@ before:
 builds:
   - main: ./cmd/corgi
     ldflags:
-      - -X github.com/mavolin/corgi/internal/meta.Version={{.Version}}
+      - -X github.com/mavolin/corgi/internal/meta.Version={{.Tag}}
       - -X github.com/mavolin/corgi/internal/meta.Commit={{.Commit}}
     env:
       - CGO_ENABLED=0

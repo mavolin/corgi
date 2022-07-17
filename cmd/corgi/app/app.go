@@ -20,7 +20,7 @@ func Run(args []string) error {
 		Usage: "Generate Go functions from corgi files",
 		Description: "This is the compiler for the corgi template language.\n\n" +
 			"https://github.com/mavolin/corgi",
-		Version:   meta.Version,
+		Version:   meta.Version + " (" + meta.Commit + ")",
 		ArgsUsage: "<input file>",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
