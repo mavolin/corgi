@@ -56,7 +56,8 @@ var (
 	ErrTernaryCondition = errors.New("cannot use nil check or ternary expression as ternary condition")
 	ErrNilCheckDefault  = errors.New("cannot use nil check or ternary expression as nil-check default")
 
-	ErrIndexExpression = errors.New("index expression has unclosed brackets")
+	ErrIndexExpression    = errors.New("index expression has unclosed brackets")
+	ErrFuncCallExpression = errors.New("func call expression has unclosed brackets")
 
 	ErrCaseExpression         = errors.New("case expressions must resolve to regular Go expressions")
 	ErrWhileExpression        = errors.New("while conditions must resolve to regular Go expressions")

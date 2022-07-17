@@ -151,57 +151,81 @@ func (p *Parser) parseValueExpression(
 ) (root file.GoExpression, chain []file.ValueExpression, err error) {
 	rawRunes := []rune(trimRightWhitespace(raw.Expression))
 
-	var parenCount int
-
 	var offset int
+
+	var braceCount int
 
 Root:
 	for i, r := range rawRunes {
 		switch r {
-		case '(':
-			parenCount++
-		case ')':
-			parenCount++
-		case '.', '[':
-			if parenCount == 0 {
-				offset += i
-				root.Expression = string(rawRunes[:i])
-				rawRunes = rawRunes[i:]
-				break Root
+		case '{':
+			braceCount++
+		case '}':
+			braceCount--
+		case '.', '[', '(':
+			if braceCount > 0 {
+				continue Root
 			}
+
+			offset += i
+			root.Expression = string(rawRunes[:i])
+			rawRunes = rawRunes[i:]
+			break Root
 		}
+	}
+
+	// there is no chain, just a single expression
+	if offset == 0 {
+		root.Expression = string(rawRunes)
+		return root, nil, nil
 	}
 
 	for len(rawRunes) > 0 {
 		switch rawRunes[0] {
 		case '.':
 			rawRunes = rawRunes[1:]
-			exprString := nextChainExpr(rawRunes)
-			chain = append(chain, file.FieldFuncExpression{
-				Expression: exprString,
+			exprStr := nextChainExpr(rawRunes)
+			chain = append(chain, file.FieldMethodExpression{
+				Expression: exprStr,
 				Pos:        file.Pos{Line: raw.Line, Col: raw.Col + offset},
 			})
 
-			offset += len(exprString) + 1
-			rawRunes = rawRunes[len(exprString):]
+			offset += len(exprStr) + 1
+			rawRunes = rawRunes[len(exprStr):]
 		case '[':
-			rawRunes = rawRunes[1:]
-			exprString := nextIndexExpr(rawRunes)
-			ffExpr := file.IndexExpression{
-				Expression: exprString,
-				Pos:        file.Pos{Line: raw.Line, Col: raw.Col + offset},
-			}
-			chain = append(chain, ffExpr)
-
-			if len(rawRunes) < len(exprString)+1 {
+			rawRunes = rawRunes[1:] // strip the '['
+			exprStr, err := nextIndexExpr(rawRunes)
+			if err != nil {
 				return root, chain, p.error(lex.Item{
-					Line: ffExpr.Line,
-					Col:  ffExpr.Col,
-				}, ErrIndexExpression)
+					Line: raw.Line,
+					Col:  raw.Col + offset,
+				}, err)
 			}
 
-			rawRunes = rawRunes[len(exprString)+1:] // strip the ']'
-			offset += len(exprString) + 2
+			chain = append(chain, file.IndexExpression{
+				Expression: exprStr,
+				Pos:        file.Pos{Line: raw.Line, Col: raw.Col + offset},
+			})
+
+			rawRunes = rawRunes[len(exprStr)+1:] // strip the ']'
+			offset += len(exprStr) + len("[]")
+		case '(':
+			rawRunes = rawRunes[1:] // strip the '('
+			exprStr, err := nextFuncCallExpr(rawRunes)
+			if err != nil {
+				return root, chain, p.error(lex.Item{
+					Line: raw.Line,
+					Col:  raw.Col + offset,
+				}, err)
+			}
+
+			chain = append(chain, file.FuncCallExpression{
+				Expression: exprStr,
+				Pos:        file.Pos{Line: raw.Line, Col: raw.Col + offset},
+			})
+
+			rawRunes = rawRunes[len(exprStr)+1:] // strip the ')'
+			offset += len(exprStr) + len("()")
 		default:
 			panic("stopped at invalid indicator: " + string(rawRunes[0]))
 		}
@@ -211,17 +235,17 @@ Root:
 }
 
 func nextChainExpr(rawRunes []rune) string {
-	var parenCount int
+	var braceCount int
 
 ChainExpr:
 	for i, r := range rawRunes {
 		switch r {
-		case '(', '{':
-			parenCount++
-		case ')', '}':
-			parenCount--
-		case '[', '.':
-			if parenCount > 0 {
+		case '{':
+			braceCount++
+		case '}':
+			braceCount--
+		case '.', '[', '(':
+			if braceCount > 0 {
 				continue ChainExpr
 			}
 
@@ -232,10 +256,9 @@ ChainExpr:
 	return string(rawRunes)
 }
 
-func nextIndexExpr(rawRunes []rune) string {
+func nextIndexExpr(rawRunes []rune) (string, error) {
 	var parenCount int
 
-IndexExpr:
 	for i, r := range rawRunes {
 		switch r {
 		case '(', '{', '[':
@@ -243,15 +266,44 @@ IndexExpr:
 		case ')', '}':
 			parenCount--
 		case ']':
-			if parenCount > 0 {
-				continue IndexExpr
+			if parenCount == 0 {
+				return string(rawRunes[:i]), nil
 			}
 
-			return string(rawRunes[:i])
+			parenCount--
 		}
 	}
 
-	return string(rawRunes)
+	if parenCount != 0 {
+		return "", ErrIndexExpression
+	}
+
+	return string(rawRunes), nil
+}
+
+func nextFuncCallExpr(rawRunes []rune) (string, error) {
+	var parenCount int
+
+	for i, r := range rawRunes {
+		switch r {
+		case '(', '{', '[':
+			parenCount++
+		case ']', '}':
+			parenCount--
+		case ')':
+			if parenCount == 0 {
+				return string(rawRunes[:i]), nil
+			}
+
+			parenCount--
+		}
+	}
+
+	if parenCount != 0 {
+		return "", ErrFuncCallExpression
+	}
+
+	return string(rawRunes), nil
 }
 
 func (p *Parser) text(required bool) (itms []file.ScopeItem, err error) {

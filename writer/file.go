@@ -1586,9 +1586,13 @@ func nilCheckToGoExpression(e file.NilCheckExpression) string {
 			b.WriteString("[")
 			b.WriteString(chainExpr.Expression)
 			b.WriteString("]")
-		case file.FieldFuncExpression:
+		case file.FieldMethodExpression:
 			b.WriteString(".")
 			b.WriteString(chainExpr.Expression)
+		case file.FuncCallExpression:
+			b.WriteString("(")
+			b.WriteString(chainExpr.Expression)
+			b.WriteString(")")
 		}
 	}
 
@@ -1654,22 +1658,15 @@ func (w *Writer) nilCheckIfCondition(e file.NilCheckExpression) error {
 			if err != nil {
 				return err
 			}
-		case file.FieldFuncExpression:
-			// basically just split at the first '('
-			// if that yields a single string, it must be a field, otherwise
-			// it's a func
-			split := strings.SplitAfterN(expr.Expression, "(", 2)
-			if len(split) == 1 {
-				err = w.writeToFile("_writeutil.FieldChainItem{Name: \"" + expr.Expression + "\"}")
-				if err != nil {
-					return err
-				}
-			} else {
-				args := split[1][:len(split)-1]
-				err = w.writeToFile("_writeutil.FuncChainItem{Name: \"" + split[0] + "\", Args: []any{" + args + "}}")
-				if err != nil {
-					return err
-				}
+		case file.FieldMethodExpression:
+			err = w.writeToFile("_writeutil.FieldMethodChainItem{Name: \"" + expr.Expression + "\"}")
+			if err != nil {
+				return err
+			}
+		case file.FuncCallExpression:
+			err = w.writeToFile("_writeutil.FuncCallChainItem{Args: []any{" + expr.Expression + "}}")
+			if err != nil {
+				return err
 			}
 		}
 	}

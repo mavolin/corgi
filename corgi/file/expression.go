@@ -92,19 +92,39 @@ func (NilCheckExpression) _typeInlineElementValue() {}
 
 // ValueExpression represents an expression that can be chained.
 //
-// It is either a IndexExpression, or a FieldFuncExpression.
+// It is either a IndexExpression, or a FieldMethodExpression.
 type ValueExpression interface {
 	_typeValueExpression()
 }
 
-// IndexExpression represents indexing being performed on another value, e.g.
-// foo[1] (1) or bar["fooz"] ("fooz").
+// IndexExpression represents indexing being performed on another value.
+//
+// Examples
+//
+//  base[1] => 1
+//  base["fooz"] => "fooz"
 type IndexExpression GoExpression
 
 func (IndexExpression) _typeValueExpression() {}
 
-// FieldFuncExpression represents access to a field or function of another
-// value, .e.g. foo.Bar (Bar), foo.Baz() (Baz()) or foo.Fooz("arg") (Fooz("arg)).
-type FieldFuncExpression GoExpression
+// FieldMethodExpression represents access to a field or method of a value.
+//
+// Examples
+//
+// 	base.Bar => Bar
+// 	base.Baz() => Baz
+//  base.Fooz("arg") => Fooz
+type FieldMethodExpression GoExpression
 
-func (FieldFuncExpression) _typeValueExpression() {}
+func (FieldMethodExpression) _typeValueExpression() {}
+
+// FuncCallExpression represents a call to a function or method.
+// It contains the raw args of the call.
+//
+// Examples
+//
+//  base("Foo") => "Foo"
+//  base(12, true,  "bar") => 12, true,  "bar"
+type FuncCallExpression GoExpression
+
+func (FuncCallExpression) _typeValueExpression() {}

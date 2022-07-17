@@ -1,3 +1,12 @@
+-
+  type methodTestType struct {
+      ret *int
+  }
+
+  func (t methodTestType) M() *int {
+      return t.ret
+  }
+
 func NilCheckExpression()
 
 - chain := struct{F *struct{S []string}}{F: nil}
@@ -52,3 +61,57 @@ if t.F?
   p The value is: #{*t.F}
 else
   p The value is not accessible.
+
+- var f func() *string
+
+p= f()?
+
+- f = func() *string { return nil }
+
+p= f()?
+
+-
+  f = func() *string {
+      s := "foo"
+      return &s
+  }
+
+p= f()?
+
+- a := struct{F func() *string}{F: nil}
+
+p= a.F()?
+
+- a = struct{F func() *string}{F: func() *string { return nil }}
+
+p= a.F()?
+
+- a = struct{F func() *string}{F: f}
+
+p= a.F()?
+
+- var mtt *methodTestType
+
+p= mtt.M()?
+
+- mtt = &methodTestType{}
+
+p= mtt.M()?
+
+-
+  ret := 15
+  mtt = &methodTestType{ret: &ret}
+
+p= mtt.M()?
+
+- var slice []string
+
+ul
+  for _, s range slice?
+    li= s
+
+- slice = []string{"foo", "bar"}
+
+ul
+  for _, s range slice?
+    li= s

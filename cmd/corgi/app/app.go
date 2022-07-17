@@ -14,59 +14,59 @@ import (
 	"github.com/mavolin/corgi/writer"
 )
 
-var app = &cli.App{
-	Name:  "corgi",
-	Usage: "Generate Go functions from corgi files",
-	Description: "This is the compiler for the corgi template language.\n\n" +
-		"https://github.com/mavolin/corgi",
-	Version:   meta.Version,
-	ArgsUsage: "<input file>",
-	Flags: []cli.Flag{
-		&cli.StringFlag{
-			Name:     "package",
-			Aliases:  []string{"p"},
-			Usage:    "set the name of the package to generate into; not required when using go generate",
-			EnvVars:  []string{"GOPACKAGE"},
-			Required: true,
-		},
-		&cli.StringSliceFlag{
-			Name:      "resource",
-			Aliases:   []string{"r"},
-			Usage:     "add `DIR` to the list of resource directories",
-			TakesFile: true,
-		},
-		&cli.BoolFlag{
-			Name:  "ignorecorgi",
-			Usage: "don't use the $projectRoot/corgi resource directory",
-		},
-		&cli.StringFlag{
-			Name:        "filetype",
-			Aliases:     []string{"t"},
-			Usage:       "overwrite the file type of the file (html, xhtml, xml)",
-			DefaultText: "",
-			Value:       "",
-		},
-		&cli.StringFlag{
-			Name:        "filename",
-			Aliases:     []string{"f"},
-			Usage:       "overwrite the name of the generated file",
-			DefaultText: "corgi_file.corgi.go",
-		},
-		&cli.BoolFlag{
-			Name:  "nofmt",
-			Usage: "don't format the output",
-		},
-		&cli.BoolFlag{
-			Name:  "get",
-			Usage: "go get github.com/mavolin/corgi before generating the function",
-		},
-	},
-	HideHelpCommand:      true,
-	EnableBashCompletion: true,
-	Action:               run,
-}
-
 func Run(args []string) error {
+	app := &cli.App{
+		Name:  "corgi",
+		Usage: "Generate Go functions from corgi files",
+		Description: "This is the compiler for the corgi template language.\n\n" +
+			"https://github.com/mavolin/corgi",
+		Version:   meta.Version,
+		ArgsUsage: "<input file>",
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:     "package",
+				Aliases:  []string{"p"},
+				Usage:    "set the name of the package to generate into; not required when using go generate",
+				EnvVars:  []string{"GOPACKAGE"},
+				Required: true,
+			},
+			&cli.StringSliceFlag{
+				Name:      "resource",
+				Aliases:   []string{"r"},
+				Usage:     "add `DIR` to the list of resource directories",
+				TakesFile: true,
+			},
+			&cli.BoolFlag{
+				Name:  "ignorecorgi",
+				Usage: "don't use the $projectRoot/corgi resource directory",
+			},
+			&cli.StringFlag{
+				Name:        "filetype",
+				Aliases:     []string{"t"},
+				Usage:       "overwrite the file type of the file (html, xhtml, xml)",
+				DefaultText: "",
+				Value:       "",
+			},
+			&cli.StringFlag{
+				Name:        "filename",
+				Aliases:     []string{"f"},
+				Usage:       "overwrite the name of the generated file",
+				DefaultText: "corgi_file.corgi.go",
+			},
+			&cli.BoolFlag{
+				Name:  "nofmt",
+				Usage: "don't format the output",
+			},
+			&cli.BoolFlag{
+				Name:  "get",
+				Usage: "go get github.com/mavolin/corgi before generating the function",
+			},
+		},
+		HideHelpCommand:      true,
+		EnableBashCompletion: true,
+		Action:               run,
+	}
+
 	return app.Run(args)
 }
 
