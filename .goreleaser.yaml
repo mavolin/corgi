@@ -27,16 +27,16 @@ changelog:
   sort: asc
   groups:
     - title: 💥 Breaking Changes
-      regexp: '^(feat|fix|revert|refactor)!:'
+      regexp: '^.*(feat|fix|revert|refactor)(\([^)]+\))?!:'
       order: 0
     - title: ⚡ Features
-      regexp: ^feat
+      regexp: '^.*feat(\([^)]+\))?:'
       order: 1
     - title: 🪲 Bug Fixes
-      regexp: ^fix
+      regexp: '^.*fix(\([^)]+\))?:'
       order: 2
     - title: 🏎 Performance Improvements
-      regexp: ^perf
+      regexp: '^.*perf(\([^)]+\))?:'
       order: 3
     - title: ✏ Others
       order: 999
