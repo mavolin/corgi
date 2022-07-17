@@ -12,22 +12,24 @@
 
 ## About
 
-Corgi is an HTML template language, inspired by pug (hence the name), for Go. 
+Corgi is an HTML and XML template language, inspired by pug (hence the name), for Go. 
 Just like pug, corgi also uses code generation to generate its templates.
 
 ## Main Features
 
 * 👀 Highly readable syntax, not just replacing placeholders
 * 👪 Support for inheritance
-* ➕ Mixins ‒ functions (with parameters) that render repeated pieces of code
+* ➕ Mixins—functions (with parameters) that render repeated pieces of corgi
 * 🗄 Import mixins from other files
 * 🖇 Split large templates into multiple files
 * ✨ Import any Go package and use its constants, variables, types, and functions—no need for `FuncMap`s or the like
 * 🤏 Generates minified HTML (and through the use of filters also minified CSS and JS)
+* 🔒 Automatically escapes HTML/XML, and in HTML mode also interpolated CSS and JS
 
 ## Getting Started
 
-Have a look at the documentation on [GitBook](https://mavolin.gitbook.io/corgi) to learn corgi.
+Want to learn corgi?
+Have a look at the guide on [GitBook](https://mavolin.gitbook.io/corgi)!
 If you already know pug, you can also find a detailed list of differences there.
 
 ## License
