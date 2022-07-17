@@ -3,8 +3,24 @@ func And()
 mixin foo()
   p: block
 
+mixin nested()
+  if true
+    p abc
+  switch
+    case true
+      p def
+  for range []int{0}
+    p ghi
+  - cont := true
+  while cont
+    p jkl
+    - cont = false
+
 div
   +foo
     &.fooz.bar
     block.
       Content
+div
+  +nested
+    &.bar

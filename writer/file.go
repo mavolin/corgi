@@ -540,10 +540,10 @@ func (w *Writer) closeTag(e *elem) error {
 		if err := w.writeToFile("if !_closed {\n"); err != nil {
 			return err
 		}
+	}
 
-		if err := w.writeToFile("_closed = true\n"); err != nil {
-			return err
-		}
+	if err := w.writeToFile("_closed = true\n"); err != nil {
+		return err
 	}
 
 	if err := w.writeClasses(e); err != nil {
@@ -1093,9 +1093,13 @@ func (w *Writer) writeFor(f file.For, e *elem) error {
 					return err
 				}
 			}
+
+			if err := w.writeToFile(" := "); err != nil {
+				return err
+			}
 		}
 
-		if err := w.writeToFile(" := range " + val + " {\n"); err != nil {
+		if err := w.writeToFile("range " + val + " {\n"); err != nil {
 			return err
 		}
 

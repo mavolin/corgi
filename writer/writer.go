@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"io"
 	"strconv"
+	"strings"
 
 	"github.com/mavolin/corgi/corgi/file"
 	"github.com/mavolin/corgi/pkg/stack"
@@ -120,7 +121,12 @@ func (w *Writer) Write(out io.Writer) error {
 // ======================================================================================
 
 func (w *Writer) writeToFile(s string) error {
-	w.wroteClose = false
+	// There's no need to write set _close again, if we're simply entering a
+	// new context.
+	// Only if new output has been produced, does _closed need to be updated.
+	if strings.HasSuffix(s, "{\n") || strings.HasSuffix(s, "}\n") {
+		w.wroteClose = false
+	}
 
 	_, err := io.WriteString(w.out, s)
 	return err

@@ -819,7 +819,7 @@ func (l *Lexer) caseDefault() stateFn {
 // It assumes the next string is 'for'.
 //
 // It emits a For item.
-// Then it emits an Ident and optionally a Comma followed by another Ident.
+// Then it emits an optional Ident and optionally a Comma followed by another Ident.
 // Then it emits a Range followed by another Expression.
 func (l *Lexer) for_() stateFn { //nolint:revive
 	l.nextString("for")
@@ -829,29 +829,31 @@ func (l *Lexer) for_() stateFn { //nolint:revive
 		return l.error(&UnknownItemError{Expected: "a space"})
 	}
 
-	endState := l.emitIdent(&UnknownItemError{Expected: "an identifier"})
-	if endState != nil {
-		return endState
-	}
-
-	spaceAfter := l.ignoreWhitespace()
-
-	if l.peek() == ',' {
-		l.next()
-		l.emit(Comma)
-
-		l.ignoreWhitespace()
-
-		endState = l.emitIdent(&UnknownItemError{Expected: "an identifier"})
+	if !l.peekIsWord("range") {
+		endState := l.emitIdent(&UnknownItemError{Expected: "an identifier"})
 		if endState != nil {
 			return endState
 		}
 
-		spaceAfter = l.ignoreWhitespace()
-	}
+		spaceAfter := l.ignoreWhitespace()
 
-	if !spaceAfter {
-		return l.error(&UnknownItemError{Expected: "a space"})
+		if l.peek() == ',' {
+			l.next()
+			l.emit(Comma)
+
+			l.ignoreWhitespace()
+
+			endState = l.emitIdent(&UnknownItemError{Expected: "an identifier"})
+			if endState != nil {
+				return endState
+			}
+
+			spaceAfter = l.ignoreWhitespace()
+		}
+
+		if !spaceAfter {
+			return l.error(&UnknownItemError{Expected: "a space"})
+		}
 	}
 
 	if !l.peekIsString("range") {
@@ -865,7 +867,7 @@ func (l *Lexer) for_() stateFn { //nolint:revive
 		return l.error(&UnknownItemError{Expected: "a space"})
 	}
 
-	if endState = l._expression(false, '\n'); endState != nil {
+	if endState := l._expression(false, '\n'); endState != nil {
 		return endState
 	}
 

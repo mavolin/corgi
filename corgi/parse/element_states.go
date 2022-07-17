@@ -1184,22 +1184,28 @@ func (p *Parser) for_() (*file.For, error) {
 		Pos: file.Pos{Line: forItm.Line, Col: forItm.Col},
 	}
 
-	ident1Itm := p.next()
-	if ident1Itm.Type != lex.Ident {
-		return nil, p.unexpectedItem(ident1Itm, lex.Ident)
-	}
-
-	f.VarOne = file.GoIdent(ident1Itm.Val)
-
-	if p.peek().Type == lex.Comma {
-		p.next()
-
-		ident2Itm := p.next()
-		if ident2Itm.Type != lex.Ident {
-			return nil, p.unexpectedItem(ident2Itm, lex.Ident)
+	if p.peek().Type == lex.Ident {
+		ident1Itm := p.next()
+		if ident1Itm.Type != lex.Ident {
+			return nil, p.unexpectedItem(ident1Itm, lex.Ident)
 		}
 
-		f.VarTwo = file.GoIdent(ident2Itm.Val)
+		f.VarOne = file.GoIdent(ident1Itm.Val)
+
+		if p.peek().Type == lex.Comma {
+			p.next()
+
+			ident2Itm := p.next()
+			if ident2Itm.Type != lex.Ident {
+				return nil, p.unexpectedItem(ident2Itm, lex.Ident)
+			}
+
+			f.VarTwo = file.GoIdent(ident2Itm.Val)
+		} else if p.peek().Type != lex.Range {
+			return nil, p.unexpectedItem(p.next(), lex.Comma, lex.Range)
+		}
+	} else if p.peek().Type != lex.Range {
+		return nil, p.unexpectedItem(p.next(), lex.Ident, lex.Range)
 	}
 
 	rangeItm := p.next()
