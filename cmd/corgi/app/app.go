@@ -15,12 +15,17 @@ import (
 )
 
 func Run(args []string) error {
+	ver := meta.Version
+	if meta.Commit != meta.UnknownCommit {
+		ver += " (" + meta.Commit + ")"
+	}
+
 	app := &cli.App{
 		Name:  "corgi",
 		Usage: "Generate Go functions from corgi files",
 		Description: "This is the compiler for the corgi template language.\n\n" +
 			"https://github.com/mavolin/corgi",
-		Version:   meta.Version + " (" + meta.Commit + ")",
+		Version:   ver,
 		ArgsUsage: "<input file>",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
