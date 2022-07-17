@@ -9,3 +9,9 @@ var Version = DevelopVersion
 
 // DevelopVersion is the version string used for development builds.
 const DevelopVersion = "develop"
+
+// Commit is the commit hash of the binary.
+//
+// This should be set during compilation using
+// `-ldflags "-X github.com/mavolin/corgi/internal/meta.Commit=foo"`.
+var Commit = "unknown commit"
