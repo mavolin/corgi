@@ -3,9 +3,9 @@
 
 [![GitBook](https://img.shields.io/badge/Docs-GitBook-blue)](https://mavolin.gitbook.io/corgi)
 [![Test](https://github.com/mavolin/corgi/actions/workflows/test.yml/badge.svg)](https://github.com/mavolin/corgi/actions)
-[![Code Coverage](https://codecov.io/gh/mavolin/corgi/branch/main/graph/badge.svg?token=ewFEQGgMES)](https://codecov.io/gh/mavolin/corgi)
+[![Code Coverage](https://codecov.io/gh/mavolin/corgi/branch/develop/graph/badge.svg?token=ewFEQGgMES)](https://codecov.io/gh/mavolin/corgi)
 [![Go Report Card](https://goreportcard.com/badge/github.com/mavolin/corgi)](https://goreportcard.com/report/github.com/mavolin/corgi)
-[![License MIT](https://img.shields.io/github/license/mavolin/corgi)](https://github.com/mavolin/corgi/blob/main/LICENSE)
+[![License MIT](https://img.shields.io/github/license/mavolin/corgi)](https://github.com/mavolin/corgi/blob/develop/LICENSE)
 </div>
 
 ---
