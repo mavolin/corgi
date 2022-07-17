@@ -313,7 +313,7 @@ func (l *Linker) checkAndsMixinCall(m file.MixinCall, andAllowed bool) (bool, er
 			}
 
 			if !after {
-				return false, nil
+				andAllowed = false
 			}
 
 			continue
@@ -325,7 +325,7 @@ func (l *Linker) checkAndsMixinCall(m file.MixinCall, andAllowed bool) (bool, er
 		}
 
 		if !after {
-			return false, nil
+			andAllowed = false
 		}
 	}
 
