@@ -784,6 +784,12 @@ func (w *Writer) writeInclude(incl file.Include, e *elem) error {
 // ======================================================================================
 
 func (w *Writer) writeCode(c file.Code) error {
+	// the code could conditionalize execution, start a loop or the like, which
+	// could potentially mess with the generated HTML
+	if err := w.flushRawBuf(); err != nil {
+		return err
+	}
+
 	return w.writeToFile(c.Code + "\n")
 }
 
