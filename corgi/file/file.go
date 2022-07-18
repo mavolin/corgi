@@ -134,7 +134,8 @@ const (
 )
 
 // Block represents a block with content.
-// It is used for File.Blocks as well as blocks in MixinCall.
+// It is used for blocks from extendable templates as well as blocks in
+// MixinCalls.
 type Block struct {
 	// Name is the name of the block.
 	//
@@ -143,7 +144,6 @@ type Block struct {
 
 	// Type is the type of block.
 	Type BlockType
-
 	Body Scope
 
 	Pos
