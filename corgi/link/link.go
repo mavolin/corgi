@@ -6,13 +6,17 @@ package link
 
 import (
 	"github.com/mavolin/corgi/corgi/file"
+	"github.com/mavolin/corgi/corgi/link/element"
+	"github.com/mavolin/corgi/corgi/link/imports"
+	"github.com/mavolin/corgi/corgi/link/mixin"
+	"github.com/mavolin/corgi/corgi/link/use"
 	"github.com/mavolin/corgi/corgi/parse"
 	"github.com/mavolin/corgi/corgi/resource"
 )
 
 type Linker struct {
-	rSources []resource.Source
-	rFiles   []file.File
+	resourceSources []resource.Source
+	resourceFiles   []file.File
 
 	f    *file.File
 	mode parse.Mode
@@ -28,36 +32,48 @@ func New(f *file.File, mode parse.Mode) *Linker {
 // The linker will use it to find files referenced through extend, use, and
 // include directives.
 func (l *Linker) AddResourceSource(src resource.Source) {
-	l.rSources = append(l.rSources, src)
+	l.resourceSources = append(l.resourceSources, src)
 }
 
 // Link links the file and performs validation.
 func (l *Linker) Link() error {
-	if err := l.linkFile(); err != nil {
+	fl := newFileLinker(l.f, l.resourceSources...)
+	if err := fl.link(); err != nil {
 		return err
 	}
 
-	if err := l.resolveImports(); err != nil {
+	ir := imports.NewResolver(l.f)
+	if err := ir.Resolve(); err != nil {
 		return err
 	}
 
-	if err := l.checkNamespaceCollisions(); err != nil {
+	unc := use.NewNamespaceChecker(*l.f)
+	if err := unc.Check(); err != nil {
 		return err
 	}
 
-	if err := l.checkMixins(); err != nil {
+	mc := mixin.NewChecker(l.mode, *l.f)
+	if err := mc.Check(); err != nil {
 		return err
 	}
 
-	if err := l.linkMixinCalls(); err != nil {
+	ml := mixin.NewCallLinker(l.f, l.resourceFiles...)
+	if err := ml.Link(); err != nil {
 		return err
 	}
 
-	if err := l.checkElements(); err != nil {
+	mcc := mixin.NewCallChecker(*l.f)
+	if err := mcc.Check(); err != nil {
 		return err
 	}
 
-	if err := l.checkExtendBlocks(); err != nil {
+	ac := element.NewAndChecker(*l.f)
+	if err := ac.Check(); err != nil {
+		return err
+	}
+
+	scc := element.NewSelfClosingChecker(*l.f)
+	if err := scc.Check(); err != nil {
 		return err
 	}
 

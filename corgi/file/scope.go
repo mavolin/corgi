@@ -409,6 +409,10 @@ type (
 
 		// Mixin is a pointer to the called mixin.
 		Mixin *Mixin
+		// MixinSource is the resource source that provides the Mixin.
+		MixinSource string
+		// MixinFile is the file that provides the mixin.
+		MixinFile string
 
 		// Args is a list of the arguments of given to the mixin.
 		Args []MixinArg
