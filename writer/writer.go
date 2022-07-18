@@ -19,14 +19,6 @@ type Writer struct {
 	// Starts with the current file, up till the main file.
 	files stack.Stack[[]file.File]
 
-	// extraAttributes is a stack of functions that add extra attributes to the
-	// elements being written.
-	// It is used by mixin calls with &s in their body.
-	// Each time writeElement is called, it will peek at the top of the stack
-	// and call it when writing attributes and then put nil on top when writing
-	// its body.
-	extraAttributes stack.Stack[func(e *elem) error]
-
 	main        *file.File // convenience
 	packageName string
 	out         io.Writer
@@ -83,9 +75,6 @@ func New(f *file.File, packageName string) *Writer {
 
 	w.files = stack.New[[]file.File](50)
 	w.files.Push(files)
-
-	w.extraAttributes = stack.New[func(e *elem) error](250)
-	w.extraAttributes.Push(nil)
 
 	return w
 }

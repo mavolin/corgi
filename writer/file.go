@@ -40,7 +40,7 @@ func (w *Writer) writeFile() error {
 		return err
 	}
 
-	if err = w.writeScope(w.files.Peek()[0].Scope, nil); err != nil {
+	if err = w.writeScope(w.files.Peek()[0].Scope, nil, nil); err != nil {
 		return err
 	}
 
@@ -187,7 +187,7 @@ func (w *Writer) writeInitScope(s file.Scope) error {
 			continue
 		}
 
-		return w.writeScope(m.Body, nil)
+		return w.writeScope(m.Body, nil, nil)
 	}
 
 	return nil
@@ -215,9 +215,9 @@ func (w *Writer) writeDoctype() error {
 // Content
 // ======================================================================================
 
-func (w *Writer) writeScope(s file.Scope, e *elem) error {
+func (w *Writer) writeScope(s file.Scope, e *elem, extraAttributes func(*elem) error) error {
 	for _, itm := range s {
-		if err := w.writeScopeItem(itm, e); err != nil {
+		if err := w.writeScopeItem(itm, e, extraAttributes); err != nil {
 			return err
 		}
 	}
@@ -225,7 +225,7 @@ func (w *Writer) writeScope(s file.Scope, e *elem) error {
 	return nil
 }
 
-func (w *Writer) writeScopeItem(itm file.ScopeItem, e *elem) error {
+func (w *Writer) writeScopeItem(itm file.ScopeItem, e *elem, extraAttributes func(*elem) error) error {
 	switch itm := itm.(type) {
 	case file.Code:
 		return w.writeCode(itm)
@@ -272,7 +272,7 @@ func (w *Writer) writeScopeItem(itm file.ScopeItem, e *elem) error {
 	case file.Filter:
 		return w.writeFilter(itm)
 	case file.Element:
-		return w.writeElement(itm)
+		return w.writeElement(itm, extraAttributes)
 	case file.Mixin:
 		return nil
 	default:
@@ -319,7 +319,7 @@ func (w *Writer) writeBlock(b file.Block, e *elem) error {
 			if filledBlock.Name == b.Name {
 				tmp := w.mixins.Pop()
 
-				if err := w.writeScope(filledBlock.Body, e); err != nil {
+				if err := w.writeScope(filledBlock.Body, e, nil); err != nil {
 					w.mixins.Push(tmp)
 					return err
 				}
@@ -331,7 +331,7 @@ func (w *Writer) writeBlock(b file.Block, e *elem) error {
 
 		// use the default
 		if len(b.Body) > 0 {
-			return w.writeScope(b.Body, e)
+			return w.writeScope(b.Body, e, nil)
 		}
 
 		// we have no default
@@ -362,7 +362,7 @@ func (w *Writer) writeBlock(b file.Block, e *elem) error {
 	for _, b := range bs {
 		w.files.Push(b.files)
 
-		if err := w.writeScope(b.scope, e); err != nil {
+		if err := w.writeScope(b.scope, e, nil); err != nil {
 			return err
 		}
 
@@ -410,7 +410,7 @@ func (w *Writer) resolveBlock(s file.Scope, name file.Ident, bs []block, otherFi
 // Element
 // ======================================================================================
 
-func (w *Writer) writeElement(e file.Element) error {
+func (w *Writer) writeElement(e file.Element, extraAttrs func(*elem) error) error {
 	var inContext bool
 
 	for _, itm := range e.Body {
@@ -439,20 +439,15 @@ func (w *Writer) writeElement(e file.Element) error {
 		}
 	}
 
-	ea := w.extraAttributes.Peek()
-	if ea != nil {
-		if err := ea(&ew); err != nil {
+	if extraAttrs != nil {
+		if err := extraAttrs(&ew); err != nil {
 			return err
 		}
 	}
 
-	w.extraAttributes.Push(nil)
-
-	if err := w.writeScope(e.Body, &ew); err != nil {
+	if err := w.writeScope(e.Body, &ew, nil); err != nil {
 		return err
 	}
-
-	w.extraAttributes.Pop()
 
 	if err := w.closeElement(&ew); err != nil {
 		return err
@@ -761,7 +756,7 @@ func (w *Writer) writeAnd(and file.And, e *elem) error {
 func (w *Writer) writeInclude(incl file.Include, e *elem) error {
 	switch incl := incl.Include.(type) {
 	case file.CorgiInclude:
-		return w.writeScope(incl.File.Scope, e)
+		return w.writeScope(incl.File.Scope, e, nil)
 	case file.RawInclude:
 		if e != nil {
 			if err := w.closeTag(e); err != nil {
@@ -814,7 +809,7 @@ func (w *Writer) writeIf(if_ file.If, e *elem) error {
 
 	eCp := e.clone()
 
-	if err := w.writeScope(if_.Then, eCp); err != nil {
+	if err := w.writeScope(if_.Then, eCp, nil); err != nil {
 		return err
 	}
 
@@ -848,7 +843,7 @@ func (w *Writer) writeIf(if_ file.If, e *elem) error {
 
 		eCp := e.clone()
 
-		if err := w.writeScope(ei.Then, eCp); err != nil {
+		if err := w.writeScope(ei.Then, eCp, nil); err != nil {
 			return err
 		}
 
@@ -875,7 +870,7 @@ func (w *Writer) writeIf(if_ file.If, e *elem) error {
 
 		eCp := e.clone()
 
-		if err := w.writeScope(if_.Else.Then, eCp); err != nil {
+		if err := w.writeScope(if_.Else.Then, eCp, nil); err != nil {
 			return err
 		}
 
@@ -918,12 +913,12 @@ func (w *Writer) writeIfBlock(ib file.IfBlock, e *elem) error {
 			}
 
 			if filledBlock.Name == ib.Name {
-				return w.writeScope(ib.Then, e)
+				return w.writeScope(ib.Then, e, nil)
 			}
 		}
 
 		if ib.Else != nil {
-			return w.writeScope(ib.Else.Then, e)
+			return w.writeScope(ib.Else.Then, e, nil)
 		}
 
 		return nil
@@ -935,18 +930,18 @@ func (w *Writer) writeIfBlock(ib file.IfBlock, e *elem) error {
 		for _, use := range f.Uses {
 			for _, uf := range use.Files {
 				if w.hasBlock(uf.Scope, ib.Name) {
-					return w.writeScope(ib.Then, e)
+					return w.writeScope(ib.Then, e, nil)
 				}
 			}
 		}
 
 		if w.hasBlock(f.Scope, ib.Name) {
-			return w.writeScope(ib.Then, e)
+			return w.writeScope(ib.Then, e, nil)
 		}
 	}
 
 	if ib.Else != nil {
-		return w.writeScope(ib.Else.Then, e)
+		return w.writeScope(ib.Else.Then, e, nil)
 	}
 
 	return nil
@@ -1011,7 +1006,7 @@ func (w *Writer) writeSwitchCases(sw file.Switch, e *elem) error {
 
 		eCp := e.clone()
 
-		if err := w.writeScope(c.Then, eCp); err != nil {
+		if err := w.writeScope(c.Then, eCp, nil); err != nil {
 			return err
 		}
 
@@ -1034,7 +1029,7 @@ func (w *Writer) writeSwitchCases(sw file.Switch, e *elem) error {
 
 		eCp := e.clone()
 
-		if err := w.writeScope(sw.Default.Then, eCp); err != nil {
+		if err := w.writeScope(sw.Default.Then, eCp, nil); err != nil {
 			return err
 		}
 
@@ -1099,7 +1094,7 @@ func (w *Writer) writeFor(f file.For, e *elem) error {
 			return err
 		}
 
-		if err := w.writeScope(f.Body, e); err != nil {
+		if err := w.writeScope(f.Body, e, nil); err != nil {
 			return err
 		}
 
@@ -1131,7 +1126,7 @@ func (w *Writer) writeWhile(wh file.While, e *elem) error {
 		return err
 	}
 
-	if err = w.writeScope(wh.Body, e); err != nil {
+	if err = w.writeScope(wh.Body, e, nil); err != nil {
 		return err
 	}
 
@@ -1389,13 +1384,10 @@ Params:
 		}
 	}
 
-	w.extraAttributes.Push(w.writeMixinAnds(c.Body))
-
-	if err := w.writeScope(c.Mixin.Body, e); err != nil {
+	err := w.writeScope(c.Mixin.Body, e, w.writeMixinAnds(c.Body))
+	if err != nil {
 		return err
 	}
-
-	w.extraAttributes.Pop()
 
 	return w.writeToFile("}\n")
 }
@@ -1408,7 +1400,7 @@ func (w *Writer) writeMixinAnds(s file.Scope) func(e *elem) error {
 				continue
 			}
 
-			if err := w.writeScopeItem(itm, e); err != nil {
+			if err := w.writeScopeItem(itm, e, nil); err != nil {
 				return err
 			}
 		}
