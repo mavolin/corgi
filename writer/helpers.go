@@ -59,6 +59,8 @@ func isFirstAnd(s file.Scope) bool {
 		return isFirstAnd(itm.Mixin.Body)
 	case file.Mixin:
 		return isFirstAnd(s[1:])
+	case file.Code:
+		return isFirstAnd(s[1:])
 	default:
 		return false
 	}
@@ -123,6 +125,8 @@ func firstAlwaysWritesBody(s file.Scope) bool {
 	case file.MixinCall:
 		return firstAlwaysWritesBody(itm.Mixin.Body)
 	case file.Mixin:
+		return firstAlwaysWritesBody(s[1:])
+	case file.Code:
 		return firstAlwaysWritesBody(s[1:])
 	default:
 		return true
