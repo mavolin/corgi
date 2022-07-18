@@ -1059,7 +1059,7 @@ func (w *Writer) writeSwitchCases(sw file.Switch, e *elem) error {
 // ======================================================================================
 
 func (w *Writer) writeFor(f file.For, e *elem) error {
-	if e != nil && !isFirstAnd(f.Body) {
+	if e != nil && !file.IsFirstAnd(f.Body) {
 		if err := w.closeTag(e); err != nil {
 			return err
 		}
@@ -1111,7 +1111,7 @@ func (w *Writer) writeFor(f file.For, e *elem) error {
 // ======================================================================================
 
 func (w *Writer) writeWhile(wh file.While, e *elem) error {
-	if e != nil && !isFirstAnd(wh.Body) {
+	if e != nil && !file.IsFirstAnd(wh.Body) {
 		if err := w.closeTag(e); err != nil {
 			return err
 		}
