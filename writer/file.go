@@ -427,13 +427,7 @@ func (w *Writer) writeElement(e file.Element) error {
 		}
 	}
 
-	if !w.wroteClose {
-		if err := w.writeToFile("_closed = false\n"); err != nil {
-			return err
-		}
-
-		w.wroteClose = true
-	}
+	w.setClosed = "false"
 
 	ew := elem{e: e}
 
@@ -540,10 +534,12 @@ func (w *Writer) closeTag(e *elem) error {
 		if err := w.writeToFile("if !_closed {\n"); err != nil {
 			return err
 		}
-	}
 
-	if err := w.writeToFile("_closed = true\n"); err != nil {
-		return err
+		if err := w.writeToFile("_closed = true\n"); err != nil {
+			return err
+		}
+	} else {
+		w.setClosed = "true"
 	}
 
 	if err := w.writeClasses(e); err != nil {

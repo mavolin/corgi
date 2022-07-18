@@ -34,7 +34,7 @@ func init() {
 		return
 	}
 
-	if Version == DevelopVersion && i.Main.Version != "devel" {
+	if Version == DevelopVersion && i.Main.Version != "" && i.Main.Version != "(devel)" {
 		Version = i.Main.Version
 	}
 

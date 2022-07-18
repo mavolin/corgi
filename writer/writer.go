@@ -6,7 +6,6 @@ import (
 	"bytes"
 	"io"
 	"strconv"
-	"strings"
 
 	"github.com/mavolin/corgi/corgi/file"
 	"github.com/mavolin/corgi/pkg/stack"
@@ -41,13 +40,14 @@ type Writer struct {
 	// conditional or loop.
 	rawBuf bytes.Buffer
 
-	// wroteClose indicates whether the last writeToFile call set _close to
-	// false.
-	// It is set to false after every writeToFile call.
+	// setClosed is a utility to prevent unnecessary adjacent _closed
+	// assignments when writing to rawBuf.
 	//
-	// This is here to prevent unnecessary consecutive '_close = false'
-	// statements when writing to rawBuf.
-	wroteClose bool
+	// Instead of functions setting _closed directly, they should set setClosed
+	// to either "true" or "false".
+	// In doing so, _closed assignments are only written when writeToFile is
+	// called, as only then will the _close state be relevant.
+	setClosed string
 }
 
 type elem struct {
@@ -121,11 +121,13 @@ func (w *Writer) Write(out io.Writer) error {
 // ======================================================================================
 
 func (w *Writer) writeToFile(s string) error {
-	// There's no need to write set _close again, if we're simply entering a
-	// new context.
-	// Only if new output has been produced, does _closed need to be updated.
-	if strings.HasSuffix(s, "{\n") || strings.HasSuffix(s, "}\n") {
-		w.wroteClose = false
+	if w.setClosed != "" {
+		_, err := io.WriteString(w.out, "_closed = "+w.setClosed+"\n")
+		if err != nil {
+			return err
+		}
+
+		w.setClosed = ""
 	}
 
 	_, err := io.WriteString(w.out, s)
