@@ -141,6 +141,14 @@ Params:
 				continue Params
 			}
 		}
+
+		return &MissingParamError{
+			Name:   string(param.Name),
+			Source: c.f.Source,
+			File:   c.f.Name,
+			Line:   mc.Line,
+			Col:    mc.Col,
+		}
 	}
 
 	return nil
