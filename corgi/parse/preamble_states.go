@@ -31,14 +31,14 @@ func (p *Parser) start() (stateFn, error) {
 	case lex.CodeStart:
 		// all code in included files is regular code
 		if p.mode == ModeInclude {
-			return p.nextHTML, nil
+			return p.beforeDoctype, nil
 		}
 
 		return p.globalCode, nil
 	case lex.Func:
 		return p.func_, nil
 	default:
-		return p.doctypeOrBlock, nil
+		return p.beforeDoctype, nil
 	}
 }
 
@@ -89,14 +89,16 @@ func (p *Parser) afterExtend() (stateFn, error) {
 		return p.import_, nil
 	case lex.Use:
 		return p.use, nil
-	case lex.CodeStart:
+	case lex.CodeStart: // all code in included files is regular code
+		if p.mode == ModeInclude {
+			return p.beforeDoctype, nil
+		}
+
 		return p.globalCode, nil
 	case lex.Func:
 		return p.func_, nil
-	case lex.Doctype:
-		return p.doctype, nil
 	default:
-		return p.nextHTML, nil
+		return p.beforeDoctype, nil
 	}
 }
 
@@ -182,13 +184,16 @@ func (p *Parser) afterImport() (stateFn, error) {
 	case lex.Use:
 		return p.use, nil
 	case lex.CodeStart:
+		// all code in included files is regular code
+		if p.mode == ModeInclude {
+			return p.beforeDoctype, nil
+		}
+
 		return p.globalCode, nil
 	case lex.Func:
 		return p.func_, nil
-	case lex.Doctype:
-		return p.doctype, nil
 	default:
-		return p.nextHTML, nil
+		return p.beforeDoctype, nil
 	}
 }
 
@@ -271,13 +276,16 @@ func (p *Parser) afterUse() (stateFn, error) {
 	case lex.Use:
 		return p.use, nil
 	case lex.CodeStart:
+		// all code in included files is regular code
+		if p.mode == ModeInclude {
+			return p.beforeDoctype, nil
+		}
+
 		return p.globalCode, nil
 	case lex.Func:
 		return p.func_, nil
-	case lex.Doctype:
-		return p.doctype, nil
 	default:
-		return p.nextHTML, nil
+		return p.beforeDoctype, nil
 	}
 }
 
@@ -350,13 +358,16 @@ func (p *Parser) afterGlobalCode() (stateFn, error) {
 	case lex.Use:
 		return p.use, p.error(p.next(), ErrUsePlacement)
 	case lex.CodeStart:
+		// all code in included files is regular code
+		if p.mode == ModeInclude {
+			return p.beforeDoctype, nil
+		}
+
 		return p.globalCode, nil
 	case lex.Func:
 		return p.func_, nil
-	case lex.Doctype:
-		return p.doctype, nil
 	default:
-		return p.nextHTML, nil
+		return p.beforeDoctype, nil
 	}
 }
 
@@ -408,9 +419,7 @@ func (p *Parser) afterFunc() (stateFn, error) {
 		return nil, p.error(p.next(), ErrUsePlacement)
 	case lex.Func:
 		return nil, p.error(p.next(), ErrMultipleFunc)
-	case lex.Doctype:
-		return p.doctype, nil
 	default:
-		return p.nextHTML, nil
+		return p.beforeDoctype, nil
 	}
 }

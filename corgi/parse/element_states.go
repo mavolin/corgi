@@ -11,7 +11,7 @@ import (
 	"github.com/mavolin/corgi/internal/require"
 )
 
-func (p *Parser) doctypeOrBlock() (_ stateFn, err error) {
+func (p *Parser) beforeDoctype() (_ stateFn, err error) {
 	if p.mode == ModeMain && p.f.Func.Name == "" {
 		return nil, p.unexpectedItem(p.next(), lex.Func)
 	}
@@ -21,7 +21,20 @@ func (p *Parser) doctypeOrBlock() (_ stateFn, err error) {
 		switch peek.Type {
 		case lex.Doctype:
 			return p.doctype()
-		// only extendable blocks may appear before a doctype
+		case lex.Code:
+			c, err := p.code()
+			if err != nil {
+				return nil, err
+			}
+
+			p.f.Scope = append(p.f.Scope, *c)
+		case lex.Mixin:
+			m, err := p.mixin()
+			if err != nil {
+				return nil, err
+			}
+
+			p.f.Scope = append(p.f.Scope, *m)
 		case lex.Block:
 			if p.mode == ModeExtend {
 				b, err := p.block(require.Always, require.Always)
