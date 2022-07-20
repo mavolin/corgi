@@ -1129,7 +1129,7 @@ func (p *Parser) switch_() (_ *file.Switch, err error) {
 
 			c.Then = file.Scope{content}
 		default:
-			return nil, p.unexpectedItem(p.next(), lex.Indent, lex.DotBlock, lex.BlockExpansion)
+			// empty case
 		}
 
 		s.Cases = append(s.Cases, c)
