@@ -120,33 +120,3 @@ type (
 		Params GoExpression
 	}
 )
-
-// ============================================================================
-// Block
-// ======================================================================================
-
-type BlockType uint8
-
-const (
-	BlockTypeBlock BlockType = iota + 1
-	BlockTypeAppend
-	BlockTypePrepend
-)
-
-// Block represents a block with content.
-// It is used for blocks from extendable templates as well as blocks in
-// MixinCalls.
-type Block struct {
-	// Name is the name of the block.
-	//
-	// This field is optional for blocks used in a mixin call.
-	Name Ident
-
-	// Type is the type of block.
-	Type BlockType
-	Body Scope
-
-	Pos
-}
-
-func (Block) _typeScopeItem() {}
