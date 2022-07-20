@@ -13,6 +13,11 @@ func TestMixins(t *testing.T) {
 	compile.Compile(t, "mixins.corgi", compile.Options{})
 }
 
+func TestShadowing(t *testing.T) {
+	t.Parallel()
+	compile.Compile(t, "shadowing.corgi", compile.Options{})
+}
+
 func TestBlocks(t *testing.T) {
 	t.Parallel()
 	compile.Compile(t, "blocks.corgi", compile.Options{})

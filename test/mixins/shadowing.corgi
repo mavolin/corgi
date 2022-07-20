@@ -1,0 +1,7 @@
+func Nesting()
+
+mixin shadow(foo string)
+  p= foo
+
+- foo := "foo"
++shadow(foo=foo)

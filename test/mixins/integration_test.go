@@ -20,6 +20,14 @@ func TestMixins(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestShadowing(t *testing.T) {
+	t.Parallel()
+
+	w := outcheck.New(t, "shadowing.expect")
+	err := Nesting(w)
+	require.NoError(t, err)
+}
+
 func TestBlocks(t *testing.T) {
 	t.Parallel()
 

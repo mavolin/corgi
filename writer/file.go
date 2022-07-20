@@ -1339,25 +1339,36 @@ Params:
 			param.Type = "any"
 		}
 
-		if param.Type != "" {
-			err := w.writeToFile("var " + string(param.Name) + " " + string(param.Type) + "\n")
-			if err != nil {
-				return err
-			}
-		} else {
-			err := w.writeToFile(string(param.Name) + ":=" + param.Default.Expression + "\n")
-			if err != nil {
-				return err
-			}
-		}
-
 		for _, arg := range c.Args {
 			if arg.Name != param.Name {
 				continue
 			}
 
-			err := w.expression(arg.Value, func(val string) error {
-				return w.writeToFile(string(param.Name) + "=" + val + "\n")
+			shadows, err := doesExpressionShadow(arg.Value, string(param.Name))
+			if err != nil {
+				return err
+			}
+
+			paramName := string(param.Name)
+			if shadows {
+				// double underscore to not clash with '_buf' and '_closed'
+				paramName = "__" + paramName
+			}
+
+			if param.Type != "" {
+				err = w.writeToFile("var " + paramName + " " + string(param.Type) + "\n")
+				if err != nil {
+					return err
+				}
+			} else {
+				err = w.writeToFile(paramName + ":=" + param.Default.Expression + "\n")
+				if err != nil {
+					return err
+				}
+			}
+
+			err = w.expression(arg.Value, func(val string) error {
+				return w.writeToFile(paramName + "=" + val + "\n")
 			}, func() error {
 				// if there is no type, the default will have already been written
 				if param.Type != "" {
@@ -1370,17 +1381,21 @@ Params:
 				return err
 			}
 
+			if shadows {
+				err = w.writeToFile(string(param.Name) + " = " + paramName + "\n")
+				if err != nil {
+					return err
+				}
+			}
+
 			continue Params
 		}
 
 		// use the default
 
-		// if there is no type, the default will have already been written
-		if param.Type != "" {
-			err := w.writeToFile(string(param.Name) + "=" + param.Default.Expression + "\n")
-			if err != nil {
-				return err
-			}
+		err := w.writeToFile(fmt.Sprintf("var %s %s = %s\n", param.Name, param.Type, param.Default.Expression))
+		if err != nil {
+			return err
 		}
 	}
 
@@ -1406,6 +1421,46 @@ func (w *Writer) writeMixinAnds(s file.Scope) func(e *elem) error {
 		}
 
 		return nil
+	}
+}
+
+// doesExpressionShadow reports whether assigning expr to varName would be the
+// same as `foo := foo`, i.e. the varName is the same as the value it is
+// assigned.
+func doesExpressionShadow(e file.Expression, varName string) (bool, error) {
+	switch e := e.(type) {
+	case file.GoExpression:
+		return e.Expression == varName, nil
+	case file.TernaryExpression:
+		shadows, err := doesExpressionShadow(e.IfFalse, varName)
+		if err != nil {
+			return false, err
+		}
+
+		if shadows {
+			return true, nil
+		}
+
+		return doesExpressionShadow(e.IfTrue, varName)
+	case file.NilCheckExpression:
+		if e.Default != nil {
+			shadows, err := doesExpressionShadow(*e.Default, varName)
+			if err != nil {
+				return false, err
+			}
+
+			if shadows {
+				return true, nil
+			}
+		}
+
+		if len(e.Chain) == 0 && e.Deref == "" {
+			return e.Root.Expression == varName, nil
+		}
+
+		return false, nil
+	default:
+		return false, fmt.Errorf("unsupported expression type %T", e)
 	}
 }
 
