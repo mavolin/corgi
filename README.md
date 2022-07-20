@@ -12,7 +12,7 @@
 
 ## About
 
-Corgi is an HTML and XML template language, inspired by pug (hence the name), for Go. 
+Corgi is an HTML and XML template language, inspired by pug (hence the name), for Go.
 Just like pug, corgi also uses code generation to generate its templates.
 
 ## Main Features
@@ -26,12 +26,82 @@ Just like pug, corgi also uses code generation to generate its templates.
 * 🤏 Generates minified HTML (and through the use of filters also minified CSS and JS)
 * 🔒 Automatically escapes HTML/XML, and in HTML mode also interpolated CSS and JS
 
-## Getting Started
+## Examples
 
-Want to learn corgi?
+First impression matter, so here is an example of a simple template:
+
+```jade
+import "strings"
+
+//- These are the name and params of the function that corgi will generate.
+//- Besides the params you specify here, corgi will also add an io.Writer that
+//- it'll write the output to.
+func LearnCorgi(name string, knowsPug bool, friends []string)
+
+mixin greet(name string)
+  | Hello, #{name}!
+
+doctype html
+html(lang="en")
+  head
+    title Learn Corgi
+  body
+    h1 Learn Corgi
+    p#features.font-size--big
+      +greet(name=name)
+
+    p
+      if knowsPug
+        | #{name}, since you already know pug,
+        | learning corgi will be even more of #strong[a breeze] for you!
+        |
+
+      .
+        Head over to
+        #a(href="https://mavolin.gitbook.io/corgi")[GitBook]
+        to learn it.
+
+    switch len(friends)
+      case 0
+      case 1
+        p And make sure to tell #{friends[0]} about corgi too!
+      case 2
+        p And make sure to tell #{friends[0]} and #{friends[1]} about corgi too!
+      default
+        p.
+          And make sure to tell
+          #{strings.Join(friends[:len(friends)-1], ", ")},
+          and #{friends[len(friends)-1]} about corgi too!
+```
+
+```html
+<!-- LearnCorgi("Maxi", true, []string{"Huey", "Dewey", "Louie"}) -->
+
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Learn Corgi</title>
+</head>
+<body>
+<h1>Learn Corgi</h1>
+<p id="features" class="font-size--big">Hello, Maxi!</p>
+<p>
+    Maxi, since you already know pug,
+    learning corgi will be even more of <strong>a breeze</strong> for you!
+    Head over to <a href="https://mavolin.gitbook.io/corgi">GitBook</a> to
+    learn it.
+</p>
+<p>And make sure to tell Huey, Dewey, and Louie about corgi too!</p>
+</body>
+</html>
+```
+
+## Want to know more?
+
 Have a look at the guide on [GitBook](https://mavolin.gitbook.io/corgi)!
 If you already know pug, you can also find a detailed list of differences there.
 
 ## License
 
-Built with ❤️ by [Maximilian von Lindern](https://github.com/mavolin). Available under the [MIT License](./LICENSE).
+Built with ❤️ by [Maximilian von Lindern](https://github.com/mavolin).
+Available under the [MIT License](./LICENSE).
