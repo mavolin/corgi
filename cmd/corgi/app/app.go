@@ -60,7 +60,7 @@ func Run(args []string) error {
 			},
 			&cli.BoolFlag{
 				Name:  "nofmt",
-				Usage: "don't format the output",
+				Usage: "don't format the output and remove unused imports",
 			},
 			&cli.BoolFlag{
 				Name:  "get",
@@ -120,7 +120,7 @@ func run(ctx *cli.Context) error {
 	log.Println("generated", args.OutputFile)
 
 	if !args.NoFmt {
-		format(args)
+		goImports(args)
 	}
 
 	return out.Close()
@@ -138,13 +138,22 @@ func goGetCorgi() {
 	}
 }
 
-func format(args *args) {
-	gofmt := exec.Command("gofmt", "-w", args.OutputFile) //nolint:gosec
-	if err := gofmt.Run(); err == nil {
-		log.Println("formatted output")
-	} else {
-		log.Println("could not format output "+
-			"(this could mean that there is an erroneous Go expression in your template):",
-			err.Error())
+func goImports(args *args) {
+	goimports := exec.Command("goimports", "-w", args.OutputFile) //nolint:gosec
+
+	err := goimports.Run()
+	if err == nil {
+		log.Println("formatted output and removed unused imports, if any")
+		return
 	}
+
+	if errors.Is(err, exec.ErrNotFound) {
+		log.Println("goimports could not be found, but is needed to remove unused imports; " +
+			"install using `go get golang.org/x/tools/cmd/goimports@latest`")
+		return
+	}
+
+	log.Println("could not format output "+
+		"(this could mean that there is an erroneous Go expression in your template):",
+		err.Error())
 }
