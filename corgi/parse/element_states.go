@@ -906,7 +906,7 @@ func (p *Parser) ifBlock(named bool) (_ *file.IfBlock, err error) {
 
 	nameItm := p.peek()
 	if nameItm.Type == lex.Ident {
-		if named {
+		if !named {
 			return nil, p.unexpectedItem(p.next(), lex.Ident)
 		}
 
