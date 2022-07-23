@@ -1,18 +1,52 @@
 package app
 
 import (
-	"log"
 	"os"
 	"os/exec"
 
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 
 	"github.com/mavolin/corgi/corgi"
 	"github.com/mavolin/corgi/corgi/file"
 	"github.com/mavolin/corgi/internal/meta"
 	"github.com/mavolin/corgi/writer"
 )
+
+var log *zap.SugaredLogger
+
+func init() {
+	c := zap.Config{
+		Level:       zap.NewAtomicLevelAt(zap.InfoLevel),
+		Development: false,
+		Encoding:    "console",
+		EncoderConfig: zapcore.EncoderConfig{
+			MessageKey:     ".",
+			LevelKey:       ".",
+			TimeKey:        ".",
+			NameKey:        ".",
+			CallerKey:      zapcore.OmitKey,
+			FunctionKey:    zapcore.OmitKey,
+			StacktraceKey:  zapcore.OmitKey,
+			LineEnding:     zapcore.DefaultLineEnding,
+			EncodeLevel:    zapcore.LowercaseColorLevelEncoder,
+			EncodeTime:     zapcore.RFC3339TimeEncoder,
+			EncodeDuration: zapcore.StringDurationEncoder,
+			EncodeCaller:   zapcore.ShortCallerEncoder,
+		},
+		OutputPaths:      []string{"stderr"},
+		ErrorOutputPaths: []string{"stderr"},
+	}
+
+	logger, err := c.Build()
+	if err != nil {
+		panic(err)
+	}
+
+	log = logger.Sugar()
+}
 
 func Run(args []string) error {
 	ver := meta.Version
@@ -78,7 +112,7 @@ func Run(args []string) error {
 func run(ctx *cli.Context) error {
 	//goland:noinspection GoBoolExpressions
 	if meta.Version == meta.DevelopVersion {
-		log.Println("you're running a development version of corgi, to get the stable release, " +
+		log.Warn("you're running a development version of corgi, to get the stable release, " +
 			"run `go install github.com/mavolin/corgi/cmd/corgi@latest`")
 	}
 
@@ -117,7 +151,7 @@ func run(ctx *cli.Context) error {
 		return err
 	}
 
-	log.Println("generated", args.OutputFile)
+	log.Info("generated ", args.OutputFile)
 
 	if !args.NoFmt {
 		goImports(args)
@@ -127,14 +161,14 @@ func run(ctx *cli.Context) error {
 }
 
 func goGetCorgi() {
-	log.Println("generated functions import github.com/mavolin/corgi, I'm go getting it for you")
+	log.Debug("generated functions import github.com/mavolin/corgi, I'm go getting it for you")
 
 	goget := exec.Command("go", "get", "github.com/mavolin/corgi")
 	goget.Stderr = os.Stderr
 
 	if err := goget.Run(); err != nil {
-		log.Println("couldn't go get corgi:", err.Error())
-		log.Println("please do it yourself if you haven't already: go get github.com/mavolin/corgi")
+		log.Error("couldn't go get corgi: ", err.Error(),
+			"; please do it yourself if you haven't already: go get github.com/mavolin/corgi")
 	}
 }
 
@@ -143,17 +177,17 @@ func goImports(args *args) {
 
 	err := goimports.Run()
 	if err == nil {
-		log.Println("formatted output and removed unused imports, if any")
+		log.Debug("formatted output and removed unused imports, if any")
 		return
 	}
 
 	if errors.Is(err, exec.ErrNotFound) {
-		log.Println("goimports could not be found, but is needed to remove unused imports; " +
+		log.Error("goimports could not be found, but is needed to remove unused imports; " +
 			"install using `go get golang.org/x/tools/cmd/goimports@latest`")
 		return
 	}
 
-	log.Println("could not format output "+
+	log.Error("could not format output "+
 		"(this could mean that there is an erroneous Go expression in your template):",
 		err.Error())
 }
