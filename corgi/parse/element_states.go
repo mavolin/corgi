@@ -780,7 +780,7 @@ func (p *Parser) block(named, body require.Required) (_ *file.Block, err error) 
 			return &b, nil
 		}
 
-		return nil, p.unexpectedItem(blockItm, lex.Indent, lex.DotBlock)
+		return nil, p.unexpectedItem(p.next(), lex.Indent, lex.DotBlock)
 	}
 
 	p.next() // lex.Indent
@@ -899,24 +899,22 @@ func (p *Parser) mixinParams() (params []file.MixinParam, err error) {
 // IfBlock
 // ======================================================================================
 
-func (p *Parser) ifBlock(named bool) (_ *file.IfBlock, err error) {
+func (p *Parser) ifBlock(mustBeNamed bool) (_ *file.IfBlock, err error) {
 	var i file.IfBlock
 
 	p.next() // lex.IfBlock
 
 	nameItm := p.peek()
 	if nameItm.Type == lex.Ident {
-		if !named {
-			return nil, p.unexpectedItem(p.next(), lex.Ident)
-		}
-
 		nameItm = p.next()
 		i.Name = file.Ident(nameItm.Val)
+	} else if mustBeNamed {
+		return nil, p.unexpectedItem(p.next(), lex.Ident)
 	}
 
-	identItm := p.next()
-	if identItm.Type != lex.Indent {
-		return nil, p.unexpectedItem(identItm, lex.Indent)
+	indentItm := p.next()
+	if indentItm.Type != lex.Indent {
+		return nil, p.unexpectedItem(indentItm, lex.Indent)
 	}
 
 	i.Then, err = p.scope()
@@ -930,7 +928,7 @@ func (p *Parser) ifBlock(named bool) (_ *file.IfBlock, err error) {
 
 	p.next() // lex.Else
 
-	indentItm := p.next()
+	indentItm = p.next()
 	if indentItm.Type != lex.Indent {
 		return nil, p.unexpectedItem(indentItm, lex.Indent)
 	}
