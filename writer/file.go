@@ -519,7 +519,7 @@ func (w *Writer) closeTag(e *elem) error {
 	// It is safe to check this even if closeTag is called after the
 	// first element has been written, as in that case isClosed will always be
 	// true.
-	noIf := firstAlwaysWritesBody(e.e.Body) || len(e.e.Body) == 0
+	noIf := w.firstAlwaysWritesBody(e.e.Body) || len(e.e.Body) == 0
 
 	if !noIf {
 		if err := w.flushRawBuf(); err != nil {

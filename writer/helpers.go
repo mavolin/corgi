@@ -8,7 +8,10 @@ import "github.com/mavolin/corgi/corgi/file"
 // If it encounters a conditional, it only reports true if all 'thens' write to
 // the body including the default/else.
 // If no default/else is present, it will return false.
-func firstAlwaysWritesBody(s file.Scope) bool {
+//
+// If it encounters a file.Block, it reports true if the block is an extend
+// block, as those may never write attributes.
+func (w *Writer) firstAlwaysWritesBody(s file.Scope) bool {
 	if len(s) == 0 {
 		return false
 	}
@@ -17,7 +20,7 @@ func firstAlwaysWritesBody(s file.Scope) bool {
 	case file.And:
 		return false
 	case file.IfBlock:
-		if !firstAlwaysWritesBody(itm.Then) {
+		if !w.firstAlwaysWritesBody(itm.Then) {
 			return false
 		}
 
@@ -25,14 +28,14 @@ func firstAlwaysWritesBody(s file.Scope) bool {
 			return false
 		}
 
-		return firstAlwaysWritesBody(itm.Else.Then)
+		return w.firstAlwaysWritesBody(itm.Else.Then)
 	case file.If:
-		if !firstAlwaysWritesBody(itm.Then) {
+		if !w.firstAlwaysWritesBody(itm.Then) {
 			return false
 		}
 
 		for _, ei := range itm.ElseIfs {
-			if !firstAlwaysWritesBody(ei.Then) {
+			if !w.firstAlwaysWritesBody(ei.Then) {
 				return false
 			}
 		}
@@ -41,10 +44,10 @@ func firstAlwaysWritesBody(s file.Scope) bool {
 			return false
 		}
 
-		return firstAlwaysWritesBody(itm.Else.Then)
+		return w.firstAlwaysWritesBody(itm.Else.Then)
 	case file.Switch:
 		for _, c := range itm.Cases {
-			if !firstAlwaysWritesBody(c.Then) {
+			if !w.firstAlwaysWritesBody(c.Then) {
 				return false
 			}
 		}
@@ -53,18 +56,22 @@ func firstAlwaysWritesBody(s file.Scope) bool {
 			return false
 		}
 
-		return firstAlwaysWritesBody(itm.Default.Then)
+		return w.firstAlwaysWritesBody(itm.Default.Then)
 	case file.For:
-		return firstAlwaysWritesBody(itm.Body)
+		return w.firstAlwaysWritesBody(itm.Body)
 	case file.While:
-		return firstAlwaysWritesBody(itm.Body)
+		return w.firstAlwaysWritesBody(itm.Body)
 	case file.MixinCall:
-		return firstAlwaysWritesBody(itm.Mixin.Body)
+		return w.firstAlwaysWritesBody(itm.Mixin.Body)
 	case file.Mixin:
-		return firstAlwaysWritesBody(s[1:])
+		return w.firstAlwaysWritesBody(s[1:])
 	case file.Code:
-		return firstAlwaysWritesBody(s[1:])
+		return w.firstAlwaysWritesBody(s[1:])
 	case file.Block:
+		if w.mixins.Len() == 0 {
+			return true
+		}
+
 		return false
 	default:
 		return true
