@@ -129,7 +129,10 @@ func (l *fileLinker) linkUse(use *file.Use) error {
 	for i, pf := range parsedFiles {
 		pf := pf
 		pfLinker := New(&pf, parse.ModeUse)
-		pfLinker.resourceFiles = append(parsedFiles[:i], parsedFiles[i+1:]...) //nolint:gocritic
+		pfLinker.resourceFiles = make([]file.File, len(rFiles)-1)
+
+		copy(pfLinker.resourceFiles, parsedFiles[:i])
+		copy(pfLinker.resourceFiles[i:], parsedFiles[i+1:])
 
 		pfLinker.AddResourceSource(rFiles[i].Source)
 
