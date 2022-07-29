@@ -54,7 +54,7 @@ func (c *CallChecker) Check() error {
 				return false, err
 			}
 
-			return false, nil
+			return true, nil
 		default:
 			return true, nil
 		}
