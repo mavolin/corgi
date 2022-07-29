@@ -178,14 +178,16 @@ func (l *CallLinker) linkMixinCall(c *file.MixinCall) error {
 	// no namespace and unexported => don't look in used files
 	if unicode.IsLower(rune(c.Name[0])) {
 		return &NotFoundError{
-			Source:    l.f.Source,
-			File:      l.f.Name,
-			Line:      c.Line,
-			Col:       c.Col,
-			Namespace: string(c.Namespace),
-			Name:      string(c.Name),
+			Source: l.f.Source,
+			File:   l.f.Name,
+			Line:   c.Line,
+			Col:    c.Col,
+			Name:   string(c.Name),
 		}
 	}
+
+	// true, if we found at least one matching use
+	var foundMatch bool
 
 Uses:
 	for _, use := range l.f.Uses {
@@ -199,6 +201,8 @@ Uses:
 		default:
 			continue Uses
 		}
+
+		foundMatch = true
 
 		for _, uf := range use.Files {
 			for _, itm := range uf.Scope {
@@ -215,9 +219,40 @@ Uses:
 				}
 			}
 		}
+
+		// found no match -- if this is a non-dot use, error out now
+		if c.Namespace != "" {
+			useName := use.Path
+			// if a file and not a dir was used, use the file useName directly
+			if len(use.Files) == 1 {
+				useName = use.Files[0].Name
+			}
+
+			return &NotFoundError{
+				UseSource: use.Files[0].Source,
+				UseName:   useName,
+				Name:      string(c.Name),
+				Source:    l.f.Source,
+				File:      l.f.Name,
+				Line:      c.Line,
+				Col:       c.Col,
+			}
+		}
 	}
 
-	return &NotFoundError{
+	// we have at least one dot-import that could've provided a match, but we
+	// didn't find one
+	if foundMatch {
+		return &NotFoundError{
+			Source: l.f.Source,
+			File:   l.f.Name,
+			Line:   c.Line,
+			Col:    c.Col,
+			Name:   string(c.Name),
+		}
+	}
+
+	return &ResourceNotFoundError{
 		Source:    l.f.Source,
 		File:      l.f.Name,
 		Line:      c.Line,

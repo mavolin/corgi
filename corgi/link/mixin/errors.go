@@ -93,11 +93,38 @@ func (e *InitFileTypeError) Error() string {
 }
 
 // ============================================================================
+// ResourceNotFoundError
+// ======================================================================================
+
+// ResourceNotFoundError is the error returned if a mixin is used that has a
+// namespace not found in the file's list of uses.
+type ResourceNotFoundError struct {
+	Namespace string
+	Name      string
+
+	Source string
+	File   string
+	Line   int
+	Col    int
+}
+
+var _ error = (*ResourceNotFoundError)(nil)
+
+func (r *ResourceNotFoundError) Error() string {
+	return fmt.Sprintf(
+		"%s/%s:%d:%d: no resource named `%s` found in list of uses, but is required for mixin `%s.%s`",
+		r.Source, r.File, r.Line, r.Col, r.Namespace, r.Namespace, r.Name)
+}
+
+// ============================================================================
 // NotFoundError
 // ======================================================================================
 
+// NotFoundError is returned when a resource does not provide a mixin with the
+// given name.
 type NotFoundError struct {
-	Namespace string
+	UseSource string
+	UseName   string
 	Name      string
 
 	Source string
@@ -109,11 +136,14 @@ type NotFoundError struct {
 var _ error = (*NotFoundError)(nil)
 
 func (e *NotFoundError) Error() string {
-	if e.Namespace == "" {
-		return fmt.Sprintf("%s/%s:%d:%d: unknown mixin `%s`", e.Source, e.File, e.Line, e.Col, e.Name)
+	if e.UseSource == "" || e.UseName == "" {
+		return fmt.Sprintf("%s/%s:%d:%d: unknown mixin `%s`",
+			e.Source, e.File, e.Line, e.Col, e.Name)
 	}
 
-	return fmt.Sprintf("%s/%s:%d:%d: unknown mixin `%s.%s`", e.Source, e.File, e.Line, e.Col, e.Namespace, e.Name)
+	return fmt.Sprintf(
+		"%s/%s:%d:%d: resource `%s/%s` provides no mixin called `%s`",
+		e.Source, e.File, e.Line, e.Col, e.UseSource, e.UseName, e.Name)
 }
 
 // ============================================================================
