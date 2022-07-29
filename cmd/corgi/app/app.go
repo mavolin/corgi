@@ -188,6 +188,6 @@ func goImports(args *args) {
 	}
 
 	log.Error("could not format output "+
-		"(this could mean that there is an erroneous Go expression in your template):",
+		"(this could mean that there is an erroneous Go expression in your template): ",
 		err.Error())
 }
