@@ -12,7 +12,7 @@
 
 ## About
 
-Corgi is an HTML and XML template language, inspired by pug (hence the name), for Go.
+Corgi is an HTML and XML template language for Go, inspired by pug (hence the name).
 Just like pug, corgi also uses code generation to generate its templates.
 
 ## Main Features
@@ -28,7 +28,7 @@ Just like pug, corgi also uses code generation to generate its templates.
 
 ## Examples
 
-First impression matter, so here is an example of a simple template:
+First impressions matter, so here is an example of a simple template:
 
 ```jade
 import "strings"
@@ -98,7 +98,7 @@ html(lang="en")
 
 ## Want to know more?
 
-Have a look at the guide on [GitBook](https://mavolin.gitbook.io/corgi)!
+Have a look at the guide on [GitBook](https://mavolin.gitbook.io/corgi).
 If you already know pug, you can also find a detailed list of differences there.
 
 ## License
