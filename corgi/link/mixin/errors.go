@@ -317,11 +317,11 @@ var _ error = (*UnknownBlockError)(nil)
 
 func (e *UnknownBlockError) Error() string {
 	if e.Name != "" {
-		return fmt.Sprintf("%s/%s:%d:%d: unknown block `%s` not defined by mixin",
+		return fmt.Sprintf("%s/%s:%d:%d: block `%s` not defined by mixin",
 			e.Source, e.File, e.Line, e.Col, e.Name)
 	}
 
-	return fmt.Sprintf("%s/%s:%d:%d: unknown block not defined by mixin", e.Source, e.File, e.Line, e.Col)
+	return fmt.Sprintf("%s/%s:%d:%d: no nameless block is defined by mixin", e.Source, e.File, e.Line, e.Col)
 }
 
 // ============================================================================

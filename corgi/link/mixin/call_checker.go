@@ -1,6 +1,10 @@
 package mixin
 
-import "github.com/mavolin/corgi/corgi/file"
+import (
+	"github.com/pkg/errors"
+
+	"github.com/mavolin/corgi/corgi/file"
+)
 
 // CallChecker checks that mixin calls are in order.
 //
@@ -43,6 +47,10 @@ func (c *CallChecker) Check() error {
 			}
 
 			if err := c.checkBodyItems(itm); err != nil {
+				return false, err
+			}
+
+			if err := c.checkUnknownBlocks(itm); err != nil {
 				return false, err
 			}
 
@@ -245,6 +253,83 @@ func (c *CallChecker) checkBodyMixinCall(orig file.MixinCall, mc file.MixinCall)
 			}
 		}
 	})
+}
+
+func (c *CallChecker) checkUnknownBlocks(mc file.MixinCall) error {
+	return file.WalkError(mc.Body, func(itmPtr *file.ScopeItem) (bool, error) {
+		switch itm := (*itmPtr).(type) {
+		case file.Block:
+			if !c.checkMixinContainsBlock(itm.Name, mc.Mixin.Body) {
+				return false, &UnknownBlockError{
+					Name:   string(itm.Name),
+					Source: c.f.Source,
+					File:   c.f.Name,
+					Line:   itm.Line,
+					Col:    itm.Col,
+				}
+			}
+
+			return false, nil
+		case file.MixinCall:
+			return false, nil
+		default:
+			return true, nil
+		}
+	})
+}
+
+func (c *CallChecker) checkMixinContainsBlock(name file.Ident, s file.Scope) bool {
+	var used bool
+
+	_ = file.WalkError(s, func(itmPtr *file.ScopeItem) (bool, error) {
+		switch itm := (*itmPtr).(type) {
+		case file.Block:
+			if name == itm.Name {
+				used = true
+				return false, errors.New("stop")
+			}
+
+			return true, nil
+		case file.MixinCall:
+			if c.checkMixinContainsBlock(name, itm.Body) {
+				used = true
+				return false, errors.New("stop")
+			}
+
+			return false, nil
+		default:
+			return true, nil
+		}
+	})
+
+	return used
+}
+
+func (c *CallChecker) checkMixinCallBlockContainsBlock(name file.Ident, mc file.MixinCall) bool {
+	var used bool
+
+	_ = file.WalkError(mc.Body, func(itmPtr *file.ScopeItem) (bool, error) {
+		switch itm := (*itmPtr).(type) {
+		case file.Block:
+			if c.checkMixinContainsBlock(name, itm.Body) {
+				used = true
+				return false, errors.New("stop")
+			}
+
+			return false, nil
+		case file.MixinCall:
+			if c.checkMixinCallBlockContainsBlock(name, itm) {
+				used = true
+				return false, errors.New("stop")
+			}
+
+			return false, nil
+		default:
+			return true, nil
+		}
+	})
+
+	return used
 }
 
 // checkNestedBlocks checks that blocks are only at the top-level of the mixin
