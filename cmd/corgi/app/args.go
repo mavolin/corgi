@@ -129,5 +129,5 @@ func corgiFS() (fs.FS, string, error) {
 		abs = filepath.Dir(abs)
 	}
 
-	return nil, "", fmt.Errorf("no go.mod found, but required for corgi/ resource directory")
+	return nil, "", nil
 }

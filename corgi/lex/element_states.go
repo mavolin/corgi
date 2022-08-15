@@ -1115,7 +1115,7 @@ Name:
 		// that uses unmatched parentheses in their attributes.
 		//
 		// To the person who is reading this because they actually use
-		// attributes that include unmatched parentheses: OtherFile an issue, thx.
+		// attributes that include unmatched parentheses: File an issue, thx.
 		case '(':
 			parenCount++
 		case ')':
