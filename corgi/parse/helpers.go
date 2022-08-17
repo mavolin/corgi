@@ -150,6 +150,9 @@ func (p *Parser) parseValueExpression(
 	raw file.GoExpression,
 ) (root file.GoExpression, chain []file.ValueExpression, err error) {
 	rawRunes := []rune(trimRightWhitespace(raw.Expression))
+	if len(rawRunes) == 0 {
+		return raw, nil, nil
+	}
 
 	var offset int
 
@@ -158,13 +161,21 @@ func (p *Parser) parseValueExpression(
 Root:
 	for i, r := range rawRunes {
 		switch r {
+		case '}', ')':
+			braceCount--
 		case '{':
 			braceCount++
-		case '}':
-			braceCount--
-		case '.', '[', '(':
+		case '(':
+			// only increase if we're in a paren-enclosed expression
+			if i == 0 || braceCount > 0 {
+				braceCount++
+				break
+			}
+
+			fallthrough
+		case '.', '[':
 			if braceCount > 0 {
-				continue Root
+				break
 			}
 
 			offset += i
