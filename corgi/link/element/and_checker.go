@@ -110,7 +110,7 @@ func (c *AndChecker) checkInElement(s file.Scope, andAllowed bool) (_ bool, err 
 				return false, err
 			}
 
-		case file.Mixin:
+		case file.Mixin, file.Code:
 			// do nothing
 		default:
 			andAllowed = false
