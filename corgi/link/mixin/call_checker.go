@@ -21,7 +21,7 @@ func NewCallChecker(f file.File) *CallChecker {
 //
 // 1. don't specify any arguments twice.
 //
-// 2. specify all required arguments and no inexistent arguments.
+// 2. specify all required arguments and no nonexistent arguments.
 //
 // 3. only use blocks that are defined by the mixin.
 //

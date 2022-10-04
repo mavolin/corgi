@@ -447,7 +447,7 @@ type (
 		// Args is a list of the arguments of given to the mixin.
 		Args []MixinArg
 
-		// Body is the body of the mixin.
+		// Body is the body of the mixin call.
 		//
 		// It will only consist of If, IfBlock, Switch, And, and Block items.
 		Body Scope

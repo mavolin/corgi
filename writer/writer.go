@@ -13,7 +13,7 @@ import (
 )
 
 type Writer struct {
-	// mixin calls were in right now
+	// mixin calls we're in right now
 	mixins stack.Stack[file.MixinCall]
 	// files available in the current block.
 	// Starts with the current file, up till the main file.

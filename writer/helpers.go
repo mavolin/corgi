@@ -68,10 +68,6 @@ func (w *Writer) firstAlwaysWritesBody(s file.Scope) bool {
 	case file.Code:
 		return w.firstAlwaysWritesBody(s[1:])
 	case file.Block:
-		if w.mixins.Len() == 0 {
-			return true
-		}
-
 		return false
 	default:
 		return true
