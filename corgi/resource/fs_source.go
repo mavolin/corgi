@@ -2,7 +2,6 @@ package resource
 
 import (
 	"io/fs"
-	"path/filepath"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -106,7 +105,7 @@ func (s *FSSource) ReadCorgiLib(name string) ([]File, error) {
 			continue
 		}
 
-		fileName := filepath.Join(name, entry.Name())
+		fileName := name + "/" + entry.Name()
 
 		f, err := s.ReadCorgiFile(fileName)
 		if err != nil {
