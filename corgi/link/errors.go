@@ -2,7 +2,7 @@ package link
 
 import "fmt"
 
-// Error is the error returned if an linkExtend, use, or include directive
+// Error is the error returned if an extend, use, or include directive
 // could not be linked.
 type Error struct {
 	// Source is the source of the directive.

@@ -152,18 +152,7 @@ func (l *fileLinker) linkUse(use *file.Use) error {
 // ======================================================================================
 
 func (l *fileLinker) linkIncludes() error {
-	err := l.linkIncludesScope(l.f.Scope, parse.ContextRegular)
-	if err != nil {
-		return &Error{
-			Source: l.f.Source,
-			File:   l.f.Name,
-			Line:   l.f.Extend.Line,
-			Col:    l.f.Extend.Col,
-			Cause:  err,
-		}
-	}
-
-	return nil
+	return l.linkIncludesScope(l.f.Scope, parse.ContextRegular)
 }
 
 func (l *fileLinker) linkIncludesScope(s file.Scope, pctx parse.Context) error {
@@ -171,7 +160,13 @@ func (l *fileLinker) linkIncludesScope(s file.Scope, pctx parse.Context) error {
 		switch itm := (*imtPtr).(type) {
 		case file.Include:
 			if err := l.linkInclude(&itm, pctx); err != nil {
-				return false, err
+				return false, &Error{
+					Source: l.f.Source,
+					File:   l.f.Name,
+					Line:   itm.Line,
+					Col:    itm.Col,
+					Cause:  err,
+				}
 			}
 
 			*imtPtr = itm
