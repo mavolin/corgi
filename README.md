@@ -103,5 +103,5 @@ If you already know pug, you can also find a detailed list of differences there.
 
 ## License
 
-Built with ❤️ by [Maximilian von Lindern](https://github.com/mavolin).
+Built with ❤ by [Maximilian von Lindern](https://github.com/mavolin).
 Available under the [MIT License](./LICENSE).
