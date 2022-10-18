@@ -317,6 +317,35 @@ func (p *Parser) scopeItemMixinCall() (file.ScopeItem, error) {
 		p.context.Pop()
 
 		return *switch_, nil
+	case lex.For:
+		p.context.Push(ContextMixinCallConditional)
+
+		for_, err := p.for_()
+		if err != nil {
+			return nil, err
+		}
+
+		p.context.Pop()
+
+		return *for_, nil
+	case lex.While:
+		p.context.Push(ContextMixinCallConditional)
+
+		while, err := p.while()
+		if err != nil {
+			return nil, err
+		}
+
+		p.context.Pop()
+
+		return *while, nil
+	case lex.CodeStart:
+		code, err := p.code()
+		if err != nil {
+			return nil, err
+		}
+
+		return *code, nil
 	case lex.And:
 		and, err := p.and()
 		if err != nil {
@@ -363,6 +392,27 @@ func (p *Parser) scopeItemMixinCallConditional() (file.ScopeItem, error) {
 		}
 
 		return *switch_, nil
+	case lex.For:
+		for_, err := p.for_()
+		if err != nil {
+			return nil, err
+		}
+
+		return *for_, nil
+	case lex.While:
+		while, err := p.while()
+		if err != nil {
+			return nil, err
+		}
+
+		return *while, nil
+	case lex.CodeStart:
+		code, err := p.code()
+		if err != nil {
+			return nil, err
+		}
+
+		return *code, nil
 	case lex.And:
 		and, err := p.and()
 		if err != nil {
