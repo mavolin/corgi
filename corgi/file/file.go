@@ -67,7 +67,7 @@ const (
 // Pos indicates the position where an element was encountered.
 //
 // It is not present for all elements, but only where needed to generated
-// meaningful errors during linking.
+// meaningful lexerr during linking.
 type Pos struct {
 	Line int
 	Col  int

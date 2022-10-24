@@ -49,7 +49,7 @@ issues:
         - deadcode
         - unused
       path: test/...
-    # prevent errors on type assertions with field access
+    # prevent lexerr on type assertions with field access
     - linters:
         - errorlint
       source: \w\.\(\*?\w+\)\.\w+

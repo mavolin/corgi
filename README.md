@@ -12,21 +12,21 @@
 
 ## About
 
-Corgi is an HTML and XML template language for Go, inspired by pug (hence the name).
+Corgi is an HTML template language for Go, inspired by pug (hence the name).
 Just like pug, corgi also uses code generation to generate its templates.
 
 ## Main Features
 
 * 👀 Highly readable syntax, not just replacing placeholders
 * 👪 Support for inheritance
-* ➕ Mixins—functions (with parameters) that render repeated pieces of corgi
-* 🗄 Import mixins from other files
+* ➕ Mixins—functions that render repeated pieces of corgi
+* 🗄 Import mixins from other files, just like you would import Go packages
 * 🖇 Split large templates into multiple files
 * ✨ Import any Go package and use its constants, variables, types, and functions—no need for `FuncMap`s or the like
 * 🤏 Generates minified HTML (and through the use of filters also minified CSS and JS)
-* 🔒 Automatically escapes HTML/XML, and in HTML mode also interpolated CSS and JS
+* 🔒 Automatically escapes interpolated HTML, CSS and JS
 
-## Examples
+## Example
 
 First impressions matter, so here is an example of a simple template:
 
@@ -35,13 +35,16 @@ import "strings"
 
 //- These are the name and params of the function that corgi will generate.
 //- Besides the params you specify here, corgi will also add an io.Writer that
-//- it'll write the output to.
+//- it'll write the output to, and an error return, that returns any errors
+//- it encounters when writing to the io.Writer.
+//-
+//- The real signature will look like this:
+//- func LearnCorgi(__w io.Writer, name string, knowsPug bool, friends []string) error
 func LearnCorgi(name string, knowsPug bool, friends []string)
 
 mixin greet(name string)
   | Hello, #{name}!
 
-doctype html
 html(lang="en")
   head
     title Learn Corgi
@@ -56,10 +59,10 @@ html(lang="en")
         | learning corgi will be even more of #strong[a breeze] for you!
         |
 
-      .
-        Head over to
-        #a(href="https://mavolin.gitbook.io/corgi")[GitBook]
-        to learn it.
+      
+      | Head over to
+      | #a(href="https://mavolin.gitbook.io/corgi")[GitBook]
+      | to learn it.
 
     switch len(friends)
       case 0
@@ -74,8 +77,10 @@ html(lang="en")
           and #{friends[len(friends)-1]} about corgi too!
 ```
 
+Pretty-Printed output:
+
 ```html
-<!-- LearnCorgi("Maxi", true, []string{"Huey", "Dewey", "Louie"}) -->
+<!-- LearnCorgi(myWriter, "Maxi", true, []string{"Huey", "Dewey", "Louie"}) -->
 
 <!doctype html>
 <html lang="en">

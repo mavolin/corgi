@@ -6,7 +6,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/mavolin/corgi/corgi/lex"
+	"github.com/mavolin/corgi/corgi/lex/token"
 )
 
 var (
@@ -70,8 +70,8 @@ var (
 
 // UnexpectedItemError is the error returned when an unknown item is encountered.
 type UnexpectedItemError struct {
-	Found    lex.ItemType
-	Expected []lex.ItemType
+	Found    token.Token
+	Expected []token.Token
 }
 
 var _ error = (*UnexpectedItemError)(nil)

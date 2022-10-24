@@ -6,6 +6,7 @@ import (
 
 	"github.com/mavolin/corgi/corgi/file"
 	"github.com/mavolin/corgi/corgi/lex"
+	"github.com/mavolin/corgi/corgi/lex/token"
 
 	"github.com/mavolin/corgi/pkg/stack"
 )
@@ -61,18 +62,18 @@ const (
 	// ContextMixinDefinition is the Context used when in the body of a mixin
 	// definition.
 	//
-	// In it, lex.Block and lex.IfBlock items are allowed.
+	// In it, token.Block and token.IfBlock items are allowed.
 	ContextMixinDefinition
 	// ContextMixinCall is the Context used when in the body of a mixin call.
 	//
-	// In it only lex.If, lex.Switch, lex.And, lex.MixinCall, and lex.Block are
+	// In it only token.If, token.Switch, token.And, token.MixinCall, and token.Block are
 	// allowed.
 	//
-	// If inside a lex.Block inside a mixin call, ContextRegular is to be used.
+	// If inside a token.Block inside a mixin call, ContextRegular is to be used.
 	ContextMixinCall
 	// ContextMixinCallConditional is the same as ContextMixinCall, but only
-	// specifies that we're in a conditional (lex.If, or lex.Switch) where
-	// lex.Block statements are not allowed.
+	// specifies that we're in a conditional (token.If, or token.Switch) where
+	// token.Block statements are not allowed.
 	ContextMixinCallConditional
 )
 
@@ -125,15 +126,15 @@ func (p *Parser) next() (itm lex.Item) {
 		itm = *p.peekedItem
 		p.peekedItem = nil
 
-		if itm.Type == lex.EOF {
+		if itm.Type == token.EOF {
 			p.eof = &itm
 		}
 
 		return itm
 	}
 
-	next := p.lex.Next()
-	if next.Type == lex.EOF {
+	next := p.lex.NextItem()
+	if next.Type == token.EOF {
 		p.eof = &next
 	}
 
@@ -149,7 +150,7 @@ func (p *Parser) peek() lex.Item {
 		return *p.peekedItem
 	}
 
-	itm := p.lex.Next()
+	itm := p.lex.NextItem()
 	p.peekedItem = &itm
 	return itm
 }
@@ -171,8 +172,9 @@ func (p *Parser) error(itm lex.Item, err error) error {
 }
 
 // unexpectedItem is short for:
+//
 //	p.error(itm, &UnexpectedItemError{Found: found.Type, Expected: expected})
-func (p *Parser) unexpectedItem(found lex.Item, expected ...lex.ItemType) error {
+func (p *Parser) unexpectedItem(found lex.Item, expected ...token.Token) error {
 	if found.Err != nil {
 		return p.error(found, found.Err)
 	}

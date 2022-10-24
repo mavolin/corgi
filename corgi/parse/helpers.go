@@ -5,6 +5,7 @@ import (
 
 	"github.com/mavolin/corgi/corgi/file"
 	"github.com/mavolin/corgi/corgi/lex"
+	"github.com/mavolin/corgi/corgi/lex/token"
 )
 
 // ============================================================================
@@ -22,17 +23,17 @@ func trimRightWhitespace(s string) string {
 func (p *Parser) expression() (file.Expression, error) {
 	peek := p.peek()
 	switch peek.Type {
-	case lex.Ternary:
+	case token.Ternary:
 		texpr, err := p.ternary()
 		if err != nil {
 			return nil, err
 		}
 
 		return *texpr, nil
-	case lex.Expression:
+	case token.Expression:
 		// handled below
 	default:
-		return nil, p.unexpectedItem(p.next(), lex.Expression, lex.Ternary)
+		return nil, p.unexpectedItem(p.next(), token.Expression, token.Ternary)
 	}
 
 	exprItm := p.next()
@@ -41,7 +42,7 @@ func (p *Parser) expression() (file.Expression, error) {
 		Pos:        file.Pos{Line: exprItm.Line, Col: exprItm.Col},
 	}
 
-	if p.peek().Type == lex.NilCheck {
+	if p.peek().Type == token.NilCheck {
 		ncExpr, err := p.nilCheck(expr)
 		if err != nil {
 			return nil, err
@@ -54,7 +55,7 @@ func (p *Parser) expression() (file.Expression, error) {
 }
 
 func (p *Parser) ternary() (*file.TernaryExpression, error) {
-	p.next() // lex.Ternary
+	p.next() // token.Ternary
 
 	condStartItm := p.peek()
 
@@ -74,8 +75,8 @@ func (p *Parser) ternary() (*file.TernaryExpression, error) {
 	}
 
 	next := p.next()
-	if next.Type != lex.LParen {
-		return nil, p.unexpectedItem(next, lex.RParen)
+	if next.Type != token.LParen {
+		return nil, p.unexpectedItem(next, token.RParen)
 	}
 
 	texpr.IfTrue, err = p.expression()
@@ -84,8 +85,8 @@ func (p *Parser) ternary() (*file.TernaryExpression, error) {
 	}
 
 	next = p.next()
-	if next.Type != lex.TernaryElse {
-		return nil, p.unexpectedItem(next, lex.TernaryElse)
+	if next.Type != token.TernaryElse {
+		return nil, p.unexpectedItem(next, token.TernaryElse)
 	}
 
 	texpr.IfFalse, err = p.expression()
@@ -94,8 +95,8 @@ func (p *Parser) ternary() (*file.TernaryExpression, error) {
 	}
 
 	next = p.next()
-	if next.Type != lex.RParen {
-		return nil, p.unexpectedItem(next, lex.RParen)
+	if next.Type != token.RParen {
+		return nil, p.unexpectedItem(next, token.RParen)
 	}
 
 	return &texpr, nil
@@ -114,15 +115,15 @@ func (p *Parser) nilCheck(checkExpr file.GoExpression) (_ *file.NilCheckExpressi
 		return nil, err
 	}
 
-	p.next() // lex.NilCheck
+	p.next() // token.NilCheck
 
-	if p.peek().Type != lex.LParen {
+	if p.peek().Type != token.LParen {
 		return &ncExpr, nil
 	}
 
 	// we have a default value
 
-	p.next() // lex.LParen
+	p.next() // token.LParen
 
 	defaultExprStartItm := p.peek()
 
@@ -139,8 +140,8 @@ func (p *Parser) nilCheck(checkExpr file.GoExpression) (_ *file.NilCheckExpressi
 	ncExpr.Default = &defaultExpr
 
 	next := p.next()
-	if next.Type != lex.RParen {
-		return nil, p.unexpectedItem(next, lex.LParen)
+	if next.Type != token.RParen {
+		return nil, p.unexpectedItem(next, token.LParen)
 	}
 
 	return &ncExpr, nil
@@ -321,16 +322,16 @@ func (p *Parser) text(required bool) (itms []file.ScopeItem, err error) {
 	for {
 		peek := p.peek()
 		switch peek.Type {
-		case lex.Text:
+		case token.Text:
 			s := p.next().Val
-			if p.peek().Type != lex.Text && p.peek().Type != lex.Hash {
+			if p.peek().Type != token.Text && p.peek().Type != token.Hash {
 				s = trimRightWhitespace(s)
 			}
 
 			s = strings.ReplaceAll(s, "##", "#")
 
 			itms = append(itms, file.Text{Text: s})
-		case lex.Hash:
+		case token.Hash:
 			h, err := p.hash()
 			if err != nil {
 				return nil, err
@@ -339,7 +340,7 @@ func (p *Parser) text(required bool) (itms []file.ScopeItem, err error) {
 			itms = append(itms, h)
 		default:
 			if len(itms) == 0 && required {
-				return nil, p.unexpectedItem(peek, lex.Text, lex.Hash)
+				return nil, p.unexpectedItem(peek, token.Text, token.Hash)
 			}
 
 			return itms, nil
@@ -348,39 +349,39 @@ func (p *Parser) text(required bool) (itms []file.ScopeItem, err error) {
 }
 
 func (p *Parser) hash() (file.ScopeItem, error) {
-	p.next() // lex.Hash
+	p.next() // token.Hash
 
 	var noEscape bool
 
 	switch p.peek().Type {
-	case lex.MixinCall:
+	case token.MixinCall:
 		c, err := p.mixinCall()
 		if err != nil {
 			return nil, err
 		}
 
 		return *c, nil
-	case lex.NoEscape:
+	case token.NoEscape:
 		p.next()
 		noEscape = true
 	}
 
-	if p.peek().Type == lex.LBracket {
+	if p.peek().Type == token.LBracket {
 		p.next()
 
 		textItm := p.next()
-		if textItm.Type != lex.Text {
-			return nil, p.unexpectedItem(textItm, lex.Text)
+		if textItm.Type != token.Text {
+			return nil, p.unexpectedItem(textItm, token.Text)
 		}
 
-		if p.next().Type != lex.RBracket {
-			return nil, p.unexpectedItem(p.next(), lex.RBracket)
+		if p.next().Type != token.RBracket {
+			return nil, p.unexpectedItem(p.next(), token.RBracket)
 		}
 
 		return file.InlineText{Text: textItm.Val, NoEscape: noEscape}, nil
 	}
 
-	if p.peek().Type != lex.LBrace {
+	if p.peek().Type != token.LBrace {
 		e, err := p.inlineElement(noEscape)
 		if err != nil {
 			return nil, err
@@ -389,15 +390,15 @@ func (p *Parser) hash() (file.ScopeItem, error) {
 		return *e, nil
 	}
 
-	p.next() // lex.LBrace
+	p.next() // token.LBrace
 
 	e, err := p.expression()
 	if err != nil {
 		return nil, err
 	}
 
-	if p.next().Type != lex.RBrace {
-		return nil, p.unexpectedItem(p.next(), lex.RBrace)
+	if p.next().Type != token.RBrace {
+		return nil, p.unexpectedItem(p.next(), token.RBrace)
 	}
 
 	return file.Interpolation{Expression: e, NoEscape: noEscape}, nil
@@ -417,23 +418,23 @@ func (p *Parser) inlineElement(noEscape bool) (*file.InlineElement, error) {
 	ie.SelfClosing = elem.SelfClosing
 
 	switch p.peek().Type {
-	case lex.LBracket:
+	case token.LBracket:
 		p.next()
 
 		textItm := p.next()
-		if textItm.Type != lex.Text {
-			return nil, p.unexpectedItem(textItm, lex.Text)
+		if textItm.Type != token.Text {
+			return nil, p.unexpectedItem(textItm, token.Text)
 		}
 
 		ie.Value = file.Text{Text: textItm.Val}
 
 		rBracketItm := p.next()
-		if rBracketItm.Type != lex.RBracket {
-			return nil, p.unexpectedItem(rBracketItm, lex.RBracket)
+		if rBracketItm.Type != token.RBracket {
+			return nil, p.unexpectedItem(rBracketItm, token.RBracket)
 		}
 
 		return &ie, nil
-	case lex.LBrace:
+	case token.LBrace:
 		p.next()
 
 		expr, err := p.expression()
@@ -444,12 +445,12 @@ func (p *Parser) inlineElement(noEscape bool) (*file.InlineElement, error) {
 		ie.Value = expr
 
 		rBraceItm := p.next()
-		if rBraceItm.Type != lex.RBrace {
-			return nil, p.unexpectedItem(rBraceItm, lex.RBrace)
+		if rBraceItm.Type != token.RBrace {
+			return nil, p.unexpectedItem(rBraceItm, token.RBrace)
 		}
 
 		return &ie, nil
 	default:
-		return nil, p.unexpectedItem(p.next(), lex.LBracket, lex.LBrace)
+		return nil, p.unexpectedItem(p.next(), token.LBracket, token.LBrace)
 	}
 }
