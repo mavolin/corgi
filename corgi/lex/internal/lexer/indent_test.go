@@ -11,7 +11,7 @@ import (
 )
 
 func TestLexer_ConsumeIndent(t *testing.T) {
-	t.Parallel()
+	// t.Parallel()
 
 	successCases := []struct {
 		Name string
@@ -280,7 +280,7 @@ func TestLexer_ConsumeIndent(t *testing.T) {
 	}
 
 	t.Run("success", func(t *testing.T) {
-		t.Parallel()
+		// t.Parallel()
 
 		for _, c := range successCases {
 			c := c
@@ -317,7 +317,7 @@ func TestLexer_ConsumeIndent(t *testing.T) {
 		ExpectAllIndents     error
 	}{
 		{
-			Name: "lexerr.ErrMixedIndentation",
+			Name: "ErrMixedIndentation",
 			In:   "\t  abc",
 
 			ExpectNoIncrease:     nil,
@@ -325,7 +325,7 @@ func TestLexer_ConsumeIndent(t *testing.T) {
 			ExpectAllIndents:     lexerr.ErrMixedIndentation,
 		},
 		{
-			Name:      "lexerr.ErrMixedIndentation",
+			Name:      "ErrMixedIndentation",
 			In:        "\t  abc",
 			Indent:    ' ',
 			IndentLen: 2,
@@ -335,7 +335,7 @@ func TestLexer_ConsumeIndent(t *testing.T) {
 			ExpectAllIndents:     lexerr.ErrMixedIndentation,
 		},
 		{
-			Name:      "lexerr.ErrMixedIndentation",
+			Name:      "ErrMixedIndentation",
 			In:        "\t  abc",
 			Indent:    ' ',
 			IndentLen: 2,
@@ -346,7 +346,7 @@ func TestLexer_ConsumeIndent(t *testing.T) {
 			ExpectAllIndents:     lexerr.ErrMixedIndentation,
 		},
 		{
-			Name:      "lexerr.ErrIndentationIncrease",
+			Name:      "ErrIndentationIncrease",
 			In:        "    abc",
 			Indent:    ' ',
 			IndentLen: 2,
@@ -356,7 +356,7 @@ func TestLexer_ConsumeIndent(t *testing.T) {
 			ExpectAllIndents:     lexerr.ErrIndentationIncrease,
 		},
 		{
-			Name:      "lexerr.ErrIndentationIncrease",
+			Name:      "ErrIndentationIncrease",
 			In:        "      abc",
 			Indent:    ' ',
 			IndentLen: 2,
@@ -503,7 +503,7 @@ func consumeIndentSuccessTest(
 	expectIndent rune, expectIndentLen int,
 ) func(t *testing.T) {
 	return func(t *testing.T) {
-		t.Parallel()
+		// t.Parallel()
 
 		l := New[token.Token](in, nil)
 		l.indent = indent
