@@ -147,11 +147,15 @@ func run(ctx *cli.Context) error {
 		return errors.Wrap(err, "could not create output file")
 	}
 
-	if err := w.Write(out); err != nil {
+	if err = w.Write(out); err != nil {
 		return err
 	}
 
 	log.Info("generated ", args.OutputFile)
+
+	if err = out.Close(); err != nil {
+		return errors.Wrap(err, "could not close output file")
+	}
 
 	if !args.NoFmt {
 		goImports(args)
