@@ -161,7 +161,7 @@ func run(ctx *cli.Context) error {
 		goImports(args)
 	}
 
-	return out.Close()
+	return nil
 }
 
 func goGetCorgi() {
