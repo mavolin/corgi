@@ -1,38 +1,29 @@
-package lex
+package token
 
-// Item represents a lexical item as emitted by the lexer.
-type Item struct {
-	// Type is the type of the item.
-	Type ItemType
-	// Expression is the value of the item, if any.
-	Val string
-	// Err is the error.
-	// It is only set when Type is Error.
-	Err error
-	// Line is the line where the item starts.
-	Line int
-	// Col is the column after which the item starts.
-	Col int
-}
-
-// ItemType is an enum representing the type of item the lexer encounters.
+// Token is an enum representing the type of item the lexer encounters.
 //
 // The value assigned to an item may change, e.g. if the list ever gets
 // expanded.
-// Only use ItemTypes in conjunction with their constants.
-type ItemType uint8
+// Only use Tokens in conjunction with their constants.
+type Token uint8
 
-//go:generate stringer -type ItemType
+//go:generate stringer -type Token
 
 const (
-	Error ItemType = iota
+	Error Token = iota
 	EOF
 
 	Indent // indention level increased
 	Dedent // indention level decreased
 
-	Element    // element name
-	Ident      // identifier
+	Element // element name
+	// Ident is an identifier.
+	//
+	// It starts with a unicode letter or underscore.
+	// It is followed by any number of unicode letters, decimal digits, or
+	// underscores.
+	// This is the same pattern as Go uses for its identifiers.
+	Ident
 	Literal    // after a '.', '#' etc.
 	Expression // a Go expression
 	Text       // the text after an element, pipe etc. that needs HTML escaping
@@ -65,29 +56,27 @@ const (
 	Include // 'include'
 	Use     // 'use'
 
-	Doctype // 'doctype'
-
-	Block        // 'block'
-	BlockAppend  // 'append' or 'block append'
-	BlockPrepend // 'prepend' or 'block prepend'
+	Block   // 'block'
+	Append  // 'append'
+	Prepend // 'prepend'
 
 	If      // 'if'
 	IfBlock // 'if block'
 	ElseIf  // 'else if'
 	Else    // 'else'
 
-	Switch      // 'switch'
-	Case        // 'case'
-	DefaultCase // 'default
+	Switch  // 'switch'
+	Case    // 'case'
+	Default // 'default
 
 	For   // 'for'
 	Range // 'range' keyword used in a for
 
 	While // 'while'
 
-	Mixin              // 'mixin'
-	MixinCall          // '+'
-	MixinBlockShortcut // '>' after a mixin call with a single block
+	Mixin               // 'mixin'
+	MixinCall           // '+'
+	MixinBlockShorthand // '>'
 
 	And // '&'
 

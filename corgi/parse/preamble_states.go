@@ -8,34 +8,34 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/mavolin/corgi/corgi/file"
-	"github.com/mavolin/corgi/corgi/lex"
+	"github.com/mavolin/corgi/corgi/lex/token"
 )
 
 func (p *Parser) start() (stateFn, error) {
 	switch p.peek().Type {
-	case lex.EOF:
+	case token.EOF:
 		if p.mode == ModeMain {
 			return nil, p.error(p.next(), ErrNoFunc)
 		}
 
 		return nil, nil
-	case lex.Error:
+	case token.Error:
 		next := p.next()
 		return nil, p.error(next, next.Err)
-	case lex.Extend:
+	case token.Extend:
 		return p.extend, nil
-	case lex.Import:
+	case token.Import:
 		return p.import_, nil
-	case lex.Use:
+	case token.Use:
 		return p.use, nil
-	case lex.CodeStart:
+	case token.CodeStart:
 		// all code in included files is regular code
 		if p.mode == ModeInclude {
 			return p.beforeDoctype, nil
 		}
 
 		return p.globalCode, nil
-	case lex.Func:
+	case token.Func:
 		return p.func_, nil
 	default:
 		return p.beforeDoctype, nil
@@ -56,8 +56,8 @@ func (p *Parser) extend() (_ stateFn, err error) {
 	}
 
 	lit := p.next()
-	if lit.Type != lex.Literal {
-		return nil, p.unexpectedItem(lit, lex.Literal)
+	if lit.Type != token.Literal {
+		return nil, p.unexpectedItem(lit, token.Literal)
 	}
 
 	p.f.Extend = &file.Extend{
@@ -74,28 +74,28 @@ func (p *Parser) extend() (_ stateFn, err error) {
 
 func (p *Parser) afterExtend() (stateFn, error) {
 	switch p.peek().Type {
-	case lex.EOF:
+	case token.EOF:
 		if p.mode == ModeMain {
 			return nil, p.error(p.next(), ErrNoFunc)
 		}
 
 		return nil, nil
-	case lex.Error:
+	case token.Error:
 		next := p.next()
 		return nil, p.error(next, next.Err)
-	case lex.Extend:
+	case token.Extend:
 		return nil, p.error(p.next(), ErrMultipleExtend)
-	case lex.Import:
+	case token.Import:
 		return p.import_, nil
-	case lex.Use:
+	case token.Use:
 		return p.use, nil
-	case lex.CodeStart: // all code in included files is regular code
+	case token.CodeStart: // all code in included files is regular code
 		if p.mode == ModeInclude {
 			return p.beforeDoctype, nil
 		}
 
 		return p.globalCode, nil
-	case lex.Func:
+	case token.Func:
 		return p.func_, nil
 	default:
 		return p.beforeDoctype, nil
@@ -107,23 +107,23 @@ func (p *Parser) afterExtend() (stateFn, error) {
 // ======================================================================================
 
 func (p *Parser) import_() (stateFn, error) {
-	p.next() // lex.Import
+	p.next() // token.Import
 
 	peek := p.peek()
-	if peek.Type == lex.Ident || peek.Type == lex.Literal {
+	if peek.Type == token.Ident || peek.Type == token.Literal {
 		return p.afterImport, p.singleImport()
 	}
 
-	if p.next().Type != lex.Indent {
-		return nil, p.unexpectedItem(p.next(), lex.Indent, lex.Ident, lex.Literal)
+	if p.next().Type != token.Indent {
+		return nil, p.unexpectedItem(p.next(), token.Indent, token.Ident, token.Literal)
 	}
 
 	for {
 		switch p.peek().Type {
-		case lex.EOF:
+		case token.EOF:
 			p.next()
 			return nil, nil
-		case lex.Dedent:
+		case token.Dedent:
 			p.next()
 			return p.afterImport, nil
 		}
@@ -139,14 +139,14 @@ func (p *Parser) singleImport() (err error) {
 
 	pathItm := p.next()
 	first := pathItm
-	if pathItm.Type == lex.Ident { // not the path, but the alias
+	if pathItm.Type == token.Ident { // not the path, but the alias
 		first = pathItm
 		alias = file.GoIdent(pathItm.Val)
 		pathItm = p.next()
 	}
 
-	if pathItm.Type != lex.Literal {
-		return p.unexpectedItem(pathItm, lex.Literal)
+	if pathItm.Type != token.Literal {
+		return p.unexpectedItem(pathItm, token.Literal)
 	}
 
 	imp := file.Import{
@@ -158,7 +158,7 @@ func (p *Parser) singleImport() (err error) {
 
 	imp.Path, err = strconv.Unquote(pathItm.Val)
 	if err != nil {
-		return p.error(pathItm, errors.Wrap(err, "invalid use string"))
+		return p.error(pathItm, errors.Wrap(err, "invalid import string"))
 	}
 
 	p.f.Imports = append(p.f.Imports, imp)
@@ -168,29 +168,29 @@ func (p *Parser) singleImport() (err error) {
 
 func (p *Parser) afterImport() (stateFn, error) {
 	switch p.peek().Type {
-	case lex.EOF:
+	case token.EOF:
 		if p.mode == ModeMain {
 			return nil, p.error(p.next(), ErrNoFunc)
 		}
 
 		return nil, nil
-	case lex.Error:
+	case token.Error:
 		next := p.next()
 		return nil, p.error(next, next.Err)
-	case lex.Extend:
+	case token.Extend:
 		return nil, p.error(p.next(), ErrExtendPlacement)
-	case lex.Import:
+	case token.Import:
 		return p.import_, nil
-	case lex.Use:
+	case token.Use:
 		return p.use, nil
-	case lex.CodeStart:
+	case token.CodeStart:
 		// all code in included files is regular code
 		if p.mode == ModeInclude {
 			return p.beforeDoctype, nil
 		}
 
 		return p.globalCode, nil
-	case lex.Func:
+	case token.Func:
 		return p.func_, nil
 	default:
 		return p.beforeDoctype, nil
@@ -202,23 +202,23 @@ func (p *Parser) afterImport() (stateFn, error) {
 // ======================================================================================
 
 func (p *Parser) use() (stateFn, error) {
-	p.next() // lex.Use
+	p.next() // token.Use
 
 	peek := p.peek()
-	if peek.Type == lex.Literal || peek.Type == lex.Ident {
+	if peek.Type == token.Literal || peek.Type == token.Ident {
 		return p.afterUse, p.singleUse()
 	}
 
-	if p.next().Type != lex.Indent {
-		return nil, p.unexpectedItem(p.next(), lex.Ident, lex.Literal)
+	if p.next().Type != token.Indent {
+		return nil, p.unexpectedItem(p.next(), token.Ident, token.Literal)
 	}
 
 	for {
 		switch p.peek().Type {
-		case lex.EOF:
+		case token.EOF:
 			p.next()
 			return nil, nil
-		case lex.Dedent:
+		case token.Dedent:
 			p.next()
 			return p.afterUse, nil
 		}
@@ -235,13 +235,13 @@ func (p *Parser) singleUse() (err error) {
 	next := p.next()
 	u.Pos = file.Pos{Line: next.Line, Col: next.Col}
 
-	if next.Type == lex.Ident {
+	if next.Type == token.Ident {
 		u.Namespace = file.Ident(next.Val)
 		next = p.next()
 	}
 
-	if next.Type != lex.Literal {
-		return p.unexpectedItem(next, lex.Literal)
+	if next.Type != token.Literal {
+		return p.unexpectedItem(next, token.Literal)
 	}
 
 	u.Path, err = strconv.Unquote(next.Val)
@@ -260,29 +260,29 @@ func (p *Parser) singleUse() (err error) {
 
 func (p *Parser) afterUse() (stateFn, error) {
 	switch p.peek().Type {
-	case lex.EOF:
+	case token.EOF:
 		if p.mode == ModeMain {
 			return nil, p.error(p.next(), ErrNoFunc)
 		}
 
 		return nil, nil
-	case lex.Error:
+	case token.Error:
 		next := p.next()
 		return nil, p.error(next, next.Err)
-	case lex.Extend:
+	case token.Extend:
 		return nil, p.error(p.next(), ErrExtendPlacement)
-	case lex.Import:
+	case token.Import:
 		return nil, p.error(p.next(), ErrImportPlacement)
-	case lex.Use:
+	case token.Use:
 		return p.use, nil
-	case lex.CodeStart:
+	case token.CodeStart:
 		// all code in included files is regular code
 		if p.mode == ModeInclude {
 			return p.beforeDoctype, nil
 		}
 
 		return p.globalCode, nil
-	case lex.Func:
+	case token.Func:
 		return p.func_, nil
 	default:
 		return p.beforeDoctype, nil
@@ -294,14 +294,14 @@ func (p *Parser) afterUse() (stateFn, error) {
 // ======================================================================================
 
 func (p *Parser) globalCode() (stateFn, error) {
-	p.next() // lex.CodeStart
+	p.next() // token.CodeStart
 
 	peek := p.peek()
 	switch peek.Type {
-	case lex.Code:
+	case token.Code:
 		p.f.GlobalCode = append(p.f.GlobalCode, file.Code{Code: p.next().Val})
 		return p.afterGlobalCode, nil
-	case lex.Indent:
+	case token.Indent:
 		// handled below
 	default: // empty line of code
 		// add nothing because empty lines only serve the purpose of aiding
@@ -312,21 +312,21 @@ func (p *Parser) globalCode() (stateFn, error) {
 	var b strings.Builder
 	b.Grow(1000)
 
-	p.next() // lex.Indent
+	p.next() // token.Indent
 
 	first := true
 
 	for {
 		switch p.peek().Type {
-		case lex.EOF:
+		case token.EOF:
 			p.next()
 			p.f.GlobalCode = append(p.f.GlobalCode, file.Code{Code: b.String()})
 			return nil, nil
-		case lex.Dedent:
+		case token.Dedent:
 			p.next()
 			p.f.GlobalCode = append(p.f.GlobalCode, file.Code{Code: b.String()})
 			return p.afterGlobalCode, nil
-		case lex.Code:
+		case token.Code:
 			if !first {
 				b.WriteString("\n")
 			} else {
@@ -335,36 +335,36 @@ func (p *Parser) globalCode() (stateFn, error) {
 
 			b.WriteString(p.next().Val)
 		default:
-			return nil, p.unexpectedItem(p.next(), lex.Code, lex.Dedent)
+			return nil, p.unexpectedItem(p.next(), token.Code, token.Dedent)
 		}
 	}
 }
 
 func (p *Parser) afterGlobalCode() (stateFn, error) {
 	switch p.peek().Type {
-	case lex.EOF:
+	case token.EOF:
 		if p.mode == ModeMain {
 			return nil, p.error(p.next(), ErrNoFunc)
 		}
 
 		return nil, nil
-	case lex.Error:
+	case token.Error:
 		next := p.next()
 		return nil, p.error(next, next.Err)
-	case lex.Extend:
+	case token.Extend:
 		return nil, p.error(p.next(), ErrExtendPlacement)
-	case lex.Import:
+	case token.Import:
 		return nil, p.error(p.next(), ErrImportPlacement)
-	case lex.Use:
+	case token.Use:
 		return p.use, p.error(p.next(), ErrUsePlacement)
-	case lex.CodeStart:
+	case token.CodeStart:
 		// all code in included files is regular code
 		if p.mode == ModeInclude {
 			return p.beforeDoctype, nil
 		}
 
 		return p.globalCode, nil
-	case lex.Func:
+	case token.Func:
 		return p.func_, nil
 	default:
 		return p.beforeDoctype, nil
@@ -385,15 +385,15 @@ func (p *Parser) func_() (stateFn, error) {
 	}
 
 	ident := p.next()
-	if ident.Type != lex.Ident {
-		return nil, p.unexpectedItem(ident, lex.Ident)
+	if ident.Type != token.Ident {
+		return nil, p.unexpectedItem(ident, token.Ident)
 	}
 
 	params := p.next()
-	if params.Type != lex.Literal {
+	if params.Type != token.Literal {
 		// LParen is not actually what we expect here, but it's certainly more
 		// descriptive than Literal
-		return nil, p.unexpectedItem(params, lex.LParen)
+		return nil, p.unexpectedItem(params, token.LParen)
 	}
 
 	p.f.Func = file.Func{
@@ -406,18 +406,18 @@ func (p *Parser) func_() (stateFn, error) {
 
 func (p *Parser) afterFunc() (stateFn, error) {
 	switch p.peek().Type {
-	case lex.EOF:
+	case token.EOF:
 		return nil, nil
-	case lex.Error:
+	case token.Error:
 		next := p.next()
 		return nil, p.error(next, next.Err)
-	case lex.Extend:
+	case token.Extend:
 		return nil, p.error(p.next(), ErrExtendPlacement)
-	case lex.Import:
+	case token.Import:
 		return nil, p.error(p.next(), ErrImportPlacement)
-	case lex.Use:
+	case token.Use:
 		return nil, p.error(p.next(), ErrUsePlacement)
-	case lex.Func:
+	case token.Func:
 		return nil, p.error(p.next(), ErrMultipleFunc)
 	default:
 		return p.beforeDoctype, nil

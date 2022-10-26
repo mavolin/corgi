@@ -1,14 +1,15 @@
-package lex
+// Package lexerr provides errors used by the various lexing packages.
+//
+// Centralized in this package to avoid duplicate types because of import
+// cycles.
+package lexerr
 
 import (
-	"errors"
 	"fmt"
 	"strings"
-)
 
-// ============================================================================
-// IndentationError
-// ======================================================================================
+	"github.com/pkg/errors"
+)
 
 var (
 	// ErrMixedIndentation is the error returned if both tabs and spaces are
@@ -17,6 +18,10 @@ var (
 
 	ErrIndentationIncrease = errors.New("you can only increase one indentation level at a time")
 )
+
+// ============================================================================
+// IndentationError
+// ======================================================================================
 
 // IndentationError is the error returned when the indentation of a line is
 // inconsistent with the first indented line, which is used as reference.
@@ -42,16 +47,16 @@ func verbalizeIndent(indent rune, indentLen int) string {
 	switch {
 	case indent == ' ':
 		if indentLen == 1 {
-			return `a single space (" ")`
+			return "a single space"
 		}
 
-		return fmt.Sprintf(`%d spaces ("%s")`, indentLen, strings.Repeat(" ", indentLen))
+		return fmt.Sprintf("%d spaces", indentLen)
 	case indent == '\t':
 		if indentLen == 1 {
-			return "a single tab (\"\t\")"
+			return "a single tab"
 		}
 
-		return fmt.Sprintf(`%d tabs (\"%s\")`, indentLen, strings.Repeat("\t", indentLen))
+		return fmt.Sprintf("%d tabs", indentLen)
 	default: // not a valid indentation
 		return `"` + strings.Repeat(string(indent), indentLen) + `"`
 	}
@@ -67,7 +72,7 @@ type IllegalIndentationError struct {
 	In string
 }
 
-var _ error = (*IndentationError)(nil)
+var _ error = (*IllegalIndentationError)(nil)
 
 func (e *IllegalIndentationError) Error() string {
 	if e.In == "" {

@@ -1,4 +1,4 @@
-//go:build integration_test
+//go:build integration_test && !prepare_integration_test
 
 package expressions
 

@@ -2,40 +2,37 @@ package parse
 
 import (
 	"fmt"
-	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/mavolin/corgi/corgi/file"
-	"github.com/mavolin/corgi/corgi/lex"
+	"github.com/mavolin/corgi/corgi/lex/token"
 	"github.com/mavolin/corgi/internal/require"
 )
 
 func (p *Parser) beforeDoctype() (_ stateFn, err error) {
 	if p.mode == ModeMain && p.f.Func.Name == "" {
-		return nil, p.unexpectedItem(p.next(), lex.Func)
+		return nil, p.unexpectedItem(p.next(), token.Func)
 	}
 
 	for {
 		peek := p.peek()
 		switch peek.Type {
-		case lex.Doctype:
-			return p.doctype()
-		case lex.Code:
+		case token.Code:
 			c, err := p.code()
 			if err != nil {
 				return nil, err
 			}
 
 			p.f.Scope = append(p.f.Scope, *c)
-		case lex.Mixin:
+		case token.Mixin:
 			m, err := p.mixin()
 			if err != nil {
 				return nil, err
 			}
 
 			p.f.Scope = append(p.f.Scope, *m)
-		case lex.Block:
+		case token.Block:
 			if p.mode == ModeExtend {
 				b, err := p.block(require.Always, require.Always)
 				if err != nil {
@@ -55,7 +52,7 @@ func (p *Parser) beforeDoctype() (_ stateFn, err error) {
 
 func (p *Parser) nextHTML() (_ stateFn, err error) {
 	if p.mode == ModeMain && p.f.Func.Name == "" {
-		return nil, p.unexpectedItem(p.next(), lex.Func)
+		return nil, p.unexpectedItem(p.next(), token.Func)
 	}
 
 	if p.mode == ModeInclude {
@@ -84,12 +81,12 @@ Loop:
 	for {
 		peek := p.peek()
 		switch peek.Type {
-		case lex.EOF:
+		case token.EOF:
 			return s, nil
-		case lex.Error:
+		case token.Error:
 			next := p.next()
 			return nil, p.error(next, next.Err)
-		case lex.Comment:
+		case token.Comment:
 			c, err := p.comment()
 			if err != nil {
 				return nil, err
@@ -97,7 +94,7 @@ Loop:
 
 			s = append(s, *c)
 			continue Loop
-		case lex.Mixin:
+		case token.Mixin:
 			m, err := p.mixin()
 			if err != nil {
 				return nil, err
@@ -109,7 +106,7 @@ Loop:
 
 		if p.mode != ModeUse && p.f.Extend == nil {
 			switch peek.Type {
-			case lex.CodeStart:
+			case token.CodeStart:
 				c, err := p.code()
 				if err != nil {
 					return nil, err
@@ -119,7 +116,7 @@ Loop:
 					s = append(s, *c)
 				}
 				continue Loop
-			case lex.Include:
+			case token.Include:
 				incl, err := p.include()
 				if err != nil {
 					return nil, err
@@ -127,77 +124,77 @@ Loop:
 
 				s = append(s, *incl)
 				continue Loop
-			case lex.If:
+			case token.If:
 				if_, err := p.if_()
 				if err != nil {
 					return nil, err
 				}
 
 				s = append(s, *if_)
-			case lex.Switch:
+			case token.Switch:
 				sw, err := p.switch_()
 				if err != nil {
 					return nil, err
 				}
 
 				s = append(s, *sw)
-			case lex.For:
+			case token.For:
 				f, err := p.for_()
 				if err != nil {
 					return nil, err
 				}
 
 				s = append(s, *f)
-			case lex.While:
+			case token.While:
 				w, err := p.while()
 				if err != nil {
 					return nil, err
 				}
 
 				s = append(s, *w)
-			case lex.MixinCall:
+			case token.MixinCall:
 				c, err := p.mixinCall()
 				if err != nil {
 					return nil, err
 				}
 
 				s = append(s, *c)
-			case lex.Assign, lex.AssignNoEscape:
+			case token.Assign, token.AssignNoEscape:
 				a, err := p.assign()
 				if err != nil {
 					return nil, err
 				}
 
 				s = append(s, *a)
-			case lex.Pipe:
+			case token.Pipe:
 				pipe, err := p.pipe()
 				if err != nil {
 					return nil, err
 				}
 
 				s = append(s, pipe...)
-			case lex.DotBlock:
+			case token.DotBlock:
 				d, err := p.dotBlock()
 				if err != nil {
 					return nil, err
 				}
 
 				s = append(s, d...)
-			case lex.Filter:
+			case token.Filter:
 				f, err := p.filter()
 				if err != nil {
 					return nil, err
 				}
 
 				s = append(s, *f)
-			case lex.Div, lex.Element:
+			case token.Div, token.Element:
 				e, err := p.element()
 				if err != nil {
 					return nil, err
 				}
 
 				s = append(s, *e)
-			case lex.Block:
+			case token.Block:
 				b, err := p.block(require.Always, require.Always)
 				if err != nil {
 					return nil, err
@@ -209,7 +206,7 @@ Loop:
 			}
 		} else {
 			switch peek.Type {
-			case lex.Block, lex.BlockAppend, lex.BlockPrepend:
+			case token.Block, token.Append, token.Prepend:
 				b, err := p.block(require.Always, require.Always)
 				if err != nil {
 					return nil, err
@@ -231,13 +228,13 @@ Loop:
 	for {
 		peek := p.peek()
 		switch peek.Type {
-		case lex.Dedent:
+		case token.Dedent:
 			p.next()
 			return s, nil
-		case lex.EOF:
+		case token.EOF:
 			p.next()
 			return s, nil
-		case lex.Error:
+		case token.Error:
 			next := p.next()
 			return nil, p.error(next, next.Err)
 		}
@@ -259,7 +256,7 @@ Loop:
 			s = append(s, itm)
 		case ContextMixinDefinition:
 			switch peek.Type {
-			case lex.Block:
+			case token.Block:
 				b, err := p.block(require.Optional, require.Optional)
 				if err != nil {
 					return nil, err
@@ -267,7 +264,7 @@ Loop:
 
 				s = append(s, *b)
 				continue Loop
-			case lex.IfBlock:
+			case token.IfBlock:
 				b, err := p.ifBlock(false)
 				if err != nil {
 					return nil, err
@@ -295,7 +292,7 @@ Loop:
 
 func (p *Parser) scopeItemMixinCall() (file.ScopeItem, error) {
 	switch p.peek().Type {
-	case lex.If:
+	case token.If:
 		p.context.Push(ContextMixinCallConditional)
 
 		if_, err := p.if_()
@@ -306,7 +303,7 @@ func (p *Parser) scopeItemMixinCall() (file.ScopeItem, error) {
 		p.context.Pop()
 
 		return *if_, nil
-	case lex.Switch:
+	case token.Switch:
 		p.context.Push(ContextMixinCallConditional)
 
 		switch_, err := p.switch_()
@@ -317,7 +314,7 @@ func (p *Parser) scopeItemMixinCall() (file.ScopeItem, error) {
 		p.context.Pop()
 
 		return *switch_, nil
-	case lex.For:
+	case token.For:
 		p.context.Push(ContextMixinCallConditional)
 
 		for_, err := p.for_()
@@ -328,7 +325,7 @@ func (p *Parser) scopeItemMixinCall() (file.ScopeItem, error) {
 		p.context.Pop()
 
 		return *for_, nil
-	case lex.While:
+	case token.While:
 		p.context.Push(ContextMixinCallConditional)
 
 		while, err := p.while()
@@ -339,28 +336,28 @@ func (p *Parser) scopeItemMixinCall() (file.ScopeItem, error) {
 		p.context.Pop()
 
 		return *while, nil
-	case lex.CodeStart:
+	case token.CodeStart:
 		code, err := p.code()
 		if err != nil {
 			return nil, err
 		}
 
 		return *code, nil
-	case lex.And:
+	case token.And:
 		and, err := p.and()
 		if err != nil {
 			return nil, err
 		}
 
 		return *and, nil
-	case lex.MixinCall:
+	case token.MixinCall:
 		c, err := p.mixinCall()
 		if err != nil {
 			return nil, err
 		}
 
 		return *c, nil
-	case lex.Block:
+	case token.Block:
 		p.context.Push(ContextRegular)
 
 		block, err := p.block(require.Optional, require.Optional)
@@ -378,49 +375,49 @@ func (p *Parser) scopeItemMixinCall() (file.ScopeItem, error) {
 
 func (p *Parser) scopeItemMixinCallConditional() (file.ScopeItem, error) {
 	switch p.peek().Type {
-	case lex.If:
+	case token.If:
 		if_, err := p.if_()
 		if err != nil {
 			return nil, err
 		}
 
 		return *if_, nil
-	case lex.Switch:
+	case token.Switch:
 		switch_, err := p.switch_()
 		if err != nil {
 			return nil, err
 		}
 
 		return *switch_, nil
-	case lex.For:
+	case token.For:
 		for_, err := p.for_()
 		if err != nil {
 			return nil, err
 		}
 
 		return *for_, nil
-	case lex.While:
+	case token.While:
 		while, err := p.while()
 		if err != nil {
 			return nil, err
 		}
 
 		return *while, nil
-	case lex.CodeStart:
+	case token.CodeStart:
 		code, err := p.code()
 		if err != nil {
 			return nil, err
 		}
 
 		return *code, nil
-	case lex.And:
+	case token.And:
 		and, err := p.and()
 		if err != nil {
 			return nil, err
 		}
 
 		return *and, nil
-	case lex.MixinCall:
+	case token.MixinCall:
 		c, err := p.mixinCall()
 		if err != nil {
 			return nil, err
@@ -434,14 +431,14 @@ func (p *Parser) scopeItemMixinCallConditional() (file.ScopeItem, error) {
 
 func (p *Parser) scopeItemRegular() ([]file.ScopeItem, error) {
 	switch p.peek().Type {
-	case lex.Comment:
+	case token.Comment:
 		c, err := p.comment()
 		if err != nil {
 			return nil, err
 		}
 
 		return []file.ScopeItem{*c}, nil
-	case lex.CodeStart:
+	case token.CodeStart:
 		c, err := p.code()
 		if err != nil {
 			return nil, err
@@ -452,91 +449,91 @@ func (p *Parser) scopeItemRegular() ([]file.ScopeItem, error) {
 		}
 
 		return nil, nil
-	case lex.Include:
+	case token.Include:
 		incl, err := p.include()
 		if err != nil {
 			return nil, err
 		}
 
 		return []file.ScopeItem{*incl}, nil
-	case lex.Mixin:
+	case token.Mixin:
 		m, err := p.mixin()
 		if err != nil {
 			return nil, err
 		}
 
 		return []file.ScopeItem{*m}, nil
-	case lex.If:
+	case token.If:
 		if_, err := p.if_()
 		if err != nil {
 			return nil, err
 		}
 
 		return []file.ScopeItem{*if_}, nil
-	case lex.Switch:
+	case token.Switch:
 		sw, err := p.switch_()
 		if err != nil {
 			return nil, err
 		}
 
 		return []file.ScopeItem{*sw}, nil
-	case lex.For:
+	case token.For:
 		f, err := p.for_()
 		if err != nil {
 			return nil, err
 		}
 
 		return []file.ScopeItem{*f}, nil
-	case lex.While:
+	case token.While:
 		w, err := p.while()
 		if err != nil {
 			return nil, err
 		}
 
 		return []file.ScopeItem{*w}, nil
-	case lex.MixinCall:
+	case token.MixinCall:
 		c, err := p.mixinCall()
 		if err != nil {
 			return nil, err
 		}
 
 		return []file.ScopeItem{*c}, nil
-	case lex.Assign, lex.AssignNoEscape:
+	case token.Assign, token.AssignNoEscape:
 		a, err := p.assign()
 		if err != nil {
 			return nil, err
 		}
 
 		return []file.ScopeItem{*a}, nil
-	case lex.Pipe:
+	case token.Pipe:
 		pipe, err := p.pipe()
 		if err != nil {
 			return nil, err
 		}
 
 		return pipe, nil
-	case lex.And:
+	case token.And:
 		and, err := p.and()
 		if err != nil {
 			return nil, err
 		}
 
 		return []file.ScopeItem{*and}, nil
-	case lex.DotBlock:
+	case token.DotBlock:
 		d, err := p.dotBlock()
 		if err != nil {
 			return nil, err
 		}
 
 		return d, nil
-	case lex.Filter:
+	case token.Filter:
 		f, err := p.filter()
 		if err != nil {
 			return nil, err
 		}
 
 		return []file.ScopeItem{*f}, nil
-	case lex.Div, lex.Element:
+	case token.Div, token.Element:
 		e, err := p.element()
 		if err != nil {
 			return nil, err
@@ -547,14 +544,14 @@ func (p *Parser) scopeItemRegular() ([]file.ScopeItem, error) {
 
 	if p.mode == ModeExtend {
 		switch p.peek().Type {
-		case lex.Block:
+		case token.Block:
 			b, err := p.block(require.Always, require.Optional)
 			if err != nil {
 				return nil, err
 			}
 
 			return []file.ScopeItem{*b}, nil
-		case lex.IfBlock:
+		case token.IfBlock:
 			b, err := p.ifBlock(true)
 			if err != nil {
 				return nil, err
@@ -568,128 +565,20 @@ func (p *Parser) scopeItemRegular() ([]file.ScopeItem, error) {
 }
 
 // ============================================================================
-// Doctype
-// ======================================================================================
-
-// xhtmlRegexp is the regexp used to check if custom doctypes use XHTML.
-//
-// This is very much best effort, if this fails, users should manually set
-// file.File.Type to whatever is correct.
-var xhtmlRegexp = regexp.MustCompile(`^html PUBLIC ["'][^ ]+ XHTML `)
-
-//goland:noinspection HttpUrlsUsage
-func (p *Parser) doctype() (stateFn, error) {
-	switch {
-	case p.mode == ModeUse:
-		return nil, p.error(p.next(), ErrUseDoctype)
-	case p.f.Extend != nil:
-		return nil, p.error(p.next(), ErrExtendDoctype)
-	}
-
-	p.next() // lex.Doctype
-
-	doctypeItm := p.next()
-	if doctypeItm.Type != lex.Literal {
-		return nil, p.unexpectedItem(doctypeItm, lex.Literal)
-	}
-
-	doctype := doctypeItm.Val
-	doctype = trimRightWhitespace(doctype)
-
-	// special case: this is not a doctype, but a xml prolog
-	if doctype == "xml" { // default prolog
-		if p.f.Prolog != "" {
-			return nil, p.error(doctypeItm, ErrMultipleProlog)
-		}
-
-		p.f.Type = file.TypeXML
-		p.f.Prolog = `version="1.0" encoding="utf-8"`
-		return p.afterDoctype, nil
-	} else if strings.HasPrefix(doctype, "xml ") { // custom prolog
-		if p.f.Prolog != "" {
-			return nil, p.error(doctypeItm, ErrMultipleProlog)
-		}
-
-		p.f.Type = file.TypeXML
-		p.f.Prolog = strings.TrimPrefix(doctype, "xml ")
-		return p.afterDoctype, nil
-	}
-
-	if p.f.Doctype != "" {
-		return nil, p.error(doctypeItm, ErrMultipleDoctype)
-	}
-
-	switch doctype {
-	case "html":
-		p.f.Type = file.TypeHTML
-		p.f.Doctype = "html"
-	case "transitional":
-		p.f.Type = file.TypeXHTML
-		p.f.Doctype = `html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" ` +
-			`"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"`
-	case "strict":
-		p.f.Type = file.TypeXHTML
-		p.f.Doctype = `html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" ` +
-			`"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"`
-	case "frameset":
-		p.f.Type = file.TypeXHTML
-		p.f.Doctype = `html PUBLIC "-//W3C//DTD XHTML 1.0 Frameset//EN" ` +
-			`"http://www.w3.org/TR/xhtml1/DTD/xhtml1-frameset.dtd"`
-	case "1.1":
-		p.f.Type = file.TypeXHTML
-		p.f.Doctype = `html PUBLIC "-//W3C//DTD XHTML 1.1//EN" ` +
-			`"http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd"`
-	case "basic":
-		p.f.Type = file.TypeXHTML
-		p.f.Doctype = `html PUBLIC "-//W3C//DTD XHTML Basic 1.1//EN" ` +
-			`"http://www.w3.org/TR/xhtml-basic/xhtml-basic11.dtd"`
-	case "mobile":
-		p.f.Type = file.TypeXHTML
-		p.f.Doctype = `html PUBLIC "-//WAPFORUM//DTD XHTML Mobile 1.2//EN" ` +
-			`"http://www.openmobilealliance.org/tech/DTD/xhtml-mobile12.dtd"`
-	case "plist":
-		p.f.Type = file.TypeXML
-		p.f.Doctype = `plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" ` +
-			`"http://www.apple.com/DTDs/PropertyList-1.0.dtd"`
-	default:
-		switch {
-		case xhtmlRegexp.MatchString(doctype):
-			p.f.Type = file.TypeXHTML
-		case strings.HasPrefix(doctype, "html "):
-			p.f.Type = file.TypeHTML
-		default:
-			p.f.Type = file.TypeXML
-		}
-
-		p.f.Doctype = doctype
-	}
-
-	return p.afterDoctype, nil
-}
-
-func (p *Parser) afterDoctype() (stateFn, error) {
-	if p.peek().Type == lex.Doctype {
-		return p.doctype, nil
-	}
-
-	return p.nextHTML, nil
-}
-
-// ============================================================================
 // Comment
 // ======================================================================================
 
 func (p *Parser) comment() (*file.Comment, error) {
-	p.next() // lex.Comment
+	p.next() // token.Comment
 
 	next := p.next()
 	switch next.Type {
-	case lex.Text:
+	case token.Text:
 		return &file.Comment{Comment: next.Val}, nil
-	case lex.Indent:
+	case token.Indent:
 		// handled below
 	default:
-		return nil, p.unexpectedItem(next, lex.Indent, lex.Text)
+		return nil, p.unexpectedItem(next, token.Indent, token.Text)
 	}
 
 	var b strings.Builder
@@ -700,9 +589,9 @@ func (p *Parser) comment() (*file.Comment, error) {
 	for {
 		next = p.next()
 		switch next.Type {
-		case lex.EOF, lex.Dedent:
+		case token.EOF, token.Dedent:
 			return &file.Comment{Comment: b.String()}, nil
-		case lex.Text:
+		case token.Text:
 			if !first {
 				b.WriteString("\n")
 			} else {
@@ -711,7 +600,7 @@ func (p *Parser) comment() (*file.Comment, error) {
 
 			b.WriteString(next.Val)
 		default:
-			return nil, p.unexpectedItem(next, lex.Text, lex.Dedent)
+			return nil, p.unexpectedItem(next, token.Text, token.Dedent)
 		}
 	}
 }
@@ -721,11 +610,11 @@ func (p *Parser) comment() (*file.Comment, error) {
 // ======================================================================================
 
 func (p *Parser) include() (_ *file.Include, err error) {
-	includeItm := p.next() // lex.Include
+	includeItm := p.next() // token.Include
 
 	pathItm := p.next()
-	if pathItm.Type != lex.Literal {
-		return nil, p.unexpectedItem(pathItm, lex.Literal)
+	if pathItm.Type != token.Literal {
+		return nil, p.unexpectedItem(pathItm, token.Literal)
 	}
 
 	incl := file.Include{
@@ -745,13 +634,13 @@ func (p *Parser) include() (_ *file.Include, err error) {
 // ======================================================================================
 
 func (p *Parser) code() (*file.Code, error) {
-	p.next() // lex.CodeStart
+	p.next() // token.CodeStart
 
 	peek := p.peek()
 	switch peek.Type {
-	case lex.Code:
+	case token.Code:
 		return &file.Code{Code: p.next().Val}, nil
-	case lex.Indent:
+	case token.Indent:
 		// handled below
 	default: // empty line of code
 		// add nothing because empty lines only serve the purpose of aiding
@@ -762,16 +651,16 @@ func (p *Parser) code() (*file.Code, error) {
 	var b strings.Builder
 	b.Grow(1000)
 
-	p.next() // lex.Indent
+	p.next() // token.Indent
 
 	first := true
 
 	for {
 		switch p.peek().Type {
-		case lex.EOF, lex.Dedent:
+		case token.EOF, token.Dedent:
 			p.next()
 			return &file.Code{Code: b.String()}, nil
-		case lex.Code:
+		case token.Code:
 			if !first {
 				b.WriteString("\n")
 			} else {
@@ -780,7 +669,7 @@ func (p *Parser) code() (*file.Code, error) {
 
 			b.WriteString(p.next().Val)
 		default:
-			return nil, p.unexpectedItem(p.next(), lex.Code, lex.Dedent)
+			return nil, p.unexpectedItem(p.next(), token.Code, token.Dedent)
 		}
 	}
 }
@@ -790,21 +679,21 @@ func (p *Parser) block(named, body require.Required) (_ *file.Block, err error) 
 	b := file.Block{Pos: file.Pos{Line: blockItm.Line, Col: blockItm.Col}}
 
 	switch blockItm.Type {
-	case lex.Block:
+	case token.Block:
 		b.Type = file.BlockTypeBlock
-	case lex.BlockAppend:
+	case token.Append:
 		b.Type = file.BlockTypeAppend
-	case lex.BlockPrepend:
+	case token.Prepend:
 		b.Type = file.BlockTypePrepend
 	default:
-		return nil, p.unexpectedItem(blockItm, lex.Block, lex.BlockAppend, lex.BlockPrepend)
+		return nil, p.unexpectedItem(blockItm, token.Block, token.Append, token.Prepend)
 	}
 
 	if named > require.Never {
-		if p.peek().Type == lex.Ident {
+		if p.peek().Type == token.Ident {
 			b.Name = file.Ident(p.next().Val)
 		} else if named == require.Always {
-			return nil, p.unexpectedItem(p.next(), lex.Ident)
+			return nil, p.unexpectedItem(p.next(), token.Ident)
 		}
 	}
 
@@ -813,27 +702,27 @@ func (p *Parser) block(named, body require.Required) (_ *file.Block, err error) 
 	}
 
 	switch p.peek().Type {
-	case lex.EOF:
+	case token.EOF:
 		p.next()
 		return &b, nil
-	case lex.DotBlock:
+	case token.DotBlock:
 		b.Body, err = p.dotBlock()
 		if err != nil {
 			return nil, err
 		}
 
 		return &b, nil
-	case lex.Indent:
+	case token.Indent:
 		// handled below
 	default:
 		if body == require.Optional {
 			return &b, nil
 		}
 
-		return nil, p.unexpectedItem(p.next(), lex.Indent, lex.DotBlock)
+		return nil, p.unexpectedItem(p.next(), token.Indent, token.DotBlock)
 	}
 
-	p.next() // lex.Indent
+	p.next() // token.Indent
 
 	b.Body, err = p.scope()
 	if err != nil {
@@ -848,13 +737,13 @@ func (p *Parser) block(named, body require.Required) (_ *file.Block, err error) 
 // ======================================================================================
 
 func (p *Parser) mixin() (_ *file.Mixin, err error) {
-	mixinItm := p.next() // lex.Mixin
+	mixinItm := p.next() // token.Mixin
 
 	m := file.Mixin{Pos: file.Pos{Line: mixinItm.Line, Col: mixinItm.Col}}
 
 	nameItm := p.next()
-	if nameItm.Type != lex.Ident {
-		return nil, p.unexpectedItem(nameItm, lex.Ident)
+	if nameItm.Type != token.Ident {
+		return nil, p.unexpectedItem(nameItm, token.Ident)
 	}
 
 	m.Name = file.Ident(nameItm.Val)
@@ -865,8 +754,8 @@ func (p *Parser) mixin() (_ *file.Mixin, err error) {
 	}
 
 	indentItm := p.next()
-	if indentItm.Type != lex.Indent {
-		return nil, p.unexpectedItem(indentItm, lex.Indent)
+	if indentItm.Type != token.Indent {
+		return nil, p.unexpectedItem(indentItm, token.Indent)
 	}
 
 	p.context.Push(ContextMixinDefinition)
@@ -883,11 +772,11 @@ func (p *Parser) mixin() (_ *file.Mixin, err error) {
 
 func (p *Parser) mixinParams() (params []file.MixinParam, err error) {
 	lparenItm := p.next()
-	if lparenItm.Type != lex.LParen {
-		return nil, p.unexpectedItem(lparenItm, lex.LParen)
+	if lparenItm.Type != token.LParen {
+		return nil, p.unexpectedItem(lparenItm, token.LParen)
 	}
 
-	if p.peek().Type == lex.RParen {
+	if p.peek().Type == token.RParen {
 		p.next()
 		return nil, nil
 	}
@@ -896,18 +785,18 @@ func (p *Parser) mixinParams() (params []file.MixinParam, err error) {
 		var param file.MixinParam
 
 		paramName := p.next()
-		if paramName.Type != lex.Ident {
-			return nil, p.unexpectedItem(paramName, lex.Ident)
+		if paramName.Type != token.Ident {
+			return nil, p.unexpectedItem(paramName, token.Ident)
 		}
 
 		param.Name = file.Ident(paramName.Val)
 		param.Pos = file.Pos{Line: paramName.Line, Col: paramName.Col}
 
-		if p.peek().Type == lex.Ident { // type
+		if p.peek().Type == token.Ident { // type
 			param.Type = file.GoIdent(p.next().Val)
 		}
 
-		if p.peek().Type == lex.Assign {
+		if p.peek().Type == token.Assign {
 			assignItm := p.next()
 
 			defaultExpr, err := p.expression()
@@ -927,20 +816,20 @@ func (p *Parser) mixinParams() (params []file.MixinParam, err error) {
 
 		next := p.next()
 		switch next.Type {
-		case lex.EOF:
-			return nil, p.unexpectedItem(next, lex.Comma, lex.RParen)
-		case lex.RParen:
+		case token.EOF:
+			return nil, p.unexpectedItem(next, token.Comma, token.RParen)
+		case token.RParen:
 			return params, nil
-		case lex.Comma:
+		case token.Comma:
 			switch p.peek().Type {
-			case lex.EOF:
-				return nil, p.unexpectedItem(p.next(), lex.Ident, lex.RParen)
-			case lex.RParen:
+			case token.EOF:
+				return nil, p.unexpectedItem(p.next(), token.Ident, token.RParen)
+			case token.RParen:
 				p.next()
 				return params, nil
 			}
 		default:
-			return nil, p.unexpectedItem(next, lex.Comma, lex.RParen)
+			return nil, p.unexpectedItem(next, token.Comma, token.RParen)
 		}
 	}
 }
@@ -952,19 +841,19 @@ func (p *Parser) mixinParams() (params []file.MixinParam, err error) {
 func (p *Parser) ifBlock(mustBeNamed bool) (_ *file.IfBlock, err error) {
 	var i file.IfBlock
 
-	p.next() // lex.IfBlock
+	p.next() // token.IfBlock
 
 	nameItm := p.peek()
-	if nameItm.Type == lex.Ident {
+	if nameItm.Type == token.Ident {
 		nameItm = p.next()
 		i.Name = file.Ident(nameItm.Val)
 	} else if mustBeNamed {
-		return nil, p.unexpectedItem(p.next(), lex.Ident)
+		return nil, p.unexpectedItem(p.next(), token.Ident)
 	}
 
 	indentItm := p.next()
-	if indentItm.Type != lex.Indent {
-		return nil, p.unexpectedItem(indentItm, lex.Indent)
+	if indentItm.Type != token.Indent {
+		return nil, p.unexpectedItem(indentItm, token.Indent)
 	}
 
 	i.Then, err = p.scope()
@@ -972,15 +861,15 @@ func (p *Parser) ifBlock(mustBeNamed bool) (_ *file.IfBlock, err error) {
 		return nil, err
 	}
 
-	if p.peek().Type != lex.Else {
+	if p.peek().Type != token.Else {
 		return &i, nil
 	}
 
-	p.next() // lex.Else
+	p.next() // token.Else
 
 	indentItm = p.next()
-	if indentItm.Type != lex.Indent {
-		return nil, p.unexpectedItem(indentItm, lex.Indent)
+	if indentItm.Type != token.Indent {
+		return nil, p.unexpectedItem(indentItm, token.Indent)
 	}
 
 	elseScope, err := p.scope()
@@ -997,7 +886,7 @@ func (p *Parser) ifBlock(mustBeNamed bool) (_ *file.IfBlock, err error) {
 // ======================================================================================
 
 func (p *Parser) if_() (_ *file.If, err error) {
-	p.next() // lex.If
+	p.next() // token.If
 
 	var i file.If
 
@@ -1007,39 +896,39 @@ func (p *Parser) if_() (_ *file.If, err error) {
 	}
 
 	switch p.peek().Type {
-	case lex.DotBlock:
+	case token.DotBlock:
 		i.Then, err = p.dotBlock()
 		if err != nil {
 			return nil, err
 		}
-	case lex.BlockExpansion:
+	case token.BlockExpansion:
 		content, err := p.blockExpansion()
 		if err != nil {
 			return nil, err
 		}
 
 		i.Then = file.Scope{content}
-	case lex.Indent:
-		p.next() // lex.Indent
+	case token.Indent:
+		p.next() // token.Indent
 
 		i.Then, err = p.scope()
 		if err != nil {
 			return nil, err
 		}
-	case lex.EOF:
+	case token.EOF:
 		fallthrough
 	default:
-		return nil, p.unexpectedItem(p.next(), lex.Indent, lex.DotBlock, lex.BlockExpansion)
+		return nil, p.unexpectedItem(p.next(), token.Indent, token.DotBlock, token.BlockExpansion)
 	}
 
 	for {
 		var ei file.ElseIf
 
-		if p.peek().Type != lex.ElseIf {
+		if p.peek().Type != token.ElseIf {
 			break
 		}
 
-		p.next() // lex.ElseIf
+		p.next() // token.ElseIf
 
 		ei.Condition, err = p.expression()
 		if err != nil {
@@ -1047,66 +936,66 @@ func (p *Parser) if_() (_ *file.If, err error) {
 		}
 
 		switch p.peek().Type {
-		case lex.DotBlock:
+		case token.DotBlock:
 			ei.Then, err = p.dotBlock()
 			if err != nil {
 				return nil, err
 			}
-		case lex.BlockExpansion:
+		case token.BlockExpansion:
 			content, err := p.blockExpansion()
 			if err != nil {
 				return nil, err
 			}
 
 			ei.Then = file.Scope{content}
-		case lex.Indent:
-			p.next() // lex.Indent
+		case token.Indent:
+			p.next() // token.Indent
 
 			ei.Then, err = p.scope()
 			if err != nil {
 				return nil, err
 			}
-		case lex.EOF:
+		case token.EOF:
 			fallthrough
 		default:
-			return nil, p.unexpectedItem(p.next(), lex.Indent, lex.DotBlock, lex.BlockExpansion)
+			return nil, p.unexpectedItem(p.next(), token.Indent, token.DotBlock, token.BlockExpansion)
 		}
 
 		i.ElseIfs = append(i.ElseIfs, ei)
 	}
 
-	if p.peek().Type != lex.Else {
+	if p.peek().Type != token.Else {
 		return &i, nil
 	}
 
-	p.next() // lex.Else
+	p.next() // token.Else
 
 	var e file.Else
 
 	switch p.peek().Type {
-	case lex.DotBlock:
+	case token.DotBlock:
 		e.Then, err = p.dotBlock()
 		if err != nil {
 			return nil, err
 		}
-	case lex.BlockExpansion:
+	case token.BlockExpansion:
 		content, err := p.blockExpansion()
 		if err != nil {
 			return nil, err
 		}
 
 		e.Then = file.Scope{content}
-	case lex.Indent:
-		p.next() // lex.Indent
+	case token.Indent:
+		p.next() // token.Indent
 
 		e.Then, err = p.scope()
 		if err != nil {
 			return nil, err
 		}
-	case lex.EOF:
+	case token.EOF:
 		fallthrough
 	default:
-		return nil, p.unexpectedItem(p.next(), lex.Indent, lex.DotBlock, lex.BlockExpansion)
+		return nil, p.unexpectedItem(p.next(), token.Indent, token.DotBlock, token.BlockExpansion)
 	}
 
 	i.Else = &e
@@ -1118,11 +1007,11 @@ func (p *Parser) if_() (_ *file.If, err error) {
 // ======================================================================================
 
 func (p *Parser) switch_() (_ *file.Switch, err error) {
-	p.next() // lex.Switch
+	p.next() // token.Switch
 
 	var s file.Switch
 
-	if p.peek().Type != lex.Indent {
+	if p.peek().Type != token.Indent {
 		s.Comparator, err = p.expression()
 		if err != nil {
 			return nil, err
@@ -1130,19 +1019,19 @@ func (p *Parser) switch_() (_ *file.Switch, err error) {
 	}
 
 	indentItm := p.next()
-	if indentItm.Type != lex.Indent {
-		return nil, p.unexpectedItem(indentItm, lex.Indent)
+	if indentItm.Type != token.Indent {
+		return nil, p.unexpectedItem(indentItm, token.Indent)
 	}
 
 	for {
 		var c file.Case
 
 		caseItm := p.peek()
-		if caseItm.Type != lex.Case {
+		if caseItm.Type != token.Case {
 			break
 		}
 
-		p.next() // lex.Case
+		p.next() // token.Case
 
 		expr, err := p.expression()
 		if err != nil {
@@ -1157,19 +1046,19 @@ func (p *Parser) switch_() (_ *file.Switch, err error) {
 		c.Expression = goExpr
 
 		switch p.peek().Type {
-		case lex.Indent:
+		case token.Indent:
 			p.next()
 
 			c.Then, err = p.scope()
 			if err != nil {
 				return nil, err
 			}
-		case lex.DotBlock:
+		case token.DotBlock:
 			c.Then, err = p.dotBlock()
 			if err != nil {
 				return nil, err
 			}
-		case lex.BlockExpansion:
+		case token.BlockExpansion:
 			content, err := p.blockExpansion()
 			if err != nil {
 				return nil, err
@@ -1185,32 +1074,32 @@ func (p *Parser) switch_() (_ *file.Switch, err error) {
 
 	next := p.next()
 	switch next.Type {
-	case lex.EOF:
+	case token.EOF:
 		fallthrough
-	case lex.Dedent:
+	case token.Dedent:
 		return &s, nil
-	case lex.DefaultCase:
+	case token.Default:
 		// handled below
 	default:
-		return nil, p.unexpectedItem(next, lex.DefaultCase, lex.EOF, lex.Dedent)
+		return nil, p.unexpectedItem(next, token.Default, token.EOF, token.Dedent)
 	}
 
 	var d file.DefaultCase
 
 	switch p.peek().Type {
-	case lex.Indent:
+	case token.Indent:
 		p.next()
 
 		d.Then, err = p.scope()
 		if err != nil {
 			return nil, err
 		}
-	case lex.DotBlock:
+	case token.DotBlock:
 		d.Then, err = p.dotBlock()
 		if err != nil {
 			return nil, err
 		}
-	case lex.BlockExpansion:
+	case token.BlockExpansion:
 		content, err := p.blockExpansion()
 		if err != nil {
 			return nil, err
@@ -1218,19 +1107,19 @@ func (p *Parser) switch_() (_ *file.Switch, err error) {
 
 		d.Then = file.Scope{content}
 	default:
-		return nil, p.unexpectedItem(p.next(), lex.Indent, lex.DotBlock, lex.BlockExpansion)
+		return nil, p.unexpectedItem(p.next(), token.Indent, token.DotBlock, token.BlockExpansion)
 	}
 
 	s.Default = &d
 
 	next = p.next()
 	switch next.Type {
-	case lex.EOF:
+	case token.EOF:
 		return &s, nil
-	case lex.Dedent:
+	case token.Dedent:
 		return &s, nil
 	default:
-		return nil, p.unexpectedItem(next, lex.Dedent)
+		return nil, p.unexpectedItem(next, token.Dedent)
 	}
 }
 
@@ -1245,33 +1134,33 @@ func (p *Parser) for_() (*file.For, error) {
 		Pos: file.Pos{Line: forItm.Line, Col: forItm.Col},
 	}
 
-	if p.peek().Type == lex.Ident {
+	if p.peek().Type == token.Ident {
 		ident1Itm := p.next()
-		if ident1Itm.Type != lex.Ident {
-			return nil, p.unexpectedItem(ident1Itm, lex.Ident)
+		if ident1Itm.Type != token.Ident {
+			return nil, p.unexpectedItem(ident1Itm, token.Ident)
 		}
 
 		f.VarOne = file.GoIdent(ident1Itm.Val)
 
-		if p.peek().Type == lex.Comma {
+		if p.peek().Type == token.Comma {
 			p.next()
 
 			ident2Itm := p.next()
-			if ident2Itm.Type != lex.Ident {
-				return nil, p.unexpectedItem(ident2Itm, lex.Ident)
+			if ident2Itm.Type != token.Ident {
+				return nil, p.unexpectedItem(ident2Itm, token.Ident)
 			}
 
 			f.VarTwo = file.GoIdent(ident2Itm.Val)
-		} else if p.peek().Type != lex.Range {
-			return nil, p.unexpectedItem(p.next(), lex.Comma, lex.Range)
+		} else if p.peek().Type != token.Range {
+			return nil, p.unexpectedItem(p.next(), token.Comma, token.Range)
 		}
-	} else if p.peek().Type != lex.Range {
-		return nil, p.unexpectedItem(p.next(), lex.Ident, lex.Range)
+	} else if p.peek().Type != token.Range {
+		return nil, p.unexpectedItem(p.next(), token.Ident, token.Range)
 	}
 
 	rangeItm := p.next()
-	if rangeItm.Type != lex.Range {
-		return nil, p.unexpectedItem(rangeItm, lex.Range)
+	if rangeItm.Type != token.Range {
+		return nil, p.unexpectedItem(rangeItm, token.Range)
 	}
 
 	expr, err := p.expression()
@@ -1282,8 +1171,8 @@ func (p *Parser) for_() (*file.For, error) {
 	f.Range = expr
 
 	indentItm := p.next()
-	if indentItm.Type != lex.Indent {
-		return nil, p.unexpectedItem(indentItm, lex.Indent)
+	if indentItm.Type != token.Indent {
+		return nil, p.unexpectedItem(indentItm, token.Indent)
 	}
 
 	f.Body, err = p.scope()
@@ -1299,7 +1188,7 @@ func (p *Parser) for_() (*file.For, error) {
 // ======================================================================================
 
 func (p *Parser) while() (_ *file.While, err error) {
-	whileItm := p.next() // lex.While
+	whileItm := p.next() // token.While
 
 	w := file.While{Pos: file.Pos{Line: whileItm.Line, Col: whileItm.Col}}
 
@@ -1316,8 +1205,8 @@ func (p *Parser) while() (_ *file.While, err error) {
 	w.Condition = goExpr
 
 	indentItm := p.next()
-	if indentItm.Type != lex.Indent {
-		return nil, p.unexpectedItem(indentItm, lex.Indent)
+	if indentItm.Type != token.Indent {
+		return nil, p.unexpectedItem(indentItm, token.Indent)
 	}
 
 	w.Body, err = p.scope()
@@ -1339,8 +1228,8 @@ func (p *Parser) element() (*file.Element, error) {
 	}
 
 	switch p.peek().Type {
-	case lex.Assign:
-		p.next() // lex.Assign
+	case token.Assign:
+		p.next() // token.Assign
 
 		expr, err := p.expression()
 		if err != nil {
@@ -1349,8 +1238,8 @@ func (p *Parser) element() (*file.Element, error) {
 
 		e.Body = file.Scope{file.Interpolation{Expression: expr}}
 		return e, nil
-	case lex.AssignNoEscape:
-		p.next() // lex.Assign
+	case token.AssignNoEscape:
+		p.next() // token.Assign
 
 		expr, err := p.expression()
 		if err != nil {
@@ -1364,7 +1253,7 @@ func (p *Parser) element() (*file.Element, error) {
 			},
 		}
 		return e, nil
-	case lex.Indent:
+	case token.Indent:
 		p.next()
 
 		e.Body, err = p.scope()
@@ -1377,9 +1266,9 @@ func (p *Parser) element() (*file.Element, error) {
 
 	if !e.SelfClosing {
 		switch p.peek().Type {
-		case lex.BlockExpansion:
+		case token.BlockExpansion:
 			if e.SelfClosing {
-				return nil, p.unexpectedItem(p.next(), lex.Assign, lex.AssignNoEscape)
+				return nil, p.unexpectedItem(p.next(), token.Assign, token.AssignNoEscape)
 			}
 
 			exp, err := p.blockExpansion()
@@ -1389,14 +1278,14 @@ func (p *Parser) element() (*file.Element, error) {
 
 			e.Body = file.Scope{exp}
 			return e, nil
-		case lex.DotBlock:
+		case token.DotBlock:
 			e.Body, err = p.dotBlock()
 			if err != nil {
 				return nil, err
 			}
 
 			return e, nil
-		case lex.Text, lex.Hash:
+		case token.Text, token.Hash:
 			e.Body, err = p.text(true)
 			if err != nil {
 				return nil, err
@@ -1414,31 +1303,31 @@ func (p *Parser) elementHeader() (*file.Element, error) {
 	e := file.Element{Pos: file.Pos{Line: name.Line, Col: name.Col}}
 
 	switch name.Type {
-	case lex.Div:
+	case token.Div:
 		e.Name = "div"
-	case lex.Element:
+	case token.Element:
 		e.Name = name.Val
 	default:
-		return nil, p.unexpectedItem(name, lex.Element, lex.Div)
+		return nil, p.unexpectedItem(name, token.Element, token.Div)
 	}
 
 	for {
 		switch p.peek().Type {
-		case lex.Class:
+		case token.Class:
 			class, err := p.class()
 			if err != nil {
 				return nil, err
 			}
 
 			e.Classes = append(e.Classes, *class)
-		case lex.ID:
+		case token.ID:
 			id, err := p.id()
 			if err != nil {
 				return nil, err
 			}
 
 			e.Attributes = append(e.Attributes, *id)
-		case lex.LParen:
+		case token.LParen:
 			as, cs, err := p.attributes()
 			if err != nil {
 				return nil, err
@@ -1446,7 +1335,7 @@ func (p *Parser) elementHeader() (*file.Element, error) {
 
 			e.Attributes = append(e.Attributes, as...)
 			e.Classes = append(e.Classes, cs...)
-		case lex.TagVoid:
+		case token.TagVoid:
 			p.next()
 			e.SelfClosing = true
 			return &e, nil
@@ -1457,32 +1346,32 @@ func (p *Parser) elementHeader() (*file.Element, error) {
 }
 
 func (p *Parser) class() (*file.ClassLiteral, error) {
-	p.next() // lex.Class
+	p.next() // token.Class
 
 	name := p.next()
-	if name.Type != lex.Literal {
-		return nil, p.unexpectedItem(name, lex.Literal)
+	if name.Type != token.Literal {
+		return nil, p.unexpectedItem(name, token.Literal)
 	}
 
 	return &file.ClassLiteral{Name: name.Val}, nil
 }
 
 func (p *Parser) id() (*file.AttributeLiteral, error) {
-	p.next() // lex.Id
+	p.next() // token.Id
 
 	name := p.next()
-	if name.Type != lex.Literal {
-		return nil, p.unexpectedItem(name, lex.Literal)
+	if name.Type != token.Literal {
+		return nil, p.unexpectedItem(name, token.Literal)
 	}
 
 	return &file.AttributeLiteral{Name: "id", Value: name.Val}, nil
 }
 
 func (p *Parser) attributes() ([]file.Attribute, []file.Class, error) {
-	p.next() // lex.LParen
+	p.next() // token.LParen
 
 	// special case: empty attribute list
-	if p.peek().Type == lex.RParen {
+	if p.peek().Type == token.RParen {
 		p.next()
 		return nil, nil, nil
 	}
@@ -1498,17 +1387,17 @@ func (p *Parser) attributes() ([]file.Attribute, []file.Class, error) {
 		)
 
 		nameItm := p.next()
-		if nameItm.Type != lex.Ident {
-			return nil, nil, p.unexpectedItem(nameItm, lex.Ident)
+		if nameItm.Type != token.Ident {
+			return nil, nil, p.unexpectedItem(nameItm, token.Ident)
 		}
 
 		name = trimRightWhitespace(nameItm.Val)
 
 		switch p.peek().Type {
-		case lex.AssignNoEscape:
+		case token.AssignNoEscape:
 			unescaped = true
 			fallthrough
-		case lex.Assign:
+		case token.Assign:
 			p.next()
 
 			var err error
@@ -1535,20 +1424,20 @@ func (p *Parser) attributes() ([]file.Attribute, []file.Class, error) {
 
 		next := p.next()
 		switch next.Type {
-		case lex.RParen:
+		case token.RParen:
 			return attributes, classes, nil
-		case lex.Comma:
+		case token.Comma:
 			switch p.peek().Type {
-			case lex.EOF:
-				return nil, nil, p.unexpectedItem(p.next(), lex.Ident, lex.RParen)
-			case lex.RParen:
+			case token.EOF:
+				return nil, nil, p.unexpectedItem(p.next(), token.Ident, token.RParen)
+			case token.RParen:
 				p.next()
 				return attributes, classes, nil
 			}
-		case lex.EOF:
+		case token.EOF:
 			fallthrough
 		default:
-			return nil, nil, p.unexpectedItem(next, lex.Comma, lex.RParen)
+			return nil, nil, p.unexpectedItem(next, token.Comma, token.RParen)
 		}
 	}
 }
@@ -1558,14 +1447,14 @@ func (p *Parser) attributes() ([]file.Attribute, []file.Class, error) {
 // ======================================================================================
 
 func (p *Parser) blockExpansion() (file.ScopeItem, error) {
-	p.next() // lex.BlockExpansion
+	p.next() // token.BlockExpansion
 
 	peek := p.peek()
-	if peek.Type == lex.EOF {
+	if peek.Type == token.EOF {
 		return nil, p.unexpectedItem(p.next())
 	}
 
-	if peek.Type == lex.Block {
+	if peek.Type == token.Block {
 		if p.context.Peek() == ContextMixinDefinition {
 			b, err := p.block(require.Optional, require.Never)
 			if err != nil {
@@ -1600,23 +1489,25 @@ func (p *Parser) and() (*file.And, error) {
 
 	a := file.And{Pos: file.Pos{Line: andItm.Line, Col: andItm.Col}}
 
+	// todo: make sure we get at least one attr
+
 	for {
 		switch p.peek().Type {
-		case lex.Class:
+		case token.Class:
 			class, err := p.class()
 			if err != nil {
 				return nil, err
 			}
 
 			a.Classes = append(a.Classes, *class)
-		case lex.ID:
+		case token.ID:
 			id, err := p.id()
 			if err != nil {
 				return nil, err
 			}
 
 			a.Attributes = append(a.Attributes, *id)
-		case lex.LParen:
+		case token.LParen:
 			as, cs, err := p.attributes()
 			if err != nil {
 				return nil, err
@@ -1635,11 +1526,11 @@ func (p *Parser) and() (*file.And, error) {
 // ======================================================================================
 
 func (p *Parser) dotBlock() ([]file.ScopeItem, error) {
-	p.next() // lex.DotBlock
+	p.next() // token.DotBlock
 
 	indentItm := p.next()
-	if indentItm.Type != lex.Indent {
-		return nil, p.unexpectedItem(indentItm, lex.Indent)
+	if indentItm.Type != token.Indent {
+		return nil, p.unexpectedItem(indentItm, token.Indent)
 	}
 
 	var itms []file.ScopeItem
@@ -1647,20 +1538,20 @@ func (p *Parser) dotBlock() ([]file.ScopeItem, error) {
 	first := true
 
 	for {
-		if p.peek().Type != lex.DotBlockLine {
+		if p.peek().Type != token.DotBlockLine {
 			if len(itms) == 0 {
-				return nil, p.unexpectedItem(p.peek(), lex.DotBlockLine)
+				return nil, p.unexpectedItem(p.peek(), token.DotBlockLine)
 			}
 
 			dedentItm := p.next()
-			if dedentItm.Type != lex.Dedent && dedentItm.Type != lex.EOF {
-				return nil, p.unexpectedItem(dedentItm, lex.Dedent)
+			if dedentItm.Type != token.Dedent && dedentItm.Type != token.EOF {
+				return nil, p.unexpectedItem(dedentItm, token.DotBlock, token.Dedent)
 			}
 
 			return itms, nil
 		}
 
-		p.next() // lex.DotBlockLine
+		p.next() // token.DotBlockLine
 
 		if !first {
 			itms = append(itms, file.Text{Text: "\n"})
@@ -1686,7 +1577,7 @@ func (p *Parser) pipe() (itms []file.ScopeItem, err error) {
 
 	for {
 		pipeItm := p.peek()
-		if pipeItm.Type != lex.Pipe {
+		if pipeItm.Type != token.Pipe {
 			return itms, nil
 		}
 		p.next()
@@ -1715,11 +1606,11 @@ func (p *Parser) assign() (*file.Interpolation, error) {
 
 	next := p.next()
 	switch next.Type {
-	case lex.Assign:
-	case lex.AssignNoEscape:
+	case token.Assign:
+	case token.AssignNoEscape:
 		interp.NoEscape = true
 	default:
-		return nil, p.unexpectedItem(next, lex.Assign, lex.AssignNoEscape)
+		return nil, p.unexpectedItem(next, token.Assign, token.AssignNoEscape)
 	}
 
 	exp, err := p.expression()
@@ -1737,17 +1628,17 @@ func (p *Parser) assign() (*file.Interpolation, error) {
 // ======================================================================================
 
 func (p *Parser) filter() (_ *file.Filter, err error) {
-	filterItm := p.next() // lex.Filter
+	filterItm := p.next() // token.Filter
 	f := file.Filter{Pos: file.Pos{Line: filterItm.Line, Col: filterItm.Col}}
 
 	nameItm := p.next()
-	if nameItm.Type != lex.Ident {
-		return nil, p.unexpectedItem(nameItm, lex.Ident)
+	if nameItm.Type != token.Ident {
+		return nil, p.unexpectedItem(nameItm, token.Ident)
 	}
 
 	f.Name = nameItm.Val
 
-	for p.peek().Type == lex.Literal {
+	for p.peek().Type == token.Literal {
 		argItm := p.next()
 		arg := argItm.Val
 		if strings.HasPrefix(arg, `"`) || strings.HasPrefix(arg, "`") {
@@ -1760,21 +1651,21 @@ func (p *Parser) filter() (_ *file.Filter, err error) {
 		f.Args = append(f.Args, arg)
 	}
 
-	if p.peek().Type != lex.Indent {
+	if p.peek().Type != token.Indent {
 		return &f, nil
 	}
 
-	p.next() // lex.Indent
+	p.next() // token.Indent
 
 	var b strings.Builder
 
-	for p.peek().Type == lex.Text {
+	for p.peek().Type == token.Text {
 		b.WriteString(p.next().Val + "\n")
 	}
 
 	dedentItm := p.next()
-	if dedentItm.Type != lex.Dedent && dedentItm.Type != lex.EOF {
-		return nil, p.unexpectedItem(dedentItm, lex.Dedent)
+	if dedentItm.Type != token.Dedent && dedentItm.Type != token.EOF {
+		return nil, p.unexpectedItem(dedentItm, token.Dedent)
 	}
 
 	text := b.String()
@@ -1797,11 +1688,11 @@ func (p *Parser) mixinCall() (_ *file.MixinCall, err error) {
 	c.Pos = file.Pos{Line: callItm.Line, Col: callItm.Col}
 
 	namespaceItm := p.next()
-	if namespaceItm.Type != lex.Ident {
-		return nil, p.unexpectedItem(namespaceItm, lex.Ident)
+	if namespaceItm.Type != token.Ident {
+		return nil, p.unexpectedItem(namespaceItm, token.Ident)
 	}
 
-	if p.peek().Type != lex.Ident { // wasn't the namespace, it was the name
+	if p.peek().Type != token.Ident { // wasn't the namespace, it was the name
 		c.Name = file.Ident(namespaceItm.Val)
 	} else {
 		c.Namespace = file.Ident(namespaceItm.Val)
@@ -1813,7 +1704,7 @@ func (p *Parser) mixinCall() (_ *file.MixinCall, err error) {
 		return nil, err
 	}
 
-	if p.peek().Type == lex.MixinBlockShortcut {
+	if p.peek().Type == token.MixinBlockShorthand {
 		b, err := p.mixinBlockShortcut()
 		if err != nil {
 			return nil, err
@@ -1823,7 +1714,7 @@ func (p *Parser) mixinCall() (_ *file.MixinCall, err error) {
 		return &c, nil
 	}
 
-	if p.peek().Type != lex.Indent {
+	if p.peek().Type != token.Indent {
 		return &c, nil
 	}
 
@@ -1843,14 +1734,14 @@ func (p *Parser) mixinCall() (_ *file.MixinCall, err error) {
 
 func (p *Parser) mixinArgs() (args []file.MixinArg, err error) {
 	lparenItm := p.peek()
-	if lparenItm.Type != lex.LParen {
+	if lparenItm.Type != token.LParen {
 		return nil, nil
 	}
 
-	p.next() // lex.LParen
+	p.next() // token.LParen
 
-	if p.peek().Type == lex.RParen {
-		p.next() // lex.RParen
+	if p.peek().Type == token.RParen {
+		p.next() // token.RParen
 		return nil, nil
 	}
 
@@ -1858,8 +1749,8 @@ func (p *Parser) mixinArgs() (args []file.MixinArg, err error) {
 		var arg file.MixinArg
 
 		name := p.next()
-		if name.Type != lex.Ident {
-			return nil, p.unexpectedItem(name, lex.Ident)
+		if name.Type != token.Ident {
+			return nil, p.unexpectedItem(name, token.Ident)
 		}
 
 		arg.Pos = file.Pos{Line: name.Line, Col: name.Col}
@@ -1867,8 +1758,8 @@ func (p *Parser) mixinArgs() (args []file.MixinArg, err error) {
 		arg.Name = file.Ident(name.Val)
 
 		assignItm := p.next()
-		if assignItm.Type != lex.Assign {
-			return nil, p.unexpectedItem(assignItm, lex.Assign)
+		if assignItm.Type != token.Assign {
+			return nil, p.unexpectedItem(assignItm, token.Assign)
 		}
 
 		arg.Value, err = p.expression()
@@ -1880,48 +1771,48 @@ func (p *Parser) mixinArgs() (args []file.MixinArg, err error) {
 
 		next := p.next()
 		switch next.Type {
-		case lex.RParen:
+		case token.RParen:
 			return args, nil
-		case lex.Comma:
+		case token.Comma:
 			switch p.peek().Type {
-			case lex.EOF:
-				return nil, p.unexpectedItem(p.next(), lex.Ident, lex.RParen)
-			case lex.RParen:
+			case token.EOF:
+				return nil, p.unexpectedItem(p.next(), token.Ident, token.RParen)
+			case token.RParen:
 				p.next()
 				return args, nil
 			}
-		case lex.EOF:
+		case token.EOF:
 			fallthrough
 		default:
-			return nil, p.unexpectedItem(next, lex.Comma, lex.RParen)
+			return nil, p.unexpectedItem(next, token.Comma, token.RParen)
 		}
 	}
 }
 
 func (p *Parser) mixinBlockShortcut() (_ *file.Block, err error) {
-	shortCutItm := p.next() // lex.MixinBlockShortcut
+	shortCutItm := p.next() // token.MixinBlockShortcut
 	b := file.Block{
 		Type: file.BlockTypeBlock,
 		Pos:  file.Pos{Line: shortCutItm.Line, Col: shortCutItm.Col},
 	}
 
 	switch p.peek().Type {
-	case lex.DotBlock:
+	case token.DotBlock:
 		b.Body, err = p.dotBlock()
 		if err != nil {
 			return nil, err
 		}
 
 		return &b, nil
-	case lex.Text, lex.Hash:
+	case token.Text, token.Hash:
 		b.Body, err = p.text(true)
 		if err != nil {
 			return nil, err
 		}
 
 		return &b, nil
-	case lex.Indent:
-		p.next() // lex.Indent
+	case token.Indent:
+		p.next() // token.Indent
 
 		b.Body, err = p.scope()
 		if err != nil {
@@ -1930,6 +1821,6 @@ func (p *Parser) mixinBlockShortcut() (_ *file.Block, err error) {
 
 		return &b, nil
 	default:
-		return nil, p.unexpectedItem(p.next(), lex.Indent, lex.Text, lex.DotBlock)
+		return nil, p.unexpectedItem(p.next(), token.Indent, token.Text, token.DotBlock)
 	}
 }
