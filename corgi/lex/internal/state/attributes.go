@@ -242,6 +242,7 @@ func Attribute(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 	case lexer.EOF:
 		return lexutil.EOFState()
 	case ',', ')': // boolean attribute
+		l.Backup()
 		return BehindAttribute
 	case '=':
 		l.Emit(token.Assign)
@@ -278,6 +279,7 @@ func BlockExpansionAttribute(l *lexer.Lexer[token.Token]) lexer.StateFn[token.To
 	case lexer.EOF:
 		return lexutil.EOFState()
 	case ',', ')': // boolean attribute
+		l.Backup()
 		return BehindAttribute
 	case '=':
 		l.Emit(token.Assign)
@@ -314,6 +316,7 @@ func InterpolatedAttribute(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Toke
 	case lexer.EOF:
 		return lexutil.EOFState()
 	case ',', ')': // boolean attribute
+		l.Backup()
 		return BehindAttribute
 	case '=':
 		l.Emit(token.Assign)
@@ -350,6 +353,7 @@ func AmpersandAttribute(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] 
 	case lexer.EOF:
 		return lexutil.EOFState()
 	case ',', ')': // boolean attribute
+		l.Backup()
 		return BehindAttribute
 	case '=':
 		l.Emit(token.Assign)
@@ -569,6 +573,7 @@ func BehindAttributes(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 			return lexutil.AssertNewlineOrEOF(l, Next)
 		}
 
+		l.IgnoreNext()
 		return Text
 	case '.':
 		return DotBlock
@@ -599,6 +604,7 @@ func BehindBlockExpansionAttributes(l *lexer.Lexer[token.Token]) lexer.StateFn[t
 			return lexutil.AssertNewlineOrEOF(l, Next)
 		}
 
+		l.IgnoreNext()
 		return Text
 	default:
 		l.Next()
@@ -609,8 +615,9 @@ func BehindBlockExpansionAttributes(l *lexer.Lexer[token.Token]) lexer.StateFn[t
 }
 
 func BehindInterpolatedAttributes(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
-	switch l.Next() {
+	switch l.Peek() {
 	case lexer.EOF:
+		l.Next()
 		return lexutil.EOFState()
 	case '[':
 		return InterpolatedText

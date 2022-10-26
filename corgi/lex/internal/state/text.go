@@ -29,6 +29,8 @@ func Text(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 		l.SkipString("##")
 	}
 
+	l.Emit(token.Text)
+
 	peek := l.Peek()
 	if peek == '#' {
 		return Hash
@@ -119,7 +121,9 @@ func InterpolatedExpression(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Tok
 // Dot Block
 // ======================================================================================
 
-var InDotBlockKey = &struct{}{}
+type inDotBlockKey struct{}
+
+var InDotBlockKey = inDotBlockKey{}
 
 // DotBlock lexes a dot block.
 //
@@ -151,7 +155,7 @@ func DotBlock(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 
 	l.Context[InDotBlockKey] = true
 
-	return Next
+	return DotBlockLine
 }
 
 // DotBlockLine lexes a single non-empty line inside a dot block.

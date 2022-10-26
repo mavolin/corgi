@@ -1545,7 +1545,7 @@ func (p *Parser) dotBlock() ([]file.ScopeItem, error) {
 
 			dedentItm := p.next()
 			if dedentItm.Type != token.Dedent && dedentItm.Type != token.EOF {
-				return nil, p.unexpectedItem(dedentItm, token.Dedent)
+				return nil, p.unexpectedItem(dedentItm, token.DotBlock, token.Dedent)
 			}
 
 			return itms, nil

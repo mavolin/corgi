@@ -55,16 +55,19 @@ func EmitIdent(l *lexer.Lexer[token.Token], ifEmptyErr error) lexer.StateFn[toke
 //
 // If delta is 0, emitIndent will do nothing.
 func EmitIndent(l *lexer.Lexer[token.Token], delta int) {
-	if delta != 0 {
-		typ := token.Indent
-		if delta < 0 {
-			delta = -delta
-			typ = token.Dedent
-		}
+	if delta == 0 {
+		l.Ignore()
+		return
+	}
 
-		for i := 0; i < delta; i++ {
-			l.Emit(typ)
-		}
+	typ := token.Indent
+	if delta < 0 {
+		delta = -delta
+		typ = token.Dedent
+	}
+
+	for i := 0; i < delta; i++ {
+		l.Emit(typ)
 	}
 }
 

@@ -4,12 +4,17 @@ package state
 import (
 	"github.com/mavolin/corgi/corgi/lex/internal/lexer"
 	"github.com/mavolin/corgi/corgi/lex/internal/lexutil"
+	"github.com/mavolin/corgi/corgi/lex/lexerr"
 	"github.com/mavolin/corgi/corgi/lex/token"
 )
 
 // Next consumes the next directive.
 func Next(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
-	if _, ok := l.Context[InDotBlockKey]; ok {
+	if _, ok := l.Context[InImportBlockKey]; ok {
+		return NextImportBlockLine(l)
+	} else if _, ok = l.Context[InUseBlockKey]; ok {
+		return NextUseBlockLine(l)
+	} else if _, ok = l.Context[InDotBlockKey]; ok {
 		return NextDotBlockLine(l)
 	}
 
@@ -17,6 +22,11 @@ func Next(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 }
 
 func NextDotBlockLine(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
+	if l.Peek() == lexer.EOF {
+		l.Next()
+		return lexutil.EOFState()
+	}
+
 	dIndent, skippedLines, err := l.ConsumeIndent(lexer.ConsumeNoIncrease)
 	if err != nil {
 		return lexutil.ErrorState(err)
@@ -36,6 +46,70 @@ func NextDotBlockLine(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 	return DotBlockLine
 }
 
+func NextImportBlockLine(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
+	l.IgnoreWhile(lexer.IsNewline)
+
+	dIndent, _, err := l.ConsumeIndent(lexer.ConsumeAllIndents)
+	if err != nil {
+		return lexutil.ErrorState(err)
+	}
+
+	if dIndent > 0 { // can't increase indentation
+		return lexutil.ErrorState(&lexerr.IllegalIndentationError{In: "an import block"})
+	}
+
+	lexutil.EmitIndent(l, dIndent)
+
+	if dIndent < 0 {
+		delete(l.Context, InImportBlockKey)
+		return Next
+	}
+
+	switch {
+	case l.Peek() == lexer.EOF:
+		l.Next()
+		return lexutil.EOFState()
+	case l.PeekIsWord("//-"):
+		return CorgiComment
+	case l.Peek() == '"' || l.Peek() == '`':
+		return ImportPath
+	default:
+		return ImportAlias
+	}
+}
+
+func NextUseBlockLine(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
+	l.IgnoreWhile(lexer.IsNewline)
+
+	dIndent, _, err := l.ConsumeIndent(lexer.ConsumeAllIndents)
+	if err != nil {
+		return lexutil.ErrorState(err)
+	}
+
+	if dIndent > 0 { // can't increase indentation
+		return lexutil.ErrorState(&lexerr.IllegalIndentationError{In: "a use block"})
+	}
+
+	lexutil.EmitIndent(l, dIndent)
+
+	if dIndent < 0 {
+		delete(l.Context, InUseBlockKey)
+		return Next
+	}
+
+	switch {
+	case l.Peek() == lexer.EOF:
+		l.Next()
+		return lexutil.EOFState()
+	case l.PeekIsWord("//-"):
+		return CorgiComment
+	case l.Peek() == '"' || l.Peek() == '`':
+		return UsePath
+	default:
+		return UseAlias
+	}
+}
+
 func NextRegular(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 	l.IgnoreWhile(lexer.IsNewline)
 
@@ -46,10 +120,6 @@ func NextRegular(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 		}
 
 		lexutil.EmitIndent(l, dIndent)
-	}
-
-	if l.Peek() == lexer.EOF {
-		return lexutil.EOFState()
 	}
 
 	// some keywords have spaces behind them to avoid confusion if they are
@@ -73,7 +143,7 @@ func NextRegular(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 	case l.PeekIsWord("-"):
 		return Code
 
-	case l.PeekIsWord("Include"):
+	case l.PeekIsWord("include"):
 		return Include
 
 	case l.PeekIsWord("block"), l.PeekIsWord("block."), l.PeekIsWord("block:"):

@@ -80,6 +80,7 @@ func New[Token any](in string, start StateFn[Token]) *Lexer[Token] {
 		startCol:  1,
 		line:      1,
 		col:       1,
+		Context:   make(map[any]any),
 	}
 }
 

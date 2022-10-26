@@ -88,6 +88,16 @@ func (l *Lexer[Token]) ConsumeIndent(mode IndentConsumptionMode) (dlvl int, skip
 }
 
 func (l *Lexer[Token]) consumeNoIncreaseLineIndent() (dlvl int, stop bool, err error) {
+	if l.indentLvl == 0 {
+		if l.IsLineEmpty() {
+			l.NextWhile(IsNot('\n'))
+			l.Next()
+			return 0, false, nil
+		}
+
+		return 0, true, nil
+	}
+
 	indent := l.Next()
 	switch indent {
 	case EOF:
@@ -102,18 +112,6 @@ func (l *Lexer[Token]) consumeNoIncreaseLineIndent() (dlvl int, stop bool, err e
 
 		l.Backup()
 		return dlvl, true, nil
-	}
-
-	if l.indentLvl == 0 {
-		l.Backup()
-
-		if l.IsLineEmpty() {
-			l.NextWhile(IsNot('\n'))
-			l.Next()
-			return 0, false, nil
-		}
-
-		return 0, true, nil
 	}
 
 	count := 1

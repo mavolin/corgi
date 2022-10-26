@@ -458,6 +458,7 @@ func MixinBlockShorthand(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token]
 	case '.':
 		return DotBlock
 	case ' ', '\t':
+		l.IgnoreNext()
 		return Text
 	default:
 		return lexutil.AssertNewlineOrEOF(l, Next)

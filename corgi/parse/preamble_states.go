@@ -158,7 +158,7 @@ func (p *Parser) singleImport() (err error) {
 
 	imp.Path, err = strconv.Unquote(pathItm.Val)
 	if err != nil {
-		return p.error(pathItm, errors.Wrap(err, "invalid use string"))
+		return p.error(pathItm, errors.Wrap(err, "invalid import string"))
 	}
 
 	p.f.Imports = append(p.f.Imports, imp)
