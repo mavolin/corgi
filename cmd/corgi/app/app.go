@@ -1,52 +1,18 @@
 package app
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 
 	"github.com/mavolin/corgi/corgi"
 	"github.com/mavolin/corgi/corgi/file"
 	"github.com/mavolin/corgi/internal/meta"
 	"github.com/mavolin/corgi/writer"
 )
-
-var log *zap.SugaredLogger
-
-func init() {
-	c := zap.Config{
-		Level:       zap.NewAtomicLevelAt(zap.InfoLevel),
-		Development: false,
-		Encoding:    "console",
-		EncoderConfig: zapcore.EncoderConfig{
-			MessageKey:     ".",
-			LevelKey:       ".",
-			TimeKey:        ".",
-			NameKey:        ".",
-			CallerKey:      zapcore.OmitKey,
-			FunctionKey:    zapcore.OmitKey,
-			StacktraceKey:  zapcore.OmitKey,
-			LineEnding:     zapcore.DefaultLineEnding,
-			EncodeLevel:    zapcore.LowercaseColorLevelEncoder,
-			EncodeTime:     zapcore.RFC3339TimeEncoder,
-			EncodeDuration: zapcore.StringDurationEncoder,
-			EncodeCaller:   zapcore.ShortCallerEncoder,
-		},
-		OutputPaths:      []string{"stderr"},
-		ErrorOutputPaths: []string{"stderr"},
-	}
-
-	logger, err := c.Build()
-	if err != nil {
-		panic(err)
-	}
-
-	log = logger.Sugar()
-}
 
 func Run(args []string) error {
 	ver := meta.Version
@@ -87,8 +53,8 @@ func Run(args []string) error {
 				Value:       "",
 			},
 			&cli.StringFlag{
-				Name:        "filename",
-				Aliases:     []string{"f"},
+				Name:        "output",
+				Aliases:     []string{"o"},
 				Usage:       "overwrite the name of the generated file",
 				DefaultText: "corgi_file.corgi.go",
 			},
@@ -110,28 +76,22 @@ func Run(args []string) error {
 }
 
 func run(ctx *cli.Context) error {
-	//goland:noinspection GoBoolExpressions
-	if meta.Version == meta.DevelopVersion {
-		log.Warn("you're running a development version of corgi, to get the stable release, " +
-			"run `go install github.com/mavolin/corgi/cmd/corgi@latest`")
-	}
-
-	args, err := parseArgs(ctx)
+	a, err := parseArgs(ctx)
 	if err != nil {
 		return err
 	}
 
-	if args.Get {
+	if a.Get {
 		goGetCorgi()
 	}
 
-	ph := corgi.File(".", args.File, args.FileContents)
+	ph := corgi.File(".", a.File, a.FileContents)
 
-	if args.FileType != file.TypeUnknown {
-		ph.WithFileType(args.FileType)
+	if a.FileType != file.TypeUnknown {
+		ph.WithFileType(a.FileType)
 	}
 
-	for _, rs := range args.ResourceSources {
+	for _, rs := range a.ResourceSources {
 		ph.WithResourceSource(rs)
 	}
 
@@ -140,9 +100,9 @@ func run(ctx *cli.Context) error {
 		return errors.Wrap(err, "parse")
 	}
 
-	w := writer.New(f, args.Package)
+	w := writer.New(f, a.Package)
 
-	out, err := os.Create(args.OutputFile)
+	out, err := os.Create(a.OutputFile)
 	if err != nil {
 		return errors.Wrap(err, "could not create output file")
 	}
@@ -151,28 +111,24 @@ func run(ctx *cli.Context) error {
 		return err
 	}
 
-	log.Info("generated ", args.OutputFile)
-
 	if err = out.Close(); err != nil {
 		return errors.Wrap(err, "could not close output file")
 	}
 
-	if !args.NoFmt {
-		goImports(args)
+	if !a.NoFmt {
+		goImports(a)
 	}
 
 	return nil
 }
 
 func goGetCorgi() {
-	log.Debug("generated functions import github.com/mavolin/corgi, I'm go getting it for you")
-
 	goget := exec.Command("go", "get", "github.com/mavolin/corgi")
 	goget.Stderr = os.Stderr
 
 	if err := goget.Run(); err != nil {
-		log.Error("couldn't go get corgi: ", err.Error(),
-			"; please do it yourself if you haven't already: go get github.com/mavolin/corgi")
+		fmt.Println("couldn't go get corgi:", err.Error(),
+			"; please do it yourself if you haven't already: `go get github.com/mavolin/corgi`")
 	}
 }
 
@@ -181,17 +137,16 @@ func goImports(args *args) {
 
 	err := goimports.Run()
 	if err == nil {
-		log.Debug("formatted output and removed unused imports, if any")
 		return
 	}
 
 	if errors.Is(err, exec.ErrNotFound) {
-		log.Error("goimports could not be found, but is needed to remove unused imports; " +
+		fmt.Println("goimports could not be found, but is needed to remove unused imports; " +
 			"install using `go get golang.org/x/tools/cmd/goimports@latest`")
 		return
 	}
 
-	log.Error("could not format output "+
-		"(this could mean that there is an erroneous Go expression in your template): ",
+	fmt.Println(
+		"could not format output; this could mean that there is an erroneous Go expression in your template):",
 		err.Error())
 }
