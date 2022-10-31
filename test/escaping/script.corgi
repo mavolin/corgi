@@ -1,4 +1,4 @@
-import "github.com/mavolin/corgi/pkg/writeutil"
+import "github.com/mavolin/corgi/writeutil"
 
 func Script()
 

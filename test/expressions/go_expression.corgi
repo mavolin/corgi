@@ -1,7 +1,7 @@
 import
   "strings"
   "net"
-  "github.com/mavolin/corgi/pkg/writeutil"
+  "github.com/mavolin/corgi/writeutil"
 
 func GoExpression(val string)
 
