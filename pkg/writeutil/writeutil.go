@@ -15,8 +15,8 @@ func WriteBytes(w io.Writer, bs []byte) error {
 	return err
 }
 
-// Write writes the passed string s to w, utilizing the WriteString method, if
-// w implements it.
+// Write writes the passed string s to w, utilizing w.WriteString, if w
+// implements it.
 func Write(w io.Writer, s string) error {
 	_, err := io.WriteString(w, s)
 	return err
@@ -26,8 +26,8 @@ func Write(w io.Writer, s string) error {
 // Contextual Text
 // ======================================================================================
 
-// WriteAnyUnescaped calls Stringify on a and writes the result to w.
-// It does not escape Stringify's output.
+// WriteAnyUnescaped calls [Stringify] on a and writes the result to w.
+// It uses no escaper for its call to [Stringify].
 func WriteAnyUnescaped(w io.Writer, a any) error {
 	s, err := Stringify(a, nil)
 	if err != nil {
@@ -39,9 +39,9 @@ func WriteAnyUnescaped(w io.Writer, a any) error {
 
 // WriteCSS writes CSS to w.
 //
-// If a is of type CSS, it writes a directly to w.
-// Otherwise, it calls Stringify on a, escaping the value with EscapeCSS, and
-// then writes it to w.
+// If a is of type [CSS], it writes a directly to w.
+// Otherwise, it calls [Stringify] on a, escaping the value with [EscapeCSS],
+// and then writes it to w.
 func WriteCSS(w io.Writer, a any) error {
 	css, ok := a.(CSS)
 	if ok {
@@ -60,9 +60,9 @@ func WriteCSS(w io.Writer, a any) error {
 
 // WriteHTML writes HTML to w.
 //
-// If a is of type HTML, it writes a directly to w.
-// Otherwise, it calls Stringify on a, escaping the value with EscapeHTML, and
-// then writes it to w.
+// If a is of type [HTML], it writes a directly to w.
+// Otherwise, it calls [Stringify] on a, escaping the value with [EscapeHTML],
+// and then writes it to w.
 func WriteHTML(w io.Writer, a any) error {
 	html, ok := a.(HTML)
 	if ok {
@@ -79,7 +79,7 @@ func WriteHTML(w io.Writer, a any) error {
 	return Write(w, s)
 }
 
-// WriteJS calls JSify on a and writes the result to w.
+// WriteJS calls [JSify] on a and writes the result to w.
 func WriteJS(w io.Writer, a any) error {
 	s, err := JSify(a)
 	if err != nil {
@@ -99,11 +99,11 @@ func WriteJS(w io.Writer, a any) error {
 // If so, it either writes ` #{name}="#{name}"` if mirror is true, or just
 // ` #{name}, otherwise.
 //
-// If val is of type HTMLAttr, it writes the attributes, not escaping val.
+// If val is of type [HTMLAttr], it writes the attributes, not escaping val.
 // val will be enclosed in double quotes.
 //
-// In any other case, WriteAttr first calls Stringify on val, using EscapeHTML
-// to escape stringified version.
+// In any other case, WriteAttr first calls [Stringify] on val using
+// [EscapeHTML] to escape stringified version.
 // It then writes the attribute, enclosing val in double quotes.
 func WriteAttr(w io.Writer, name string, val any, mirror bool) error {
 	switch val := val.(type) {
@@ -138,7 +138,7 @@ func WriteAttr(w io.Writer, name string, val any, mirror bool) error {
 // according to the mirror parameter.
 //
 // In any other case, WriteAttrUnescaped writes the attribute, using the
-// unescaped return of Stringify as value.
+// unescaped return of [Stringify] as value.
 func WriteAttrUnescaped(w io.Writer, name string, val any, mirror bool) error {
 	switch val := val.(type) {
 	case bool:
@@ -170,13 +170,13 @@ var (
 // Stringify converts the passed value to a string.
 //
 // It accepts values of type string, all ints, all uints, all floats, bool,
-// []rune, fmt.Stringer, and encoding.TextUnmarshaler.
+// []rune, [fmt.Stringer], and [encoding.TextUnmarshaler].
 // val may also be a pointer to any of the above types.
 //
 // If val is nil or dereferences to nil, it will return "".
 //
-// If escaper is not nil, it will call it on val, should val be a string,
-// []rune, implement fmt.Stringer, or encoding.TextMarshaler.
+// If escaper is not nil, it will call it on val, if val is a string,
+// []rune, implements [fmt.Stringer], or [encoding.TextMarshaler].
 func Stringify(val any, escaper func(string) string) (string, error) {
 	if val == nil {
 		return "", nil
