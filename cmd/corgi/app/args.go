@@ -85,7 +85,7 @@ func parseArgs(ctx *cli.Context) (*args, error) {
 
 	a.FileContents = string(data)
 
-	a.OutputFile = ctx.String("filename")
+	a.OutputFile = ctx.String("output")
 	if a.OutputFile == "" {
 		a.OutputFile = filepath.Dir(a.File) + "/" + a.File + ".go"
 	}

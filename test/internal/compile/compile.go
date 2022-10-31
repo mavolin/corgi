@@ -43,7 +43,7 @@ func Compile(t *testing.T, name string, o Options) {
 	args := []string{"-p", callingPackage(t, o)}
 
 	if o.OutName != "" {
-		args = append(args, "-f", o.OutName)
+		args = append(args, "-o", o.OutName)
 	}
 
 	if !o.Format {
