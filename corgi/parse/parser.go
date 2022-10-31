@@ -7,8 +7,7 @@ import (
 	"github.com/mavolin/corgi/corgi/file"
 	"github.com/mavolin/corgi/corgi/lex"
 	"github.com/mavolin/corgi/corgi/lex/token"
-
-	"github.com/mavolin/corgi/pkg/stack"
+	"github.com/mavolin/corgi/internal/stack"
 )
 
 type Parser struct {

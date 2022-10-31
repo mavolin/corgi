@@ -4,7 +4,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/mavolin/corgi/corgi/file"
-	"github.com/mavolin/corgi/pkg/stack"
+	"github.com/mavolin/corgi/internal/stack"
 )
 
 // AndChecker checks that &s are used inside elements and only before their

@@ -4,7 +4,7 @@ import (
 	"unicode"
 
 	"github.com/mavolin/corgi/corgi/file"
-	"github.com/mavolin/corgi/pkg/stack"
+	"github.com/mavolin/corgi/internal/stack"
 )
 
 // CallLinker links mixin calls to their mixin definitions.

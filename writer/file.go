@@ -10,8 +10,8 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/mavolin/corgi/corgi/file"
-	"github.com/mavolin/corgi/pkg/voidelem"
-	"github.com/mavolin/corgi/pkg/writeutil"
+	"github.com/mavolin/corgi/internal/voidelem"
+	"github.com/mavolin/corgi/writeutil"
 )
 
 // This file contains code that produces the body of the generated function.

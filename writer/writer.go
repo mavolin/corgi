@@ -8,8 +8,8 @@ import (
 	"strconv"
 
 	"github.com/mavolin/corgi/corgi/file"
-	"github.com/mavolin/corgi/pkg/stack"
-	"github.com/mavolin/corgi/pkg/writeutil"
+	"github.com/mavolin/corgi/internal/stack"
+	"github.com/mavolin/corgi/writeutil"
 )
 
 type Writer struct {

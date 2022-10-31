@@ -2,8 +2,8 @@ package element
 
 import (
 	"github.com/mavolin/corgi/corgi/file"
-	"github.com/mavolin/corgi/pkg/stack"
-	"github.com/mavolin/corgi/pkg/voidelem"
+	"github.com/mavolin/corgi/internal/stack"
+	"github.com/mavolin/corgi/internal/voidelem"
 )
 
 // SelfClosingChecker checks that self-closing and void elements have no body.
