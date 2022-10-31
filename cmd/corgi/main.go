@@ -1,7 +1,7 @@
 package main
 
 import (
-	"log"
+	"fmt"
 	"os"
 
 	"github.com/mavolin/corgi/cmd/corgi/app"
@@ -9,6 +9,7 @@ import (
 
 func main() {
 	if err := app.Run(os.Args); err != nil {
-		log.Fatal(err)
+		fmt.Println(err.Error())
+		os.Exit(1)
 	}
 }
