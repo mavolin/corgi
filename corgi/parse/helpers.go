@@ -324,14 +324,14 @@ func (p *Parser) text(required bool) (itms []file.ScopeItem, err error) {
 		switch peek.Type {
 		case token.Text:
 			s := p.next().Val
-			if p.peek().Type != token.Text && p.peek().Type != token.Hash {
+			if p.peek().Type != token.Text && p.peek().Type != token.Interpolation {
 				s = trimRightWhitespace(s)
 			}
 
 			s = strings.ReplaceAll(s, "##", "#")
 
 			itms = append(itms, file.Text{Text: s})
-		case token.Hash:
+		case token.Interpolation:
 			h, err := p.hash()
 			if err != nil {
 				return nil, err
@@ -340,7 +340,7 @@ func (p *Parser) text(required bool) (itms []file.ScopeItem, err error) {
 			itms = append(itms, h)
 		default:
 			if len(itms) == 0 && required {
-				return nil, p.unexpectedItem(peek, token.Text, token.Hash)
+				return nil, p.unexpectedItem(peek, token.Text, token.Interpolation)
 			}
 
 			return itms, nil
@@ -349,7 +349,7 @@ func (p *Parser) text(required bool) (itms []file.ScopeItem, err error) {
 }
 
 func (p *Parser) hash() (file.ScopeItem, error) {
-	p.next() // token.Hash
+	p.next() // token.ExpressionInterpolation
 
 	var noEscape bool
 
@@ -361,7 +361,7 @@ func (p *Parser) hash() (file.ScopeItem, error) {
 		}
 
 		return *c, nil
-	case token.NoEscape:
+	case token.UnescapedInterpolation:
 		p.next()
 		noEscape = true
 	}
@@ -378,7 +378,7 @@ func (p *Parser) hash() (file.ScopeItem, error) {
 			return nil, p.unexpectedItem(p.next(), token.RBracket)
 		}
 
-		return file.InlineText{Text: textItm.Val, NoEscape: noEscape}, nil
+		return file.TextInterpolation{Text: textItm.Val, NoEscape: noEscape}, nil
 	}
 
 	if p.peek().Type != token.LBrace {
@@ -401,11 +401,11 @@ func (p *Parser) hash() (file.ScopeItem, error) {
 		return nil, p.unexpectedItem(p.next(), token.RBrace)
 	}
 
-	return file.Interpolation{Expression: e, NoEscape: noEscape}, nil
+	return file.ExpressionInterpolation{Expression: e, NoEscape: noEscape}, nil
 }
 
-func (p *Parser) inlineElement(noEscape bool) (*file.InlineElement, error) {
-	ie := file.InlineElement{NoEscape: noEscape}
+func (p *Parser) inlineElement(noEscape bool) (*file.ElementInterpolation, error) {
+	ie := file.ElementInterpolation{NoEscape: noEscape}
 
 	elem, err := p.elementHeader()
 	if err != nil {

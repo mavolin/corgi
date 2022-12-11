@@ -14,22 +14,22 @@ import (
 // It emits [token.Include] and then a [token.Literal] identifying the included
 // file.
 func Include(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
-	l.SkipString("Include")
+	l.SkipString("include")
 	l.Emit(token.Include)
 
 	if !l.IgnoreWhile(lexer.IsHorizontalWhitespace) {
-		return lexutil.ErrorState(&lexerr.UnknownItemError{Expected: "a space"})
+		return Error(&lexerr.UnknownItemError{Expected: "a space"})
 	}
 
 	switch l.Peek() {
 	case lexer.EOF:
-		return lexutil.EOFState()
+		return EOF
 	case '\n':
-		return lexutil.ErrorState(&lexerr.EOLError{After: "a string"})
+		return Error(&lexerr.EOLError{After: "a string"})
 	case '`', '"':
 		// handled below
 	default: // invalid
-		return lexutil.ErrorState(&lexerr.UnknownItemError{Expected: "a string"})
+		return Error(&lexerr.UnknownItemError{Expected: "a string"})
 	}
 
 	if end := lexutil.ConsumeString(l); end != nil {

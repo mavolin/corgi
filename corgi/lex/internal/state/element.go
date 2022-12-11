@@ -14,7 +14,7 @@ import (
 // Div lexes a div shorthand.
 //
 // It assumes the next rune is either '.' or '#' followed by a non-whitespace
-// character..
+// character.
 //
 // It emits a [token.Div].
 func Div(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
@@ -25,7 +25,7 @@ func Div(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 // BlockExpansionDiv lexes a div shorthand used as part of a block expansion.
 //
 // It assumes the next rune is either '.' or '#' followed by a non-whitespace
-// character..
+// character.
 //
 // It emits a [token.Div].
 func BlockExpansionDiv(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
@@ -49,28 +49,23 @@ func Comment(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 
 	switch l.Next() {
 	case lexer.EOF:
-		return lexutil.EOFState()
+		return EOF
 	case '\n': // either an empty comment or a block comment
 		// handled after the switch
 	default: // a one-line comment
-		end := lexutil.EmitNextPredicate(l, token.Text, nil, lexer.IsNot('\n'))
-		if end != nil {
-			return end
-		}
-
-		return lexutil.AssertNewlineOrEOF(l, Next)
+		return CommentText
 	}
 
 	// we're possibly in a block comment, check if the next line is indented
 	dIndent, _, err := l.ConsumeIndent(lexer.ConsumeSingleIncrease)
 	if err != nil {
-		return lexutil.ErrorState(err)
+		return Error(err)
 	}
 
 	lexutil.EmitIndent(l, dIndent)
 
 	if l.Peek() == lexer.EOF {
-		return lexutil.EOFState()
+		return EOF
 	}
 
 	// it's not, just an empty comment.
@@ -78,39 +73,25 @@ func Comment(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 		return Next
 	}
 
-	for {
-		peek := l.NextWhile(lexer.IsNot('\n'))
-		if peek == lexer.EOF {
-			if !l.IsContentEmpty() {
-				l.Emit(token.Text)
-			}
-			return lexutil.EOFState()
-		}
+	l.Context[InCommentBlockKey] = true
+	return CommentText
+}
 
-		// even emit empty lines so that these are reflected in the HTML output
-		l.Emit(token.Text)
+type inCommentBlockKey struct{}
 
-		l.IgnoreNext()
+var InCommentBlockKey inCommentBlockKey
 
-		dIndent, skippedLines, err := l.ConsumeIndent(lexer.ConsumeNoIncrease)
-		if err != nil {
-			return lexutil.ErrorState(err)
-		}
-
-		lexutil.EmitIndent(l, dIndent)
-
-		if l.Peek() == lexer.EOF {
-			return lexutil.EOFState()
-		}
-
-		if dIndent >= 0 {
-			for i := 0; i < skippedLines; i++ {
-				l.Emit(token.Text)
-			}
-		} else {
-			return Next
-		}
+func CommentText(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
+	if l.Peek() == lexer.EOF {
+		return EOF
 	}
+
+	l.NextWhile(lexer.MatchesNot('\n'))
+
+	// even emit empty lines so that these are reflected in the HTML output
+	l.Emit(token.Text)
+
+	return lexutil.AssertNewlineOrEOF(l, Next)
 }
 
 // ============================================================================
@@ -165,7 +146,7 @@ func InterpolatedElement(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token]
 // it needn't bee valid.
 func emitElement(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 	return lexutil.EmitNextPredicate(l, token.Element,
-		&lexerr.UnknownItemError{Expected: "an element name"},
+		&lexerr.UnknownItemError{Expected: "interpolation"},
 		lexutil.IsElementName)
 }
 
@@ -178,7 +159,7 @@ func BehindElement(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 	switch l.Peek() {
 	case lexer.EOF:
 		l.Next()
-		return lexutil.EOFState()
+		return EOF
 	case '.':
 		l.Next()
 
@@ -206,7 +187,7 @@ func BehindBlockExpansionElement(l *lexer.Lexer[token.Token]) lexer.StateFn[toke
 	switch l.Peek() {
 	case lexer.EOF:
 		l.Next()
-		return lexutil.EOFState()
+		return EOF
 	case '.':
 		return BlockExpansionClass
 	case '#':
@@ -224,7 +205,7 @@ func BehindInterpolatedElement(l *lexer.Lexer[token.Token]) lexer.StateFn[token.
 	switch l.Peek() {
 	case lexer.EOF:
 		l.Next()
-		return lexutil.EOFState()
+		return EOF
 	case '.':
 		return InterpolatedClass
 	case '#':
@@ -236,23 +217,23 @@ func BehindInterpolatedElement(l *lexer.Lexer[token.Token]) lexer.StateFn[token.
 	return BehindInterpolatedAttributes
 }
 
-// BehindAmpersand lexes the directives after an &-directive.
-func BehindAmpersand(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
+// BehindAnd lexes the directives after an &-directive.
+func BehindAnd(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 	switch l.Peek() {
 	case lexer.EOF:
 		l.Next()
-		return lexutil.EOFState()
+		return EOF
 	case '\n':
 		l.Next()
 		return Next
 	case '.':
-		return AmpersandClass
+		return AndClass
 	case '#':
-		return AmpersandID
+		return AndID
 	case '(':
-		return AmpersandAttributes
+		return AndAttributes
 	default:
-		return lexutil.ErrorState(&lexerr.UnknownItemError{Expected: "a class, id, attribute, or newline"})
+		return Error(&lexerr.UnknownItemError{Expected: "a class, id, attribute, or newline"})
 	}
 }
 
@@ -271,34 +252,27 @@ func BlockExpansion(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 	l.Emit(token.BlockExpansion)
 
 	if !l.IgnoreWhile(lexer.IsHorizontalWhitespace) {
-		return lexutil.ErrorState(&lexerr.UnknownItemError{Expected: "a space"})
+		return Error(&lexerr.UnknownItemError{Expected: "a space"})
 	}
 
 	peek := l.Peek()
 	switch {
 	case peek == lexer.EOF:
 		l.Next()
-		return lexutil.EOFState()
+		return EOF
 	case peek == '.' || peek == '#':
 		return BlockExpansionDiv
+	case peek == '+':
+		return BlockExpansionMixinCall
+	case peek == '|':
+		return Pipe
+	case peek == '=' || l.PeekIsString("!="):
+		return Assign
+	case peek == '&':
+		return And
 	case l.PeekIsWord("block"):
 		return BlockExpansionBlock
 	default:
 		return BlockExpansionElement
 	}
-}
-
-// ============================================================================
-// TagVoid
-// ======================================================================================
-
-// TagVoid lexes a void element indicator.
-//
-// It assumes the next rune is a '/'.
-//
-// It emits a [token.TagVoid].
-func TagVoid(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
-	l.SkipString("/")
-	l.Emit(token.TagVoid)
-	return Next
 }

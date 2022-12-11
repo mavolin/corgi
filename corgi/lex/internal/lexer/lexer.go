@@ -3,7 +3,10 @@ package lexer
 
 import "strings"
 
-// Lexer implements a non-corgi-specific state-operated lexer, whose [StateFn] implementations emit Items.
+// Lexer implements a state-machine-based lexer, that is only corgi-specific in
+// that it keeps track of indentation levels.
+//
+// It is operated by [StateFn] functions, which emit [Item] structs.
 type Lexer[Token any] struct {
 	// in is the text being read.
 	in string
@@ -39,9 +42,11 @@ type Lexer[Token any] struct {
 	// indentRefLine is the line used for reference for indentation.
 	// It is the first line that uses indentation.
 	//
-	// This variable is only used for lexerr and has no practical use.
+	// This variable is only used for errors and has no practical use.
 	indentRefLine int
 	indentLvl     int
+
+	hasError bool
 
 	Context map[any]any
 }

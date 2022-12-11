@@ -20,9 +20,9 @@ func Matches(rs ...rune) func(r rune) bool {
 	}
 }
 
-// IsNot returns a predicate that reports false whenever the rune the
+// MatchesNot returns a predicate that reports false whenever the rune the
 // predicate is called with matches any of rs.
-func IsNot(rs ...rune) func(r rune) bool {
+func MatchesNot(rs ...rune) func(r rune) bool {
 	return func(r rune) bool {
 		for _, cmp := range rs {
 			if r == cmp {

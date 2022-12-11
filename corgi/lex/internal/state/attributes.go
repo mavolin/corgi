@@ -20,20 +20,20 @@ import (
 var attrTerminators = []rune{'.', '#', '(', '[', '{', '!', '=', ':', ' ', '\t', '\n'}
 
 // ============================================================================
-// Ampersand (&)
+// And (&)
 // ======================================================================================
 
-// Ampersand consumes an '&' directive.
+// And consumes an '&' directive.
 //
 // It assumes the next string is '&'.
 //
 // It emits a [token.And] followed by either a [token.Class], a [token.ID], or
 // a [token.LParen].
-func Ampersand(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
+func And(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 	l.SkipString("&")
 	l.Emit(token.And)
 
-	return BehindAmpersand
+	return BehindAnd
 }
 
 // ============================================================================
@@ -74,15 +74,15 @@ func InterpolatedClass(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 	return BehindInterpolatedElement
 }
 
-// AmpersandClass lexes a class literal used behind an &.
+// AndClass lexes a class literal used behind an &.
 //
 // Refer to the documentation of [emitClass] for more information.
-func AmpersandClass(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
+func AndClass(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 	if end := emitClass(l); end != nil {
 		return end
 	}
 
-	return BehindAmpersand
+	return BehindAnd
 }
 
 // emitClass consumes and emits a class directive.
@@ -95,7 +95,7 @@ func emitClass(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 	l.Emit(token.Class)
 
 	end := lexutil.EmitNextPredicate(l, token.Literal,
-		&lexerr.UnknownItemError{Expected: "a class name"}, lexer.IsNot(attrTerminators...))
+		&lexerr.UnknownItemError{Expected: "a class name"}, lexer.MatchesNot(attrTerminators...))
 	if end != nil {
 		return end
 	}
@@ -141,15 +141,15 @@ func InterpolatedID(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 	return BehindInterpolatedElement
 }
 
-// AmpersandID lexes an id literal used behind an &.
+// AndID lexes an id literal used behind an &.
 //
 // Refer to the documentation of [emitID] for more information.
-func AmpersandID(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
+func AndID(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 	if end := emitID(l); end != nil {
 		return end
 	}
 
-	return BehindAmpersand
+	return BehindAnd
 }
 
 // emitID consumes and emits an id directive.
@@ -162,7 +162,7 @@ func emitID(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 	l.Emit(token.ID)
 
 	end := lexutil.EmitNextPredicate(l, token.Literal,
-		&lexerr.UnknownItemError{Expected: "an id"}, lexer.IsNot(attrTerminators...))
+		&lexerr.UnknownItemError{Expected: "an id"}, lexer.MatchesNot(attrTerminators...))
 	if end != nil {
 		return end
 	}
@@ -212,16 +212,16 @@ func InterpolatedAttributes(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Tok
 	return InterpolatedAttribute
 }
 
-// AmpersandAttributes lexes a list of attributes used behind an &.
+// AndAttributes lexes a list of attributes used behind an &.
 //
 // It assumes the next string is '(' and hence emits a [token.LParen].
-func AmpersandAttributes(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
+func AndAttributes(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 	l.SkipString("(")
 	l.Emit(token.LParen)
 
 	l.IgnoreWhile(lexer.IsWhitespace)
 
-	return AmpersandAttribute
+	return AndAttribute
 }
 
 // ============================================================================
@@ -232,15 +232,23 @@ func AmpersandAttributes(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token]
 //
 // It assumes the next string is the name of the attribute.
 func Attribute(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
+	if l.PeekIsString("&&") {
+		l.SkipString("&&")
+		l.Emit(token.AndPlaceholder)
+		return BehindAttribute
+	}
+
 	if end := emitAttributeName(l); end != nil {
 		return end
 	}
 
 	l.IgnoreWhile(lexer.IsHorizontalWhitespace)
 
+	var unescaped bool
+
 	switch l.Next() {
 	case lexer.EOF:
-		return lexutil.EOFState()
+		return EOF
 	case ',', ')': // boolean attribute
 		l.Backup()
 		return BehindAttribute
@@ -248,16 +256,30 @@ func Attribute(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 		l.Emit(token.Assign)
 	case '!':
 		if l.Next() != '=' {
-			return lexutil.ErrorState(&lexerr.UnknownItemError{Expected: "'='"})
+			return Error(&lexerr.UnknownItemError{Expected: "'='"})
 		}
 
 		l.Emit(token.AssignNoEscape)
+		unescaped = true
 	default:
-		return lexutil.ErrorState(&lexerr.UnknownItemError{Expected: "a comma, ')', '=', or '!='"})
+		return Error(&lexerr.UnknownItemError{Expected: "a comma, ')', '=', or '!='"})
 	}
 
 	l.IgnoreWhile(lexer.IsHorizontalWhitespace)
-	if err := lexutil.EmitExpression(l, true, ',', ')'); err != nil {
+
+	if l.Peek() == '+' {
+		if unescaped {
+			return Error(&lexerr.UnknownItemError{Expected: "an expression or a '=' instead of '!='"})
+		}
+
+		if end := emitMixinCallArgValueMixinCall(l); end != nil {
+			return end
+		}
+
+		return BehindAttribute
+	}
+
+	if err := lexutil.EmitExpression(l, true, ",", ")"); err != nil {
 		return err
 	}
 
@@ -269,32 +291,53 @@ func Attribute(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 //
 // It assumes the next string is the name of the attribute.
 func BlockExpansionAttribute(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
+	if l.PeekIsString("&&") {
+		l.SkipString("&&")
+		l.Emit(token.AndPlaceholder)
+		return BehindBlockExpansionAttribute
+	}
+
 	if end := emitAttributeName(l); end != nil {
 		return end
 	}
 
 	l.IgnoreWhile(lexer.IsHorizontalWhitespace)
 
+	var unescaped bool
+
 	switch l.Next() {
 	case lexer.EOF:
-		return lexutil.EOFState()
+		return EOF
 	case ',', ')': // boolean attribute
 		l.Backup()
-		return BehindAttribute
+		return BehindBlockExpansionAttribute
 	case '=':
 		l.Emit(token.Assign)
 	case '!':
 		if l.Next() != '=' {
-			return lexutil.ErrorState(&lexerr.UnknownItemError{Expected: "'='"})
+			return Error(&lexerr.UnknownItemError{Expected: "'='"})
 		}
 
 		l.Emit(token.AssignNoEscape)
+		unescaped = true
 	default:
-		return lexutil.ErrorState(&lexerr.UnknownItemError{Expected: "a comma, ')', '=', or '!='"})
+		return Error(&lexerr.UnknownItemError{Expected: "a comma, ')', '=', or '!='"})
+	}
+
+	if l.Peek() == '+' {
+		if unescaped {
+			return Error(&lexerr.UnknownItemError{Expected: "an expression or a '=' instead of '!='"})
+		}
+
+		if end := emitMixinCallArgValueMixinCall(l); end != nil {
+			return end
+		}
+
+		return BehindBlockExpansionAttribute
 	}
 
 	l.IgnoreWhile(lexer.IsHorizontalWhitespace)
-	if err := lexutil.EmitExpression(l, true, ',', ')'); err != nil {
+	if err := lexutil.EmitExpression(l, true, ",", ")"); err != nil {
 		return err
 	}
 
@@ -306,73 +349,115 @@ func BlockExpansionAttribute(l *lexer.Lexer[token.Token]) lexer.StateFn[token.To
 //
 // It assumes the next string is the name of the attribute.
 func InterpolatedAttribute(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
+	if l.PeekIsString("&&") {
+		l.SkipString("&&")
+		l.Emit(token.AndPlaceholder)
+		return BehindInterpolatedAttribute
+	}
+
 	if end := emitAttributeName(l); end != nil {
 		return end
 	}
 
 	l.IgnoreWhile(lexer.IsHorizontalWhitespace)
 
+	var unescaped bool
+
 	switch l.Next() {
 	case lexer.EOF:
-		return lexutil.EOFState()
+		return EOF
 	case ',', ')': // boolean attribute
 		l.Backup()
-		return BehindAttribute
+		return BehindInterpolatedAttribute
 	case '=':
 		l.Emit(token.Assign)
 	case '!':
 		if l.Next() != '=' {
-			return lexutil.ErrorState(&lexerr.UnknownItemError{Expected: "'='"})
+			return Error(&lexerr.UnknownItemError{Expected: "'='"})
 		}
 
 		l.Emit(token.AssignNoEscape)
+		unescaped = true
 	default:
-		return lexutil.ErrorState(&lexerr.UnknownItemError{Expected: "a comma, ')', '=', or '!='"})
+		return Error(&lexerr.UnknownItemError{Expected: "a comma, ')', '=', or '!='"})
+	}
+
+	if l.Peek() == '+' {
+		if unescaped {
+			return Error(&lexerr.UnknownItemError{Expected: "an expression or a '=' instead of '!='"})
+		}
+
+		if end := emitAttributeValueMixinCall(l); end != nil {
+			return end
+		}
+
+		return BehindInterpolatedAttribute
 	}
 
 	l.IgnoreWhile(lexer.IsHorizontalWhitespace)
-	if err := lexutil.EmitExpression(l, true, ',', ')'); err != nil {
+	if err := lexutil.EmitExpression(l, true, ",", ")"); err != nil {
 		return err
 	}
 
 	return BehindInterpolatedAttribute
 }
 
-// AmpersandAttribute lexes a single attribute found in a list of attributes
+// AndAttribute lexes a single attribute found in a list of attributes
 // on an &-directive.
 //
 // It assumes the next string is the name of the attribute.
-func AmpersandAttribute(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
+func AndAttribute(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
+	if l.PeekIsString("&&") {
+		l.SkipString("&&")
+		l.Emit(token.AndPlaceholder)
+		return BehindAndAttribute
+	}
+
 	if end := emitAttributeName(l); end != nil {
 		return end
 	}
 
 	l.IgnoreWhile(lexer.IsHorizontalWhitespace)
 
+	var unescaped bool
+
 	switch l.Next() {
 	case lexer.EOF:
-		return lexutil.EOFState()
+		return EOF
 	case ',', ')': // boolean attribute
 		l.Backup()
-		return BehindAttribute
+		return BehindAndAttribute
 	case '=':
 		l.Emit(token.Assign)
 	case '!':
 		if l.Next() != '=' {
-			return lexutil.ErrorState(&lexerr.UnknownItemError{Expected: "'='"})
+			return Error(&lexerr.UnknownItemError{Expected: "'='"})
 		}
 
 		l.Emit(token.AssignNoEscape)
+		unescaped = true
 	default:
-		return lexutil.ErrorState(&lexerr.UnknownItemError{Expected: "a comma, ')', '=', or '!='"})
+		return Error(&lexerr.UnknownItemError{Expected: "a comma, ')', '=', or '!='"})
+	}
+
+	if l.Peek() == '+' {
+		if unescaped {
+			return Error(&lexerr.UnknownItemError{Expected: "an expression or a '=' instead of '!='"})
+		}
+
+		if end := emitMixinCallArgValueMixinCall(l); end != nil {
+			return end
+		}
+
+		return BehindAndAttribute
 	}
 
 	l.IgnoreWhile(lexer.IsHorizontalWhitespace)
-	if err := lexutil.EmitExpression(l, true, ',', ')'); err != nil {
+	if err := lexutil.EmitExpression(l, true, ",", ")"); err != nil {
 		return err
 	}
 
-	return BehindAmpersandAttribute
+	return BehindAndAttribute
 }
 
 func emitAttributeName(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
@@ -383,7 +468,7 @@ Name:
 		next := l.Next()
 		switch {
 		case next == lexer.EOF:
-			return lexutil.EOFState()
+			return EOF
 		case !lexutil.IsAttributeName(next):
 			fallthrough
 		case next == '=' || next == '!' || next == ',':
@@ -412,10 +497,19 @@ Name:
 	}
 
 	if l.IsContentEmpty() {
-		return lexutil.ErrorState(&lexerr.UnknownItemError{Expected: "an attribute name"})
+		return Error(&lexerr.UnknownItemError{Expected: "an attribute name"})
 	}
 
 	l.Emit(token.Ident)
+	return nil
+}
+
+func emitAttributeValueMixinCall(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
+	state := AttributeValueMixinCall(l)
+	for state != nil {
+		state = state(l)
+	}
+
 	return nil
 }
 
@@ -434,7 +528,7 @@ func BehindAttribute(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 
 	switch l.Next() {
 	case lexer.EOF:
-		return lexutil.EOFState()
+		return EOF
 	case ',':
 		l.Emit(token.Comma)
 		l.IgnoreWhile(lexer.IsWhitespace)
@@ -450,7 +544,7 @@ func BehindAttribute(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 		l.Emit(token.RParen)
 		return BehindElement
 	default:
-		return lexutil.ErrorState(&lexerr.UnknownItemError{Expected: "a comma, or closing parenthesis"})
+		return Error(&lexerr.UnknownItemError{Expected: "a comma, or closing parenthesis"})
 	}
 }
 
@@ -466,7 +560,7 @@ func BehindBlockExpansionAttribute(l *lexer.Lexer[token.Token]) lexer.StateFn[to
 
 	switch l.Next() {
 	case lexer.EOF:
-		return lexutil.EOFState()
+		return EOF
 	case ',':
 		l.Emit(token.Comma)
 		l.IgnoreWhile(lexer.IsHorizontalWhitespace)
@@ -482,7 +576,7 @@ func BehindBlockExpansionAttribute(l *lexer.Lexer[token.Token]) lexer.StateFn[to
 		l.Emit(token.RParen)
 		return BehindBlockExpansionElement
 	default:
-		return lexutil.ErrorState(&lexerr.UnknownItemError{Expected: "a comma, or closing parenthesis"})
+		return Error(&lexerr.UnknownItemError{Expected: "a comma, or closing parenthesis"})
 	}
 }
 
@@ -498,7 +592,7 @@ func BehindInterpolatedAttribute(l *lexer.Lexer[token.Token]) lexer.StateFn[toke
 
 	switch l.Next() {
 	case lexer.EOF:
-		return lexutil.EOFState()
+		return EOF
 	case ',':
 		l.Emit(token.Comma)
 		l.IgnoreWhile(lexer.IsHorizontalWhitespace)
@@ -514,23 +608,23 @@ func BehindInterpolatedAttribute(l *lexer.Lexer[token.Token]) lexer.StateFn[toke
 		l.Emit(token.RParen)
 		return BehindInterpolatedElement
 	default:
-		return lexutil.ErrorState(&lexerr.UnknownItemError{Expected: "a comma, or closing parenthesis"})
+		return Error(&lexerr.UnknownItemError{Expected: "a comma, or closing parenthesis"})
 	}
 }
 
-// BehindAmpersandAttribute lexes the tokens after an attribute that is part
+// BehindAndAttribute lexes the tokens after an attribute that is part
 // of an attribute list attached to an &-directive.
 //
 // It assumes the next rune is either eof, ',', or ')'.
 //
 // It emits either a [token.Comma] optionally followed by a [token.RParen], or
 // just a [token.RParen].
-func BehindAmpersandAttribute(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
+func BehindAndAttribute(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 	l.IgnoreWhile(lexer.IsHorizontalWhitespace)
 
 	switch l.Next() {
 	case lexer.EOF:
-		return lexutil.EOFState()
+		return EOF
 	case ',':
 		l.Emit(token.Comma)
 		l.IgnoreWhile(lexer.IsWhitespace)
@@ -538,15 +632,15 @@ func BehindAmpersandAttribute(l *lexer.Lexer[token.Token]) lexer.StateFn[token.T
 		if l.Peek() == ')' {
 			l.Next()
 			l.Emit(token.RParen)
-			return BehindAmpersand
+			return BehindAnd
 		}
 
-		return AmpersandAttribute
+		return AndAttribute
 	case ')':
 		l.Emit(token.RParen)
-		return BehindAmpersand
+		return BehindAnd
 	default:
-		return lexutil.ErrorState(&lexerr.UnknownItemError{Expected: "a comma, or closing parenthesis"})
+		return Error(&lexerr.UnknownItemError{Expected: "a comma, or closing parenthesis"})
 	}
 }
 
@@ -558,12 +652,10 @@ func BehindAttributes(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 	switch l.Peek() {
 	case lexer.EOF:
 		l.Next()
-		return lexutil.EOFState()
+		return EOF
 	case '\n':
 		l.IgnoreNext()
 		return Next
-	case '/':
-		return TagVoid
 	case '!', '=':
 		return Assign
 	case ':':
@@ -579,7 +671,7 @@ func BehindAttributes(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 		return DotBlock
 	default:
 		l.Next()
-		return lexutil.ErrorState(&lexerr.UnknownItemError{
+		return Error(&lexerr.UnknownItemError{
 			Expected: "a class, id, attribute, '/', '=', '!=', ':', a newline, or a space",
 		})
 	}
@@ -589,12 +681,10 @@ func BehindBlockExpansionAttributes(l *lexer.Lexer[token.Token]) lexer.StateFn[t
 	switch l.Peek() {
 	case lexer.EOF:
 		l.Next()
-		return lexutil.EOFState()
+		return EOF
 	case '\n':
 		l.IgnoreNext()
 		return Next
-	case '/':
-		return TagVoid
 	case '!', '=':
 		return Assign
 	case ':':
@@ -608,7 +698,7 @@ func BehindBlockExpansionAttributes(l *lexer.Lexer[token.Token]) lexer.StateFn[t
 		return Text
 	default:
 		l.Next()
-		return lexutil.ErrorState(&lexerr.UnknownItemError{
+		return Error(&lexerr.UnknownItemError{
 			Expected: "a class, id, attribute, '/', '=', '!=', ':', a newline, or a space",
 		})
 	}
@@ -618,7 +708,7 @@ func BehindInterpolatedAttributes(l *lexer.Lexer[token.Token]) lexer.StateFn[tok
 	switch l.Peek() {
 	case lexer.EOF:
 		l.Next()
-		return lexutil.EOFState()
+		return EOF
 	case '[':
 		return InterpolatedText
 	case '{':
@@ -627,6 +717,6 @@ func BehindInterpolatedAttributes(l *lexer.Lexer[token.Token]) lexer.StateFn[tok
 		l.Backup()
 		return Text
 	default:
-		return lexutil.ErrorState(&lexerr.UnknownItemError{Expected: "a class, id, attribute, a '{', or a '['"})
+		return Error(&lexerr.UnknownItemError{Expected: "a class, id, attribute, a '{', or a '['"})
 	}
 }

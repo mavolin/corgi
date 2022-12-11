@@ -21,7 +21,7 @@ func Text(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 	}
 
 	for {
-		l.NextWhile(lexer.IsNot('#', '\n'))
+		l.NextWhile(lexer.MatchesNot('#', '\n'))
 		if !l.PeekIsString("##") { // hash escape
 			break
 		}
@@ -40,7 +40,7 @@ func Text(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 }
 
 // ============================================================================
-// Hash
+// Interpolation
 // ======================================================================================
 
 // Hash lexes a hash expression.
@@ -48,14 +48,14 @@ func Text(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 // It assumes the next rune is '#', but the rune following it is not '#'.
 func Hash(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 	l.SkipString("#")
-	l.Emit(token.Hash)
+	l.Emit(token.Interpolation)
 
 	switch l.Peek() {
 	case '+':
 		return InterpolatedMixinCall
 	case '!':
 		l.SkipString("!")
-		l.Emit(token.NoEscape)
+		l.Emit(token.UnescapedInterpolation)
 	}
 
 	switch l.Peek() {
@@ -79,16 +79,16 @@ func InterpolatedText(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 	l.Emit(token.LBracket)
 
 	end := lexutil.EmitNextPredicate(l, token.Text,
-		&lexerr.UnknownItemError{Expected: "text"}, lexer.IsNot(']', '\n'))
+		&lexerr.UnknownItemError{Expected: "text"}, lexer.MatchesNot(']', '\n'))
 	if end != nil {
 		return end
 	}
 
 	switch l.Next() {
 	case lexer.EOF:
-		return lexutil.EOFState()
+		return EOF
 	case '\n':
-		return lexutil.ErrorState(&lexerr.EOLError{In: "interpolated text"})
+		return Error(&lexerr.EOLError{In: "interpolated text"})
 	}
 
 	l.Emit(token.RBracket)
@@ -99,18 +99,18 @@ func InterpolatedText(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 //
 // It assumes the next rune is a '{'.
 //
-// It emits a [token.LBracket], followed by an expression, followed by a
+// It emits a [token.LBracket], followed by a [token.Expression], followed by a
 // [token.RBracket].
 func InterpolatedExpression(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 	l.SkipString("{")
 	l.Emit(token.LBrace)
 
-	if end := lexutil.EmitExpression(l, false, '}'); end != nil {
+	if end := lexutil.EmitExpression(l, false, "}"); end != nil {
 		return end
 	}
 
 	if l.Next() == lexer.EOF {
-		return lexutil.EOFState()
+		return EOF
 	}
 
 	l.Emit(token.RBrace)
@@ -140,7 +140,7 @@ func DotBlock(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 
 	dIndent, skippedLines, err := l.ConsumeIndent(lexer.ConsumeSingleIncrease)
 	if err != nil {
-		return lexutil.ErrorState(err)
+		return Error(err)
 	}
 
 	lexutil.EmitIndent(l, dIndent)
@@ -161,7 +161,7 @@ func DotBlock(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 // DotBlockLine lexes a single non-empty line inside a dot block.
 //
 // It emits a [token.DotBlockLine], followed by at least one [token.Text], or
-// [token.Hash].
+// [token.Interpolation].
 func DotBlockLine(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 	l.Emit(token.DotBlockLine)
 	return Text
@@ -186,7 +186,7 @@ func Pipe(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 	}
 
 	if l.Next() != ' ' {
-		return lexutil.ErrorState(&lexerr.UnknownItemError{Expected: "a space"})
+		return Error(&lexerr.UnknownItemError{Expected: "a space"})
 	}
 
 	l.Ignore()
@@ -198,16 +198,16 @@ func Pipe(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 // Assign
 // ======================================================================================
 
-// Assign lexes an expression assignment to an element.
+// Assign lexes a [token.Expression] assignment to an element.
 //
 // It assumes the next rune is '!' or '='.
 //
-// It emits a [token.Assign] or a [token.AssignUnescaped] followed by an
-// expression.
+// It emits a [token.Assign] or a [token.AssignUnescaped] followed by a
+// [token.Expression].
 func Assign(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 	if l.Next() == '!' {
 		if l.Next() != '=' {
-			return lexutil.ErrorState(&lexerr.UnknownItemError{Expected: "'='"})
+			return Error(&lexerr.UnknownItemError{Expected: "'='"})
 		}
 
 		l.Emit(token.AssignNoEscape)
@@ -216,10 +216,10 @@ func Assign(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 	}
 
 	if !l.IgnoreWhile(lexer.IsHorizontalWhitespace) {
-		return lexutil.ErrorState(&lexerr.UnknownItemError{Expected: "a space"})
+		return Error(&lexerr.UnknownItemError{Expected: "a space"})
 	}
 
-	if end := lexutil.EmitExpression(l, true, '\n'); end != nil {
+	if end := lexutil.EmitExpression(l, true, "\n"); end != nil {
 		return end
 	}
 
@@ -234,10 +234,10 @@ func Assign(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 //
 // It assumes the next rune is a ':'.
 //
-// It emits a [token.Filter] followed by a [token.Ident], the name of the
-// filter.
-// It then emits zero, one, or multiple [token.Literal] items representing the
-// individual arguments.
+// It emits a [token.Filter] followed optionally by a [token.Ident], the name
+// of the filter.
+// If a [token.Ident] was emitted, it then emits zero, one, or multiple
+// [token.Literal] items representing the individual arguments.
 // Each [token.Literal] is either a string, as denoted by its '"', or '`'
 // prefix, or regular text.
 //
@@ -247,9 +247,13 @@ func Filter(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 	l.SkipString(":")
 	l.Emit(token.Filter)
 
+	if l.IsLineEmpty() {
+		return lexutil.AssertNewlineOrEOF(l, Next)
+	}
+
 	end := lexutil.EmitNextPredicate(l, token.Ident,
 		&lexerr.UnknownItemError{Expected: "the name of the filter"},
-		lexer.IsNot(' ', '\t', '\n'))
+		lexer.MatchesNot(' ', '\t', '\n'))
 	if end != nil {
 		return end
 	}
@@ -261,7 +265,7 @@ Args:
 		switch l.Peek() {
 		case lexer.EOF:
 			l.Next()
-			return lexutil.EOFState()
+			return EOF
 		case '\n':
 			l.IgnoreNext()
 			break Args
@@ -274,7 +278,7 @@ Args:
 
 			l.Emit(token.Literal)
 		} else {
-			end = lexutil.EmitNextPredicate(l, token.Literal, nil, lexer.IsNot(' ', '\t', '\n'))
+			end = lexutil.EmitNextPredicate(l, token.Literal, nil, lexer.MatchesNot(' ', '\t', '\n'))
 			if end != nil {
 				return end
 			}
@@ -283,12 +287,12 @@ Args:
 
 	if l.Peek() == lexer.EOF {
 		l.Next()
-		return lexutil.EOFState()
+		return EOF
 	}
 
 	dIndent, skippedLines, err := l.ConsumeIndent(lexer.ConsumeSingleIncrease)
 	if err != nil {
-		return lexutil.ErrorState(err)
+		return Error(err)
 	}
 
 	lexutil.EmitIndent(l, dIndent)
@@ -302,13 +306,13 @@ Args:
 	}
 
 	for dIndent >= 0 {
-		peek := l.NextWhile(lexer.IsNot('\n'))
+		peek := l.NextWhile(lexer.MatchesNot('\n'))
 		if peek == lexer.EOF {
 			if !l.IsContentEmpty() {
 				l.Emit(token.Text)
 			}
 
-			return lexutil.EOFState()
+			return EOF
 		}
 
 		// empty lines are valid
@@ -318,7 +322,7 @@ Args:
 
 		dIndent, _, err = l.ConsumeIndent(lexer.ConsumeNoIncrease)
 		if err != nil {
-			return lexutil.ErrorState(err)
+			return Error(err)
 		}
 
 		lexutil.EmitIndent(l, dIndent)

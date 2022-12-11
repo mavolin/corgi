@@ -1,4 +1,4 @@
-package writeutil
+package woof
 
 import (
 	"encoding"
@@ -266,5 +266,5 @@ func Stringify(val any, escaper func(string) string) (string, error) {
 		return strconv.FormatBool(rval.Bool()), nil
 	}
 
-	return "", fmt.Errorf("writeutil.Stringify: unsupported type %T", rval.Interface())
+	return "", fmt.Errorf("woof.Stringify: unsupported type %T", rval.Interface())
 }

@@ -16,9 +16,6 @@ type File struct {
 	// Source is the name of the source of this file.
 	Source string
 
-	// Type is the type of file.
-	Type Type
-
 	// Extend is the file that this file extends, if any.
 	Extend *Extend
 
@@ -41,28 +38,9 @@ type File struct {
 	// to the corgi command.
 	Func Func
 
-	// Prolog is the xml prolog string of the file, if any.
-	//
-	// It is only present for files of type TypeXML and only then, if the file
-	// does not extend any other file.
-	Prolog string
-	// Doctype is the doctype to use for the file, if any.
-	//
-	// Only present for Files that don't extend other Files.
-	Doctype string
-
 	// Scope is the global scope.
 	Scope Scope
 }
-
-type Type uint8
-
-const (
-	TypeUnknown Type = iota
-	TypeHTML
-	TypeXHTML
-	TypeXML
-)
 
 // Pos indicates the position where an element was encountered.
 //
@@ -89,7 +67,7 @@ type (
 		// Path is the unquoted path of the import.
 		Path string
 
-		Pos // for linking
+		Pos
 		// Source is the source of the first file that made this import.
 		Source string
 		// File is the first file that made this import.

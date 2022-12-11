@@ -30,7 +30,7 @@ type CollisionError struct {
 var _ error = (*CollisionError)(nil)
 
 func (e *CollisionError) Error() string {
-	return fmt.Sprintf("%s/%s:%d:%d: import namespace `%s` already in use in %s/%s:%d/%d for different import",
+	return fmt.Sprintf("%s/%s:%d:%d: import namespace `%s` already in use in %s/%s:%d:%d for different import",
 		e.Source, e.File, e.Line, e.Col,
 		e.Namespace,
 		e.OtherSource, e.OtherFile, e.OtherLine, e.OtherCol)

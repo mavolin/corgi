@@ -22,14 +22,32 @@ func IfBlock(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 	l.Emit(token.IfBlock)
 
 	if !l.IgnoreWhile(lexer.IsHorizontalWhitespace) {
-		if l.IsLineEmpty() {
-			return lexutil.AssertNewlineOrEOF(l, Next)
-		}
-
-		return lexutil.ErrorState(&lexerr.UnknownItemError{Expected: "a space"})
+		return Error(&lexerr.UnknownItemError{Expected: "a space"})
 	}
 
-	if end := lexutil.EmitIdent(l, nil); end != nil {
+	end := lexutil.EmitIdent(l, &lexerr.UnknownItemError{Expected: "a block's name"})
+	if end != nil {
+		return end
+	}
+
+	return lexutil.AssertNewlineOrEOF(l, Next)
+}
+
+// ElseIfBlock consumes an 'else if block' directive.
+//
+// It assumes the next string is 'else if block'.
+//
+// It emits a [token.ElseIf] optionally followed by a [token.Expression].
+func ElseIfBlock(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
+	l.SkipString("else if block")
+	l.Emit(token.ElseIfBlock)
+
+	if !l.IgnoreWhile(lexer.IsHorizontalWhitespace) {
+		return Error(&lexerr.UnknownItemError{Expected: "a space"})
+	}
+
+	end := lexutil.EmitIdent(l, &lexerr.UnknownItemError{Expected: "a block's name"})
+	if end != nil {
 		return end
 	}
 
@@ -44,22 +62,22 @@ func IfBlock(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 //
 // It assumes the next string is 'if'.
 //
-// It emits a [token.If] optionally followed by an expression.
+// It emits a [token.If] optionally followed by a [token.Expression].
 func If(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 	l.SkipString("if")
 	l.Emit(token.If)
 
 	if !l.IgnoreWhile(lexer.IsHorizontalWhitespace) {
-		return lexutil.ErrorState(&lexerr.UnknownItemError{Expected: "a space"})
+		return Error(&lexerr.UnknownItemError{Expected: "a space"})
 	}
 
-	if end := lexutil.EmitExpression(l, true, '\n'); end != nil {
+	if end := lexutil.EmitExpression(l, true, ": ", "\n"); end != nil {
 		return end
 	}
 
 	switch l.Next() {
 	case lexer.EOF:
-		return lexutil.EOFState()
+		return EOF
 	case '\n':
 		l.Ignore()
 		return Next
@@ -67,7 +85,7 @@ func If(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 		l.Backup()
 		return BlockExpansion
 	default:
-		return lexutil.ErrorState(&lexerr.UnknownItemError{Expected: "a newline or ':'"})
+		return Error(&lexerr.UnknownItemError{Expected: "a newline or ':'"})
 	}
 }
 
@@ -75,22 +93,22 @@ func If(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 //
 // It assumes the next string is 'else if'.
 //
-// It emits a [token.ElseIf] optionally followed by an expression.
+// It emits a [token.ElseIf] optionally followed by a [token.Expression].
 func ElseIf(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 	l.SkipString("else if")
 	l.Emit(token.ElseIf)
 
 	if !l.IgnoreWhile(lexer.IsHorizontalWhitespace) {
-		return lexutil.ErrorState(&lexerr.UnknownItemError{Expected: "a space"})
+		return Error(&lexerr.UnknownItemError{Expected: "a space"})
 	}
 
-	if end := lexutil.EmitExpression(l, true, ':', '\n'); end != nil {
+	if end := lexutil.EmitExpression(l, true, ": ", "\n"); end != nil {
 		return end
 	}
 
 	switch l.Next() {
 	case lexer.EOF:
-		return lexutil.EOFState()
+		return EOF
 	case '\n':
 		l.Ignore()
 		return Next
@@ -98,9 +116,13 @@ func ElseIf(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 		l.Backup()
 		return BlockExpansion
 	default:
-		return lexutil.ErrorState(&lexerr.UnknownItemError{Expected: "a newline or ':'"})
+		return Error(&lexerr.UnknownItemError{Expected: "a newline or ':'"})
 	}
 }
+
+// ============================================================================
+// Else
+// ======================================================================================
 
 // Else consumes an 'else' directive.
 //
@@ -115,7 +137,7 @@ func Else(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 
 	switch l.Next() {
 	case lexer.EOF:
-		return lexutil.EOFState()
+		return EOF
 	case '\n':
 		l.Ignore()
 		return Next
@@ -123,7 +145,7 @@ func Else(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 		l.Backup()
 		return BlockExpansion
 	default:
-		return lexutil.ErrorState(&lexerr.UnknownItemError{Expected: "a newline or ':'"})
+		return Error(&lexerr.UnknownItemError{Expected: "a newline or ':'"})
 	}
 }
 
@@ -135,7 +157,7 @@ func Else(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 //
 // It assumes the next string is 'switch'.
 //
-// It emits a [token.Switch] optionally followed by an expression.
+// It emits a [token.Switch] optionally followed by a [token.Expression].
 func Switch(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 	l.SkipString("switch")
 	l.Emit(token.Switch)
@@ -144,7 +166,7 @@ func Switch(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 
 	switch l.Next() {
 	case lexer.EOF:
-		return lexutil.EOFState()
+		return EOF
 	case '\n': // no comparative value
 		l.Ignore()
 		return Next
@@ -153,10 +175,10 @@ func Switch(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 	l.Backup()
 
 	if !spaceAfter {
-		return lexutil.ErrorState(&lexerr.UnknownItemError{Expected: "a space"})
+		return Error(&lexerr.UnknownItemError{Expected: "a space"})
 	}
 
-	if end := lexutil.EmitExpression(l, false, '\n'); end != nil {
+	if end := lexutil.EmitExpression(l, false, "\n"); end != nil {
 		return end
 	}
 
@@ -167,23 +189,23 @@ func Switch(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 //
 // It assumes the next string is 'case'.
 //
-// It emits a [token.Case] followed by an expression.
+// It emits a [token.Case] followed by a [token.Expression].
 func Case(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 	l.SkipString("case")
 	l.Emit(token.Case)
 
 	if !l.IgnoreWhile(lexer.IsHorizontalWhitespace) {
-		return lexutil.ErrorState(&lexerr.UnknownItemError{Expected: "a space"})
+		return Error(&lexerr.UnknownItemError{Expected: "a space"})
 	}
 
-	if end := lexutil.EmitExpression(l, true, ':', '\n'); end != nil {
+	if end := lexutil.EmitExpression(l, true, ":", "\n"); end != nil {
 		return end
 	}
 
 	switch l.Peek() {
 	case lexer.EOF:
 		l.Next()
-		return lexutil.EOFState()
+		return EOF
 	case ':':
 		return BlockExpansion
 	default:
@@ -204,7 +226,7 @@ func Default(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 
 	switch l.Next() {
 	case lexer.EOF:
-		return lexutil.EOFState()
+		return EOF
 	case '\n':
 		l.Ignore()
 		return Next
@@ -212,7 +234,7 @@ func Default(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 		l.Backup()
 		return BlockExpansion
 	default:
-		return lexutil.ErrorState(&lexerr.UnknownItemError{Expected: "a newline"})
+		return Error(&lexerr.UnknownItemError{Expected: "a newline"})
 	}
 }
 
@@ -224,78 +246,30 @@ func Default(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 //
 // It assumes the next string is 'for'.
 //
-// It emits a [token.For].
-// Then it emits an optional [token.Ident] and optionally a [token.Comma]
-// followed by another [token.Ident].
-// Then it emits a [token.Range] followed by an expression.
+// It emits a [token.For] followed by a [token.Expression].
 func For(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 	l.SkipString("for")
 	l.Emit(token.For)
 
 	if !l.IgnoreWhile(lexer.IsHorizontalWhitespace) {
-		return lexutil.ErrorState(&lexerr.UnknownItemError{Expected: "a space"})
+		return Error(&lexerr.UnknownItemError{Expected: "a space"})
 	}
 
-	if !l.PeekIsWord("range") {
-		end := lexutil.EmitIdent(l, &lexerr.UnknownItemError{Expected: "an identifier"})
-		if end != nil {
-			return end
-		}
-
-		spaceAfter := l.IgnoreWhile(lexer.IsHorizontalWhitespace)
-
-		if l.Peek() == ',' {
-			l.Next()
-			l.Emit(token.Comma)
-
-			l.IgnoreWhile(lexer.IsHorizontalWhitespace)
-
-			end = lexutil.EmitIdent(l, &lexerr.UnknownItemError{Expected: "an identifier"})
-			if end != nil {
-				return end
-			}
-
-			spaceAfter = l.IgnoreWhile(lexer.IsHorizontalWhitespace)
-		}
-
-		if !spaceAfter {
-			return lexutil.ErrorState(&lexerr.UnknownItemError{Expected: "a space"})
-		}
-	}
-
-	if !l.PeekIsWord("range") {
-		return lexutil.ErrorState(&lexerr.UnknownItemError{Expected: "'range'"})
-	}
-
-	l.SkipString("range")
-	l.Emit(token.Range)
-
-	if !l.IgnoreWhile(lexer.IsHorizontalWhitespace) {
-		return lexutil.ErrorState(&lexerr.UnknownItemError{Expected: "a space"})
-	}
-
-	if end := lexutil.EmitExpression(l, false, '\n'); end != nil {
-		return end
-	}
-
-	return Next
-}
-
-// ============================================================================
-// While
-// ======================================================================================
-
-// While consumes a while directive.
-//
-// It emits a [token.While] followed by an Expression.
-func While(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
-	l.SkipString("while")
-	l.Emit(token.While)
-
-	end := lexutil.EmitExpression(l, false, '\n')
+	end := lexutil.EmitExpression(l, false, ": ", "\n")
 	if end != nil {
 		return end
 	}
 
-	return Next
+	switch l.Next() {
+	case lexer.EOF:
+		return EOF
+	case '\n':
+		l.Ignore()
+		return Next
+	case ':':
+		l.Backup()
+		return BlockExpansion
+	default:
+		return Error(&lexerr.UnknownItemError{Expected: "a newline"})
+	}
 }

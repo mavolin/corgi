@@ -9,7 +9,7 @@ import (
 
 	"github.com/mavolin/corgi/corgi/file"
 	"github.com/mavolin/corgi/internal/stack"
-	"github.com/mavolin/corgi/writeutil"
+	"github.com/mavolin/corgi/woof"
 )
 
 type Writer struct {
@@ -136,7 +136,7 @@ func (w *Writer) flushRawBuf() error {
 
 	defer w.rawBuf.Reset()
 
-	return w.writeToFile("err = _writeutil.Write(_w, " + strconv.Quote(w.rawBuf.String()) + ")\n" +
+	return w.writeToFile("err = woof.Write(_w, " + strconv.Quote(w.rawBuf.String()) + ")\n" +
 		"if err != nil {\n" +
 		"    return err\n" +
 		"}\n")
@@ -146,7 +146,7 @@ func (w *Writer) flushRawBuf() error {
 
 // writePreEscapedHTML escaped the raw HTML s and writes it to the output.
 func (w *Writer) writePreEscapedHTML(s string) {
-	w.rawBuf.WriteString(string(writeutil.EscapeHTML(s)))
+	w.rawBuf.WriteString(string(woof.EscapeHTML(s)))
 }
 
 // ==================================== Expressions =====================================
@@ -157,7 +157,7 @@ func (w *Writer) writeUnescapedStringExpression(s string) error {
 	}
 
 	return w.writeToFile(
-		"err = _writeutil.Write(_w, " + s + ")\n" +
+		"err = woof.Write(_w, " + s + ")\n" +
 			"if err != nil {\n" +
 			"    return err\n" +
 			"}\n")
@@ -169,7 +169,7 @@ func (w *Writer) writeCSSExpression(s string) error {
 	}
 
 	return w.writeToFile(
-		"err = _writeutil.WriteCSS(_w, " + s + ")\n" +
+		"err = woof.WriteCSS(_w, " + s + ")\n" +
 			"if err != nil {\n" +
 			"    return err\n" +
 			"}\n")
@@ -181,7 +181,7 @@ func (w *Writer) writeHTMLExpression(s string) error {
 	}
 
 	return w.writeToFile(
-		"err = _writeutil.WriteHTML(_w, " + s + ")\n" +
+		"err = woof.WriteHTML(_w, " + s + ")\n" +
 			"if err != nil {\n" +
 			"    return err\n" +
 			"}\n")
@@ -193,7 +193,7 @@ func (w *Writer) writeEscapedHTMLStringExpression(s string) error {
 	}
 
 	return w.writeToFile(
-		"err = _writeutil.Write(_w, string(_writeutil.EscapeHTML(" + s + ")))\n" +
+		"err = woof.Write(_w, string(woof.EscapeHTML(" + s + ")))\n" +
 			"if err != nil {\n" +
 			"    return err\n" +
 			"}\n")
@@ -205,7 +205,7 @@ func (w *Writer) writeJSExpression(s string) error {
 	}
 
 	return w.writeToFile(
-		"err = _writeutil.WriteJS(_w, " + s + ")\n" +
+		"err = woof.WriteJS(_w, " + s + ")\n" +
 			"if err != nil {\n" +
 			"    return err\n" +
 			"}\n")
@@ -217,7 +217,7 @@ func (w *Writer) writeUnescapedExpression(s string) error {
 	}
 
 	return w.writeToFile(
-		"err = _writeutil.WriteAnyUnescaped(_w, " + s + ")\n" +
+		"err = woof.WriteAnyUnescaped(_w, " + s + ")\n" +
 			"if err != nil {\n" +
 			"    return err\n" +
 			"}\n")
@@ -228,14 +228,14 @@ func (w *Writer) writeUnescapedExpression(s string) error {
 func (w *Writer) writeToBufExpression(s string) error {
 	return w.writeToFile(
 		"if _buf.Len() == 0 {\n" +
-			"	_buf.WriteString(string(_writeutil.EscapeHTML(" + s + ")))\n" +
+			"	_buf.WriteString(string(woof.EscapeHTML(" + s + ")))\n" +
 			"} else {\n" +
-			"    _buf.WriteString(\" \" + string(_writeutil.EscapeHTML(" + s + ")))\n" +
+			"    _buf.WriteString(\" \" + string(woof.EscapeHTML(" + s + ")))\n" +
 			"}\n")
 }
 
 func (w *Writer) writeToBufPreEscaped(s string) error {
-	s = string(writeutil.EscapeHTML(s))
+	s = string(woof.EscapeHTML(s))
 
 	return w.writeToFile(
 		"if _buf.Len() == 0 {\n" +
@@ -260,7 +260,7 @@ func (w *Writer) writeBuf() error {
 	}
 
 	return w.writeToFile(
-		"err = _writeutil.WriteBytes(_w, _buf.Bytes())\n" +
+		"err = woof.WriteBytes(_w, _buf.Bytes())\n" +
 			"if err != nil {\n" +
 			"    return err\n" +
 			"}\n")
@@ -274,7 +274,7 @@ func (w *Writer) writeAttrExpression(name string, val string, mirror bool) error
 	}
 
 	return w.writeToFile(
-		"err = _writeutil.WriteAttr(_w, " + strconv.Quote(name) + ", " + val + ", " +
+		"err = woof.WriteAttr(_w, " + strconv.Quote(name) + ", " + val + ", " +
 			strconv.FormatBool(mirror) + ")\n" +
 			"if err != nil {\n" +
 			"    return err\n" +
@@ -287,7 +287,7 @@ func (w *Writer) writeAttrUnescapedExpression(name string, val string, mirror bo
 	}
 
 	return w.writeToFile(
-		"err = _writeutil.WriteAttrUnescaped(_w, " + strconv.Quote(name) + ", " + val + ", " +
+		"err = woof.WriteAttrUnescaped(_w, " + strconv.Quote(name) + ", " + val + ", " +
 			strconv.FormatBool(mirror) + ")\n" +
 			"if err != nil {\n" +
 			"    return err\n" +

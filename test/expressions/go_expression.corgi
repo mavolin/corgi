@@ -1,7 +1,7 @@
 import
   "strings"
   "net"
-  "github.com/mavolin/corgi/writeutil"
+  "github.com/mavolin/corgi/woof"
 
 func GoExpression(val string)
 
@@ -32,11 +32,11 @@ p= false
 p= returnBool(true)
 p= "abc" == "def"
 
-p= writeutil.HTML("<strong>bcd</strong>")
-p(foo=writeutil.HTMLAttr("efg\" bar=\"hij"))
-style= writeutil.CSS("color: red;")
-script= writeutil.JS("\"klm\"")
-script= writeutil.JSStr("nop\"+\"qrs")
+p= woof.HTML("<strong>bcd</strong>")
+p(foo=woof.HTMLAttr("efg\" bar=\"hij"))
+style= woof.CSS("color: red;")
+script= woof.JS("\"klm\"")
+script= woof.JSStr("nop\"+\"qrs")
 
 -
   var b strings.Builder

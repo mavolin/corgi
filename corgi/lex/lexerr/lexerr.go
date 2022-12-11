@@ -112,8 +112,8 @@ func (e *EOLError) Error() string {
 // EOFError is the error returned when an end of file was encountered
 // unexpectedly.
 type EOFError struct {
-	After string
-	In    string
+	After        string
+	WhileParsing string
 }
 
 var _ error = (*EOFError)(nil)
@@ -122,8 +122,8 @@ func (e *EOFError) Error() string {
 	switch {
 	case e.After != "":
 		return fmt.Sprintf("unexpected end of file after %s", e.After)
-	case e.In != "":
-		return fmt.Sprintf("unexpected end of file while parsing %s", e.In)
+	case e.WhileParsing != "":
+		return fmt.Sprintf("unexpected end of file while parsing %s", e.WhileParsing)
 	default:
 		return "unexpected end of file"
 	}

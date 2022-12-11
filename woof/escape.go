@@ -1,4 +1,4 @@
-package writeutil
+package woof
 
 /*
 This file contains excerpts from the Go standard library package html/template,

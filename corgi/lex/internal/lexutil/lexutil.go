@@ -24,12 +24,12 @@ import (
 func EmitIdent(l *lexer.Lexer[token.Token], ifEmptyErr error) lexer.StateFn[token.Token] {
 	next := l.Next()
 	if next == lexer.EOF {
-		return EOFState()
+		return eofState()
 	}
 
 	if next != '_' && !unicode.IsLetter(next) {
 		if ifEmptyErr != nil {
-			return ErrorState(ifEmptyErr)
+			return errorState(ifEmptyErr)
 		}
 
 		return nil
@@ -79,8 +79,8 @@ func EmitIndent(l *lexer.Lexer[token.Token], delta int) {
 // If [lexer.Lexer.NextWhile] returns [lexer.EOF], a [lexer.StateFn]
 // emitting [token.EOF] is returned.
 //
-// If no rune was consumed and ifEmptyErr, a [lexer.StateFn] emitting
-// ifEmptyErr is returned.
+// If no rune was consumed and ifEmptyErr is not nil, a [lexer.StateFn]
+// emitting ifEmptyErr is returned.
 //
 // In any other case, nil is returned.
 func EmitNextPredicate(
@@ -94,11 +94,11 @@ func EmitNextPredicate(
 	}
 
 	if peek == lexer.EOF {
-		return EOFState()
+		return eofState()
 	}
 
 	if ifEmptyErr != nil && empty {
-		return ErrorState(ifEmptyErr)
+		return errorState(ifEmptyErr)
 	}
 
 	return nil
@@ -119,27 +119,27 @@ func AssertNewlineOrEOF(l *lexer.Lexer[token.Token], next lexer.StateFn[token.To
 
 	switch l.Next() {
 	case lexer.EOF:
-		return EOFState()
+		return eofState()
 	case '\n':
 		l.Ignore()
 		return next
 	default:
-		return ErrorState(&lexerr.UnknownItemError{Expected: "a newline"})
+		return errorState(&lexerr.UnknownItemError{Expected: "a newline"})
 	}
 }
 
-// EOFState returns a [lexer.StateFn] that emits a [token.EOF] and then returns
+// eofState returns a [lexer.StateFn] that emits a [token.EOF] and then returns
 // nil.
-func EOFState() lexer.StateFn[token.Token] {
+func eofState() lexer.StateFn[token.Token] {
 	return func(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 		l.Emit(token.EOF)
 		return nil
 	}
 }
 
-// ErrorState returns a [lexer.StateFn] that emits the passed error err and
+// errorState returns a [lexer.StateFn] that emits the passed error err and
 // then returns nil.
-func ErrorState(err error) lexer.StateFn[token.Token] {
+func errorState(err error) lexer.StateFn[token.Token] {
 	return func(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 		l.EmitError(token.Error, err)
 		return nil

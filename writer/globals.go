@@ -33,7 +33,7 @@ func (w *Writer) writeImports() error {
 		return err
 	}
 
-	err := w.writeToFile("_writeutil \"github.com/mavolin/corgi/writeutil\"\n")
+	err := w.writeToFile("\"github.com/mavolin/corgi/woof\"\n")
 	if err != nil {
 		return err
 	}

@@ -1,4 +1,4 @@
-package writeutil
+package woof
 
 import (
 	"reflect"

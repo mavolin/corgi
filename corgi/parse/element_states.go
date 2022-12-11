@@ -358,14 +358,14 @@ func (p *Parser) scopeItemMixinCall() (file.ScopeItem, error) {
 
 		return *c, nil
 	case token.Block:
-		p.context.Push(ContextRegular)
+		prev := p.context.Pop()
 
 		block, err := p.block(require.Optional, require.Optional)
 		if err != nil {
 			return nil, err
 		}
 
-		p.context.Pop()
+		p.context.Push(prev)
 
 		return *block, nil
 	default:
@@ -1285,7 +1285,7 @@ func (p *Parser) element() (*file.Element, error) {
 			}
 
 			return e, nil
-		case token.Text, token.Hash:
+		case token.Text, token.Interpolation:
 			e.Body, err = p.text(true)
 			if err != nil {
 				return nil, err
@@ -1704,7 +1704,7 @@ func (p *Parser) mixinCall() (_ *file.MixinCall, err error) {
 		return nil, err
 	}
 
-	if p.peek().Type == token.MixinBlockShorthand {
+	if p.peek().Type == token.MixinMainBlockShorthand {
 		b, err := p.mixinBlockShortcut()
 		if err != nil {
 			return nil, err
@@ -1804,7 +1804,7 @@ func (p *Parser) mixinBlockShortcut() (_ *file.Block, err error) {
 		}
 
 		return &b, nil
-	case token.Text, token.Hash:
+	case token.Text, token.Interpolation:
 		b.Body, err = p.text(true)
 		if err != nil {
 			return nil, err

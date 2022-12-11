@@ -11,7 +11,7 @@ import (
 
 	"github.com/mavolin/corgi/corgi/file"
 	"github.com/mavolin/corgi/internal/voidelem"
-	"github.com/mavolin/corgi/writeutil"
+	"github.com/mavolin/corgi/woof"
 )
 
 // This file contains code that produces the body of the generated function.
@@ -399,7 +399,7 @@ func (w *Writer) writeElement(e file.Element, extraAttrs func(*elem) error) erro
 func (w *Writer) writeAttribute(attr file.Attribute) error {
 	switch attr := attr.(type) {
 	case file.AttributeLiteral:
-		w.writeRawUnescaped(fmt.Sprintf(` %s="%s"`, attr.Name, writeutil.EscapeHTML(attr.Value)))
+		w.writeRawUnescaped(fmt.Sprintf(` %s="%s"`, attr.Name, woof.EscapeHTML(attr.Value)))
 	case file.AttributeExpression:
 		iexp := w.inlineExpression(attr.Value)
 		if iexp != "" {
@@ -419,7 +419,7 @@ func (w *Writer) writeAttribute(attr file.Attribute) error {
 			unq, err := strconv.Unquote(iexp)
 			if err == nil {
 				if !attr.NoEscape {
-					unq = string(writeutil.EscapeHTML(unq))
+					unq = string(woof.EscapeHTML(unq))
 				}
 
 				w.writeRawUnescaped(fmt.Sprintf(` %s="%s"`, attr.Name, unq))
@@ -1585,32 +1585,6 @@ func (w *Writer) ifExpression(e file.Expression) error {
 	switch e := e.(type) {
 	case file.GoExpression:
 		return w.writeToFile(e.Expression)
-	case file.TernaryExpression:
-		if err := w.writeToFile("func() bool {\n"); err != nil {
-			return err
-		}
-
-		return w.ifElse(e.Condition, func() error {
-			if err := w.writeToFile("return "); err != nil {
-				return err
-			}
-
-			if err := w.ifExpression(e.IfTrue); err != nil {
-				return err
-			}
-
-			return w.writeToFile("\n}()")
-		}, func() error {
-			if err := w.writeToFile("return "); err != nil {
-				return err
-			}
-
-			if err := w.ifExpression(e.IfFalse); err != nil {
-				return err
-			}
-
-			return w.writeToFile("\n}()")
-		})
 	case file.NilCheckExpression:
 		return w.nilCheckIfCondition(e)
 	default:
@@ -1619,7 +1593,7 @@ func (w *Writer) ifExpression(e file.Expression) error {
 }
 
 func (w *Writer) nilCheckIfCondition(e file.NilCheckExpression) error {
-	if err := w.writeToFile("_writeutil.IsSet("); err != nil {
+	if err := w.writeToFile("woof.IsSet("); err != nil {
 		return err
 	}
 
@@ -1635,17 +1609,17 @@ func (w *Writer) nilCheckIfCondition(e file.NilCheckExpression) error {
 
 		switch expr := expr.(type) {
 		case file.IndexExpression:
-			err = w.writeToFile("_writeutil.IndexChainItm{Index: " + expr.Expression + "}")
+			err = w.writeToFile("woof.IndexChainItm{Index: " + expr.Expression + "}")
 			if err != nil {
 				return err
 			}
 		case file.FieldMethodExpression:
-			err = w.writeToFile("_writeutil.FieldMethodChainItem{Name: \"" + expr.Expression + "\"}")
+			err = w.writeToFile("woof.FieldMethodChainItem{Name: \"" + expr.Expression + "\"}")
 			if err != nil {
 				return err
 			}
 		case file.FuncCallExpression:
-			err = w.writeToFile("_writeutil.FuncCallChainItem{Args: []any{" + expr.Expression + "}}")
+			err = w.writeToFile("woof.FuncCallChainItem{Args: []any{" + expr.Expression + "}}")
 			if err != nil {
 				return err
 			}

@@ -33,6 +33,7 @@ const (
 )
 
 // ConsumeIndent consumes the upcoming indentation.
+//
 // For that it first skips all empty lines.
 // Then, when it encounters a line with content, it consumes all indentation
 // before it and determines the delta in indentation, which it returns.
@@ -43,7 +44,7 @@ const (
 // Callers can use mode to indicate how much indentation should be consumed.
 // Refer to the documentation of the mode constants for more information.
 //
-// When calling, the current position must be at the beginning of a line.
+// When calling, the next position must be at the beginning of a line.
 // Otherwise, ConsumeIndent will panic.
 //
 // If ConsumeIndent encounters the end of file, it will return 0 and nil.
@@ -108,7 +109,7 @@ func (l *Lexer[Token]) consumeNoIncreaseLineIndent() (dlvl int, stop bool, err e
 		l.Backup()
 
 		if l.IsLineEmpty() {
-			l.NextWhile(IsNot('\n'))
+			l.NextWhile(MatchesNot('\n'))
 			l.Next()
 			return 0, false, nil
 		}
@@ -144,7 +145,7 @@ Next:
 		return 0, false, nil
 	case ' ', '\t': // possibly empty line
 		if l.IsLineEmpty() {
-			l.NextWhile(IsNot('\n'))
+			l.NextWhile(MatchesNot('\n'))
 			l.Next()
 			return 0, false, nil
 		}
@@ -243,7 +244,7 @@ Next:
 		return 0, false, nil
 	case ' ', '\t': // possibly empty line
 		if l.IsLineEmpty() {
-			l.NextWhile(IsNot('\n'))
+			l.NextWhile(MatchesNot('\n'))
 			l.Next()
 			return 0, false, nil
 		}

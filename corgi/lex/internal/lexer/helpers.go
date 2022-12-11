@@ -8,13 +8,33 @@ import (
 // Pos
 // ======================================================================================
 
-// Line returns the line number of the current position.
+// Line returns the line number of the rune last returned by Next.
 func (l *Lexer[Token]) Line() int {
+	if l.col-1 <= 0 {
+		return l.line - 1
+	}
+
 	return l.line
 }
 
-// Col returns the column number of the current position.
+// Col returns the column number of the last returned by Next.
 func (l *Lexer[Token]) Col() int {
+	col := l.col - 1
+
+	if col <= 0 {
+		col = l.prevLineLen
+	}
+
+	return col
+}
+
+// NextLine returns the line number of the rune next rune.
+func (l *Lexer[Token]) NextLine() int {
+	return l.line
+}
+
+// NextCol returns the column number of the next rune.
+func (l *Lexer[Token]) NextCol() int {
 	return l.col
 }
 

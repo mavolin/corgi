@@ -12,7 +12,7 @@ import (
 // String
 // ======================================================================================
 
-// ConsumeString consumes a string.
+// ConsumeString consumes a string that does not include any interpolation.
 //
 // It assumes the next character is a '`' or a '"'.
 //
@@ -32,12 +32,12 @@ func ConsumeString(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 // It returns at the end of the string.
 func consumeDoubleQuotedString(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 	for {
-		l.NextWhile(lexer.IsNot('\\', '"', '\n'))
+		l.NextWhile(lexer.MatchesNot('\\', '"', '\n'))
 		switch l.Next() {
 		case lexer.EOF:
-			return ErrorState(&lexerr.EOFError{In: "a string"})
+			return errorState(&lexerr.EOFError{WhileParsing: "a string"})
 		case '\n':
-			return ErrorState(&lexerr.EOLError{In: "a string"})
+			return errorState(&lexerr.EOLError{In: "a string"})
 		case '\\': // an escape
 			// skip the backslash and next character so that we don't possible
 			// stop at an escaped quote in the next iteration
@@ -55,77 +55,13 @@ func consumeDoubleQuotedString(l *lexer.Lexer[token.Token]) lexer.StateFn[token.
 // It returns at the end of the string.
 func consumeBacktickString(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 	for {
-		l.NextWhile(lexer.IsNot('`', '\n'))
+		l.NextWhile(lexer.MatchesNot('`', '\n'))
 		switch l.Next() {
 		case lexer.EOF:
-			return ErrorState(&lexerr.EOFError{In: "a string"})
+			return errorState(&lexerr.EOFError{WhileParsing: "a string"})
 		case '\n':
-			return ErrorState(&lexerr.EOLError{In: "a string"})
+			return errorState(&lexerr.EOLError{In: "a string"})
 		case '`':
-			return nil
-		}
-	}
-}
-
-// ============================================================================
-// Comment
-// ======================================================================================
-
-// IgnoreCorgiComment consumes and ignores a corgi comment ('//-').
-//
-// If the comment is a block comment, [IgnoreCorgiComment] will consume and
-// emit changes in indentation at the end of the comment.
-//
-// Otherwise, it emits nothing.
-func IgnoreCorgiComment(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
-	l.SkipString("//-")
-	l.IgnoreWhile(lexer.IsHorizontalWhitespace)
-
-	switch l.Next() {
-	case lexer.EOF:
-		return EOFState()
-	case '\n': // either an empty comment or a block comment
-		// handled after the switch
-	default: // a one-line comment
-		// since this is a corgi comment and not an HTML comment, just ignore it
-		peek := l.NextWhile(lexer.IsNot('\n'))
-		if peek == lexer.EOF {
-			return EOFState()
-		}
-
-		l.IgnoreNext() // '\n'
-		return nil
-	}
-
-	// we're possibly in a block comment, check if the next line is indented
-	dIndent, _, err := l.ConsumeIndent(lexer.ConsumeSingleIncrease)
-	if err != nil {
-		return ErrorState(err)
-	}
-
-	if dIndent < 0 {
-		EmitIndent(l, dIndent)
-	} else if dIndent == 0 {
-		return nil
-	}
-
-	for {
-		peek := l.NextWhile(lexer.IsNot('\n'))
-		if peek == lexer.EOF {
-			return EOFState()
-		}
-
-		l.IgnoreNext()
-
-		dIndent, _, err = l.ConsumeIndent(lexer.ConsumeNoIncrease)
-		if err != nil {
-			return ErrorState(err)
-		}
-
-		if dIndent < 0 {
-			// emit the change in indentation relative to when we encountered the '//-'
-			EmitIndent(l, dIndent+1)
-
 			return nil
 		}
 	}
@@ -135,43 +71,40 @@ func IgnoreCorgiComment(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] 
 // EmitExpression
 // ======================================================================================
 
-// EmitExpression consumes an expression and emits the appropriate items.
+// EmitExpression consumes an expression.
+//
+// It emits a [token.Expression].
 //
 // It assumes the expression starts at the next character.
 func EmitExpression(
-	l *lexer.Lexer[token.Token], allowNewlines bool, terminators ...rune,
+	l *lexer.Lexer[token.Token], allowNewlines bool, terminators ...string,
 ) lexer.StateFn[token.Token] {
-	switch l.Peek() {
-	case lexer.EOF:
-		return EOFState()
-	case '?':
-		return ternary(l, allowNewlines)
+	if l.Peek() == lexer.EOF {
+		l.Next()
+		return eofState()
 	}
 
 	var (
 		// count of parens, brackets, braces
-		parenCount  int
-		inString    bool
-		inRawString bool
+		parenCount                int
+		strRune                   rune
+		strStartLine, strStartCol int
 	)
 
 	// in case our terminator is any of those things
 	switch l.Next() {
 	case '"':
-		inString = true
+		strRune = '"'
 	case '`':
-		inString = true
-		inRawString = true
+		strRune = '`'
 	case '(', '[', '{':
 		parenCount++
 	}
 
 	for {
-		next := l.Next()
-
-		if parenCount <= 0 && !inString {
+		if parenCount == 0 && strRune == 0 {
 			for _, t := range terminators {
-				if t == next {
+				if l.PeekIsString(t) {
 					l.Backup()
 					l.Emit(token.Expression)
 					return nil
@@ -179,171 +112,73 @@ func EmitExpression(
 			}
 		}
 
+		next := l.Next()
 		switch next {
 		case lexer.EOF:
 			if parenCount > 0 {
-				return ErrorState(&lexerr.EOFError{
-					In: fmt.Sprintf("an expression with unclosed parentheses, brackets, or braces (started at %d:%d)",
+				return errorState(&lexerr.EOFError{
+					WhileParsing: fmt.Sprintf("an expression with unclosed parentheses, brackets, or braces (started at %d:%d)",
 						l.StartLine(), l.StartCol()),
 				})
-			} else if inString {
-				return ErrorState(&lexerr.EOFError{
-					In: fmt.Sprintf("an expression with an unclosed string (started at %d:%d)",
-						l.StartLine(), l.StartCol()),
+			} else if strRune != 0 {
+				return errorState(&lexerr.EOFError{
+					WhileParsing: fmt.Sprintf("an expression with an unclosed string (started at %d:%d)",
+						strStartLine, strStartCol),
 				})
 			}
 
 			l.Emit(token.Expression)
 
-			return EOFState()
+			return eofState()
+		case '\n':
+			if strRune != 0 {
+				return errorState(&lexerr.EOLError{
+					In: fmt.Sprintf("an expression with an unclosed string (started at %d:%d)",
+						strStartLine, strStartCol),
+				})
+			}
+
+			if !allowNewlines {
+				return errorState(&lexerr.EOLError{In: "expression"})
+			}
 		case '(', '[', '{':
-			if !inString {
+			if strRune == 0 {
 				parenCount++
 			}
 		case ')', ']', '}':
-			if !inString {
+			if strRune == 0 {
 				parenCount--
 			}
-		case '"':
-			inString = !inString
-			inRawString = false
-		case '`':
-			inString = !inString
-			inRawString = inString
+		case '"', '`':
+			if strRune == 0 { // start of string
+				strRune = next
+				strStartLine, strStartCol = l.Line(), l.Col()
+			} else if strRune == next { // end of string
+				strRune = 0
+			}
 		case '\\':
-			if inString && !inRawString {
-				// skip the escaped rune, in case it's a quote
+			if strRune == '"' && l.Peek() == '"' {
+				// skip the escaped quote, so it doesn't end the string next iteration
 				l.Next()
 			}
 		case '\'':
-			if !inString {
+			if strRune == 0 {
+				startLine, startCol := l.Line(), l.Col()
+
 				if l.PeekIsString(`\''`) {
 					l.SkipString(`\''`)
 				} else {
-					peek := l.NextWhile(lexer.IsNot('\''))
+					peek := l.NextWhile(lexer.MatchesNot('\'', '\n'))
 					if peek == lexer.EOF {
-						return ErrorState(&lexerr.EOFError{
-							In: fmt.Sprintf("an expression with an unclosed rune literal (started at %d:%d)",
-								l.StartLine(), l.StartCol()),
+						return errorState(&lexerr.EOFError{
+							WhileParsing: fmt.Sprintf("an expression with an unclosed rune literal (started at %d:%d)",
+								startLine, startCol),
 						})
 					}
 
 					l.Next()
 				}
 			}
-		case '?':
-			if !inString && parenCount <= 0 {
-				l.Backup()
-				if endState := nilCheck(l, allowNewlines); endState != nil {
-					return endState
-				}
-
-				l.IgnoreWhile(lexer.IsHorizontalWhitespace)
-
-				next = l.Next()
-				if next == lexer.EOF {
-					return EOFState()
-				}
-
-				for _, t := range terminators {
-					if next == t {
-						l.Backup()
-						return nil
-					}
-				}
-
-				var terminatorList string
-				for i, t := range terminators {
-					if i > 0 {
-						terminatorList += ", "
-					}
-
-					terminatorList += "'" + string(t) + "'"
-				}
-
-				return ErrorState(&lexerr.UnknownItemError{Expected: "one of " + terminatorList})
-			}
-		case '\n':
-			if !allowNewlines {
-				return ErrorState(&lexerr.EOLError{In: "expression"})
-			}
 		}
 	}
-}
-
-// ternary consumes a ternary expression.
-//
-// It assumes the next character is '?'.
-func ternary(l *lexer.Lexer[token.Token], allowNewline bool) lexer.StateFn[token.Token] {
-	l.SkipString("?")
-	l.Emit(token.Ternary)
-
-	if endState := EmitExpression(l, allowNewline, '('); endState != nil {
-		return endState
-	}
-
-	if l.Next() == lexer.EOF {
-		return EOFState()
-	}
-
-	l.Emit(token.LParen)
-
-	if err := EmitExpression(l, allowNewline, ':'); err != nil {
-		return err
-	}
-
-	if l.Next() == lexer.EOF {
-		return EOFState()
-	}
-
-	l.Emit(token.TernaryElse)
-
-	l.IgnoreWhile(lexer.IsHorizontalWhitespace)
-	if l.Peek() == lexer.EOF {
-		l.Next()
-		return EOFState()
-	}
-
-	if endState := EmitExpression(l, allowNewline, ')'); endState != nil {
-		return endState
-	}
-
-	if l.Next() == lexer.EOF {
-		return EOFState()
-	}
-
-	l.Emit(token.RParen)
-	return nil
-}
-
-// nilCheck consumes a nil check expression.
-//
-// It assumes the previous expression has not yet been emitted and that the
-// next character is '?'.
-//
-// It emits the EmitExpression, then the NilCheck and then, if present, the default
-// value contained in parens.
-func nilCheck(l *lexer.Lexer[token.Token], allowNewline bool) lexer.StateFn[token.Token] {
-	l.Emit(token.Expression)
-
-	l.SkipString("?")
-	l.Emit(token.NilCheck)
-
-	if l.Peek() != '(' { // no default
-		return nil
-	}
-
-	l.SkipString("(")
-	l.Emit(token.LParen)
-
-	if endState := EmitExpression(l, allowNewline, ')'); endState != nil {
-		return endState
-	}
-
-	if l.Next() == lexer.EOF {
-		return EOFState()
-	}
-
-	l.Emit(token.RParen)
-	return nil
 }

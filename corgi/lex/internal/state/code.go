@@ -21,7 +21,7 @@ func Code(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 
 	switch l.Next() {
 	case lexer.EOF:
-		return lexutil.EOFState()
+		return EOF
 	case '\n': // this is a block of code
 		l.Ignore()
 		// handled below
@@ -33,22 +33,31 @@ func Code(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 		}
 
 		if !spaceAfter {
-			return lexutil.ErrorState(&lexerr.UnknownItemError{Expected: "a space"})
+			return Error(&lexerr.UnknownItemError{Expected: "a space"})
 		}
 
-		end := lexutil.EmitNextPredicate(l, token.Code, nil, lexer.IsNot('\n'))
+		end := lexutil.EmitNextPredicate(l, token.Code, nil, lexer.MatchesNot('\n'))
 		if end != nil {
 			return end
 		}
 
-		return lexutil.AssertNewlineOrEOF(l, Next)
+		// indents are allowed after single line code blocks
+
+		dIndent, _, err := l.ConsumeIndent(lexer.ConsumeAllIndents)
+		if err != nil {
+			return Error(err)
+		}
+
+		lexutil.EmitIndent(l, dIndent)
+
+		return Next
 	}
 
 	// we're at the beginning of a block of code
 
 	dIndent, _, err := l.ConsumeIndent(lexer.ConsumeSingleIncrease)
 	if err != nil {
-		return lexutil.ErrorState(err)
+		return Error(err)
 	}
 
 	lexutil.EmitIndent(l, dIndent)
@@ -58,18 +67,18 @@ func Code(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 	}
 
 	for dIndent >= 0 {
-		end := lexutil.EmitNextPredicate(l, token.Code, nil, lexer.IsNot('\n'))
+		end := lexutil.EmitNextPredicate(l, token.Code, nil, lexer.MatchesNot('\n'))
 		if end != nil {
 			return end
 		}
 
 		if l.Next() == lexer.EOF {
-			return lexutil.EOFState()
+			return EOF
 		}
 
 		dIndent, _, err = l.ConsumeIndent(lexer.ConsumeNoIncrease)
 		if err != nil {
-			return lexutil.ErrorState(err)
+			return Error(err)
 		}
 
 		lexutil.EmitIndent(l, dIndent)

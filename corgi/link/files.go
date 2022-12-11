@@ -291,7 +291,7 @@ func (l *fileLinker) linkInclude(incl *file.Include, pctx parse.Context) error {
 	}
 
 	if !strings.HasSuffix(rf.Name, resource.Extension) {
-		incl.Include = file.RawInclude{Text: rf.Contents}
+		incl.Include = file.OtherInclude{Contents: rf.Contents}
 		return nil
 	}
 

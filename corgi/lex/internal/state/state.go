@@ -10,7 +10,9 @@ import (
 
 // Next consumes the next directive.
 func Next(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
-	if _, ok := l.Context[InImportBlockKey]; ok {
+	if _, ok := l.Context[InCommentBlockKey]; ok {
+		return NextCommentLine(l)
+	} else if _, ok := l.Context[InImportBlockKey]; ok {
 		return NextImportBlockLine(l)
 	} else if _, ok = l.Context[InUseBlockKey]; ok {
 		return NextUseBlockLine(l)
@@ -18,18 +20,68 @@ func Next(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 		return NextDotBlockLine(l)
 	}
 
-	return NextRegular(l)
+	return NextOther(l)
+}
+
+func NextCommentLine(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
+	dIndent, skippedLines, err := l.ConsumeIndent(lexer.ConsumeNoIncrease)
+	if err != nil {
+		return Error(err)
+	}
+
+	lexutil.EmitIndent(l, dIndent)
+
+	if l.Peek() == lexer.EOF {
+		l.Next()
+		return EOF
+	}
+
+	if dIndent < 0 {
+		delete(l.Context, InCommentBlockKey)
+		return Next
+	}
+
+	for i := 0; i < skippedLines; i++ {
+		l.Emit(token.Text)
+	}
+
+	return CommentText
+}
+
+func NextCorgiCommentLine(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
+	dIndent, skippedLines, err := l.ConsumeIndent(lexer.ConsumeNoIncrease)
+	if err != nil {
+		return Error(err)
+	}
+
+	lexutil.EmitIndent(l, dIndent)
+
+	if l.Peek() == lexer.EOF {
+		l.Next()
+		return EOF
+	}
+
+	if dIndent < 0 {
+		delete(l.Context, InCorgiCommentBlockKey)
+		return Next
+	}
+
+	for i := 0; i < skippedLines; i++ {
+		l.Emit(token.Text)
+	}
+
+	return CorgiCommentText
 }
 
 func NextDotBlockLine(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
-	if l.Peek() == lexer.EOF {
-		l.Next()
-		return lexutil.EOFState()
-	}
-
 	dIndent, skippedLines, err := l.ConsumeIndent(lexer.ConsumeNoIncrease)
 	if err != nil {
-		return lexutil.ErrorState(err)
+		return Error(err)
+	}
+
+	if l.Peek() == lexer.EOF {
+		l.Next()
+		return EOF
 	}
 
 	lexutil.EmitIndent(l, dIndent)
@@ -47,15 +99,13 @@ func NextDotBlockLine(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 }
 
 func NextImportBlockLine(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
-	l.IgnoreWhile(lexer.IsNewline)
-
 	dIndent, _, err := l.ConsumeIndent(lexer.ConsumeAllIndents)
 	if err != nil {
-		return lexutil.ErrorState(err)
+		return Error(err)
 	}
 
 	if dIndent > 0 { // can't increase indentation
-		return lexutil.ErrorState(&lexerr.IllegalIndentationError{In: "an import block"})
+		return Error(&lexerr.IllegalIndentationError{In: "an import block"})
 	}
 
 	lexutil.EmitIndent(l, dIndent)
@@ -68,7 +118,7 @@ func NextImportBlockLine(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token]
 	switch {
 	case l.Peek() == lexer.EOF:
 		l.Next()
-		return lexutil.EOFState()
+		return EOF
 	case l.PeekIsWord("//-"):
 		return CorgiComment
 	case l.Peek() == '"' || l.Peek() == '`':
@@ -79,15 +129,13 @@ func NextImportBlockLine(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token]
 }
 
 func NextUseBlockLine(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
-	l.IgnoreWhile(lexer.IsNewline)
-
 	dIndent, _, err := l.ConsumeIndent(lexer.ConsumeAllIndents)
 	if err != nil {
-		return lexutil.ErrorState(err)
+		return Error(err)
 	}
 
 	if dIndent > 0 { // can't increase indentation
-		return lexutil.ErrorState(&lexerr.IllegalIndentationError{In: "a use block"})
+		return Error(&lexerr.IllegalIndentationError{In: "a use block"})
 	}
 
 	lexutil.EmitIndent(l, dIndent)
@@ -100,7 +148,7 @@ func NextUseBlockLine(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 	switch {
 	case l.Peek() == lexer.EOF:
 		l.Next()
-		return lexutil.EOFState()
+		return EOF
 	case l.PeekIsWord("//-"):
 		return CorgiComment
 	case l.Peek() == '"' || l.Peek() == '`':
@@ -110,13 +158,11 @@ func NextUseBlockLine(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 	}
 }
 
-func NextRegular(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
-	l.IgnoreWhile(lexer.IsNewline)
-
-	if l.Col() == 1 {
+func NextOther(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
+	if l.NextCol() == 1 {
 		dIndent, _, err := l.ConsumeIndent(lexer.ConsumeAllIndents)
 		if err != nil {
-			return lexutil.ErrorState(err)
+			return Error(err)
 		}
 
 		lexutil.EmitIndent(l, dIndent)
@@ -126,7 +172,7 @@ func NextRegular(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 	// just the prefix of an element
 	switch {
 	case l.Peek() == lexer.EOF:
-		return lexutil.EOFState()
+		return EOF
 
 	case l.PeekIsString("//-"):
 		return CorgiComment
@@ -155,25 +201,29 @@ func NextRegular(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 
 	case l.PeekIsWord("mixin"):
 		return Mixin
+	case l.PeekIsWord("return"):
+		return Return
 
 	case l.PeekIsWord("if block"):
 		return IfBlock
 	case l.PeekIsWord("if"):
 		return If
+	case l.PeekIsWord("else if block"):
+		return ElseIfBlock
 	case l.PeekIsWord("else if"):
 		return ElseIf
 	case l.PeekIsWord("else"), l.PeekIsWord("else:"): // inline element
 		return Else
+
 	case l.PeekIsWord("switch"):
 		return Switch
 	case l.PeekIsWord("case"):
 		return Case
 	case l.PeekIsWord("default"), l.PeekIsWord("default:"): // inline element
 		return Default
+
 	case l.PeekIsWord("for"):
 		return For
-	case l.PeekIsWord("while"):
-		return While
 
 	case l.PeekIsWord("."):
 		return DotBlock
@@ -191,7 +241,7 @@ func NextRegular(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 	case l.PeekIsString("."), l.PeekIsString("#"):
 		return Div
 	case l.PeekIsString("&"):
-		return Ampersand
+		return And
 	default:
 		return Element
 	}

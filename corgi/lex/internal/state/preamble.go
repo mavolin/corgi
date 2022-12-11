@@ -22,19 +22,19 @@ func Extend(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 	l.Emit(token.Extend)
 
 	if !l.IgnoreWhile(lexer.IsHorizontalWhitespace) {
-		return lexutil.ErrorState(&lexerr.UnknownItemError{Expected: "a space"})
+		return Error(&lexerr.UnknownItemError{Expected: "a space"})
 	}
 
 	switch l.Peek() {
 	case lexer.EOF:
 		l.Next()
-		return lexutil.EOFState()
+		return EOF
 	case '\n':
-		return lexutil.ErrorState(&lexerr.EOLError{After: "a string"})
+		return Error(&lexerr.EOLError{After: "a string"})
 	case '`', '"':
 		// handled below
 	default: // invalid
-		return lexutil.ErrorState(&lexerr.UnknownItemError{Expected: "a string"})
+		return Error(&lexerr.UnknownItemError{Expected: "a string"})
 	}
 
 	if end := lexutil.ConsumeString(l); end != nil {
@@ -65,18 +65,18 @@ func Import(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 
 	if l.Peek() == lexer.EOF {
 		l.Next()
-		return lexutil.EOFState()
+		return EOF
 	}
 
 	if l.Peek() == '\n' { // a block of imports
 		l.IgnoreNext()
 		dlvl, _, err := l.ConsumeIndent(lexer.ConsumeAllIndents)
 		if err != nil {
-			return lexutil.ErrorState(err)
+			return Error(err)
 		}
 
 		if dlvl != 1 {
-			return lexutil.ErrorState(&lexerr.UnknownItemError{Expected: "a non-empty block of imports"})
+			return Error(&lexerr.UnknownItemError{Expected: "a non-empty block of imports"})
 		}
 
 		lexutil.EmitIndent(l, dlvl)
@@ -84,7 +84,7 @@ func Import(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 		l.Context[InImportBlockKey] = true
 	} else { // a single import
 		if !l.IgnoreWhile(lexer.IsHorizontalWhitespace) {
-			return lexutil.ErrorState(&lexerr.UnknownItemError{Expected: "a space or newline"})
+			return Error(&lexerr.UnknownItemError{Expected: "a space or newline"})
 		}
 	}
 
@@ -105,7 +105,7 @@ func ImportAlias(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 	}
 
 	if !l.IgnoreWhile(lexer.IsHorizontalWhitespace) {
-		return lexutil.ErrorState(&lexerr.UnknownItemError{Expected: "a space"})
+		return Error(&lexerr.UnknownItemError{Expected: "a space"})
 	}
 
 	return ImportPath
@@ -145,18 +145,18 @@ func Use(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 
 	if l.Peek() == lexer.EOF {
 		l.Next()
-		return lexutil.EOFState()
+		return EOF
 	}
 
 	if l.Peek() == '\n' { // a block of uses
 		l.IgnoreNext()
 		dlvl, _, err := l.ConsumeIndent(lexer.ConsumeAllIndents)
 		if err != nil {
-			return lexutil.ErrorState(err)
+			return Error(err)
 		}
 
 		if dlvl != 1 {
-			return lexutil.ErrorState(&lexerr.UnknownItemError{
+			return Error(&lexerr.UnknownItemError{
 				Expected: "a non-empty block of use directives",
 			})
 		}
@@ -166,7 +166,7 @@ func Use(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 		l.Context[InUseBlockKey] = true
 	} else { // a single use directive
 		if !l.IgnoreWhile(lexer.IsHorizontalWhitespace) {
-			return lexutil.ErrorState(&lexerr.UnknownItemError{Expected: "a space or newline"})
+			return Error(&lexerr.UnknownItemError{Expected: "a space or newline"})
 		}
 	}
 
@@ -187,7 +187,7 @@ func UseAlias(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] {
 	}
 
 	if !l.IgnoreWhile(lexer.IsHorizontalWhitespace) {
-		return lexutil.ErrorState(&lexerr.UnknownItemError{Expected: "a space"})
+		return Error(&lexerr.UnknownItemError{Expected: "a space"})
 	}
 
 	return UsePath
@@ -224,7 +224,7 @@ func Func(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] { //nolint:rev
 	l.Emit(token.Func)
 
 	if !l.IgnoreWhile(lexer.IsHorizontalWhitespace) {
-		return lexutil.ErrorState(&lexerr.UnknownItemError{Expected: "a space"})
+		return Error(&lexerr.UnknownItemError{Expected: "a space"})
 	}
 
 	end := lexutil.EmitIdent(l, &lexerr.UnknownItemError{Expected: "the function name"})
@@ -235,13 +235,13 @@ func Func(l *lexer.Lexer[token.Token]) lexer.StateFn[token.Token] { //nolint:rev
 	l.IgnoreWhile(lexer.IsHorizontalWhitespace)
 
 	if l.Next() != '(' {
-		return lexutil.ErrorState(&lexerr.UnknownItemError{Expected: "a '('"})
+		return Error(&lexerr.UnknownItemError{Expected: "a '('"})
 	}
 
-	peek := l.NextWhile(lexer.IsNot(')'))
+	peek := l.NextWhile(lexer.MatchesNot(')'))
 	if peek == lexer.EOF {
 		l.Next()
-		return lexutil.EOFState()
+		return EOF
 	}
 
 	l.SkipString(")")

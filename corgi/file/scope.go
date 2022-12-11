@@ -30,8 +30,6 @@ const (
 // MixinCalls.
 type Block struct {
 	// Name is the name of the block.
-	//
-	// This field is optional for blocks used in a mixin call.
 	Name Ident
 
 	// Type is the type of block.

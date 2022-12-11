@@ -52,8 +52,8 @@ func (c *SelfClosingChecker) checkElement(e file.Element) error {
 func (c *SelfClosingChecker) checkElementScope(e file.Element, s file.Scope) error {
 	return file.WalkError(s, func(itm *file.ScopeItem) (bool, error) {
 		switch itm := (*itm).(type) {
-		case file.Element, file.Text, file.Interpolation, file.InlineElement,
-			file.InlineText, file.Filter, file.Comment:
+		case file.Element, file.Text, file.ExpressionInterpolation, file.ElementInterpolation,
+			file.TextInterpolation, file.Filter, file.Comment:
 			return false, &SelfClosingBodyError{
 				Source: c.f.Source,
 				File:   c.f.Name,
@@ -61,7 +61,7 @@ func (c *SelfClosingChecker) checkElementScope(e file.Element, s file.Scope) err
 				Col:    e.Col,
 			}
 		case file.Include:
-			_, isRaw := itm.Include.(file.RawInclude)
+			_, isRaw := itm.Include.(file.OtherInclude)
 			if isRaw {
 				return false, &SelfClosingBodyError{
 					Source: c.f.Source,

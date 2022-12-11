@@ -17,6 +17,8 @@ const (
 	Dedent // indention level decreased
 
 	Element // element name
+	Div     // emitted before a class or id if used as element
+
 	// Ident is an identifier.
 	//
 	// It starts with a unicode letter or underscore.
@@ -31,11 +33,6 @@ const (
 	CodeStart // '-'
 	Code      // after CodeStart
 
-	Ternary     // '?' at the start of code
-	TernaryElse // ':' after the ifTrue
-
-	NilCheck // '?' for nil and out-of-bounds checks
-
 	LParen   // '('
 	RParen   // ')'
 	LBrace   // '{'
@@ -47,7 +44,8 @@ const (
 	AssignNoEscape // '!='
 	Comma          // ',' used for mixin args and ternary expressions
 
-	Comment // '//'
+	Comment      // '//'
+	CorgiComment // '//-'
 
 	Import // 'import'
 	Func   // 'func'
@@ -60,27 +58,25 @@ const (
 	Append  // 'append'
 	Prepend // 'prepend'
 
-	If      // 'if'
-	IfBlock // 'if block'
-	ElseIf  // 'else if'
-	Else    // 'else'
+	If          // 'if'
+	IfBlock     // 'if block'
+	ElseIf      // 'else if'
+	ElseIfBlock // 'else if block'
+	Else        // 'else'
 
 	Switch  // 'switch'
 	Case    // 'case'
 	Default // 'default
 
-	For   // 'for'
-	Range // 'range' keyword used in a for
+	For // 'for'
 
-	While // 'while'
+	Mixin                   // 'mixin'
+	MixinCall               // '+'
+	MixinMainBlockShorthand // '>'
+	Return
 
-	Mixin               // 'mixin'
-	MixinCall           // '+'
-	MixinBlockShorthand // '>'
-
-	And // '&'
-
-	Div // sent before a '.' or '#' to indicate a div is being created
+	And            // '&'
+	AndPlaceholder // '&&' used in mixins
 
 	Class // '.'
 	ID    // '#'
@@ -94,8 +90,6 @@ const (
 
 	Pipe // '|'
 
-	Hash     // '#'
-	NoEscape // '!' after a hash
-
-	TagVoid // '/'
+	Interpolation          // '#'
+	UnescapedInterpolation // '#!'
 )
