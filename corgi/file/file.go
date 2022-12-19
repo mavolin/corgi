@@ -7,11 +7,7 @@ type File struct {
 	// If this is the main file, it will be just the file's name.
 	//
 	// If this is an extended, included, or used file, this will be the path
-	// specified to extend/include/use the file.
-	// A file extension will be added, if the path did not include one.
-	//
-	// If this was parsed as part of a use directive on a directory, the Name
-	// will be the path to the directory + "/" + the file's name.
+	// of the specified file in its source.
 	Name string
 	// Source is the name of the source of this file.
 	Source string
@@ -28,9 +24,7 @@ type File struct {
 	// Uses is a list of used library files.
 	Uses []Use
 
-	// GlobalCode is the code that is written outside the function body.
-	//
-	// Groupings are not preserved as they have no semantic influence.
+	// GlobalCode is the code that is written above the output function.
 	GlobalCode []Code
 
 	// Func is the function header.
@@ -42,19 +36,20 @@ type File struct {
 	Scope Scope
 }
 
-// Pos indicates the position where an element was encountered.
-//
-// It is not present for all elements, but only where needed to generated
-// meaningful lexerr during linking.
+// Pos indicates the position where a token was encountered.
 type Pos struct {
 	Line int
 	Col  int
 }
 
+func (p Pos) Position() (line, col int) {
+	return p.Line, p.Col
+}
+
 type (
 	Extend struct {
-		// Path is the unquoted path to the file.
-		Path string
+		// Path to the file.
+		Path String
 		File File
 
 		Pos
@@ -64,14 +59,14 @@ type (
 	Import struct {
 		// Alias is the alias of the import, if any.
 		Alias GoIdent
-		// Path is the unquoted path of the import.
-		Path string
+		Path  String
 
-		Pos
 		// Source is the source of the first file that made this import.
 		Source string
-		// File is the first file that made this import.
+		// File is the name of the first file that made this import.
 		File string
+
+		Pos
 	}
 
 	// Use represents a single use directive.
@@ -83,7 +78,7 @@ type (
 		Path string
 
 		// Files are the files included by this use directive.
-		// It is filled by the linker
+		// It is filled by the linker.
 		Files []File
 
 		Pos
@@ -96,5 +91,7 @@ type (
 		// Params are the parameters of the function.
 		// They are enclosed in parentheses.
 		Params GoExpression
+
+		Pos
 	}
 )

@@ -97,6 +97,12 @@ func WalkError(s Scope, visit func(*ScopeItem) (bool, error)) error {
 					return err
 				}
 
+				for _, ei := range typedItm.ElseIfs {
+					if err = WalkError(ei.Then, visit); err != nil {
+						return err
+					}
+				}
+
 				if typedItm.Else != nil {
 					if err = WalkError(typedItm.Else.Then, visit); err != nil {
 						return err
@@ -133,17 +139,6 @@ func WalkError(s Scope, visit func(*ScopeItem) (bool, error)) error {
 					return err
 				}
 			}
-		case While:
-			doVisit, err := visit(&s[i])
-			if err != nil {
-				return err
-			}
-
-			if doVisit {
-				if err = WalkError(typedItm.Body, visit); err != nil {
-					return err
-				}
-			}
 		case And:
 			if _, err := visit(&s[i]); err != nil {
 				return err
@@ -152,15 +147,15 @@ func WalkError(s Scope, visit func(*ScopeItem) (bool, error)) error {
 			if _, err := visit(&s[i]); err != nil {
 				return err
 			}
-		case Interpolation:
+		case ExpressionInterpolation:
 			if _, err := visit(&s[i]); err != nil {
 				return err
 			}
-		case InlineElement:
+		case ElementInterpolation:
 			if _, err := visit(&s[i]); err != nil {
 				return err
 			}
-		case InlineText:
+		case TextInterpolation:
 			if _, err := visit(&s[i]); err != nil {
 				return err
 			}

@@ -1,29 +1,17 @@
 // Package file provides structs that represent the structure of a corgi file.
 package file
 
-// GoLiteral represents a Go literal.
-//
-// It is purely used for easier identification of the expected contents of a
-// string.
-type GoLiteral string
+// Expression represents a chain of [ExpressionItem] elements.
+type Expression struct {
+	Expressions []ExpressionItem
+}
 
-// GoIdent represents a Go identifier.
-//
-// It is purely used for easier identification of the expected contents of a
-// string.
-type GoIdent string
+func (e Expression) _typeElementInterpolationValue() {}
 
-// Ident represents a corgi identifier.
-//
-// It is purely used for easier identification of the expected contents of a
-// string.
-type Ident string
+// ================================== Expression Item ===================================
 
-// Expression represents an Expression, it is either a GoExpression, a
-// TernaryExpression, or a NilCheckExpression.
-type Expression interface {
-	_typeExpression()
-	_typeInlineElementValue()
+type ExpressionItem interface {
+	_typeExpressionItem()
 }
 
 // ============================================================================
@@ -40,8 +28,40 @@ type GoExpression struct {
 	Pos
 }
 
-func (GoExpression) _typeExpression()         {}
-func (GoExpression) _typeInlineElementValue() {}
+func (GoExpression) _typeExpressionItem() {}
+
+// ============================================================================
+// String Expression
+// ======================================================================================
+
+// StringExpression represents a sequence of characters enclosed in double
+// quotes or backticks.
+type StringExpression struct {
+	Contents []StringExpressionItem
+
+	Pos
+}
+
+func (StringExpression) _typeExpressionItem() {}
+
+// ============================== String Expression Items ===============================
+
+type StringExpressionItem interface {
+	_typeStringExpressionItem()
+}
+
+type RawStringExpression struct {
+	Expression string
+	Pos
+}
+
+func (RawStringExpression) _typeStringExpressionItem() {}
+
+type InterpolationStringExpression struct {
+	Expression Expression
+	NoEscape   bool
+	Pos
+}
 
 // ============================================================================
 // Ternary Expression
@@ -61,8 +81,8 @@ type TernaryExpression struct {
 	Pos
 }
 
-func (TernaryExpression) _typeExpression()         {}
-func (TernaryExpression) _typeInlineElementValue() {}
+func (TernaryExpression) _typeExpressionItem()            {}
+func (TernaryExpression) _typeElementInterpolationValue() {}
 
 // ============================================================================
 // Nil Check Expression
@@ -85,10 +105,10 @@ type NilCheckExpression struct {
 	Pos
 }
 
-func (NilCheckExpression) _typeExpression()         {}
-func (NilCheckExpression) _typeInlineElementValue() {}
+func (NilCheckExpression) _typeExpressionItem()            {}
+func (NilCheckExpression) _typeElementInterpolationValue() {}
 
-// ================================== Expression Expression ==================================
+// ================================== Value Expression ==================================
 
 // ValueExpression represents an expression that can be chained.
 //
@@ -101,8 +121,8 @@ type ValueExpression interface {
 //
 // Examples
 //
-//  base[1] => 1
-//  base["fooz"] => "fooz"
+//	base[1] => 1
+//	base["fooz"] => "fooz"
 type IndexExpression GoExpression
 
 func (IndexExpression) _typeValueExpression() {}
@@ -111,9 +131,9 @@ func (IndexExpression) _typeValueExpression() {}
 //
 // Examples
 //
-// 	base.Bar => Bar
-// 	base.Baz() => Baz
-//  base.Fooz("arg") => Fooz
+//		base.Bar => Bar
+//		base.Baz() => Baz
+//	 base.Fooz("arg") => Fooz
 type FieldMethodExpression GoExpression
 
 func (FieldMethodExpression) _typeValueExpression() {}
@@ -123,8 +143,8 @@ func (FieldMethodExpression) _typeValueExpression() {}
 //
 // Examples
 //
-//  base("Foo") => "Foo"
-//  base(12, true,  "bar") => 12, true,  "bar"
+//	base("Foo") => "Foo"
+//	base(12, true,  "bar") => 12, true,  "bar"
 type FuncCallExpression GoExpression
 
 func (FuncCallExpression) _typeValueExpression() {}

@@ -11,6 +11,7 @@ type Scope []ScopeItem
 // ScopeItem represents an item in a scope.
 type ScopeItem interface {
 	_typeScopeItem()
+	Position() (line, col int)
 }
 
 // ============================================================================
@@ -45,9 +46,14 @@ func (Block) _typeScopeItem() {}
 // Comment
 // ======================================================================================
 
-// Comment represents a rendered HTML comment.
+// Comment represents a comment.
 type Comment struct {
 	Comment string
+	// Printed indicates whether the comment shall be included in the HTML
+	// output.
+	Printed bool
+
+	Pos
 }
 
 func (Comment) _typeScopeItem() {}
@@ -69,10 +75,6 @@ type Element struct {
 
 	Body Scope
 
-	// SelfClosing indicates whether this Element should use a '/' to
-	// self-close.
-	SelfClosing bool
-
 	Pos
 }
 
@@ -89,6 +91,8 @@ type AttributeLiteral struct {
 	Name string
 	// Value is the expression that yields the value of the attribute.
 	Value string
+
+	Pos
 }
 
 func (AttributeLiteral) _typeAttribute() {}
@@ -101,6 +105,8 @@ type AttributeExpression struct {
 	// NoEscape indicates whether the value of the attribute should be
 	// rendered without escaping.
 	NoEscape bool
+
+	Pos
 }
 
 func (AttributeExpression) _typeAttribute() {}
@@ -113,6 +119,7 @@ type Class interface {
 
 type ClassLiteral struct {
 	Name string
+	Pos
 }
 
 func (ClassLiteral) _typeClass() {}
@@ -123,6 +130,8 @@ type ClassExpression struct {
 	// NoEscape indicates whether the class name should be rendered without
 	// escaping.
 	NoEscape bool
+
+	Pos
 }
 
 func (ClassExpression) _typeClass() {}
@@ -137,18 +146,18 @@ type Include struct {
 
 	// Include is the included file.
 	// It is populated by the linter.
-	Include IncludeValue
+	Include IncludeFile
 
 	Pos
 }
 
 func (Include) _typeScopeItem() {}
 
-// IncludeValue is the type used to represent an included file.
+// IncludeFile is the type used to represent an included file.
 //
-// Its concrete type is either a CorgiInclude or a RawInclude.
-type IncludeValue interface {
-	_typeIncludeValue()
+// Its concrete type is either a CorgiInclude or a OtherInclude.
+type IncludeFile interface {
+	_typeIncludeFile()
 }
 
 // =================================== Corgi Include ====================================
@@ -157,15 +166,16 @@ type CorgiInclude struct {
 	File File
 }
 
-func (CorgiInclude) _typeIncludeValue() {}
+func (CorgiInclude) _typeIncludeFile() {}
 
 // ==================================== Raw Include =====================================
 
-type RawInclude struct {
-	Text string
+// OtherInclude is an included file other than a Corgi file.
+type OtherInclude struct {
+	Contents string
 }
 
-func (RawInclude) _typeIncludeValue() {}
+func (OtherInclude) _typeIncludeFile() {}
 
 // ============================================================================
 // Code
@@ -174,6 +184,7 @@ func (RawInclude) _typeIncludeValue() {}
 // Code represents a line or block of code.
 type Code struct {
 	Code string
+	Pos
 }
 
 func (Code) _typeScopeItem() {}
@@ -195,6 +206,8 @@ type If struct {
 	ElseIfs []ElseIf
 	// Else is the scope of the Else statement, if this If has one.
 	Else *Else
+
+	Pos
 }
 
 func (If) _typeScopeItem() {}
@@ -207,10 +220,13 @@ type ElseIf struct {
 	// Then is scope of the code that is executed if the condition evaluates
 	// to true.
 	Then Scope
+
+	Pos
 }
 
 type Else struct {
 	Then Scope
+	Pos
 }
 
 // ============================================================================
@@ -220,18 +236,29 @@ type Else struct {
 // IfBlock represents an 'if block' directive.
 type IfBlock struct {
 	// Name is the name of the block, whose existence is checked.
-	//
-	// It may be empty for mixins with a single block.
 	Name Ident
 
 	// Then is the scope of the code that is executed if the block exists.
 	Then Scope
+	// ElseIfs are the else if statements, if this IfBlock has any.
+	ElseIfs []ElseIfBlock
 	// Else is the scope of the code that is executed if the block does not
 	// exist.
 	Else *Else
+
+	Pos
 }
 
 func (IfBlock) _typeScopeItem() {}
+
+type ElseIfBlock struct {
+	// Name is the name of the block, whose existence is checked.
+	Name Ident
+	// Then is the scope of the code that is executed if the block exists.
+	Then Scope
+
+	Pos
+}
 
 // ============================================================================
 // Switch
@@ -240,12 +267,17 @@ func (IfBlock) _typeScopeItem() {}
 // Switch represents a 'switch' statement.
 type Switch struct {
 	// Comparator is the expression that is compared against.
+	//
+	// It may be empty, in which case the cases will contain boolean
+	// expressions.
 	Comparator Expression
 
 	// Cases are the cases of the Switch.
 	Cases []Case
 	// Default is the default case, if there is one.
 	Default *DefaultCase
+
+	Pos
 }
 
 func (Switch) _typeScopeItem() {}
@@ -256,10 +288,13 @@ type Case struct {
 	// Then is the scope of the code that is executed if the condition
 	// evaluates to true.
 	Then Scope
+
+	Pos
 }
 
 type DefaultCase struct {
 	Then Scope
+	Pos
 }
 
 // ============================================================================
@@ -268,36 +303,15 @@ type DefaultCase struct {
 
 // For represents a for loop.
 type For struct {
-	// VarOne is the first variable of the range.
-	VarOne GoIdent
-	// VarTwo is the optional second variable of the range.
-	VarTwo GoIdent
-
-	// Range is the expression that is used to iterate over.
-	Range Expression
-
-	Body Scope
+	// Expression is the expression written in the head of the for, or nil if
+	// this is an infinite loop.
+	Expression Expression
+	Body       Scope
 
 	Pos
 }
 
 func (For) _typeScopeItem() {}
-
-// ============================================================================
-// While
-// ======================================================================================
-
-// While represents a while loop.
-type While struct {
-	// Condition is the condition of the while loop.
-	Condition GoExpression
-
-	Body Scope
-
-	Pos
-}
-
-func (While) _typeScopeItem() {}
 
 // ============================================================================
 // &
@@ -316,40 +330,43 @@ type And struct {
 func (And) _typeScopeItem() {}
 
 // ============================================================================
-// Text
+// Contents
 // ======================================================================================
 
 // Text is a string of text written as content of an element.
 // It is not HTML-escaped yet.
 type Text struct {
 	Text string
+	Pos
 }
 
-func (Text) _typeScopeItem()          {}
-func (Text) _typeInlineElementValue() {}
+func (Text) _typeScopeItem()                 {}
+func (Text) _typeElementInterpolationValue() {}
 
 // ============================================================================
-// Interpolation
+// ExpressionInterpolation
 // ======================================================================================
 
-// Interpolation is an Expression that is interpolated into the content of an
-// element.
+// ExpressionInterpolation is an Expression that is interpolated into the
+// content of an element.
 //
 // It is generated through hash-interpolation or through lex.CodeAssigns.
-type Interpolation struct {
+type ExpressionInterpolation struct {
 	// Expression is the expression that is interpolated.
 	Expression Expression
 
 	NoEscape bool
+
+	Pos
 }
 
-func (Interpolation) _typeScopeItem() {}
+func (ExpressionInterpolation) _typeScopeItem() {}
 
 // ============================================================================
-// InlineElement
+// ElementInterpolation
 // ======================================================================================
 
-type InlineElement struct {
+type ElementInterpolation struct {
 	// Name is the name of the element.
 	Name string
 
@@ -358,38 +375,40 @@ type InlineElement struct {
 	// Attributes is a list of the attributes of the element, excluding 'class'.
 	Attributes []Attribute
 
-	SelfClosing bool
-
 	NoEscape bool
 
 	// Value is the value of the element.
-	Value InlineElementValue
+	Value ElementInterpolationValue
+
+	Pos
 }
 
-func (InlineElement) _typeScopeItem() {}
+func (ElementInterpolation) _typeScopeItem() {}
 
-// ================================= InlineElementValue =================================
+// ============================ Element Interpolation Value =============================
 
-// InlineElementValue represents types that can be used as the value of an
-// InlineElement.
+// ElementInterpolationValue represents types that can be used as the value of an
+// ElementInterpolation.
 //
 // Its concrete type is either Expression or Text.
-type InlineElementValue interface {
-	_typeInlineElementValue()
+type ElementInterpolationValue interface {
+	_typeElementInterpolationValue()
 }
 
 // ============================================================================
-// InlineText
+// TextInterpolation
 // ======================================================================================
 
-type InlineText struct {
+type TextInterpolation struct {
 	// Text is the interpolated text.
 	Text string
 
 	NoEscape bool
+
+	Pos
 }
 
-func (InlineText) _typeScopeItem() {}
+func (TextInterpolation) _typeScopeItem() {}
 
 // ============================================================================
 // Mixin
@@ -436,6 +455,8 @@ type (
 		Name Ident
 
 		// Mixin is a pointer to the called mixin.
+		//
+		// It is set by the linker.
 		Mixin *Mixin
 		// MixinSource is the resource source that provides the Mixin.
 		MixinSource string
@@ -463,7 +484,7 @@ type (
 		// not be escaped.
 		NoEscape bool
 
-		Pos // for linking
+		Pos
 	}
 )
 
