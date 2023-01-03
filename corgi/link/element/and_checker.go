@@ -1,7 +1,7 @@
 package element
 
 import (
-	"github.com/pkg/errors"
+	"fmt"
 
 	"github.com/mavolin/corgi/corgi/file"
 	"github.com/mavolin/corgi/internal/stack"
@@ -99,11 +99,6 @@ func (c *AndChecker) checkInElement(s file.Scope, andAllowed bool) (_ bool, err 
 			if err != nil {
 				return false, err
 			}
-		case file.While:
-			andAllowed, err = c.checkWhile(itm, andAllowed)
-			if err != nil {
-				return false, err
-			}
 		case file.MixinCall:
 			andAllowed, err = c.checkMixinCall(itm, andAllowed)
 			if err != nil {
@@ -142,10 +137,10 @@ func (c *AndChecker) andPlacementError(and file.And) error {
 
 	for mcs.Len() > 0 {
 		mc = mcs.Pop()
-		err = errors.Wrapf(err, "%s/%s:%d:%d", mc.MixinSource, mc.MixinFile, mc.Line, mc.Col)
+		err = fmt.Errorf("%s/%s:%d:%d: %w", mc.MixinSource, mc.MixinFile, mc.Line, mc.Col, err)
 	}
 
-	return errors.Wrapf(err, "%s/%s:%d:%d", c.f.Source, c.f.Name, mc.Line, mc.Col)
+	return fmt.Errorf("%s/%s:%d:%d: %w", c.f.Source, c.f.Name, mc.Line, mc.Col, err)
 }
 
 // ============================================================================
@@ -337,50 +332,10 @@ func (c *AndChecker) loopAndError(f file.For) error {
 
 	for mcs.Len() > 0 {
 		mc = mcs.Pop()
-		err = errors.Wrapf(err, "%s/%s:%d:%d", mc.MixinSource, mc.MixinFile, mc.Line, mc.Col)
+		err = fmt.Errorf("%s/%s:%d:%d: %w", mc.MixinSource, mc.MixinFile, mc.Line, mc.Col, err)
 	}
 
-	return errors.Wrapf(err, "%s/%s:%d:%d", c.f.Source, c.f.Name, mc.Line, mc.Col)
-}
-
-func (c *AndChecker) checkWhile(f file.While, andAllowed bool) (_ bool, err error) {
-	if len(f.Body) == 0 {
-		return andAllowed, nil
-	}
-
-	// If & was allowed before the loop, but not after that means we wrote to
-	// the elements body in there somewhere.
-	// There is only one edge case to consider:
-	// If before the loop &s were allowed, but the loop itself only writes
-	// text.
-	andAllowedBefore := andAllowed
-
-	// So let's check if the first item is an &.
-	firstIsAnd := file.IsFirstAnd(f.Body)
-
-	// Now we just need to check if the loop writes to the body of the element.
-	andAllowed, err = c.checkInElement(f.Body, andAllowed)
-	if err != nil {
-		return false, err
-	}
-
-	// check if &s were allowed before, but not after, i.e. if we wrote to the
-	// body of the element
-	if andAllowedBefore != andAllowed {
-		// We did.
-		// In this case the first item must not be an &, because if the first
-		// isn't, then so can't be the others.
-		if firstIsAnd {
-			return false, &LoopAndError{
-				Source: c.f.Source,
-				File:   c.f.Name,
-				Line:   f.Line,
-				Col:    f.Col,
-			}
-		}
-	}
-
-	return andAllowed, nil
+	return fmt.Errorf("%s/%s:%d:%d: %w", c.f.Source, c.f.Name, mc.Line, mc.Col, err)
 }
 
 func (c *AndChecker) checkMixinCall(mc file.MixinCall, andAllowed bool) (bool, error) {
