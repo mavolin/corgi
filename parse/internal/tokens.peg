@@ -1,0 +1,505 @@
+// ============================================================================
+// Special Tokens
+// ======================================================================================
+
+EOF     <- !.
+EOL     <- _* ('\r'? '\n' / EOF)
+NOT_EOL <- [^\r\n]
+
+POS <- (&. / !.) {
+    return pos(c), nil
+}
+
+// ============================================================================
+// Whitespace
+// ======================================================================================
+
+_       "horizontal whitespace" <- H_WS
+H_WS    "horizontal whitespace" <- [ \t]
+V_WS    "vertical whitespace"   <- '\r'? '\n'
+NEW_LNS "newlines"              <- (_* V_WS)+
+
+WS "whitespace" <- _ / V_WS
+
+// ============================================================================
+// Parens, Braces, Brackets
+// ======================================================================================
+
+L_PAREN <- '(' { return pos(c), nil }
+R_PAREN <- ')' { return pos(c), nil }
+
+L_BRACE <- '{' { return pos(c), nil }
+R_BRACE <- '}' { return pos(c), nil }
+
+L_BRACKET <- '[' { return pos(c), nil }
+R_BRACKET <- ']' { return pos(c), nil }
+
+// ============================================================================
+// Indentation
+// ======================================================================================
+
+// the indentation rules are incredibly complicated (and by far the most
+// complicated of the grammar) and i hope they never need to be touched again,
+// i.e. there are no errs in them.
+// if they do need to, however, here's a quick overview how indentation works:
+//
+// INDENTATION consumes all horiz WS and errors if it finds too much, and fails
+// if it finds too little
+// INDENTATION_NO_INCREASE consumes only as much horiz WS as expected, and
+// fails if it finds too little.
+// INDENTATION2 is basically INDENTATION_NO_INCREASE plus two spaces and is
+// used by code and arrow blocks.
+//
+// all indentation rules are able to recover from inconsistent indentation and
+// "correctly" resume parsing:
+// if for your first indentation in line 2 you used 2 spaces, then you dedent,
+// and in line 10 you use 3 spaces, to indent again, the rules will complain,
+// but store that level 1 (until dedented) uses 3 spaces instead of the expected
+// two (c.f. state "Indentation.ActualRepetitions" and
+// "Indentation.TotalRepetitions").
+// The same goes for any other number of spaces except the two that are correct
+// and wouldn't trigger an error.
+//
+// what indentation cannot recover from is a mix of tabs and spaces, although
+// arguably this would very much be a best effort thing, since tab width
+// depends on the editor.
+// this isn't of much concern tho, since most editors (and by most i mean GoLand,
+// no clue abt other editors, altho i suspect they do the same), don't even
+// allow you to mix spaces and tabs.
+// the rules will panic in that case, effectively stopping the parse at that
+// point and returning w/ an err.
+//
+// the second possibly scenario where the rules can't recover from is if you
+// indent in line 2 by two spaces, and then in line 3 use three, even though
+// the directive in line 2 doesn't allow indentation.
+// recovering from this is most certainly possible, but in our stack not
+// without significant effort.
+// since just failing would most likely trigger a cascade of errors, the rules
+// will again panic.
+//
+//
+// INDENTATION works like this:
+//
+// consume all WS.
+// check for mix of tabs and spaces.
+// if this is our first indent:
+//     this is our Indentation.Repetition now, and the char is our
+//     Indentation.Char now.
+//     also store repetition in Indentation.ActualRepetitions and .TotalRepetitions
+//     Each lvl is expected to be indented by
+//     Indentation.Repetition * Indentation.Char
+//
+// otherwise:
+//     check if the char used to indent matches Indentation.Char.
+//     check that the repetition count % Indentation.Repetition == 0, otherwise:
+//         error but continue
+//         if this is the first line in in a block:
+//             note the anomaly in Indentation.ActualRepetitions and .TotalRepetitions
+//         else:
+//             exit
+
+
+// that weird rule to capture the indentation (or rather the action block
+// behind it) is there so current gets updated with the correct position and
+// text values.
+// idk why it isn't already, but apparently it holds the value of the last
+// action block, so we can cheat ourselves through like that.
+INDENTATION <- (_* { return nil, nil }) &{
+    // preliminary checks that there is no mix of tabs and spaces
+
+    lvl := c.state["Indentation.Level"].(int)
+    if len(c.text) == 0 {
+        return lvl == 0, nil
+    }
+
+    firstChar := c.text[0]
+
+    for i, ws := range c.text[1:] {
+        if byte(ws) != firstChar {
+            if firstChar == ' ' {
+                panic(&corgierr.Error{
+                    Message: "mix of tabs and spaces for indentation",
+                    ErrorAnnotation: anno(c, annotation{
+                        Start: file.Position{Line: c.pos.line, Col: i+2},
+                        Annotation: "this is a tab",
+                    }),
+                    HintAnnotations: []corgierr.Annotation{
+                        anno(c, annotation{
+                            Start: file.Position{Line: c.pos.line, Col: 1},
+                            Annotation: "this is a space",
+                        }),
+                    },
+                    Suggestions: []corgierr.Suggestion{
+                        {Suggestion: "use only tabs OR spaces for indentation, but not both"},
+                    },
+                })
+            }
+
+            panic(&corgierr.Error{
+                Message: "mix of tabs and spaces for indentation",
+                ErrorAnnotation: anno(c, annotation{
+                    Start: file.Position{Line: c.pos.line, Col: i+2},
+                    Annotation: "this is a space",
+                }),
+                HintAnnotations: []corgierr.Annotation{
+                    anno(c, annotation{
+                        Start: file.Position{Line: c.pos.line, Col: 1},
+                        Annotation: "this is a tab",
+                    }),
+                },
+                Suggestions: []corgierr.Suggestion{
+                    {Suggestion: "use only tabs OR spaces for indentation, but not both"},
+                },
+            })
+        }
+    }
+
+    return true, nil
+} (
+    &{ // lvl == 0
+        return c.state["Indentation.Level"].(int) == 0, nil
+    } / &{ // this is our first indentation
+        return c.state["Indentation.RefLine"].(int) == 0, nil
+    } #{
+        c.state["Indentation.Char"] = c.text[0]
+        c.state["Indentation.Repetitions"] = len(c.text)
+        c.state["Indentation.ActualRepetitions"].(*stack.Stack[int]).Push(len(c.text))
+        c.state["Indentation.TotalRepetitions"] = len(c.text)
+        c.state["Indentation.RefLine"] = c.pos.line
+        return nil
+    } / &{
+        indentChar := c.state["Indentation.Char"].(byte)
+        refReps := c.state["Indentation.Repetitions"].(int)
+        refLine := c.state["Indentation.RefLine"].(int)
+        
+        for _, space := range c.text {
+            if space != indentChar {
+                if indentChar == ' ' {
+                    panic(&corgierr.Error{
+                        Message: "mix of tabs and spaces for indentation",
+                        ErrorAnnotation: anno(c, annotation{
+                            Start: file.Position{Line: c.pos.line, Col: 1},
+                            Len: len(c.text),
+                            Annotation: "but these are tabs",
+                        }),
+                        HintAnnotations: []corgierr.Annotation{
+                            anno(c, annotation{
+                                ContextStartDelta: -1,
+                                Start: file.Position{Line: refLine, Col: 1},
+                                Len: refReps,
+                                Annotation: "these are spaces",
+                            }),
+                        },
+                        Suggestions: []corgierr.Suggestion{
+                            {Suggestion: "use only tabs OR spaces for indentation, but not both"},
+                        },
+                    })
+                }
+
+                panic(&corgierr.Error{
+                    Message: "mix of tabs and spaces for indentation",
+                    ErrorAnnotation: anno(c, annotation{
+                        Start: file.Position{Line: c.pos.line, Col: 1},
+                        Len: len(c.text),
+                        Annotation: "but these are spaces",
+                    }),
+                    HintAnnotations: []corgierr.Annotation{
+                        anno(c, annotation{
+                            ContextStartDelta: -1,
+                            Start: file.Position{Line: refLine, Col: 1},
+                            Len: refReps,
+                            Annotation: "these are tabs",
+                        }),
+                    },
+                    Suggestions: []corgierr.Suggestion{
+                        {Suggestion: "use only tabs OR spaces for indentation, but not both"},
+                    },
+                })
+            }
+        }
+
+        return true, nil
+    } (
+        &{ // if this is the first INDENTATION after INDENT
+            actualReps := c.state["Indentation.ActualRepetitions"].(*stack.Stack[int])
+            lvl := c.state["Indentation.Level"].(int)
+            return actualReps.Len() < lvl, nil
+        } &{
+            indentChar := c.state["Indentation.Char"].(byte)
+            refReps := c.state["Indentation.Repetitions"].(int)
+            refLine := c.state["Indentation.RefLine"].(int)
+
+            totalReps := c.state["Indentation.TotalRepetitions"].(int)
+
+            actualCount := len(c.text)
+
+            if actualCount <= totalReps { // indentation didn't increase
+                return false, nil
+            }
+
+            if (actualCount-totalReps) != refReps {
+                if indentChar == ' ' {
+                    return true, &corgierr.Error{
+                        Message: "inconsistent indentation",
+                        ErrorAnnotation: anno(c, annotation{
+                            ContextStartDelta: -1,
+                            Start: file.Position{Line: c.pos.line, Col: totalReps+1},
+                            Len: actualCount - totalReps,
+                            Annotation: fmt.Sprintf("however, here you used %d spaces", actualCount - totalReps),
+                        }),
+                        HintAnnotations: []corgierr.Annotation{
+                            anno(c, annotation{
+                                ContextStartDelta: -1,
+                                Start: file.Position{Line: refLine, Col: 1},
+                                Len: refReps,
+                                Annotation: fmt.Sprintf("this line uses %d spaces to indent a single level", refReps),
+                            }),
+                        },
+                        Suggestions: []corgierr.Suggestion{
+                            {
+                                Suggestion: "be consistent in your indentation:\n" +
+                                    "if you use two spaces for a single indentation, use four for a two-level indentation",
+                            },
+                        },
+                    }
+                }
+
+                return true, &corgierr.Error{
+                    Message: "inconsistent indentation",
+                    ErrorAnnotation: anno(c, annotation{
+                        ContextStartDelta: -1,
+                        Start: file.Position{Line: c.pos.line, Col: totalReps+1},
+                        Len: actualCount - totalReps,
+                        Annotation: fmt.Sprintf("however, here you used %d tabs", actualCount - totalReps),
+                    }),
+                    HintAnnotations: []corgierr.Annotation{
+                        anno(c, annotation{
+                            ContextStartDelta: -1,
+                            Start: file.Position{Line: refLine, Col: 1},
+                            Len: refReps,
+                            Annotation: fmt.Sprintf("this line uses %d tabs to indent a single level", refReps),
+                        }),
+                    },
+                    Suggestions: []corgierr.Suggestion{
+                        {
+                            Suggestion: "be consistent in your indentation:\n" +
+                                "if you use two tabs for a single indentation, use four for a two-level indentation, ...",
+                        },
+                    },
+                }
+            }
+
+            return true, nil
+        } #{
+            totalReps := c.state["Indentation.TotalRepetitions"].(int)
+            actualReps := c.state["Indentation.ActualRepetitions"].(*stack.Stack[int])
+            actualCount := len(c.text)
+
+            actualReps.Push(actualCount-totalReps)
+            c.state["Indentation.TotalRepetitions"] = actualCount
+            return nil
+        } / &{ // if this is NOT the first INDENTATION after INDENT
+            actualReps := c.state["Indentation.ActualRepetitions"].(*stack.Stack[int])
+            lvl := c.state["Indentation.Level"].(int)
+            return actualReps.Len() == lvl, nil
+        } &{
+            actualCount := len(c.text)
+            expectCount := c.state["Indentation.TotalRepetitions"].(int)
+            if actualCount == expectCount {
+                return true, nil
+            }
+            
+            panic(&corgierr.Error{
+                Message: "unexpected increase or decrease of indentation",
+                ErrorAnnotation: anno(c, annotation{
+                    ContextStartDelta: -1,
+                    Start: file.Position{Line: c.pos.line, Col: 1},
+                    Len: actualCount,
+                    Annotation: "here",
+                }),
+            })
+        }
+    )
+)
+
+INDENTATION_IGNORE_ADDITIONAL <- &{
+    // this is our first ever indentation, INDENTATION will handle it
+    return c.state["Indentation.Char"].(byte) == 0, nil
+} INDENTATION / (
+    (
+        &{ // if this is the first INDENTATION after INDENT
+            actualReps := c.state["Indentation.ActualRepetitions"].(*stack.Stack[int])
+            lvl := c.state["Indentation.Level"].(int)
+            return actualReps.Len() < lvl, nil
+        } (
+            &_ &{
+                refReps := c.state["Indentation.Repetitions"].(int)
+                totalReps := c.state["Indentation.TotalRepetitions"].(int)
+
+                want := totalReps + refReps
+                have := c.state["Indentation.CharCount"].(int)
+                if want == have {
+                    return true, nil
+                }
+
+                return false, nil
+            } / !_ &{
+                indentChar := c.state["Indentation.Char"].(byte)
+                refReps := c.state["Indentation.Repetitions"].(int)
+                refLine := c.state["Indentation.RefLine"].(int)
+
+                totalReps := c.state["Indentation.TotalRepetitions"].(int)
+
+                have := c.state["Indentation.CharCount"].(int)
+                want := totalReps + refReps
+                if have == want {
+                    return true, nil
+                } else if have <= totalReps {
+                    return false, nil
+                }
+
+                if indentChar == ' ' {
+                    return true, &corgierr.Error{
+                        Message: "inconsistent indentation",
+                        ErrorAnnotation: anno(c, annotation{
+                            ContextStartDelta: -1,
+                            Start: file.Position{Line: c.pos.line, Col: totalReps+1},
+                            Len: have - totalReps,
+                            Annotation: fmt.Sprintf("however, here you used %d spaces", have - totalReps),
+                        }),
+                        HintAnnotations: []corgierr.Annotation{
+                            anno(c, annotation{
+                                ContextStartDelta: -1,
+                                Start: file.Position{Line: refLine, Col: 1},
+                                Len: refReps,
+                                Annotation: fmt.Sprintf("this line uses %d spaces to indent a single level", refReps),
+                            }),
+                        },
+                        Suggestions: []corgierr.Suggestion{
+                            {
+                                Suggestion: "be consistent in your indentation:\n" +
+                                    "if you use two spaces for a single indentation, use four for a two-level indentation",
+                            },
+                        },
+                    }
+                }
+
+                return true, &corgierr.Error{
+                    Message: "inconsistent indentation",
+                    ErrorAnnotation: anno(c, annotation{
+                        ContextStartDelta: -1,
+                        Start: file.Position{Line: c.pos.line, Col: totalReps+1},
+                        Len: have - totalReps,
+                        Annotation: fmt.Sprintf("however, here you used %d tabs", have - totalReps),
+                    }),
+                    HintAnnotations: []corgierr.Annotation{
+                        anno(c, annotation{
+                            ContextStartDelta: -1,
+                            Start: file.Position{Line: refLine, Col: 1},
+                            Len: refReps,
+                            Annotation: fmt.Sprintf("this line uses %d tabs to indent a single level", refReps),
+                        }),
+                    },
+                    Suggestions: []corgierr.Suggestion{
+                        {
+                            Suggestion: "be consistent in your indentation:\n" +
+                                "if you use two tabs for a single indentation, use four for a two-level indentation, ...",
+                        },
+                    },
+                }
+            }
+        ) #{
+            totalReps := c.state["Indentation.TotalRepetitions"].(int)
+            have := c.state["Indentation.CharCount"].(int)
+
+            c.state["Indentation.ActualRepetitions"].(*stack.Stack[int]).Push(have-totalReps)
+            c.state["Indentation.TotalRepetitions"] = have
+            return nil
+        } / &{ // if this is NOT the first INDENTATION after INDENT
+            actualReps := c.state["Indentation.ActualRepetitions"].(*stack.Stack[int])
+            lvl := c.state["Indentation.Level"].(int)
+            return actualReps.Len() == lvl, nil
+        } &{
+            want := c.state["Indentation.TotalRepetitions"].(int)
+            have := c.state["Indentation.CharCount"].(int)
+            return want == have, nil
+        }
+    ) #{
+        c.state["Indentation.CharCount"] = 0
+        return nil
+    }
+) / spaceI:_ &{
+    space := byte(char(spaceI))
+
+    indentChar := c.state["Indentation.Char"].(byte)
+    if indentChar != space {
+        refLine := c.state["Indentation.RefLine"].(int)
+        reps := c.state["Indentation.Repetitions"].(int)
+
+        if indentChar == ' ' {
+            panic(&corgierr.Error{
+                Message: "mix of tabs and spaces for indentation",
+                ErrorAnnotation: anno(c, annotation{
+                    Start: pos(c),
+                                        Annotation: "this is a tab",
+                }),
+                HintAnnotations: []corgierr.Annotation{
+                    anno(c, annotation{
+                        ContextStartDelta: -1,
+                        Start: file.Position{Line: refLine, Col: 1},
+                        Len: reps,
+                        Annotation: "these are spaces",
+                    }),
+                },
+                Suggestions: []corgierr.Suggestion{
+                    {Suggestion: "use only tabs OR spaces for indentation, but not both"},
+                },
+            })
+        }
+
+        panic(&corgierr.Error{
+            Message: "mix of tabs and spaces for indentation",
+            ErrorAnnotation: anno(c, annotation{
+                Start: pos(c),
+                                Annotation: "this is a space",
+            }),
+            HintAnnotations: []corgierr.Annotation{
+                anno(c, annotation{
+                    ContextStartDelta: -1,
+                    Start: file.Position{Line: refLine, Col: 1},
+                    Len: reps,
+                    Annotation: "these are tabs",
+                }),
+            },
+            Suggestions: []corgierr.Suggestion{
+                {Suggestion: "use only tabs OR spaces for indentation, but not both"},
+            },
+        })
+    }
+
+    return true, nil
+} #{
+    c.state["Indentation.CharCount"] = c.state["Indentation.CharCount"].(int) + 1
+    return nil
+} INDENTATION_IGNORE_ADDITIONAL
+
+INDENT <- #{
+    c.state["Indentation.Level"] = c.state["Indentation.Level"].(int) + 1
+    return nil
+}
+
+DEDENT <- #{
+    c.state["Indentation.Level"] = c.state["Indentation.Level"].(int) - 1
+
+    actualReps := c.state["Indentation.ActualRepetitions"].(*stack.Stack[int])
+    c.state["Indentation.TotalRepetitions"] = c.state["Indentation.TotalRepetitions"].(int) - actualReps.Pop()
+    return nil
+}
+
+// ============================================================================
+// Indentation 2 (Used for Code and Arrow Blocks)
+// ======================================================================================
+
+INDENTATION2 <- &{
+    return c.state["Indentation.Level"].(int) == 0, nil
+} "  " / INDENTATION_IGNORE_ADDITIONAL "  "

@@ -1,0 +1,405 @@
+// ============================================================================
+// Doctype
+// ======================================================================================
+
+Doctype <- "doctype" behindDoctype {
+    return file.Doctype{Position: pos(c)}, nil
+} / "!doctype" behindDoctype {
+    return file.Doctype{Position: pos(c)}, &corgierr.Error{
+        Message: "the corgi doctype directive does not start with a `!`",
+        ErrorAnnotation: anno(c, annotation{
+            Start: pos(c),
+            Annotation: "remove this",
+        }),
+        ShouldBe: "`doctype html`",
+    }
+}
+
+behindDoctype <- " html" EOL /
+    ' ' startPosI:POS NOT_EOL* EOL {
+        return nil, &corgierr.Error{
+            Message: "invalid doctype",
+            ErrorAnnotation: anno(c, annotation{
+                Start: startPosI.(file.Position),
+                ToEOL: true,
+                Annotation: "doctypes other than the HTML5 doctype are not supported",
+            }),
+            ShouldBe: "`doctype html`",
+        }
+    } / ' '* NOT_EOL* EOL {
+        return nil, &corgierr.Error{
+            Message: "invalid doctype",
+            ErrorAnnotation: anno(c, annotation{
+               Start: pos(c),
+                StartOffset: 1,
+                ToEOL: true,
+                Annotation: "expected `html`",
+            }),
+            ShouldBe: "`doctype html`",
+        }
+    }
+
+// ============================================================================
+// Comment
+// ======================================================================================
+
+HTMLComment <- "//-" linesI:(
+    EOL linesI:htmlCommentBlock {
+        return linesI, nil
+    } / lineI:htmlCommentLine {
+        return []file.HTMLCommentLine{lineI.(file.HTMLCommentLine)}, nil
+    }
+) {
+    return file.HTMLComment{
+        Lines: linesI.([]file.HTMLCommentLine),
+        Position: pos(c),
+    }, nil
+}
+
+htmlCommentBlock <- INDENT linesI:(NEW_LNS? INDENTATION_IGNORE_ADDITIONAL htmlCommentLine)* DEDENT {
+    return typedSliceFromTuples[file.HTMLCommentLine](linesI, -1), nil
+}
+
+htmlCommentLine <- commentI:NOT_EOL* EOL {
+    return file.HTMLCommentLine{Comment: concat(commentI), Position: pos(c)}, nil
+}
+
+// ============================================================================
+// Element
+// ======================================================================================
+
+Element <- nameI:htmlTagName attrsI:AttributeCollection* voidI:'/'? bodyI:Beaitb {
+    return file.Element{
+        Name: concat(nameI),
+        Attributes: typedSlice[file.AttributeCollection](attrsI),
+        Body: bodyI.(file.Scope),
+        Void: voidI != nil,
+        Position: pos(c),
+    }, nil
+}
+
+InlineElement <- nameI:htmlTagName attrsI:SingleLineAttributeCollection* voidI:'/'? bodyI:Beait {
+    return file.Element{
+        Name: concat(nameI),
+        Attributes: typedSlice[file.AttributeCollection](attrsI),
+        Body: bodyI.(file.Scope),
+        Void: voidI != nil,
+        Position: pos(c),
+    }, nil
+}
+
+// ============================================================================
+// DivShorthand
+// ======================================================================================
+
+DivShorthand <- firstAttrI:(ClassShorthand / IDShorthand) moreAttrsI:AttributeCollection* bodyI:Beaitb {
+    return file.DivShorthand{
+        Attributes: append([]file.AttributeCollection{firstAttrI.(file.AttributeCollection)}, typedSlice[file.AttributeCollection](attrsI)...),
+        Body: bodyI.(file.Scope),
+        Void: voidI != nil,
+        Position: pos(c),
+    }, nil
+}
+
+InlineDivShorthand <- firstAttrI:(ClassShorthand / IDShorthand) moreAttrsI:SingleLineAttributeCollection* bodyI:Beait {
+    return file.DivShorthand{
+        Attributes: append([]file.AttributeCollection{firstAttrI.(file.AttributeCollection)}, typedSlice[file.AttributeCollection](attrsI)...),
+        Body: bodyI.(file.Scope),
+        Void: voidI != nil,
+        Position: pos(c),
+    }, nil
+}
+
+// ============================================================================
+// And
+// ======================================================================================
+
+And <- '&' collsI:AttributeCollection+ EOL {
+    return file.And{
+        Attributes: typedSlice[file.AttributeCollection](collsI),
+        Position: pos(c),
+    }, nil
+} / '&' posI:POS EOL {
+    return file.And{
+        Position: pos(c),
+    }, &corgierr.Error{
+        Message: "`&` with no attributes",
+        ErrorAnnotation: anno(c, annotation{
+            Start: posI.(file.Position),
+            Annotation: "expected an attribute here",
+        }),
+        Suggestions: []corgierr.Suggestion{
+            {Suggestion: "write a class shorthand", Example: "`&.woof`"},
+            {Suggestion: "write an id shorthand", Example: "`&#bark`"},
+            {Suggestion: "write an attribute list", Example: "`&(src=\"bark/woof\", title=\"howl\")`"},
+        },
+    }
+} / '&' collsI:AttributeCollection+ posI:POS NOT_EOL+ EOL {
+    return file.And{
+        Position: pos(c),
+    }, &corgierr.Error{
+        Message: "bad attribute syntax",
+        ErrorAnnotation: anno(c, annotation{
+            Start: posI.(file.Position),
+            Annotation: "this is not a valid attribute (list)",
+        }),
+        Suggestions: []corgierr.Suggestion{
+            {
+                Suggestion: "if there is, remove any whitespace between class/id shorthands and attribute lists",
+                Example:    "`&#bark .woof (title=\"howl\")`",
+                ShouldBe:   "`&#bark.woof(title=\"howl\")`",
+            },
+            {Suggestion: "write a class shorthand", Example: "`&.woof`"},
+            {Suggestion: "write an id shorthand", Example: "`&#bark`"},
+            {Suggestion: "write an attribute list", Example: "`&(src=\"bark/woof\", title=\"howl\")`"},
+        },
+    }
+}
+
+// ============================================================================
+// AttributeCollection
+// ======================================================================================
+
+AttributeCollection           <- IDShorthand / ClassShorthand / AttributeList
+SingleLineAttributeCollection <- IDShorthand / ClassShorthand / SingleLineAttributeList
+
+// IDShorthand
+//
+
+IDShorthand <- '#' idI:[^ \t\r\n.()]+ {
+    return file.IDShorthand{
+        ID: concat(idI),
+        Position: pos(c),
+    }, nil
+} / '#' posI:POS {
+    return file.IDShorthand{Position: pos(c)}, &corgierr.Error{
+        Message: "id shorthand: missing id",
+        ErrorAnnotation: anno(c, annotation{
+            Start: posI.(file.Position),
+            Annotation: "expected an id here",
+        }),
+    }
+}
+
+//
+// ClassShorthand
+//
+
+ClassShorthand <- '.' nameI:[^ \t\r\n.()]+ {
+    return file.ClassShorthand{
+        Name: concat(nameI),
+        Position: pos(c),
+    }, nil
+} / '.' posI:POS {
+    return file.ClassShorthand{Position: pos(c)}, &corgierr.Error{
+        Message: "class shorthand: missing class name",
+        ErrorAnnotation: anno(c, annotation{
+            Start: posI.(file.Position),
+            Annotation: "expected a class name here",
+        }),
+    }
+}
+
+//
+// AttributeList
+//
+
+AttributeList <- '(' WS* attributesI:attributes? ' '* (',' WS*)? rParenPosI:R_PAREN {
+    return file.AttributeList{
+        LParenPos: pos(c),
+        Attributes: castedOrZero[[]file.Attribute](attributesI),
+        RParenPos: rParenPosI.(file.Position),
+    }, nil
+} / '(' WS* attributesI:attributes? (' '* ',')? posI:POS {
+    return file.AttributeList{
+        LParenPos: pos(c),
+        Attributes: castedOrZero[[]file.Attribute](attributesI),
+    }, &corgierr.Error{
+        Message: "attribute list: unclosed `(`",
+        ErrorAnnotation: anno(c, annotation{
+            Start: posI.(file.Position),
+            Annotation: "expected a `)`",
+        }),
+        HintAnnotations: []corgierr.Annotation{
+            anno(c, annotation{
+                Start: pos(c),
+                Annotation: "for the `(` you opened here",
+            }),
+        },
+    }
+}
+
+attributes <- firstI:Attribute restI:(' '* ',' WS* Attribute)* {
+    restIs := islice(restI)
+    attributes := make([]file.Attribute, 1+len(restIs))
+    attributes[0] = firstI.(file.Attribute)
+    for i, ai := range restIs {
+        attributes[i+1] = getTuple[file.Attribute](ai, -1)
+    }
+
+    return attributes, nil
+}
+
+SingleLineAttributeList <- '(' ' '* attributesI:singleLineAttributes? ' '* (',' ' '*)? rParenPosI:R_PAREN {
+    return file.AttributeList{
+        LParenPos: pos(c),
+        Attributes: castedOrZero[[]file.Attribute](attributesI),
+        RParenPos: rParenPosI.(file.Position),
+    }, nil
+} / '(' ' '* attributesI:singleLineAttributes? (' '* ',')? posI:POS {
+    return file.AttributeList{
+        LParenPos: pos(c),
+        Attributes: castedOrZero[[]file.Attribute](attributesI),
+    }, &corgierr.Error{
+        Message: "attribute list: unclosed `(`",
+        ErrorAnnotation: anno(c, annotation{
+            Start: posI.(file.Position),
+            Annotation: "expected a `)`",
+        }),
+        HintAnnotations: []corgierr.Annotation{
+            anno(c, annotation{
+                Start: pos(c),
+                Annotation: "for the `(` you opened here",
+            }),
+        },
+    }
+}
+
+singleLineAttributes <- firstI:Attribute restI:(' '* ',' ' '* SingleLineAttribute)* {
+    restIs := islice(restI)
+    attributes := make([]file.Attribute, 1+len(restIs))
+    attributes[0] = firstI.(file.Attribute)
+    for i, ai := range restIs {
+        attributes[i+1] = getTuple[file.Attribute](ai, -1)
+    }
+
+    return attributes, nil
+}
+
+// ============================================================================
+// Attribute
+// ======================================================================================
+
+Attribute           <- MixinCallAttribute / AndPlaceholder / SimpleAttribute
+SingleLineAttribute <- SingleLineMixinCallAttribute / AndPlaceholder / SingleLineSimpleAttribute
+
+attributeName <- (![()] htmlAttributeNameChar)+
+
+//
+// Simple Attribute
+
+SimpleAttribute           <- simpleValueAttribute / simpleBooleanAttribute
+SingleLineSimpleAttribute <- singleLineSimpleValueAttribute / simpleBooleanAttribute
+
+simpleValueAttribute <- nameI:attributeName ' '* assignPosI:POS noEscapeI:'!'? '=' WS* posI:POS exprI:Expression {
+    return file.SimpleAttribute{
+        Name: concat(nameI),
+        NoEscape: noEscapeI != nil,
+        AssignPos: ptr(assignPosI.(file.Position)),
+        Value: ptrOrNil[file.Expression](exprI),
+    }, nil
+} / nameI:attributeName ' '* assignPosI:POS noEscapeI:'!'? '=' posI:POS {
+    return file.SimpleAttribute{
+        Name: concat(nameI),
+        NoEscape: noEscapeI != nil,
+        AssignPos: ptrOrNil[file.Position](assignPosI),
+    }, &corgierr.Error{
+        Message: "attribute: missing value expression",
+        ErrorAnnotation: anno(c, annotation{
+            Start: posI.(file.Position),
+            Annotation: "expected an expression here",
+        }),
+    }
+}
+
+singleLineSimpleValueAttribute <- nameI:attributeName ' '* assignPosI:POS noEscapeI:'!'? '=' ' '* exprI:Expression {
+    return file.SimpleAttribute{
+        Name: concat(nameI),
+        NoEscape: noEscapeI != nil,
+        AssignPos: ptrOrNil[file.Position](assignPosI),
+        Value: ptrOrNil[file.Expression](exprI),
+    }, nil
+} / nameI:attributeName ' '* assignPosI:POS noEscapeI:'!'? '=' posI:POS {
+    return file.SimpleAttribute{
+        Name: concat(nameI),
+        NoEscape: noEscapeI != nil,
+        AssignPos: ptrOrNil[file.Position](assignPosI),
+    }, &corgierr.Error{
+        Message: "attribute: missing value expression",
+        ErrorAnnotation: anno(c, annotation{
+            Start: posI.(file.Position),
+            Annotation: "expected an expression or a mixin call here",
+        }),
+    }
+}
+
+simpleBooleanAttribute <- nameI:attributeName !(' '* [!=]) {
+    return file.SimpleAttribute{
+        Name: concat(nameI),
+        Position: pos(c),
+    }, nil
+}
+
+//
+// AndPlaceholder
+//
+
+AndPlaceholder <- "&&" &(WS / ',' / '(') {
+    return file.AndPlaceholder{Position: pos(c)}, nil
+}
+
+//
+// MixinCallAttribute
+//
+
+MixinCallAttribute <- nameI:attributeName ' '* assignPosI:POS noEscapeI:'!'? '=' WS* callI:mixinCallAttributeCall {
+    call := callI.(file.MixinCallAttribute)
+    return file.MixinCallAttribute{
+        Name: concat(nameI),
+        NoEscape: noEscapeI != nil,
+        AssignPos: assignPosI.(file.Position),
+        MixinCall: call.MixinCall,
+        Value: call.Value,
+        Position: pos(c),
+    }, nil
+}
+SingleLineMixinCallAttribute <- nameI:attributeName ' '* assignPosI:POS noEscapeI:'!'? '=' ' '* callI:singleLineMixinCallAttributeCall {
+    call := callI.(file.MixinCallAttribute)
+    return file.MixinCallAttribute{
+        Name: concat(nameI),
+        NoEscape: noEscapeI != nil,
+        AssignPos: assignPosI.(file.Position),
+        MixinCall: call.MixinCall,
+        Value: call.Value,
+        Position: pos(c),
+    }, nil
+}
+
+mixinCallAttributeCall <- '+' namespaceI:(Ident '.')? nameI:MustIdent argsI:mixinArgList? valueI:mixinCallAttributeValue? {
+    args := castedOrZero[file.MixinCall](argsI)
+    return file.MixinCallAttribute{
+        MixinCall: file.MixinCall{
+            Name: nameI.(file.Ident),
+            LParenPos: args.LParenPos,
+            Args: args.Args,
+            RParenPos: args.RParenPos,
+            Position: pos(c),
+        },
+        Value: castedOrZero[file.InterpolationValue](valueI),
+    }, nil
+}
+singleLineMixinCallAttributeCall <- '+' namespaceI:(Ident '.')? nameI:MustIdent argsI:singleLineMixinArgList? valueI:mixinCallAttributeValue? {
+    args := castedOrZero[file.MixinCall](argsI)
+    return file.MixinCallAttribute{
+        MixinCall: file.MixinCall{
+            Name: nameI.(file.Ident),
+            LParenPos: args.LParenPos,
+            Args: args.Args,
+            RParenPos: args.RParenPos,
+            Position: pos(c),
+        },
+        Value: castedOrZero[file.InterpolationValue](valueI),
+    }, nil
+}
+
+mixinCallAttributeValue <- textInterpolationValue / expressionInterpolationValue

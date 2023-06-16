@@ -1,0 +1,68 @@
+Filter <- RawFilter / CommandFilter / BadFilter
+
+// ============================================================================
+// Raw Filter
+// ======================================================================================
+
+RawFilter <- ":raw" EOL bodyI:filterBody? {
+    return file.RawFilter{
+        Body: castedOrZero[[]file.FilterLine](bodyI),
+        Position: pos(c),
+    }, nil
+}
+
+// ============================================================================
+// Command Filter
+// ======================================================================================
+
+CommandFilter <- ':' nameI:[^ \t\r\n]+ argsI:(' '+ commandFilterArg)* EOL bodyI:filterBody? {
+    return file.CommandFilter{
+        Name: concat(nameI),
+        Args: typedSliceFromTuples[file.CommandFilterArg](argsI, -1),
+        Body: castedOrZero[[]file.FilterLine](bodyI),
+        Position: pos(c),
+    }, nil
+}
+
+commandFilterArg <- stringCommandFilterArg / rawCommand
+
+stringCommandFilterArg <- stringI:String {
+    return file.StringCommandFilterArg(stringI.(file.String)), nil
+}
+
+rawCommand <- argI:[^ \t\r\n]+ {
+    return file.RawCommandFilterArg{Value: concat(argI), Position: pos(c)}, nil
+}
+
+// ============================================================================
+// Bad Filter
+// ======================================================================================
+
+BadFilter <- ':' EOL bodyI:filterBody? {
+    return file.CommandFilter{
+        Position: pos(c),
+        Body: castedOrZero[[]file.FilterLine](bodyI),
+    }, &corgierr.Error{
+        Message: "bad filter",
+        ErrorAnnotation: anno(c, annotation{
+            Start: pos(c),
+            StartOffset: 1,
+            Annotation: "expected `raw` or a command name",
+        }),
+    }
+}
+
+// ============================================================================
+// Utils
+// ======================================================================================
+
+filterBody <- INDENT linesI:(NEW_LNS? filterLine)+ DEDENT {
+    return typedSliceFromTuples[file.FilterLine](linesI, -1), nil
+}
+
+filterLine <- INDENTATION posI:POS lineI:NOT_EOL+ EOL {
+    return file.FilterLine{
+        Line: concat(lineI),
+        Position: pos(c),
+    }, nil
+}

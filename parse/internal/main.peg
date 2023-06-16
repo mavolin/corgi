@@ -1,0 +1,245 @@
+{
+    package internal
+
+    // todo: rm these as soon as pigeon#115 is fixed
+    const lbrace = "{"
+    const rbrace = "}"
+
+    type ErrList = errList
+    type ParserError = parserError
+}
+
+File <-
+    init
+    NEW_LNS?
+    extendComments:CorgiComments? NEW_LNS?
+    extendI:Extend? NEW_LNS?
+    importsAndCommentsI:importsAndComments? NEW_LNS?
+    usesAndCommentsI:usesAndComments? NEW_LNS?
+    globalCodeAndFuncI:globalCodeAndFunc? NEW_LNS?
+    doctypeCommentsI:CorgiComments? NEW_LNS?
+    doctypeI:Doctype? NEW_LNS?
+    scopeI:Scope? NEW_LNS?
+    EOF {
+    var f file.File
+    
+    f.TopLevelComments = append(f.TopLevelComments, castedOrZero[[]file.CorgiComment](extendComments)...)
+
+    f.Extend = ptrOrNil[file.Extend](extendI)
+
+    if importsAndCommentsI != nil {
+        f.Imports = getTuple[[]file.Import](importsAndCommentsI, 0)
+        f.TopLevelComments = append(f.TopLevelComments, getTuple[[]file.CorgiComment](importsAndCommentsI, 1)...)
+    }
+    
+    if usesAndCommentsI != nil {
+        f.Uses = getTuple[[]file.Use](usesAndCommentsI, 0)
+        f.TopLevelComments = append(f.TopLevelComments, getTuple[[]file.CorgiComment](usesAndCommentsI, 1)...)
+    }
+
+    if globalCodeAndFuncI != nil {
+        partFile := globalCodeAndFuncI.(file.File)
+
+        f.TopLevelComments = append(f.TopLevelComments, partFile.TopLevelComments...)
+        f.GlobalCode = partFile.GlobalCode
+        f.Func = partFile.Func
+    }
+
+    f.Scope = castedOrZero[file.Scope](scopeI)
+
+    if doctypeI != nil {
+        f.Scope = append(file.Scope{doctypeI.(file.Doctype)}, f.Scope...)
+    }
+
+    if doctypeCommentsI != nil {
+        comments := doctypeCommentsI.([]file.CorgiComment)
+
+        commentScope := make(file.Scope, len(comments))
+        for i, comment := range comments {
+            commentScope[i] = comment
+        }
+
+        f.Scope = append(commentScope, f.Scope...)
+    }
+
+    return &f, nil
+}
+
+importsAndComments <- valsI:(CorgiComments? NEW_LNS? Imports)+ {
+    tuples := islice(valsI)
+    
+    var comments []file.CorgiComment
+    var imports []file.Import
+    
+    for _, t := range tuples {
+        comments = append(comments, castedOrZero[[]file.CorgiComment](islice(t)[0])...)
+        imports = append(imports, getTuple[[]file.Import](t, -1)...)
+    }
+    
+    return []any{imports, comments}, nil
+}
+
+usesAndComments <- valsI:(CorgiComments? NEW_LNS? Uses)+ {
+    tuples := islice(valsI)
+    
+    var comments []file.CorgiComment
+    var uses []file.Use
+    
+    for _, t := range tuples {
+        comments = append(comments, castedOrZero[[]file.CorgiComment](islice(t)[0])...)
+        uses = append(uses, getTuple[[]file.Use](t, -1)...)
+    }
+    
+    return []any{uses, comments}, nil
+}
+
+codesAndComments <- valsI:(CorgiComments? NEW_LNS? Codes)+ {
+    tuples := islice(valsI)
+    
+    var comments []file.CorgiComment
+    var codes []file.Code
+    
+    for _, t := range tuples {
+        comments = append(comments, castedOrZero[[]file.CorgiComment](islice(t)[0])...)
+        codes = append(codes, getTuple[[]file.Code](t, -1)...)
+    }
+    
+    return []any{codes, comments}, nil
+}
+
+globalCodeAndFunc <- codesAndCommentsI:codesAndComments? NEW_LNS? commentsI:CorgiComments? NEW_LNS? funcI:Func {
+    var f file.File
+
+    if codesAndCommentsI != nil {
+        f.GlobalCode = getTuple[[]file.Code](codesAndCommentsI, 0)
+        f.TopLevelComments = append(f.TopLevelComments, getTuple[[]file.CorgiComment](codesAndCommentsI, 1)...)
+    }
+    
+    if commentsI != nil {
+        f.TopLevelComments = append(f.TopLevelComments, commentsI.([]file.CorgiComment)...)
+    }
+    
+    fun := funcI.(file.Func)
+    f.Func = &fun
+    
+    return f, nil
+}
+
+init <- #{
+    c.state["Indentation.Level"] = 0       // the lvl we are in rn
+    c.state["Indentation.Char"] = byte(0)  // the char used for indentation
+    c.state["Indentation.Repetitions"] = 0 // num of repetitions of char per lvl
+    c.state["Indentation.RefLine"] = 0     // the line no where we got char and repetitions from
+
+    // a stack containing the actual number of repetitions of char per lvl
+    // used to recover from inconsistent indentations errs
+    c.state["Indentation.ActualRepetitions"] = stack.New[int](25)
+    c.state["Indentation.TotalRepetitions"] = 0 // sum of the stack above
+
+    // used by INDENTATION_NO_INCREASE to count how many chars it has found
+    c.state["Indentation.CharCount"] = 0
+    return nil
+}
+
+// ============================================================================
+// Scope
+// ======================================================================================
+
+Scope <- itemsI:(NEW_LNS? INDENTATION scopeItem)+ {
+    itemTuples := islice(itemsI)
+
+    scope := make(file.Scope, 0, len(itemTuples))
+    for _, it := range itemTuples {
+        if si, ok := islice(it)[2].(file.ScopeItem); ok {
+            scope = append(scope, si)
+        }
+    }
+
+    return scope, nil
+}
+
+scopeItem <- (
+    Block / Prepend / Append /   // block.peg
+    Code /                       // code.peg
+    If / IfBlock / Switch /      // control_structures.peg
+    HTMLComment / And /          // element.peg, excl. Element, which is last
+    Filter /                     // filter.peg
+    Include /                    // include.peg
+    Mixin / Return / MixinCall / // include.peg
+    Assign / ArrowBlock /        // text.peg
+
+    scopeDoctype /
+    DivShorthand / Element /     // needs to come last
+    BadItem
+)
+
+scopeDoctype <- doctypeI:Doctype {
+    return doctypeI, &corgierr.Error{
+        Message: "`doctype` not first item",
+        ErrorAnnotation: anno(c, annotation{
+            ContextStartDelta: -1,
+            Start: pos(c),
+            ToEOL: true,
+            Annotation: "cannot place doctype directive here",
+        }),
+        Suggestions: []corgierr.Suggestion{
+            {
+                Suggestion: "`doctype`s may only be placed as the first element after the `func` declaration\n" +
+                    "remove this `doctype` and move it right under the `func` of your file, if there isn't a doctype there already",
+            },
+        },
+    }
+}
+
+// ============================================================================
+// Body
+// ======================================================================================
+
+Body <- INDENT scopeI:Scope DEDENT {
+    return scopeI, nil
+}
+
+Beaitb <- (
+    [^:!= \r\n]+ endPosI:POS {
+        return nil, &corgierr.Error{
+            Message: "unexpected tokens",
+            ErrorAnnotation: anno(c, annotation{
+                Start: pos(c),
+                End: endPosI.(file.Position),
+                Annotation: "expected a block expansion (`:`), an assign (`=` or `!=`), inline text,\n" +
+                    "an indented body, or nothing",
+            }),
+        }
+    }
+)? scopeI:(
+    scopeItemI:(BlockExpansion / Assign / InlineText) {
+        return file.Scope{scopeItemI.(file.ScopeItem)}, nil
+    } / EOL bodyI:Body {
+        return bodyI, nil
+    } / EOL {
+        return file.Scope(nil), nil
+    }
+) {
+    return scopeI, nil
+}
+
+Beait <- (
+    [^:= \r\n]+ endPosI:POS {
+        return nil, &corgierr.Error{
+            Message: "unexpected tokens",
+            ErrorAnnotation: anno(c, annotation{
+                Start: pos(c),
+                End: endPosI.(file.Position),
+                Annotation: "expected a block expansion (`:`), an assign (`=` or `!=`), inline text, or nothing",
+            }),
+        }
+    }
+)? scopeI:(
+    scopeItemI:(BlockExpansion / Assign / InlineText) {
+        return file.Scope{scopeItemI.(file.ScopeItem)}, nil
+    } / EOL {
+        return file.Scope(nil), nil
+    }
+) {
+    return scopeI, nil
+}

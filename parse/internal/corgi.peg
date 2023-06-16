@@ -1,0 +1,155 @@
+// ============================================================================
+// Ident
+// ======================================================================================
+
+Ident <- identI:goIdentifier {
+    return file.Ident{Ident: concat(identI), Position: pos(c)}, nil
+} / identI:('$'? ([\p{Nd}] [_-\pL] / [_-\pL])+) endPosI:POS {
+    return file.Ident{Ident: concat(identI), Position: pos(c)}, &corgierr.Error{
+        Message: "invalid identifier",
+        ErrorAnnotation: anno(c, annotation{
+            Start: pos(c),
+            End: endPosI.(file.Position),
+            Annotation: "expected a letter, or `_`, optionally followed by `_`s, letters, and numbers",
+        }),
+        Example: "`woofBark`",
+    }
+}
+
+MustIdent <- identI:Ident {
+    return identI, nil
+} / posI:POS &(EOL / ':' / '!' / '=' / '(') {
+    return file.Ident{
+        Position: pos(c),
+    }, &corgierr.Error{
+        Message: "missing identifier",
+        ErrorAnnotation: anno(c, annotation{
+            Start: posI.(file.Position),
+            Annotation: "expected an identifier",
+        }),
+        Example: "`woofBark`",
+    }
+} / identI:[^ \t\r\n:!=(]+ endPosI:POS {
+    return file.Ident{
+        Ident: concat(identI),
+        Position: pos(c),
+    }, &corgierr.Error{
+        Message: "invalid identifier",
+        ErrorAnnotation: anno(c, annotation{
+            Start: pos(c),
+            End: endPosI.(file.Position),
+            Annotation: "expected a letter, or `_`, optionally followed by `_`s, letters, and numbers",
+        }),
+        Example: "`woofBark`",
+    }
+}
+
+// ============================================================================
+// String
+// ======================================================================================
+
+String <- rawString / interpretedString / singleQuoteString
+
+//
+// `Raw String`
+//
+
+rawString <- '`' strI:goRawStringUnicodeChar* '`' {
+    return file.String{Quote: '`', Contents: concat(strI), Position: pos(c)}, nil
+} / '`' strI:goRawStringUnicodeChar* &EOL {
+    return file.String{
+        Quote: '`',
+        Contents: concat(strI),
+        Position: pos(c),
+    }, &corgierr.Error{
+        Message: "unclosed string literal",
+        ErrorAnnotation: anno(c, annotation{
+            Start: pos(c),
+            EOLDelta: 1,
+            Annotation: "expected a ``` somewhere here",
+        }),
+    }
+}
+
+//
+// "Interpreted String"
+//
+
+interpretedString <- '"' strI:(goByteValue / goInterpretedStringUnicodeValue / goRecoverInterpretedStringEscape)* '"' {
+    return file.String{Quote: '"', Contents: concat(strI), Position: pos(c)}, nil
+} / '"' strI:(goByteValue / goInterpretedStringUnicodeValue / goRecoverInterpretedStringEscape)* endPosI:POS &EOL {
+    return file.String{
+        Quote: '"',
+        Contents: concat(strI),
+        Position: pos(c),
+    }, &corgierr.Error{
+        Message: "unclosed string literal",
+        ErrorAnnotation: anno(c, annotation{
+            Start: pos(c),
+            EOLDelta: 1,
+            Annotation: "expected a `\"` somewhere here",
+        }),
+    }
+}
+
+//
+// 'Single Quote String'
+//
+
+singleQuoteString <- '\'' strI:[^'\r\n]* '\'' endPosI:POS {
+    raw := concat(strI)
+
+    suggestion := corgierr.Suggestion{
+        Suggestion: "enclose this string in double quotes or backticks, instead of single quotes",
+        Code: "`" + strconv.Quote(raw) + "` or ``" + raw + "``",
+    }
+    if strings.Contains(raw, "`") {
+        suggestion = corgierr.Suggestion{
+            Suggestion: "enclose this string in double quotes, instead of single quotes",
+            Code: "`" + strconv.Quote(raw) + "`",
+        }
+    }
+
+    return file.String{
+        Quote: '\'',
+        Contents: concat(strI),
+        Position: pos(c),
+    }, &corgierr.Error{
+        Message: "use of single-quoted string",
+        ErrorAnnotation: anno(c, annotation{
+            Start: pos(c),
+            End: endPosI.(file.Position),
+            Annotation: "this should be a valid Go string",
+        }),
+        Suggestions: []corgierr.Suggestion{suggestion},
+    }
+}
+
+// ============================================================================
+// Comment
+// ======================================================================================
+
+CorgiComments <- commentsI:(NEW_LNS? CorgiComment)+ {
+    return typedSliceFromTuples[file.CorgiComment](commentsI, -1), nil
+}
+
+CorgiComment <- "//" !'-' linesI:(
+    _* EOL linesI:corgiCommentBlock {
+        return linesI, nil
+    } / lineI:corgiCommentLine {
+        return []file.CorgiCommentLine{lineI.(file.CorgiCommentLine)}, nil
+    }
+) {
+    return file.CorgiComment{
+        Lines: linesI.([]file.CorgiCommentLine),
+        Position: pos(c),
+    }, nil
+}
+
+corgiCommentBlock <- INDENT linesI:(NEW_LNS? INDENTATION_IGNORE_ADDITIONAL corgiCommentLine)* DEDENT {
+    return typedSliceFromTuples[file.CorgiCommentLine](linesI, -1), nil
+}
+
+corgiCommentLine <- commentI:NOT_EOL* EOL {
+    return file.CorgiCommentLine{Comment: concat(commentI), Position: pos(c)}, nil
+}

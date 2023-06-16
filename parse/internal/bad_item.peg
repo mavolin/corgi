@@ -1,0 +1,31 @@
+BadItem <- lineI:NOT_EOL+ EOL bodyI:Body? {
+    line := concat(lineI)
+
+    firstWordLen := strings.IndexByte(line, ' ')
+    if firstWordLen <= 0 {
+        firstWordLen = len([]rune(line))
+    }
+
+    return file.BadItem{
+        Line: line,
+        Body: castedOrZero[file.Scope](bodyI),
+        Position: pos(c),
+    }, &corgierr.Error{
+        Message: "unrecognized directive or invalid element name",
+        ErrorAnnotation: anno(c, annotation{
+            Start: pos(c),
+            Len: firstWordLen,
+            Annotation: "expected a valid corgi directive or an element name",
+        }),
+        Suggestions: []corgierr.Suggestion{
+            {Suggestion: "if this is supposed to be an element name, make sure it conforms to the HTML spec"},
+            {
+                Suggestion: "use a valid corgi directive",
+                ShouldBe: "a block (`block`, `append`, `prepend`), code (`-`), a conditional (`if`, `else if`, `else`, `switch`),\n" +
+                    "a loop (`for`), a filter (`:`), an include (`include`), a mixin (`mixin`), a mixin call (`+`),\n" +
+                    "a Go import (`import`), a corgi use (`use`), the func header (`func`),\n" +
+                    "an assign (`=`, `!=`), an arrow block (`>`)",
+            },
+        },
+    }
+}
