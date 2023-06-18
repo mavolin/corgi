@@ -112,14 +112,18 @@ type LinkedMixin struct {
 	// WritesBody indicates whether the mixin writes to the body of an element.
 	// Blocks including block defaults are ignored.
 	WritesBody bool
+	// WritesElements indicates whether the mixin writes elements.
+	//
+	// Only true, if WritesBody is as well.
+	WritesElements bool
 	// WritesTopLevelAttributes indicates whether the mixin writes any top-level
 	// attributes, except &-placeholders.
 	WritesTopLevelAttributes bool
 	// TopLevelAndPlaceholder indicates whether the mixin has any top-level
 	// &-placeholders.
 	TopLevelAndPlaceholder bool
-	// Blocks is the order of blocks functions, as they appear in the
-	// compiled function's signature.
+	// Blocks is are the blocks used in the mixin in the order they appear in,
+	// and in the order they appear in the functions' signature.
 	Blocks             []LinkedMixinBlock
 	HasAndPlaceholders bool
 }

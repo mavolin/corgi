@@ -2,12 +2,11 @@ package writer
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os/exec"
 	"strconv"
 	"strings"
-
-	"github.com/pkg/errors"
 
 	"github.com/mavolin/corgi/corgi/file"
 	"github.com/mavolin/corgi/internal/voidelem"
@@ -196,11 +195,11 @@ func (w *Writer) writeScopeItem(itm file.ScopeItem, e *elem, extraAttributes fun
 	case file.Text:
 		w.writeText(itm, e)
 		return nil
-	case file.Interpolation:
+	case file.ExpressionInterpolation:
 		return w.writeInterpolation(itm, e)
-	case file.InlineElement:
+	case file.ElementInterpolation:
 		return w.writeInlineElement(itm)
-	case file.InlineText:
+	case file.TextInterpolation:
 		w.writeInlineText(itm, e)
 		return nil
 	case file.Filter:
@@ -398,9 +397,9 @@ func (w *Writer) writeElement(e file.Element, extraAttrs func(*elem) error) erro
 
 func (w *Writer) writeAttribute(attr file.Attribute) error {
 	switch attr := attr.(type) {
-	case file.AttributeLiteral:
+	case file.LiteralAttribute:
 		w.writeRawUnescaped(fmt.Sprintf(` %s="%s"`, attr.Name, woof.EscapeHTML(attr.Value)))
-	case file.AttributeExpression:
+	case file.ExpresssionAttribute:
 		iexp := w.inlineExpression(attr.Value)
 		if iexp != "" {
 			if iexp == "true" {
@@ -559,7 +558,7 @@ func (w *Writer) writeClasses(e *elem) error {
 					w.writePreEscapedHTML(c.Name)
 				}
 			case file.ClassExpression:
-				err := w.expression(c.Name, func(val string) error {
+				err := w.expression(c.Names, func(val string) error {
 					unq, unqErr := strconv.Unquote(val)
 
 					if c.NoEscape {
@@ -661,7 +660,7 @@ func (w *Writer) writeAnd(and file.And, e *elem) error {
 				return err
 			}
 		case file.ClassExpression:
-			err := w.expression(c.Name, func(val string) error {
+			err := w.expression(c.Names, func(val string) error {
 				if c.NoEscape {
 					return w.writeToBufExpressionUnescaped(val)
 				}
@@ -691,14 +690,14 @@ func (w *Writer) writeInclude(incl file.Include, e *elem) error {
 	switch incl := incl.Include.(type) {
 	case file.CorgiInclude:
 		return w.writeScope(incl.File.Scope, e, nil)
-	case file.RawInclude:
+	case file.OtherInclude:
 		if e != nil {
 			if err := w.closeTag(e); err != nil {
 				return err
 			}
 		}
 
-		w.writeRawUnescaped(incl.Text)
+		w.writeRawUnescaped(incl.Contents)
 	}
 
 	return nil
@@ -1087,10 +1086,10 @@ func (w *Writer) writeText(t file.Text, e *elem) {
 }
 
 // ============================================================================
-// Interpolation
+// ExpressionInterpolation
 // ======================================================================================
 
-func (w *Writer) writeInterpolation(i file.Interpolation, e *elem) error {
+func (w *Writer) writeInterpolation(i file.ExpressionInterpolation, e *elem) error {
 	return w.expression(i.Expression, func(val string) error {
 		if i.NoEscape {
 			return w.writeUnescapedExpression(val)
@@ -1112,10 +1111,10 @@ func (w *Writer) writeInterpolation(i file.Interpolation, e *elem) error {
 }
 
 // ============================================================================
-// InlineElement
+// ElementInterpolation
 // ======================================================================================
 
-func (w *Writer) writeInlineElement(ie file.InlineElement) error {
+func (w *Writer) writeInlineElement(ie file.ElementInterpolation) error {
 	w.writeRawUnescaped("<" + ie.Name)
 
 	for _, attr := range ie.Attributes {
@@ -1136,7 +1135,7 @@ func (w *Writer) writeInlineElement(ie file.InlineElement) error {
 					w.writePreEscapedHTML(c.Name)
 				}
 			case file.ClassExpression:
-				err := w.expression(c.Name, func(val string) error {
+				err := w.expression(c.Names, func(val string) error {
 					unq, unqErr := strconv.Unquote(val)
 
 					if c.NoEscape {
@@ -1189,11 +1188,11 @@ func (w *Writer) writeInlineElement(ie file.InlineElement) error {
 
 	w.writeRawUnescaped(">")
 
-	if voidelem.Is(ie.Name) || ie.Value == nil {
+	if voidelem.Is(ie.Name) || ie.Body == nil {
 		return nil
 	}
 
-	switch val := ie.Value.(type) {
+	switch val := ie.Body.(type) {
 	case file.Text:
 		switch {
 		case ie.NoEscape:
@@ -1237,10 +1236,10 @@ func (w *Writer) writeInlineElement(ie file.InlineElement) error {
 }
 
 // ============================================================================
-// InlineText
+// TextInterpolation
 // ======================================================================================
 
-func (w *Writer) writeInlineText(it file.InlineText, e *elem) {
+func (w *Writer) writeInlineText(it file.TextInterpolation, e *elem) {
 	switch {
 	case it.NoEscape:
 		w.writeRawUnescaped(it.Text)
@@ -1376,7 +1375,7 @@ func doesExpressionShadow(e file.Expression, varName string) (bool, error) {
 		}
 
 		return doesExpressionShadow(e.IfTrue, varName)
-	case file.NilCheckExpression:
+	case file.SetCheckExpression:
 		if e.Default != nil {
 			shadows, err := doesExpressionShadow(*e.Default, varName)
 			if err != nil {
@@ -1461,7 +1460,7 @@ func (w *Writer) expression(e file.Expression, ifVal func(val string) error, noV
 
 			return w.flushRawBuf()
 		})
-	case file.NilCheckExpression:
+	case file.SetCheckExpression:
 		var ifNil func() error
 
 		if e.Default != nil {
@@ -1509,7 +1508,7 @@ func (w *Writer) ifElse(cond file.GoExpression, ifTrue, ifFalse func() error) er
 // nilCheckExpr writes a nil check expression that processes the resolved
 // value of the given expression.
 func (w *Writer) nilCheckExpr(
-	e file.NilCheckExpression, notNil func(val string) error, isNil func() error,
+	e file.SetCheckExpression, notNil func(val string) error, isNil func() error,
 ) error {
 	if err := w.flushRawBuf(); err != nil {
 		return err
@@ -1555,7 +1554,7 @@ func (w *Writer) nilCheckExpr(
 	return w.writeToFile("}\n")
 }
 
-func nilCheckToGoExpression(e file.NilCheckExpression) string {
+func nilCheckToGoExpression(e file.SetCheckExpression) string {
 	var b strings.Builder
 
 	b.WriteString(e.Deref)
@@ -1585,14 +1584,14 @@ func (w *Writer) ifExpression(e file.Expression) error {
 	switch e := e.(type) {
 	case file.GoExpression:
 		return w.writeToFile(e.Expression)
-	case file.NilCheckExpression:
+	case file.SetCheckExpression:
 		return w.nilCheckIfCondition(e)
 	default:
 		return fmt.Errorf("unsupported expression type %T", e)
 	}
 }
 
-func (w *Writer) nilCheckIfCondition(e file.NilCheckExpression) error {
+func (w *Writer) nilCheckIfCondition(e file.SetCheckExpression) error {
 	if err := w.writeToFile("woof.IsSet("); err != nil {
 		return err
 	}
@@ -1614,7 +1613,7 @@ func (w *Writer) nilCheckIfCondition(e file.NilCheckExpression) error {
 				return err
 			}
 		case file.FieldMethodExpression:
-			err = w.writeToFile("woof.FieldMethodChainItem{Name: \"" + expr.Expression + "\"}")
+			err = w.writeToFile("woof.FieldMethodChainItem{Names: \"" + expr.Expression + "\"}")
 			if err != nil {
 				return err
 			}

@@ -1,8 +1,6 @@
 // Package voidelem provides utilities for working with HTML void elements.
 package voidelem
 
-import "net/url"
-
 // https://developer.mozilla.org/en-US/docs/Glossary/Empty_element
 var elems = map[string]struct{}{
 	"area":   {},
@@ -23,8 +21,6 @@ var elems = map[string]struct{}{
 
 // Is reports whether the element with the passed name is an HTML void element.
 func Is(name string) bool {
-	url.PathEscape()
-
 	_, ok := elems[name]
 	return ok
 }

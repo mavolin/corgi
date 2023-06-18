@@ -183,20 +183,13 @@ func Stringify(val any, escaper func(string) string) (string, error) {
 	}
 
 	rval := reflect.ValueOf(val)
+	rtyp := rval.Type()
 	for rval.Kind() == reflect.Ptr {
 		if rval.IsNil() {
 			return "", nil
 		}
 
-		rtyp := rval.Type()
 		switch {
-		case rtyp == runeSliceType:
-			val := rval.Interface().([]rune)
-			if escaper != nil {
-				return escaper(string(val)), nil
-			}
-
-			return string(val), nil
 		case rtyp.Implements(stringerType):
 			val := rval.Interface().(fmt.Stringer)
 			if escaper != nil {
@@ -218,9 +211,9 @@ func Stringify(val any, escaper func(string) string) (string, error) {
 		}
 
 		rval = rval.Elem()
+		rtyp = rval.Type()
 	}
 
-	rtyp := rval.Type()
 	switch {
 	case rtyp == runeSliceType:
 		val := rval.Interface().([]rune)

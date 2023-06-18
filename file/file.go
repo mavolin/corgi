@@ -16,10 +16,10 @@ type File struct {
 	// of the specified file in its source.
 	Name string
 
-	// Module is the name of the Go module providing this file.
+	// Module is the path/name of the Go module providing this file.
 	Module string
-	// ModulePath is the file in the Go module that provides this file,
-	// relative to the module root.
+	// ModulePath is the path to the file in the Go module, relative to the
+	// module root.
 	//
 	// It is always specified as a forward slash separated path.
 	ModulePath string

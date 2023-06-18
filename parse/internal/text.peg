@@ -110,7 +110,7 @@ Text <- textI:((!EOL [^#])+ / "##")+ {
 // Interpolation
 // ======================================================================================
 
-Interpolation <- SimpleInterpolation / ElementInterpolation / MixinInterpolation / BadInterpolation
+Interpolation <- SimpleInterpolation / ElementInterpolation / MixinCallInterpolation / BadInterpolation
 
 BadInterpolation <- '#' {
     return nil, &corgierr.Error{
@@ -183,12 +183,12 @@ elementInterpolationValue <- textInterpolationValue / expressionInterpolationVal
 }
 
 // ============================================================================
-// MixinInterpolation
+// mixinCallInterpolation
 // ======================================================================================
 
-MixinInterpolation <- '#' noEscapeI:'!' mcPosI:POS '+' namespaceI:(Ident '.')? nameI:MustIdent argsI:singleLineMixinArgList? valueI:mixinInterpolationValue {
+MixinCallInterpolation <- '#' noEscapeI:'!' mcPosI:POS '+' namespaceI:(Ident '.')? nameI:MustIdent argsI:singleLineMixinArgList? valueI:mixinCallInterpolationValue {
     args := castedOrZero[file.MixinCall](argsI)
-    return file.MixinInterpolation{
+    return file.MixinCallInterpolation{
         NoEscape: noEscapeI != nil,
         MixinCall: file.MixinCall{
             Name: nameI.(file.Ident),
@@ -202,7 +202,7 @@ MixinInterpolation <- '#' noEscapeI:'!' mcPosI:POS '+' namespaceI:(Ident '.')? n
     }, nil
 }
 
-mixinInterpolationValue <- textInterpolationValue / expressionInterpolationValue / &(. / !.) {
+mixinCallInterpolationValue <- textInterpolationValue / expressionInterpolationValue / &(. / !.) {
     return nil, &corgierr.Error{
         Message: "missing interpolation value",
         ErrorAnnotation: anno(c, annotation{

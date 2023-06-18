@@ -8,7 +8,7 @@ import (
 // Version is the version of the binary.
 //
 // This should be set during compilation using
-// `-ldflags "-X github.com/mavolin/corgi/internal/meta.Version=1.2.3"`.
+// `-ldflags "-X github.com/mavolin/corgi/internal/meta.Version=v1.2.3"`.
 var Version = DevelopVersion
 
 // DevelopVersion is the version string used for development builds.
@@ -17,7 +17,7 @@ const DevelopVersion = "devel"
 // Commit is the commit hash of the binary.
 //
 // This should be set during compilation using
-// `-ldflags "-X github.com/mavolin/corgi/internal/meta.Commit=foo"`.
+// `-ldflags "-X github.com/mavolin/corgi/internal/meta.Commit=abc123"`.
 var Commit = UnknownCommit
 
 // UnknownCommit is the placeholder used for Commit if there is no information

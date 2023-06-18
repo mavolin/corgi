@@ -1,3 +1,4 @@
+// Package woof provides a set of helper for printing HTML, CSS, and JavaScript.
 package woof
 
 /*

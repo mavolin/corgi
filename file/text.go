@@ -115,9 +115,9 @@ var _ Interpolation = ElementInterpolation{}
 func (ElementInterpolation) _typeTextItem()      {}
 func (ElementInterpolation) _typeInterpolation() {}
 
-// ================================= MixinInterpolation =================================
+// ================================= MixinCallInterpolation =================================
 
-type MixinInterpolation struct {
+type MixinCallInterpolation struct {
 	NoEscape  bool
 	MixinCall MixinCall
 	Value     InterpolationValue
@@ -125,11 +125,11 @@ type MixinInterpolation struct {
 	Position
 }
 
-var _ TextItem = MixinInterpolation{}
-var _ Interpolation = MixinInterpolation{}
+var _ TextItem = MixinCallInterpolation{}
+var _ Interpolation = MixinCallInterpolation{}
 
-func (MixinInterpolation) _typeTextItem()      {}
-func (MixinInterpolation) _typeInterpolation() {}
+func (MixinCallInterpolation) _typeTextItem()      {}
+func (MixinCallInterpolation) _typeInterpolation() {}
 
 // ============================================================================
 // InterpolationValue

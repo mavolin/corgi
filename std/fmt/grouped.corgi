@@ -1,0 +1,36 @@
+// Grouped formats the stringified version of val in groups of size runes.
+//
+// Each group is separated by sep.
+//
+// If trailRem is set, the remainder group, i.e. the group that has less than
+// size elements, will be the last group.
+// Otherwise, the first group will be that group.
+//
+// If minSize is set and val is shorter than minSize, Grouped will print it as
+// is.
+mixin Grouped(val any, size=4, sep=" " trailRem=false, minSize=0)
+
+//corgi:formixin Num SetNum
+- numSep := " "
+
+// Num is used for grouping numbers in groups of 3, if they are greater or
+// equal to 10 000, or smaller or equal to -10 000.
+//
+// Num handles two special cases that Grouped doesn't.
+//
+//  1. The sign isn't counted towards any group.
+//     Where Grouped would print "- 123 456", Num will print "123 456".
+//  2. Num correctly handles decimal points:
+//     123456.7891 will be printed as "123 456.7891" and 12345.67891 will be
+//     printed as "12 345.67 890".
+//
+// By default, Num will separate groups with spaces, however, you may choose to
+// change this default using SetNumSep.
+mixin Num(val number, size=3, sep=numSep, trailRem=false, minSize=5)
+
+// SetNumSep sets the global default for the separator used by Num.
+//
+// SetNumSep may be called at any time, only affecting the calls to Num made
+// after updating the separator.
+mixin SetNumSep(sep string)
+  - numSep = sep

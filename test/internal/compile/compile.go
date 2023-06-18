@@ -4,25 +4,20 @@ package compile
 
 import (
 	"log"
+	"os"
 	"regexp"
 	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/mavolin/corgi/cmd/corgi/app"
-	"github.com/mavolin/corgi/corgi/file"
+	"github.com/mavolin/corgi/corgi"
+	"github.com/mavolin/corgi/corgi/resource"
 	"github.com/mavolin/corgi/test/internal/voidwriter"
+	"github.com/mavolin/corgi/writer"
 )
 
 type Options struct {
-	// FileType overwrites the file type of the file to compile.
-	FileType file.Type
-	// OutName overwrites the name of the output file.
-	OutName string
-	// Format calls gofmt on the output file.
-	Format bool
-
 	// Package sets the name of the package in which the generated function
 	// will be placed.
 	//
@@ -40,42 +35,44 @@ func init() {
 func Compile(t *testing.T, name string, o Options) {
 	t.Helper()
 
-	args := []string{"-p", callingPackage(t, o)}
-
-	if o.OutName != "" {
-		args = append(args, "-o", o.OutName)
+	in, err := os.ReadFile(name)
+	if err != nil {
+		t.Fatalf("could not read file: %s", err)
+		return
 	}
 
-	if !o.Format {
-		args = append(args, "-nofmt")
+	f, err := corgi.File(".", name, string(in)).
+		WithResourceSource(resource.NewFSSource(".", os.DirFS("."))).
+		Parse()
+	if err != nil {
+		t.Fatalf("parse: %s", err)
+		return
 	}
 
-	switch o.FileType {
-	case file.TypeHTML:
-		args = append(args, "-t", "html")
-	case file.TypeXHTML:
-		args = append(args, "-t", "xhtml")
-	case file.TypeXML:
-		args = append(args, "-t", "xml")
+	w := writer.New(f, o.Package)
+
+	out, err := os.Create(name + ".go")
+	if err != nil {
+		t.Fatalf("could not create output file: %s", err)
+		return
 	}
 
-	args = append(args, name)
+	if err = w.Write(out); err != nil {
+		t.Fatalf("could not write to output file: %s", err)
+		return
+	}
 
-	err := app.Run(append([]string{"corgi"}, args...))
-
-	require.NoErrorf(t, err, "failed to compile %s:\n%s", name, err)
+	if err = out.Close(); err != nil {
+		t.Errorf("could not close output file: %s", err)
+	}
 }
 
 // packageRegexp is a regular expression that allows extraction of the package
-// name from the return of runtime.FuncForPC(pc).Name().
+// name from the return of runtime.FuncForPC(pc).Names().
 var packageRegexp = regexp.MustCompile(`^(?:[^/]+/)*(?P<package>[^.]+)(?:\.[^.]+)?\.[^.]+$`)
 
-func callingPackage(t *testing.T, o Options) string {
+func callingPackage(t *testing.T) string {
 	t.Helper()
-
-	if o.Package != "" {
-		return o.Package
-	}
 
 	pc, _, _, ok := runtime.Caller(2)
 	if !ok {

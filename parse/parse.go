@@ -85,7 +85,8 @@ func Parse(input []byte) (*file.File, error) {
 
 	sort.Slice(corgierrList, func(i, j int) bool {
 		return corgierrList[i].ErrorAnnotation.Line < corgierrList[j].ErrorAnnotation.Line ||
-			(corgierrList[i].ErrorAnnotation.Line == corgierrList[j].ErrorAnnotation.Line && corgierrList[i].ErrorAnnotation.Start < corgierrList[j].ErrorAnnotation.Start)
+			(corgierrList[i].ErrorAnnotation.Line == corgierrList[j].ErrorAnnotation.Line &&
+				corgierrList[i].ErrorAnnotation.Start < corgierrList[j].ErrorAnnotation.Start)
 	})
 
 	return f, corgierrList

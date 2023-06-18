@@ -133,7 +133,7 @@ init <- #{
 
     // a stack containing the actual number of repetitions of char per lvl
     // used to recover from inconsistent indentations errs
-    c.state["Indentation.ActualRepetitions"] = stack.New[int](25)
+    c.state["Indentation.ActualRepetitions"] = stack.Stack[int]{}
     c.state["Indentation.TotalRepetitions"] = 0 // sum of the stack above
 
     // used by INDENTATION_NO_INCREASE to count how many chars it has found
