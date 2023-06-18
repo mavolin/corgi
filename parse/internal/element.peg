@@ -94,18 +94,16 @@ InlineElement <- nameI:htmlTagName attrsI:SingleLineAttributeCollection* voidI:'
 
 DivShorthand <- firstAttrI:(ClassShorthand / IDShorthand) moreAttrsI:AttributeCollection* bodyI:Beaitb {
     return file.DivShorthand{
-        Attributes: append([]file.AttributeCollection{firstAttrI.(file.AttributeCollection)}, typedSlice[file.AttributeCollection](attrsI)...),
+        Attributes: append([]file.AttributeCollection{firstAttrI.(file.AttributeCollection)}, typedSlice[file.AttributeCollection](moreAttrsI)...),
         Body: bodyI.(file.Scope),
-        Void: voidI != nil,
         Position: pos(c),
     }, nil
 }
 
 InlineDivShorthand <- firstAttrI:(ClassShorthand / IDShorthand) moreAttrsI:SingleLineAttributeCollection* bodyI:Beait {
     return file.DivShorthand{
-        Attributes: append([]file.AttributeCollection{firstAttrI.(file.AttributeCollection)}, typedSlice[file.AttributeCollection](attrsI)...),
+        Attributes: append([]file.AttributeCollection{firstAttrI.(file.AttributeCollection)}, typedSlice[file.AttributeCollection](moreAttrsI)...),
         Body: bodyI.(file.Scope),
-        Void: voidI != nil,
         Position: pos(c),
     }, nil
 }
