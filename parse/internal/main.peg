@@ -133,7 +133,7 @@ init <- #{
 
     // a stack containing the actual number of repetitions of char per lvl
     // used to recover from inconsistent indentations errs
-    c.state["Indentation.ActualRepetitions"] = stack.Stack[int]{}
+    c.state["Indentation.ActualRepetitions"] = &stack.Stack[int]{}
     c.state["Indentation.TotalRepetitions"] = 0 // sum of the stack above
 
     // used by INDENTATION_NO_INCREASE to count how many chars it has found
@@ -150,7 +150,8 @@ Scope <- itemsI:(NEW_LNS? INDENTATION scopeItem)+ {
 
     scope := make(file.Scope, 0, len(itemTuples))
     for _, it := range itemTuples {
-        if si, ok := islice(it)[2].(file.ScopeItem); ok {
+        tuple := islice(it)
+        if si, ok := tuple[len(tuple)-1].(file.ScopeItem); ok {
             scope = append(scope, si)
         }
     }
@@ -162,6 +163,7 @@ scopeItem <- (
     Block / Prepend / Append /   // block.peg
     Code /                       // code.peg
     If / IfBlock / Switch /      // control_structures.peg
+    CorgiComment /               // corgi.peg
     HTMLComment / And /          // element.peg, excl. Element, which is last
     Filter /                     // filter.peg
     Include /                    // include.peg
@@ -199,47 +201,41 @@ Body <- INDENT scopeI:Scope DEDENT {
     return scopeI, nil
 }
 
-Beaitb <- (
-    [^:!= \r\n]+ endPosI:POS {
-        return nil, &corgierr.Error{
-            Message: "unexpected tokens",
-            ErrorAnnotation: anno(c, annotation{
-                Start: pos(c),
-                End: endPosI.(file.Position),
-                Annotation: "expected a block expansion (`:`), an assign (`=` or `!=`), inline text,\n" +
-                    "an indented body, or nothing",
-            }),
-        }
-    }
-)? scopeI:(
-    scopeItemI:(BlockExpansion / Assign / InlineText) {
+Beaitb <- scopeItemI:(BlockExpansion / Assign / InlineText) {
         return file.Scope{scopeItemI.(file.ScopeItem)}, nil
-    } / EOL bodyI:Body {
-        return bodyI, nil
-    } / EOL {
-        return file.Scope(nil), nil
+} / EOL bodyI:Body {
+    return bodyI, nil
+} / EOL {
+    return file.Scope(nil), nil
+} / lineI:NOT_EOL+ EOL bodyI:Body? {
+    return file.Scope{file.BadItem{
+        Line: concat(lineI),
+        Body: castedOrZero[file.Scope](bodyI),
+        Position: pos(c),
+    }}, &corgierr.Error{
+        Message: "unexpected tokens",
+        ErrorAnnotation: anno(c, annotation{
+            Start: pos(c),
+            ToEOL: true,
+            Annotation: "expected a block expansion (`:`), an assign (`=` or `!=`), inline text, a body, or nothing",
+        }),
     }
-) {
-    return scopeI, nil
 }
 
-Beait <- (
-    [^:= \r\n]+ endPosI:POS {
-        return nil, &corgierr.Error{
-            Message: "unexpected tokens",
-            ErrorAnnotation: anno(c, annotation{
-                Start: pos(c),
-                End: endPosI.(file.Position),
-                Annotation: "expected a block expansion (`:`), an assign (`=` or `!=`), inline text, or nothing",
-            }),
-        }
+Beait <- scopeItemI:(BlockExpansion / Assign / InlineText) {
+    return file.Scope{scopeItemI.(file.ScopeItem)}, nil
+} / EOL {
+    return file.Scope(nil), nil
+} / lineI:NOT_EOL+ EOL {
+    return file.Scope{file.BadItem{
+        Line: concat(lineI),
+        Position: pos(c),
+    }}, &corgierr.Error{
+        Message: "unexpected tokens",
+        ErrorAnnotation: anno(c, annotation{
+            Start: pos(c),
+            ToEOL: true,
+            Annotation: "expected a block expansion (`:`), an assign (`=` or `!=`), inline text, or nothing",
+        }),
     }
-)? scopeI:(
-    scopeItemI:(BlockExpansion / Assign / InlineText) {
-        return file.Scope{scopeItemI.(file.ScopeItem)}, nil
-    } / EOL {
-        return file.Scope(nil), nil
-    }
-) {
-    return scopeI, nil
 }

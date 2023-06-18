@@ -158,7 +158,7 @@ func _topLevelAttributes(f *file.File, s file.Scope) errList {
 							Start: itm.Position,
 							Len:   annoLen,
 							Annotation: "The mixin you are calling has a top-level block named `" + ublock.Name + "`\n" +
-								"which you didn't fill and whose default has a top-level and placeholder (`&(&&)`).",
+								"which you didn't fill and whose default has a top-level &-placeholder (`&(&&)`).",
 						}),
 						HintAnnotations: []corgierr.Annotation{
 							anno.Anno(f, anno.Annotation{
@@ -363,7 +363,7 @@ func _topLevelTemplateBlockAnds(f *file.File, s file.Scope) errList {
 							Start: itm.Position,
 							Len:   annoLen,
 							Annotation: "The mixin you are calling has a top-level block named `" + ublock.Name + "`\n" +
-								"which you didn't fill and whose default has a top-level and placeholder (`&(&&)`).",
+								"which you didn't fill and whose default has a top-level &-placeholder (`&(&&)`).",
 						}),
 						HintAnnotations: []corgierr.Annotation{
 							anno.Anno(f, anno.Annotation{
@@ -840,7 +840,7 @@ handleUnfilledBlocks:
 					Start: mc.Position,
 					Len:   annoLen,
 					Annotation: "The mixin you are calling has a top-level block named `" + ublock.Name + "`\n" +
-						"which you didn't fill and whose default has a top-level and placeholder (`&(&&)`).",
+						"which you didn't fill and whose default has a top-level &-placeholder (`&(&&)`).",
 				}),
 				HintAnnotations: []corgierr.Annotation{
 					elAnno,

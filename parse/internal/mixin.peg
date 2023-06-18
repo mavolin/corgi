@@ -64,7 +64,7 @@ mixinParams <- firstI:mixinParam restI:(_* ',' WS* mixinParam)* {
     return mixinParams, nil
 }
 
-mixinParam <- nameI:MustIdent posI:POS typeI:(' '+ GoType)? defaultI:(' '* mixinParamDefault)? {
+mixinParam <- nameI:MustIdentIfText posI:POS typeI:(' '+ GoType)? defaultI:(' '* mixinParamDefault)? {
     defaultTuple := islice(defaultI)
     var paramDefault file.MixinParam
     if len(defaultTuple) == 2 {
@@ -178,7 +178,7 @@ mixinArgList <- '(' WS* argsI:mixinArgs? _* (',' WS*)? rParenPosI:R_PAREN {
         LParenPos: ptr(pos(c)),
         Args: castedOrZero[[]file.MixinArg](argsI),
     }, &corgierr.Error{
-        Message: "mixin argeters: unclosed `(`",
+        Message: "mixin args: unclosed `(`",
         ErrorAnnotation: anno(c, annotation{
             Start: posI.(file.Position),
             Annotation: "expected a `)`",
@@ -202,7 +202,7 @@ singleLineMixinArgList <- '(' ' '* argsI:singleLineMixinArgs? ' '* (',' ' '*)? r
         LParenPos: ptr(pos(c)),
         Args: castedOrZero[[]file.MixinArg](argsI),
     }, &corgierr.Error{
-        Message: "mixin argeters: unclosed `(`",
+        Message: "mixin args: unclosed `(`",
         ErrorAnnotation: anno(c, annotation{
             Start: posI.(file.Position),
             Annotation: "expected a `)`",
@@ -237,12 +237,12 @@ singleLineMixinArgs <- firstI:singleLineMixinArg restI:(' '* ',' ' '* singleLine
     return mixinArgs, nil
 }
 
-mixinArg <- nameI:MustIdent ' '* '=' ' '* valI:Expression {
+mixinArg <- nameI:MustIdentIfText ' '* '=' ' '* valI:Expression {
     return file.MixinArg{
         Name: nameI.(file.Ident),
         Value: valI.(file.Expression),
     }, nil
-} / nameI:MustIdent (' '* '=')? posI:POS {
+} / nameI:MustIdentIfText (' '* '=')? posI:POS {
     return file.MixinArg{
         Name: nameI.(file.Ident),
     }, &corgierr.Error{
@@ -257,12 +257,12 @@ mixinArg <- nameI:MustIdent ' '* '=' ' '* valI:Expression {
         },
     }
 }
-singleLineMixinArg <- nameI:MustIdent ' '* '=' ' '* valI:SingleLineExpression {
+singleLineMixinArg <- nameI:MustIdentIfText ' '* '=' ' '* valI:SingleLineExpression {
     return file.MixinArg{
         Name: nameI.(file.Ident),
         Value: valI.(file.Expression),
     }, nil
-} / nameI:MustIdent (' '* '=')? posI:POS {
+} / nameI:MustIdentIfText (' '* '=')? posI:POS {
     return file.MixinArg{
         Name: nameI.(file.Ident),
     }, &corgierr.Error{
@@ -311,4 +311,3 @@ MixinMainBlockShorthand <- '\\' unexpectedTokens? EOL bodyI:Body {
         },
     }
 }
-

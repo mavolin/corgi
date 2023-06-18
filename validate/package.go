@@ -1,8 +1,6 @@
 package validate
 
 import (
-	"fmt"
-
 	"github.com/mavolin/corgi/corgierr"
 	"github.com/mavolin/corgi/file"
 	"github.com/mavolin/corgi/internal/anno"
@@ -33,20 +31,17 @@ func packageMixinNameConflicts(fs []file.File) errList {
 				errs.PushBack(&corgierr.Error{
 					Message: "duplicate mixin in package",
 					ErrorAnnotation: anno.Anno(&f, anno.Annotation{
-						Start: m.Name.Position,
-						Len:   len(m.Name.Ident),
-						Annotation: fmt.Sprintf("mixin redeclared in `%s:%d:%d` (see error below)",
-							other.File.Name, other.Mixin.Name.Line, other.Mixin.Name.Col),
+						Start:      m.Name.Position,
+						Len:        len(m.Name.Ident),
+						Annotation: "same mixin name used here",
 					}),
-				})
-				errs.PushBack(&corgierr.Error{
-					Message: "duplicate mixin in package",
-					ErrorAnnotation: anno.Anno(&f, anno.Annotation{
-						Start: other.Mixin.Name.Position,
-						Len:   len(other.Mixin.Name.Ident),
-						Annotation: fmt.Sprintf("mixin redeclared in `%s:%d:%d` (see error above)",
-							f.Name, m.Name.Line, m.Name.Col),
-					}),
+					HintAnnotations: []corgierr.Annotation{
+						anno.Anno(other.File, anno.Annotation{
+							Start:      other.Mixin.Name.Position,
+							Len:        len(other.Mixin.Name.Ident),
+							Annotation: "and here",
+						}),
+					},
 				})
 
 				foundMixins.PushBack(struct {

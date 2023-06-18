@@ -7,7 +7,7 @@ Block <- blockI:blockDirective bodyI:Beaitb {
     block.Body = bodyI.(file.Scope)
     return block, nil
 }
-InlineBlock <- blockI:blockDirective scopeI:Beait EOL {
+InlineBlock <- blockI:blockDirective scopeI:Beait {
     block := blockI.(file.Block)
     block.Body = castedOrZero[file.Scope](scopeI)
     return block, nil

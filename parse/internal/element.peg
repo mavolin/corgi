@@ -342,7 +342,7 @@ simpleBooleanAttribute <- nameI:attributeName !(' '* [!=]) {
 // AndPlaceholder
 //
 
-AndPlaceholder <- "&&" &(WS / ',' / '(') {
+AndPlaceholder <- "&&" &(WS / ',' / ')') {
     return file.AndPlaceholder{Position: pos(c)}, nil
 }
 

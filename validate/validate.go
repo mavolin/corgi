@@ -81,9 +81,6 @@ func Validate(f *file.File) error {
 //
 // It expects the files to be linked and have passed [Validate], and have their
 // metadata filled.
-//
-// The order of the returned [corgierr.List] should not be changed, as the
-// error messages verbally reference each other ("see above err" etc).
 func Package(fs []file.File) error {
 	var errs errList
 

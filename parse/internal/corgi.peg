@@ -18,7 +18,7 @@ Ident <- identI:goIdentifier {
 
 MustIdent <- identI:Ident {
     return identI, nil
-} / posI:POS &(EOL / ':' / '!' / '=' / '(') {
+} / posI:POS &(EOL / ':' / '!' / '=' / '(' / ')') {
     return file.Ident{
         Position: pos(c),
     }, &corgierr.Error{
@@ -29,7 +29,24 @@ MustIdent <- identI:Ident {
         }),
         Example: "`woofBark`",
     }
-} / identI:[^ \t\r\n:!=(]+ endPosI:POS {
+} / identI:[^ \t\r\n:!=()]+ endPosI:POS {
+    return file.Ident{
+        Ident: concat(identI),
+        Position: pos(c),
+    }, &corgierr.Error{
+        Message: "invalid identifier",
+        ErrorAnnotation: anno(c, annotation{
+            Start: pos(c),
+            End: endPosI.(file.Position),
+            Annotation: "expected a letter, or `_`, optionally followed by `_`s, letters, and numbers",
+        }),
+        Example: "`woofBark`",
+    }
+}
+
+MustIdentIfText <- identI:Ident {
+    return identI, nil
+} / identI:[^ \t\r\n:!=()]+ endPosI:POS {
     return file.Ident{
         Ident: concat(identI),
         Position: pos(c),

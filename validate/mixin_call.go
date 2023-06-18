@@ -445,11 +445,11 @@ func andPlaceholderPlacement(f *file.File) errList {
 		}
 
 		errs.PushBack(&corgierr.Error{
-			Message: "and placeholder used outside of mixin",
+			Message: "&-placeholder used outside of mixin",
 			ErrorAnnotation: anno.Anno(f, anno.Annotation{
 				Start:      ap.Position,
 				Len:        2,
-				Annotation: "you can only place and placeholders inside mixins",
+				Annotation: "you can only place &-placeholders inside mixins",
 			}),
 		})
 
