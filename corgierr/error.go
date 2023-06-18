@@ -61,9 +61,18 @@ type Suggestion struct {
 
 func (err *Error) Error() string {
 	if err.ErrorAnnotation.File == nil {
+		if len(err.HintAnnotations) == 0 {
+			return fmt.Sprintf("%d:%d: %s: %s",
+				err.ErrorAnnotation.Line, err.ErrorAnnotation.Start, err.Message, err.ErrorAnnotation.Annotation)
+		}
 		return fmt.Sprintf("%d:%d: %s", err.ErrorAnnotation.Line, err.ErrorAnnotation.Start, err.Message)
 	}
 
+	if len(err.HintAnnotations) == 0 {
+		return fmt.Sprintf("%s:%d:%d: %s: %s",
+			err.ErrorAnnotation.File.Name, err.ErrorAnnotation.Line, err.ErrorAnnotation.Start,
+			err.Message, err.ErrorAnnotation.Annotation)
+	}
 	return fmt.Sprintf("%s:%d:%d: %s",
 		err.ErrorAnnotation.File.Name, err.ErrorAnnotation.Line, err.ErrorAnnotation.Start, err.Message)
 }
