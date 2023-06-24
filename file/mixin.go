@@ -103,7 +103,7 @@ type LinkedMixin struct {
 
 	// Precompiled is the precompiled function literal.
 	// Its args start with the mixins args, followed by func()s for each of
-	// the Blocks, and lastly, if HandAndPlaceholders is true, a final func()
+	// the Blocks, and lastly, if HasAndPlaceholders is true, a final func()
 	// called each time that the mixin's &s are supposed to be placed.
 	//
 	// It is only present, if this mixin was precompiled.
@@ -128,11 +128,8 @@ type LinkedMixin struct {
 	HasAndPlaceholders bool
 }
 
-type LinkedMixinBlock struct {
+type LinkedMixinBlock = struct {
 	// todo: when linking, remember that a block can be used multiple times
-
-	// todo: detect when block can't contain ands
-
 	Name     string
 	TopLevel bool // writes directly to the element it is called in
 	// CanAttributes specifies whether &-directives can be used in this block.

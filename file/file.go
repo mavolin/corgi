@@ -45,12 +45,9 @@ type File struct {
 
 	// Imports is a list of imports made by this file, in the order they
 	// appear.
-	//
-	// After linking, this list will be appended by imports made by extended,
-	// used, and included files.
 	Imports []Import
 
-	// Uses is a list of used library files, in the order they appear.
+	// Uses is a list of used libraries, in the order they appear.
 	Uses []Use
 
 	// GlobalCode is the code that is written above the output function.
@@ -69,8 +66,8 @@ type Type uint8
 
 const (
 	TypeMain Type = iota + 1
-	TypeExtend
-	TypeUse
+	TypeTemplate
+	TypeLibraryFile
 	TypeInclude
 )
 

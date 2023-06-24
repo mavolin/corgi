@@ -7,7 +7,7 @@ package file
 type Extend struct {
 	// Path to the file.
 	Path String
-	File File
+	File *File
 
 	Position
 }
@@ -66,9 +66,10 @@ type UseSpec struct {
 
 	Position
 
-	// Files are the files referenced by this use directive.
+	// Library is the used library.
+	//
 	// It is filled by the linker.
-	Files []File
+	Library *Library
 }
 
 // ============================================================================

@@ -48,7 +48,7 @@ func Parse(input []byte) (*file.File, error) {
 		}
 	}
 
-	errList, ok := err.(internal.ErrList)
+	errList, ok := err.(internal.ErrList) //nolint: errorlint
 	if !ok {
 		return f, err
 	}
@@ -56,7 +56,7 @@ func Parse(input []byte) (*file.File, error) {
 	corgierrList := make(corgierr.List, len(errList))
 
 	for i, err := range errList {
-		parserErr, ok := err.(*internal.ParserError)
+		parserErr, ok := err.(*internal.ParserError) //nolint: errorlint
 		if !ok {
 			corgierrList[i] = &corgierr.Error{
 				Message: err.Error(),
@@ -70,7 +70,7 @@ func Parse(input []byte) (*file.File, error) {
 			}
 		}
 
-		cerr, ok := parserErr.Inner.(*corgierr.Error)
+		cerr, ok := parserErr.Inner.(*corgierr.Error) //nolint: errorlint
 		if !ok {
 			cerr = parserErrorToCorgiError(parserErr)
 		}
@@ -83,16 +83,11 @@ func Parse(input []byte) (*file.File, error) {
 		corgierrList[i] = cerr
 	}
 
-	sort.Slice(corgierrList, func(i, j int) bool {
-		return corgierrList[i].ErrorAnnotation.Line < corgierrList[j].ErrorAnnotation.Line ||
-			(corgierrList[i].ErrorAnnotation.Line == corgierrList[j].ErrorAnnotation.Line &&
-				corgierrList[i].ErrorAnnotation.Start < corgierrList[j].ErrorAnnotation.Start)
-	})
-
+	sort.Sort(corgierrList)
 	return f, corgierrList
 }
 
-var parserErrorRegexp = regexp.MustCompile(`(?P<col>\d+):(?P<line>\d+)( \(\d+\))?: (?P<msg>.+)`)
+var parserErrorRegexp = regexp.MustCompile(`(\d+):(\d+)( \(\d+\))?: (.+)`)
 
 func parserErrorToCorgiError(perr *internal.ParserError) *corgierr.Error {
 	matches := parserErrorRegexp.FindStringSubmatch(perr.Error())

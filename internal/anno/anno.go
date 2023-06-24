@@ -23,7 +23,9 @@ type Annotation struct {
 }
 
 func Anno(f *file.File, aw Annotation) corgierr.Annotation {
-	return AnnoLines(f.Lines, aw)
+	a := AnnoLines(f.Lines, aw)
+	a.File = f
+	return a
 }
 
 //goland:noinspection GoNameStartsWithPackageName

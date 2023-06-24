@@ -4,10 +4,10 @@ import (
 	"fmt"
 
 	"github.com/mavolin/corgi/corgierr"
-	"github.com/mavolin/corgi/file"
-	"github.com/mavolin/corgi/file/fileutil"
 	"github.com/mavolin/corgi/internal/anno"
 	"github.com/mavolin/corgi/internal/list"
+	"github.com/mavolin/corgi/lang/file"
+	"github.com/mavolin/corgi/lang/file/fileutil"
 )
 
 func mixinCallChecks(f *file.File) errList {

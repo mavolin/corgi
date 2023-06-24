@@ -21,6 +21,9 @@ type Error struct {
 	Example     string
 	ShouldBe    string
 	Suggestions []Suggestion
+
+	// Cause is the cause of the error, if it has one
+	Cause error
 }
 
 type Annotation struct {
@@ -75,6 +78,10 @@ func (err *Error) Error() string {
 	}
 	return fmt.Sprintf("%s:%d:%d: %s",
 		err.ErrorAnnotation.File.Name, err.ErrorAnnotation.Line, err.ErrorAnnotation.Start, err.Message)
+}
+
+func (err *Error) Unwrap() error {
+	return err.Cause
 }
 
 type PrettyOptions struct {

@@ -7,7 +7,7 @@ import (
 	"github.com/mavolin/corgi/internal/list"
 )
 
-func packageMixinNameConflicts(fs []file.File) errList {
+func libraryMixinNameConflicts(fs []file.File) errList {
 	var errs errList
 
 	var foundMixins list.List[struct {

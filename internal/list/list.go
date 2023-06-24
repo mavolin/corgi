@@ -3,7 +3,7 @@ package list
 import "container/list"
 
 type List[T any] struct {
-	l *list.List
+	l list.List
 }
 
 func List1[T any](v T) List[T] {
@@ -64,8 +64,8 @@ func (l *List[T]) MoveToFront(e *Element[T])      { l.l.MoveToFront(e.e) }
 func (l *List[T]) MoveToBack(e *Element[T])       { l.l.MoveToBack(e.e) }
 func (l *List[T]) MoveBefore(e, mark *Element[T]) { l.l.MoveBefore(e.e, mark.e) }
 func (l *List[T]) MoveAfter(e, mark *Element[T])  { l.l.MoveAfter(e.e, mark.e) }
-func (l *List[T]) PushBackList(other *List[T])    { l.l.PushBackList(other.l) }
-func (l *List[T]) PushFrontList(other *List[T])   { l.l.PushFrontList(other.l) }
+func (l *List[T]) PushBackList(other *List[T])    { l.l.PushBackList(&other.l) }
+func (l *List[T]) PushFrontList(other *List[T])   { l.l.PushFrontList(&other.l) }
 
 func (l *List[T]) ToSlice() []T {
 	s := make([]T, 0, l.Len())

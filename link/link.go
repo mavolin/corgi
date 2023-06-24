@@ -5,80 +5,93 @@
 package link
 
 import (
-	"github.com/mavolin/corgi/corgi/file"
-	"github.com/mavolin/corgi/corgi/link/element"
-	"github.com/mavolin/corgi/corgi/link/imports"
-	"github.com/mavolin/corgi/corgi/link/mixin"
-	"github.com/mavolin/corgi/corgi/link/use"
-	"github.com/mavolin/corgi/corgi/parse"
-	"github.com/mavolin/corgi/corgi/resource"
+	"github.com/mavolin/corgi/corgierr"
+	"github.com/mavolin/corgi/file"
+	"github.com/mavolin/corgi/internal/list"
+	"github.com/mavolin/corgi/loader"
 )
 
-// todo: validate and mixins in elements
-// todo: validate and mixins in mixin call bodies
-
 type Linker struct {
-	resourceSources []resource.Source
-	resourceFiles   []file.File
-
-	f    *file.File
-	mode parse.Mode
+	loader loader.Loader
 }
 
-// New creates a new *Linker that links the given file.
-func New(f *file.File, mode parse.Mode) *Linker {
-	return &Linker{f: f, mode: mode}
+type errList = list.List[*corgierr.Error]
+
+// New creates a new *Linker that uses the passed loader.
+func New(loader loader.Loader) *Linker {
+	return &Linker{loader: loader}
 }
 
-// AddResourceSource adds a resource source to the linker.
+// Link concurrently links the passed file.
 //
-// The linker will use it to find files referenced through extend, use, and
-// include directives.
-func (l *Linker) AddResourceSource(src resource.Source) {
-	l.resourceSources = append(l.resourceSources, src)
+// It expects the passed file to have passed [validate.UseNamespaces].
+//
+// If it returns an error, that error will be of type [corgierr.List].
+func (l *Linker) Link(f *file.File) error {
+	errsChan := make(chan errList)
+	ctx := context{errs: errsChan}
+
+	l.linkExtend(&ctx, f)
+	l.linkUses(&ctx, f)
+	l.linkUses(&ctx, f)
+
+	var errs errList
+	for i := 0; i < ctx.n; i++ {
+		subErrs := <-errsChan
+		for errE := subErrs.Front(); errE != nil; errE = errE.Next() {
+			for cmpE := errs.Front(); cmpE != nil; cmpE = cmpE.Next() {
+				if !equalErr(errE.V(), cmpE.V()) {
+					errs.PushBack(errE.V())
+				}
+			}
+		}
+	}
+	if errs.Len() == 0 {
+		return nil
+	}
+	return corgierr.List(errs.ToSlice())
 }
 
-// Link links the file and performs validation.
-func (l *Linker) Link() error {
-	fl := newFileLinker(l.f, l.resourceSources...)
-	if err := fl.link(); err != nil {
-		return err
+type context struct {
+	n    int
+	errs chan<- errList
+}
+
+func equalErr(a, b *corgierr.Error) bool {
+	aa, ba := a.ErrorAnnotation, b.ErrorAnnotation
+
+	if aa.Start != ba.Start || aa.End != ba.End || aa.Annotation != ba.Annotation {
+		return false
 	}
 
-	ir := imports.NewResolver(l.f)
-	if err := ir.Resolve(); err != nil {
-		return err
+	if len(a.HintAnnotations) != len(b.HintAnnotations) {
+		return false
+	}
+	for i, ah := range a.HintAnnotations {
+		bh := b.HintAnnotations[i]
+		if ah.Start != bh.Start || ah.End != bh.End || ah.Annotation != bh.Annotation {
+			return false
+		}
 	}
 
-	unc := use.NewNamespaceChecker(*l.f)
-	if err := unc.Check(); err != nil {
-		return err
+	if a.Example != b.Example || a.ShouldBe != b.ShouldBe {
+		return false
 	}
 
-	mc := mixin.NewChecker(l.mode, *l.f)
-	if err := mc.Check(); err != nil {
-		return err
+	if len(a.Suggestions) != len(b.Suggestions) {
+		return false
+	}
+	for i, as := range a.Suggestions {
+		bs := b.Suggestions[i]
+		if as.Suggestion != bs.Suggestion || as.Example != bs.Example || as.ShouldBe != bs.ShouldBe || as.Code != bs.Code {
+			return false
+		}
 	}
 
-	ml := mixin.NewCallLinker(l.f, l.resourceFiles...)
-	if err := ml.Link(); err != nil {
-		return err
+	if a.Cause != nil && b.Cause == nil {
+		return false
+	} else if a.Cause == nil {
+		return true
 	}
-
-	mcc := mixin.NewCallChecker(*l.f)
-	if err := mcc.Check(); err != nil {
-		return err
-	}
-
-	ac := element.NewAndChecker(*l.f)
-	if err := ac.Check(); err != nil {
-		return err
-	}
-
-	scc := element.NewSelfClosingChecker(*l.f)
-	if err := scc.Check(); err != nil {
-		return err
-	}
-
-	return nil
+	return a.Cause.Error() == b.Cause.Error()
 }

@@ -29,7 +29,6 @@ func FirstNonControl(s file.Scope) file.ScopeItem {
 		case file.CorgiComment:
 			return false, nil
 		default:
-			itm = *ctx.Item
 			return false, StopWalk
 		}
 	})
@@ -95,9 +94,9 @@ func IsFirstNonControlAttr(s file.Scope) (file.ScopeItem, bool) {
 					if subCtrl, ok := IsFirstNonControlAttr(mcBlock.Body); ok {
 						ret, ret2 = subCtrl, true
 						return false, StopWalk
-					} else {
-						break
 					}
+
+					break
 				}
 
 				if block.DefaultWritesBody || block.DefaultWritesTopLevelAttributes {
@@ -111,7 +110,6 @@ func IsFirstNonControlAttr(s file.Scope) (file.ScopeItem, bool) {
 
 			return false, nil
 		default:
-			itm = *ctx.Item
 			return false, StopWalk
 		}
 	})
@@ -173,9 +171,9 @@ func firstActualAttr(s file.Scope) file.ScopeItem {
 					if subCtrl, ok := IsFirstNonControlAttr(mcBlock.Body); ok {
 						ret = subCtrl
 						return false, StopWalk
-					} else {
-						break
 					}
+
+					break
 				}
 
 				if block.DefaultWritesBody || block.DefaultWritesTopLevelAttributes {
@@ -189,7 +187,6 @@ func firstActualAttr(s file.Scope) file.ScopeItem {
 
 			return false, nil
 		default:
-			itm = *ctx.Item
 			return false, StopWalk
 		}
 	})

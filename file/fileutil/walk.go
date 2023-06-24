@@ -74,10 +74,11 @@ func walk(parents []WalkContext, s file.Scope, f WalkFunc) error {
 	var cs []file.CorgiComment
 
 	for i, itm := range s {
+		i := i
 		ctx := WalkContext{
 			Scope:    s,
 			Index:    i,
-			Item:     &itm, //nolint:gosec
+			Item:     &s[i],
 			Comments: cs,
 		}
 		dive, err := f(parents, ctx)
@@ -95,12 +96,12 @@ func walk(parents []WalkContext, s file.Scope, f WalkFunc) error {
 				parents = parents[:len(parents)-1]
 
 				for elseIfI, elseIf := range itm.ElseIfs {
-					ctx.ElseIf = &elseIf //nolint:gosec,exportloopref
+					elseIfI := elseIfI
+					ctx.ElseIf = &itm.ElseIfs[elseIfI]
 					parents = append(parents, ctx)
 					if err := walk(parents, elseIf.Then, f); err != nil {
 						return err
 					}
-					itm.ElseIfs[elseIfI] = elseIf
 					parents = parents[:len(parents)-1]
 				}
 				ctx.ElseIf = nil
@@ -121,12 +122,12 @@ func walk(parents []WalkContext, s file.Scope, f WalkFunc) error {
 				parents = parents[:len(parents)-1]
 
 				for elseIfI, elseIf := range itm.ElseIfs {
-					ctx.ElseIfBlock = &elseIf //nolint:gosec,exportloopref
+					elseIfI := elseIfI
+					ctx.ElseIfBlock = &itm.ElseIfs[elseIfI]
 					parents = append(parents, ctx)
 					if err := walk(parents, elseIf.Then, f); err != nil {
 						return err
 					}
-					itm.ElseIfs[elseIfI] = elseIf
 					parents = parents[:len(parents)-1]
 				}
 				ctx.ElseIf = nil
@@ -141,12 +142,12 @@ func walk(parents []WalkContext, s file.Scope, f WalkFunc) error {
 				}
 			case file.Switch:
 				for caseI, c := range itm.Cases {
-					ctx.Case = &c //nolint:gosec,exportloopref
+					caseI := caseI
+					ctx.Case = &itm.Cases[caseI]
 					parents = append(parents, ctx)
 					if err := walk(parents, c.Then, f); err != nil {
 						return err
 					}
-					itm.Cases[caseI] = c
 					parents = parents[:len(parents)-1]
 				}
 				ctx.Case = nil
@@ -170,8 +171,6 @@ func walk(parents []WalkContext, s file.Scope, f WalkFunc) error {
 				}
 			}
 		}
-
-		s[i] = itm
 
 		if cc, ok := itm.(file.CorgiComment); ok {
 			cs = append(cs, cc)

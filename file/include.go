@@ -27,7 +27,7 @@ type IncludeFile interface {
 // ======================================================================================
 
 type CorgiInclude struct {
-	File File
+	File *File
 }
 
 func (CorgiInclude) _typeIncludeFile() {}

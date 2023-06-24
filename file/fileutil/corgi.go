@@ -7,6 +7,11 @@ import (
 	"github.com/mavolin/corgi/file"
 )
 
+// Quote returns the [file.String] in quotes, as it was written in the file.
+func Quote(s file.String) string {
+	return string(s.Quote) + s.Contents + string(s.Quote)
+}
+
 // Unquote unquotes the passed [file.String].
 // If the passed string is not syntactically valid, Unquote returns an empty
 // string.

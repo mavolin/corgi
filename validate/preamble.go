@@ -2,6 +2,7 @@ package validate
 
 import (
 	"path"
+	"strconv"
 
 	"github.com/mavolin/corgi/corgierr"
 	"github.com/mavolin/corgi/file"
@@ -9,84 +10,128 @@ import (
 	"github.com/mavolin/corgi/internal/anno"
 )
 
-func importNamespaces(f *file.File) errList {
+func duplicateImports(f *file.File) errList {
 	var errs errList
 
+	cmps := make(map[string] /* namespace */ file.ImportSpec)
+
 	for impI, imp := range f.Imports {
-		for _, spec := range imp.Imports {
-			impPath := fileutil.Unquote(spec.Path)
-			namespace := path.Base(impPath)
-			if spec.Alias != nil {
-				namespace = spec.Alias.Ident
+		for _, a := range imp.Imports {
+			aPath := fileutil.Unquote(a.Path)
+			namespace := path.Base(aPath)
+			if a.Alias != nil {
+				namespace = a.Alias.Ident
 			}
 
-			for _, cmpImp := range f.Imports[:impI] {
-				for _, cmpSpec := range cmpImp.Imports {
-					cmpImpPath := fileutil.Unquote(cmpSpec.Path)
-					cmpNamespace := path.Base(cmpImpPath)
-					if cmpSpec.Alias != nil {
-						cmpNamespace = cmpSpec.Alias.Ident
-					}
-
-					if namespace != cmpNamespace {
-						continue
-					}
-
-					switch {
-					case impPath == cmpImpPath:
-						errs.PushBack(&corgierr.Error{
-							Message: "duplicate import",
-							ErrorAnnotation: anno.Anno(f, anno.Annotation{
-								Start:      spec.Path.Position,
-								ToEOL:      true,
-								Annotation: "duplicate",
-							}),
-							HintAnnotations: []corgierr.Annotation{
-								anno.Anno(f, anno.Annotation{
-									Start:      cmpSpec.Path.Position,
-									ToEOL:      true,
-									Annotation: "first import with this path",
-								}),
-							},
-							Suggestions: []corgierr.Suggestion{{Suggestion: "remove one of these"}},
-						})
-					case spec.Alias != nil && cmpSpec.Alias != nil && spec.Alias.Ident == cmpSpec.Alias.Ident:
-						errs.PushBack(&corgierr.Error{
-							Message: "duplicate import alias",
-							ErrorAnnotation: anno.Anno(f, anno.Annotation{
-								Start:      spec.Alias.Position,
-								Len:        len(spec.Alias.Ident),
-								Annotation: "duplicate",
-							}),
-							HintAnnotations: []corgierr.Annotation{
-								anno.Anno(f, anno.Annotation{
-									Start:      cmpSpec.Alias.Position,
-									Len:        len(cmpSpec.Alias.Ident),
-									Annotation: "first import with this alias",
-								}),
-							},
-							Suggestions: []corgierr.Suggestion{{Suggestion: "use a different alias for one of these"}},
-						})
-					default:
-						errs.PushBack(&corgierr.Error{
-							Message: "import namespace collision",
-							ErrorAnnotation: anno.Anno(f, anno.Annotation{
-								Start:      spec.Alias.Position,
-								ToEOL:      true,
-								Annotation: "duplicate",
-							}),
-							HintAnnotations: []corgierr.Annotation{
-								anno.Anno(f, anno.Annotation{
-									Start:      cmpSpec.Alias.Position,
-									ToEOL:      true,
-									Annotation: "first import with this namespace",
-								}),
-							},
-							Suggestions: []corgierr.Suggestion{{Suggestion: "use an import alias"}},
-						})
-					}
-				}
+			b, ok := cmps[namespace]
+			if !ok {
+				cmps[namespace] = a
+				continue
 			}
+
+			bPath := fileutil.Unquote(b.Path)
+			if aPath == bPath {
+				errs.PushBack(&corgierr.Error{
+					Message: "duplicate import",
+					ErrorAnnotation: anno.Anno(f, anno.Annotation{
+						Start:      a.Path.Position,
+						ToEOL:      true,
+						Annotation: "duplicate",
+					}),
+					HintAnnotations: []corgierr.Annotation{
+						anno.Anno(f, anno.Annotation{
+							Start:      b.Path.Position,
+							ToEOL:      true,
+							Annotation: "first import with this path",
+						}),
+					},
+					Suggestions: []corgierr.Suggestion{{Suggestion: "remove one of these"}},
+				})
+			}
+		}
+	}
+
+	return errs
+}
+
+type importNamespace struct {
+	imp  file.ImportSpec
+	file *file.File
+}
+
+func importNamespaces(cmps map[string]importNamespace, f *file.File) errList {
+	var errs errList
+
+	for _, imp := range f.Imports {
+		for _, a := range imp.Imports {
+			aPath := fileutil.Unquote(a.Path)
+			namespace := path.Base(aPath)
+			if a.Alias != nil {
+				namespace = a.Alias.Ident
+			}
+
+			cmp, ok := cmps[namespace]
+			if !ok {
+				cmps[namespace] = importNamespace{a, f}
+				continue
+			}
+
+			b := cmp.imp
+			bPath := fileutil.Unquote(b.Path)
+			if aPath == bPath {
+				continue
+			}
+
+			var suggestions []corgierr.Suggestion
+			if a.Alias != nil && b.Alias != nil {
+				suggestions = append(suggestions, corgierr.Suggestion{
+					Suggestion: "use an import alias",
+					Example:    "`" + namespace + "1 " + strconv.Quote(aPath) + "` or `" + namespace + "1 " + strconv.Quote(bPath) + "`",
+				})
+			} else if b.Alias != nil {
+				suggestions = append(suggestions, corgierr.Suggestion{
+					Suggestion: "use an import alias",
+					Example:    "`" + namespace + "1 " + strconv.Quote(bPath) + "`",
+				})
+			} else if a.Alias == nil {
+				suggestions = append(suggestions, corgierr.Suggestion{
+					Suggestion: "use an import alias",
+					Example:    "`" + namespace + "1 " + strconv.Quote(aPath) + "`",
+				})
+			}
+			if a.Alias != nil && b.Alias == nil {
+				suggestions = append(suggestions, corgierr.Suggestion{
+					Suggestion: "use a different import alias",
+					Example:    "`" + namespace + "1 " + strconv.Quote(aPath) + "` or `" + namespace + "1 " + strconv.Quote(bPath) + "`",
+				})
+			} else if b.Alias == nil {
+				suggestions = append(suggestions, corgierr.Suggestion{
+					Suggestion: "use a different import alias",
+					Example:    "`" + namespace + "1 " + strconv.Quote(bPath) + "`",
+				})
+			} else if a.Alias == nil {
+				suggestions = append(suggestions, corgierr.Suggestion{
+					Suggestion: "use a different import alias",
+					Example:    "`" + namespace + "1 " + strconv.Quote(aPath) + "`",
+				})
+			}
+
+			errs.PushBack(&corgierr.Error{
+				Message: "duplicate import namespace",
+				ErrorAnnotation: anno.Anno(f, anno.Annotation{
+					Start:      a.Position,
+					ToEOL:      true,
+					Annotation: "second import",
+				}),
+				HintAnnotations: []corgierr.Annotation{
+					anno.Anno(cmp.file, anno.Annotation{
+						Start:      b.Position,
+						ToEOL:      true,
+						Annotation: "second import",
+					}),
+				},
+				Suggestions: suggestions,
+			})
 		}
 	}
 
@@ -203,8 +248,8 @@ func unusedUses(f *file.File) errList {
 
 	unusedSpecs:
 		for i, spec := range unusedSpecs {
-			for _, specFile := range spec.Files {
-				if mc.Mixin.File.AbsolutePath == specFile.AbsolutePath {
+			for _, specFile := range spec.Library.Files {
+				if mc.Mixin.File.Module+mc.Mixin.File.ModulePath == specFile.Module+specFile.ModulePath {
 					copy(unusedSpecs[i:], unusedSpecs[i+1:])
 					unusedSpecs = unusedSpecs[:len(unusedSpecs)-1]
 					break unusedSpecs
@@ -236,7 +281,7 @@ func unusedUses(f *file.File) errList {
 				{Suggestion: "remove this `use`"},
 				{
 					Suggestion: "if you are using this package for side effects, add the `_` use alias",
-					Code:       "`_ " + string(spec.Path.Quote) + spec.Path.Contents + string(spec.Path.Quote) + "`",
+					Code:       "`_ " + strconv.Quote(fileutil.Unquote(spec.Path)) + "`",
 				},
 			},
 		})

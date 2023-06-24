@@ -8,9 +8,17 @@
 //
 // Examples
 //
-//  +Trunc(val="abcdef", i=3) -> abc
-//  +Trunc(val="abcdef", i=-3) -> def
+//  +Trunc(val="abcdef", at=3) -> abc
+//  +Trunc(val="abcdef", at=-3) -> def
 mixin Trunc(val any, at int)
+
+// TruncB is the same as Trunc, but instead of accepting a val param, it
+// truncates the text written to its _ block.
+//
+// Users are advised to only place text inside the body, as TruncB might
+// otherwise cut of elements, leading to missing closing tags and therefore
+// invalid HTML.
+mixin TruncB(at int)
 
 // Abbrev truncates the stringified version of val according to the rules of
 // trunc and then appends replacement, if it truncated anything.

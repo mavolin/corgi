@@ -10,7 +10,7 @@ import (
 )
 
 func topLevelAttribute(f *file.File) errList {
-	if f.Extend != nil || (f.Type != file.TypeMain && f.Type != file.TypeExtend && f.Type != file.TypeUse) {
+	if f.Extend != nil || (f.Type != file.TypeMain && f.Type != file.TypeTemplate && f.Type != file.TypeLibraryFile) {
 		return errList{}
 	}
 

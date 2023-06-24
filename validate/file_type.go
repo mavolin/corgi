@@ -36,8 +36,8 @@ func mainFile(f *file.File) errList {
 	return errList{}
 }
 
-func extendFile(f *file.File) errList {
-	if f.Type != file.TypeExtend {
+func templateFile(f *file.File) errList {
+	if f.Type != file.TypeTemplate {
 		return errList{}
 	}
 
@@ -109,7 +109,7 @@ func IsLibraryFile(f *file.File) bool {
 }
 
 func libraryFile(f *file.File) errList {
-	if f.Type != file.TypeUse {
+	if f.Type != file.TypeLibraryFile {
 		return errList{}
 	}
 
