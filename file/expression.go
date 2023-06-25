@@ -118,8 +118,7 @@ type TernaryExpression struct {
 
 var _ ExpressionItem = TernaryExpression{}
 
-func (TernaryExpression) _typeExpressionItem()            {}
-func (TernaryExpression) _typeElementInterpolationValue() {}
+func (TernaryExpression) _typeExpressionItem() {}
 
 // ============================================================================
 // Chain Expression
@@ -154,8 +153,7 @@ type ChainExpression struct {
 
 var _ ExpressionItem = ChainExpression{}
 
-func (ChainExpression) _typeExpressionItem()            {}
-func (ChainExpression) _typeElementInterpolationValue() {}
+func (ChainExpression) _typeExpressionItem() {}
 
 // =============================== Chain Expression Item ================================
 
@@ -167,7 +165,7 @@ type ChainExpressionItem interface {
 	Poser
 }
 
-// IndexExpression represents either a map or slice index
+// IndexExpression represents either a map or slice index expression.
 type IndexExpression struct {
 	LBracePos Position
 	Index     Expression

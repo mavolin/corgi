@@ -32,17 +32,6 @@ type ImportSpec struct {
 	Path  String
 
 	Position
-
-	// Source points to the file that made this import.
-	//
-	// This field will only be set after linking, and will only be set if
-	// the import was made in a file different from the one containing this
-	// import.
-	//
-	// Source will be the first file encountered that made this import.
-	// However, there may be other files that also imported the same
-	// package.
-	Source *File
 }
 
 // ============================================================================

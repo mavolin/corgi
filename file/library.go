@@ -18,7 +18,10 @@ type Library struct {
 
 	// Precompiled indicates whether this library was precompiled.
 	//
-	// If true, the files in this library will only have their metadata set.
+	// If true, the files in this library will only have Type, Name, Module,
+	// and ModulePath set.
+	//
+	// Additionally, Imports will be set,
 	Precompiled bool
 
 	//
@@ -48,10 +51,7 @@ type LibDependency struct {
 	// It is always specified as a forward slash separated path.
 	ModulePath string
 
-	// Name is name of the mixin depended on.
-	Name string
-
-	RequiredBy []string
+	Mixins []MixinDependency
 }
 
 type MixinDependency struct {
@@ -62,8 +62,8 @@ type MixinDependency struct {
 }
 
 type PrecompiledCode struct {
-	Comments []CorgiComment // only machine comments
-	Code     Code
+	MachineComments []string
+	Lines           []string
 }
 
 type PrecompiledMixin struct {
