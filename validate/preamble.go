@@ -15,7 +15,7 @@ func duplicateImports(f *file.File) errList {
 
 	cmps := make(map[string] /* namespace */ file.ImportSpec)
 
-	for impI, imp := range f.Imports {
+	for _, imp := range f.Imports {
 		for _, a := range imp.Imports {
 			aPath := fileutil.Unquote(a.Path)
 			namespace := path.Base(aPath)
@@ -31,19 +31,55 @@ func duplicateImports(f *file.File) errList {
 
 			bPath := fileutil.Unquote(b.Path)
 			if aPath == bPath {
+				aStart := a.Path.Col
+				if a.Alias != nil {
+					aStart = a.Alias.Col
+				}
+
+				var aLine string
+				aPathQuot := fileutil.Quote(a.Path)
+				if a.Alias != nil {
+					aLine = a.Alias.Ident + " " + aPathQuot
+				} else {
+					aLine = aPathQuot
+				}
+
+				bStart := b.Path.Col
+				if b.Alias != nil {
+					bStart = b.Alias.Col
+				}
+
+				var bLine string
+				bPathQuot := fileutil.Quote(b.Path)
+				if b.Alias != nil {
+					bLine = b.Alias.Ident + " " + bPathQuot
+				} else {
+					bLine = bPathQuot
+				}
+
 				errs.PushBack(&corgierr.Error{
 					Message: "duplicate import",
-					ErrorAnnotation: anno.Anno(f, anno.Annotation{
-						Start:      a.Path.Position,
-						ToEOL:      true,
-						Annotation: "duplicate",
-					}),
+					ErrorAnnotation: corgierr.Annotation{
+						File:         f,
+						ContextStart: a.Path.Line,
+						ContextEnd:   a.Path.Line + 1,
+						Line:         a.Path.Line,
+						Start:        aStart,
+						End:          a.Col + len(aPathQuot),
+						Annotation:   "duplicate",
+						Lines:        []string{aLine},
+					},
 					HintAnnotations: []corgierr.Annotation{
-						anno.Anno(f, anno.Annotation{
-							Start:      b.Path.Position,
-							ToEOL:      true,
-							Annotation: "first import with this path",
-						}),
+						{
+							File:         f,
+							ContextStart: b.Path.Line,
+							ContextEnd:   b.Path.Line + 1,
+							Line:         b.Path.Line,
+							Start:        bStart,
+							End:          b.Col + len(bPathQuot),
+							Annotation:   "first import with this path",
+							Lines:        []string{bLine},
+						},
 					},
 					Suggestions: []corgierr.Suggestion{{Suggestion: "remove one of these"}},
 				})
@@ -116,19 +152,55 @@ func importNamespaces(cmps map[string]importNamespace, f *file.File) errList {
 				})
 			}
 
+			aStart := a.Path.Col
+			if a.Alias != nil {
+				aStart = a.Alias.Col
+			}
+
+			var aLine string
+			aPathQuot := fileutil.Quote(a.Path)
+			if a.Alias != nil {
+				aLine = a.Alias.Ident + " " + aPathQuot
+			} else {
+				aLine = aPathQuot
+			}
+
+			bStart := b.Path.Col
+			if b.Alias != nil {
+				bStart = b.Alias.Col
+			}
+
+			var bLine string
+			bPathQuot := fileutil.Quote(b.Path)
+			if b.Alias != nil {
+				bLine = b.Alias.Ident + " " + bPathQuot
+			} else {
+				bLine = bPathQuot
+			}
+
 			errs.PushBack(&corgierr.Error{
 				Message: "duplicate import namespace",
-				ErrorAnnotation: anno.Anno(f, anno.Annotation{
-					Start:      a.Position,
-					ToEOL:      true,
-					Annotation: "second import",
-				}),
+				ErrorAnnotation: corgierr.Annotation{
+					File:         f,
+					ContextStart: a.Path.Line,
+					ContextEnd:   a.Path.Line + 1,
+					Line:         a.Path.Line,
+					Start:        aStart,
+					End:          a.Col + len(aPathQuot),
+					Annotation:   "second import",
+					Lines:        []string{aLine},
+				},
 				HintAnnotations: []corgierr.Annotation{
-					anno.Anno(cmp.file, anno.Annotation{
-						Start:      b.Position,
-						ToEOL:      true,
-						Annotation: "second import",
-					}),
+					{
+						File:         f,
+						ContextStart: b.Path.Line,
+						ContextEnd:   b.Path.Line + 1,
+						Line:         b.Path.Line,
+						Start:        bStart,
+						End:          b.Col + len(bPathQuot),
+						Annotation:   "first import",
+						Lines:        []string{bLine},
+					},
 				},
 				Suggestions: suggestions,
 			})

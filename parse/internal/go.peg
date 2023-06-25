@@ -67,7 +67,7 @@ goBinaryDigits  <- goBinaryDigit ('_'? goBinaryDigit)*
 goOctalDigits   <- goOctalDigit ('_'? goOctalDigit)*
 goHexDigits     <- goHexDigit ('_'? goHexDigit)*
 
-goQualifiedIdent <- goPackageName ' '* '.' ' '* goIdentifier*
+goQualifiedIdent <- goPackageName ' '* '.' ' '* goIdentifier
 goPackageName    <- goIdentifier
 
 //

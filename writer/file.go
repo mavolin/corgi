@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/mavolin/corgi/corgi/file"
+
 	"github.com/mavolin/corgi/internal/voidelem"
 	"github.com/mavolin/corgi/woof"
 )
@@ -704,7 +705,7 @@ func (w *Writer) writeInclude(incl file.Include, e *elem) error {
 }
 
 // ============================================================================
-// Code
+// Lines
 // ======================================================================================
 
 func (w *Writer) writeCode(c file.Code) error {

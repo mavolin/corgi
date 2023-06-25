@@ -52,6 +52,10 @@ type Annotation struct {
 	Start, End int
 	Annotation string
 
+	// Lines are the lines that are annotated, starting with the line with the
+	// number ContextStart.
+	Lines []string
+
 	isError bool
 }
 
@@ -125,7 +129,7 @@ func (err *Error) Pretty(o PrettyOptions) string {
 
 	for _, ha := range err.HintAnnotations {
 		for j, fas := range fileAnnotations {
-			if sameFile(ha.File, fas[0].File) {
+			if equalFile(ha.File, fas[0].File) {
 				fileAnnotations[j] = append(fas, ha)
 			}
 		}
@@ -179,8 +183,8 @@ func (err *Error) Pretty(o PrettyOptions) string {
 	return sb.String()
 }
 
-func sameFile(a, b *file.File) bool {
-	return a.Module == b.Module && a.ModulePath == b.ModulePath && a.Name == b.Name
+func equalFile(a, b *file.File) bool {
+	return a.Module == b.Module && a.ModulePath == b.ModulePath
 }
 
 func (err *Error) prettyMessage(sb *strings.Builder, o PrettyOptions) {
@@ -193,7 +197,7 @@ func (err *Error) prettyMessage(sb *strings.Builder, o PrettyOptions) {
 func (err *Error) prettyFile(sb *strings.Builder, annotations []Annotation, errFile bool, o PrettyOptions) {
 	lineRanges := printedLines(annotations)
 
-	lineNoWidth := int(math.Log10(float64(lineRanges[len(lineRanges)-1][1])) + 1)
+	lineNoWidth := int(math.Log10(float64(lineRanges[len(lineRanges)-1].end)) + 1)
 
 	noLineNoPad := strings.Repeat(" ", lineNoWidth)
 
@@ -216,12 +220,12 @@ func (err *Error) prettyFile(sb *strings.Builder, annotations []Annotation, errF
 		sb.WriteString(" |\n")
 	}, color.Faint)
 
-	for i, lineRange := range lineRanges {
+	for i, lr := range lineRanges {
 		if i > 0 {
 			sb.WriteByte('\n')
 
-			if lineRanges[i-1][1]+1 == lineRange[0] {
-				lineNo := lineRange[0] - 1
+			if lineRanges[i-1].end+1 == lr.start && annotations[0].File.Lines != nil {
+				lineNo := lr.start - 1
 				colored(sb, o, fmt.Sprintf("%*d | ", lineNoWidth, lineNo), color.Faint)
 				sb.WriteString(annotations[0].File.Lines[lineNo-1])
 			} else {
@@ -232,24 +236,22 @@ func (err *Error) prettyFile(sb *strings.Builder, annotations []Annotation, errF
 			sb.WriteByte('\n')
 		}
 
-		err.prettyLineRange(sb, annotations, lineRange, lineNoWidth, o)
+		err.prettyLineRange(sb, annotations, lr, lineNoWidth, o)
 	}
 }
 
-func (err *Error) prettyLineRange(sb *strings.Builder, annotations []Annotation, lineRange [2]int, lineNoWidth int, o PrettyOptions) {
-	f := annotations[0].File
-
+func (err *Error) prettyLineRange(sb *strings.Builder, annotations []Annotation, lr lineRange, lineNoWidth int, o PrettyOptions) {
 	noLinePad := strings.Repeat(" ", lineNoWidth)
 
 	// for each context line
-	for lineNo := lineRange[0]; lineNo < lineRange[1]; lineNo++ {
-		if lineNo > lineRange[0] {
+	for lineNo := lr.start; lineNo < lr.end; lineNo++ {
+		if lineNo > lr.start {
 			sb.WriteByte('\n')
 		}
 
-		line := f.Lines[lineNo-1] // line numbers are 1-indexed
 		colored(sb, o, fmt.Sprintf("%*d | ", lineNoWidth, lineNo), color.Faint)
 
+		line := lr.lines[lineNo-lr.start]
 		sb.WriteString(line)
 
 		var lineAnnotations []Annotation
@@ -394,23 +396,32 @@ func (err *Error) prettyText(o PrettyOptions, sb *strings.Builder, text string, 
 	}
 }
 
+type lineRange struct {
+	start, end int
+	lines      []string
+}
+
 // reports the ranges of lines that are to be printed in the error
-func printedLines(as []Annotation) [][2]int {
-	lines := make([][2]int, len(as))
+func printedLines(as []Annotation) []lineRange {
+	lines := make([]lineRange, len(as))
 	for i, a := range as {
-		lines[i] = [2]int{a.ContextStart, a.ContextEnd}
+		lines[i] = lineRange{a.ContextStart, a.ContextEnd, a.Lines}
 	}
 
 	sort.Slice(lines, func(i, j int) bool {
-		return lines[i][0] < lines[j][0]
+		return lines[i].start < lines[j].start
 	})
 
 	for i := 0; i < len(lines)-1; i++ { // merge time
 		a := lines[i]
 		b := lines[i+1]
 
-		if b[0] <= a[1] {
-			lines[i] = [2]int{a[0], b[1]}  // merge a and b
+		if b.start <= a.end {
+			lines[i] = lineRange{
+				start: a.start,
+				end:   b.end,
+				lines: append(a.lines, b.lines[a.end-b.start:]...),
+			} // merge a and b
 			copy(lines[i+1:], lines[i+2:]) // remove b
 			lines = lines[:len(lines)-1]
 			i-- // new a is now possibly able to merge w new b

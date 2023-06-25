@@ -33,4 +33,25 @@ mixin List(val any, sep=", ", lastSep=", and ")
 //
 // SetListSep may be called at any time, only affecting the calls to List made
 // after updating the separator.
+//
+// If SetListSeps's _ block is set, the spelled-out words will only be changed
+// inside the block.
+// Further calls to SetNumWords inside the block, even if without a _ block,
+// will also be reverted.
 mixin SetListSep(sep="", lastSep="")
+  if block _
+    - oldSep, oldLastSep := listSep, listLastSep
+    if sep != ""
+      - listSep = sep
+    if lastSep != ""
+      - listLastSep = lastSep
+
+    block _
+
+    - listSep, listLastSep = oldSep, oldLastSep
+    return
+
+  if sep != ""
+    - listSep = sep
+  if lastSep != ""
+    - listLastSep = lastSep

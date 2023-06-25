@@ -2,7 +2,7 @@
 //
 // It's _ block can be used to fill the body of the element and set its
 // attributes.
-mixin Element(name string, void = false)
+mixin Element(name string, void=false)
 
 // Attr writes an attribute to the element it is called in.
 //

@@ -131,16 +131,27 @@ func _file(f *file.File, valedFiles map[string]struct{}, impNamespaces map[strin
 // Read the doc of [File] for more information about requirements and Library's
 // return value.
 func Library(l *file.Library) error {
-	if l.Precompiled {
-		return nil
-	}
-
 	var errs errList
+
+	impNamespaces := make(map[string]importNamespace)
+
+	if l.Precompiled {
+		for _, f := range l.Files {
+			errs.PushBackList(ptr(importNamespaces(impNamespaces, &f)))
+		}
+
+		if errs.Len() == 0 {
+			return nil
+		}
+
+		errSlice := corgierr.List(errs.ToSlice())
+		sort.Stable(errSlice)
+		return errSlice
+	}
 
 	errs.PushBackList(ptr(libraryMixinNameConflicts(l.Files)))
 
 	valedFiles := make(map[string]struct{})
-	impNamespaces := make(map[string]importNamespace)
 
 	for _, f := range l.Files {
 		errs.PushBackList(ptr(_file(&f, valedFiles, impNamespaces)))

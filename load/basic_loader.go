@@ -1,4 +1,4 @@
-package loader
+package load
 
 import "github.com/mavolin/corgi/file"
 
@@ -14,34 +14,22 @@ type BasicLoader struct {
 	// passed module path.
 	//
 	// A return of (nil, nil) is valid and indicates the file wasn't found.
-	TemplateReader func(path string) (*File, error)
+	TemplateReader func(extendingFile *file.File, path string) (*File, error)
 	// IncludeReader reads and returns the file located under the passed path.
 	//
 	// It gets passed the file that includes it to help resolve path correctly.
 	//
 	// A return of (nil, nil) is valid and indicates the file wasn't found.
 	IncludeReader func(includingFile *file.File, path string) (*File, error)
-	// PrecompiledLibraryReader attempts to load the precompiled library
-	// available under the passed use path.
-	//
-	// If there is no such library or the library is not precompiled, the
-	// function should return (nil, nil).
-	//
-	// It is guaranteed that before every call to LibraryReader,
-	// PrecompiledLibraryReader will be called, unless PrecompiledLibraryReader
-	// is nil.
-	//
-	// Naturally, a precompiled library won't be parsed, pre-link validated, or
-	// linked.
-	// However, the LibraryValidator will be called on the library.
-	PrecompiledLibraryReader func(path string) (*file.Library, error)
 	// LibraryReader reads and returns the files of the library available under
-	// the passed use path
+	// the passed use path.
 	//
-	// It will only be called, if PrecompiledLibraryReader returned (nil, nil).
+	// It gets passed the file that uses it to help resolve version correctly.
+	// If usingFile is nil, the library is loaded standalone and path should be
+	// interpreted as an absolute path instead of a module path.
 	//
 	// A return of (nil, nil) is valid and indicates the library wasn't found.
-	LibraryReader func(path string) (*Library, error)
+	LibraryReader func(usingFile *file.File, path string) (*Library, error)
 
 	// Parser is the function used to parse a file.
 	Parser func(in []byte) (*file.File, error)
@@ -89,25 +77,12 @@ type Library struct {
 
 	AbsolutePath string
 
-	Files []File
+	Files       []File
+	Precompiled *file.Library // if set, no other fields need to be set
 }
 
-func (b BasicLoader) LoadLibrary(usePath string, link bool) (*file.Library, error) {
-	lib, err := b.PrecompiledLibraryReader(usePath)
-	if err != nil {
-		return lib, err
-	}
-	if lib != nil {
-		if link {
-			if err := b.LibraryValidator(lib); err != nil {
-				return lib, err
-			}
-		}
-
-		return lib, nil
-	}
-
-	libw, err := b.LibraryReader(usePath)
+func (b BasicLoader) LoadLibrary(usingFile *file.File, usePath string) (*file.Library, error) {
+	libw, err := b.LibraryReader(usingFile, usePath)
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +90,7 @@ func (b BasicLoader) LoadLibrary(usePath string, link bool) (*file.Library, erro
 		return nil, nil
 	}
 
-	lib = &file.Library{
+	lib := &file.Library{
 		Module:       libw.Module,
 		ModulePath:   libw.ModulePath,
 		AbsolutePath: libw.AbsolutePath,
@@ -132,6 +107,7 @@ func (b BasicLoader) LoadLibrary(usePath string, link bool) (*file.Library, erro
 		f.Module = fw.Module
 		f.ModulePath = fw.ModulePath
 		f.AbsolutePath = fw.AbsolutePath
+		f.Type = file.TypeLibraryFile
 		f.Raw = string(fw.Raw)
 		if err != nil {
 			return lib, err
@@ -146,6 +122,12 @@ func (b BasicLoader) LoadLibrary(usePath string, link bool) (*file.Library, erro
 		}
 
 		lib.Files = append(lib.Files, *f)
+	}
+
+	if usingFile == nil {
+		if err := b.LibraryValidator(lib); err != nil {
+			return nil, err
+		}
 	}
 
 	return lib, nil
@@ -172,6 +154,7 @@ func (b BasicLoader) LoadInclude(includingFile *file.File, name string) (file.In
 	f.Module = fw.Module
 	f.ModulePath = fw.ModulePath
 	f.AbsolutePath = fw.AbsolutePath
+	f.Type = file.TypeInclude
 	f.Raw = string(fw.Raw)
 	cincl := file.CorgiInclude{File: f}
 	if err != nil {
@@ -189,28 +172,8 @@ func (b BasicLoader) LoadInclude(includingFile *file.File, name string) (file.In
 	return cincl, nil
 }
 
-func (b BasicLoader) LoadTemplate(extendPath string) (*file.File, error) {
-	return b.load(extendPath, b.TemplateReader)
-}
-
-func (b BasicLoader) LoadMain(path string) (*file.File, error) {
-	f, err := b.load(path, b.MainReader)
-	if err != nil {
-		return f, err
-	}
-	if f == nil {
-		return nil, nil
-	}
-
-	if err = b.MainValidator(f); err != nil {
-		return f, err
-	}
-
-	return f, nil
-}
-
-func (b BasicLoader) load(path string, reader func(string) (*File, error)) (*file.File, error) {
-	fw, err := reader(path)
+func (b BasicLoader) LoadTemplate(extendingFile *file.File, extendPath string) (*file.File, error) {
+	fw, err := b.TemplateReader(extendingFile, extendPath)
 	if err != nil {
 		return &file.File{
 			Name:         fw.Name,
@@ -242,6 +205,51 @@ func (b BasicLoader) load(path string, reader func(string) (*File, error)) (*fil
 	}
 
 	if err = b.Linker(f); err != nil {
+		return f, err
+	}
+
+	return f, err
+}
+
+func (b BasicLoader) LoadMain(path string) (*file.File, error) {
+	fw, err := b.MainReader(path)
+	if err != nil {
+		return &file.File{
+			Name:         fw.Name,
+			Module:       fw.Module,
+			ModulePath:   fw.ModulePath,
+			AbsolutePath: fw.AbsolutePath,
+			Raw:          string(fw.Raw),
+		}, err
+	}
+	if fw == nil {
+		return nil, nil
+	}
+
+	f, err := b.Parser(fw.Raw)
+	if f == nil {
+		f = new(file.File)
+	}
+	f.Name = fw.Name
+	f.Module = fw.Module
+	f.ModulePath = fw.ModulePath
+	f.AbsolutePath = fw.AbsolutePath
+	f.Raw = string(fw.Raw)
+	if err != nil {
+		return f, err
+	}
+
+	if err = b.PreLinkValidator(f); err != nil {
+		return f, err
+	}
+
+	if err = b.Linker(f); err != nil {
+		return f, err
+	}
+
+	f.Type = file.TypeMain
+
+	if err = b.MainValidator(f); err != nil {
 		return f, err
 	}
 

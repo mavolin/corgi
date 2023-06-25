@@ -23,13 +23,12 @@ type Annotation struct {
 }
 
 func Anno(f *file.File, aw Annotation) corgierr.Annotation {
-	a := AnnoLines(f.Lines, aw)
+	a := Lines(f.Lines, aw)
 	a.File = f
 	return a
 }
 
-//goland:noinspection GoNameStartsWithPackageName
-func AnnoLines(lines []string, aw Annotation) corgierr.Annotation {
+func Lines(lines []string, aw Annotation) corgierr.Annotation {
 	var a corgierr.Annotation
 	a.Annotation = aw.Annotation
 
@@ -78,6 +77,8 @@ func AnnoLines(lines []string, aw Annotation) corgierr.Annotation {
 	if a.ContextEnd > len(lines) {
 		a.ContextEnd = len(lines) + 1
 	}
+
+	a.Lines = lines[a.ContextStart:a.ContextEnd]
 
 	a.Line = aw.Start.Line
 	if aw.Start.Col == 0 {

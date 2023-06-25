@@ -141,7 +141,7 @@ func concatBuilder(sb *strings.Builder, iface any) {
 type annotation = anno2.Annotation
 
 func anno(c *current, aw annotation) corgierr.Annotation {
-	return anno2.AnnoLines(c.globalStore["lines"].([]string), aw)
+	return anno2.Lines(c.globalStore["lines"].([]string), aw)
 }
 
 // ============================================================================

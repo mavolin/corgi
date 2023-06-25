@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"github.com/mavolin/corgi/corgi/file"
+
 	"github.com/mavolin/corgi/internal/stack"
 	"github.com/mavolin/corgi/woof"
 )
@@ -28,7 +29,7 @@ type Writer struct {
 	// writePreEscapedHTML are made.
 	// Any call to another write method except writeToFile will flush rawBuf.
 	//
-	// Code must ensure that rawBuf is flushed before writing the body of a
+	// Lines must ensure that rawBuf is flushed before writing the body of a
 	// conditional or loop.
 	rawBuf bytes.Buffer
 

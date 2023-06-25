@@ -35,6 +35,12 @@ type MixinParam struct {
 	// Type is the name of the type of the parameter, or nil if the type is
 	// inferred from the default.
 	Type *GoType
+	// InferredType is the type inferred from the Default, if Type is nil.
+	//
+	// It will be set by package typeinfer before linking.
+	//
+	// An empty string indicates the type could not be inferred.
+	InferredType string
 
 	AssignPos *Position
 	// Default is the optional default value of the parameter.

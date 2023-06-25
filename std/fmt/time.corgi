@@ -5,7 +5,7 @@ import "time"
 
 // SetLocation updates the default location used for Time, Date, and DateTime.
 mixin SetLocation(loc time.Location)
-  - location = loc
+  - location=loc
 
 //corgi:formixin Time SetTimeFormat
 - timeFormat := "15:04"
@@ -17,9 +17,9 @@ mixin SetLocation(loc time.Location)
 // default is time.Location, changeable trough SetLocation.
 //
 // If asIs is true, the time won't be converted to another timezone.
-mixin Time(t time.Time, format = timeFormat, in = location, asIs = false)
+mixin Time(t time.Time, format=timeFormat, in=location, asIs=false)
   if !asIs
-    - t = t.In(in)
+    - t=t.In(in)
 
   = t.Format(format)
 
@@ -27,7 +27,7 @@ mixin Time(t time.Time, format = timeFormat, in = location, asIs = false)
 //
 // If left unchanged, it will be "15:04".
 mixin SetTimeFormat(format string)
-  - timeFormat = format
+  - timeFormat=format
 
 //corgi:formixin Date SetDateFormat
 - dateFormat := "2006-01-02"
@@ -43,9 +43,9 @@ mixin SetTimeFormat(format string)
 // changeable trough SetLocation.
 // This is usually only desired, if t is a datetime and we only want to print
 // the date.
-mixin Date(t time.Time, format = dateFormat, in = location, asIs = true)
+mixin Date(t time.Time, format=dateFormat, in=location, asIs=true)
   if !asIs
-    - t = t.In(in)
+    - t=t.In(in)
 
   = t.Format(format)
 
@@ -53,7 +53,7 @@ mixin Date(t time.Time, format = dateFormat, in = location, asIs = true)
 //
 // If left unchanged, it will be "2006-01-02".
 mixin SetDateFormat(format string)
-  - dateFormat = format
+  - dateFormat=format
 
 //corgi:formixin DateTime SetDateTimeFormat
 - dateTimeFormat := "2006-01-02 15:04"
@@ -65,9 +65,9 @@ mixin SetDateFormat(format string)
 // default is time.Location, changeable trough SetLocation.
 //
 // If asIs is true, the time won't be converted to another timezone.
-mixin DateTime(t time.Time, format = dateTimeFormat, in = location, asIs = false)
+mixin DateTime(t time.Time, format=dateTimeFormat, in=location, asIs=false)
   if !asIs
-    - t = t.In(in)
+    - t=t.In(in)
 
   = t.Format(format)
 

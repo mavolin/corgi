@@ -8,17 +8,17 @@ import (
 	"github.com/mavolin/corgi/corgierr"
 	"github.com/mavolin/corgi/file"
 	"github.com/mavolin/corgi/internal/list"
-	"github.com/mavolin/corgi/loader"
+	"github.com/mavolin/corgi/load"
 )
 
 type Linker struct {
-	loader loader.Loader
+	loader load.Loader
 }
 
 type errList = list.List[*corgierr.Error]
 
-// New creates a new *Linker that uses the passed loader.
-func New(loader loader.Loader) *Linker {
+// New creates a new *Linker that uses the passed load.
+func New(loader load.Loader) *Linker {
 	return &Linker{loader: loader}
 }
 
