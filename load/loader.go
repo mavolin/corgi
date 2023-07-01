@@ -8,9 +8,11 @@ import "github.com/mavolin/corgi/file"
 type Loader interface {
 	// LoadLibrary loads the library provided under the passed use path.
 	//
-	// It gets passed the file that uses it to help resolve version correctly.
+	// It gets passed the file that uses it.
+	//
 	// If usingFile is nil, the library is loaded standalone and path should be
 	// interpreted as an absolute path instead of a module path.
+	// This happens, for example, when pre-compiling a library.
 	//
 	// A return of (nil, nil) is valid and indicates that the load was unable
 	// to find a library with the given path.

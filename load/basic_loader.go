@@ -1,6 +1,10 @@
 package load
 
-import "github.com/mavolin/corgi/file"
+import (
+	"errors"
+
+	"github.com/mavolin/corgi/file"
+)
 
 // BasicLoader is a [Loader] implementation that allows configuration of every
 // step of the loading process.
@@ -30,6 +34,12 @@ type BasicLoader struct {
 	//
 	// A return of (nil, nil) is valid and indicates the library wasn't found.
 	LibraryReader func(usingFile *file.File, path string) (*Library, error)
+	// DirLibraryLoader loads the library in the directory of f, a
+	// main, include, or template file, which is not yet linked or validated.
+	//
+	// A return of (nil, nil) is valid and indicates that there are no library
+	// files in f's directory.
+	DirLibraryLoader func(f *file.File) (*file.Library, error)
 
 	// Parser is the function used to parse a file.
 	Parser func(in []byte) (*file.File, error)
@@ -90,6 +100,10 @@ func (b BasicLoader) LoadLibrary(usingFile *file.File, usePath string) (*file.Li
 		return nil, nil
 	}
 
+	if libw.Precompiled != nil {
+		return libw.Precompiled, nil
+	}
+
 	lib := &file.Library{
 		Module:       libw.Module,
 		ModulePath:   libw.ModulePath,
@@ -103,11 +117,12 @@ func (b BasicLoader) LoadLibrary(usingFile *file.File, usePath string) (*file.Li
 		if f == nil {
 			f = new(file.File)
 		}
+		f.Type = file.TypeLibraryFile
 		f.Name = fw.Name
 		f.Module = fw.Module
 		f.ModulePath = fw.ModulePath
 		f.AbsolutePath = fw.AbsolutePath
-		f.Type = file.TypeLibraryFile
+		f.Library = lib
 		f.Raw = string(fw.Raw)
 		if err != nil {
 			return lib, err
@@ -150,23 +165,27 @@ func (b BasicLoader) LoadInclude(includingFile *file.File, name string) (file.In
 	if f == nil {
 		f = new(file.File)
 	}
+	f.Type = file.TypeInclude
 	f.Name = fw.Name
 	f.Module = fw.Module
 	f.ModulePath = fw.ModulePath
 	f.AbsolutePath = fw.AbsolutePath
-	f.Type = file.TypeInclude
 	f.Raw = string(fw.Raw)
+
+	var dirLibErr error
+	f.DirLibrary, dirLibErr = b.DirLibraryLoader(f)
+
 	cincl := file.CorgiInclude{File: f}
 	if err != nil {
-		return cincl, err
+		return cincl, errors.Join(err, dirLibErr)
 	}
 
 	if err = b.PreLinkValidator(f); err != nil {
-		return cincl, err
+		return cincl, errors.Join(err, dirLibErr)
 	}
 
 	if err = b.Linker(f); err != nil {
-		return cincl, err
+		return cincl, errors.Join(err, dirLibErr)
 	}
 
 	return cincl, nil
@@ -191,24 +210,29 @@ func (b BasicLoader) LoadTemplate(extendingFile *file.File, extendPath string) (
 	if f == nil {
 		f = new(file.File)
 	}
+	f.Type = file.TypeTemplate
 	f.Name = fw.Name
 	f.Module = fw.Module
 	f.ModulePath = fw.ModulePath
 	f.AbsolutePath = fw.AbsolutePath
 	f.Raw = string(fw.Raw)
+
+	var dirLibErr error
+	f.DirLibrary, dirLibErr = b.DirLibraryLoader(f)
+
 	if err != nil {
-		return f, err
+		return f, errors.Join(err, dirLibErr)
 	}
 
 	if err = b.PreLinkValidator(f); err != nil {
-		return f, err
+		return f, errors.Join(err, dirLibErr)
 	}
 
 	if err = b.Linker(f); err != nil {
-		return f, err
+		return f, errors.Join(err, dirLibErr)
 	}
 
-	return f, err
+	return f, nil
 }
 
 func (b BasicLoader) LoadMain(path string) (*file.File, error) {
@@ -230,27 +254,30 @@ func (b BasicLoader) LoadMain(path string) (*file.File, error) {
 	if f == nil {
 		f = new(file.File)
 	}
+	f.Type = file.TypeMain
 	f.Name = fw.Name
 	f.Module = fw.Module
 	f.ModulePath = fw.ModulePath
 	f.AbsolutePath = fw.AbsolutePath
 	f.Raw = string(fw.Raw)
+
+	var dirLibErr error
+	f.DirLibrary, dirLibErr = b.DirLibraryLoader(f)
+
 	if err != nil {
-		return f, err
+		return f, errors.Join(err, dirLibErr)
 	}
 
 	if err = b.PreLinkValidator(f); err != nil {
-		return f, err
+		return f, errors.Join(err, dirLibErr)
 	}
 
 	if err = b.Linker(f); err != nil {
-		return f, err
+		return f, errors.Join(err, dirLibErr)
 	}
 
-	f.Type = file.TypeMain
-
 	if err = b.MainValidator(f); err != nil {
-		return f, err
+		return f, errors.Join(err, dirLibErr)
 	}
 
 	return f, nil

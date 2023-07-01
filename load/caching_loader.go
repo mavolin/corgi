@@ -24,7 +24,6 @@ type cachedFile struct {
 	f    *file.File
 	incl file.IncludeFile
 	lib  *file.Library
-	link bool
 	err  error
 	done <-chan struct{}
 }
@@ -55,6 +54,28 @@ func (l *CachingLoader) LoadLibrary(usingFile *file.File, usePath string) (*file
 	cached := l.load(l.unlinkedLibraries, func(cached *cachedFile) {
 		cached.lib, cached.err = l.l.LoadLibrary(usingFile, usePath)
 	}, usePath)
+	return cached.lib, cached.err
+}
+
+// LoadDirLibrary is a special helper that allows caching of dir libraries.
+//
+// To use it call with the file to load the dir library for and a getter
+// function.
+//
+// If the dir library for f is cached, it is returned.
+// LoadDirLibrary considers a library from the same module with
+// path.Base(f.ModulePath) as f's dir library.
+//
+// If the dir library for f is not cached, get is called and expected to
+// read parse, link, and validate the library.
+// A return of (nil, nil) is valid, and indicates that there exists no dir
+// library for f.
+// get must not call any of the loaders other methods as to not cause a
+// deadlock.
+func (l *CachingLoader) LoadDirLibrary(f *file.File, get func() (*file.Library, error)) (*file.Library, error) {
+	cached := l.load(l.unlinkedLibraries, func(cached *cachedFile) {
+		cached.lib, cached.err = get()
+	}, path.Join(f.Module, path.Base(f.ModulePath)))
 	return cached.lib, cached.err
 }
 

@@ -27,8 +27,9 @@ import (
 )
 
 const (
-	PrecompFileName = "lib.precomp"
+	PrecompFileName = "lib.precorgi"
 	Ext             = ".corgi"
+	LibExt          = ".corgil"
 )
 
 var (
@@ -81,7 +82,7 @@ var nopLog = slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level
 func newLoader(o LoadOptions) (*loader, error) {
 	var l loader
 
-	l.loader = load.Cache(load.BasicLoader{
+	bl := load.BasicLoader{
 		MainReader:     l.readMain,
 		TemplateReader: l.readTemplate,
 		IncludeReader:  l.readInclude,
@@ -101,7 +102,7 @@ func newLoader(o LoadOptions) (*loader, error) {
 					slog.String("abs", filepath.FromSlash(f.AbsolutePath)))
 
 			log.Info("validating use namespaces")
-			err := validate.UseNamespaces(f)
+			err := validate.PreLink(f)
 			log.Info("validated use namespaces", slog.Any("err", err))
 			return err
 		},
@@ -115,7 +116,7 @@ func newLoader(o LoadOptions) (*loader, error) {
 			typeinfer.Scope(f.Scope)
 			log.Info("inferred types")
 			log.Info("linking")
-			err := l.linker.Link(f)
+			err := l.linker.LinkFile(f)
 			log.Info("linked file", slog.Any("err", err))
 			return err
 		},
@@ -141,7 +142,15 @@ func newLoader(o LoadOptions) (*loader, error) {
 			log.Info("validated library", slog.Any("err", err))
 			return err
 		},
-	})
+	}
+	cl := load.Cache(bl)
+	bl.DirLibraryLoader = func(f *file.File) (*file.Library, error) {
+		return cl.LoadDirLibrary(f, func() (*file.Library, error) {
+			return bl.LoadLibrary(f, path.Join(f.Module, path.Base(f.ModulePath)))
+		})
+	}
+
+	l.loader = cl
 
 	l.linker = link.New(l.loader)
 
@@ -191,11 +200,11 @@ func LoadMainData(in []byte, o LoadOptions) (*file.File, error) {
 	}
 	f.Type = file.TypeMain
 
-	if err := validate.UseNamespaces(f); err != nil {
+	if err := validate.PreLink(f); err != nil {
 		return f, err
 	}
 
-	if err := l.linker.Link(f); err != nil {
+	if err := l.linker.LinkFile(f); err != nil {
 		return f, err
 	}
 
@@ -443,8 +452,10 @@ func (l *loader) loadLibrary(slashAbs, slashModPath, slashPathInMod string) (*lo
 		log := log.With(slog.String("file", name))
 		log.Info("looking for precompiled library file")
 
-		if entry.Type() != os.ModeDir || name != PrecompFileName {
-			log.Info("skipping")
+		if entry.Type() != os.ModeDir {
+			log.Info("skipping: file is dir")
+		} else if name != PrecompFileName {
+			log.Info("skipping: name doesn't match: " + PrecompFileName)
 			continue
 		}
 
@@ -453,7 +464,7 @@ func (l *loader) loadLibrary(slashAbs, slashModPath, slashPathInMod string) (*lo
 		f, err := os.Open(filepath.Join(slashAbs, name))
 		if err != nil {
 			log.Error("failed to open precompiled library file", slog.Any("err", err))
-			return nil, fmt.Errorf("%s: failed to open precompiled library: %w", slashAbs, err)
+			return nil, fmt.Errorf("%s: failed to open precompiled library: %w", sysAbs, err)
 		}
 		//goland:noinspection GoDeferInLoop
 		defer f.Close()
@@ -463,7 +474,7 @@ func (l *loader) loadLibrary(slashAbs, slashModPath, slashPathInMod string) (*lo
 		lib, err := precomp.Decode(f)
 		if err != nil {
 			log.Error("failed to decode precompiled library file", slog.Any("err", err))
-			return nil, fmt.Errorf("%s: failed to decode precompiled library: %w", slashAbs, err)
+			return nil, fmt.Errorf("%s: failed to decode precompiled library: %w", sysAbs, err)
 		}
 
 		log.Info("decoded precompiled library file")
@@ -487,22 +498,24 @@ func (l *loader) loadLibrary(slashAbs, slashModPath, slashPathInMod string) (*lo
 		name := entry.Name()
 
 		log := log.With(slog.String("file", name))
-		log.Info("looking for corgi files")
+		log.Info("looking for corgi lib files")
 
-		if entry.Type() == os.ModeDir || strings.HasSuffix(name, Ext) {
-			log.Info("skipping")
+		if entry.Type() != os.ModeDir {
+			log.Info("skipping: file is dir")
+		} else if !strings.HasSuffix(name, LibExt) {
+			log.Info("skipping: extension doesn't match: " + LibExt)
 			continue
 		}
 
-		log.Info("found corgi file, reading")
+		log.Info("found corgi lib file, reading")
 
 		readFile, err := os.ReadFile(filepath.Join(sysAbs, name))
 		if err != nil {
-			log.Error("failed to open corgi file", slog.Any("err", err))
+			log.Error("failed to open corgi lib file", slog.Any("err", err))
 			return nil, fmt.Errorf("%s: failed to read library file: %w", filepath.Join(sysAbs, name), err)
 		}
 
-		log.Info("read corgi file successfully")
+		log.Info("read corgi lib file successfully")
 
 		lib.Files = append(lib.Files, load.File{
 			Name:         name,
@@ -514,7 +527,8 @@ func (l *loader) loadLibrary(slashAbs, slashModPath, slashPathInMod string) (*lo
 		})
 	}
 
-	log.Info("read directory, returning with library", slog.Int("n_files", len(lib.Files)))
+	log.Info("read directory, returning with library",
+		slog.Int("size", len(lib.Files)), slog.Int("skipped", len(files)-len(lib.Files)))
 
 	return &lib, nil
 }
@@ -622,7 +636,7 @@ func (l *loader) goMod(p string) (*goModule, error) {
 	l.mods[p] = mod
 	l.mut.Unlock()
 
-	// gomod.Find takes about 220µs so, it's still worth to cache
+	// gomod.Find takes about 220µs, so it's still worth to cache
 	mod.mod, mod.slashPath, mod.err = gomod.Find(p)
 	mod.slashPath = filepath.ToSlash(mod.slashPath)
 	close(done)
