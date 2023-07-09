@@ -9,7 +9,7 @@ import (
 	"github.com/mavolin/corgi/internal/stack"
 )
 
-// no mixins may be declared in other mixin declarations
+// no mixins may be declared in other mixin declarations.
 func mixinsInMixins(f *file.File) errList {
 	var errs errList
 
@@ -51,7 +51,7 @@ func mixinsInMixins(f *file.File) errList {
 	return errs
 }
 
-// duplicate names inside same scope
+// duplicate names inside same scope.
 func duplicateMixinNames(f *file.File) errList {
 	var errs errList
 

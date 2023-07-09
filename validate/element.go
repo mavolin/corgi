@@ -61,7 +61,7 @@ func _topLevelAttributes(f *file.File, s file.Scope) errList {
 			}
 			annoLen += len(itm.Name.Ident)
 
-			if itm.Mixin.WritesTopLevelAttributes {
+			if itm.Mixin.Mixin.WritesTopLevelAttributes {
 				errs.PushBack(&corgierr.Error{
 					Message: "top-level `&`",
 					ErrorAnnotation: anno.Anno(f, anno.Annotation{
@@ -79,7 +79,7 @@ func _topLevelAttributes(f *file.File, s file.Scope) errList {
 
 			andPos := mixinCallAttrPos(itm)
 
-			if andPos != file.InvalidPosition && itm.Mixin.HasAndPlaceholders {
+			if andPos != file.InvalidPosition && itm.Mixin.Mixin.HasAndPlaceholders {
 				errs.PushBack(&corgierr.Error{
 					Message: "top-level `&`",
 					ErrorAnnotation: anno.Anno(f, anno.Annotation{
@@ -100,8 +100,8 @@ func _topLevelAttributes(f *file.File, s file.Scope) errList {
 				return false, nil // only report one err per mixin
 			}
 
-			unfilledBlocks := make([]file.LinkedMixinBlock, 0, len(itm.Mixin.Blocks))
-			for _, block := range itm.Mixin.Blocks {
+			unfilledBlocks := make([]file.MixinBlockInfo, 0, len(itm.Mixin.Mixin.Blocks))
+			for _, block := range itm.Mixin.Mixin.Blocks {
 				if block.TopLevel && block.CanAttributes {
 					unfilledBlocks = append(unfilledBlocks, block)
 				}
@@ -246,7 +246,7 @@ func _topLevelTemplateBlockAnds(f *file.File, s file.Scope) errList {
 		case file.For:
 			return true, nil
 		case file.MixinCall:
-			if itm.Mixin.File.Module == "" && itm.Mixin.File.ModulePath == "html" && itm.Name.Ident == "Attr" {
+			if fileutil.IsAttrMixin(*itm.Mixin) {
 				errs.PushBack(&corgierr.Error{
 					Message: "top-level attribute",
 					ErrorAnnotation: anno.Anno(f, anno.Annotation{
@@ -266,7 +266,7 @@ func _topLevelTemplateBlockAnds(f *file.File, s file.Scope) errList {
 			}
 			annoLen += len(itm.Name.Ident)
 
-			if itm.Mixin.WritesTopLevelAttributes {
+			if itm.Mixin.Mixin.WritesTopLevelAttributes {
 				errs.PushBack(&corgierr.Error{
 					Message: "top-level `&`",
 					ErrorAnnotation: anno.Anno(f, anno.Annotation{
@@ -284,7 +284,7 @@ func _topLevelTemplateBlockAnds(f *file.File, s file.Scope) errList {
 
 			andPos := mixinCallAttrPos(itm)
 
-			if andPos != file.InvalidPosition && itm.Mixin.HasAndPlaceholders {
+			if andPos != file.InvalidPosition && itm.Mixin.Mixin.HasAndPlaceholders {
 				errs.PushBack(&corgierr.Error{
 					Message: "top-level `&`",
 					ErrorAnnotation: anno.Anno(f, anno.Annotation{
@@ -305,8 +305,8 @@ func _topLevelTemplateBlockAnds(f *file.File, s file.Scope) errList {
 				return false, nil // only report one err per mixin
 			}
 
-			unfilledBlocks := make([]file.LinkedMixinBlock, 0, len(itm.Mixin.Blocks))
-			for _, block := range itm.Mixin.Blocks {
+			unfilledBlocks := make([]file.MixinBlockInfo, 0, len(itm.Mixin.Mixin.Blocks))
+			for _, block := range itm.Mixin.Mixin.Blocks {
 				if block.TopLevel && block.CanAttributes {
 					unfilledBlocks = append(unfilledBlocks, block)
 				}
@@ -444,7 +444,7 @@ func attributePlacement(f *file.File) errList {
 			_, divErrs := _attributePlacement(f, elAnno, nil, itm.Body)
 			errs.PushBackList(&divErrs)
 		case file.MixinCall:
-			if itm.Mixin.File.Module == "" && itm.Mixin.File.ModulePath == "html" && itm.Name.Ident == "Element" {
+			if fileutil.IsElementMixin(*itm.Mixin) {
 				var end file.Position
 				if itm.RParenPos != nil {
 					end = *itm.RParenPos
@@ -663,44 +663,46 @@ func _attributePlacement(f *file.File, elAnno corgierr.Annotation, firstText *co
 				firstText = &a
 			}
 		case file.MixinCall:
-			if itm.Mixin.File.Module == "" && itm.Mixin.File.ModulePath == "html" {
+			if fileutil.IsAttrMixin(*itm.Mixin) {
 				var end file.Position
 				if itm.RParenPos != nil {
 					end = *itm.RParenPos
 				}
 
-				switch itm.Name.Ident {
-				case "Element":
-					if firstText == nil {
-						a := anno.Anno(f, anno.Annotation{
-							Start:      itm.Position,
-							End:        end,
-							Annotation: "you wrote an element here",
-						})
-						firstText = &a
-					}
-					return false, nil
-				case "Attr":
-					if firstText == nil {
-						return false, nil
-					}
-
-					errs.PushBack(&corgierr.Error{
-						Message: "use of attribute after writing to element's body",
-						ErrorAnnotation: anno.Anno(f, anno.Annotation{
-							Start:      itm.Position,
-							End:        end,
-							Annotation: "so you cannot place an attribute here",
-						}),
-						HintAnnotations: []corgierr.Annotation{elAnno, *firstText},
-						Suggestions: []corgierr.Suggestion{
-							{
-								Suggestion: "you can only use the `&` operator before you write to the body of an element.",
-							},
-						},
-					})
+				if firstText == nil {
 					return false, nil
 				}
+
+				errs.PushBack(&corgierr.Error{
+					Message: "use of attribute after writing to element's body",
+					ErrorAnnotation: anno.Anno(f, anno.Annotation{
+						Start:      itm.Position,
+						End:        end,
+						Annotation: "so you cannot place an attribute here",
+					}),
+					HintAnnotations: []corgierr.Annotation{elAnno, *firstText},
+					Suggestions: []corgierr.Suggestion{
+						{
+							Suggestion: "you can only use the `&` operator before you write to the body of an element.",
+						},
+					},
+				})
+				return false, nil
+			} else if fileutil.IsElementMixin(*itm.Mixin) {
+				var end file.Position
+				if itm.RParenPos != nil {
+					end = *itm.RParenPos
+				}
+
+				if firstText == nil {
+					a := anno.Anno(f, anno.Annotation{
+						Start:      itm.Position,
+						End:        end,
+						Annotation: "you wrote an element here",
+					})
+					firstText = &a
+				}
+				return false, nil
 			}
 
 			annoLen := len("+")
@@ -739,7 +741,7 @@ func _mixinCallAndPlacement(f *file.File, mc file.MixinCall, elAnno corgierr.Ann
 	}
 	annoLen += len(mc.Name.Ident)
 
-	if mc.Mixin.WritesTopLevelAttributes {
+	if mc.Mixin.Mixin.WritesTopLevelAttributes {
 		errs.PushBack(&corgierr.Error{
 			Message: "use of `&` after writing to element's body",
 			ErrorAnnotation: anno.Anno(f, anno.Annotation{
@@ -758,7 +760,7 @@ func _mixinCallAndPlacement(f *file.File, mc file.MixinCall, elAnno corgierr.Ann
 	}
 
 	andPos := mixinCallAttrPos(mc)
-	if andPos != file.InvalidPosition && mc.Mixin.TopLevelAndPlaceholder {
+	if andPos != file.InvalidPosition && mc.Mixin.Mixin.TopLevelAndPlaceholder {
 		errs.PushBack(&corgierr.Error{
 			Message: "use of `&` after writing to element's body",
 			ErrorAnnotation: anno.Anno(f, anno.Annotation{
@@ -782,8 +784,8 @@ func _mixinCallAndPlacement(f *file.File, mc file.MixinCall, elAnno corgierr.Ann
 		return errs // only one attr err per mixin call
 	}
 
-	unfilledBlocks := make([]file.LinkedMixinBlock, 0, len(mc.Mixin.Blocks))
-	for _, block := range mc.Mixin.Blocks {
+	unfilledBlocks := make([]file.MixinBlockInfo, 0, len(mc.Mixin.Mixin.Blocks))
+	for _, block := range mc.Mixin.Mixin.Blocks {
 		if block.TopLevel && block.CanAttributes {
 			unfilledBlocks = append(unfilledBlocks, block)
 		}
@@ -887,7 +889,7 @@ handleUnfilledBlocks:
 // _mixinCallFirstTextAnno returns the first text annotation for the passed
 // mixin call.
 func _mixinCallFirstTextAnno(f *file.File, mc file.MixinCall) *corgierr.Annotation {
-	if mc.Mixin.WritesBody {
+	if mc.Mixin.Mixin.WritesBody {
 		annoLen := len("+")
 		if mc.Namespace != nil {
 			annoLen += len(mc.Namespace.Ident) + len(".")
@@ -902,8 +904,8 @@ func _mixinCallFirstTextAnno(f *file.File, mc file.MixinCall) *corgierr.Annotati
 		return &a
 	}
 
-	unfilledBlocks := make([]file.LinkedMixinBlock, 0, len(mc.Mixin.Blocks))
-	for _, block := range mc.Mixin.Blocks {
+	unfilledBlocks := make([]file.MixinBlockInfo, 0, len(mc.Mixin.Mixin.Blocks))
+	for _, block := range mc.Mixin.Mixin.Blocks {
 		if block.TopLevel {
 			unfilledBlocks = append(unfilledBlocks, block)
 		}
@@ -1014,7 +1016,7 @@ func _firstTextAnno(f *file.File, s file.Scope) *corgierr.Annotation {
 			firstText = &a
 			return false, fileutil.StopWalk
 		case file.MixinCall:
-			if itm.Mixin.File.Module == "" && itm.Mixin.File.ModulePath == "html" && itm.Name.Ident == "Element" {
+			if fileutil.IsElementMixin(*itm.Mixin) {
 				var end file.Position
 				if itm.RParenPos != nil {
 					end = *itm.RParenPos

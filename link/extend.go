@@ -18,11 +18,16 @@ func (l *Linker) linkExtend(ctx *context, f *file.File) {
 	ctx.n++
 
 	go func() {
-		template, err := l.loader.LoadTemplate(fileutil.Unquote(f.Extend.Path))
+		template, err := l.loader.LoadTemplate(f, fileutil.Unquote(f.Extend.Path))
 		if err != nil {
 			var cerr *corgierr.Error
 			if errors.As(err, &cerr) {
 				ctx.errs <- list.List1(cerr)
+				return
+			}
+			var clerr corgierr.List
+			if errors.As(err, &clerr) {
+				ctx.errs <- list.FromSlice(clerr)
 				return
 			}
 

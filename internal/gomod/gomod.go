@@ -13,7 +13,7 @@ import (
 //
 // dir must be an absolute path in using the system's path separator.
 //
-// If it finds it, Find returns the module and the absolute path to it
+// If it finds it, Find returns the module and the absolute path to it.
 func Find(dir string) (*modfile.File, string, error) {
 	for {
 		p := filepath.Join(dir, "go.mod")
@@ -26,6 +26,8 @@ func Find(dir string) (*modfile.File, string, error) {
 			if len(dir) <= 1 {
 				return nil, "", nil
 			}
+
+			continue
 		}
 
 		mod, err := modfile.ParseLax(p, f, nil)

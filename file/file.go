@@ -32,6 +32,14 @@ type File struct {
 	// It is always specified as a forward slash separated path.
 	AbsolutePath string
 
+	// Library is the library this file belongs to, if any.
+	Library *Library
+	// DirLibrary provides the library files located in the same directory as
+	// this main, include, or template file.
+	//
+	// Not filled for library files.
+	DirLibrary *Library
+
 	//
 	// FILE CONTENTS
 	//

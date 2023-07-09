@@ -39,7 +39,7 @@ func interpolatedMixinCallChecks(f *file.File) errList {
 }
 
 func _topLevelAndInInterpolatedMixinCall(f *file.File, mci file.MixinCallInterpolation) errList {
-	if mci.MixinCall.Mixin.WritesTopLevelAttributes {
+	if mci.MixinCall.Mixin.Mixin.WritesTopLevelAttributes {
 		return list.List1(&corgierr.Error{
 			Message: "interpolated mixin writes attributes",
 			ErrorAnnotation: anno.Anno(f, anno.Annotation{
@@ -63,11 +63,10 @@ func _topLevelAndInInterpolatedMixinCall(f *file.File, mci file.MixinCallInterpo
 func _requiredInterpolatedMixinCallAttributes(f *file.File, mci file.MixinCallInterpolation) errList {
 	var errs errList
 
-	annoLen := len("+")
+	annoLen := len("+") + len(mci.MixinCall.Name.Ident)
 	if mci.MixinCall.Namespace != nil {
 		annoLen += len(mci.MixinCall.Namespace.Ident) + len(".")
 	}
-	annoLen += len(mci.MixinCall.Name.Ident)
 
 params:
 	for _, param := range mci.MixinCall.Mixin.Mixin.Params {
@@ -137,7 +136,7 @@ func _interpolatedMixinCallBlockExists(f *file.File, mci file.MixinCallInterpola
 		return errList{}
 	}
 
-	for _, block := range mci.MixinCall.Mixin.Blocks {
+	for _, block := range mci.MixinCall.Mixin.Mixin.Blocks {
 		if block.Name == "_" {
 			return errList{}
 		}

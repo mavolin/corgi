@@ -17,18 +17,22 @@ func (l *Linker) linkUses(ctx *context, f *file.File) {
 		for specI := range use.Uses {
 			specI := specI
 			go func() {
-				ctx.errs <- l.linkSpec(f, &use.Uses[specI])
+				ctx.errs <- l.linkUseSpec(f, &use.Uses[specI])
 			}()
 		}
 	}
 }
 
-func (l *Linker) linkSpec(f *file.File, spec *file.UseSpec) errList {
-	lib, err := l.loader.LoadLibrary(fileutil.Unquote(spec.Path), true)
+func (l *Linker) linkUseSpec(f *file.File, spec *file.UseSpec) errList {
+	lib, err := l.loader.LoadLibrary(f, fileutil.Unquote(spec.Path))
 	if err != nil {
 		var cerr *corgierr.Error
 		if errors.As(err, &cerr) {
 			return list.List1(cerr)
+		}
+		var clerr corgierr.List
+		if errors.As(err, &clerr) {
+			return list.FromSlice(clerr)
 		}
 
 		return list.List1(&corgierr.Error{

@@ -104,7 +104,7 @@ func colored(sb *strings.Builder, o PrettyOptions, text string, attrs ...color.A
 	sb.WriteString(text)
 }
 
-func ansiFunc(sb *strings.Builder, o PrettyOptions, f func(sb *strings.Builder), attrs ...color.Attribute) {
+func coloredFunc(sb *strings.Builder, o PrettyOptions, f func(sb *strings.Builder), attrs ...color.Attribute) {
 	if o.Colored && len(attrs) > 0 {
 		color.New(attrs...).SetWriter(sb)
 
@@ -204,18 +204,18 @@ func (err *Error) prettyFile(sb *strings.Builder, annotations []Annotation, errF
 	sb.WriteString(noLineNoPad)
 
 	colored(sb, o, " > ", color.Faint)
+	coloredFunc(sb, o, func(sb *strings.Builder) {
+		sb.WriteString(o.FileNamePrinter(annotations[0].File))
+		if errFile {
+			sb.WriteByte(':')
+			sb.WriteString(strconv.Itoa(err.ErrorAnnotation.Line))
+			sb.WriteByte(':')
+			sb.WriteString(strconv.Itoa(err.ErrorAnnotation.Start))
+			sb.WriteByte('\n')
+		}
+	}, color.Bold, color.Faint)
 
-	sb.WriteString(o.FileNamePrinter(annotations[0].File))
-
-	if errFile {
-		sb.WriteByte(':')
-		sb.WriteString(strconv.Itoa(err.ErrorAnnotation.Line))
-		sb.WriteByte(':')
-		sb.WriteString(strconv.Itoa(err.ErrorAnnotation.Start))
-		sb.WriteByte('\n')
-	}
-
-	ansiFunc(sb, o, func(sb *strings.Builder) {
+	coloredFunc(sb, o, func(sb *strings.Builder) {
 		sb.WriteString(noLineNoPad)
 		sb.WriteString(" |\n")
 	}, color.Faint)
@@ -319,7 +319,7 @@ func (err *Error) prettyLineRange(sb *strings.Builder, annotations []Annotation,
 			for _, textLine := range annotationText {
 				sb.WriteByte('\n')
 
-				ansiFunc(sb, o, func(sb *strings.Builder) {
+				coloredFunc(sb, o, func(sb *strings.Builder) {
 					sb.WriteString(noLinePad)
 					sb.WriteString(" | ")
 				}, color.Faint)
@@ -401,7 +401,7 @@ type lineRange struct {
 	lines      []string
 }
 
-// reports the ranges of lines that are to be printed in the error
+// Reports the ranges of lines that are to be printed in the error.
 func printedLines(as []Annotation) []lineRange {
 	lines := make([]lineRange, len(as))
 	for i, a := range as {

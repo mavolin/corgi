@@ -47,7 +47,7 @@ func mixinCallAttributeChecks(f *file.File) errList {
 }
 
 func _mixinCallAttributesOnlyWriteText(f *file.File, mca file.MixinCallAttribute) errList {
-	lm := mca.MixinCall.Mixin
+	lm := mca.MixinCall.Mixin.Mixin
 	if lm.WritesTopLevelAttributes {
 		return list.List1(&corgierr.Error{
 			Message: "mixin call attribute: mixin writes other attributes",
@@ -78,7 +78,7 @@ func _mixinCallAttributesOnlyWriteText(f *file.File, mca file.MixinCallAttribute
 }
 
 func _topLevelAndInMixinCallAttribute(f *file.File, mca file.MixinCallAttribute) errList {
-	if mca.MixinCall.Mixin.WritesTopLevelAttributes {
+	if mca.MixinCall.Mixin.Mixin.WritesTopLevelAttributes {
 		return list.List1(&corgierr.Error{
 			Message: "interpolated mixin writes attributes",
 			ErrorAnnotation: anno.Anno(f, anno.Annotation{
@@ -176,7 +176,7 @@ func _mixinCallAttributeBlockExists(f *file.File, mca file.MixinCallAttribute) e
 		return errList{}
 	}
 
-	for _, block := range mca.MixinCall.Mixin.Blocks {
+	for _, block := range mca.MixinCall.Mixin.Mixin.Blocks {
 		if block.Name == "_" {
 			return errList{}
 		}

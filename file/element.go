@@ -4,7 +4,7 @@ package file
 // Doctype
 // ======================================================================================
 
-// Doctype represents a doctype directive (`doctype html`)
+// Doctype represents a doctype directive (`doctype html`).
 type Doctype struct {
 	Position
 }

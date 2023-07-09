@@ -28,7 +28,7 @@ type Library struct {
 	// FILES
 	//
 
-	Files []File
+	Files []*File
 
 	//
 	// PRECOMPILATION DATA
@@ -67,6 +67,8 @@ type PrecompiledCode struct {
 }
 
 type PrecompiledMixin struct {
+	// File is the file in which the mixin appears.
+	File *File
 	// Mixin is the mixin itself.
 	//
 	// Its body is empty.
@@ -79,32 +81,4 @@ type PrecompiledMixin struct {
 	//
 	// It is only present, if this mixin was precompiled.
 	Precompiled []byte
-
-	// WritesBody indicates whether the mixin writes to the body of an element.
-	// Blocks including block defaults are ignored.
-	WritesBody bool
-	// WritesElements indicates whether the mixin writes elements.
-	//
-	// Only true, if WritesBody is as well.
-	WritesElements bool
-	// WritesTopLevelAttributes indicates whether the mixin writes any top-level
-	// attributes, except &-placeholders.
-	WritesTopLevelAttributes bool
-	// TopLevelAndPlaceholder indicates whether the mixin has any top-level
-	// &-placeholders.
-	TopLevelAndPlaceholder bool
-	// Blocks is are the blocks used in the mixin in the order they appear in,
-	// and in the order they appear in the functions' signature.
-	Blocks             []PrecompiledMixinBlock
-	HasAndPlaceholders bool
-}
-
-type PrecompiledMixinBlock struct {
-	Name     string
-	TopLevel bool // writes directly to the element it is called in
-	// CanAttributes specifies whether &-directives can be used in this block.
-	CanAttributes                   bool
-	DefaultWritesBody               bool
-	DefaultWritesTopLevelAttributes bool
-	DefaultTopLevelAndPlaceholder   bool
 }

@@ -18,8 +18,51 @@ type Mixin struct {
 	// Body is the scope of the mixin.
 	Body Scope
 
+	// Precompiled is the precompiled function literal.
+	// Its args start with the mixins args, followed by func()s for each of
+	// the Blocks, and lastly, if HasAndPlaceholders is true, a final func()
+	// called each time that the mixin's &s are supposed to be placed.
+	//
+	// It is only present, if this mixin was precompiled.
+	Precompiled []byte
+
+	*MixinInfo
+
 	Position
 }
+
+type (
+	MixinInfo struct {
+		// WritesBody indicates whether the mixin writes to the body of an element.
+		// Blocks including block defaults are ignored.
+		WritesBody bool
+		// WritesElements indicates whether the mixin writes elements.
+		//
+		// Only true, if WritesBody is as well.
+		WritesElements bool
+		// WritesTopLevelAttributes indicates whether the mixin writes any top-level
+		// attributes, except &-placeholders.
+		WritesTopLevelAttributes bool
+		// TopLevelAndPlaceholder indicates whether the mixin has any top-level
+		// &-placeholders.
+		TopLevelAndPlaceholder bool
+		// Blocks is are the blocks used in the mixin in the order they appear in,
+		// and in the order they appear in the functions' signature.
+		Blocks             []MixinBlockInfo
+		HasAndPlaceholders bool
+	}
+
+	MixinBlockInfo struct {
+		Name     string
+		TopLevel bool // writes directly to the element it is called in
+		// CanAttributes specifies whether &-directives can be used in this block.
+		CanAttributes                   bool
+		DefaultWritesBody               bool
+		DefaultWritesElements           bool
+		DefaultWritesTopLevelAttributes bool
+		DefaultTopLevelAndPlaceholder   bool
+	}
+)
 
 var _ ScopeItem = Mixin{}
 
@@ -106,43 +149,6 @@ type LinkedMixin struct {
 	//
 	// Note that the mixin's body may be empty, if this mixin was precompiled.
 	Mixin *Mixin
-
-	// Precompiled is the precompiled function literal.
-	// Its args start with the mixins args, followed by func()s for each of
-	// the Blocks, and lastly, if HasAndPlaceholders is true, a final func()
-	// called each time that the mixin's &s are supposed to be placed.
-	//
-	// It is only present, if this mixin was precompiled.
-	Precompiled []byte
-
-	// WritesBody indicates whether the mixin writes to the body of an element.
-	// Blocks including block defaults are ignored.
-	WritesBody bool
-	// WritesElements indicates whether the mixin writes elements.
-	//
-	// Only true, if WritesBody is as well.
-	WritesElements bool
-	// WritesTopLevelAttributes indicates whether the mixin writes any top-level
-	// attributes, except &-placeholders.
-	WritesTopLevelAttributes bool
-	// TopLevelAndPlaceholder indicates whether the mixin has any top-level
-	// &-placeholders.
-	TopLevelAndPlaceholder bool
-	// Blocks is are the blocks used in the mixin in the order they appear in,
-	// and in the order they appear in the functions' signature.
-	Blocks             []LinkedMixinBlock
-	HasAndPlaceholders bool
-}
-
-type LinkedMixinBlock = struct {
-	// todo: when linking, remember that a block can be used multiple times
-	Name     string
-	TopLevel bool // writes directly to the element it is called in
-	// CanAttributes specifies whether &-directives can be used in this block.
-	CanAttributes                   bool
-	DefaultWritesBody               bool
-	DefaultWritesTopLevelAttributes bool
-	DefaultTopLevelAndPlaceholder   bool
 }
 
 // =================================== Mixin Call Arg ===================================

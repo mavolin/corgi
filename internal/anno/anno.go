@@ -15,6 +15,7 @@ type Annotation struct {
 	Start       file.Position
 	StartOffset int
 	End         file.Position
+	EndOffset   int
 	Len         int
 	EOLDelta    int
 	ToEOL       bool
@@ -53,16 +54,17 @@ func Lines(lines []string, aw Annotation) corgierr.Annotation {
 		a.ContextStart = len(lines)
 	}
 
-	if aw.ContextLen >= 1 {
+	switch {
+	case aw.ContextLen >= 1:
 		a.ContextEnd = a.ContextStart + aw.ContextLen
-	} else if aw.ContextEnd.Line > 0 {
+	case aw.ContextEnd.Line > 0:
 		a.ContextEnd = aw.ContextEnd.Line
-	} else if aw.End.Line > 0 {
+	case aw.End.Line > 0:
 		a.ContextEnd = aw.End.Line + 1
 		if aw.End.Col == 0 {
 			a.ContextEnd--
 		}
-	} else {
+	default:
 		a.ContextEnd = aw.Start.Line + 1
 		if aw.Start.Col == 0 {
 			a.ContextEnd--
@@ -78,7 +80,7 @@ func Lines(lines []string, aw Annotation) corgierr.Annotation {
 		a.ContextEnd = len(lines) + 1
 	}
 
-	a.Lines = lines[a.ContextStart:a.ContextEnd]
+	a.Lines = lines[a.ContextStart-1 : a.ContextEnd-1] // lines are 1-indexed
 
 	a.Line = aw.Start.Line
 	if aw.Start.Col == 0 {
@@ -97,24 +99,27 @@ func Lines(lines []string, aw Annotation) corgierr.Annotation {
 		aw.End.Col = len(lines[aw.End.Line-1]) + 1
 	}
 
-	if aw.End.Line > 0 {
+	switch {
+	case aw.End.Line > 0:
 		if aw.End.Line != aw.Start.Line {
 			a.End = len(lines[a.Line-1]) + 1
-		} else {
-			a.End = aw.End.Col
+			break
 		}
-	} else if aw.Len > 0 {
+
+		a.End = aw.End.Col
+	case aw.Len > 0:
 		a.End = a.Start + aw.Len
-	} else if aw.EOLDelta != 0 {
+	case aw.EOLDelta != 0:
 		a.End = len(lines[a.Line-1]) + 1 + aw.EOLDelta
-	} else if aw.ToEOL {
+	case aw.ToEOL:
 		a.End = len(lines[a.Line-1]) + 1
-	} else {
+	default:
 		a.End = a.Start + 1
 	}
 	if a.End <= a.Start {
 		a.End = a.Start + 1
 	}
+	a.End += aw.EndOffset
 
 	return a
 }

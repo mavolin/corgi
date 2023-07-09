@@ -15,7 +15,7 @@ import (
 func FirstNonControl(s file.Scope) file.ScopeItem {
 	var itm file.ScopeItem
 	_ = Walk(s, func(_ []WalkContext, ctx WalkContext) (dive bool, err error) {
-		switch (*ctx.Item).(type) {
+		switch titm := (*ctx.Item).(type) {
 		case file.If:
 			return true, nil
 		case file.IfBlock:
@@ -29,6 +29,7 @@ func FirstNonControl(s file.Scope) file.ScopeItem {
 		case file.CorgiComment:
 			return false, nil
 		default:
+			itm = titm
 			return false, StopWalk
 		}
 	})
@@ -57,20 +58,20 @@ func IsFirstNonControlAttr(s file.Scope) (file.ScopeItem, bool) {
 			ret, ret2 = itm, true
 			return false, StopWalk
 		case file.MixinCall:
-			if itm.Mixin.WritesTopLevelAttributes || IsAttrMixin(*itm.Mixin) {
+			if itm.Mixin.Mixin.WritesTopLevelAttributes {
 				ret, ret2 = itm, true
 				return false, StopWalk
-			} else if itm.Mixin.WritesBody || IsElementMixin(*itm.Mixin) {
+			} else if itm.Mixin.Mixin.WritesBody {
 				return false, StopWalk
 			}
 
 			firstAttr := firstActualAttr(itm.Body)
-			if itm.Mixin.TopLevelAndPlaceholder && firstAttr != nil {
+			if itm.Mixin.Mixin.TopLevelAndPlaceholder && firstAttr != nil {
 				ret, ret2 = firstAttr, true
 				return false, StopWalk
 			}
 
-			for _, block := range itm.Mixin.Blocks {
+			for _, block := range itm.Mixin.Mixin.Blocks {
 				if !block.TopLevel {
 					continue
 				}
@@ -136,18 +137,18 @@ func firstActualAttr(s file.Scope) file.ScopeItem {
 		case file.Block:
 			return false, nil
 		case file.MixinCall:
-			if itm.Mixin.WritesTopLevelAttributes || itm.Mixin.WritesBody || IsAttrMixin(*itm.Mixin) || IsElementMixin(*itm.Mixin) {
+			if itm.Mixin.Mixin.WritesTopLevelAttributes || itm.Mixin.Mixin.WritesBody {
 				ret = itm
 				return false, StopWalk
 			}
 
 			firstAttr := firstActualAttr(itm.Body)
-			if itm.Mixin.TopLevelAndPlaceholder && firstAttr != nil {
+			if itm.Mixin.Mixin.TopLevelAndPlaceholder && firstAttr != nil {
 				ret = firstAttr
 				return false, StopWalk
 			}
 
-			for _, block := range itm.Mixin.Blocks {
+			for _, block := range itm.Mixin.Mixin.Blocks {
 				if !block.TopLevel {
 					continue
 				}

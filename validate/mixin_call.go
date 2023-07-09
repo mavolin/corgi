@@ -33,7 +33,7 @@ func mixinCallChecks(f *file.File) errList {
 	return errs
 }
 
-// mixin call args exist
+// mixin call args exist.
 func _mixinCallArgsExist(f *file.File, mc file.MixinCall) errList {
 	var errs errList
 
@@ -59,7 +59,7 @@ args:
 	return errs
 }
 
-// mixin call doesn't specify any args twice
+// mixin call doesn't specify any args twice.
 func _duplicateMixinCallArgs(f *file.File, mc file.MixinCall) errList {
 	var errs errList
 
@@ -97,11 +97,10 @@ func _duplicateMixinCallArgs(f *file.File, mc file.MixinCall) errList {
 func _requiredMixinCallAttributes(f *file.File, mc file.MixinCall) errList {
 	var errs errList
 
-	annoLen := len("+")
+	annoLen := len("+") + len(mc.Name.Ident)
 	if mc.Namespace != nil {
 		annoLen += len(mc.Namespace.Ident) + len(".")
 	}
-	annoLen += len(mc.Name.Ident)
 
 params:
 	for _, param := range mc.Mixin.Mixin.Params {
@@ -167,7 +166,7 @@ params:
 }
 
 // mixin call body only contains for, if, if block, switch, &s, attribute mixin
-// calls, and top-level blocks
+// calls, and top-level blocks.
 func _mixinCallBody(f *file.File, mc file.MixinCall) errList {
 	var errs errList
 
@@ -204,9 +203,12 @@ func _mixinCallBody(f *file.File, mc file.MixinCall) errList {
 						ContextStartDelta: -1,
 						Start:             itm.Position,
 						Len:               (itm.Name.Col - itm.Col) + len(itm.Name.Ident),
-						Annotation:        "cannot place mixin call block inside an if or switch",
+						Annotation:        "you cannot set a mixin call block conditionally",
 					}),
 					HintAnnotations: []corgierr.Annotation{inThisMixinCall(f, mc)},
+					Suggestions: []corgierr.Suggestion{
+						{Suggestion: "put the conditional inside the block"},
+					},
 				})
 				return false, nil
 			}
@@ -232,7 +234,7 @@ func _mixinCallBody(f *file.File, mc file.MixinCall) errList {
 func _mixinCallBlocksExist(f *file.File, mc file.MixinCall) errList {
 	if len(mc.Body) == 1 {
 		if sh, ok := mc.Body[0].(file.MixinMainBlockShorthand); ok {
-			for _, block := range mc.Mixin.Blocks {
+			for _, block := range mc.Mixin.Mixin.Blocks {
 				if block.Name == "_" {
 					return errList{}
 				}
@@ -258,7 +260,7 @@ body:
 			continue
 		}
 
-		for _, mblock := range mc.Mixin.Blocks {
+		for _, mblock := range mc.Mixin.Mixin.Blocks {
 			if block.Name.Ident == mblock.Name {
 				continue body
 			}
@@ -316,11 +318,11 @@ func _duplicateMixinCallBlocks(f *file.File, mc file.MixinCall) errList {
 	return errs
 }
 
-// check that only mixin blocks that can contain attrs, actually contain attrs
+// check that only mixin blocks that can contain attrs, actually contain attrs.
 func _mixinCallBlockAttrs(f *file.File, mc file.MixinCall) errList {
 	if len(mc.Body) == 1 {
 		if sh, ok := mc.Body[0].(file.MixinMainBlockShorthand); ok {
-			for _, block := range mc.Mixin.Blocks {
+			for _, block := range mc.Mixin.Mixin.Blocks {
 				if block.Name != "_" {
 					continue
 				}
@@ -373,7 +375,7 @@ body:
 			continue
 		}
 
-		for _, block := range mc.Mixin.Blocks {
+		for _, block := range mc.Mixin.Mixin.Blocks {
 			if block.Name != mcBlock.Name.Ident {
 				continue
 			}

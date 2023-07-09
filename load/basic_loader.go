@@ -109,7 +109,7 @@ func (b BasicLoader) LoadLibrary(usingFile *file.File, usePath string) (*file.Li
 		ModulePath:   libw.ModulePath,
 		AbsolutePath: libw.AbsolutePath,
 		Precompiled:  false,
-		Files:        make([]file.File, 0, len(libw.Files)),
+		Files:        make([]*file.File, 0, len(libw.Files)),
 	}
 
 	for _, fw := range libw.Files {
@@ -136,7 +136,7 @@ func (b BasicLoader) LoadLibrary(usingFile *file.File, usePath string) (*file.Li
 			return lib, err
 		}
 
-		lib.Files = append(lib.Files, *f)
+		lib.Files = append(lib.Files, f)
 	}
 
 	if usingFile == nil {

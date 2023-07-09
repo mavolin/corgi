@@ -86,28 +86,6 @@ func extendingFile(f *file.File) errList {
 	return errs
 }
 
-// IsLibraryFile reports whether f could be a library file, based on the items
-// it contains.
-func IsLibraryFile(f *file.File) bool {
-	if f.Func != nil {
-		return false
-	}
-
-	isLibFile := true
-	fileutil.Walk(f.Scope, func(parents []fileutil.WalkContext, ctx fileutil.WalkContext) (dive bool, err error) {
-		switch (*ctx.Item).(type) {
-		case file.Code:
-		case file.Mixin:
-		case file.CorgiComment:
-		default:
-			isLibFile = false
-			return false, fileutil.StopWalk
-		}
-		return false, nil
-	})
-	return isLibFile
-}
-
 func libraryFile(f *file.File) errList {
 	if f.Type != file.TypeLibraryFile {
 		return errList{}

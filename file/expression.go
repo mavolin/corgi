@@ -34,7 +34,7 @@ func (GoExpression) _typeExpressionItem() {}
 // RangeExpression
 // ======================================================================================
 
-// RangeExpression represents a range expression as used for for loops.
+// RangeExpression represents a range expression as used for for-loops.
 //
 // Hence, it is only present on for [For] items.
 type RangeExpression struct {

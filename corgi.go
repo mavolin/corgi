@@ -23,6 +23,7 @@ import (
 	"github.com/mavolin/corgi/link"
 	"github.com/mavolin/corgi/load"
 	"github.com/mavolin/corgi/parse"
+	"github.com/mavolin/corgi/std"
 	"github.com/mavolin/corgi/validate"
 )
 
@@ -384,11 +385,19 @@ func (l *loader) readLibrary(usingFile *file.File, slashPath string) (*load.Libr
 
 	if usingFile == nil {
 		log.Info("reading standalone library")
-		return l.loadLibrary(slashPath, "", "")
+	} else {
+		log = log.With(slog.String("using_file", filepath.ToSlash(usingFile.AbsolutePath)))
+		log.Info("reading dependency library")
 	}
 
-	log = log.With(slog.String("using_file", filepath.ToSlash(usingFile.AbsolutePath)))
-	log.Info("reading dependency library")
+	if stdlib, ok := std.Lib[slashPath]; ok {
+		log.Info("requested library is stlib library")
+		return &load.Library{Precompiled: &stdlib}, nil
+	}
+
+	if usingFile == nil {
+		return l.loadLibrary(slashPath, "", "")
+	}
 
 	log.Info("locating parent module")
 	mod, _ := l.goMod(slashPath)
@@ -444,8 +453,6 @@ func (l *loader) loadLibrary(slashAbs, slashModPath, slashPathInMod string) (*lo
 
 	log.Info("loaded dir information")
 
-	absSlash := filepath.ToSlash(slashAbs)
-
 	for _, entry := range files {
 		name := entry.Name()
 
@@ -461,7 +468,7 @@ func (l *loader) loadLibrary(slashAbs, slashModPath, slashPathInMod string) (*lo
 
 		log.Info("found file with matching name, reading")
 
-		f, err := os.Open(filepath.Join(slashAbs, name))
+		f, err := os.Open(filepath.Join(sysAbs, name))
 		if err != nil {
 			log.Error("failed to open precompiled library file", slog.Any("err", err))
 			return nil, fmt.Errorf("%s: failed to open precompiled library: %w", sysAbs, err)
@@ -479,7 +486,7 @@ func (l *loader) loadLibrary(slashAbs, slashModPath, slashPathInMod string) (*lo
 
 		log.Info("decoded precompiled library file")
 
-		lib.AbsolutePath = absSlash
+		lib.AbsolutePath = slashAbs
 		lib.Module = slashModPath
 		lib.ModulePath = slashPathInMod
 		return &load.Library{Precompiled: lib}, nil
@@ -490,7 +497,7 @@ func (l *loader) loadLibrary(slashAbs, slashModPath, slashPathInMod string) (*lo
 	lib := load.Library{
 		Module:       slashModPath,
 		ModulePath:   slashPathInMod,
-		AbsolutePath: filepath.ToSlash(slashAbs),
+		AbsolutePath: slashAbs,
 		Files:        make([]load.File, 0, len(files)),
 	}
 
@@ -521,7 +528,7 @@ func (l *loader) loadLibrary(slashAbs, slashModPath, slashPathInMod string) (*lo
 			Name:         name,
 			Module:       slashModPath,
 			ModulePath:   slashPathInMod,
-			AbsolutePath: path.Join(absSlash, name),
+			AbsolutePath: path.Join(slashAbs, name),
 			IsCorgi:      true,
 			Raw:          readFile,
 		})
@@ -582,7 +589,7 @@ func (l *loader) locateModule(mod *goModule, slashPath string) (slashAbs string,
 	}
 
 foundModule:
-	sysModCache := l.cmd.Env_GOMODCACHE()
+	sysModCache := l.cmd.EnvGOMODCACHE()
 	if sysModCache == "" {
 		log.Error("unable to locate go mod cache (`go env GOMODCACHE` == \"\")")
 		return "", "", errors.New("unable to locate go mod cache")

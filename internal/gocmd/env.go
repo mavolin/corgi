@@ -5,7 +5,7 @@ func (c *Cmd) Env(env string) string {
 	return string(val)
 }
 
-func (c *Cmd) Env_GOMODCACHE() string {
+func (c *Cmd) EnvGOMODCACHE() string {
 	c.goModCacheOnce.Do(func() {
 		c.goModCache = c.Env("GOMODCACHE")
 	})

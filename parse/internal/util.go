@@ -148,6 +148,7 @@ func anno(c *current, aw annotation) corgierr.Annotation {
 // expression.peg
 // ======================================================================================
 
+//nolint:unparam
 func combineExpressions(exprsI any) (file.Expression, error) {
 	exprIs := islice(exprsI)
 	var exprs []file.ExpressionItem

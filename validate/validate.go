@@ -12,15 +12,15 @@ import (
 
 type errList = list.List[*corgierr.Error]
 
-// UseNamespaces validates that there are no namespace collisions in the file's
-// uses.
+// PreLink validates that there are no namespace collisions in the file's uses
+// and that there are no recursive mixin calls.
 //
 // It should be run before linking.
 //
 // It expects the file's metadata to be set.
 //
-// If it returns an error, that error will be of type [errList].
-func UseNamespaces(f *file.File) error {
+// If it returns an error, that error will be of type [corgierr.List].
+func PreLink(f *file.File) error {
 	errs := useNamespaces(f)
 	if errs.Len() == 0 {
 		return nil
@@ -37,7 +37,7 @@ func UseNamespaces(f *file.File) error {
 // library-specific validation.
 //
 // It expects the file to be linked and its metadata to be set and
-// [UseNamespaces] to be run.
+// [PreLink] to be run.
 //
 // Since File recursively validates all files it encounters, it is neither
 // necessary nor performant to validate the files f depends on individually.
@@ -99,7 +99,7 @@ func _file(f *file.File, valedFiles map[string]struct{}, impNamespaces map[strin
 		for _, spec := range use.Uses {
 			errs.PushBackList(ptr(libraryMixinNameConflicts(spec.Library.Files)))
 			for _, libFile := range spec.Library.Files {
-				errs.PushBackList(ptr(_file(&libFile, valedFiles, impNamespaces)))
+				errs.PushBackList(ptr(_file(libFile, valedFiles, impNamespaces)))
 			}
 		}
 	}
@@ -137,7 +137,7 @@ func Library(l *file.Library) error {
 
 	if l.Precompiled {
 		for _, f := range l.Files {
-			errs.PushBackList(ptr(importNamespaces(impNamespaces, &f)))
+			errs.PushBackList(ptr(importNamespaces(impNamespaces, f)))
 		}
 
 		if errs.Len() == 0 {
@@ -154,7 +154,7 @@ func Library(l *file.Library) error {
 	valedFiles := make(map[string]struct{})
 
 	for _, f := range l.Files {
-		errs.PushBackList(ptr(_file(&f, valedFiles, impNamespaces)))
+		errs.PushBackList(ptr(_file(f, valedFiles, impNamespaces)))
 	}
 
 	if errs.Len() == 0 {

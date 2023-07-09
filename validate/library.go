@@ -7,7 +7,7 @@ import (
 	"github.com/mavolin/corgi/internal/list"
 )
 
-func libraryMixinNameConflicts(fs []file.File) errList {
+func libraryMixinNameConflicts(fs []*file.File) errList {
 	var errs errList
 
 	var foundMixins list.List[struct {
@@ -30,7 +30,7 @@ func libraryMixinNameConflicts(fs []file.File) errList {
 
 				errs.PushBack(&corgierr.Error{
 					Message: "duplicate mixin in package",
-					ErrorAnnotation: anno.Anno(&f, anno.Annotation{
+					ErrorAnnotation: anno.Anno(f, anno.Annotation{
 						Start:      m.Name.Position,
 						Len:        len(m.Name.Ident),
 						Annotation: "same mixin name used here",
@@ -47,7 +47,7 @@ func libraryMixinNameConflicts(fs []file.File) errList {
 				foundMixins.PushBack(struct {
 					File  *file.File
 					Mixin file.Mixin
-				}{File: &f, Mixin: m})
+				}{File: f, Mixin: m})
 				break
 			}
 		}

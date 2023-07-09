@@ -12,6 +12,14 @@ func List1[T any](v T) List[T] {
 	return l
 }
 
+func FromSlice[T any](s []T) List[T] {
+	var l List[T]
+	for _, elem := range s {
+		l.PushBack(elem)
+	}
+	return l
+}
+
 type Element[T any] struct {
 	e *list.Element
 }

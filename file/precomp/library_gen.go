@@ -3204,6 +3204,12 @@ func (z *mixin) DecodeMsg(dc *msgp.Reader) (err error) {
 			return
 		}
 		switch msgp.UnsafeString(field) {
+		case "FileIndex":
+			z.FileIndex, err = dc.ReadInt()
+			if err != nil {
+				err = msgp.WrapError(err, "FileIndex")
+				return
+			}
 		case "Name":
 			err = z.Name.DecodeMsg(dc)
 			if err != nil {
@@ -3384,9 +3390,19 @@ func (z *mixin) DecodeMsg(dc *msgp.Reader) (err error) {
 
 // EncodeMsg implements msgp.Encodable
 func (z *mixin) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 12
+	// map header, size 13
+	// write "FileIndex"
+	err = en.Append(0x8d, 0xa9, 0x46, 0x69, 0x6c, 0x65, 0x49, 0x6e, 0x64, 0x65, 0x78)
+	if err != nil {
+		return
+	}
+	err = en.WriteInt(z.FileIndex)
+	if err != nil {
+		err = msgp.WrapError(err, "FileIndex")
+		return
+	}
 	// write "Name"
-	err = en.Append(0x8c, 0xa4, 0x4e, 0x61, 0x6d, 0x65)
+	err = en.Append(0xa4, 0x4e, 0x61, 0x6d, 0x65)
 	if err != nil {
 		return
 	}
@@ -3569,9 +3585,12 @@ func (z *mixin) EncodeMsg(en *msgp.Writer) (err error) {
 // MarshalMsg implements msgp.Marshaler
 func (z *mixin) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// map header, size 12
+	// map header, size 13
+	// string "FileIndex"
+	o = append(o, 0x8d, 0xa9, 0x46, 0x69, 0x6c, 0x65, 0x49, 0x6e, 0x64, 0x65, 0x78)
+	o = msgp.AppendInt(o, z.FileIndex)
 	// string "Name"
-	o = append(o, 0x8c, 0xa4, 0x4e, 0x61, 0x6d, 0x65)
+	o = append(o, 0xa4, 0x4e, 0x61, 0x6d, 0x65)
 	o, err = z.Name.MarshalMsg(o)
 	if err != nil {
 		err = msgp.WrapError(err, "Name")
@@ -3662,6 +3681,12 @@ func (z *mixin) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			return
 		}
 		switch msgp.UnsafeString(field) {
+		case "FileIndex":
+			z.FileIndex, bts, err = msgp.ReadIntBytes(bts)
+			if err != nil {
+				err = msgp.WrapError(err, "FileIndex")
+				return
+			}
 		case "Name":
 			bts, err = z.Name.UnmarshalMsg(bts)
 			if err != nil {
@@ -3841,7 +3866,7 @@ func (z *mixin) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *mixin) Msgsize() (s int) {
-	s = 1 + 5 + z.Name.Msgsize() + 10
+	s = 1 + 10 + msgp.IntSize + 5 + z.Name.Msgsize() + 10
 	if z.LParenPos == nil {
 		s += msgp.NilSize
 	} else {
@@ -3907,6 +3932,12 @@ func (z *mixinBlock) DecodeMsg(dc *msgp.Reader) (err error) {
 				err = msgp.WrapError(err, "DefaultWritesBody")
 				return
 			}
+		case "DefaultWritesElements":
+			z.DefaultWritesElements, err = dc.ReadBool()
+			if err != nil {
+				err = msgp.WrapError(err, "DefaultWritesElements")
+				return
+			}
 		case "DefaultWritesTopLevelAttributes":
 			z.DefaultWritesTopLevelAttributes, err = dc.ReadBool()
 			if err != nil {
@@ -3932,9 +3963,9 @@ func (z *mixinBlock) DecodeMsg(dc *msgp.Reader) (err error) {
 
 // EncodeMsg implements msgp.Encodable
 func (z *mixinBlock) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 6
+	// map header, size 7
 	// write "Name"
-	err = en.Append(0x86, 0xa4, 0x4e, 0x61, 0x6d, 0x65)
+	err = en.Append(0x87, 0xa4, 0x4e, 0x61, 0x6d, 0x65)
 	if err != nil {
 		return
 	}
@@ -3973,6 +4004,16 @@ func (z *mixinBlock) EncodeMsg(en *msgp.Writer) (err error) {
 		err = msgp.WrapError(err, "DefaultWritesBody")
 		return
 	}
+	// write "DefaultWritesElements"
+	err = en.Append(0xb5, 0x44, 0x65, 0x66, 0x61, 0x75, 0x6c, 0x74, 0x57, 0x72, 0x69, 0x74, 0x65, 0x73, 0x45, 0x6c, 0x65, 0x6d, 0x65, 0x6e, 0x74, 0x73)
+	if err != nil {
+		return
+	}
+	err = en.WriteBool(z.DefaultWritesElements)
+	if err != nil {
+		err = msgp.WrapError(err, "DefaultWritesElements")
+		return
+	}
 	// write "DefaultWritesTopLevelAttributes"
 	err = en.Append(0xbf, 0x44, 0x65, 0x66, 0x61, 0x75, 0x6c, 0x74, 0x57, 0x72, 0x69, 0x74, 0x65, 0x73, 0x54, 0x6f, 0x70, 0x4c, 0x65, 0x76, 0x65, 0x6c, 0x41, 0x74, 0x74, 0x72, 0x69, 0x62, 0x75, 0x74, 0x65, 0x73)
 	if err != nil {
@@ -3999,9 +4040,9 @@ func (z *mixinBlock) EncodeMsg(en *msgp.Writer) (err error) {
 // MarshalMsg implements msgp.Marshaler
 func (z *mixinBlock) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// map header, size 6
+	// map header, size 7
 	// string "Name"
-	o = append(o, 0x86, 0xa4, 0x4e, 0x61, 0x6d, 0x65)
+	o = append(o, 0x87, 0xa4, 0x4e, 0x61, 0x6d, 0x65)
 	o = msgp.AppendString(o, z.Name)
 	// string "TopLevel"
 	o = append(o, 0xa8, 0x54, 0x6f, 0x70, 0x4c, 0x65, 0x76, 0x65, 0x6c)
@@ -4012,6 +4053,9 @@ func (z *mixinBlock) MarshalMsg(b []byte) (o []byte, err error) {
 	// string "DefaultWritesBody"
 	o = append(o, 0xb1, 0x44, 0x65, 0x66, 0x61, 0x75, 0x6c, 0x74, 0x57, 0x72, 0x69, 0x74, 0x65, 0x73, 0x42, 0x6f, 0x64, 0x79)
 	o = msgp.AppendBool(o, z.DefaultWritesBody)
+	// string "DefaultWritesElements"
+	o = append(o, 0xb5, 0x44, 0x65, 0x66, 0x61, 0x75, 0x6c, 0x74, 0x57, 0x72, 0x69, 0x74, 0x65, 0x73, 0x45, 0x6c, 0x65, 0x6d, 0x65, 0x6e, 0x74, 0x73)
+	o = msgp.AppendBool(o, z.DefaultWritesElements)
 	// string "DefaultWritesTopLevelAttributes"
 	o = append(o, 0xbf, 0x44, 0x65, 0x66, 0x61, 0x75, 0x6c, 0x74, 0x57, 0x72, 0x69, 0x74, 0x65, 0x73, 0x54, 0x6f, 0x70, 0x4c, 0x65, 0x76, 0x65, 0x6c, 0x41, 0x74, 0x74, 0x72, 0x69, 0x62, 0x75, 0x74, 0x65, 0x73)
 	o = msgp.AppendBool(o, z.DefaultWritesTopLevelAttributes)
@@ -4063,6 +4107,12 @@ func (z *mixinBlock) UnmarshalMsg(bts []byte) (o []byte, err error) {
 				err = msgp.WrapError(err, "DefaultWritesBody")
 				return
 			}
+		case "DefaultWritesElements":
+			z.DefaultWritesElements, bts, err = msgp.ReadBoolBytes(bts)
+			if err != nil {
+				err = msgp.WrapError(err, "DefaultWritesElements")
+				return
+			}
 		case "DefaultWritesTopLevelAttributes":
 			z.DefaultWritesTopLevelAttributes, bts, err = msgp.ReadBoolBytes(bts)
 			if err != nil {
@@ -4089,7 +4139,7 @@ func (z *mixinBlock) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *mixinBlock) Msgsize() (s int) {
-	s = 1 + 5 + msgp.StringPrefixSize + len(z.Name) + 9 + msgp.BoolSize + 14 + msgp.BoolSize + 18 + msgp.BoolSize + 32 + msgp.BoolSize + 30 + msgp.BoolSize
+	s = 1 + 5 + msgp.StringPrefixSize + len(z.Name) + 9 + msgp.BoolSize + 14 + msgp.BoolSize + 18 + msgp.BoolSize + 22 + msgp.BoolSize + 32 + msgp.BoolSize + 30 + msgp.BoolSize
 	return
 }
 

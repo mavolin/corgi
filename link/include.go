@@ -34,6 +34,10 @@ func (l *Linker) linkInclude(f *file.File, incl *file.Include) errList {
 		if errors.As(err, &cerr) {
 			return list.List1(cerr)
 		}
+		var clerr corgierr.List
+		if errors.As(err, &clerr) {
+			return list.FromSlice(clerr)
+		}
 
 		return list.List1(&corgierr.Error{
 			Message: "failed to load included file",

@@ -58,11 +58,3 @@ func (c *Cmd) command(subcmd string, args ...string) ([]byte, error) {
 
 	return (&exec.Cmd{Path: c.path, Args: append([]string{subcmd}, args...)}).Output()
 }
-
-func (c *Cmd) commandIn(workdir string, subcmd string, args ...string) ([]byte, error) {
-	if path == "" {
-		return nil, nil
-	}
-
-	return (&exec.Cmd{Path: c.path, Args: append([]string{subcmd}, args...), Dir: workdir}).Output()
-}

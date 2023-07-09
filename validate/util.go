@@ -27,13 +27,13 @@ func _mixinCallAttrPos(s file.Scope) (pos file.Position) {
 				return false, fileutil.StopWalk
 			}
 
-			if itm.Mixin.WritesTopLevelAttributes {
+			if itm.Mixin.Mixin.WritesTopLevelAttributes {
 				pos = itm.Position
 				return false, fileutil.StopWalk
 			}
 
-			unfilledBlocks := make([]file.LinkedMixinBlock, 0, len(itm.Mixin.Blocks))
-			for _, block := range itm.Mixin.Blocks {
+			unfilledBlocks := make([]file.MixinBlockInfo, 0, len(itm.Mixin.Mixin.Blocks))
+			for _, block := range itm.Mixin.Mixin.Blocks {
 				if block.TopLevel && block.CanAttributes {
 					unfilledBlocks = append(unfilledBlocks, block)
 				}
@@ -126,7 +126,7 @@ func interpolationEnd(v file.InterpolationValue) file.Position {
 func inThisMixinCall(f *file.File, mc file.MixinCall) corgierr.Annotation {
 	return anno.Anno(f, anno.Annotation{
 		Start:      mc.Position,
-		Len:        len("+") + (mc.Name.Col - mc.Col) + len(mc.Name.Ident),
+		Len:        (mc.Name.Col - mc.Col) + len(mc.Name.Ident),
 		Annotation: "in this mixin call",
 	})
 }

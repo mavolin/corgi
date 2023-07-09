@@ -8,6 +8,8 @@ import (
 	"github.com/mavolin/corgi/internal/list"
 )
 
+// todo: check that only template files contain template block placeholders
+
 func duplicateTemplateBlocks(f *file.File) errList {
 	if f.Extend == nil {
 		return errList{}
@@ -112,7 +114,7 @@ scope:
 			ErrorAnnotation: anno.Anno(f, anno.Annotation{
 				Start:      block.Position,
 				End:        file.Position{Line: block.Line, Col: block.Name.Col + len(block.Name.Ident)},
-				Annotation: "this template block is not used by the template you are extending",
+				Annotation: "this template block never appears in the template you are extending",
 			}),
 		})
 	}

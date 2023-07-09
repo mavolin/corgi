@@ -93,8 +93,10 @@ type SimpleInterpolation struct {
 	Position
 }
 
-var _ TextItem = SimpleInterpolation{}
-var _ Interpolation = SimpleInterpolation{}
+var (
+	_ TextItem      = SimpleInterpolation{}
+	_ Interpolation = SimpleInterpolation{}
+)
 
 func (SimpleInterpolation) _typeInterpolation() {}
 func (SimpleInterpolation) _typeTextItem()      {}
@@ -109,8 +111,10 @@ type ElementInterpolation struct {
 	Position
 }
 
-var _ TextItem = ElementInterpolation{}
-var _ Interpolation = ElementInterpolation{}
+var (
+	_ TextItem      = ElementInterpolation{}
+	_ Interpolation = ElementInterpolation{}
+)
 
 func (ElementInterpolation) _typeTextItem()      {}
 func (ElementInterpolation) _typeInterpolation() {}
@@ -125,8 +129,10 @@ type MixinCallInterpolation struct {
 	Position
 }
 
-var _ TextItem = MixinCallInterpolation{}
-var _ Interpolation = MixinCallInterpolation{}
+var (
+	_ TextItem      = MixinCallInterpolation{}
+	_ Interpolation = MixinCallInterpolation{}
+)
 
 func (MixinCallInterpolation) _typeTextItem()      {}
 func (MixinCallInterpolation) _typeInterpolation() {}

@@ -24,20 +24,24 @@ func newLibrary(l *cfile.Library) (*library, error) {
 
 	files := make([]file, len(l.Files))
 	for i, f := range l.Files {
-		files[i] = *newFile(&f)
+		f := f
+		files[i] = *newFile(f)
 	}
 	dependencies := make([]libDependency, len(l.Dependencies))
 	for i, d := range l.Dependencies {
+		d := d
 		dependencies[i] = *newLibDependency(&d)
 	}
 	globalCode := make([]code, len(l.GlobalCode))
 	for i, c := range l.GlobalCode {
+		c := c
 		globalCode[i] = *newCode(&c)
 	}
 	mixins := make([]mixin, len(l.Mixins))
 	for i, m := range l.Mixins {
+		m := m
 		var err error
-		mixins[i], err = deref(newMixin(&m))
+		mixins[i], err = deref(newMixin(l.Files, &m))
 		if err != nil {
 			return nil, err
 		}
@@ -55,9 +59,9 @@ func (l *library) toFile() *cfile.Library {
 		return nil
 	}
 
-	files := make([]cfile.File, len(l.Files))
+	files := make([]*cfile.File, len(l.Files))
 	for i, f := range l.Files {
-		files[i] = *f.toFile()
+		files[i] = f.toFile()
 	}
 	dependencies := make([]cfile.LibDependency, len(l.Dependencies))
 	for i, d := range l.Dependencies {
@@ -69,7 +73,7 @@ func (l *library) toFile() *cfile.Library {
 	}
 	mixins := make([]cfile.PrecompiledMixin, len(l.Mixins))
 	for i, imp := range l.Mixins {
-		mixins[i] = *imp.toFile()
+		mixins[i] = *imp.toFile(files)
 	}
 	return &cfile.Library{
 		Precompiled:  true,
@@ -93,6 +97,7 @@ func newFile(f *cfile.File) *file {
 
 	imports := make([]_import, len(f.Imports))
 	for i, imp := range f.Imports {
+		imp := imp
 		imports[i] = *newImport(&imp)
 	}
 	return &file{Name: f.Name, Imports: imports}
@@ -122,6 +127,7 @@ func newImport(i *cfile.Import) *_import {
 
 	imports := make([]importSpec, len(i.Imports))
 	for i, imp := range i.Imports {
+		imp := imp
 		imports[i] = *newImportSpec(&imp)
 	}
 	return &_import{Imports: imports, Position: *newPosition(&i.Position)}
@@ -174,6 +180,7 @@ func newLibDependency(d *cfile.LibDependency) *libDependency {
 
 	mixins := make([]mixinDependency, len(d.Mixins))
 	for i, m := range d.Mixins {
+		m := m
 		mixins[i] = *newMixinDependency(&m)
 	}
 	return &libDependency{Module: d.Module, ModulePath: d.ModulePath, Mixins: mixins}
@@ -230,6 +237,8 @@ func (c *code) toFile() *cfile.PrecompiledCode {
 }
 
 type mixin struct {
+	FileIndex int
+
 	Name corgiIdent
 
 	LParenPos *position
@@ -248,41 +257,52 @@ type mixin struct {
 	HasAndPlaceholders       bool
 }
 
-func newMixin(m *cfile.PrecompiledMixin) (*mixin, error) {
+func newMixin(fs []*cfile.File, m *cfile.PrecompiledMixin) (*mixin, error) {
 	if m == nil {
 		return nil, nil
 	}
 
+	var fileIndex int
+	for i, f := range fs {
+		if f.Name == m.File.Name {
+			fileIndex = i
+			break
+		}
+	}
+
 	params := make([]mixinParam, len(m.Mixin.Params))
 	for i, param := range m.Mixin.Params {
+		param := param
 		var err error
 		params[i], err = deref(newMixinParam(&param))
 		if err != nil {
 			return nil, err
 		}
 	}
-	blocks := make([]mixinBlock, len(m.Blocks))
-	for i, block := range m.Blocks {
+	blocks := make([]mixinBlock, len(m.Mixin.Blocks))
+	for i, block := range m.Mixin.Blocks {
+		block := block
 		blocks[i] = *newMixinBlock(&block)
 	}
 
 	return &mixin{
+		FileIndex:                fileIndex,
 		Name:                     *newCorgiIdent(&m.Mixin.Name),
 		LParenPos:                newPosition(m.Mixin.LParenPos),
 		Params:                   params,
 		RParenPos:                newPosition(m.Mixin.RParenPos),
 		Position:                 *newPosition(&m.Mixin.Position),
 		Precompiled:              m.Precompiled,
-		WritesBody:               m.WritesBody,
-		WritesElements:           m.WritesElements,
-		WritesTopLevelAttributes: m.WritesTopLevelAttributes,
-		TopLevelAndPlaceholder:   m.TopLevelAndPlaceholder,
+		WritesBody:               m.Mixin.WritesBody,
+		WritesElements:           m.Mixin.WritesElements,
+		WritesTopLevelAttributes: m.Mixin.WritesTopLevelAttributes,
+		TopLevelAndPlaceholder:   m.Mixin.TopLevelAndPlaceholder,
 		Blocks:                   blocks,
-		HasAndPlaceholders:       m.HasAndPlaceholders,
+		HasAndPlaceholders:       m.Mixin.HasAndPlaceholders,
 	}, nil
 }
 
-func (m *mixin) toFile() *cfile.PrecompiledMixin {
+func (m *mixin) toFile(fs []*cfile.File) *cfile.PrecompiledMixin {
 	if m == nil {
 		return nil
 	}
@@ -291,25 +311,28 @@ func (m *mixin) toFile() *cfile.PrecompiledMixin {
 	for i, eItm := range m.Params {
 		params[i] = *eItm.toFile()
 	}
-	blocks := make([]cfile.PrecompiledMixinBlock, len(m.Blocks))
+	blocks := make([]cfile.MixinBlockInfo, len(m.Blocks))
 	for i, eItm := range m.Blocks {
 		blocks[i] = *eItm.toFile()
 	}
 	return &cfile.PrecompiledMixin{
+		File: fs[m.FileIndex],
 		Mixin: cfile.Mixin{
 			Name:      *m.Name.toFile(),
 			LParenPos: m.LParenPos.toFile(),
 			Params:    params,
 			RParenPos: m.RParenPos.toFile(),
-			Position:  *m.Position.toFile(),
+			MixinInfo: &cfile.MixinInfo{
+				WritesBody:               m.WritesBody,
+				WritesElements:           m.WritesElements,
+				WritesTopLevelAttributes: m.WritesTopLevelAttributes,
+				TopLevelAndPlaceholder:   m.TopLevelAndPlaceholder,
+				Blocks:                   blocks,
+				HasAndPlaceholders:       m.HasAndPlaceholders,
+			},
+			Position: *m.Position.toFile(),
 		},
-		Precompiled:              m.Precompiled,
-		WritesBody:               m.WritesBody,
-		WritesElements:           m.WritesElements,
-		WritesTopLevelAttributes: m.WritesTopLevelAttributes,
-		TopLevelAndPlaceholder:   m.TopLevelAndPlaceholder,
-		Blocks:                   blocks,
-		HasAndPlaceholders:       m.HasAndPlaceholders,
+		Precompiled: m.Precompiled,
 	}
 }
 
@@ -359,11 +382,12 @@ type mixinBlock struct {
 	TopLevel                        bool
 	CanAttributes                   bool
 	DefaultWritesBody               bool
+	DefaultWritesElements           bool
 	DefaultWritesTopLevelAttributes bool
 	DefaultTopLevelAndPlaceholder   bool
 }
 
-func newMixinBlock(mb *cfile.PrecompiledMixinBlock) *mixinBlock {
+func newMixinBlock(mb *cfile.MixinBlockInfo) *mixinBlock {
 	if mb == nil {
 		return nil
 	}
@@ -372,20 +396,22 @@ func newMixinBlock(mb *cfile.PrecompiledMixinBlock) *mixinBlock {
 		TopLevel:                        mb.TopLevel,
 		CanAttributes:                   mb.CanAttributes,
 		DefaultWritesBody:               mb.DefaultWritesBody,
+		DefaultWritesElements:           mb.DefaultWritesElements,
 		DefaultWritesTopLevelAttributes: mb.DefaultWritesTopLevelAttributes,
 		DefaultTopLevelAndPlaceholder:   mb.DefaultTopLevelAndPlaceholder,
 	}
 }
 
-func (mb *mixinBlock) toFile() *cfile.PrecompiledMixinBlock {
+func (mb *mixinBlock) toFile() *cfile.MixinBlockInfo {
 	if mb == nil {
 		return nil
 	}
-	return &cfile.PrecompiledMixinBlock{
+	return &cfile.MixinBlockInfo{
 		Name:                            mb.Name,
 		TopLevel:                        mb.TopLevel,
 		CanAttributes:                   mb.CanAttributes,
 		DefaultWritesBody:               mb.DefaultWritesBody,
+		DefaultWritesElements:           mb.DefaultWritesElements,
 		DefaultWritesTopLevelAttributes: mb.DefaultWritesTopLevelAttributes,
 		DefaultTopLevelAndPlaceholder:   mb.DefaultTopLevelAndPlaceholder,
 	}
