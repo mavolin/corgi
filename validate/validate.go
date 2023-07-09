@@ -78,6 +78,7 @@ func _file(f *file.File, valedFiles map[string]struct{}, impNamespaces map[strin
 	errs.PushBackList(ptr(extendingFile(f)))
 	errs.PushBackList(ptr(libraryFile(f)))
 
+	errs.PushBackList(ptr(onlyTemplateFilesContainBlockPlaceholders(f)))
 	errs.PushBackList(ptr(duplicateTemplateBlocks(f)))
 	errs.PushBackList(ptr(nonExistentTemplateBlocks(f)))
 

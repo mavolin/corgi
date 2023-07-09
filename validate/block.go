@@ -8,7 +8,59 @@ import (
 	"github.com/mavolin/corgi/internal/list"
 )
 
-// todo: check that only template files contain template block placeholders
+// check that only template files contain template block placeholders.
+func onlyTemplateFilesContainBlockPlaceholders(f *file.File) errList {
+	if f.Type == file.TypeTemplate {
+		return errList{}
+	}
+
+	var errs errList
+
+	fileutil.Walk(f.Scope, func(parents []fileutil.WalkContext, ctx fileutil.WalkContext) (dive bool, err error) {
+		switch itm := (*ctx.Item).(type) {
+		case file.Mixin:
+			return false, nil
+		case file.Block:
+			// don't accidentally report (ill-placed) nested mixin call blocks
+			ok := true
+			var parentBlock bool
+			for i := len(parents) - 1; i >= 0; i-- {
+				switch (*parents[i].Item).(type) {
+				case file.Block:
+					parentBlock = true
+				case file.MixinCall:
+					if !parentBlock {
+						ok = false
+					}
+				}
+			}
+
+			if !ok {
+				return true, nil
+			}
+
+			errs.PushBack(&corgierr.Error{
+				Message: "use of template block outside of template file",
+				ErrorAnnotation: anno.Anno(f, anno.Annotation{
+					Start:      itm.Position,
+					Len:        (itm.Name.Col - itm.Col) + len(itm.Name.Ident),
+					Annotation: "cannot place a template block in a main or include file",
+				}),
+				Suggestions: []corgierr.Suggestion{
+					{
+						Suggestion: "This block belongs neither to a mixin nor to a mixin call.\n" +
+							"Since this isn't a template file, you cannot place this block here.",
+					},
+				},
+			})
+			return true, nil
+		default:
+			return true, nil
+		}
+	})
+
+	return errs
+}
 
 func duplicateTemplateBlocks(f *file.File) errList {
 	if f.Extend == nil {
