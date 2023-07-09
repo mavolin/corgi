@@ -12,8 +12,7 @@ import (
 
 type errList = list.List[*corgierr.Error]
 
-// PreLink validates that there are no namespace collisions in the file's uses
-// and that there are no recursive mixin calls.
+// PreLink validates that there are no namespace collisions in the file's uses.
 //
 // It should be run before linking.
 //

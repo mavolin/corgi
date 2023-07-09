@@ -53,6 +53,12 @@ func (l *Linker) LinkFile(f *file.File) error {
 	mcErrs := l.linkMixinCalls(f)
 	errs.PushBackList(&mcErrs)
 
+	recErrs := l.checkRecursion(f)
+	errs.PushBackList(&recErrs)
+	if recErrs.Len() > 0 {
+		return corgierr.List(errs.ToSlice())
+	}
+
 	mErrs := l.analyzeMixins(f)
 	errs.PushBackList(&mErrs)
 
@@ -89,10 +95,20 @@ func (l *Linker) LinkLibrary(lib *file.Library) error {
 		}
 	}
 
+	var hasRecursionErrs bool
 	for _, f := range lib.Files {
 		f := f
 		mcErrs := l.linkMixinCalls(f)
 		errs.PushBackList(&mcErrs)
+
+		recErrs := l.checkRecursion(f)
+		errs.PushBackList(&recErrs)
+		if recErrs.Len() > 0 {
+			hasRecursionErrs = true
+		}
+	}
+	if hasRecursionErrs {
+		return corgierr.List(errs.ToSlice())
 	}
 
 	mErrs := l.analyzeMixins(lib.Files...)

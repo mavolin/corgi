@@ -1,6 +1,7 @@
 package link
 
 import (
+	"fmt"
 	"path"
 
 	"github.com/mavolin/corgi/corgierr"
@@ -219,4 +220,110 @@ func (l *Linker) linkPrecompiledMixinsMixinCall(ms []file.PrecompiledMixin, mc *
 		}
 		return
 	}
+}
+
+func (l *Linker) checkRecursion(f *file.File) errList {
+	var errs errList
+
+	fileutil.Walk(f.Scope, func(parents []fileutil.WalkContext, ctx fileutil.WalkContext) (dive bool, err error) {
+		_, ok := (*ctx.Item).(file.Mixin)
+		if ok {
+			recErrs := l._checkRecursion(f, ptrToSliceElem[file.ScopeItem, file.Mixin](ctx.Scope, ctx.Index))
+			errs.PushBackList(&recErrs)
+			return false, nil
+		}
+
+		return true, nil
+	})
+
+	return errs
+}
+
+func (l *Linker) _checkRecursion(f *file.File, m *file.Mixin, mcs ...file.MixinCall) errList {
+	for i, mc := range mcs {
+		if mc.Mixin.Mixin == m {
+			if i == 0 {
+				return list.List1(&corgierr.Error{
+					Message: "recursion",
+					ErrorAnnotation: anno.Anno(f, anno.Annotation{
+						Start:      m.Position,
+						Len:        (m.Name.Col - m.Col) + len(m.Name.Ident),
+						Annotation: "this mixin",
+					}),
+					HintAnnotations: []corgierr.Annotation{
+						anno.Anno(f, anno.Annotation{
+							Start:      mcs[i].Position,
+							Len:        (mcs[i].Name.Col - mcs[i].Col) + len(mcs[i].Name.Ident),
+							Annotation: "calls itself",
+						}),
+					},
+					Suggestions: []corgierr.Suggestion{
+						{
+							Suggestion: "Corgi (in it's current version) doesn't allow recursion.\n" +
+								"Therefore, rewrite the mixin so that it doesn't call itself.",
+						},
+					},
+				})
+			}
+
+			has := make([]corgierr.Annotation, 0, 2*i+1)
+			for j, mc := range mcs[:i] {
+				has = append(has, anno.Anno(mc.Mixin.File, anno.Annotation{
+					Start:      mc.Position,
+					Len:        (mc.Name.Col - mc.Col) + len(mc.Name.Ident),
+					Annotation: fmt.Sprint(j*2+2, ": calls this mixin"),
+				}))
+				has = append(has, anno.Anno(mc.Mixin.File, anno.Annotation{
+					Start:      mc.Mixin.Mixin.Position,
+					Len:        (mc.Mixin.Mixin.Name.Col - mc.Mixin.Mixin.Col) + len(mc.Mixin.Mixin.Name.Ident),
+					Annotation: fmt.Sprint(j*2+3, ": that mixin"),
+				}))
+			}
+
+			has = append(has, anno.Anno(f, anno.Annotation{
+				Start:      mcs[i].Position,
+				Len:        (mcs[i].Name.Col - mcs[i].Col) + len(mcs[i].Name.Ident),
+				Annotation: fmt.Sprint(2*i+2, ": calls the first mixin"),
+			}))
+
+			return list.List1(&corgierr.Error{
+				Message: "recursion",
+				ErrorAnnotation: anno.Anno(f, anno.Annotation{
+					Start:      m.Position,
+					Len:        (m.Name.Col - m.Col) + len(m.Name.Ident),
+					Annotation: "1: this mixin",
+				}),
+				HintAnnotations: has,
+				Suggestions: []corgierr.Suggestion{
+					{
+						Suggestion: "Corgi doesn't allow recursion. Therefore, rewrite the mixin so that it doesn't call itself.\n" +
+							"A future version might support recursion.",
+					},
+				},
+			})
+		}
+	}
+
+	s := m.Body
+	if len(mcs) > 0 {
+		s = mcs[len(mcs)-1].Mixin.Mixin.Body
+		if mcs[len(mcs)-1].Mixin.Mixin.Precompiled != nil {
+			return errList{}
+		}
+	}
+
+	var errs errList
+	fileutil.Walk(s, func(parents []fileutil.WalkContext, ctx fileutil.WalkContext) (dive bool, err error) {
+		mc, ok := (*ctx.Item).(file.MixinCall)
+		if ok {
+			errs = l._checkRecursion(f, m, append(mcs, mc)...)
+			if errs.Len() > 0 {
+				return false, fileutil.StopWalk
+			}
+		}
+
+		return true, nil
+	})
+
+	return errs
 }

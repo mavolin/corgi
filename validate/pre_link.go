@@ -92,5 +92,3 @@ func useNamespaces(f *file.File) errList {
 
 	return errs
 }
-
-// todo: ensure no recursion
