@@ -1,4 +1,4 @@
-// Command corgidebug is a utility for debugging problems, when the compiler
+// Command corgidebug is a utility for debugging problems when the compiler
 // doesn't do what it should.
 package main
 
@@ -24,64 +24,63 @@ func main() {
 
 	now := time.Now()
 	f, err := parse.Parse(data)
+	defer fmt.Printf("\nparse took %s\n", time.Since(now))
+
+	if f != nil {
+		f.Name = os.Args[1]
+	}
+	if err != nil {
+		pp.Println(f)
+
+		errs := err.(corgierr.List) //nolint:errorlint
+		for _, err := range errs {
+			fmt.Println("")
+			fmt.Println(err.Pretty(corgierr.PrettyOptions{
+				Colored: isatty.IsTerminal(os.Stdout.Fd()),
+			}))
+		}
+
+		return
+	}
+
+	now = time.Now()
+	err = validate.PreLink(f)
+	defer fmt.Printf("\nuse namespace validation took %s", time.Since(now))
+	if err != nil {
+		errs := err.(corgierr.List) //nolint:errorlint
+		fmt.Println("")
+		fmt.Println(errs.Pretty(corgierr.PrettyOptions{
+			Colored: isatty.IsTerminal(os.Stdout.Fd()),
+		}))
+
+		return
+	}
+
+	now = time.Now()
+	err = link.New(nil).LinkFile(f)
+	linkDura := time.Since(now)
 
 	pp.Println(f)
-
-	fmt.Printf("\nparse took %s\n\n", time.Since(now))
-
+	defer fmt.Printf("\nlinking took %s", linkDura)
 	if err != nil {
-		errs := err.(corgierr.List)
-		for _, err := range errs {
-			fmt.Println("")
-			fmt.Println(err.Pretty(corgierr.PrettyOptions{
-				Colored: isatty.IsTerminal(os.Stdout.Fd()),
-			}))
-		}
-
-		return
-	}
-
-	now = time.Now()
-	err = validate.UseNamespaces(f)
-	fmt.Printf("use namespace validation took %s\n\n", time.Since(now))
-	if err != nil {
-		errs := err.(corgierr.List)
-		for _, err := range errs {
-			fmt.Println("")
-			fmt.Println(err.Pretty(corgierr.PrettyOptions{
-				Colored: isatty.IsTerminal(os.Stdout.Fd()),
-			}))
-		}
-
-		return
-	}
-
-	now = time.Now()
-	err = link.New(nil).Link(f)
-	fmt.Printf("linking took %s\n\n", time.Since(now))
-	if err != nil {
-		errs := err.(corgierr.List)
-		for _, err := range errs {
-			fmt.Println("")
-			fmt.Println(err.Pretty(corgierr.PrettyOptions{
-				Colored: isatty.IsTerminal(os.Stdout.Fd()),
-			}))
-		}
+		errs := err.(corgierr.List) //nolint:errorlint
+		fmt.Println("")
+		fmt.Println(errs.Pretty(corgierr.PrettyOptions{
+			Colored: isatty.IsTerminal(os.Stdout.Fd()),
+		}))
 
 		return
 	}
 
 	now = time.Now()
 	err = validate.File(f)
-	fmt.Printf("validation took %s\n\n", time.Since(now))
+	defer fmt.Printf("\nvalidation took %s", time.Since(now))
 	if err != nil {
-		errs := err.(corgierr.List)
-		for _, err := range errs {
-			fmt.Println("")
-			fmt.Println(err.Pretty(corgierr.PrettyOptions{
-				Colored: isatty.IsTerminal(os.Stdout.Fd()),
-			}))
-		}
+		errs := err.(corgierr.List) //nolint:errorlint
+		fmt.Println("")
+		fmt.Println(errs.Pretty(corgierr.PrettyOptions{
+			Colored: isatty.IsTerminal(os.Stdout.Fd()),
+		}))
 
 		return
 	}
