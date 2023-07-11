@@ -194,16 +194,6 @@ func combineExpressions(exprsI any) (file.Expression, error) {
 			} else {
 				prevGoExpr.Expression += expr.Expression
 			}
-		case []any:
-			tuple := islice(expr)
-			if prevGoExpr == nil {
-				prevGoExpr = &file.GoExpression{
-					Expression: concat(tuple[1]),
-					Position:   tuple[0].(file.Position),
-				}
-			} else {
-				prevGoExpr.Expression += concat(tuple[1])
-			}
 		default:
 			panic(fmt.Sprintf("parser: GoExpression: invalid expression item %T:\n%#v\n\n(you shouldn't see this error, please open an issue)", expr, expr))
 		}

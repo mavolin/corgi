@@ -68,8 +68,11 @@ GoExpression <- exprsI:(
                 }),
             },
         }
-    } / (POS goRuneLit) / StringExpression / TernaryExpression /
-    (POS (!expressionTerminator NOT_EOL (!expressionTerminator !EOL [^'"`?([{])*))
+    } / StringExpression / TernaryExpression / posI:POS goRuneLit {
+        return file.GoExpression{Expression: string(c.text), Position: posI.(file.Position)}, nil
+    } / posI:POS !expressionTerminator NOT_EOL (!expressionTerminator !EOL [^'"`?([{])* {
+        return file.GoExpression{Expression: string(c.text), Position: posI.(file.Position)}, nil
+    }
 )+ {
     return combineExpressions(exprsI)
 }
@@ -128,8 +131,11 @@ goSubExpression <- exprsI:(
                 }),
             },
         }
-    } / (POS goRuneLit) / StringExpression / TernaryExpression /
-    (POS ([^)}\]] [^'"`?([{}\])]*))
+    } / StringExpression / TernaryExpression / posI:POS goRuneLit {
+        return file.GoExpression{Expression: string(c.text), Position: posI.(file.Position)}, nil
+    } /  posI:POS [^)}\]] [^'"`?([{}\])]* {
+        return file.GoExpression{Expression: string(c.text), Position: posI.(file.Position)}, nil
+    }
 )+ {
     return combineExpressions(exprsI)
 }
@@ -188,8 +194,11 @@ multiLineGoExpression <- exprsI:(
                 }),
             },
         }
-    } / (POS goRuneLit) / StringExpression / TernaryExpression /
-    (POS (!expressionTerminator . (!expressionTerminator [^'"`?([{])*))
+    } / StringExpression / TernaryExpression / posI:POS goRuneLit {
+        return file.GoExpression{Expression: string(c.text), Position: posI.(file.Position)}, nil
+    } / posI:POS (!expressionTerminator . !expressionTerminator [^'"`?([{])* {
+        return file.GoExpression{Expression: string(c.text), Position: posI.(file.Position)}, nil
+    }
 )+ {
     return combineExpressions(exprsI)
 }
@@ -247,8 +256,11 @@ SingleLineGoExpression <- exprsI:(
                 }),
             },
         }
-    } / (POS goRuneLit) / StringExpression / SingleLineTernaryExpression /
-    (POS (!expressionTerminator NOT_EOL (!expressionTerminator !EOL [^'"`?([{])*))
+    } / StringExpression / SingleLineTernaryExpression / posI:POS goRuneLit {
+        return file.GoExpression{Expression: string(c.text), Position: posI.(file.Position)}, nil
+    } / posI:POS !expressionTerminator NOT_EOL (!expressionTerminator !EOL [^'"`?([{])* {
+        return file.GoExpression{Expression: string(c.text), Position: posI.(file.Position)}, nil
+    }
 )+ {
     return combineExpressions(exprsI)
 }
@@ -306,8 +318,11 @@ singleLineGoSubExpression <- exprsI:(
                 }),
             },
         }
-    } / (POS goRuneLit) / StringExpression / SingleLineTernaryExpression /
-    (POS (!EOL [^)}\]] (!EOL [^'"`?([{}\])])*))
+    } / StringExpression / SingleLineTernaryExpression / posI:POS goRuneLit {
+        return file.GoExpression{Expression: string(c.text), Position: posI.(file.Position)}, nil
+    } / posI:POS !EOL [^)}\]] (!EOL [^'"`?([{}\])])* {
+        return file.GoExpression{Expression: string(c.text), Position: posI.(file.Position)}, nil
+    }
 )+ {
     return combineExpressions(exprsI)
 }
@@ -389,8 +404,11 @@ IfExpression <- cExprI:ChainExpression {
                 }),
             },
         }
-    } / (POS goRuneLit) / StringExpression / TernaryExpression /
-    (POS (!IfExpressionTerminator NOT_EOL (!IfExpressionTerminator !EOL [^'"`?([{])*))
+    } / StringExpression / TernaryExpression / posI:POS goRuneLit {
+        return file.GoExpression{Expression: string(c.text), Position: posI.(file.Position)}, nil
+    } / posI:POS !IfExpressionTerminator NOT_EOL (!IfExpressionTerminator !EOL [^'"`?([{])* {
+        return file.GoExpression{Expression: string(c.text), Position: posI.(file.Position)}, nil
+    }
 )+ {
     return combineExpressions(exprsI)
 }
@@ -511,14 +529,14 @@ RawStringExpressionText <- ("##" / !'#' goRawStringUnicodeChar)+ {
 StringExpressionInterpolation <- '#' noEscapeI:'!'? fmtDirectiveI:fmtDirective? '{' exprI:SingleLineExpression '}' {
     return file.StringExpressionInterpolation{
         NoEscape: noEscapeI != nil,
-        FormatDirective: concat(fmtDirectiveI),
+        FormatDirective: castedOrZero[string](fmtDirectiveI),
         Expression: exprI.(file.Expression),
         Position: pos(c),
     }, nil
 } / '#' noEscapeI:'!' fmtDirectiveI:fmtDirective? parenPosI:POS {
     return file.StringExpressionInterpolation{
         NoEscape: noEscapeI != nil,
-        FormatDirective: concat(fmtDirectiveI),
+        FormatDirective: castedOrZero[string](fmtDirectiveI),
         Position: pos(c),
     }, &corgierr.Error{
         Message: "interpolation is missing an expression",
@@ -546,7 +564,7 @@ StringExpressionInterpolation <- '#' noEscapeI:'!'? fmtDirectiveI:fmtDirective? 
 } / '#' noEscapeI:'!' fmtDirectiveI:fmtDirective? parenPosI:POS '{' startPosI:POS exprI:SingleLineExpression {
     return file.StringExpressionInterpolation{
         NoEscape: noEscapeI != nil,
-        FormatDirective: concat(fmtDirectiveI),
+        FormatDirective: castedOrZero[string](fmtDirectiveI),
         Expression: exprI.(file.Expression),
         Position: pos(c),
     }, &corgierr.Error{
@@ -577,18 +595,12 @@ fmtDirective <- '%' fmtFlag* ([1-9][0-9]*)? ('.' [0-9]*)? fmtVerb {
     return string(c.text[1:]), nil
 } / '%' [^`"{]* endPosI:POS {
     return string(c.text[1:]), &corgierr.Error{
-        Message: "invalid formatter",
+        Message: "invalid format directive",
         ErrorAnnotation: anno(c, annotation{
             Start: pos(c),
             End: endPosI.(file.Position),
             Annotation: "invalid formatter",
         }),
-        HintAnnotations: []corgierr.Annotation{
-            anno(c, annotation{
-                Start: file.Position{Line: pos(c).Line, Col: pos(c).Col-1},
-                Annotation: "for this string interpolation",
-            }),
-        },
         Suggestions: []corgierr.Suggestion{
             {Suggestion: "consult the docs of the Go built-in package `fmt` on how to write a formatting placeholder"},
             {Suggestion: "escape the `#` by writing `##`, if you didn't mean to start an interpolation"},
