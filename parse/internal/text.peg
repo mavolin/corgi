@@ -30,6 +30,7 @@ Assign <- noEscapeI:'!'? '=' ' '+ exprI:Expression unexpectedTokens? EOL {
 InlineText <- ' ' lineI:TextLine {
     return file.InlineText{
         Text: lineI.(file.TextLine),
+        Position: pos(c),
     }, nil
 }
 
@@ -136,7 +137,8 @@ BadInterpolation <- '#' {
 // SimpleInterpolation
 // ======================================================================================
 
-SimpleInterpolation <- '#' noEscapeI:'!'? valueI:(textInterpolationValue / expressionInterpolationValue) {
+SimpleInterpolation <- '#' noEscapeI:'!'?
+    valueI:(textInterpolationValue / expressionInterpolationValue / fmtExpressionInterpolationValue) {
     return file.SimpleInterpolation{
         NoEscape: noEscapeI != nil,
         Value: valueI.(file.InterpolationValue),
@@ -254,4 +256,10 @@ expressionInterpolationValue <- lBracePosI:L_BRACE exprI:SingleLineExpression rB
         LBracePos: lBracePosI.(file.Position),
         Expression: exprI.(file.Expression),
     }, errors.New("unclosed expression interpolation")
+}
+
+fmtExpressionInterpolationValue <- fmtDirectiveI:fmtDirective eivI:expressionInterpolationValue {
+    eiv := eivI.(file.ExpressionInterpolationValue)
+    eiv.FormatDirective = fmtDirectiveI.(string)
+    return eiv, nil
 }
