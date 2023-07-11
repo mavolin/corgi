@@ -21,6 +21,8 @@ condition <- ' '+ condI:IfExpression {
 
 then <- EOL scopeI:Body {
     return scopeI, nil
+} / beI:BlockExpansion {
+    return file.Scope{beI.(file.BlockExpansion)}, nil
 } / EOL {
     return file.Scope(nil), &corgierr.Error{
         Message: "missing body",
