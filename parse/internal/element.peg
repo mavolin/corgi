@@ -154,6 +154,48 @@ And <- '&' collsI:AttributeCollection+ EOL {
     }
 }
 
+InlineAnd <- '&' collsI:SingleLineAttributeCollection+ EOL {
+    return file.And{
+        Attributes: typedSlice[file.AttributeCollection](collsI),
+        Position: pos(c),
+    }, nil
+} / '&' posI:POS EOL {
+    return file.And{
+        Position: pos(c),
+    }, &corgierr.Error{
+        Message: "`&` with no attributes",
+        ErrorAnnotation: anno(c, annotation{
+            Start: posI.(file.Position),
+            Annotation: "expected an attribute here",
+        }),
+        Suggestions: []corgierr.Suggestion{
+            {Suggestion: "write a class shorthand", Example: "`&.woof`"},
+            {Suggestion: "write an id shorthand", Example: "`&#bark`"},
+            {Suggestion: "write an attribute list", Example: "`&(src=\"bark/woof\", title=\"howl\")`"},
+        },
+    }
+} / '&' collsI:SingleLineAttributeCollection+ posI:POS NOT_EOL+ EOL {
+    return file.And{
+        Position: pos(c),
+    }, &corgierr.Error{
+        Message: "bad attribute syntax",
+        ErrorAnnotation: anno(c, annotation{
+            Start: posI.(file.Position),
+            Annotation: "this is not a valid attribute (list)",
+        }),
+        Suggestions: []corgierr.Suggestion{
+            {
+                Suggestion: "if there is, remove any whitespace between class/id shorthands and attribute lists",
+                Example:    "`&#bark .woof (title=\"howl\")`",
+                ShouldBe:   "`&#bark.woof(title=\"howl\")`",
+            },
+            {Suggestion: "write a class shorthand", Example: "`&.woof`"},
+            {Suggestion: "write an id shorthand", Example: "`&#bark`"},
+            {Suggestion: "write an attribute list", Example: "`&(src=\"bark/woof\", title=\"howl\")`"},
+        },
+    }
+}
+
 // ============================================================================
 // AttributeCollection
 // ======================================================================================

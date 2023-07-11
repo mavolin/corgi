@@ -65,27 +65,11 @@ blockName <- ' '+ identI:MustIdent {
 // BlockExpansion
 // ======================================================================================
 
-BlockExpansion <- ':' abI:InlineArrowBlock {
-    return file.BlockExpansion{
-        Item: abI.(file.ArrowBlock),
-        Position: pos(c),
-    }, nil
-} / ':' ' '+ sI:blockExpansionItem {
+BlockExpansion <- ':' sI:blockExpansionItem {
     return file.BlockExpansion{
         Item: sI.(file.ScopeItem),
         Position: pos(c),
     }, nil
-} / ':' EOL {
-    return file.BlockExpansion{
-        Position: pos(c),
-    }, &corgierr.Error{
-        Message: "malformed block expansion",
-        ErrorAnnotation: anno(c, annotation{
-            Start: pos(c),
-            StartOffset: 2,
-            Annotation: "expected a block directive, an inline element, an inline arrow block, or a mixin call",
-        }),
-    }
 } / ':' posI:POS sI:blockExpansionItem {
     var fromThe string
     switch sI.(type) {
@@ -113,26 +97,66 @@ BlockExpansion <- ':' abI:InlineArrowBlock {
     }
 }
 
-blockExpansionItem <- InlineBlock / InlineElement / InlineDivShorthand / InlineMixinCall / badBlockExpansion
+blockExpansionItem <- InlineArrowBlock / spacedBlockExpansionItem / badBlockExpansion
 
-badBlockExpansion <- lineI:NOT_EOL+ EOL {
+spacedBlockExpansionItem <- ' '+ sI:_spacedBlockExpansionItem {
+    return sI, nil
+} / posI:POS sI:_spacedBlockExpansionItem {
+    var fromThe string
+    switch sI.(type) {
+    case file.Block:
+        fromThe = "block"
+    case file.Element:
+        fromThe = "inline element"
+    case file.DivShorthand:
+        fromThe = "div shorthand"
+    case file.MixinCall:
+        fromThe = "mixin call"
+    case file.And:
+        fromThe = "&"
+    default:
+        fromThe = "rest"
+    }
+
+    return file.BlockExpansion{
+        Item: sI.(file.ScopeItem),
+        Position: pos(c),
+    }, &corgierr.Error{
+        Message: "missing space",
+        ErrorAnnotation: anno(c, annotation{
+            Start: posI.(file.Position),
+            Annotation: "expected a space here, separating the `:` from the "+fromThe,
+        }),
+    }
+}
+_spacedBlockExpansionItem <- InlineBlock / InlineElement / InlineDivShorthand / InlineMixinCall / InlineAnd
+
+badBlockExpansion <- lineI:NOT_EOL* EOL {
     firstWordLen := strings.IndexByte(string(c.text), ' ')
     if firstWordLen <= 0 {
         firstWordLen = len([]rune(string(c.text)))
     }
 
-    return file.BadItem{
+    bi := file.BadItem{
         Line: concat(lineI),
         Position: pos(c),
-    }, &corgierr.Error{
+    }
+
+    var suggestions []corgierr.Suggestion
+    if bi.Line != "" {
+        suggestions = append(suggestions, corgierr.Suggestion{
+            Suggestion: "if this is supposed to be an element name, make sure it conforms to the HTML spec",
+        })
+    }
+
+    return bi, &corgierr.Error{
         Message: "malformed block expansion",
         ErrorAnnotation: anno(c, annotation{
             Start: pos(c),
             Len: firstWordLen,
-            Annotation: "expected a block directive, an inline element, an inline arrow block, or a mixin call",
+            Annotation: "expected a block directive, an inline element, an inline arrow block,\n" +
+                "a mixin call, or inline &-attributes",
         }),
-        Suggestions: []corgierr.Suggestion{
-            {Suggestion: "if this is supposed to be an element name, make sure it conforms to the HTML spec"},
-        },
+        Suggestions: suggestions,
     }
 }
