@@ -68,7 +68,7 @@ GoExpression <- exprsI:(
                 }),
             },
         }
-    } / StringExpression / TernaryExpression / posI:POS goRuneLit {
+    } / StringExpression / TernaryExpression / &{ println("here"); return true, nil } posI:POS goRuneLit {
         return file.GoExpression{Expression: string(c.text), Position: posI.(file.Position)}, nil
     } / posI:POS !expressionTerminator NOT_EOL (!expressionTerminator !EOL [^'"`?([{])* {
         return file.GoExpression{Expression: string(c.text), Position: posI.(file.Position)}, nil
@@ -196,7 +196,7 @@ multiLineGoExpression <- exprsI:(
         }
     } / StringExpression / TernaryExpression / posI:POS goRuneLit {
         return file.GoExpression{Expression: string(c.text), Position: posI.(file.Position)}, nil
-    } / posI:POS (!expressionTerminator . !expressionTerminator [^'"`?([{])* {
+    } / posI:POS !expressionTerminator . (!expressionTerminator [^'"`?([{])* {
         return file.GoExpression{Expression: string(c.text), Position: posI.(file.Position)}, nil
     }
 )+ {
@@ -707,7 +707,7 @@ SingleLineTernaryExpression <- "?(" ' '* conditionI:SingleLineGoExpression ' '* 
         RParenPos: rParenPosI.(file.Position),
         Position: pos(c),
     }, nil
-} / "?(" startPosI:POS WS* rParenPosI:R_PAREN {
+} / "?(" startPosI:POS ' '* rParenPosI:R_PAREN {
     return file.TernaryExpression{
         RParenPos: rParenPosI.(file.Position),
         Position: pos(c),
@@ -721,7 +721,7 @@ SingleLineTernaryExpression <- "?(" ' '* conditionI:SingleLineGoExpression ' '* 
         ShouldBe: "`?(condition, valueIfTrue, valueIfFalse)`",
         Example: "`?(num % 2 == 0, \"num is even\", \"num is uneven\")`",
     }
-} / "?(" WS* conditionI:SingleLineGoExpression startPosI:commaPos rParenPosI:R_PAREN {
+} / "?(" ' '* conditionI:SingleLineGoExpression startPosI:commaPos rParenPosI:R_PAREN {
     return file.TernaryExpression{
         Condition: conditionI.(file.Expression),
         RParenPos: rParenPosI.(file.Position),
@@ -736,7 +736,7 @@ SingleLineTernaryExpression <- "?(" ' '* conditionI:SingleLineGoExpression ' '* 
         ShouldBe: "`?(condition, valueIfTrue, valueIfFalse)`",
         Example: "`?(num % 2 == 0, \"num is even\", \"num is uneven\")`",
     }
-} / "?(" WS* conditionI:SingleLineGoExpression ' '* ',' WS* ifTrueI:SingleLineGoExpression startPosI:commaPos rParenPosI:R_PAREN {
+} / "?(" ' '* conditionI:SingleLineGoExpression ' '* ',' ' '* ifTrueI:SingleLineGoExpression startPosI:commaPos rParenPosI:R_PAREN {
     return file.TernaryExpression{
         Condition: conditionI.(file.Expression),
         IfTrue: ifTrueI.(file.Expression),
@@ -758,7 +758,7 @@ SingleLineTernaryExpression <- "?(" ' '* conditionI:SingleLineGoExpression ' '* 
 // Chain Expression
 // ======================================================================================
 
-ChainExpression <- derefsI:'*'* rootI:chainExpressionRoot checkRootI:'?' chainI:ChainExpressionItem*
+ChainExpression <- derefsI:'*'* rootI:chainExpressionRoot checkRootI:'?'? chainI:ChainExpressionItem*
                    defaultI:(' '* defaultPosI:POS '~' WS* GoExpression)? endPosI:POS &(EOL / ' '* expressionTerminator) &{
     return checkRootI != nil || len(islice(chainI)) > 0 || defaultI != nil, nil
 } {
@@ -777,26 +777,34 @@ ChainExpression <- derefsI:'*'* rootI:chainExpressionRoot checkRootI:'?' chainI:
     }
 
     return expr, nil
-} / startPosI:POS derefsI:'*'* rootI:chainExpressionRoot checkRootI:'?' chainI:ChainExpressionItem* endPosI:POS &{
+} / startPosI:POS derefsI:'*'* rootI:chainExpressionRoot checkRootI:'?'? chainI:ChainExpressionItem* endPosI:POS &{
     return checkRootI != nil || len(islice(chainI)) > 0, nil
-} malStartPosI:POS GoExpression malEndPosI:POS &{
+} malStartPosI:POS GoExpression malEndPosI:POS {
+    expr := file.ChainExpression{
+        Root: rootI.(file.GoExpression),
+        CheckRoot: checkRootI != nil,
+        Chain: typedSlice[file.ChainExpressionItem](chainI),
+        DerefCount: len(islice(derefsI)),
+        Position: pos(c),
+    }
+
     var multiline string
     if malEndPosI.(file.Position).Line > malStartPosI.(file.Position).Line {
         multiline += " and the lines below"
     }
 
-    return false, &corgierr.Error{
+    return expr, &corgierr.Error{
         Message: "malformed chain expression",
         ErrorAnnotation: anno(c, annotation{
             Start: malStartPosI.(file.Position),
             End: malEndPosI.(file.Position),
-            Annotation: "unable to parse this" + multiline+ " as part of a chain expression",
+            Annotation: "unable to parse this" + multiline+ " part",
         }),
         HintAnnotations: []corgierr.Annotation{
             anno(c, annotation{
                 Start: startPosI.(file.Position),
                 End: malStartPosI.(file.Position),
-                Annotation: "that you started here",
+                Annotation: "this is valid",
             }),
         },
         Suggestions: []corgierr.Suggestion{
@@ -805,8 +813,8 @@ ChainExpression <- derefsI:'*'* rootI:chainExpressionRoot checkRootI:'?' chainI:
                 Example: "`woof?.bark[12?] ~ someDefault`",
             },
             {
-                Suggestion: "remember that chain expressions cannot be used as part of a Go expression;\n" +
-                    "you can either write a chain expression, or a Go expression",
+                Suggestion: "remember that chain expressions cannot be embedded in Go expressions;\n" +
+                    "you can either write a chain expression or a Go expression",
             },
         },
     }
@@ -829,7 +837,7 @@ chainExpressionRootParenContent <- '(' chainExpressionRootParenContent ')' /
                                    '{' chainExpressionRootParenContent '}' /
                                    [^({[\]})]+
 
-SingleLineChainExpression <- derefsI:'*'* rootI:chainExpressionRoot checkRootI:'?' chainI:SingleLineChainExpressionItem*
+SingleLineChainExpression <- derefsI:'*'* rootI:chainExpressionRoot checkRootI:'?'? chainI:SingleLineChainExpressionItem*
                              defaultI:(' '* defaultPosI:POS "?!" ' '* SingleLineGoExpression)? endPosI:POS &(EOL / expressionTerminator) &{
     return checkRootI != nil || len(islice(chainI)) > 0 || defaultI != nil, nil
 } {
@@ -848,21 +856,21 @@ SingleLineChainExpression <- derefsI:'*'* rootI:chainExpressionRoot checkRootI:'
     }
 
     return expr, nil
-} / startPosI:POS derefsI:'*'* rootI:chainExpressionRoot checkRootI:'?' chainI:SingleLineChainExpressionItem* endPosI:POS &{
+} / startPosI:POS derefsI:'*'* rootI:chainExpressionRoot checkRootI:'?'? chainI:SingleLineChainExpressionItem* endPosI:POS &{
     return checkRootI != nil || len(islice(chainI)) > 0, nil
-} malStartPosI:POS GoExpression malEndPosI:POS &{
+} malStartPosI:POS SingleLineGoExpression malEndPosI:POS &{
     return false, &corgierr.Error{
         Message: "malformed chain expression",
         ErrorAnnotation: anno(c, annotation{
             Start: malStartPosI.(file.Position),
             End: malEndPosI.(file.Position),
-            Annotation: "unable to parse this as part of a chain expression",
+            Annotation: "unable to parse this part",
         }),
         HintAnnotations: []corgierr.Annotation{
             anno(c, annotation{
                 Start: startPosI.(file.Position),
                 End: malStartPosI.(file.Position),
-                Annotation: "that you started here",
+                Annotation: "this is valid",
             }),
         },
         Suggestions: []corgierr.Suggestion{
@@ -871,8 +879,8 @@ SingleLineChainExpression <- derefsI:'*'* rootI:chainExpressionRoot checkRootI:'
                 Example: "`woof?.bark[12?] ~ someDefault`",
             },
             {
-                Suggestion: "remember that chain expressions cannot be used as part of a Go expression;\n" +
-                    "you can either write a chain expression, or a Go expression",
+                Suggestion: "remember that chain expressions cannot be embedded in Go expressions;\n" +
+                    "you can either write a chain expression or a Go expression",
             },
         },
     }
@@ -903,7 +911,7 @@ ChainExpressionItem           <- IndexExpression / DotIdentExpression / ParenExp
 SingleLineChainExpressionItem <- SingleLineIndexExpression / SingleLineDotIdentExpression /
                                  SingleLineParenExpression / SingleLineTypeAssertionExpression
 
-IndexExpression <- L_BRACE WS* exprI:GoExpression checkIndexI:'?' (',' WS*)? ' '* rBracePosI:R_BRACE checkValueI:'?' {
+IndexExpression <- L_BRACE WS* exprI:GoExpression checkIndexI:'?'? (',' WS*)? ' '* rBracePosI:R_BRACE checkValueI:'?'? {
     return file.IndexExpression{
         LBracePos: pos(c),
         Index: exprI.(file.Expression),
@@ -913,7 +921,7 @@ IndexExpression <- L_BRACE WS* exprI:GoExpression checkIndexI:'?' (',' WS*)? ' '
     }, nil
 }
 
-SingleLineIndexExpression <- L_BRACE WS* exprI:SingleLineGoExpression checkIndexI:'?' (',' ' '*)? ' '* rBracePosI:R_BRACE checkValueI:'?' {
+SingleLineIndexExpression <- L_BRACE WS* exprI:SingleLineGoExpression checkIndexI:'?'? (',' ' '*)? ' '* rBracePosI:R_BRACE checkValueI:'?'? {
     return file.IndexExpression{
         LBracePos: pos(c),
         Index: exprI.(file.Expression),
@@ -923,7 +931,7 @@ SingleLineIndexExpression <- L_BRACE WS* exprI:SingleLineGoExpression checkIndex
     }, nil
 }
 
-DotIdentExpression <- '.' WS* identI:GoIdent checkI:'?' {
+DotIdentExpression <- '.' WS* identI:GoIdent checkI:'?'? {
     return file.DotIdentExpression{
         Ident: identI.(file.GoIdent),
         Check: checkI != nil,
@@ -931,7 +939,7 @@ DotIdentExpression <- '.' WS* identI:GoIdent checkI:'?' {
     }, nil
 }
 
-SingleLineDotIdentExpression <- '.' ' '* identI:GoIdent checkI:'?' {
+SingleLineDotIdentExpression <- '.' ' '* identI:GoIdent checkI:'?'? {
     return file.DotIdentExpression{
         Ident: identI.(file.GoIdent),
         Check: checkI != nil,
@@ -939,7 +947,7 @@ SingleLineDotIdentExpression <- '.' ' '* identI:GoIdent checkI:'?' {
     }, nil
 }
 
-ParenExpression <- L_PAREN ' '* argsI:parenExpressionArgs? ' '* (',' WS*)? rParenPosI:R_PAREN checkI:'?' {
+ParenExpression <- L_PAREN ' '* argsI:parenExpressionArgs? ' '* (',' WS*)? rParenPosI:R_PAREN checkI:'?'? {
     return file.ParenExpression{
         LParenPos: pos(c),
         Args: castedOrZero[[]file.Expression](argsI),
@@ -959,7 +967,7 @@ parenExpressionArgs <- firstI:GoExpression restI:(' '* ',' WS* GoExpression)* {
     return args, nil
 }
 
-SingleLineParenExpression <- L_PAREN ' '* argsI:singleLinearenExpressionArgs? ' '* (',' ' '*)? rParenPosI:R_PAREN checkI:'?' {
+SingleLineParenExpression <- L_PAREN ' '* argsI:singleLinearenExpressionArgs? ' '* (',' ' '*)? rParenPosI:R_PAREN checkI:'?'? {
     return file.ParenExpression{
         LParenPos: pos(c),
         Args: castedOrZero[[]file.Expression](argsI),
@@ -979,7 +987,7 @@ singleLinearenExpressionArgs <- firstI:SingleLineGoExpression restI:(' '* ',' ' 
     return args, nil
 }
 
-TypeAssertionExpression <- ".(" packageI:(GoIdent '.')? typeI:GoIdent rParenPosI:R_PAREN checkI:'?' {
+TypeAssertionExpression <- ".(" packageI:(GoIdent '.')? typeI:GoIdent rParenPosI:R_PAREN checkI:'?'? {
     var packageIdent *file.GoIdent
     if packageI != nil {
         packageIdentVal := getTuple[file.GoIdent](packageI, 0)

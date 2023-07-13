@@ -66,13 +66,14 @@ func Parse(input []byte) (*file.File, error) {
 					Start:        1,
 					End:          2,
 					Annotation:   "position unknown",
+					Lines:        []string{""},
 				},
 			}
 		}
 
 		cerr, ok := parserErr.Inner.(*corgierr.Error) //nolint: errorlint
 		if !ok {
-			cerr = parserErrorToCorgiError(parserErr)
+			cerr = parserErrorToCorgiError(lines, parserErr)
 		}
 
 		cerr.ErrorAnnotation.File = f
@@ -89,7 +90,7 @@ func Parse(input []byte) (*file.File, error) {
 
 var parserErrorRegexp = regexp.MustCompile(`(\d+):(\d+)( \(\d+\))?: (.+)`)
 
-func parserErrorToCorgiError(perr *internal.ParserError) *corgierr.Error {
+func parserErrorToCorgiError(lines []string, perr *internal.ParserError) *corgierr.Error {
 	matches := parserErrorRegexp.FindStringSubmatch(perr.Error())
 	const ( // indexes of groups
 		_ = iota // all text
@@ -108,6 +109,7 @@ func parserErrorToCorgiError(perr *internal.ParserError) *corgierr.Error {
 				Start:        1,
 				End:          2,
 				Annotation:   "position unknown",
+				Lines:        []string{""},
 			},
 		}
 	}
@@ -123,6 +125,7 @@ func parserErrorToCorgiError(perr *internal.ParserError) *corgierr.Error {
 				Start:        1,
 				End:          2,
 				Annotation:   "position unknown",
+				Lines:        []string{""},
 			},
 		}
 	}
@@ -137,6 +140,7 @@ func parserErrorToCorgiError(perr *internal.ParserError) *corgierr.Error {
 			Start:        colNum,
 			End:          colNum + 1,
 			Annotation:   "here",
+			Lines:        []string{lines[lineNum-1]},
 		},
 	}
 }
