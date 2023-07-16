@@ -292,27 +292,30 @@ func (err *Error) prettyLineRange(sb *strings.Builder, annotations []Annotation,
 			}
 		}
 
-		if len(lineAnnotations) == 1 { // special case
-			la := lineAnnotations[0]
-			renderedAnnotationLen := len(la.Annotation)
-			if o.Colored {
-				renderedAnnotationLen -= strings.Count(la.Annotation, "`")
+		var lastInline bool
+		last := lineAnnotations[len(lineAnnotations)-1]
+		renderedAnnotationLen := len(last.Annotation)
+		if o.Colored {
+			renderedAnnotationLen -= strings.Count(last.Annotation, "`")
+		}
+		// if we can comfortably fit the entire annotation behind the markers,
+		// render the annotation in a single line to save space
+		if !strings.Contains(last.Annotation, "\n") && len(noLinePad)+len(" | ")+last.End+renderedAnnotationLen < 100 {
+			sb.WriteByte(' ')
+			if last.isError {
+				err.prettyText(o, sb, last.Annotation, color.Bold, color.FgRed)
+			} else {
+				err.prettyText(o, sb, last.Annotation, color.Bold, color.FgCyan)
 			}
-			// if we can comfortably fit the entire annotation behind the markers,
-			// render the annotation in a single line to save space
-			if !strings.Contains(la.Annotation, "\n") && len(noLinePad)+len(" | ")+la.End+renderedAnnotationLen < 100 {
-				sb.WriteByte(' ')
-				if la.isError {
-					err.prettyText(o, sb, la.Annotation, color.Bold, color.FgRed)
-				} else {
-					err.prettyText(o, sb, la.Annotation, color.Bold, color.FgCyan)
-				}
-				continue
-			}
+			lastInline = true
 		}
 
 		// start writing the rightmost annotation
-		for i := len(lineAnnotations) - 1; i >= 0; i-- {
+		start := len(lineAnnotations) - 1
+		if lastInline {
+			start--
+		}
+		for i := start; i >= 0; i-- {
 			la := lineAnnotations[i]
 
 			annotationText := strings.Split(la.Annotation, "\n")
@@ -339,8 +342,10 @@ func (err *Error) prettyLineRange(sb *strings.Builder, annotations []Annotation,
 				sb.WriteString(strings.Repeat(" ", la.Start-1-offset))
 
 				if la.isError {
+					colored(sb, o, "| ", color.Bold, color.FgRed)
 					err.prettyText(o, sb, textLine, color.Bold, color.FgRed)
 				} else {
+					colored(sb, o, "| ", color.Bold, color.FgCyan)
 					err.prettyText(o, sb, textLine, color.Bold, color.FgCyan)
 				}
 			}
