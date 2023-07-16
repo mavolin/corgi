@@ -273,7 +273,7 @@ func (err *Error) prettyLineRange(sb *strings.Builder, annotations []Annotation,
 		var offset int
 		for _, la := range lineAnnotations {
 			sb.WriteString(strings.Repeat(" ", la.Start-1-offset))
-			offset += la.Start - 1
+			offset += la.Start - 1 - offset
 
 			endCol := la.End
 			if endCol <= 0 {
@@ -334,7 +334,7 @@ func (err *Error) prettyLineRange(sb *strings.Builder, annotations []Annotation,
 						colored(sb, o, "|", color.Bold, color.FgCyan)
 					}
 
-					offset += otherLA.Start
+					offset += otherLA.Start - 1 - offset + len("|")
 				}
 				sb.WriteString(strings.Repeat(" ", la.Start-1-offset))
 
