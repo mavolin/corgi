@@ -122,7 +122,7 @@ func inferTypeAssertion(expr file.Expression) string {
 	e := gexpr.Expression
 	t := typeAssertionRegexp.FindStringSubmatch(e)
 
-	if len(t) != 0 {
+	if len(t) != 2 {
 		return ""
 	}
 
