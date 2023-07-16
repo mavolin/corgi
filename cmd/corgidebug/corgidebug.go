@@ -11,6 +11,7 @@ import (
 	"github.com/mattn/go-isatty"
 
 	"github.com/mavolin/corgi/corgierr"
+	"github.com/mavolin/corgi/file/typeinfer"
 	"github.com/mavolin/corgi/link"
 	"github.com/mavolin/corgi/parse"
 	"github.com/mavolin/corgi/validate"
@@ -55,6 +56,10 @@ func main() {
 
 		return
 	}
+
+	now = time.Now()
+	typeinfer.Scope(f.Scope)
+	defer fmt.Printf("\nmixin param type infer took %s", time.Since(now))
 
 	now = time.Now()
 	err = link.New(nil).LinkFile(f)
