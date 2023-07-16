@@ -81,6 +81,7 @@ func _file(f *file.File, valedFiles map[string]struct{}, impNamespaces map[strin
 	errs.PushBackList(ptr(duplicateTemplateBlocks(f)))
 	errs.PushBackList(ptr(nonExistentTemplateBlocks(f)))
 
+	errs.PushBackList(ptr(mixinChecks(f)))
 	errs.PushBackList(ptr(mixinsInMixins(f)))
 	errs.PushBackList(ptr(duplicateMixinNames(f)))
 
