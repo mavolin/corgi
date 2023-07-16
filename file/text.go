@@ -160,9 +160,10 @@ func (TextInterpolationValue) _typeInterpolationValue() {}
 // ============================ ExpressionInterpolationValue ============================
 
 type ExpressionInterpolationValue struct {
-	LBracePos  Position
-	Expression Expression
-	RBracePos  Position
+	LBracePos       Position
+	FormatDirective string // a Sprintf formatting placeholder, w/o preceding '%'
+	Expression      Expression
+	RBracePos       Position
 }
 
 var _ InterpolationValue = ExpressionInterpolationValue{}
