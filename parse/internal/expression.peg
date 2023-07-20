@@ -15,125 +15,76 @@ expressionTerminator <- [)}\]] / ',' / ':' !'='
 // Note that, unlike the name suggests, this will return a file.Expression
 // containing GoExpressions, TernaryExpressions, and StringExpressions.
 GoExpression <- exprsI:(
-    exprI:('(' goSubExpression? POS ')' / '[' goSubExpression? POS ']' / '{' goSubExpression? POS '}') {
-        exprIs := islice(exprI)
-        if exprIs[1] == nil {
-            return file.GoExpression{
-                Expression: concat(exprIs[0]) + concat(exprIs[3]),
-                Position: pos(c),
-            }, nil
-        }
-
-        expr := exprIs[1].(file.Expression)
-
-        exprs := make([]file.ExpressionItem, len(expr.Expressions) + /* open/closing paren */ 2)
-        copy(exprs[1:], expr.Expressions)
-        exprs[0] = file.GoExpression{
-            Expression: concat(exprIs[0]),
-            Position: pos(c),
-        }
-        exprs[len(exprs)-1] = file.GoExpression{
-            Expression: concat(exprIs[3]),
-            Position: exprIs[2].(file.Position),
-        }
-
-        return exprs, nil
-    } / parenI:[([{] startPosI:POS exprI:goSubExpression? {
-        openParen := string(char(parenI))
-
-        closeParen := ")"
-        if openParen == "[" {
-            closeParen = "]"
-        } else if openParen == "{" {
-            closeParen = "}"
-        }
-
-        exprs := append([]file.ExpressionItem{file.GoExpression{
-            Expression: openParen,
-            Position: pos(c),
-        }}, castedOrZero[file.Expression](exprI).Expressions...)
-
-        return exprs, &corgierr.Error{
-            Message: "unclosed `"+openParen+"` in expression",
-            ErrorAnnotation: anno(c, annotation{
-                ContextLen: 3,
-                Start: startPosI.(file.Position),
-                EOLDelta: 1,
-                Annotation: "expected a `"+closeParen+"` somewhere here or on a line below",
-            }),
-            HintAnnotations: []corgierr.Annotation{
-                anno(c, annotation{
-                    Start: pos(c),
-                    Annotation: "for the `"+openParen+"` you opened here",
-                }),
-            },
-        }
-    } / StringExpression / TernaryExpression / posI:POS goRuneLit {
-        return file.GoExpression{Expression: string(c.text), Position: posI.(file.Position)}, nil
-    } / posI:POS !expressionTerminator NOT_EOL (!expressionTerminator !EOL [^'"`?([{])* {
+     goParenExpr / StringExpression / TernaryExpression / goRuneExpr /
+     posI:POS !expressionTerminator NOT_EOL (!expressionTerminator !EOL [^'"`?([{])* {
         return file.GoExpression{Expression: string(c.text), Position: posI.(file.Position)}, nil
     }
 )+ {
     return combineExpressions(exprsI)
 }
 
-goSubExpression <- exprsI:(
-    exprI:('(' goSubExpression POS ')' / '[' goSubExpression POS ']' / '{' goSubExpression POS '}') {
-        exprIs := islice(exprI)
-        if exprIs[1] == nil {
-            return file.GoExpression{
-                Expression: concat(exprIs[0]) + concat(exprIs[3]),
-                Position: pos(c),
-            }, nil
-        }
-
-        expr := exprIs[1].(file.Expression)
-
-        exprs := make([]file.ExpressionItem, len(expr.Expressions) + /* open/closing paren */ 2)
-        copy(exprs[1:], expr.Expressions)
-        exprs[0] = file.GoExpression{
-            Expression: concat(exprIs[0]),
+goParenExpr <- exprI:('(' goSubExpression? POS ')' / '[' goSubExpression? POS ']' / '{' goSubExpression? POS '}') {
+    exprIs := islice(exprI)
+    if exprIs[1] == nil {
+        return file.GoExpression{
+            Expression: concat(exprIs[0]) + concat(exprIs[3]),
             Position: pos(c),
-        }
-        exprs[len(exprs)-1] = file.GoExpression{
-            Expression: concat(exprIs[3]),
-            Position: exprIs[2].(file.Position),
-        }
+        }, nil
+    }
 
-        return exprs, nil
-    } / parenI:[([{] startPosI:POS exprI:goSubExpression {
-        openParen := string(char(parenI))
+    expr := exprIs[1].(file.Expression)
 
-        closeParen := ")"
-        if openParen == "[" {
-            closeParen = "]"
-        } else if openParen == "{" {
-            closeParen = "}"
-        }
+    exprs := make([]file.ExpressionItem, len(expr.Expressions) + /* open/closing paren */ 2)
+    copy(exprs[1:], expr.Expressions)
+    exprs[0] = file.GoExpression{
+        Expression: concat(exprIs[0]), // opening paren
+        Position: pos(c),
+    }
+    exprs[len(exprs)-1] = file.GoExpression{
+        Expression: concat(exprIs[3]), // closing paren
+        Position: exprIs[2].(file.Position),
+    }
 
-        exprs := append([]file.ExpressionItem{file.GoExpression{
-            Expression: openParen,
-            Position: pos(c),
-        }}, castedOrZero[file.Expression](exprI).Expressions...)
+    return exprs, nil
+} / parenI:[([{] startPosI:POS exprI:goSubExpression? {
+    openParen := string(char(parenI))
 
-        return exprs, &corgierr.Error{
-            Message: "unclosed `"+openParen+"` in expression",
-            ErrorAnnotation: anno(c, annotation{
-                ContextLen: 3,
-                Start: startPosI.(file.Position),
-                EOLDelta: 1,
-                Annotation: "expected a `"+closeParen+"` somewhere here or on a line below",
+    closeParen := ")"
+    if openParen == "[" {
+        closeParen = "]"
+    } else if openParen == "{" {
+        closeParen = "}"
+    }
+
+    exprs := append([]file.ExpressionItem{file.GoExpression{
+        Expression: openParen,
+        Position: pos(c),
+    }}, castedOrZero[file.Expression](exprI).Expressions...)
+
+    return exprs, &corgierr.Error{
+        Message: "unclosed `"+openParen+"` in expression",
+        ErrorAnnotation: anno(c, annotation{
+            ContextLen: 3,
+            Start: startPosI.(file.Position),
+            EOLDelta: 1,
+            Annotation: "expected a `"+closeParen+"` somewhere here or on a line below",
+        }),
+        HintAnnotations: []corgierr.Annotation{
+            anno(c, annotation{
+                Start: pos(c),
+                Annotation: "for the `"+openParen+"` you opened here",
             }),
-            HintAnnotations: []corgierr.Annotation{
-                anno(c, annotation{
-                    Start: pos(c),
-                    Annotation: "for the `"+openParen+"` you opened here",
-                }),
-            },
-        }
-    } / StringExpression / TernaryExpression / posI:POS goRuneLit {
-        return file.GoExpression{Expression: string(c.text), Position: posI.(file.Position)}, nil
-    } /  posI:POS [^)}\]] [^'"`?([{}\])]* {
+        },
+    }
+}
+
+goRuneExpr <- posI:POS goRuneLit {
+    return file.GoExpression{Expression: string(c.text), Position: posI.(file.Position)}, nil
+}
+
+goSubExpression <- exprsI:(
+    goParenExpr / StringExpression / TernaryExpression / goRuneExpr /
+    posI:POS [^)}\]] [^'"`?([{}\])]* {
         return file.GoExpression{Expression: string(c.text), Position: posI.(file.Position)}, nil
     }
 )+ {
@@ -141,62 +92,8 @@ goSubExpression <- exprsI:(
 }
 
 multiLineGoExpression <- exprsI:(
-    exprI:('(' goSubExpression POS ')' / '[' goSubExpression POS ']' / '{' goSubExpression POS '}') {
-        exprIs := islice(exprI)
-        if exprIs[1] == nil {
-            return file.GoExpression{
-                Expression: concat(exprIs[0]) + concat(exprIs[3]),
-                Position: pos(c),
-            }, nil
-        }
-
-        expr := exprIs[1].(file.Expression)
-
-        exprs := make([]file.ExpressionItem, len(expr.Expressions) + /* open/closing paren */ 2)
-        copy(exprs[1:], expr.Expressions)
-        exprs[0] = file.GoExpression{
-            Expression: concat(exprIs[0]),
-            Position: pos(c),
-        }
-        exprs[len(exprs)-1] = file.GoExpression{
-            Expression: concat(exprIs[3]),
-            Position: exprIs[2].(file.Position),
-        }
-
-        return exprs, nil
-    } / parenI:[([{] startPosI:POS exprI:goSubExpression {
-        openParen := string(char(parenI))
-
-        closeParen := ")"
-        if openParen == "[" {
-            closeParen = "]"
-        } else if openParen == "{" {
-            closeParen = "}"
-        }
-
-        exprs := append([]file.ExpressionItem{file.GoExpression{
-            Expression: openParen,
-            Position: pos(c),
-        }}, castedOrZero[file.Expression](exprI).Expressions...)
-
-        return exprs, &corgierr.Error{
-            Message: "unclosed `"+openParen+"` in expression",
-            ErrorAnnotation: anno(c, annotation{
-                ContextLen: 3,
-                Start: startPosI.(file.Position),
-                EOLDelta: 1,
-                Annotation: "expected a `"+closeParen+"` somewhere here or on a line below",
-            }),
-            HintAnnotations: []corgierr.Annotation{
-                anno(c, annotation{
-                    Start: pos(c),
-                    Annotation: "for the `"+openParen+"` you opened here",
-                }),
-            },
-        }
-    } / StringExpression / TernaryExpression / posI:POS goRuneLit {
-        return file.GoExpression{Expression: string(c.text), Position: posI.(file.Position)}, nil
-    } / posI:POS !expressionTerminator . (!expressionTerminator [^'"`?([{])* {
+    goParenExpr / StringExpression / TernaryExpression / goRuneExpr /
+    posI:POS !expressionTerminator . (!expressionTerminator [^'"`?([{])* {
         return file.GoExpression{Expression: string(c.text), Position: posI.(file.Position)}, nil
     }
 )+ {
@@ -204,123 +101,71 @@ multiLineGoExpression <- exprsI:(
 }
 
 SingleLineGoExpression <- exprsI:(
-    exprI:('(' singleLineGoSubExpression POS ')' / '[' singleLineGoSubExpression POS ']' / '{' singleLineGoSubExpression POS '}') {
-        exprIs := islice(exprI)
-        if exprIs[1] == nil {
-            return file.GoExpression{
-                Expression: concat(exprIs[0]) + concat(exprIs[3]),
-                Position: pos(c),
-            }, nil
-        }
-
-        expr := exprIs[1].(file.Expression)
-
-        exprs := make([]file.ExpressionItem, len(expr.Expressions) + /* open/closing paren */ 2)
-        copy(exprs[1:], expr.Expressions)
-        exprs[0] = file.GoExpression{
-            Expression: concat(exprIs[0]),
-            Position: pos(c),
-        }
-        exprs[len(exprs)-1] = file.GoExpression{
-            Expression: concat(exprIs[3]),
-            Position: exprIs[2].(file.Position),
-        }
-
-        return exprs, nil
-    } / parenI:[([{] startPosI:POS exprI:singleLineGoSubExpression {
-        openParen := string(char(parenI))
-
-        closeParen := ")"
-        if openParen == "[" {
-            closeParen = "]"
-        } else if openParen == "{" {
-            closeParen = "}"
-        }
-
-        exprs := append([]file.ExpressionItem{file.GoExpression{
-            Expression: openParen,
-            Position: pos(c),
-        }}, castedOrZero[file.Expression](exprI).Expressions...)
-
-        return exprs, &corgierr.Error{
-            Message: "unclosed `"+openParen+"` in expression",
-            ErrorAnnotation: anno(c, annotation{
-                Start: startPosI.(file.Position),
-                EOLDelta: 1,
-                Annotation: "expected a `"+closeParen+"` somewhere here",
-            }),
-            HintAnnotations: []corgierr.Annotation{
-                anno(c, annotation{
-                    Start: pos(c),
-                    Annotation: "for the `"+openParen+"` you opened here",
-                }),
-            },
-        }
-    } / StringExpression / SingleLineTernaryExpression / posI:POS goRuneLit {
-        return file.GoExpression{Expression: string(c.text), Position: posI.(file.Position)}, nil
-    } / posI:POS !expressionTerminator NOT_EOL (!expressionTerminator !EOL [^'"`?([{])* {
+    singleLineGoParenExpr / StringExpression / SingleLineTernaryExpression / goRuneExpr /
+    posI:POS !expressionTerminator NOT_EOL (!expressionTerminator !EOL [^'"`?([{])* {
         return file.GoExpression{Expression: string(c.text), Position: posI.(file.Position)}, nil
     }
 )+ {
     return combineExpressions(exprsI)
 }
 
-singleLineGoSubExpression <- exprsI:(
-    exprI:('(' singleLineGoSubExpression POS ')' / '[' singleLineGoSubExpression POS ']' / '{' singleLineGoSubExpression POS '}') {
-        exprIs := islice(exprI)
-        if exprIs[1] == nil {
-            return file.GoExpression{
-                Expression: concat(exprIs[0]) + concat(exprIs[3]),
-                Position: pos(c),
-            }, nil
-        }
-
-        expr := exprIs[1].(file.Expression)
-
-        exprs := make([]file.ExpressionItem, len(expr.Expressions) + /* open/closing paren */ 2)
-        copy(exprs[1:], expr.Expressions)
-        exprs[0] = file.GoExpression{
-            Expression: concat(exprIs[0]),
+singleLineGoParenExpr <- exprI:('(' singleLineGoSubExpression? POS ')' / '[' singleLineGoSubExpression? POS ']' / '{' singleLineGoSubExpression? POS '}') {
+    exprIs := islice(exprI)
+    if exprIs[1] == nil {
+        return file.GoExpression{
+            Expression: concat(exprIs[0]) + concat(exprIs[3]),
             Position: pos(c),
-        }
-        exprs[len(exprs)-1] = file.GoExpression{
-            Expression: concat(exprIs[3]),
-            Position: exprIs[2].(file.Position),
-        }
+        }, nil
+    }
 
-        return exprs, nil
-    } / parenI:[([{] startPosI:POS exprI:singleLineGoSubExpression {
-        openParen := string(char(parenI))
+    expr := exprIs[1].(file.Expression)
 
-        closeParen := ")"
-        if openParen == "[" {
-            closeParen = "]"
-        } else if openParen == "{" {
-            closeParen = "}"
-        }
+    exprs := make([]file.ExpressionItem, len(expr.Expressions) + /* open/closing paren */ 2)
+    copy(exprs[1:], expr.Expressions)
+    exprs[0] = file.GoExpression{
+        Expression: concat(exprIs[0]),
+        Position: pos(c),
+    }
+    exprs[len(exprs)-1] = file.GoExpression{
+        Expression: concat(exprIs[3]),
+        Position: exprIs[2].(file.Position),
+    }
 
-        exprs := append([]file.ExpressionItem{file.GoExpression{
-            Expression: openParen,
-            Position: pos(c),
-        }}, castedOrZero[file.Expression](exprI).Expressions...)
+    return exprs, nil
+} / parenI:[([{] startPosI:POS exprI:singleLineGoSubExpression? {
+    openParen := string(char(parenI))
 
-        return exprs, &corgierr.Error{
-            Message: "unclosed `"+openParen+"` in expression",
-            ErrorAnnotation: anno(c, annotation{
-                Start: startPosI.(file.Position),
-                EOLDelta: 1,
-                Annotation: "expected a `"+closeParen+"` somewhere here",
+    closeParen := ")"
+    if openParen == "[" {
+        closeParen = "]"
+    } else if openParen == "{" {
+        closeParen = "}"
+    }
+
+    exprs := append([]file.ExpressionItem{file.GoExpression{
+        Expression: openParen,
+        Position: pos(c),
+    }}, castedOrZero[file.Expression](exprI).Expressions...)
+
+    return exprs, &corgierr.Error{
+        Message: "unclosed `"+openParen+"` in expression",
+        ErrorAnnotation: anno(c, annotation{
+            Start: startPosI.(file.Position),
+            EOLDelta: 1,
+            Annotation: "expected a `"+closeParen+"` somewhere here",
+        }),
+        HintAnnotations: []corgierr.Annotation{
+            anno(c, annotation{
+                Start: pos(c),
+                Annotation: "for the `"+openParen+"` you opened here",
             }),
-            HintAnnotations: []corgierr.Annotation{
-                anno(c, annotation{
-                    Start: pos(c),
-                    Annotation: "for the `"+openParen+"` you opened here",
-                }),
-            },
-        }
-    } / StringExpression / SingleLineTernaryExpression / posI:POS goRuneLit {
-        return file.GoExpression{Expression: string(c.text), Position: posI.(file.Position)}, nil
-    } / posI:POS !EOL [^)}\]] (!EOL [^'"`?([{}\])])* {
+        },
+    }
+}
+
+singleLineGoSubExpression <- exprsI:(
+    singleLineGoParenExpr / StringExpression / SingleLineTernaryExpression / goRuneExpr /
+    posI:POS !EOL [^)}\]] (!EOL [^'"`?([{}\])])* {
         return file.GoExpression{Expression: string(c.text), Position: posI.(file.Position)}, nil
     }
 )+ {
@@ -351,62 +196,8 @@ IfExpression <- cExprI:ChainExpression {
 
     return expr, nil
 } / exprsI:(
-    exprI:('(' goSubExpression? POS ')' / '[' goSubExpression? POS ']' / '{' goSubExpression? POS '}') {
-        exprIs := islice(exprI)
-        if exprIs[1] == nil {
-            return file.GoExpression{
-                Expression: concat(exprIs[0]) + concat(exprIs[3]),
-                Position: pos(c),
-            }, nil
-        }
-
-        expr := exprIs[1].(file.Expression)
-
-        exprs := make([]file.ExpressionItem, len(expr.Expressions) + /* open/closing paren */ 2)
-        copy(exprs[1:], expr.Expressions)
-        exprs[0] = file.GoExpression{
-            Expression: concat(exprIs[0]),
-            Position: pos(c),
-        }
-        exprs[len(exprs)-1] = file.GoExpression{
-            Expression: concat(exprIs[3]),
-            Position: exprIs[2].(file.Position),
-        }
-
-        return exprs, nil
-    } / parenI:[([{] startPosI:POS exprI:goSubExpression? {
-        openParen := string(char(parenI))
-
-        closeParen := ")"
-        if openParen == "[" {
-            closeParen = "]"
-        } else if openParen == "{" {
-            closeParen = "}"
-        }
-
-        exprs := append([]file.ExpressionItem{file.GoExpression{
-            Expression: openParen,
-            Position: pos(c),
-        }}, castedOrZero[file.Expression](exprI).Expressions...)
-
-        return exprs, &corgierr.Error{
-            Message: "unclosed `"+openParen+"` in expression",
-            ErrorAnnotation: anno(c, annotation{
-                ContextLen: 3,
-                Start: startPosI.(file.Position),
-                EOLDelta: 1,
-                Annotation: "expected a `"+closeParen+"` somewhere here or on a line below",
-            }),
-            HintAnnotations: []corgierr.Annotation{
-                anno(c, annotation{
-                    Start: pos(c),
-                    Annotation: "for the `"+openParen+"` you opened here",
-                }),
-            },
-        }
-    } / StringExpression / TernaryExpression / posI:POS goRuneLit {
-        return file.GoExpression{Expression: string(c.text), Position: posI.(file.Position)}, nil
-    } / posI:POS !IfExpressionTerminator NOT_EOL (!IfExpressionTerminator !EOL [^'"`?([{])* {
+    goParenExpr / StringExpression / TernaryExpression / goRuneExpr /
+    posI:POS !IfExpressionTerminator NOT_EOL (!IfExpressionTerminator !EOL [^'"`?([{])* {
         return file.GoExpression{Expression: string(c.text), Position: posI.(file.Position)}, nil
     }
 )+ {
@@ -526,11 +317,13 @@ RawStringExpressionText <- ("##" / !'#' goRawStringUnicodeChar)+ {
     }, nil
 }
 
-StringExpressionInterpolation <- '#' noEscapeI:'!'? fmtDirectiveI:fmtDirective? '{' exprI:SingleLineExpression '}' {
+StringExpressionInterpolation <- '#' noEscapeI:'!'? fmtDirectiveI:fmtDirective? lBracePosI:L_BRACE exprI:SingleLineExpression rBracePosI:R_BRACE {
     return file.StringExpressionInterpolation{
         NoEscape: noEscapeI != nil,
         FormatDirective: castedOrZero[string](fmtDirectiveI),
         Expression: exprI.(file.Expression),
+        LBracePos: lBracePosI.(file.Position),
+        RBracePos: rBracePosI.(file.Position),
         Position: pos(c),
     }, nil
 } / '#' noEscapeI:'!' fmtDirectiveI:fmtDirective? parenPosI:POS {
@@ -561,11 +354,12 @@ StringExpressionInterpolation <- '#' noEscapeI:'!'? fmtDirectiveI:fmtDirective? 
             },
         },
     }
-} / '#' noEscapeI:'!' fmtDirectiveI:fmtDirective? parenPosI:POS '{' startPosI:POS exprI:SingleLineExpression {
+} / '#' noEscapeI:'!' fmtDirectiveI:fmtDirective? parenPosI:POS lBracePosI:L_BRACE startPosI:POS exprI:SingleLineExpression {
     return file.StringExpressionInterpolation{
         NoEscape: noEscapeI != nil,
         FormatDirective: castedOrZero[string](fmtDirectiveI),
         Expression: exprI.(file.Expression),
+        LBracePos: lBracePosI.(file.Position),
         Position: pos(c),
     }, &corgierr.Error{
         Message: "unclosed string interpolation",
@@ -911,7 +705,7 @@ ChainExpressionItem           <- IndexExpression / DotIdentExpression / ParenExp
 SingleLineChainExpressionItem <- SingleLineIndexExpression / SingleLineDotIdentExpression /
                                  SingleLineParenExpression / SingleLineTypeAssertionExpression
 
-IndexExpression <- L_BRACE WS* exprI:GoExpression checkIndexI:'?'? (',' WS*)? ' '* rBracePosI:R_BRACE checkValueI:'?'? {
+IndexExpression <- L_BRACKET WS* exprI:indexExpressionIndex checkIndexI:'?'? (',' WS*)? ' '* rBracePosI:R_BRACKET checkValueI:'?'? {
     return file.IndexExpression{
         LBracePos: pos(c),
         Index: exprI.(file.Expression),
@@ -921,7 +715,18 @@ IndexExpression <- L_BRACE WS* exprI:GoExpression checkIndexI:'?'? (',' WS*)? ' 
     }, nil
 }
 
-SingleLineIndexExpression <- L_BRACE WS* exprI:SingleLineGoExpression checkIndexI:'?'? (',' ' '*)? ' '* rBracePosI:R_BRACE checkValueI:'?'? {
+indexExpressionIndexTerminator <- [)}\]] / '?' / ',' / ':' !'='
+
+indexExpressionIndex <- exprsI:(
+    goParenExpr / StringExpression / TernaryExpression / goRuneExpr /
+    posI:POS !indexExpressionIndexTerminator . (!indexExpressionIndexTerminator [^'"`?([{])* {
+        return file.GoExpression{Expression: string(c.text), Position: posI.(file.Position)}, nil
+    }
+)+ {
+    return combineExpressions(exprsI)
+}
+
+SingleLineIndexExpression <- L_BRACKET WS* exprI:singleLineIndexExpressionIndex checkIndexI:'?'? (',' ' '*)? ' '* rBracePosI:R_BRACKET checkValueI:'?'? {
     return file.IndexExpression{
         LBracePos: pos(c),
         Index: exprI.(file.Expression),
@@ -929,6 +734,15 @@ SingleLineIndexExpression <- L_BRACE WS* exprI:SingleLineGoExpression checkIndex
         CheckIndex: checkIndexI != nil,
         CheckValue: checkValueI != nil,
     }, nil
+}
+
+singleLineIndexExpressionIndex <- exprsI:(
+    singleLineGoParenExpr / StringExpression / SingleLineTernaryExpression / goRuneExpr /
+    posI:POS !indexExpressionIndexTerminator NOT_EOL (!indexExpressionIndexTerminator !EOL [^'"`?([{])* {
+        return file.GoExpression{Expression: string(c.text), Position: posI.(file.Position)}, nil
+    }
+)+ {
+    return combineExpressions(exprsI)
 }
 
 DotIdentExpression <- '.' WS* identI:GoIdent checkI:'?'? {

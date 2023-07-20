@@ -337,12 +337,14 @@ simpleValueAttribute <- nameI:attributeName ' '* assignPosI:POS noEscapeI:'!'? '
         NoEscape: noEscapeI != nil,
         AssignPos: ptr(assignPosI.(file.Position)),
         Value: ptrOrNil[file.Expression](exprI),
+        Position: pos(c),
     }, nil
 } / nameI:attributeName ' '* assignPosI:POS noEscapeI:'!'? '=' posI:POS {
     return file.SimpleAttribute{
         Name: concat(nameI),
         NoEscape: noEscapeI != nil,
         AssignPos: ptrOrNil[file.Position](assignPosI),
+        Position: pos(c),
     }, &corgierr.Error{
         Message: "attribute: missing value expression",
         ErrorAnnotation: anno(c, annotation{
@@ -358,12 +360,14 @@ singleLineSimpleValueAttribute <- nameI:attributeName ' '* assignPosI:POS noEsca
         NoEscape: noEscapeI != nil,
         AssignPos: ptrOrNil[file.Position](assignPosI),
         Value: ptrOrNil[file.Expression](exprI),
+        Position: pos(c),
     }, nil
 } / nameI:attributeName ' '* assignPosI:POS noEscapeI:'!'? '=' posI:POS {
     return file.SimpleAttribute{
         Name: concat(nameI),
         NoEscape: noEscapeI != nil,
         AssignPos: ptrOrNil[file.Position](assignPosI),
+        Position: pos(c),
     }, &corgierr.Error{
         Message: "attribute: missing value expression",
         ErrorAnnotation: anno(c, annotation{
