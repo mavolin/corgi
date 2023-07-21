@@ -801,7 +801,7 @@ singleLinearenExpressionArgs <- firstI:SingleLineGoExpression restI:(' '* ',' ' 
     return args, nil
 }
 
-TypeAssertionExpression <- ".(" packageI:(GoIdent '.')? typeI:GoIdent rParenPosI:R_PAREN checkI:'?'? {
+TypeAssertionExpression <- ".(" ' '* ptrsI:'*'* ' '* packageI:(GoIdent '.' ' '*)? typeI:GoIdent ' '* rParenPosI:R_PAREN checkI:'?'? {
     var packageIdent *file.GoIdent
     if packageI != nil {
         packageIdentVal := getTuple[file.GoIdent](packageI, 0)
@@ -809,6 +809,7 @@ TypeAssertionExpression <- ".(" packageI:(GoIdent '.')? typeI:GoIdent rParenPosI
     }
 
     return file.TypeAssertionExpression{
+        PointerCount: len(islice(ptrsI)),
         Package: packageIdent,
         Type: typeI.(file.GoIdent),
         RParenPos: rParenPosI.(file.Position),

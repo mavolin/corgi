@@ -86,9 +86,10 @@ var _ StringExpressionItem = StringExpressionText{}
 func (StringExpressionText) _typeStringExpressionItem() {}
 
 type StringExpressionInterpolation struct {
-	NoEscape        bool
-	FormatDirective string // a Sprintf formatting placeholder, w/o preceding '%'
-	Expression      Expression
+	NoEscape             bool
+	FormatDirective      string // a Sprintf formatting placeholder, w/o preceding '%'
+	Expression           Expression
+	LBracePos, RBracePos Position
 	Position
 }
 
@@ -211,9 +212,10 @@ func (ParenExpression) _typeChainExpressionItem() {}
 
 // TypeAssertionExpression represents a type assertion.
 type TypeAssertionExpression struct {
-	Package   *GoIdent
-	Type      GoIdent
-	RParenPos Position
+	PointerCount int
+	Package      *GoIdent
+	Type         GoIdent
+	RParenPos    Position
 
 	// Check indicates whether to check if the assertion was successful.
 	Check bool
