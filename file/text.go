@@ -143,6 +143,7 @@ func (MixinCallInterpolation) _typeInterpolation() {}
 
 type InterpolationValue interface {
 	_typeInterpolationValue()
+	Poser
 }
 
 // =============================== TextInterpolationValue ===============================
@@ -157,6 +158,8 @@ var _ InterpolationValue = TextInterpolationValue{}
 
 func (TextInterpolationValue) _typeInterpolationValue() {}
 
+func (interp TextInterpolationValue) Pos() Position { return interp.LBracketPos }
+
 // ============================ ExpressionInterpolationValue ============================
 
 type ExpressionInterpolationValue struct {
@@ -169,3 +172,5 @@ type ExpressionInterpolationValue struct {
 var _ InterpolationValue = ExpressionInterpolationValue{}
 
 func (ExpressionInterpolationValue) _typeInterpolationValue() {}
+
+func (interp ExpressionInterpolationValue) Pos() Position { return interp.LBracePos }
