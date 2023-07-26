@@ -10,6 +10,12 @@ type Stack[T any] struct {
 	l list.List[T]
 }
 
+func New1[T any](t T) Stack[T] {
+	var s Stack[T]
+	s.Push(t)
+	return s
+}
+
 // Push puts elem on top of the stack.
 func (s *Stack[T]) Push(elem T) {
 	s.l.PushBack(elem)
