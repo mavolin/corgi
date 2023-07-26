@@ -15,18 +15,68 @@ func (l *Linker) linkMixinCalls(f *file.File) errList {
 	var errs errList
 
 	fileutil.Walk(f.Scope, func(parents []fileutil.WalkContext, ctx fileutil.WalkContext) (dive bool, err error) {
-		_, ok := (*ctx.Item).(file.MixinCall)
-		if !ok {
-			return true, nil
+		var mcs []*file.MixinCall
+		switch itm := (*ctx.Item).(type) {
+		case file.MixinCall:
+			mc := ptrOfSliceElem[file.ScopeItem, file.MixinCall](ctx.Scope, ctx.Index)
+			mcs = []*file.MixinCall{mc}
+
+		case file.InlineText:
+			mcs = mixinCallsInText(itm.Text)
+		case file.ArrowBlock:
+			mcs = mixinCallsInText(itm.Lines...)
+
+		case file.Element:
+			mcs = mixinCallsInAttributeCollections(itm.Attributes)
+		case file.DivShorthand:
+			mcs = mixinCallsInAttributeCollections(itm.Attributes)
+		case file.And:
+			mcs = mixinCallsInAttributeCollections(itm.Attributes)
 		}
 
-		mc := ptrToSliceElem[file.ScopeItem, file.MixinCall](ctx.Scope, ctx.Index)
-		mcErrs := l.linkMixinCall(f, parents, ctx, mc)
-		errs.PushBackList(&mcErrs)
+		for _, mc := range mcs {
+			mcErrs := l.linkMixinCall(f, parents, ctx, mc)
+			errs.PushBackList(&mcErrs)
+		}
 		return true, err
 	})
 
 	return errs
+}
+
+func mixinCallsInText(lns ...file.TextLine) []*file.MixinCall {
+	var mcs []*file.MixinCall
+
+	for _, ln := range lns {
+		for txtItmI, txtItm := range ln {
+			_, ok := txtItm.(file.MixinCallInterpolation)
+			if ok {
+				mcs = append(mcs, &ptrOfSliceElem[file.TextItem, file.MixinCallInterpolation](ln, txtItmI).MixinCall)
+			}
+		}
+	}
+
+	return mcs
+}
+
+func mixinCallsInAttributeCollections(acolls []file.AttributeCollection) []*file.MixinCall {
+	var mcs []*file.MixinCall
+
+	for _, acoll := range acolls {
+		attrList, ok := acoll.(file.AttributeList)
+		if !ok {
+			continue
+		}
+
+		for attrI, attr := range attrList.Attributes {
+			_, ok := attr.(file.MixinCallAttribute)
+			if ok {
+				mcs = append(mcs, &ptrOfSliceElem[file.Attribute, file.MixinCallAttribute](attrList.Attributes, attrI).MixinCall)
+			}
+		}
+	}
+
+	return mcs
 }
 
 func (l *Linker) linkMixinCall(f *file.File, parents []fileutil.WalkContext, ctx fileutil.WalkContext, mc *file.MixinCall) errList {
@@ -197,7 +247,7 @@ func (l *Linker) linkScopeMixinCall(f *file.File, s file.Scope, mc *file.MixinCa
 			continue
 		}
 
-		mptr := ptrToSliceElem[file.ScopeItem, file.Mixin](s, i)
+		mptr := ptrOfSliceElem[file.ScopeItem, file.Mixin](s, i)
 
 		mc.Mixin = &file.LinkedMixin{
 			File:  f,
@@ -228,7 +278,7 @@ func (l *Linker) checkRecursion(f *file.File) errList {
 	fileutil.Walk(f.Scope, func(parents []fileutil.WalkContext, ctx fileutil.WalkContext) (dive bool, err error) {
 		_, ok := (*ctx.Item).(file.Mixin)
 		if ok {
-			recErrs := l._checkRecursion(f, ptrToSliceElem[file.ScopeItem, file.Mixin](ctx.Scope, ctx.Index))
+			recErrs := l._checkRecursion(f, ptrOfSliceElem[file.ScopeItem, file.Mixin](ctx.Scope, ctx.Index))
 			errs.PushBackList(&recErrs)
 			return false, nil
 		}

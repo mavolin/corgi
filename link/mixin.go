@@ -27,7 +27,7 @@ func (l *Linker) analyzeMixins(fs ...*file.File) errList {
 			}
 
 			// see mixin_call.go as to why this is necessary
-			m := ptrToSliceElem[file.ScopeItem, file.Mixin](ctx.Scope, ctx.Index)
+			m := ptrOfSliceElem[file.ScopeItem, file.Mixin](ctx.Scope, ctx.Index)
 
 			if abort := l.analyzeMixin(f, m); abort {
 				ms.PushBack(queuedMixin{f, m})

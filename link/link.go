@@ -165,24 +165,29 @@ func equalErr(a, b *corgierr.Error) bool {
 }
 
 // This looks worse than it actually is.
-// Basically we need a pointer to the mixin because we need to
-// analyze the mixin after linking the mixin calls.
-// However, s is a slice of interfaces, not file.Mixins.
-// So where we could just &s[i] for a slice s []file.Mixin to
-// obtain a ptr to the mixin, we can't do the same for s
-// since interface values can't be addressed: Something like
-// &(s[i].(file.Mixin)) isn't valid since interfaces
-// are supposed to be immutable.
+// Basically we need sometimes need pointers to elements in a slice
+// (more specifically pointers to mixins for linking).
+// This is fine, if the element to reference is a concrete type.
 //
-// Luckily, an interface contains a pointer to the type it
-// represents, which we can extract with a bit of pointer magic
-// in the lines below.
-// This gives us the address of the mixin in the slice, so that
-// when we later analyze and set the mixin's MixinInfo, this mixin
-// call's linked mixin also gets updated.
-func ptrToSliceElem[E any, T any](s []E, i int) *T {
-	return (*T)((*struct { // this is how Go stores an interface in memory
-		_   unsafe.Pointer
+// However, referencing the "concrete" element in a slice of interfaces is a
+// whole different story.
+//
+// So where we could just &s[i] for a slice s []file.Mixin to obtain a ptr to
+// the mixin, we can't do the same for s since interface values can't be
+// addressed:
+// Something like &(s[i].(file.Mixin)) isn't valid since interfaces are
+// supposed to be immutable.
+//
+// Luckily, the mem representation of an interface contains a pointer to the
+// type it represents, which we can extract with a bit of pointer magic in the
+// lines below.
+//
+// Also: ptrToX sounded to much like a conversion, so I chose ptrOf
+func ptrOfSliceElem[E any, T any](s []E, i int) *T {
+	eface := (*struct { // this is how Go stores an interface in memory
+		t   unsafe.Pointer
 		ptr unsafe.Pointer
-	})(unsafe.Pointer(&s[i])).ptr)
+	})(unsafe.Pointer(&s[i]))
+
+	return (*T)(eface.ptr)
 }
