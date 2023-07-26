@@ -16,7 +16,7 @@ htmlASCIIWhitespace    <- [\u0009\u000a\u000c\u000d\u0020]
 htmlC0Control          <- [\u0000-\u001f]
 htmlC0OrSpace          <- htmlC0Control / '\u0020'
 htmlControl            <- htmlC0Control / [\u007f-\u009f]
-htmlASCIIDigit         <- [\u0030\u0039]
+htmlASCIIDigit         <- [\u0030-\u0039]
 htmlASCIIUpperHexDigit <- htmlASCIIDigit / [\u0041-\u0046]
 htmlASCIILowerHexDigit <- htmlASCIIDigit / [\u0061-\u0066]
 htmlASCIIHexDigit      <- htmlASCIIUpperHexDigit / htmlASCIILowerHexDigit

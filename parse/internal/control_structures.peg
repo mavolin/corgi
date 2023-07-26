@@ -156,7 +156,7 @@ switchBody <- INDENT itms:(NEW_LNS? INDENTATION switchBodyItem)* DEDENT {
 
     var err error
     for _, tupleTuple := range tupleTuples {
-        tuple := islice(tupleTuple)[2]
+        tuple := getTuple[any](tupleTuple, -1)
 
         switchCase, ok := getTuple[file.Case](tuple, 0), getTuple[bool](tuple, -1)
         if switchCase.Expression != nil || !ok {

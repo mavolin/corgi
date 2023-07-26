@@ -28,6 +28,10 @@ type Library struct {
 	// FILES
 	//
 
+	// Files are the files this library consists of.
+	//
+	// If the library is precompiled, only Name, Module, ModulePath, and
+	// Imports will be set.
 	Files []*File
 
 	//
@@ -57,6 +61,8 @@ type LibDependency struct {
 type MixinDependency struct {
 	// Name is name of the mixin depended on.
 	Name string
+	// Var is the variable used by the depending mixins to call this mixin.
+	Var string
 	// RequiredBy are the names of the depending mixins.
 	RequiredBy []string
 }
@@ -69,6 +75,8 @@ type PrecompiledCode struct {
 type PrecompiledMixin struct {
 	// File is the file in which the mixin appears.
 	File *File
+
+	MachineComments []string
 	// Mixin is the mixin itself.
 	//
 	// Its body is empty.

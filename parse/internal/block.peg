@@ -70,31 +70,6 @@ BlockExpansion <- ':' sI:blockExpansionItem {
         Item: sI.(file.ScopeItem),
         Position: pos(c),
     }, nil
-} / ':' posI:POS sI:blockExpansionItem {
-    var fromThe string
-    switch sI.(type) {
-    case file.Block:
-        fromThe = "block"
-    case file.Element:
-        fromThe = "inline element"
-    case file.DivShorthand:
-        fromThe = "div shorthand"
-    case file.MixinCall:
-        fromThe = "mixin call"
-    default:
-        fromThe = "rest"
-    }
-
-    return file.BlockExpansion{
-        Item: sI.(file.ScopeItem),
-        Position: pos(c),
-    }, &corgierr.Error{
-        Message: "missing space",
-        ErrorAnnotation: anno(c, annotation{
-            Start: posI.(file.Position),
-            Annotation: "expected a space here, separating the `:` from the "+fromThe,
-        }),
-    }
 }
 
 blockExpansionItem <- InlineArrowBlock / spacedBlockExpansionItem / badBlockExpansion

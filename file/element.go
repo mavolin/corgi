@@ -139,7 +139,6 @@ type Attribute interface {
 type SimpleAttribute struct {
 	Name string
 
-	NoEscape  bool
 	AssignPos *Position // pos of '=' or '!='; nil for boolean attributes
 
 	Value *Expression // nil for boolean attributes
@@ -173,7 +172,6 @@ func (AndPlaceholder) _typeAttribute() {}
 type MixinCallAttribute struct {
 	Name string
 
-	NoEscape  bool
 	AssignPos Position
 
 	MixinCall MixinCall

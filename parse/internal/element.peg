@@ -331,18 +331,16 @@ attributeName <- (![()] htmlAttributeNameChar)+
 SimpleAttribute           <- simpleValueAttribute / simpleBooleanAttribute
 SingleLineSimpleAttribute <- singleLineSimpleValueAttribute / simpleBooleanAttribute
 
-simpleValueAttribute <- nameI:attributeName ' '* assignPosI:POS noEscapeI:'!'? '=' WS* posI:POS exprI:Expression {
+simpleValueAttribute <- nameI:attributeName ' '* assignPosI:POS '=' WS* posI:POS exprI:Expression {
     return file.SimpleAttribute{
         Name: concat(nameI),
-        NoEscape: noEscapeI != nil,
         AssignPos: ptr(assignPosI.(file.Position)),
         Value: ptrOrNil[file.Expression](exprI),
         Position: pos(c),
     }, nil
-} / nameI:attributeName ' '* assignPosI:POS noEscapeI:'!'? '=' posI:POS {
+} / nameI:attributeName ' '* assignPosI:POS '=' posI:POS {
     return file.SimpleAttribute{
         Name: concat(nameI),
-        NoEscape: noEscapeI != nil,
         AssignPos: ptrOrNil[file.Position](assignPosI),
         Position: pos(c),
     }, &corgierr.Error{
@@ -354,18 +352,16 @@ simpleValueAttribute <- nameI:attributeName ' '* assignPosI:POS noEscapeI:'!'? '
     }
 }
 
-singleLineSimpleValueAttribute <- nameI:attributeName ' '* assignPosI:POS noEscapeI:'!'? '=' ' '* exprI:Expression {
+singleLineSimpleValueAttribute <- nameI:attributeName ' '* assignPosI:POS '=' ' '* exprI:Expression {
     return file.SimpleAttribute{
         Name: concat(nameI),
-        NoEscape: noEscapeI != nil,
         AssignPos: ptrOrNil[file.Position](assignPosI),
         Value: ptrOrNil[file.Expression](exprI),
         Position: pos(c),
     }, nil
-} / nameI:attributeName ' '* assignPosI:POS noEscapeI:'!'? '=' posI:POS {
+} / nameI:attributeName ' '* assignPosI:POS '=' posI:POS {
     return file.SimpleAttribute{
         Name: concat(nameI),
-        NoEscape: noEscapeI != nil,
         AssignPos: ptrOrNil[file.Position](assignPosI),
         Position: pos(c),
     }, &corgierr.Error{
@@ -396,22 +392,20 @@ AndPlaceholder <- "&&" &(WS / ',' / ')') {
 // MixinCallAttribute
 //
 
-MixinCallAttribute <- nameI:attributeName ' '* assignPosI:POS noEscapeI:'!'? '=' WS* callI:mixinCallAttributeCall {
+MixinCallAttribute <- nameI:attributeName ' '* assignPosI:POS '=' WS* callI:mixinCallAttributeCall {
     call := callI.(file.MixinCallAttribute)
     return file.MixinCallAttribute{
         Name: concat(nameI),
-        NoEscape: noEscapeI != nil,
         AssignPos: assignPosI.(file.Position),
         MixinCall: call.MixinCall,
         Value: call.Value,
         Position: pos(c),
     }, nil
 }
-SingleLineMixinCallAttribute <- nameI:attributeName ' '* assignPosI:POS noEscapeI:'!'? '=' ' '* callI:singleLineMixinCallAttributeCall {
+SingleLineMixinCallAttribute <- nameI:attributeName ' '* assignPosI:POS '=' ' '* callI:singleLineMixinCallAttributeCall {
     call := callI.(file.MixinCallAttribute)
     return file.MixinCallAttribute{
         Name: concat(nameI),
-        NoEscape: noEscapeI != nil,
         AssignPos: assignPosI.(file.Position),
         MixinCall: call.MixinCall,
         Value: call.Value,

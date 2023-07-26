@@ -1,4 +1,6 @@
-spacedDirPath <- ' '+ String / pathI:NOT_EOL* {
+spacedDirPath <- ' '+ sI:String {
+    return sI, nil
+} / ' '* pathI:NOT_EOL* {
     return file.String{Position: pos(c)}, &corgierr.Error{
         Message: "invalid path",
         ErrorAnnotation: anno(c, annotation{

@@ -307,10 +307,12 @@ INDENTATION <- (_* { return nil, nil }) &{
             expectCount := c.state["Indentation.TotalRepetitions"].(int)
             if actualCount == expectCount {
                 return true, nil
+            } else if actualCount < expectCount {
+                return false, nil
             }
             
             panic(&corgierr.Error{
-                Message: "unexpected increase or decrease of indentation",
+                Message: "unexpected increase of indentation",
                 ErrorAnnotation: anno(c, annotation{
                     ContextStartDelta: -1,
                     Start: file.Position{Line: c.pos.line, Col: 1},

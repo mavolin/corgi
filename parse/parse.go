@@ -94,8 +94,8 @@ func parserErrorToCorgiError(lines []string, perr *internal.ParserError) *corgie
 	matches := parserErrorRegexp.FindStringSubmatch(perr.Error())
 	const ( // indexes of groups
 		_ = iota // all text
-		col
 		line
+		col
 		_ // offset
 		msg
 	)
@@ -128,6 +128,11 @@ func parserErrorToCorgiError(lines []string, perr *internal.ParserError) *corgie
 				Lines:        []string{""},
 			},
 		}
+	}
+
+	if colNum == 0 {
+		lineNum--
+		colNum = len(lines[lineNum-1]) + 1
 	}
 
 	return &corgierr.Error{

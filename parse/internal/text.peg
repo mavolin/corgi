@@ -2,15 +2,13 @@
 // Assign
 // ======================================================================================
 
-Assign <- noEscapeI:'!'? '=' ' '+ exprI:Expression unexpectedTokens? EOL {
+Assign <- '=' ' '+ exprI:Expression unexpectedTokens? EOL {
     return file.Assign{
         Expression: exprI.(file.Expression),
-        NoEscape: noEscapeI != nil,
         Position: pos(c),
     }, nil
-} / noEscapeI:'!'? '=' posI:POS EOL {
+} / '=' posI:POS EOL {
     return file.Assign{
-        NoEscape: noEscapeI != nil,
         Position: pos(c),
     }, &corgierr.Error{
         Message: "missing expression",
@@ -137,10 +135,14 @@ BadInterpolation <- '#' {
 // SimpleInterpolation
 // ======================================================================================
 
-SimpleInterpolation <- '#' noEscapeI:'!'?
-    valueI:(textInterpolationValue / expressionInterpolationValue / fmtExpressionInterpolationValue) {
+SimpleInterpolation <- '#' noEscapeI:'!'? valueI:textInterpolationValue {
     return file.SimpleInterpolation{
         NoEscape: noEscapeI != nil,
+        Value: valueI.(file.InterpolationValue),
+        Position: pos(c),
+    }, nil
+} / '#' valueI:(expressionInterpolationValue / fmtExpressionInterpolationValue) {
+    return file.SimpleInterpolation{
         Value: valueI.(file.InterpolationValue),
         Position: pos(c),
     }, nil
@@ -150,13 +152,12 @@ SimpleInterpolation <- '#' noEscapeI:'!'?
 // ElementInterpolation
 // ======================================================================================
 
-ElementInterpolation <- '#' noEscapeI:'!'? elPosI:POS nameI:htmlTagName attrsI:SingleLineAttributeCollection* valueI:elementInterpolationValue {
+ElementInterpolation <- '#' elPosI:POS nameI:htmlTagName attrsI:SingleLineAttributeCollection* valueI:elementInterpolationValue? {
     return file.ElementInterpolation{
-        NoEscape: noEscapeI != nil,
         Element: file.Element{
             Name: concat(nameI),
             Attributes: typedSlice[file.AttributeCollection](attrsI),
-            Void: valueI == nil,
+            Void: castedOrZero[bool](valueI),
             Position: elPosI.(file.Position),
         },
         Value: castedOrZero[file.InterpolationValue](valueI),
@@ -165,33 +166,16 @@ ElementInterpolation <- '#' noEscapeI:'!'? elPosI:POS nameI:htmlTagName attrsI:S
 }
 
 elementInterpolationValue <- textInterpolationValue / expressionInterpolationValue / '/' {
-    return nil, nil
-} / &(. / !.) {
-    return nil, &corgierr.Error{
-        Message: "missing interpolation value",
-        ErrorAnnotation: anno(c, annotation{
-            Start: pos(c),
-            Annotation: "here",
-        }),
-        Suggestions: []corgierr.Suggestion{
-            {
-                Suggestion: "write a text or expression interpolation",
-                Example: "`#strong{1+1}` or `#strong[woof]`",
-            },
-            {Suggestion: "write a void indicator, to indicate this is a void element", Example: "`#img(src=\"woof\")/`"},
-            {Suggestion: "if you didn't mean to start an interpolation, escape the `#`", Code: "`##`"},
-        },
-    }
+    return true, nil // hacky, but whatev
 }
 
 // ============================================================================
-// mixinCallInterpolation
+// MixinCallInterpolation
 // ======================================================================================
 
-MixinCallInterpolation <- '#' noEscapeI:'!' mcPosI:POS '+' namespaceI:(Ident '.')? nameI:MustIdent argsI:singleLineMixinArgList? valueI:mixinCallInterpolationValue {
+MixinCallInterpolation <- '#' mcPosI:POS '+' namespaceI:(Ident '.')? nameI:MustIdent argsI:singleLineMixinArgList? valueI:mixinCallInterpolationValue? {
     args := castedOrZero[file.MixinCall](argsI)
     return file.MixinCallInterpolation{
-        NoEscape: noEscapeI != nil,
         MixinCall: file.MixinCall{
             Name: nameI.(file.Ident),
             LParenPos: args.LParenPos,
@@ -204,22 +188,7 @@ MixinCallInterpolation <- '#' noEscapeI:'!' mcPosI:POS '+' namespaceI:(Ident '.'
     }, nil
 }
 
-mixinCallInterpolationValue <- textInterpolationValue / expressionInterpolationValue / &(. / !.) {
-    return nil, &corgierr.Error{
-        Message: "missing interpolation value",
-        ErrorAnnotation: anno(c, annotation{
-            Start: pos(c),
-            Annotation: "here",
-        }),
-        Suggestions: []corgierr.Suggestion{
-            {
-                Suggestion: "write a text or expression interpolation",
-                Example: "`#+woof(bark=\"loud\"){1+1}` or `#+woof(bark=\"loud\")[woof]`",
-            },
-            {Suggestion: "if you didn't mean to start an interpolation, escape the `#`", Code: "`##`"},
-        },
-    }
-}
+mixinCallInterpolationValue <- textInterpolationValue / expressionInterpolationValue
 
 // ============================================================================
 // InterpolationValue

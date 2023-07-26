@@ -86,7 +86,6 @@ var _ StringExpressionItem = StringExpressionText{}
 func (StringExpressionText) _typeStringExpressionItem() {}
 
 type StringExpressionInterpolation struct {
-	NoEscape             bool
 	FormatDirective      string // a Sprintf formatting placeholder, w/o preceding '%'
 	Expression           Expression
 	LBracePos, RBracePos Position

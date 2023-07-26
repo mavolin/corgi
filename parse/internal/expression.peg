@@ -317,18 +317,16 @@ RawStringExpressionText <- ("##" / !'#' goRawStringUnicodeChar)+ {
     }, nil
 }
 
-StringExpressionInterpolation <- '#' noEscapeI:'!'? fmtDirectiveI:fmtDirective? lBracePosI:L_BRACE exprI:SingleLineExpression rBracePosI:R_BRACE {
+StringExpressionInterpolation <- '#' fmtDirectiveI:fmtDirective? lBracePosI:L_BRACE exprI:SingleLineExpression rBracePosI:R_BRACE {
     return file.StringExpressionInterpolation{
-        NoEscape: noEscapeI != nil,
         FormatDirective: castedOrZero[string](fmtDirectiveI),
         Expression: exprI.(file.Expression),
         LBracePos: lBracePosI.(file.Position),
         RBracePos: rBracePosI.(file.Position),
         Position: pos(c),
     }, nil
-} / '#' noEscapeI:'!' fmtDirectiveI:fmtDirective? parenPosI:POS {
+} / '#' fmtDirectiveI:fmtDirective? parenPosI:POS {
     return file.StringExpressionInterpolation{
-        NoEscape: noEscapeI != nil,
         FormatDirective: castedOrZero[string](fmtDirectiveI),
         Position: pos(c),
     }, &corgierr.Error{
@@ -354,9 +352,8 @@ StringExpressionInterpolation <- '#' noEscapeI:'!'? fmtDirectiveI:fmtDirective? 
             },
         },
     }
-} / '#' noEscapeI:'!' fmtDirectiveI:fmtDirective? parenPosI:POS lBracePosI:L_BRACE startPosI:POS exprI:SingleLineExpression {
+} / '#' fmtDirectiveI:fmtDirective? parenPosI:POS lBracePosI:L_BRACE startPosI:POS exprI:SingleLineExpression {
     return file.StringExpressionInterpolation{
-        NoEscape: noEscapeI != nil,
         FormatDirective: castedOrZero[string](fmtDirectiveI),
         Expression: exprI.(file.Expression),
         LBracePos: lBracePosI.(file.Position),
@@ -554,7 +551,7 @@ SingleLineTernaryExpression <- "?(" ' '* conditionI:SingleLineGoExpression ' '* 
 
 ChainExpression <- derefsI:'*'* rootI:chainExpressionRoot checkRootI:'?'? chainI:ChainExpressionItem*
                    defaultI:(' '* defaultPosI:POS '~' WS* GoExpression)? endPosI:POS &(EOL / ' '* expressionTerminator) &{
-    return checkRootI != nil || len(islice(chainI)) > 0 || defaultI != nil, nil
+    return checkRootI != nil || chainExprItmsCheck(typedSlice[file.ChainExpressionItem](chainI)) || defaultI != nil, nil
 } {
     expr := file.ChainExpression{
         Root: rootI.(file.GoExpression),
@@ -572,7 +569,7 @@ ChainExpression <- derefsI:'*'* rootI:chainExpressionRoot checkRootI:'?'? chainI
 
     return expr, nil
 } / startPosI:POS derefsI:'*'* rootI:chainExpressionRoot checkRootI:'?'? chainI:ChainExpressionItem* endPosI:POS &{
-    return checkRootI != nil || len(islice(chainI)) > 0, nil
+    return checkRootI != nil || chainExprItmsCheck(typedSlice[file.ChainExpressionItem](chainI)), nil
 } malStartPosI:POS GoExpression malEndPosI:POS {
     expr := file.ChainExpression{
         Root: rootI.(file.GoExpression),

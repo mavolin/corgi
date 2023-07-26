@@ -6,7 +6,6 @@ package file
 
 type Assign struct {
 	Expression Expression
-	NoEscape   bool
 	Position
 }
 
@@ -104,9 +103,8 @@ func (SimpleInterpolation) _typeTextItem()      {}
 // ================================ ElementInterpolation ================================
 
 type ElementInterpolation struct {
-	NoEscape bool
-	Element  Element
-	Value    InterpolationValue // nil for void elems
+	Element Element
+	Value   InterpolationValue // nil for void elems
 
 	Position
 }
@@ -122,9 +120,8 @@ func (ElementInterpolation) _typeInterpolation() {}
 // ================================= MixinCallInterpolation =================================
 
 type MixinCallInterpolation struct {
-	NoEscape  bool
 	MixinCall MixinCall
-	Value     InterpolationValue
+	Value     InterpolationValue // may be nil
 
 	Position
 }

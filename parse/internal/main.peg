@@ -160,15 +160,15 @@ Scope <- itemsI:(NEW_LNS? INDENTATION scopeItem)+ {
 }
 
 scopeItem <- (
-    Block / Prepend / Append /   // block.peg
-    Code /                       // code.peg
-    If / IfBlock / Switch /      // control_structures.peg
-    CorgiComment /               // corgi.peg
-    HTMLComment / And /          // element.peg, excl. Element, which is last
-    Filter /                     // filter.peg
-    Include /                    // include.peg
-    Mixin / Return / MixinCall / // include.peg
-    Assign / ArrowBlock /        // text.peg
+    Block / Prepend / Append /    // block.peg
+    Code /                        // code.peg
+    If / IfBlock / Switch / For / // control_structures.peg
+    CorgiComment /                // corgi.peg
+    HTMLComment / And /           // element.peg, excl. Element, which is last
+    Filter /                      // filter.peg
+    Include /                     // include.peg
+    Mixin / Return / MixinCall /  // include.peg
+    Assign / ArrowBlock /         // text.peg
 
     scopeDoctype /
     DivShorthand / Element /     // needs to come last

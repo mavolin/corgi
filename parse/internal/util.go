@@ -205,3 +205,28 @@ func combineExpressions(exprsI any) (file.Expression, error) {
 
 	return file.Expression{Expressions: exprs}, nil
 }
+
+func chainExprItmsCheck(itms []file.ChainExpressionItem) bool {
+	for _, itm := range itms {
+		switch itm := itm.(type) {
+		case file.IndexExpression:
+			if itm.CheckValue || itm.CheckIndex {
+				return true
+			}
+		case file.DotIdentExpression:
+			if itm.Check {
+				return true
+			}
+		case file.ParenExpression:
+			if itm.Check {
+				return true
+			}
+		case file.TypeAssertionExpression:
+			if itm.Check {
+				return true
+			}
+		}
+	}
+
+	return false
+}

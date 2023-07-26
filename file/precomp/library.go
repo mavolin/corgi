@@ -85,7 +85,9 @@ func (l *library) toFile() *cfile.Library {
 }
 
 type file struct {
-	Name string
+	Name       string
+	Module     string
+	ModulePath string
 
 	Imports []_import
 }
@@ -100,7 +102,12 @@ func newFile(f *cfile.File) *file {
 		imp := imp
 		imports[i] = *newImport(&imp)
 	}
-	return &file{Name: f.Name, Imports: imports}
+	return &file{
+		Name:       f.Name,
+		Module:     f.Module,
+		ModulePath: f.ModulePath,
+		Imports:    imports,
+	}
 }
 
 func (f *file) toFile() *cfile.File {
@@ -112,7 +119,12 @@ func (f *file) toFile() *cfile.File {
 	for i, imp := range f.Imports {
 		imports[i] = *imp.toFile()
 	}
-	return &cfile.File{Name: f.Name, Imports: imports}
+	return &cfile.File{
+		Name:       f.Name,
+		Module:     f.Module,
+		ModulePath: f.ModulePath,
+		Imports:    imports,
+	}
 }
 
 type _import struct {
@@ -239,6 +251,8 @@ func (c *code) toFile() *cfile.PrecompiledCode {
 type mixin struct {
 	FileIndex int
 
+	MachineComments []string
+
 	Name corgiIdent
 
 	LParenPos *position
@@ -287,6 +301,7 @@ func newMixin(fs []*cfile.File, m *cfile.PrecompiledMixin) (*mixin, error) {
 
 	return &mixin{
 		FileIndex:                fileIndex,
+		MachineComments:          m.MachineComments,
 		Name:                     *newCorgiIdent(&m.Mixin.Name),
 		LParenPos:                newPosition(m.Mixin.LParenPos),
 		Params:                   params,
@@ -316,7 +331,8 @@ func (m *mixin) toFile(fs []*cfile.File) *cfile.PrecompiledMixin {
 		blocks[i] = *eItm.toFile()
 	}
 	return &cfile.PrecompiledMixin{
-		File: fs[m.FileIndex],
+		File:            fs[m.FileIndex],
+		MachineComments: m.MachineComments,
 		Mixin: cfile.Mixin{
 			Name:      *m.Name.toFile(),
 			LParenPos: m.LParenPos.toFile(),
@@ -544,7 +560,6 @@ func (itm *expressionItem) toFile() cfile.ExpressionItem {
 type stringExpressionItem struct {
 	Text string `msg:",omitempty"`
 
-	NoEscape        bool       `msg:",omitempty"`
 	FormatDirective string     `msg:",omitempty"`
 	Expression      expression `msg:",omitempty"`
 
@@ -565,7 +580,6 @@ func newStringExpressionItem(itm cfile.StringExpressionItem) (*stringExpressionI
 			return nil, err
 		}
 		return &stringExpressionItem{
-			NoEscape:        itm.NoEscape,
 			FormatDirective: itm.FormatDirective,
 			Expression:      *expr,
 			Position:        *newPosition(&itm.Position),
@@ -582,7 +596,6 @@ func (itm *stringExpressionItem) toFile() cfile.StringExpressionItem {
 
 	if len(itm.Expression.Expressions) > 0 {
 		return cfile.StringExpressionInterpolation{
-			NoEscape:        itm.NoEscape,
 			FormatDirective: itm.FormatDirective,
 			Expression:      *itm.Expression.toFile(),
 			Position:        *itm.Position.toFile(),
