@@ -168,7 +168,7 @@ scopeItem <- (
     Filter /                      // filter.peg
     Include /                     // include.peg
     Mixin / Return / MixinCall /  // include.peg
-    Assign / ArrowBlock /         // text.peg
+    ArrowBlock /                  // text.peg
 
     scopeDoctype /
     DivShorthand / Element /     // needs to come last
@@ -201,7 +201,7 @@ Body <- INDENT scopeI:Scope DEDENT {
     return scopeI, nil
 }
 
-Beaitb <- scopeItemI:(BlockExpansion / Assign / InlineText) {
+Beaitb <- scopeItemI:(BlockExpansion / InlineText) {
         return file.Scope{scopeItemI.(file.ScopeItem)}, nil
 } / EOL bodyI:Body {
     return bodyI, nil
@@ -222,7 +222,7 @@ Beaitb <- scopeItemI:(BlockExpansion / Assign / InlineText) {
     }
 }
 
-Beait <- scopeItemI:(BlockExpansion / Assign / InlineText) {
+Beait <- scopeItemI:(BlockExpansion / InlineText) {
     return file.Scope{scopeItemI.(file.ScopeItem)}, nil
 } / EOL {
     return file.Scope(nil), nil

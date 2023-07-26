@@ -626,15 +626,6 @@ func _attributePlacement(f *file.File, elAnno corgierr.Annotation, firstText *co
 				})
 				firstText = &a
 			}
-		case file.Assign:
-			if firstText == nil {
-				a := anno.Anno(f, anno.Annotation{
-					Start:      itm.Position,
-					ToEOL:      true,
-					Annotation: "you wrote an assign here",
-				})
-				firstText = &a
-			}
 		case file.InlineText:
 			if firstText == nil {
 				a := anno.Anno(f, anno.Annotation{
@@ -980,14 +971,6 @@ func _firstTextAnno(f *file.File, s file.Scope) *corgierr.Annotation {
 				Start:      itm.Position,
 				ToEOL:      true,
 				Annotation: "you wrote an arrow block here",
-			})
-			firstText = &a
-			return false, fileutil.StopWalk
-		case file.Assign:
-			a := anno.Anno(f, anno.Annotation{
-				Start:      itm.Position,
-				ToEOL:      true,
-				Annotation: "you wrote an assign here",
 			})
 			firstText = &a
 			return false, fileutil.StopWalk

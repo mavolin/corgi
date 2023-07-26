@@ -1,27 +1,4 @@
 // ============================================================================
-// Assign
-// ======================================================================================
-
-Assign <- '=' ' '+ exprI:Expression unexpectedTokens? EOL {
-    return file.Assign{
-        Expression: exprI.(file.Expression),
-        Position: pos(c),
-    }, nil
-} / '=' posI:POS EOL {
-    return file.Assign{
-        Position: pos(c),
-    }, &corgierr.Error{
-        Message: "missing expression",
-        ErrorAnnotation: anno(c, annotation{
-            Start: posI.(file.Position),
-            StartOffset: 1,
-            Annotation: "expected an expression here",
-        }),
-        Example: "`= 1 + 2`",
-    }
-}
-
-// ============================================================================
 // Inline Text
 // ======================================================================================
 
