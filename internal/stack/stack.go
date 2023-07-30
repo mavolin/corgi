@@ -10,10 +10,10 @@ type Stack[T any] struct {
 	l list.List[T]
 }
 
-func New1[T any](t T) Stack[T] {
+func New1[T any](t T) *Stack[T] {
 	var s Stack[T]
 	s.Push(t)
-	return s
+	return &s
 }
 
 // Push puts elem on top of the stack.
@@ -25,9 +25,7 @@ func (s *Stack[T]) Push(elem T) {
 //
 // If the stack is of length 0, Pop will panic.
 func (s *Stack[T]) Pop() T {
-	back := s.l.Back()
-	defer s.l.Remove(back)
-	return back.V()
+	return s.l.Remove(s.l.Back())
 }
 
 // Swap swaps the top-most element for elem, returning the element previously
