@@ -9,15 +9,15 @@ import (
 	"github.com/mavolin/corgi/internal/anno"
 )
 
-func topLevelAttribute(f *file.File) errList {
+func topLevelAttribute(f *file.File) *errList {
 	if f.Extend != nil || (f.Type != file.TypeMain && f.Type != file.TypeTemplate && f.Type != file.TypeLibraryFile) {
-		return errList{}
+		return &errList{}
 	}
 
 	return _topLevelAttributes(f, f.Scope)
 }
 
-func _topLevelAttributes(f *file.File, s file.Scope) errList {
+func _topLevelAttributes(f *file.File, s file.Scope) *errList {
 	var errs errList
 
 	fileutil.Walk(s, func(parents []fileutil.WalkContext, ctx fileutil.WalkContext) (dive bool, err error) {
@@ -113,7 +113,7 @@ func _topLevelAttributes(f *file.File, s file.Scope) errList {
 						if ublock.Name == "_" {
 							blockErrs := _topLevelAttributes(f, sh.Body)
 							if blockErrs.Len() > 0 {
-								errs.PushBackList(&blockErrs)
+								errs.PushBackList(blockErrs)
 								return false, nil // only report one err per mixin
 							}
 
@@ -138,7 +138,7 @@ func _topLevelAttributes(f *file.File, s file.Scope) errList {
 					if block.Name.Ident == ublock.Name {
 						blockErrs := _topLevelAttributes(f, block.Body)
 						if blockErrs.Len() > 0 {
-							errs.PushBackList(&blockErrs)
+							errs.PushBackList(blockErrs)
 							return false, nil // only report one err per mixin
 						}
 
@@ -201,12 +201,12 @@ func _topLevelAttributes(f *file.File, s file.Scope) errList {
 			return false, nil
 		}
 	})
-	return errs
+	return &errs
 }
 
-func topLevelTemplateBlockAnds(f *file.File) errList {
+func topLevelTemplateBlockAnds(f *file.File) *errList {
 	if f.Extend == nil {
-		return errList{}
+		return &errList{}
 	}
 
 	var errs errList
@@ -218,14 +218,14 @@ func topLevelTemplateBlockAnds(f *file.File) errList {
 		}
 
 		blockErrs := _topLevelTemplateBlockAnds(f, block.Body)
-		errs.PushBackList(&blockErrs)
+		errs.PushBackList(blockErrs)
 		return false, nil
 	})
 
-	return errs
+	return &errs
 }
 
-func _topLevelTemplateBlockAnds(f *file.File, s file.Scope) errList {
+func _topLevelTemplateBlockAnds(f *file.File, s file.Scope) *errList {
 	var errs errList
 
 	fileutil.Walk(s, func(parents []fileutil.WalkContext, ctx fileutil.WalkContext) (dive bool, err error) {
@@ -318,7 +318,7 @@ func _topLevelTemplateBlockAnds(f *file.File, s file.Scope) errList {
 						if ublock.Name == "_" {
 							blockErrs := _topLevelAttributes(f, sh.Body)
 							if blockErrs.Len() > 0 {
-								errs.PushBackList(&blockErrs)
+								errs.PushBackList(blockErrs)
 								return false, nil // only report one err per mixin
 							}
 
@@ -343,7 +343,7 @@ func _topLevelTemplateBlockAnds(f *file.File, s file.Scope) errList {
 					if block.Name.Ident == ublock.Name {
 						blockErrs := _topLevelAttributes(f, block.Body)
 						if blockErrs.Len() > 0 {
-							errs.PushBackList(&blockErrs)
+							errs.PushBackList(blockErrs)
 							return false, nil // only report one err per mixin
 						}
 
@@ -406,7 +406,7 @@ func _topLevelTemplateBlockAnds(f *file.File, s file.Scope) errList {
 			return false, nil
 		}
 	})
-	return errs
+	return &errs
 }
 
 // attributePlacement checks that & directives and `html.Attr` calls are placed
@@ -423,7 +423,7 @@ func _topLevelTemplateBlockAnds(f *file.File, s file.Scope) errList {
 //     their placeholder
 //   - attrs may be placed after mixin calls, if neither the mixin nor its
 //     blocks write to the element's body
-func attributePlacement(f *file.File) errList {
+func attributePlacement(f *file.File) *errList {
 	var errs errList
 
 	fileutil.Walk(f.Scope, func(parents []fileutil.WalkContext, ctx fileutil.WalkContext) (dive bool, err error) {
@@ -461,7 +461,7 @@ func attributePlacement(f *file.File) errList {
 		return true, nil
 	})
 
-	return errs
+	return &errs
 }
 
 func _attributePlacement(f *file.File, elAnno corgierr.Annotation, firstText *corgierr.Annotation, scope file.Scope) (*corgierr.Annotation, errList) {
@@ -703,7 +703,7 @@ func _attributePlacement(f *file.File, elAnno corgierr.Annotation, firstText *co
 			annoLen += len(itm.Name.Ident)
 
 			mixinErrs := _mixinCallAndPlacement(f, itm, elAnno, firstText)
-			errs.PushBackList(&mixinErrs)
+			errs.PushBackList(mixinErrs)
 
 			mcFirstText := _mixinCallFirstTextAnno(f, itm)
 			if mcFirstText != nil {
@@ -719,11 +719,11 @@ func _attributePlacement(f *file.File, elAnno corgierr.Annotation, firstText *co
 // _mixinCallAndPlacement checks whether the mixin call can be placed, or if it
 // attempts to write attributes to the element containing it, even though the
 // elements body has already been written.
-func _mixinCallAndPlacement(f *file.File, mc file.MixinCall, elAnno corgierr.Annotation, firstText *corgierr.Annotation) errList {
+func _mixinCallAndPlacement(f *file.File, mc file.MixinCall, elAnno corgierr.Annotation, firstText *corgierr.Annotation) *errList {
 	var errs errList
 
 	if firstText == nil {
-		return errList{}
+		return &errList{}
 	}
 
 	annoLen := len("+")
@@ -747,7 +747,7 @@ func _mixinCallAndPlacement(f *file.File, mc file.MixinCall, elAnno corgierr.Ann
 				},
 			},
 		})
-		return errs // only one attr err per mixin call
+		return &errs // only one attr err per mixin call
 	}
 
 	andPos := mixinCallAttrPos(mc)
@@ -772,7 +772,7 @@ func _mixinCallAndPlacement(f *file.File, mc file.MixinCall, elAnno corgierr.Ann
 				},
 			},
 		})
-		return errs // only one attr err per mixin call
+		return &errs // only one attr err per mixin call
 	}
 
 	unfilledBlocks := make([]file.MixinBlockInfo, 0, len(mc.Mixin.Mixin.Blocks))
@@ -788,8 +788,8 @@ func _mixinCallAndPlacement(f *file.File, mc file.MixinCall, elAnno corgierr.Ann
 				if ublock.Name == "_" {
 					blockErrs := _topLevelAttributes(f, sh.Body)
 					if blockErrs.Len() > 0 {
-						errs.PushBackList(&blockErrs)
-						return errs // only report one err per mixin
+						errs.PushBackList(blockErrs)
+						return &errs // only report one err per mixin
 					}
 
 					copy(unfilledBlocks[i:], unfilledBlocks[i+1:])
@@ -813,8 +813,8 @@ body:
 			if block.Name.Ident == ublock.Name {
 				blockErrs := _topLevelAttributes(f, block.Body)
 				if blockErrs.Len() > 0 {
-					errs.PushBackList(&blockErrs)
-					return errs // only report one err per mixin
+					errs.PushBackList(blockErrs)
+					return &errs // only report one err per mixin
 				}
 
 				copy(unfilledBlocks[i:], unfilledBlocks[i+1:])
@@ -851,7 +851,7 @@ handleUnfilledBlocks:
 					},
 				},
 			})
-			return errs // only one attr err per mixin call
+			return &errs // only one attr err per mixin call
 		} else if ublock.DefaultWritesTopLevelAttributes {
 			errs.PushBack(&corgierr.Error{
 				Message: "top-level `&` in top-level block default",
@@ -874,7 +874,7 @@ handleUnfilledBlocks:
 		}
 	}
 
-	return errs
+	return &errs
 }
 
 // _mixinCallFirstTextAnno returns the first text annotation for the passed

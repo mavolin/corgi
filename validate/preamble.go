@@ -10,7 +10,7 @@ import (
 	"github.com/mavolin/corgi/internal/anno"
 )
 
-func duplicateImports(f *file.File) errList {
+func duplicateImports(f *file.File) *errList {
 	var errs errList
 
 	cmps := make(map[string] /* namespace */ file.ImportSpec)
@@ -87,7 +87,7 @@ func duplicateImports(f *file.File) errList {
 		}
 	}
 
-	return errs
+	return &errs
 }
 
 type importNamespace struct {
@@ -95,7 +95,7 @@ type importNamespace struct {
 	file *file.File
 }
 
-func importNamespaces(cmps map[string]importNamespace, f *file.File) errList {
+func importNamespaces(cmps map[string]importNamespace, f *file.File) *errList {
 	var errs errList
 
 	for _, imp := range f.Imports {
@@ -209,10 +209,10 @@ func importNamespaces(cmps map[string]importNamespace, f *file.File) errList {
 		}
 	}
 
-	return errs
+	return &errs
 }
 
-func unusedUses(f *file.File) errList {
+func unusedUses(f *file.File) *errList {
 	var n int
 	for _, use := range f.Uses {
 		n += len(use.Uses)
@@ -239,7 +239,7 @@ func unusedUses(f *file.File) errList {
 	unusedSpecs:
 		for i, spec := range unusedSpecs {
 			for _, specFile := range spec.Library.Files {
-				if mc.Mixin.File.Module+mc.Mixin.File.ModulePath == specFile.Module+specFile.ModulePath {
+				if mc.Mixin.File.Module+mc.Mixin.File.PathInModule == specFile.Module+specFile.PathInModule {
 					copy(unusedSpecs[i:], unusedSpecs[i+1:])
 					unusedSpecs = unusedSpecs[:len(unusedSpecs)-1]
 					break unusedSpecs
@@ -255,7 +255,7 @@ func unusedUses(f *file.File) errList {
 	})
 
 	if len(unusedSpecs) == 0 {
-		return errList{}
+		return &errList{}
 	}
 
 	var errs errList
@@ -277,5 +277,5 @@ func unusedUses(f *file.File) errList {
 		})
 	}
 
-	return errs
+	return &errs
 }

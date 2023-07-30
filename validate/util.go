@@ -22,7 +22,7 @@ func _mixinCallAttrPos(s file.Scope) (pos file.Position) {
 			pos = itm.Position
 			return false, fileutil.StopWalk
 		case file.MixinCall:
-			if itm.Mixin.File.Module == "" && itm.Mixin.File.ModulePath == "html" && itm.Name.Ident == "Attr" {
+			if itm.Mixin.File.Module == "" && itm.Mixin.File.PathInModule == "html" && itm.Name.Ident == "Attr" {
 				pos = itm.Position
 				return false, fileutil.StopWalk
 			}

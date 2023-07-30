@@ -9,7 +9,7 @@ import (
 	"github.com/mavolin/corgi/internal/stack"
 )
 
-func mixinChecks(f *file.File) errList {
+func mixinChecks(f *file.File) *errList {
 	var errs errList
 
 	fileutil.Walk(f.Scope, func(parents []fileutil.WalkContext, ctx fileutil.WalkContext) (dive bool, err error) {
@@ -18,17 +18,17 @@ func mixinChecks(f *file.File) errList {
 			return true, nil
 		}
 
-		errs.PushBackList(ptr(_mixinParamsHaveType(f, m)))
-		errs.PushBackList(ptr(_duplicateMixinParams(f, m)))
+		errs.PushBackList(_mixinParamsHaveType(f, m))
+		errs.PushBackList(_duplicateMixinParams(f, m))
 
 		return true, nil
 	})
 
-	return errs
+	return &errs
 }
 
 // no mixins may be declared in other mixin declarations.
-func mixinsInMixins(f *file.File) errList {
+func mixinsInMixins(f *file.File) *errList {
 	var errs errList
 
 	fileutil.Walk(f.Scope, func(parents []fileutil.WalkContext, ctx fileutil.WalkContext) (dive bool, err error) {
@@ -66,11 +66,11 @@ func mixinsInMixins(f *file.File) errList {
 		return true, nil
 	})
 
-	return errs
+	return &errs
 }
 
 // duplicate names inside same scope.
-func duplicateMixinNames(f *file.File) errList {
+func duplicateMixinNames(f *file.File) *errList {
 	var errs errList
 
 	var s stack.Stack[*list.List[file.Mixin]]
@@ -116,10 +116,10 @@ func duplicateMixinNames(f *file.File) errList {
 		return false, nil
 	})
 
-	return errs
+	return &errs
 }
 
-func _mixinParamsHaveType(f *file.File, m file.Mixin) errList {
+func _mixinParamsHaveType(f *file.File, m file.Mixin) *errList {
 	var errs errList
 
 	for _, param := range m.Params {
@@ -143,12 +143,12 @@ func _mixinParamsHaveType(f *file.File, m file.Mixin) errList {
 		})
 	}
 
-	return errs
+	return &errs
 }
 
-func _duplicateMixinParams(f *file.File, m file.Mixin) errList {
+func _duplicateMixinParams(f *file.File, m file.Mixin) *errList {
 	if len(m.Params) <= 1 {
-		return errList{}
+		return &errList{}
 	}
 
 	var errs errList
@@ -197,5 +197,5 @@ func _duplicateMixinParams(f *file.File, m file.Mixin) errList {
 		dupls = dupls[:0]
 	}
 
-	return errs
+	return &errs
 }

@@ -8,7 +8,7 @@ import (
 	"github.com/mavolin/corgi/internal/list"
 )
 
-func interpolatedMixinCallChecks(f *file.File) errList {
+func interpolatedMixinCallChecks(f *file.File) *errList {
 	var errs errList
 
 	fileutil.Walk(f.Scope, func(parents []fileutil.WalkContext, ctx fileutil.WalkContext) (dive bool, err error) {
@@ -25,9 +25,9 @@ func interpolatedMixinCallChecks(f *file.File) errList {
 		for _, line := range lines {
 			for _, itm := range line {
 				if mci, ok := itm.(file.MixinCallInterpolation); ok {
-					errs.PushBackList(ptr(_topLevelAndInInterpolatedMixinCall(f, mci)))
-					errs.PushBackList(ptr(_requiredInterpolatedMixinCallAttributes(f, mci)))
-					errs.PushBackList(ptr(_interpolatedMixinCallBlockExists(f, mci)))
+					errs.PushBackList(_topLevelAndInInterpolatedMixinCall(f, mci))
+					errs.PushBackList(_requiredInterpolatedMixinCallAttributes(f, mci))
+					errs.PushBackList(_interpolatedMixinCallBlockExists(f, mci))
 				}
 			}
 		}
@@ -35,10 +35,10 @@ func interpolatedMixinCallChecks(f *file.File) errList {
 		return true, nil
 	})
 
-	return errs
+	return &errs
 }
 
-func _topLevelAndInInterpolatedMixinCall(f *file.File, mci file.MixinCallInterpolation) errList {
+func _topLevelAndInInterpolatedMixinCall(f *file.File, mci file.MixinCallInterpolation) *errList {
 	if mci.MixinCall.Mixin.Mixin.WritesTopLevelAttributes {
 		return list.List1(&corgierr.Error{
 			Message: "interpolated mixin writes attributes",
@@ -56,11 +56,11 @@ func _topLevelAndInInterpolatedMixinCall(f *file.File, mci file.MixinCallInterpo
 		})
 	}
 
-	return errList{}
+	return &errList{}
 }
 
 // make sure that a mixin call fills all required args.
-func _requiredInterpolatedMixinCallAttributes(f *file.File, mci file.MixinCallInterpolation) errList {
+func _requiredInterpolatedMixinCallAttributes(f *file.File, mci file.MixinCallInterpolation) *errList {
 	var errs errList
 
 	annoLen := len("+") + len(mci.MixinCall.Name.Ident)
@@ -128,17 +128,17 @@ params:
 		})
 	}
 
-	return errs
+	return &errs
 }
 
-func _interpolatedMixinCallBlockExists(f *file.File, mci file.MixinCallInterpolation) errList {
+func _interpolatedMixinCallBlockExists(f *file.File, mci file.MixinCallInterpolation) *errList {
 	if mci.Value == nil {
-		return errList{}
+		return &errList{}
 	}
 
 	for _, block := range mci.MixinCall.Mixin.Mixin.Blocks {
 		if block.Name == "_" {
-			return errList{}
+			return &errList{}
 		}
 	}
 

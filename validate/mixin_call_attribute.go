@@ -8,7 +8,7 @@ import (
 	"github.com/mavolin/corgi/internal/list"
 )
 
-func mixinCallAttributeChecks(f *file.File) errList {
+func mixinCallAttributeChecks(f *file.File) *errList {
 	var errs errList
 
 	fileutil.Walk(f.Scope, func(parents []fileutil.WalkContext, ctx fileutil.WalkContext) (dive bool, err error) {
@@ -32,10 +32,10 @@ func mixinCallAttributeChecks(f *file.File) errList {
 
 			for _, a := range al.Attributes {
 				if mca, ok := a.(file.MixinCallAttribute); ok {
-					errs.PushBackList(ptr(_mixinCallAttributesOnlyWriteText(f, mca)))
-					errs.PushBackList(ptr(_topLevelAndInMixinCallAttribute(f, mca)))
-					errs.PushBackList(ptr(_requiredMixinCallAttributeAttributes(f, mca)))
-					errs.PushBackList(ptr(_mixinCallAttributeBlockExists(f, mca)))
+					errs.PushBackList(_mixinCallAttributesOnlyWriteText(f, mca))
+					errs.PushBackList(_topLevelAndInMixinCallAttribute(f, mca))
+					errs.PushBackList(_requiredMixinCallAttributeAttributes(f, mca))
+					errs.PushBackList(_mixinCallAttributeBlockExists(f, mca))
 				}
 			}
 		}
@@ -43,10 +43,10 @@ func mixinCallAttributeChecks(f *file.File) errList {
 		return true, nil
 	})
 
-	return errs
+	return &errs
 }
 
-func _mixinCallAttributesOnlyWriteText(f *file.File, mca file.MixinCallAttribute) errList {
+func _mixinCallAttributesOnlyWriteText(f *file.File, mca file.MixinCallAttribute) *errList {
 	lm := mca.MixinCall.Mixin.Mixin
 	if lm.WritesTopLevelAttributes {
 		return list.List1(&corgierr.Error{
@@ -74,10 +74,10 @@ func _mixinCallAttributesOnlyWriteText(f *file.File, mca file.MixinCallAttribute
 		})
 	}
 
-	return errList{}
+	return &errList{}
 }
 
-func _topLevelAndInMixinCallAttribute(f *file.File, mca file.MixinCallAttribute) errList {
+func _topLevelAndInMixinCallAttribute(f *file.File, mca file.MixinCallAttribute) *errList {
 	if mca.MixinCall.Mixin.Mixin.WritesTopLevelAttributes {
 		return list.List1(&corgierr.Error{
 			Message: "interpolated mixin writes attributes",
@@ -95,11 +95,11 @@ func _topLevelAndInMixinCallAttribute(f *file.File, mca file.MixinCallAttribute)
 		})
 	}
 
-	return errList{}
+	return &errList{}
 }
 
 // make sure that a mixin call fills all required args.
-func _requiredMixinCallAttributeAttributes(f *file.File, mca file.MixinCallAttribute) errList {
+func _requiredMixinCallAttributeAttributes(f *file.File, mca file.MixinCallAttribute) *errList {
 	var errs errList
 
 	annoLen := len("+")
@@ -168,17 +168,17 @@ params:
 		})
 	}
 
-	return errs
+	return &errs
 }
 
-func _mixinCallAttributeBlockExists(f *file.File, mca file.MixinCallAttribute) errList {
+func _mixinCallAttributeBlockExists(f *file.File, mca file.MixinCallAttribute) *errList {
 	if mca.Value == nil {
-		return errList{}
+		return &errList{}
 	}
 
 	for _, block := range mca.MixinCall.Mixin.Mixin.Blocks {
 		if block.Name == "_" {
-			return errList{}
+			return &errList{}
 		}
 	}
 

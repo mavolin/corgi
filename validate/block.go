@@ -9,9 +9,9 @@ import (
 )
 
 // check that only template files contain template block placeholders.
-func onlyTemplateFilesContainBlockPlaceholders(f *file.File) errList {
+func onlyTemplateFilesContainBlockPlaceholders(f *file.File) *errList {
 	if f.Type == file.TypeTemplate {
-		return errList{}
+		return &errList{}
 	}
 
 	var errs errList
@@ -59,12 +59,12 @@ func onlyTemplateFilesContainBlockPlaceholders(f *file.File) errList {
 		}
 	})
 
-	return errs
+	return &errs
 }
 
-func duplicateTemplateBlocks(f *file.File) errList {
+func duplicateTemplateBlocks(f *file.File) *errList {
 	if f.Extend == nil {
-		return errList{}
+		return &errList{}
 	}
 
 	var errs errList
@@ -109,12 +109,12 @@ func duplicateTemplateBlocks(f *file.File) errList {
 		cmpBlocks.PushBack(block)
 	}
 
-	return errs
+	return &errs
 }
 
-func nonExistentTemplateBlocks(f *file.File) errList {
+func nonExistentTemplateBlocks(f *file.File) *errList {
 	if f.Extend == nil {
-		return errList{}
+		return &errList{}
 	}
 
 	var errs errList
@@ -171,5 +171,5 @@ scope:
 		})
 	}
 
-	return errs
+	return &errs
 }

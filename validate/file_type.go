@@ -10,9 +10,9 @@ import (
 	"github.com/mavolin/corgi/internal/list"
 )
 
-func mainFile(f *file.File) errList {
+func mainFile(f *file.File) *errList {
 	if f.Type != file.TypeMain {
-		return errList{}
+		return &errList{}
 	}
 
 	if f.Func == nil {
@@ -33,12 +33,12 @@ func mainFile(f *file.File) errList {
 		})
 	}
 
-	return errList{}
+	return &errList{}
 }
 
-func templateFile(f *file.File) errList {
+func templateFile(f *file.File) *errList {
 	if f.Type != file.TypeTemplate {
-		return errList{}
+		return &errList{}
 	}
 
 	var errs errList
@@ -54,12 +54,12 @@ func templateFile(f *file.File) errList {
 		})
 	}
 
-	return errs
+	return &errs
 }
 
-func extendingFile(f *file.File) errList {
+func extendingFile(f *file.File) *errList {
 	if f.Extend == nil {
-		return errList{}
+		return &errList{}
 	}
 
 	var errs errList
@@ -83,12 +83,12 @@ func extendingFile(f *file.File) errList {
 		}
 		return false, nil
 	})
-	return errs
+	return &errs
 }
 
-func libraryFile(f *file.File) errList {
+func libraryFile(f *file.File) *errList {
 	if f.Type != file.TypeLibraryFile {
-		return errList{}
+		return &errList{}
 	}
 
 	var errs errList
@@ -121,5 +121,5 @@ func libraryFile(f *file.File) errList {
 		}
 		return false, nil
 	})
-	return errs
+	return &errs
 }

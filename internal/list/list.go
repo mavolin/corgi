@@ -6,18 +6,18 @@ type List[T any] struct {
 	l list.List
 }
 
-func List1[T any](v T) List[T] {
+func List1[T any](v T) *List[T] {
 	var l List[T]
 	l.PushFront(v)
-	return l
+	return &l
 }
 
-func FromSlice[T any](s []T) List[T] {
+func FromSlice[T any](s []T) *List[T] {
 	var l List[T]
 	for _, elem := range s {
 		l.PushBack(elem)
 	}
-	return l
+	return &l
 }
 
 type Element[T any] struct {
@@ -40,7 +40,12 @@ func (e *Element[T]) Next() *Element[T] {
 
 func (e *Element[T]) V() T { return e.e.Value.(T) }
 
-func (l *List[T]) Len() int { return l.l.Len() }
+func (l *List[T]) Len() int {
+	if l == nil {
+		return 0
+	}
+	return l.l.Len()
+}
 
 func (l *List[T]) Front() *Element[T] {
 	if front := l.l.Front(); front != nil {
@@ -72,8 +77,16 @@ func (l *List[T]) MoveToFront(e *Element[T])      { l.l.MoveToFront(e.e) }
 func (l *List[T]) MoveToBack(e *Element[T])       { l.l.MoveToBack(e.e) }
 func (l *List[T]) MoveBefore(e, mark *Element[T]) { l.l.MoveBefore(e.e, mark.e) }
 func (l *List[T]) MoveAfter(e, mark *Element[T])  { l.l.MoveAfter(e.e, mark.e) }
-func (l *List[T]) PushBackList(other *List[T])    { l.l.PushBackList(&other.l) }
-func (l *List[T]) PushFrontList(other *List[T])   { l.l.PushFrontList(&other.l) }
+func (l *List[T]) PushBackList(other *List[T])    { l.l.PushBackList(other.lptr()) }
+func (l *List[T]) PushFrontList(other *List[T])   { l.l.PushFrontList(other.lptr()) }
+
+func (l *List[T]) lptr() *list.List {
+	if l == nil {
+		return nil
+	}
+
+	return &l.l
+}
 
 func (l *List[T]) ToSlice() []T {
 	s := make([]T, 0, l.Len())

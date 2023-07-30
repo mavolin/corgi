@@ -58,49 +58,49 @@ func File(f *file.File) error {
 	return errSlice
 }
 
-func _file(f *file.File, valedFiles map[string]struct{}, impNamespaces map[string]importNamespace) errList {
-	if _, ok := valedFiles[f.Module+f.ModulePath]; ok {
-		return errList{}
+func _file(f *file.File, valedFiles map[string]struct{}, impNamespaces map[string]importNamespace) *errList {
+	if _, ok := valedFiles[f.Module+f.PathInModule]; ok {
+		return &errList{}
 	}
 
-	valedFiles[f.Module+f.ModulePath] = struct{}{}
+	valedFiles[f.Module+f.PathInModule] = struct{}{}
 
 	var errs errList
 
-	errs.PushBackList(ptr(importNamespaces(impNamespaces, f)))
+	errs.PushBackList(importNamespaces(impNamespaces, f))
 
-	errs.PushBackList(ptr(duplicateImports(f)))
-	errs.PushBackList(ptr(unusedUses(f)))
+	errs.PushBackList(duplicateImports(f))
+	errs.PushBackList(unusedUses(f))
 
-	errs.PushBackList(ptr(mainFile(f)))
-	errs.PushBackList(ptr(templateFile(f)))
-	errs.PushBackList(ptr(extendingFile(f)))
-	errs.PushBackList(ptr(libraryFile(f)))
+	errs.PushBackList(mainFile(f))
+	errs.PushBackList(templateFile(f))
+	errs.PushBackList(extendingFile(f))
+	errs.PushBackList(libraryFile(f))
 
-	errs.PushBackList(ptr(onlyTemplateFilesContainBlockPlaceholders(f)))
-	errs.PushBackList(ptr(duplicateTemplateBlocks(f)))
-	errs.PushBackList(ptr(nonExistentTemplateBlocks(f)))
+	errs.PushBackList(onlyTemplateFilesContainBlockPlaceholders(f))
+	errs.PushBackList(duplicateTemplateBlocks(f))
+	errs.PushBackList(nonExistentTemplateBlocks(f))
 
-	errs.PushBackList(ptr(mixinChecks(f)))
-	errs.PushBackList(ptr(mixinsInMixins(f)))
-	errs.PushBackList(ptr(duplicateMixinNames(f)))
+	errs.PushBackList(mixinChecks(f))
+	errs.PushBackList(mixinsInMixins(f))
+	errs.PushBackList(duplicateMixinNames(f))
 
-	errs.PushBackList(ptr(mixinCallChecks(f)))
-	errs.PushBackList(ptr(andPlaceholderPlacement(f)))
+	errs.PushBackList(mixinCallChecks(f))
+	errs.PushBackList(andPlaceholderPlacement(f))
 
-	errs.PushBackList(ptr(interpolatedMixinCallChecks(f)))
+	errs.PushBackList(interpolatedMixinCallChecks(f))
 
-	errs.PushBackList(ptr(mixinCallAttributeChecks(f)))
+	errs.PushBackList(mixinCallAttributeChecks(f))
 
-	errs.PushBackList(ptr(attributePlacement(f)))
-	errs.PushBackList(ptr(topLevelAttribute(f)))
-	errs.PushBackList(ptr(topLevelTemplateBlockAnds(f)))
+	errs.PushBackList(attributePlacement(f))
+	errs.PushBackList(topLevelAttribute(f))
+	errs.PushBackList(topLevelTemplateBlockAnds(f))
 
 	for _, use := range f.Uses {
 		for _, spec := range use.Uses {
-			errs.PushBackList(ptr(libraryMixinNameConflicts(spec.Library.Files)))
+			errs.PushBackList(libraryMixinNameConflicts(spec.Library.Files))
 			for _, libFile := range spec.Library.Files {
-				errs.PushBackList(ptr(_file(libFile, valedFiles, impNamespaces)))
+				errs.PushBackList(_file(libFile, valedFiles, impNamespaces))
 			}
 		}
 	}
@@ -116,11 +116,11 @@ func _file(f *file.File, valedFiles map[string]struct{}, impNamespaces map[strin
 			return false, nil
 		}
 
-		errs.PushBackList(ptr(_file(cincl.File, valedFiles, impNamespaces)))
+		errs.PushBackList(_file(cincl.File, valedFiles, impNamespaces))
 		return false, err
 	})
 
-	return errs
+	return &errs
 }
 
 // Library runs all the rules [File] runs and some additional library-specific
@@ -138,7 +138,7 @@ func Library(l *file.Library) error {
 
 	if l.Precompiled {
 		for _, f := range l.Files {
-			errs.PushBackList(ptr(importNamespaces(impNamespaces, f)))
+			errs.PushBackList(importNamespaces(impNamespaces, f))
 		}
 
 		if errs.Len() == 0 {
@@ -150,12 +150,12 @@ func Library(l *file.Library) error {
 		return errSlice
 	}
 
-	errs.PushBackList(ptr(libraryMixinNameConflicts(l.Files)))
+	errs.PushBackList(libraryMixinNameConflicts(l.Files))
 
 	valedFiles := make(map[string]struct{})
 
 	for _, f := range l.Files {
-		errs.PushBackList(ptr(_file(f, valedFiles, impNamespaces)))
+		errs.PushBackList(_file(f, valedFiles, impNamespaces))
 	}
 
 	if errs.Len() == 0 {
@@ -165,8 +165,4 @@ func Library(l *file.Library) error {
 	errSlice := corgierr.List(errs.ToSlice())
 	sort.Stable(errSlice)
 	return errSlice
-}
-
-func ptr[T any](v T) *T {
-	return &v
 }

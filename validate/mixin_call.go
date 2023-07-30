@@ -10,7 +10,7 @@ import (
 	"github.com/mavolin/corgi/internal/list"
 )
 
-func mixinCallChecks(f *file.File) errList {
+func mixinCallChecks(f *file.File) *errList {
 	var errs errList
 
 	fileutil.Walk(f.Scope, func(parents []fileutil.WalkContext, ctx fileutil.WalkContext) (dive bool, err error) {
@@ -19,22 +19,22 @@ func mixinCallChecks(f *file.File) errList {
 			return true, nil
 		}
 
-		errs.PushBackList(ptr(_mixinCallArgsExist(f, mc)))
-		errs.PushBackList(ptr(_duplicateMixinCallArgs(f, mc)))
-		errs.PushBackList(ptr(_requiredMixinCallAttributes(f, mc)))
-		errs.PushBackList(ptr(_mixinCallBody(f, mc)))
-		errs.PushBackList(ptr(_mixinCallBlocksExist(f, mc)))
-		errs.PushBackList(ptr(_duplicateMixinCallBlocks(f, mc)))
-		errs.PushBackList(ptr(_mixinCallBlockAttrs(f, mc)))
+		errs.PushBackList(_mixinCallArgsExist(f, mc))
+		errs.PushBackList(_duplicateMixinCallArgs(f, mc))
+		errs.PushBackList(_requiredMixinCallAttributes(f, mc))
+		errs.PushBackList(_mixinCallBody(f, mc))
+		errs.PushBackList(_mixinCallBlocksExist(f, mc))
+		errs.PushBackList(_duplicateMixinCallBlocks(f, mc))
+		errs.PushBackList(_mixinCallBlockAttrs(f, mc))
 
 		return true, nil
 	})
 
-	return errs
+	return &errs
 }
 
 // mixin call args exist.
-func _mixinCallArgsExist(f *file.File, mc file.MixinCall) errList {
+func _mixinCallArgsExist(f *file.File, mc file.MixinCall) *errList {
 	var errs errList
 
 args:
@@ -56,11 +56,11 @@ args:
 		})
 	}
 
-	return errs
+	return &errs
 }
 
 // mixin call doesn't specify any args twice.
-func _duplicateMixinCallArgs(f *file.File, mc file.MixinCall) errList {
+func _duplicateMixinCallArgs(f *file.File, mc file.MixinCall) *errList {
 	var errs errList
 
 	for i, arg := range mc.Args {
@@ -90,11 +90,11 @@ func _duplicateMixinCallArgs(f *file.File, mc file.MixinCall) errList {
 		}
 	}
 
-	return errs
+	return &errs
 }
 
 // make sure that a mixin call fills all required args.
-func _requiredMixinCallAttributes(f *file.File, mc file.MixinCall) errList {
+func _requiredMixinCallAttributes(f *file.File, mc file.MixinCall) *errList {
 	var errs errList
 
 	annoLen := len("+") + len(mc.Name.Ident)
@@ -162,12 +162,12 @@ params:
 		})
 	}
 
-	return errs
+	return &errs
 }
 
 // mixin call body only contains for, if, if block, switch, &s, attribute mixin
 // calls, and top-level blocks.
-func _mixinCallBody(f *file.File, mc file.MixinCall) errList {
+func _mixinCallBody(f *file.File, mc file.MixinCall) *errList {
 	var errs errList
 
 	fileutil.Walk(mc.Body, func(parents []fileutil.WalkContext, ctx fileutil.WalkContext) (dive bool, err error) {
@@ -228,15 +228,15 @@ func _mixinCallBody(f *file.File, mc file.MixinCall) errList {
 		}
 	})
 
-	return errs
+	return &errs
 }
 
-func _mixinCallBlocksExist(f *file.File, mc file.MixinCall) errList {
+func _mixinCallBlocksExist(f *file.File, mc file.MixinCall) *errList {
 	if len(mc.Body) == 1 {
 		if sh, ok := mc.Body[0].(file.MixinMainBlockShorthand); ok {
 			for _, block := range mc.Mixin.Mixin.Blocks {
 				if block.Name == "_" {
-					return errList{}
+					return &errList{}
 				}
 			}
 
@@ -277,10 +277,10 @@ body:
 		})
 	}
 
-	return errs
+	return &errs
 }
 
-func _duplicateMixinCallBlocks(f *file.File, mc file.MixinCall) errList {
+func _duplicateMixinCallBlocks(f *file.File, mc file.MixinCall) *errList {
 	var errs errList
 
 	var foundBlocks list.List[file.Block]
@@ -315,11 +315,11 @@ func _duplicateMixinCallBlocks(f *file.File, mc file.MixinCall) errList {
 		foundBlocks.PushBack(block)
 	}
 
-	return errs
+	return &errs
 }
 
 // check that only mixin blocks that can contain attrs, actually contain attrs.
-func _mixinCallBlockAttrs(f *file.File, mc file.MixinCall) errList {
+func _mixinCallBlockAttrs(f *file.File, mc file.MixinCall) *errList {
 	if len(mc.Body) == 1 {
 		if sh, ok := mc.Body[0].(file.MixinMainBlockShorthand); ok {
 			for _, block := range mc.Mixin.Mixin.Blocks {
@@ -328,12 +328,12 @@ func _mixinCallBlockAttrs(f *file.File, mc file.MixinCall) errList {
 				}
 
 				if block.CanAttributes {
-					return errList{}
+					return &errList{}
 				}
 
 				attr, ok := fileutil.IsFirstNonControlAttr(sh.Body)
 				if !ok {
-					return errList{}
+					return &errList{}
 				}
 				switch attr := attr.(type) {
 				case file.And:
@@ -362,7 +362,7 @@ func _mixinCallBlockAttrs(f *file.File, mc file.MixinCall) errList {
 				}
 			}
 
-			return errList{}
+			return &errList{}
 		}
 	}
 
@@ -417,10 +417,10 @@ body:
 		}
 	}
 
-	return errs
+	return &errs
 }
 
-func andPlaceholderPlacement(f *file.File) errList {
+func andPlaceholderPlacement(f *file.File) *errList {
 	var errs errList
 
 	fileutil.Walk(f.Scope, func(parents []fileutil.WalkContext, ctx fileutil.WalkContext) (dive bool, err error) {
@@ -458,5 +458,5 @@ func andPlaceholderPlacement(f *file.File) errList {
 		return true, nil
 	})
 
-	return errs
+	return &errs
 }

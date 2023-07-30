@@ -9,7 +9,7 @@ import (
 	"github.com/mavolin/corgi/internal/anno"
 )
 
-func useNamespaces(f *file.File) errList {
+func useNamespaces(f *file.File) *errList {
 	var errs errList
 
 	for useI, use := range f.Uses {
@@ -90,5 +90,5 @@ func useNamespaces(f *file.File) errList {
 		}
 	}
 
-	return errs
+	return &errs
 }
