@@ -15,6 +15,12 @@ import (
 //
 // If it finds it, Find returns the module and the absolute path to it.
 func Find(dir string) (*modfile.File, string, error) {
+	var err error
+	dir, err = filepath.Abs(dir)
+	if err != nil {
+		return nil, "", err
+	}
+
 	for {
 		p := filepath.Join(dir, "go.mod")
 		f, err := os.ReadFile(p)
@@ -27,6 +33,7 @@ func Find(dir string) (*modfile.File, string, error) {
 				return nil, "", nil
 			}
 
+			dir = filepath.Dir(dir)
 			continue
 		}
 
