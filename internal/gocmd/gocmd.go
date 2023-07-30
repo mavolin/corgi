@@ -2,30 +2,8 @@ package gocmd
 
 import (
 	"os/exec"
-	"strings"
 	"sync"
 )
-
-var path string
-
-func init() {
-	var err error
-	path, err = exec.LookPath("go")
-	if err != nil {
-		path = ""
-		return
-	}
-
-	ver, err := (&exec.Cmd{Path: path, Args: []string{"version"}}).Output()
-	if err != nil {
-		path = ""
-		return
-	}
-
-	if !strings.HasPrefix(string(ver), "go version") {
-		path = ""
-	}
-}
 
 type Cmd struct {
 	path string
@@ -40,21 +18,9 @@ type Cmd struct {
 // If goExecPath is empty, the Go executable in the system's PATH is used.
 // If there is no Go executable in the PATH, NewCmd returns nil.
 func NewCmd(goExecPath string) *Cmd {
-	if goExecPath == "" {
-		if path == "" {
-			return nil
-		}
-
-		goExecPath = path
-	}
-
 	return &Cmd{path: goExecPath}
 }
 
 func (c *Cmd) command(subcmd string, args ...string) ([]byte, error) {
-	if path == "" {
-		return nil, nil
-	}
-
-	return (&exec.Cmd{Path: c.path, Args: append([]string{subcmd}, args...)}).Output()
+	return (&exec.Cmd{Path: c.path, Args: append([]string{c.path, subcmd}, args...)}).Output()
 }
