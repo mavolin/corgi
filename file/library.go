@@ -6,20 +6,20 @@ type Library struct {
 
 	// Module is the path/name of the Go module providing this library.
 	Module string
-	// ModulePath is the path to the library in the Go module, relative to the
+	// PathInModule is the path to the library in the Go module, relative to the
 	// module root.
 	//
 	// It is always specified as a forward slash separated path.
-	ModulePath string
+	PathInModule string
 	// AbsolutePath is the resolved absolute path to the library.
 	//
-	// It is always specified as a forward slash separated path.
+	// It is specified using the system's separator.
 	AbsolutePath string
 
 	// Precompiled indicates whether this library was precompiled.
 	//
 	// If true, the files in this library will only have Type, Name, Module,
-	// and ModulePath set.
+	// and PathInModule set.
 	//
 	// Additionally, Imports will be set,
 	Precompiled bool
@@ -30,7 +30,7 @@ type Library struct {
 
 	// Files are the files this library consists of.
 	//
-	// If the library is precompiled, only Name, Module, ModulePath, and
+	// If the library is precompiled, only Name, Module, PathInModule, and
 	// Imports will be set.
 	Files []*File
 

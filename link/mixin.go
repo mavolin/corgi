@@ -14,7 +14,7 @@ type queuedMixin struct {
 	m *file.Mixin
 }
 
-func (l *Linker) analyzeMixins(fs ...*file.File) errList {
+func (l *Linker) analyzeMixins(fs ...*file.File) *errList {
 	var errs errList
 
 	var ms list.List[queuedMixin]
@@ -72,10 +72,10 @@ func (l *Linker) analyzeMixins(fs ...*file.File) errList {
 				},
 			})
 		}
-		return errs
+		return &errs
 	}
 
-	return errs
+	return &errs
 }
 
 var (

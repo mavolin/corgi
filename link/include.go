@@ -27,7 +27,7 @@ func (l *Linker) linkIncludes(lctx *context, f *file.File) {
 	})
 }
 
-func (l *Linker) linkInclude(f *file.File, incl *file.Include) errList {
+func (l *Linker) linkInclude(f *file.File, incl *file.Include) *errList {
 	inclFile, err := l.loader.LoadInclude(f, fileutil.Unquote(incl.Path))
 	if err != nil {
 		var cerr *corgierr.Error
@@ -62,5 +62,5 @@ func (l *Linker) linkInclude(f *file.File, incl *file.Include) errList {
 	}
 
 	incl.Include = inclFile
-	return errList{}
+	return &errList{}
 }

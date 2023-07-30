@@ -20,16 +20,16 @@ type File struct {
 	//
 	// This won't be set for main and include files.
 	Module string
-	// ModulePath is the path to the file in the Go module, relative to the
+	// PathInModule is the path to the file in the Go module, relative to the
 	// module root.
 	//
 	// It is always specified as a forward slash separated path.
 	//
 	// This won't be set for main and include files.
-	ModulePath string
+	PathInModule string
 	// AbsolutePath is the resolved absolute path to the file.
 	//
-	// It is always specified as a forward slash separated path.
+	// It is specified using the system's separator.
 	AbsolutePath string
 
 	// Library is the library this file belongs to, if any.

@@ -196,13 +196,13 @@ func firstActualAttr(s file.Scope) file.ScopeItem {
 }
 
 func IsStdLibFile(f *file.File) bool {
-	return f.Module == "github.com/mavolin/corgi" && f.ModulePath == "std"
+	return f.Module == "github.com/mavolin/corgi" && f.PathInModule == "std"
 }
 
 func IsAttrMixin(lm file.LinkedMixin) bool {
-	return IsStdLibFile(lm.File) && lm.File.ModulePath == "std/html" && lm.Mixin.Name.Ident == "Attr"
+	return IsStdLibFile(lm.File) && lm.File.PathInModule == "std/html" && lm.Mixin.Name.Ident == "Attr"
 }
 
 func IsElementMixin(lm file.LinkedMixin) bool {
-	return IsStdLibFile(lm.File) && lm.File.ModulePath == "std/html" && lm.Mixin.Name.Ident == "Attr"
+	return IsStdLibFile(lm.File) && lm.File.PathInModule == "std/html" && lm.Mixin.Name.Ident == "Attr"
 }

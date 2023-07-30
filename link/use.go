@@ -23,7 +23,7 @@ func (l *Linker) linkUses(ctx *context, f *file.File) {
 	}
 }
 
-func (l *Linker) linkUseSpec(f *file.File, spec *file.UseSpec) errList {
+func (l *Linker) linkUseSpec(f *file.File, spec *file.UseSpec) *errList {
 	lib, err := l.loader.LoadLibrary(f, fileutil.Unquote(spec.Path))
 	if err != nil {
 		var cerr *corgierr.Error
@@ -58,5 +58,5 @@ func (l *Linker) linkUseSpec(f *file.File, spec *file.UseSpec) errList {
 	}
 
 	spec.Library = lib
-	return errList{}
+	return &errList{}
 }

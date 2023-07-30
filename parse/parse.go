@@ -20,7 +20,7 @@ import (
 //
 // If Parse returns an error, it will always be of type [corgierr.List].
 //
-// Callers are expected to set the Name, Module, ModulePath, and AbsolutePath
+// Callers are expected to set the Name, Module, PathInModule, and AbsolutePath
 // of the returned file themselves.
 //
 // By default, Name is set to "parse", so if you print any errors without

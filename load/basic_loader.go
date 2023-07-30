@@ -9,8 +9,7 @@ import (
 // BasicLoader is a [Loader] implementation that allows configuration of every
 // step of the loading process.
 type BasicLoader struct {
-	// MainReader reads and returns the main file located under the passed
-	// module path.
+	// MainReader reads and returns the main file located under the passed path.
 	//
 	// A return of (nil, nil) is valid and indicates the file wasn't found.
 	MainReader func(path string) (*File, error)
@@ -68,9 +67,9 @@ type BasicLoader struct {
 var _ Loader = BasicLoader{}
 
 type File struct {
-	Name       string
-	Module     string
-	ModulePath string
+	Name         string
+	Module       string
+	PathInModule string
 
 	AbsolutePath string
 
@@ -82,8 +81,8 @@ type File struct {
 }
 
 type Library struct {
-	Module     string
-	ModulePath string
+	Module       string
+	PathInModule string
 
 	AbsolutePath string
 
@@ -106,7 +105,7 @@ func (b BasicLoader) LoadLibrary(usingFile *file.File, usePath string) (*file.Li
 
 	lib := &file.Library{
 		Module:       libw.Module,
-		ModulePath:   libw.ModulePath,
+		PathInModule: libw.PathInModule,
 		AbsolutePath: libw.AbsolutePath,
 		Precompiled:  false,
 		Files:        make([]*file.File, 0, len(libw.Files)),
@@ -120,7 +119,7 @@ func (b BasicLoader) LoadLibrary(usingFile *file.File, usePath string) (*file.Li
 		f.Type = file.TypeLibraryFile
 		f.Name = fw.Name
 		f.Module = fw.Module
-		f.ModulePath = fw.ModulePath
+		f.PathInModule = fw.PathInModule
 		f.AbsolutePath = fw.AbsolutePath
 		f.Library = lib
 		f.Raw = string(fw.Raw)
@@ -168,7 +167,7 @@ func (b BasicLoader) LoadInclude(includingFile *file.File, name string) (file.In
 	f.Type = file.TypeInclude
 	f.Name = fw.Name
 	f.Module = fw.Module
-	f.ModulePath = fw.ModulePath
+	f.PathInModule = fw.PathInModule
 	f.AbsolutePath = fw.AbsolutePath
 	f.Raw = string(fw.Raw)
 
@@ -197,7 +196,7 @@ func (b BasicLoader) LoadTemplate(extendingFile *file.File, extendPath string) (
 		return &file.File{
 			Name:         fw.Name,
 			Module:       fw.Module,
-			ModulePath:   fw.ModulePath,
+			PathInModule: fw.PathInModule,
 			AbsolutePath: fw.AbsolutePath,
 			Raw:          string(fw.Raw),
 		}, err
@@ -213,7 +212,7 @@ func (b BasicLoader) LoadTemplate(extendingFile *file.File, extendPath string) (
 	f.Type = file.TypeTemplate
 	f.Name = fw.Name
 	f.Module = fw.Module
-	f.ModulePath = fw.ModulePath
+	f.PathInModule = fw.PathInModule
 	f.AbsolutePath = fw.AbsolutePath
 	f.Raw = string(fw.Raw)
 
@@ -241,7 +240,7 @@ func (b BasicLoader) LoadMain(path string) (*file.File, error) {
 		return &file.File{
 			Name:         fw.Name,
 			Module:       fw.Module,
-			ModulePath:   fw.ModulePath,
+			PathInModule: fw.PathInModule,
 			AbsolutePath: fw.AbsolutePath,
 			Raw:          string(fw.Raw),
 		}, err
@@ -257,7 +256,7 @@ func (b BasicLoader) LoadMain(path string) (*file.File, error) {
 	f.Type = file.TypeMain
 	f.Name = fw.Name
 	f.Module = fw.Module
-	f.ModulePath = fw.ModulePath
+	f.PathInModule = fw.PathInModule
 	f.AbsolutePath = fw.AbsolutePath
 	f.Raw = string(fw.Raw)
 
@@ -280,5 +279,5 @@ func (b BasicLoader) LoadMain(path string) (*file.File, error) {
 		return f, errors.Join(err, dirLibErr)
 	}
 
-	return f, nil
+	return f, dirLibErr
 }

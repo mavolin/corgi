@@ -105,7 +105,7 @@ func newFile(f *cfile.File) *file {
 	return &file{
 		Name:       f.Name,
 		Module:     f.Module,
-		ModulePath: f.ModulePath,
+		ModulePath: f.PathInModule,
 		Imports:    imports,
 	}
 }
@@ -120,10 +120,10 @@ func (f *file) toFile() *cfile.File {
 		imports[i] = *imp.toFile()
 	}
 	return &cfile.File{
-		Name:       f.Name,
-		Module:     f.Module,
-		ModulePath: f.ModulePath,
-		Imports:    imports,
+		Name:         f.Name,
+		Module:       f.Module,
+		PathInModule: f.ModulePath,
+		Imports:      imports,
 	}
 }
 

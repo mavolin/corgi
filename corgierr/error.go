@@ -184,7 +184,7 @@ func (err *Error) Pretty(o PrettyOptions) string {
 }
 
 func equalFile(a, b *file.File) bool {
-	return a.Module == b.Module && a.ModulePath == b.ModulePath
+	return a.Module == b.Module && a.PathInModule == b.PathInModule
 }
 
 func (err *Error) prettyMessage(sb *strings.Builder, o PrettyOptions) {

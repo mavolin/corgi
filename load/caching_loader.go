@@ -64,7 +64,7 @@ func (l *CachingLoader) LoadLibrary(usingFile *file.File, usePath string) (*file
 //
 // If the dir library for f is cached, it is returned.
 // LoadDirLibrary considers a library from the same module with
-// path.Base(f.ModulePath) as f's dir library.
+// path.Base(f.PathInModule) as f's dir library.
 //
 // If the dir library for f is not cached, get is called and expected to
 // read parse, link, and validate the library.
@@ -75,7 +75,7 @@ func (l *CachingLoader) LoadLibrary(usingFile *file.File, usePath string) (*file
 func (l *CachingLoader) LoadDirLibrary(f *file.File, get func() (*file.Library, error)) (*file.Library, error) {
 	cached := l.load(l.unlinkedLibraries, func(cached *cachedFile) {
 		cached.lib, cached.err = get()
-	}, path.Join(f.Module, path.Base(f.ModulePath)))
+	}, path.Join(f.Module, path.Base(f.PathInModule)))
 	return cached.lib, cached.err
 }
 

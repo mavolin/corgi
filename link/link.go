@@ -31,14 +31,14 @@ func New(loader load.Loader) *Linker {
 //
 // If it returns an error, that error will be of type [corgierr.List].
 func (l *Linker) LinkFile(f *file.File) error {
-	errsChan := make(chan errList)
+	errsChan := make(chan *errList)
 	ctx := context{errs: errsChan}
 
 	l.linkExtend(&ctx, f)
 	l.linkUses(&ctx, f)
 	l.linkIncludes(&ctx, f)
 
-	var errs errList
+	var errs list.List[*corgierr.Error]
 	for i := 0; i < ctx.n; i++ {
 		subErrs := <-errsChan
 		for errE := subErrs.Front(); errE != nil; errE = errE.Next() {
@@ -51,16 +51,16 @@ func (l *Linker) LinkFile(f *file.File) error {
 	}
 
 	mcErrs := l.linkMixinCalls(f)
-	errs.PushBackList(&mcErrs)
+	errs.PushBackList(mcErrs)
 
 	recErrs := l.checkRecursion(f)
-	errs.PushBackList(&recErrs)
+	errs.PushBackList(recErrs)
 	if recErrs.Len() > 0 {
 		return corgierr.List(errs.ToSlice())
 	}
 
 	mErrs := l.analyzeMixins(f)
-	errs.PushBackList(&mErrs)
+	errs.PushBackList(mErrs)
 
 	if errs.Len() == 0 {
 		return nil
@@ -74,7 +74,7 @@ func (l *Linker) LinkFile(f *file.File) error {
 //
 // If it returns an error, that error will be of type [corgierr.List].
 func (l *Linker) LinkLibrary(lib *file.Library) error {
-	errsChan := make(chan errList)
+	errsChan := make(chan *errList)
 	ctx := context{errs: errsChan}
 
 	for _, f := range lib.Files {
@@ -99,10 +99,10 @@ func (l *Linker) LinkLibrary(lib *file.Library) error {
 	for _, f := range lib.Files {
 		f := f
 		mcErrs := l.linkMixinCalls(f)
-		errs.PushBackList(&mcErrs)
+		errs.PushBackList(mcErrs)
 
 		recErrs := l.checkRecursion(f)
-		errs.PushBackList(&recErrs)
+		errs.PushBackList(recErrs)
 		if recErrs.Len() > 0 {
 			hasRecursionErrs = true
 		}
@@ -112,7 +112,7 @@ func (l *Linker) LinkLibrary(lib *file.Library) error {
 	}
 
 	mErrs := l.analyzeMixins(lib.Files...)
-	errs.PushBackList(&mErrs)
+	errs.PushBackList(mErrs)
 
 	if errs.Len() == 0 {
 		return nil
@@ -122,7 +122,7 @@ func (l *Linker) LinkLibrary(lib *file.Library) error {
 
 type context struct {
 	n    int
-	errs chan<- errList
+	errs chan<- *errList
 }
 
 func equalErr(a, b *corgierr.Error) bool {

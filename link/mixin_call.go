@@ -11,7 +11,7 @@ import (
 	"github.com/mavolin/corgi/internal/list"
 )
 
-func (l *Linker) linkMixinCalls(f *file.File) errList {
+func (l *Linker) linkMixinCalls(f *file.File) *errList {
 	var errs errList
 
 	fileutil.Walk(f.Scope, func(parents []fileutil.WalkContext, ctx fileutil.WalkContext) (dive bool, err error) {
@@ -36,12 +36,12 @@ func (l *Linker) linkMixinCalls(f *file.File) errList {
 
 		for _, mc := range mcs {
 			mcErrs := l.linkMixinCall(f, parents, ctx, mc)
-			errs.PushBackList(&mcErrs)
+			errs.PushBackList(mcErrs)
 		}
 		return true, err
 	})
 
-	return errs
+	return &errs
 }
 
 func mixinCallsInText(lns ...file.TextLine) []*file.MixinCall {
@@ -79,41 +79,41 @@ func mixinCallsInAttributeCollections(acolls []file.AttributeCollection) []*file
 	return mcs
 }
 
-func (l *Linker) linkMixinCall(f *file.File, parents []fileutil.WalkContext, ctx fileutil.WalkContext, mc *file.MixinCall) errList {
+func (l *Linker) linkMixinCall(f *file.File, parents []fileutil.WalkContext, ctx fileutil.WalkContext, mc *file.MixinCall) *errList {
 	if mc.Namespace == nil {
 		l.linkScopeMixinCall(f, ctx.Scope, mc)
 		if mc.Mixin != nil {
-			return errList{}
+			return &errList{}
 		}
 
 		l.linkParentMixinCall(f, parents, mc)
 		if mc.Mixin != nil {
-			return errList{}
+			return &errList{}
 		}
 
 		if f.DirLibrary != nil {
 			l.linkLibraryMixinCall(f.DirLibrary, mc)
 			if mc.Mixin != nil {
-				return errList{}
+				return &errList{}
 			}
 		}
 
 		if f.Library != nil {
 			l.linkLibraryMixinCall(f.Library, mc)
 			if mc.Mixin != nil {
-				return errList{}
+				return &errList{}
 			}
 		}
 
 		hasUnlinkedLibs := l.linkExternalMixinCall(".", f, mc)
 		if mc.Mixin != nil {
-			return errList{}
+			return &errList{}
 		}
 
 		// don't report this mixin as unknown, cause the more likely cause is
 		// simply that some use directive needs a typo fixed
 		if hasUnlinkedLibs {
-			return errList{}
+			return &errList{}
 		}
 
 		return list.List1(&corgierr.Error{
@@ -129,11 +129,11 @@ func (l *Linker) linkMixinCall(f *file.File, parents []fileutil.WalkContext, ctx
 
 	hasUnlinkedLibs := l.linkExternalMixinCall(mc.Namespace.Ident, f, mc)
 	if mc.Mixin != nil {
-		return errList{}
+		return &errList{}
 	}
 
 	if hasUnlinkedLibs {
-		return errList{}
+		return &errList{}
 	}
 
 	for _, useSpecs := range f.Uses {
@@ -272,24 +272,24 @@ func (l *Linker) linkPrecompiledMixinsMixinCall(ms []file.PrecompiledMixin, mc *
 	}
 }
 
-func (l *Linker) checkRecursion(f *file.File) errList {
+func (l *Linker) checkRecursion(f *file.File) *errList {
 	var errs errList
 
 	fileutil.Walk(f.Scope, func(parents []fileutil.WalkContext, ctx fileutil.WalkContext) (dive bool, err error) {
 		_, ok := (*ctx.Item).(file.Mixin)
 		if ok {
 			recErrs := l._checkRecursion(f, ptrOfSliceElem[file.ScopeItem, file.Mixin](ctx.Scope, ctx.Index))
-			errs.PushBackList(&recErrs)
+			errs.PushBackList(recErrs)
 			return false, nil
 		}
 
 		return true, nil
 	})
 
-	return errs
+	return &errs
 }
 
-func (l *Linker) _checkRecursion(f *file.File, m *file.Mixin, mcs ...file.MixinCall) errList {
+func (l *Linker) _checkRecursion(f *file.File, m *file.Mixin, mcs ...file.MixinCall) *errList {
 	for i, mc := range mcs {
 		if mc.Mixin.Mixin == m {
 			if i == 0 {
@@ -358,11 +358,11 @@ func (l *Linker) _checkRecursion(f *file.File, m *file.Mixin, mcs ...file.MixinC
 	if len(mcs) > 0 {
 		s = mcs[len(mcs)-1].Mixin.Mixin.Body
 		if mcs[len(mcs)-1].Mixin.Mixin.Precompiled != nil {
-			return errList{}
+			return &errList{}
 		}
 	}
 
-	var errs errList
+	var errs *errList
 	fileutil.Walk(s, func(parents []fileutil.WalkContext, ctx fileutil.WalkContext) (dive bool, err error) {
 		mc, ok := (*ctx.Item).(file.MixinCall)
 		if ok {

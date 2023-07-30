@@ -6,7 +6,7 @@ import "github.com/mavolin/corgi/file"
 //
 // It must be concurrently safe.
 type Loader interface {
-	// LoadLibrary loads the library provided under the passed use path.
+	// LoadLibrary loads the library provided under the passed module path.
 	//
 	// It gets passed the file that uses it.
 	//
@@ -14,23 +14,22 @@ type Loader interface {
 	// interpreted as an absolute path instead of a module path.
 	// This happens, for example, when pre-compiling a library.
 	//
-	// A return of (nil, nil) is valid and indicates that the load was unable
+	// A return of (nil, nil) is valid and indicates that the loader was unable
 	// to find a library with the given path.
 	LoadLibrary(usingFile *file.File, usePath string) (*file.Library, error)
-	// LoadInclude loads an include file.
+	// LoadInclude loads the file available under the slash-separated path,
+	// relative to the passed includingFile.
 	//
 	// A return of (nil, nil) is valid and indicates that the load was unable
 	// to find a file that matches.
 	LoadInclude(includingFile *file.File, path string) (file.IncludeFile, error)
 	// LoadTemplate loads the template file associated with the given
-	// extendPath.
+	// module path.
 	//
 	// A return of (nil, nil) is valid and indicates that the load was unable
 	// to find a file that matches.
 	LoadTemplate(extendingFile *file.File, extendPath string) (*file.File, error)
-	// LoadMain loads a main file.
-	// It gets passed an absolute, forward-slash-separated path, of the
-	// directory in which the including file is located.
+	// LoadMain loads a main file available under the passed system path.
 	//
 	// A return of (nil, nil) is valid and indicates that the load was unable
 	// to find a file that matches.

@@ -35,14 +35,14 @@ func Unquote(s file.String) string {
 // It correctly accounts for files from corgi's standard library.
 func UsePath(f *file.File) string {
 	if IsStdLibFile(f) {
-		if len(f.ModulePath) > len("std/") {
-			return f.ModulePath[len("std/"):]
+		if len(f.PathInModule) > len("std/") {
+			return f.PathInModule[len("std/"):]
 		}
 
 		return ""
 	}
 
-	return f.Module + "/" + f.ModulePath
+	return f.Module + "/" + f.PathInModule
 }
 
 // MachineComment represents a corgi comment intended for machines.

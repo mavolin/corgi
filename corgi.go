@@ -9,7 +9,6 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
-	"sync"
 
 	"golang.org/x/exp/slog"
 	"golang.org/x/mod/modfile"
@@ -23,7 +22,6 @@ import (
 	"github.com/mavolin/corgi/link"
 	"github.com/mavolin/corgi/load"
 	"github.com/mavolin/corgi/parse"
-	"github.com/mavolin/corgi/std"
 	"github.com/mavolin/corgi/validate"
 )
 
@@ -44,25 +42,16 @@ var (
 // It keeps state about the module data of loaded files, more concretely
 // results of calling `go mod edit -json` used to resolve import paths.
 //
-// It is concurrently safe.
+// It is concurrently safe, but only meant to be used once.
 type loader struct {
-	mut sync.Mutex
-	// mods contains a mapping between directories and their associated modules
-	mods map[string] /* abs of dir */ *goModule
-
-	mainMod *goModule
+	// mainMod is the go.mod of the main or library file being loaded.
+	mainMod       *modfile.File
+	mainModSysAbs string
 
 	loader load.Loader
 	linker *link.Linker
 	cmd    *gocmd.Cmd
 	log    *slog.Logger
-}
-
-type goModule struct {
-	mod       *modfile.File
-	err       error
-	slashPath string // forward slash path to mod
-	done      <-chan struct{}
 }
 
 type LoadOptions struct {
@@ -82,8 +71,7 @@ var nopLog = slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level
 
 func newLoader(o LoadOptions) (*loader, error) {
 	var l loader
-
-	bl := load.BasicLoader{
+	bl := &load.BasicLoader{
 		MainReader:     l.readMain,
 		TemplateReader: l.readTemplate,
 		IncludeReader:  l.readInclude,
@@ -93,14 +81,17 @@ func newLoader(o LoadOptions) (*loader, error) {
 
 			log.Info("parsing")
 			f, err := parse.Parse(in)
-			log.Error("parsed filed", slog.Any("err", err))
+			if err != nil {
+				log.Error("parse failed", slog.Any("err", err))
+			}
+			log.Info("parsed")
 			return f, err
 		},
 		PreLinkValidator: func(f *file.File) error {
 			log := l.log.
 				WithGroup("pre_link_validator").
-				With(slog.String("mod", f.Module), slog.String("path_in_mod", f.ModulePath),
-					slog.String("abs", filepath.FromSlash(f.AbsolutePath)))
+				With(slog.String("mod", f.Module), slog.String("path_in_mod", f.PathInModule),
+					slog.String("abs", f.AbsolutePath))
 
 			log.Info("validating use namespaces")
 			err := validate.PreLink(f)
@@ -110,8 +101,8 @@ func newLoader(o LoadOptions) (*loader, error) {
 		Linker: func(f *file.File) error {
 			log := l.log.
 				WithGroup("linker").
-				With(slog.String("mod", f.Module), slog.String("path_in_mod", f.ModulePath),
-					slog.String("abs", filepath.FromSlash(f.AbsolutePath)))
+				With(slog.String("mod", f.Module), slog.String("path_in_mod", f.PathInModule),
+					slog.String("abs", f.AbsolutePath))
 
 			log.Info("inferring types of mixin params")
 			typeinfer.Scope(f.Scope)
@@ -124,8 +115,8 @@ func newLoader(o LoadOptions) (*loader, error) {
 		MainValidator: func(f *file.File) error {
 			log := l.log.
 				WithGroup("main_validator").
-				With(slog.String("mod", f.Module), slog.String("path_in_mod", f.ModulePath),
-					slog.String("abs", filepath.FromSlash(f.AbsolutePath)))
+				With(slog.String("mod", f.Module), slog.String("path_in_mod", f.PathInModule),
+					slog.String("abs", f.AbsolutePath))
 
 			log.Info("validating file")
 			err := validate.File(f)
@@ -135,8 +126,8 @@ func newLoader(o LoadOptions) (*loader, error) {
 		LibraryValidator: func(lib *file.Library) error {
 			log := l.log.
 				WithGroup("library_validator").
-				With(slog.String("mod", lib.Module), slog.String("path_in_mod", lib.ModulePath),
-					slog.String("abs", filepath.FromSlash(lib.AbsolutePath)))
+				With(slog.String("mod", lib.Module), slog.String("path_in_mod", lib.PathInModule),
+					slog.String("abs", lib.AbsolutePath))
 
 			log.Info("validating library")
 			err := validate.Library(lib)
@@ -146,8 +137,12 @@ func newLoader(o LoadOptions) (*loader, error) {
 	}
 	cl := load.Cache(bl)
 	bl.DirLibraryLoader = func(f *file.File) (*file.Library, error) {
+		if f.Module == "" {
+			return nil, nil
+		}
+
 		return cl.LoadDirLibrary(f, func() (*file.Library, error) {
-			return bl.LoadLibrary(f, path.Join(f.Module, path.Base(f.ModulePath)))
+			return bl.LoadLibrary(f, path.Join(f.Module, path.Dir(f.PathInModule)))
 		})
 	}
 
@@ -175,6 +170,10 @@ func LoadMain(sysPath string, o LoadOptions) (*file.File, error) {
 	}
 
 	f, err := l.loader.LoadMain(sysPath)
+	if err != nil {
+		return f, err
+	}
+
 	if f == nil && err == nil {
 		return nil, ErrExists
 	}
@@ -221,6 +220,10 @@ func LoadLibrary(sysPath string, o LoadOptions) (*file.Library, error) {
 	}
 
 	lib, err := l.loader.LoadLibrary(nil, sysPath)
+	if err != nil {
+		return lib, err
+	}
+
 	if lib == nil && err == nil {
 		return nil, ErrExists
 	}
@@ -231,100 +234,54 @@ func LoadLibrary(sysPath string, o LoadOptions) (*file.Library, error) {
 func (l *loader) readMain(sysPath string) (*load.File, error) {
 	log := l.log.WithGroup("main_reader").With(slog.String("path", sysPath))
 
-	log.Info("reading file")
-
-	sysAbs, err := filepath.Abs(filepath.FromSlash(sysPath))
-	slashAbs := filepath.ToSlash(sysAbs)
+	p, err := l.resolvePaths(log, sysPath)
 	if err != nil {
-		log.Error("failed to resolve absolute path", slog.Any("err", err))
-		return nil, fmt.Errorf("%s: %w", sysPath, err)
+		return nil, err
 	}
 
-	log = log.With(slog.String("abs", sysAbs))
+	log = log.With(slog.String("abs", p.sysAbs))
 
-	f, err := os.ReadFile(sysAbs)
+	data, err := l.readFile(log, sysPath)
 	if err != nil {
-		if errors.Is(err, os.ErrExist) {
-			log.Error("file not found")
-			return nil, nil
-		}
-
-		log.Error("failed to read file", slog.Any("err", err))
-		return nil, fmt.Errorf("%s: %w", sysPath, err)
+		return nil, err
+	}
+	if data == nil {
+		return nil, nil
 	}
 
-	log.Info("file read", slog.String("abs", sysAbs))
+	if err := l.readMainMod(log, filepath.Dir(sysPath)); err != nil {
+		return nil, err
+	}
 
-	return &load.File{
-		Name:         filepath.Base(sysAbs),
-		AbsolutePath: slashAbs,
+	f := &load.File{
+		Name:         p.base,
+		AbsolutePath: p.sysAbs,
 		IsCorgi:      true,
-		Raw:          f,
-	}, nil
+		Raw:          data,
+	}
+	if l.mainMod != nil {
+		f.Module = l.mainMod.Module.Mod.Path
+		f.PathInModule = pathInMod(l.mainModSysAbs, p.sysAbs)
+	}
+	return f, nil
 }
 
-func (l *loader) readTemplate(_ *file.File, slashPath string) (*load.File, error) {
-	log := l.log.WithGroup("template_reader").With(slog.String("path", slashPath))
+func (l *loader) readTemplate(_ *file.File, extendPath string) (*load.File, error) {
+	log := l.log.WithGroup("template_reader").With(slog.String("extend_path", extendPath))
 
 	log.Info("reading file")
 	log.Info("locating parent module")
 
-	mod, _ := l.goMod(path.Dir(slashPath))
-
-	if mod == nil {
-		log = log.With(slog.String("mod", mod.mod.Module.Mod.Path))
-		log.Info("located parent module")
-	} else {
-		log.Info("file is not inside a module")
-	}
-
-	if mod != nil && l.mainMod != nil && mod.slashPath == l.mainMod.slashPath {
-		slashPathInMod := slashPath[len(mod.mod.Module.Mod.Path)+1:]
-		slashAbs := path.Join(mod.slashPath, slashPathInMod)
-		sysAbs := filepath.FromSlash(slashAbs)
-
-		log = log.With(slog.String("path_in_mod", slashPathInMod), slog.String("abs", sysAbs))
-
-		log.Info("file is in same module as main, reading directly")
-
-		f, err := os.ReadFile(filepath.FromSlash(slashAbs))
-		if err != nil {
-			if errors.Is(err, os.ErrExist) {
-				log.Error("file does not exist")
-				return nil, nil
-			}
-
-			log.Error("failed to load file", slog.Any("err", err))
-			return nil, fmt.Errorf("%s: %w", slashPath, err)
-		}
-
-		log.Info("file read from main module")
-		return &load.File{
-			Name:         path.Base(slashAbs),
-			Module:       mod.mod.Module.Mod.Path,
-			ModulePath:   slashPathInMod,
-			AbsolutePath: slashAbs,
-			IsCorgi:      true,
-			Raw:          f,
-		}, nil
-	}
-
-	log.Info("file is in different module, locating cache or downloading")
-	slashModAbs, slashModPath, err := l.locateModule(mod, slashPath)
+	mod, err := l.locateModule(extendPath)
 	if err != nil {
-		log.Error("failed to locate or download module", slog.Any("err", err))
 		return nil, err
 	}
 
-	slashPathInMod := slashPath[len(slashModPath)+1:]
-	slashAbs := path.Join(slashModAbs, slashPathInMod)
-	sysAbs := filepath.FromSlash(slashAbs)
+	sysAbs := filepath.Join(mod.sysAbsPath, filepath.FromSlash(mod.pathInMod))
+	log = log.With(slog.String("module", mod.path), slog.String("path_in_mod", mod.pathInMod), slog.String("abs", mod.sysAbsPath))
+	log.Info("located parent module", slog.String("module", mod.path))
 
-	log = log.With(slog.String("path_in_mod", slashPathInMod), slog.String("abs", sysAbs))
-
-	log.Info("located module")
-
-	f, err := os.ReadFile(sysAbs)
+	f, err := os.ReadFile(mod.sysAbsPath)
 	if err != nil {
 		if errors.Is(err, os.ErrExist) {
 			log.Info("file doesn't exist in module")
@@ -332,44 +289,38 @@ func (l *loader) readTemplate(_ *file.File, slashPath string) (*load.File, error
 		}
 
 		log.Error("failed to load file", slog.Any("err", err))
-		return nil, fmt.Errorf("%s: %w", slashPath, err)
+		return nil, fmt.Errorf("%s: %w", extendPath, err)
 	}
 
 	log.Info("loaded file")
 
 	return &load.File{
 		Name:         filepath.Base(sysAbs),
-		Module:       slashModPath,
-		ModulePath:   slashPathInMod,
-		AbsolutePath: slashAbs,
+		Module:       mod.path,
+		PathInModule: mod.pathInMod,
+		AbsolutePath: sysAbs,
 		IsCorgi:      true,
 		Raw:          f,
 	}, nil
 }
 
 func (l *loader) readInclude(includingFile *file.File, slashPath string) (*load.File, error) {
-	slashAbs := path.Join(path.Dir(includingFile.AbsolutePath), slashPath)
+	slashAbs := filepath.Join(path.Dir(includingFile.AbsolutePath), filepath.FromSlash(slashPath))
 	sysAbs := filepath.FromSlash(slashAbs)
 
 	log := l.log.
 		WithGroup("include_reader").
-		With(slog.String("path", slashPath), slog.String("abs", sysAbs),
-			slog.String("including_file", filepath.FromSlash(includingFile.AbsolutePath)))
+		With(slog.String("include_path", slashPath), slog.String("abs", sysAbs),
+			slog.String("including_file", includingFile.AbsolutePath))
 
-	log.Info("reading file")
-
-	f, err := os.ReadFile(sysAbs)
+	f, err := l.readFile(log, sysAbs)
 	if err != nil {
-		if errors.Is(err, os.ErrExist) {
-			log.Info("file not found")
-			return nil, nil
-		}
-
-		log.Info("failed to read file", slog.Any("err", err))
-		return nil, fmt.Errorf("%s: %w", slashPath, err)
+		return nil, err
+	}
+	if f == nil {
+		return nil, nil
 	}
 
-	log.Info("loaded file")
 	return &load.File{
 		Name:         path.Base(slashAbs),
 		AbsolutePath: slashAbs,
@@ -378,61 +329,181 @@ func (l *loader) readInclude(includingFile *file.File, slashPath string) (*load.
 	}, nil
 }
 
-func (l *loader) readLibrary(usingFile *file.File, slashPath string) (*load.Library, error) {
+func (l *loader) readLibrary(usingFile *file.File, p string) (*load.Library, error) {
+	if usingFile == nil {
+		return l.readStandaloneLibrary(p)
+	}
+
+	return l.readDepLibrary(usingFile, p)
+}
+
+func (l *loader) readStandaloneLibrary(sysDir string) (*load.Library, error) {
 	log := l.log.
-		WithGroup("library_reader").
-		With(slog.String("path", slashPath))
+		WithGroup("standalone_library_reader").
+		With(slog.String("path", sysDir))
 
-	if usingFile == nil {
-		log.Info("reading standalone library")
-	} else {
-		log = log.With(slog.String("using_file", filepath.ToSlash(usingFile.AbsolutePath)))
-		log.Info("reading dependency library")
-	}
-
-	if stdlib, ok := std.Lib[slashPath]; ok {
-		log.Info("requested library is stlib library")
-		return &load.Library{Precompiled: &stdlib}, nil
-	}
-
-	if usingFile == nil {
-		return l.loadLibrary(slashPath, "", "")
-	}
-
-	log.Info("locating parent module")
-	mod, _ := l.goMod(slashPath)
-
-	if mod == nil {
-		log.Info("located parent module", slog.String("mod", mod.mod.Module.Mod.Path))
-	} else {
-		log.Info("file is outside of module")
-	}
-
-	if mod != nil && l.mainMod != nil && mod.slashPath == l.mainMod.slashPath {
-		log.Info("lib is in same module as main, loading directly")
-
-		slashPathInMod := slashPath[len(mod.mod.Module.Mod.Path)+1:]
-		slashAbs := path.Join(mod.slashPath, slashPathInMod)
-
-		return l.loadLibrary(slashAbs, mod.mod.Module.Mod.Path, slashPathInMod)
-	}
-
-	log.Info("lib is in different module, locating module")
-
-	modAbs, modPath, err := l.locateModule(mod, slashPath)
+	dir, err := l.resolvePaths(log, sysDir)
 	if err != nil {
-		log.Error("failed to locate or download module", slog.Any("err", err))
 		return nil, err
 	}
 
-	slashPathInMod := slashPath[len(modPath)+1:]
-	slashAbs := path.Join(modAbs, slashPathInMod)
-	sysAbs := filepath.FromSlash(slashAbs)
+	log = log.With(slog.String("abs", dir.sysAbs))
 
-	log = log.With(slog.String("path_in_mod", slashPathInMod), slog.String("abs", sysAbs))
+	if err := l.readMainMod(log, sysDir); err != nil {
+		return nil, err
+	}
 
-	log.Info("located module")
-	return l.loadLibrary(sysAbs, modPath, slashPath[len(modAbs)+1:])
+	log.Info("reading standalone library")
+
+	var modulePath, pathInModule string
+	if l.mainMod != nil {
+		modulePath = l.mainMod.Module.Mod.Path
+		pathInModule, _ = filepath.Rel(l.mainModSysAbs, dir.sysAbs)
+	}
+
+	return l.readLibraryDir(log, sysDir, modulePath, pathInModule)
+}
+
+func (l *loader) readDepLibrary(_ *file.File, usePath string) (*load.Library, error) {
+	log := l.log.
+		WithGroup("dep_library_reader").
+		With(slog.String("path", usePath))
+
+	mod, err := l.locateModule(usePath)
+	if err != nil {
+		return nil, err
+	}
+
+	sysAbs := filepath.Join(mod.sysAbsPath, filepath.FromSlash(mod.pathInMod))
+	log = log.With(slog.String("abs", sysAbs))
+
+	return l.readLibraryDir(log, sysAbs, mod.path, mod.pathInMod)
+}
+
+func (l *loader) readLibraryDir(log *slog.Logger, sysDir string, modulePath, pathInModule string) (*load.Library, error) {
+	log.Info("loading dir information")
+
+	dir, err := l.resolvePaths(log, sysDir)
+	if err != nil {
+		return nil, err
+	}
+
+	files, err := os.ReadDir(sysDir)
+	if err != nil {
+		if errors.Is(err, os.ErrExist) {
+			log.Info("library does not exist")
+			return nil, nil
+		}
+
+		log.Info("failed to load dir information", slog.Any("err", err))
+		return nil, nil
+	}
+
+	log.Info("loaded dir information", slog.Int("num_files", len(files)))
+
+	if len(files) == 0 {
+		log.Info("dir is empty")
+		return nil, nil
+	}
+
+	log.Info("checking if library is precompiled")
+
+	for _, entry := range files {
+		name := entry.Name()
+
+		log := log.With(slog.String("file", name))
+		log.Debug("scanning file")
+
+		if entry.Type() == os.ModeDir {
+			log.Debug("skipping: file is dir")
+			continue
+		} else if name != PrecompFileName {
+			log.Debug("skipping: name doesn't match: " + PrecompFileName)
+			continue
+		}
+
+		log.Info("found file with matching name, reading")
+
+		f, err := os.Open(filepath.Join(sysDir, name))
+		if err != nil {
+			log.Error("failed to open precompiled library file", slog.Any("err", err))
+			return nil, fmt.Errorf("%s: failed to open precompiled library: %w", sysDir, err)
+		}
+		//goland:noinspection GoDeferInLoop
+		defer f.Close()
+
+		log.Info("decoding precompiled library file")
+
+		lib, err := precomp.Decode(f)
+		if err != nil {
+			log.Error("failed to decode precompiled library file", slog.Any("err", err))
+			return nil, fmt.Errorf("%s: failed to decode precompiled library: %w", sysDir, err)
+		}
+
+		log.Info("decoded precompiled library file, returning it")
+
+		lib.AbsolutePath = dir.sysAbs
+		lib.Module = modulePath
+		lib.PathInModule = pathInModule
+		return &load.Library{Precompiled: lib}, nil
+	}
+
+	log.Info("found no precompiled library file, compiling by hand")
+
+	lib := load.Library{
+		AbsolutePath: dir.sysAbs,
+		Files:        make([]load.File, 0, len(files)),
+	}
+	if l.mainMod != nil {
+		lib.Module = l.mainMod.Module.Mod.Path
+		lib.PathInModule, _ = filepath.Rel(l.mainModSysAbs, dir.sysAbs)
+	}
+
+	log.Info("looking for corgi lib files")
+
+	for _, entry := range files {
+		name := entry.Name()
+
+		log := log.With(slog.String("file", name))
+		log.Debug("scanning file")
+
+		if entry.Type() == os.ModeDir {
+			log.Debug("skipping: file is dir")
+			continue
+		} else if !strings.HasSuffix(name, LibExt) {
+			log.Debug("skipping: extension doesn't match: " + LibExt)
+			continue
+		}
+
+		log.Info("found corgi lib file, reading")
+
+		p := filepath.Join(sysDir, name)
+		readFile, err := os.ReadFile(p)
+		if err != nil {
+			log.Error("failed to open corgi lib file", slog.Any("err", err))
+			return nil, fmt.Errorf("%s: failed to read library file: %w", p, err)
+		}
+
+		log.Info("read corgi lib file successfully")
+
+		f := load.File{
+			Name:         name,
+			Module:       modulePath,
+			AbsolutePath: filepath.Join(dir.sysAbs, name),
+			IsCorgi:      true,
+			Raw:          readFile,
+		}
+		if modulePath != "" {
+			f.PathInModule = filepath.Join(f.PathInModule, name)
+		}
+
+		lib.Files = append(lib.Files, f)
+	}
+
+	log.Info("read directory, returning with library",
+		slog.Int("size", len(lib.Files)), slog.Int("skipped", len(files)-len(lib.Files)))
+
+	return &lib, nil
 }
 
 func (l *loader) loadLibrary(slashAbs, slashModPath, slashPathInMod string) (*load.Library, error) {
@@ -486,9 +557,12 @@ func (l *loader) loadLibrary(slashAbs, slashModPath, slashPathInMod string) (*lo
 
 		log.Info("decoded precompiled library file")
 
-		lib.AbsolutePath = slashAbs
-		lib.Module = slashModPath
-		lib.ModulePath = slashPathInMod
+		lib.AbsolutePath = sysAbs
+		if l.mainMod != nil {
+			lib.Module = slashModPath
+			lib.PathInModule = slashPathInMod
+		}
+
 		return &load.Library{Precompiled: lib}, nil
 	}
 
@@ -496,8 +570,8 @@ func (l *loader) loadLibrary(slashAbs, slashModPath, slashPathInMod string) (*lo
 
 	lib := load.Library{
 		Module:       slashModPath,
-		ModulePath:   slashPathInMod,
-		AbsolutePath: slashAbs,
+		PathInModule: slashPathInMod,
+		AbsolutePath: sysAbs,
 		Files:        make([]load.File, 0, len(files)),
 	}
 
@@ -527,7 +601,7 @@ func (l *loader) loadLibrary(slashAbs, slashModPath, slashPathInMod string) (*lo
 		lib.Files = append(lib.Files, load.File{
 			Name:         name,
 			Module:       slashModPath,
-			ModulePath:   slashPathInMod,
+			PathInModule: slashPathInMod,
 			AbsolutePath: path.Join(slashAbs, name),
 			IsCorgi:      true,
 			Raw:          readFile,
@@ -540,33 +614,93 @@ func (l *loader) loadLibrary(slashAbs, slashModPath, slashPathInMod string) (*lo
 	return &lib, nil
 }
 
-func (l *loader) locateModule(mod *goModule, slashPath string) (slashAbs string, slashModPath string, err error) {
-	log := l.log.WithGroup("locate_module").With(slog.String("path", slashPath))
+// ============================================================================
+// Utils
+// ======================================================================================
 
-	// we can't resolve cache path w/o knowing the module, the only option left
-	// is to directly download
-	if mod == nil {
-		log.Info("no module information for file/dir, downloading latest directly using `go mod download`")
-		return l.downloadModule(slashPath + "@latest")
+func (l *loader) readFile(log *slog.Logger, sysPath string) ([]byte, error) {
+	log.Info("reading file")
+
+	f, err := os.ReadFile(sysPath)
+	if err != nil {
+		if errors.Is(err, os.ErrExist) {
+			log.Error("file not found")
+			return nil, nil
+		}
+
+		log.Error("failed to read file", slog.Any("err", err))
+		return nil, fmt.Errorf("%s: %w", sysPath, err)
 	}
 
-	log = log.With(slog.String("mod", mod.mod.Module.Mod.Path))
+	log.Info("file read")
+	return f, nil
+}
 
-	// module is not mentioned in the main module, download it directly
+type paths struct {
+	base string
+
+	sysRel   string
+	sysAbs   string
+	slashRel string
+	slashAbs string
+}
+
+func (l *loader) resolvePaths(log *slog.Logger, sysRel string) (paths, error) {
+	p := paths{sysRel: sysRel, slashRel: filepath.ToSlash(sysRel)}
+
+	var err error
+	p.sysAbs, err = filepath.Abs(filepath.FromSlash(p.sysRel))
+	if err != nil {
+		log.Error("failed to resolve absolute path", slog.Any("err", err))
+		return paths{}, fmt.Errorf("%s: %w", sysRel, err)
+	}
+	p.slashAbs = filepath.ToSlash(p.sysAbs)
+	p.base = filepath.Base(p.sysAbs)
+
+	return p, nil
+}
+
+type mod struct {
+	path       string
+	pathInMod  string
+	sysAbsPath string
+}
+
+func (l *loader) locateModule(of string) (*mod, error) {
+	log := l.log.WithGroup("locate_module").With(slog.String("of", of))
+	log.Info("locating module")
+
 	if l.mainMod == nil {
 		log.Info("main file has no go.mod, downloading latest instead of using tagged version")
-		return l.downloadModule(slashPath + "@latest")
+		return l.downloadModule(log, of, "latest")
+	}
+
+	if strings.HasPrefix(of, l.mainMod.Module.Mod.Path) {
+		log.Info("file is in main module, using workdir instead of module cache", slog.String("module", l.mainMod.Module.Mod.Path))
+		return &mod{
+			path:       l.mainMod.Module.Mod.Path,
+			pathInMod:  pathInMod(l.mainMod.Module.Mod.Path, of),
+			sysAbsPath: l.mainModSysAbs,
+		}, nil
 	}
 
 	log.Info("looking for module in main file's go.mod")
 
 	var dep module.Version
 
-	for _, replace := range l.mainMod.mod.Replace {
-		if strings.HasPrefix(slashPath, replace.Old.Path) {
+	log.Info("looking for replace directives")
+
+	for _, replace := range l.mainMod.Replace {
+		log := log.With(slog.String("old", replace.Old.String()), slog.String("new", replace.New.String()))
+		log.Debug("scanning replace directive")
+		if strings.HasPrefix(of, replace.Old.Path) {
 			if path.IsAbs(replace.New.Path) {
-				log.Info("found and respecting replace directive", slog.String("replace_with", replace.New.Path))
-				return replace.New.Path, replace.Old.Path, nil
+				log.Info("found and respecting replace directive")
+				return &mod{
+					path:       replace.Old.Path,
+					pathInMod:  pathInMod(replace.Old.Path, of),
+					sysAbsPath: replace.New.Path,
+				}, nil
 			}
 
 			dep = replace.New
@@ -574,79 +708,126 @@ func (l *loader) locateModule(mod *goModule, slashPath string) (slashAbs string,
 		}
 	}
 
-	for _, require := range mod.mod.Require {
-		if strings.HasPrefix(slashPath, require.Mod.Path) {
-			log = log.With(slog.String("mod_ver", require.Mod.Version))
-			log.Info("found require directive")
+	for _, require := range l.mainMod.Require {
+		log := log.With(slog.String("require", require.Mod.String()))
+		log.Debug("scanning require directive")
+
+		if strings.HasPrefix(of, require.Mod.Path) {
+			log.Info("found matching require directive")
 			dep = require.Mod
 			break
 		}
 	}
 
 	if dep.Path == "" {
-		log.Info("module not main file's go.mod (go mod tidy?), downloading latest using `go mod download`")
-		return l.downloadModule(slashPath + "@latest")
+		log.Info("module not in main file's go.mod (dirty go.mod? (go mod tidy?)), downloading latest using `go mod download`")
+		return l.downloadModule(log, of, "latest")
 	}
+
+	log = log.With(slog.String("module", dep.Path))
+
+	log.Info("locating in module cache")
 
 foundModule:
 	sysModCache := l.cmd.EnvGOMODCACHE()
 	if sysModCache == "" {
 		log.Error("unable to locate go mod cache (`go env GOMODCACHE` == \"\")")
-		return "", "", errors.New("unable to locate go mod cache")
+		return nil, errors.New("unable to locate go mod cache")
 	}
 
 	log.Info("looking up module in go module cache")
 
-	sysModulePath := filepath.Join(sysModCache, filepath.FromSlash(dep.Path)) + "@" + dep.Version
-	f, err := os.Open(sysModulePath)
+	sysModuleAbs := filepath.Join(sysModCache, filepath.FromSlash(dep.Path)) + "@" + dep.Version
+	f, err := os.Open(sysModuleAbs)
 	if err != nil {
 		if errors.Is(err, os.ErrExist) {
 			log.Info("module version not cached, downloading")
-			return l.downloadModule(dep.Path + "@" + dep.Version)
+			return l.downloadModule(log, dep.Path, dep.Version)
 		}
 
-		log.Info("failed to check if module is cached")
+		log.Error("failed to check if module is cached", slog.Any("err", err))
 
-		return "", "", fmt.Errorf("failed to check if module is cached: %w", err)
+		return nil, fmt.Errorf("failed to check if module is cached: %w", err)
 	}
 
-	log.Info("module version cached, returning cached file")
+	log.Info("module version cached, returning path to cached module")
 
 	_ = f.Close()
-	return filepath.ToSlash(sysModulePath), dep.Path, nil
+	return &mod{
+		path:       dep.Path,
+		pathInMod:  pathInMod(dep.Path, of),
+		sysAbsPath: sysModuleAbs,
+	}, nil
 }
 
-func (l *loader) downloadModule(slashPath string) (slashAbs string, slashModPath string, err error) {
-	mod, err := l.cmd.DownloadMod(slashPath)
+func (l *loader) downloadModule(log *slog.Logger, of, version string) (*mod, error) {
+	log.Info("downloading module", slog.String("of", of), slog.String("version", version))
+	return l._downloadModule(log, of, "", version)
+}
+
+func (l *loader) _downloadModule(log *slog.Logger, modulePath, pathInModule, version string) (*mod, error) {
+	query := modulePath + "@" + version
+
+	log.Debug("running `go mod download " + query + "`")
+
+	m, err := l.cmd.DownloadMod(query)
 	if err != nil {
-		return "", "", err
-	}
-	if mod.Error != "" {
-		return "", "", errors.New(mod.Error)
+		if strings.Contains(err.Error(), "malformed module path") || strings.Contains(err.Error(), "unrecognized import path") {
+			log.Info("module does not exist")
+			return nil, nil
+		} else if strings.Contains(err.Error(), "no matching versions") {
+			pathInModule = path.Join(path.Base(modulePath), pathInModule)
+			modulePath = path.Dir(modulePath)
+			if modulePath == "." {
+				log.Info("module does not exist")
+				return nil, nil
+			}
+
+			log.Debug("possibly a module path with appended dir, retrying with parent dir")
+			return l._downloadModule(log, modulePath, pathInModule, version)
+		}
+
+		log.Error("failed to download module", slog.Any("err", err))
+		return nil, err
 	}
 
-	return filepath.ToSlash(mod.GoMod), mod.Path, nil
+	log.Info("downloaded module", slog.String("module_path", m.Path), slog.String("abs", m.Dir))
+
+	return &mod{
+		path:       m.Path,
+		pathInMod:  pathInModule,
+		sysAbsPath: m.Dir,
+	}, nil
 }
 
-func (l *loader) goMod(p string) (*goModule, error) {
-	l.mut.Lock()
-
-	mod := l.mods[p]
-	if mod != nil {
-		l.mut.Unlock()
-		<-mod.done
-		return mod, mod.err
+func pathInMod(modulePath string, fullPath string) string {
+	if len(fullPath) <= len(modulePath) {
+		return ""
 	}
 
-	done := make(chan struct{})
-	mod = &goModule{done: done}
-	l.mods[p] = mod
-	l.mut.Unlock()
+	fullPath = fullPath[len(modulePath):]
+	for len(fullPath) > 0 && fullPath[0] == '/' {
+		fullPath = fullPath[1:]
+	}
 
-	// gomod.Find takes about 220µs, so it's still worth to cache
-	mod.mod, mod.slashPath, mod.err = gomod.Find(p)
-	mod.slashPath = filepath.ToSlash(mod.slashPath)
-	close(done)
+	return fullPath
+}
 
-	return mod, mod.err
+func (l *loader) readMainMod(log *slog.Logger, sysDir string) error {
+	log.Info("reading main module")
+
+	mod, absPath, err := gomod.Find(sysDir)
+	if err != nil {
+		log.Error("failed to read main module", slog.Any("err", err))
+		return err
+	}
+	if mod == nil {
+		log.Info("file not in module")
+	} else {
+		log.Info("read main module", slog.String("path", filepath.FromSlash(mod.Module.Mod.Path)))
+		l.mainMod = mod
+		l.mainModSysAbs = filepath.Dir(absPath)
+	}
+
+	return nil
 }
