@@ -2,6 +2,7 @@ package gocmd
 
 import (
 	"encoding/json"
+	"errors"
 )
 
 type DownloadModule struct {
@@ -20,11 +21,20 @@ type DownloadModule struct {
 }
 
 func (c *Cmd) DownloadMod(path string) (*DownloadModule, error) {
-	data, err := c.command("mod", "download", "-json", path)
-	if err != nil {
-		return nil, err
-	}
+	data, cmdErr := c.command("mod", "download", "-json", path)
+	// depending on the err, ^ will return a json error message
 
 	var mod DownloadModule
-	return &mod, json.Unmarshal(data, &mod)
+	if err := json.Unmarshal(data, &mod); err != nil {
+		if cmdErr != nil {
+			return nil, cmdErr
+		}
+
+		return nil, err
+	}
+	if mod.Error != "" {
+		return &mod, errors.New(mod.Error)
+	}
+
+	return &mod, nil
 }
