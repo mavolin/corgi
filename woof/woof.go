@@ -1,263 +1,92 @@
+// Package woof provides serialization of Go values to be used in HTML
+// documents.
+//
+// As such, it also provides escaping and filter mechanisms closely related to
+// the filters and escapers of Go's stdlib package html/template.
+//
+// # Terminology
+//
+// A FILTER is a function that is given untrusted data for a specific content
+// type.
+//
+// If the function deems the data safe, it returns it as is.
+//
+// If the data is deemed unsafe, the filter will replace the data or some of
+// its parts with a safe replacement or delete unsafe parts, CHANGING OR FULLY
+// REPLACING THE DATA to ensure safety.
+//
+// An ESCAPER is a function that is given untrusted data for a specific content
+// type and replaces unsafe parts with escape sequences, so that the data can
+// be used in its content domain without unintended side effects.
 package woof
 
 import (
-	"encoding"
-	"fmt"
-	"io"
 	"reflect"
-	"strconv"
+	"sort"
 )
 
-// WriteBytes writes the passed bs to w.
-// It returns any errors that occur.
-func WriteBytes(w io.Writer, bs []byte) error {
-	_, err := w.Write(bs)
-	return err
+func Ternary[T any](cond bool, ifTrue, ifFalse T) T {
+	if cond {
+		return ifTrue
+	}
+
+	return ifFalse
 }
 
-// Write writes the passed string s to w, utilizing w.WriteString, if w
-// implements it.
-func Write(w io.Writer, s string) error {
-	_, err := io.WriteString(w, s)
-	return err
+func IsZero[T comparable](t T) bool {
+	var zero T
+	return t == zero
 }
 
-// ============================================================================
-// Contextual Text
-// ======================================================================================
-
-// WriteAnyUnescaped calls [Stringify] on a and writes the result to w.
-// It uses no escaper for its call to [Stringify].
-func WriteAnyUnescaped(w io.Writer, a any) error {
-	s, err := Stringify(a, nil)
-	if err != nil {
-		return err
-	}
-
-	return Write(w, s)
-}
-
-// WriteCSS writes CSS to w.
-//
-// If a is of type [CSS], it writes a directly to w.
-// Otherwise, it calls [Stringify] on a, escaping the value with [EscapeCSS],
-// and then writes it to w.
-func WriteCSS(w io.Writer, a any) error {
-	css, ok := a.(CSS)
-	if ok {
-		return Write(w, string(css))
-	}
-
-	s, err := Stringify(a, func(s string) string {
-		return string(EscapeCSS(s))
-	})
-	if err != nil {
-		return err
-	}
-
-	return Write(w, s)
-}
-
-// WriteHTML writes HTML to w.
-//
-// If a is of type [HTML], it writes a directly to w.
-// Otherwise, it calls [Stringify] on a, escaping the value with [EscapeHTML],
-// and then writes it to w.
-func WriteHTML(w io.Writer, a any) error {
-	html, ok := a.(HTML)
-	if ok {
-		return Write(w, string(html))
-	}
-
-	s, err := Stringify(a, func(s string) string {
-		return string(EscapeHTML(s))
-	})
-	if err != nil {
-		return err
-	}
-
-	return Write(w, s)
-}
-
-// WriteJS calls [JSify] on a and writes the result to w.
-func WriteJS(w io.Writer, a any) error {
-	s, err := JSify(a)
-	if err != nil {
-		return err
-	}
-
-	return Write(w, s)
-}
-
-// ============================================================================
-// Attributes
-// ======================================================================================
-
-// WriteAttr writes the passed name-val-pair to w, preceded by a single space.
-//
-// For that it checks if val is of type bool.
-// If so, it either writes ` #{name}="#{name}"` if mirror is true, or just
-// ` #{name}, otherwise.
-//
-// If val is of type [HTMLAttr], it writes the attributes, not escaping val.
-// val will be enclosed in double quotes.
-//
-// In any other case, WriteAttr first calls [Stringify] on val using
-// [EscapeHTML] to escape stringified version.
-// It then writes the attribute, enclosing val in double quotes.
-func WriteAttr(w io.Writer, name string, val any, mirror bool) error {
-	switch val := val.(type) {
-	case bool:
-		if !val {
-			return nil
-		}
-
-		if mirror {
-			return Write(w, ` `+name+`="`+name+`"`)
-		}
-
-		return Write(w, " "+name)
-	case HTMLAttr:
-		return Write(w, ` `+name+`="`+string(val)+`"`)
-	default:
-		s, err := Stringify(val, func(s string) string {
-			return string(EscapeHTML(s))
-		})
-		if err != nil {
-			return err
-		}
-
-		return Write(w, ` `+name+`="`+s+`"`)
-	}
-}
-
-// WriteAttrUnescaped writes the passed name-val-pair to w, preceded by a
-// single space.
-//
-// For that, it checks if val is of type bool, and if so correctly mirrors it
-// according to the mirror parameter.
-//
-// In any other case, WriteAttrUnescaped writes the attribute, using the
-// unescaped return of [Stringify] as value.
-func WriteAttrUnescaped(w io.Writer, name string, val any, mirror bool) error {
-	switch val := val.(type) {
-	case bool:
-		if val {
-			if mirror {
-				return Write(w, ` `+name+`="`+name+`"`)
-			}
-
-			return Write(w, " "+name)
-		}
-
-		return nil
-	default:
-		s, err := Stringify(val, nil)
-		if err != nil {
-			return err
-		}
-
-		return Write(w, ` `+name+`="`+s+`"`)
-	}
-}
-
-var (
-	runeSliceType      = reflect.TypeOf(([]rune)(nil))
-	stringerType       = reflect.TypeOf((*fmt.Stringer)(nil)).Elem()
-	textMarshallerType = reflect.TypeOf((*encoding.TextMarshaler)(nil)).Elem()
-)
-
-// Stringify converts the passed value to a string.
-//
-// It accepts values of type string, all ints, all uints, all floats, bool,
-// []rune, [fmt.Stringer], and [encoding.TextUnmarshaler].
-// val may also be a pointer to any of the above types.
-//
-// If val is nil or dereferences to nil, it will return "".
-//
-// If escaper is not nil, it will call it on val, if val is a string,
-// []rune, implements [fmt.Stringer], or [encoding.TextMarshaler].
-func Stringify(val any, escaper func(string) string) (string, error) {
-	if val == nil {
-		return "", nil
-	}
-
+func CanIndex(val any, i any) bool {
 	rval := reflect.ValueOf(val)
-	rtyp := rval.Type()
-	for rval.Kind() == reflect.Ptr {
-		if rval.IsNil() {
-			return "", nil
+
+	switch rval.Kind() { //nolint:exhaustive
+	case reflect.Array, reflect.Slice, reflect.String:
+		i, ok := i.(int)
+		return ok && rval.Len() > i
+	case reflect.Map:
+		val := rval.MapIndex(reflect.ValueOf(i))
+		return val.IsZero()
+	default:
+		return false
+	}
+}
+
+type Ordered interface {
+	~int | ~int8 | ~int16 | ~int32 | ~int64 |
+		~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 |
+		~float32 | ~float64 |
+		~string
+}
+
+type MapSlice[K Ordered, V any] []MapEntry[K, V]
+
+type MapEntry[K Ordered, V any] struct {
+	K K
+	V V
+}
+
+func (m MapSlice[K, V]) Len() int           { return len(m) }
+func (m MapSlice[K, V]) Less(i, j int) bool { return m[i].K < m[j].K }
+func (m MapSlice[K, V]) Swap(i, j int)      { m[i], m[j] = m[j], m[i] }
+
+var _ sort.Interface = MapSlice[int, any]{}
+
+func OrderedMap[K Ordered, V any, M ~map[K]V](m M) MapSlice[K, V] {
+	if len(m) <= 1 {
+		for k, v := range m {
+			return MapSlice[K, V]{{k, v}}
 		}
-
-		switch {
-		case rtyp.Implements(stringerType):
-			val := rval.Interface().(fmt.Stringer)
-			if escaper != nil {
-				return escaper(val.String()), nil
-			}
-
-			return val.String(), nil
-		case rtyp.Implements(textMarshallerType):
-			data, err := rval.Interface().(encoding.TextMarshaler).MarshalText()
-			if err != nil {
-				return "", err
-			}
-
-			if escaper != nil {
-				return escaper(string(data)), nil
-			}
-
-			return string(data), nil
-		}
-
-		rval = rval.Elem()
-		rtyp = rval.Type()
+		return nil
 	}
 
-	switch {
-	case rtyp == runeSliceType:
-		val := rval.Interface().([]rune)
-		if escaper != nil {
-			return escaper(string(val)), nil
-		}
+	vals := make(MapSlice[K, V], 0, len(m))
 
-		return string(val), nil
-	case rtyp.Implements(stringerType):
-		val := rval.Interface().(fmt.Stringer)
-		if escaper != nil {
-			return escaper(val.String()), nil
-		}
-
-		return val.String(), nil
-	case rtyp.Implements(textMarshallerType):
-		data, err := rval.Interface().(encoding.TextMarshaler).MarshalText()
-		if err != nil {
-			return "", err
-		}
-
-		if escaper != nil {
-			return escaper(string(data)), nil
-		}
-
-		return string(data), nil
+	for k, v := range m {
+		vals = append(vals, MapEntry[K, V]{k, v})
 	}
 
-	switch rval.Kind() {
-	case reflect.String:
-		if escaper != nil {
-			return escaper(rval.String()), nil
-		}
-
-		return rval.String(), nil
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return strconv.FormatInt(rval.Int(), 10), nil
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		return strconv.FormatUint(rval.Uint(), 10), nil
-	case reflect.Float32, reflect.Float64:
-		return strconv.FormatFloat(rval.Float(), 'f', -1, 64), nil
-	case reflect.Bool:
-		return strconv.FormatBool(rval.Bool()), nil
-	}
-
-	return "", fmt.Errorf("woof.Stringify: unsupported type %T", rval.Interface())
+	sort.Sort(vals)
+	return vals
 }

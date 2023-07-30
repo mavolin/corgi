@@ -95,6 +95,8 @@ func run() error {
 		os.Exit(1)
 	}
 
+	corgi.Foo(os.Stderr)
+
 	return writeFile(f)
 }
 
@@ -127,7 +129,7 @@ func writeFile(f *file.File) error {
 
 		goimports := exec.CommandContext(ctx, "goimports")
 		goimports.Stdout = out
-		stderr := bytes.NewBuffer(make([]byte, 256))
+		stderr := bytes.NewBuffer(make([]byte, 0, 256))
 		goimports.Stderr = stderr
 		pipe, err := goimports.StdinPipe()
 		if err != nil {

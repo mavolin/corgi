@@ -1,0 +1,509 @@
+// Package writer provides a writer that allows converting a file.File to Go
+// code.
+package write
+
+import (
+	"bytes"
+	"fmt"
+	"io"
+	"strconv"
+	"strings"
+
+	"github.com/mavolin/corgi/file"
+	"github.com/mavolin/corgi/internal/stack"
+	"github.com/mavolin/corgi/woof"
+)
+
+const (
+	ctxVar = "ctx"
+)
+
+// A Writer is used to convert a corgi file or scope item to Go code.
+//
+// It must not be used concurrently
+type ctx struct {
+	out io.Writer
+
+	destPackage string
+
+	identPrefix string
+	gotoCounter int
+
+	// _stack are the files we are currently in.
+	//
+	// If len(stack) > 0, then _stack[0] is the base template,
+	// _stack[1:len(stack)-1] are other templates extending each other
+	// (_stack[1] extends _stack[0], _stack[2] extends _stack[1], etc.), and
+	// _stack[len(_stack)-1] is the main file.
+	_stack []*file.File
+	// stackStart is the start of the file stack for the current file.
+	//
+	// For example, if we are generating from the main file, stackStart will be
+	// len(_stack)-1.
+	stackStart int
+
+	// mixin is the mixin we are currently generating.
+	mixin *mixin
+
+	exprEscaper *stack.Stack[*escaper]
+
+	voidElem       bool
+	classBuf       strings.Builder
+	needBufClass   bool
+	haveBufClasses bool
+	closed         *stack.Stack[closeState]
+	calledUnclosed bool
+	calledClosed   bool
+	andAttrs       *stack.Stack[func()]
+
+	mixinFuncNames map[*file.Mixin]mixin
+
+	debugActive bool
+
+	generateBuf bytes.Buffer
+}
+
+type mixin struct {
+}
+
+type closeState uint8
+
+const (
+	unclosed closeState = iota
+	maybeClosed
+	closed
+)
+
+type Options struct {
+	// IdentPrefix is the prefix corgi puts in front of an identifier.
+	//
+	// It defaults to "__corgi_".
+	IdentPrefix string
+
+	// Debug, if set to true, attaches file and position information of scope
+	// items to the generated file.
+	Debug bool
+}
+
+type Writer struct {
+	o Options
+}
+
+func New(o Options) *Writer {
+	if o.IdentPrefix == "" {
+		o.IdentPrefix = "__corgi_"
+	}
+
+	return &Writer{o}
+}
+
+func (w *Writer) GenerateFile(out io.Writer, destPackage string, f *file.File) (err error) {
+	// judge me all you want, no function deserves to have an error check every
+	// two lines
+	defer func() {
+		if rec := recover(); rec != nil {
+			var ok bool
+			err, ok = rec.(error)
+			if !ok {
+				err = fmt.Errorf("%v", rec)
+			}
+		}
+	}()
+
+	ctx := newCtx(w.o)
+	ctx.out = out
+	ctx.destPackage = destPackage
+
+	var n int
+	for f := f; f != nil; {
+		n++
+		if f.Extend == nil {
+			break
+		}
+
+		f = f.Extend.File
+	}
+	ctx._stack = make([]*file.File, n)
+	for i := n - 1; i >= 0; i-- {
+		ctx._stack[i] = f
+		if f.Extend != nil {
+			f = f.Extend.File
+		}
+	}
+
+	writePackage(ctx)
+	writeImports(ctx)
+	writeGlobalCode(ctx)
+	writeFunc(ctx)
+
+	return err
+}
+
+func newCtx(o Options) *ctx {
+	return &ctx{
+		identPrefix:    o.IdentPrefix,
+		exprEscaper:    stack.New1(bodyEscaper),
+		closed:         stack.New1(closed),
+		mixinFuncNames: make(map[*file.Mixin]mixin),
+		debugActive:    o.Debug,
+	}
+}
+
+func (ctx *ctx) ident(s string) string {
+	return ctx.identPrefix + s
+}
+
+func (ctx *ctx) contextFunc(name string, args ...string) string {
+	var sb strings.Builder
+
+	sb.WriteString(ctx.identPrefix)
+	sb.WriteString("ctx")
+	sb.WriteByte('.')
+	sb.WriteString(name)
+	sb.WriteByte('(')
+
+	for i, arg := range args {
+		if i > 0 {
+			sb.WriteString(", ")
+		}
+		sb.WriteString(arg)
+	}
+
+	sb.WriteByte(')')
+	return sb.String()
+}
+
+func (ctx *ctx) woofQual(ident string) string {
+	return ctx.identPrefix + "woof" + "." + ident
+}
+
+func (ctx *ctx) woofFunc(name string, args ...string) string {
+	var sb strings.Builder
+
+	sb.WriteString(ctx.identPrefix)
+	sb.WriteString("woof")
+	sb.WriteByte('.')
+	sb.WriteString(name)
+	sb.WriteByte('(')
+
+	for i, arg := range args {
+		if i > 0 {
+			sb.WriteString(", ")
+		}
+		sb.WriteString(arg)
+	}
+
+	sb.WriteByte(')')
+	return sb.String()
+}
+
+func (ctx *ctx) ioQual(ident string) string {
+	return ctx.identPrefix + "io" + "." + ident
+}
+
+func (ctx *ctx) fmtFunc(name string, args ...string) string {
+	var sb strings.Builder
+
+	sb.WriteString(ctx.identPrefix)
+	ctx.writeString("fmt")
+	sb.WriteByte('.')
+	sb.WriteString(name)
+	sb.WriteByte('(')
+
+	for i, arg := range args {
+		if i > 0 {
+			sb.WriteString(", ")
+		}
+		sb.WriteString(arg)
+	}
+
+	sb.WriteByte(')')
+	return sb.String()
+}
+
+func (ctx *ctx) nextGotoIdent() string {
+	ctx.gotoCounter++
+	return fmt.Sprint(ctx.identPrefix, "goto", ctx.gotoCounter-1)
+}
+
+func (ctx *ctx) stack() []*file.File {
+	return ctx._stack[ctx.stackStart:]
+}
+
+func (ctx *ctx) baseFile() *file.File {
+	return ctx._stack[0]
+}
+
+func (ctx *ctx) mainFile() *file.File {
+	return ctx._stack[len(ctx._stack)-1]
+}
+
+func (ctx *ctx) startElem(void bool) {
+	ctx.voidElem = void
+	ctx.closed.Swap(unclosed)
+	ctx.haveBufClasses = false
+	ctx.calledUnclosed = false
+	ctx.calledClosed = false
+}
+
+func (ctx *ctx) debug(typ, s string) {
+	if !ctx.debugActive {
+		return
+	}
+
+	ctx.writeln(fmt.Sprintf("// [%s] %s", typ, s))
+}
+
+func (ctx *ctx) debugInline(typ, s string) {
+	if !ctx.debugActive {
+		return
+	}
+
+	ctx.write(fmt.Sprintf(" /* [%s] %s */ ", typ, s))
+}
+
+func (ctx *ctx) debugItem(itm file.Poser, s string) {
+	if !ctx.debugActive {
+		return
+	}
+
+	ctx.debug("item", fmt.Sprintf("%T (%d:%d): %s", itm, itm.Pos().Line, itm.Pos().Col, s))
+}
+
+func (ctx *ctx) debugItemInline(itm file.Poser, s string) {
+	if !ctx.debugActive {
+		return
+	}
+
+	ctx.debugInline("item", fmt.Sprintf("%T [%d:%d]: %s", itm, itm.Pos().Line, itm.Pos().Col, s))
+}
+
+func (ctx *ctx) write(s string) {
+	_, err := io.WriteString(ctx.out, s)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func (ctx *ctx) writeln(s string) {
+	ctx.write(s + "\n")
+}
+
+func (ctx *ctx) writeString(s string) {
+	ctx.write(strconv.Quote(s))
+}
+
+func (ctx *ctx) inContext(f func()) {
+	ctx.writeln("{")
+	f()
+	ctx.writeln("}")
+}
+
+func (ctx *ctx) generate(s string, esc *escaper) {
+	s = esc.escape(ctx, s)
+	ctx.debug("write buffer", strconv.Quote(s))
+	ctx.generateBuf.WriteString(s)
+}
+
+func (ctx *ctx) flushGenerate() {
+	if ctx.generateBuf.Len() > 0 {
+		ctx.debug("flush generate buffer", "(see below)")
+		ctx.writeln(ctx.contextFunc("Write", strconv.Quote(ctx.generateBuf.String())))
+		ctx.generateBuf.Reset()
+	} else {
+		ctx.debug("flush generate buffer", "[empty buffer]")
+	}
+}
+
+func (ctx *ctx) flushClasses() {
+	if ctx.classBuf.Len() > 0 {
+		ctx.debug("flush class buffer", "(see below)")
+		ctx.writeln(ctx.contextFunc("BufferClassAttr", strconv.Quote(ctx.classBuf.String())))
+		ctx.haveBufClasses = true
+		ctx.classBuf.Reset()
+	} else {
+		ctx.debug("flush class buffer", "[empty buffer]")
+	}
+}
+
+var unquotedAttrValEscaper = strings.NewReplacer(`&`, `&amp;`)
+
+func (ctx *ctx) generateStringAttr(name, val string) {
+	ctx.generate(" "+name+"=", nil)
+
+	// see if we even need to quote val
+	// https://html.spec.whatwg.org/#syntax-attribute-value
+	if val == "" || strings.ContainsAny(val, "\t\n\f\r \"'=<>`") {
+		ctx.generate(`"`, nil)
+		ctx.generate(val, attrEscaper)
+		ctx.generate(`"`, nil)
+		return
+	}
+
+	ctx.generate(unquotedAttrValEscaper.Replace(val), nil)
+}
+
+func (ctx *ctx) generateExpr(expr string, esc *escaper) {
+	ctx.flushGenerate()
+
+	escName := "nil"
+	if esc != nil {
+		escName = esc.qualName(ctx)
+	}
+	ctx.write(ctx.woofFunc("WriteAny", ctx.ident(ctxVar), expr, escName))
+}
+
+// see generateExpression (func not method)
+func (ctx *ctx) generateExpression(expr file.Expression, txtEsc *escaper, exprEsc *escaper, writer func(func())) {
+	if len(expr.Expressions) == 0 {
+		return
+	}
+
+	if writer == nil {
+		writer = func(genExpr func()) {
+			genExpr()
+		}
+	}
+
+	if len(expr.Expressions) == 1 {
+		esc := exprEsc
+		if txtEsc != nil {
+			esc = txtEsc
+		}
+
+		switch exprItm := expr.Expressions[0].(type) {
+		case file.GoExpression:
+			if num, err := strconv.ParseInt(exprItm.Expression, 10, 64); err == nil {
+				writer(func() {
+					ctx.generate(ctx.stringify(num), esc)
+				})
+				return
+			} else if num, err := strconv.ParseUint(exprItm.Expression, 10, 64); err == nil {
+				writer(func() {
+					ctx.generate(ctx.stringify(num), esc)
+				})
+				return
+			} else if num, err := strconv.ParseFloat(exprItm.Expression, 64); err == nil {
+				writer(func() {
+					ctx.generate(ctx.stringify(num), esc)
+				})
+				return
+			}
+		case file.StringExpression:
+			if len(exprItm.Contents) == 0 {
+				return
+			} else if len(exprItm.Contents) != 1 {
+				break
+			}
+
+			txt, ok := exprItm.Contents[0].(file.StringExpressionText)
+			if !ok {
+				break
+			}
+
+			s := unquoteStringExpressionText(exprItm, txt)
+
+			writer(func() {
+				ctx.generate(s, esc)
+			})
+		}
+	}
+
+	generateExpression(ctx, expr, txtEsc, exprEsc, writer)
+}
+
+func (ctx *ctx) bufClass(class string) {
+	ctx.debug("class buffer", strconv.Quote(class))
+
+	if ctx.classBuf.Len() == 0 {
+		ctx.classBuf.WriteString(class)
+	} else {
+		ctx.classBuf.Grow(len(" ") + len(class))
+		ctx.classBuf.WriteByte(' ')
+		ctx.classBuf.WriteString(class)
+	}
+}
+
+func (ctx *ctx) closeTag() {
+	cl := ctx.closed.Peek()
+	if cl == closed {
+		return
+	}
+
+	if cl == unclosed {
+		ctx.debug("close tag", "[prev state: unclosed, class buf: "+ctx.classBuf.String()+"]")
+	} else {
+		ctx.debug("close tag", "[prev state: maybe closed, class buf: "+ctx.classBuf.String()+"]")
+	}
+
+	defer ctx.closed.Swap(closed)
+	defer ctx.classBuf.Reset()
+
+	if cl == unclosed && !ctx.haveBufClasses {
+		classes := ctx.classBuf.String()
+		if classes != "" {
+			ctx.generateStringAttr("class", classes)
+		}
+
+		if ctx.voidElem {
+			ctx.generate("/>", nil)
+			return
+		}
+
+		ctx.generate(">", nil)
+		return
+	}
+
+	ctx.flushGenerate()
+
+	ctx.calledClosed = true
+	ctx.write(ctx.ident(ctxVar) + ".CloseStartTag(")
+	ctx.writeString(ctx.classBuf.String())
+	ctx.write(", ")
+	if ctx.voidElem {
+		ctx.writeln("true)")
+	} else {
+		ctx.writeln("false)")
+	}
+}
+
+// horrible name, but a ton less confusion than just reading callUnclosed
+func (ctx *ctx) callUnclosedIfUnclosed() {
+	if ctx.calledUnclosed {
+		return
+	}
+	ctx.calledUnclosed = true
+	if ctx.closed.Peek() == unclosed {
+		ctx.writeln(ctx.contextFunc("Unclosed"))
+	}
+}
+
+// horrible name, but a ton less confusion than just reading callUnclosed
+func (ctx *ctx) callClosedIfClosed() {
+	if ctx.calledClosed {
+		return
+	}
+	ctx.calledClosed = true
+	if ctx.closed.Peek() == closed {
+		ctx.writeln(ctx.contextFunc("Closed"))
+	}
+}
+
+func (ctx *ctx) callCloseState() {
+	if ctx.calledUnclosed {
+		return
+	}
+	ctx.calledUnclosed = true
+	if ctx.closed.Peek() == unclosed {
+		ctx.writeln(ctx.contextFunc("Unclosed"))
+	}
+}
+
+func (ctx *ctx) stringify(val any) string {
+	s, err := woof.Stringify(val)
+	if err != nil {
+		panic(err)
+	}
+
+	return s
+}

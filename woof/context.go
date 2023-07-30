@@ -1,0 +1,188 @@
+package woof
+
+import (
+	"bytes"
+	"io"
+)
+
+type Context struct {
+	err      error
+	w        io.Writer
+	classBuf bytes.Buffer
+	closed   bool
+}
+
+func NewContext(w io.Writer) *Context {
+	return &Context{w: w}
+}
+
+func (ctx *Context) Panic(err error) {
+	ctx.err = err
+	panic(err)
+}
+
+func (ctx *Context) Recover() {
+	if ctx.err != nil {
+		recover()
+	}
+}
+
+func (ctx *Context) Err() error {
+	return ctx.err
+}
+
+func (ctx *Context) Write(s string) {
+	if _, err := io.WriteString(ctx.w, s); err != nil {
+		ctx.Panic(err)
+	}
+}
+
+func (ctx *Context) WriteBytes(data []byte) {
+	if _, err := ctx.w.Write(data); err != nil {
+		ctx.Panic(err)
+	}
+}
+
+func (ctx *Context) BufferClass(class any) {
+	classStr, err := EscapeHTMLAttrVal(class)
+	if err != nil {
+		ctx.Panic(err)
+	}
+
+	ctx.BufferClassAttr(classStr)
+}
+
+func (ctx *Context) BufferClassAttr(class HTMLAttrVal) {
+	if ctx.classBuf.Len() > 0 {
+		ctx.classBuf.WriteString(string(" " + class))
+		return
+	}
+
+	ctx.classBuf.WriteString(string(class))
+}
+
+// Unclosed signals that an element tag has been opened but not yet closed.
+func (ctx *Context) Unclosed() {
+	ctx.closed = false
+}
+
+// Closed signals that an element tag has been closed.
+func (ctx *Context) Closed() {
+	ctx.closed = true
+}
+
+// CloseStartTag writes the buffered classes, if any, plus, optionally, the
+// passed pre-escaped extra classes and closes the start tag.
+//
+// If the tag has already been closed, CloseStartTag is a no-op.
+func (ctx *Context) CloseStartTag(extraClasses HTMLAttrVal, void bool) {
+	if ctx.closed {
+		return
+	}
+	ctx.closed = true
+
+	if ctx.classBuf.Len() > 0 {
+		if len(extraClasses) > 0 {
+			ctx.Write(` class="` + string(extraClasses) + ` `)
+			ctx.WriteBytes(ctx.classBuf.Bytes())
+		} else {
+			ctx.Write(` class="`)
+			ctx.WriteBytes(ctx.classBuf.Bytes())
+		}
+		if void {
+			ctx.Write("/>")
+			return
+		}
+		ctx.Write(">")
+
+		ctx.classBuf.Reset()
+		return
+	}
+
+	if len(extraClasses) > 0 {
+		if void {
+			ctx.Write(` class="` + string(extraClasses) + `"/>`)
+			return
+		}
+		ctx.Write(` class="` + string(extraClasses) + `">`)
+		return
+	}
+
+	if void {
+		ctx.Write("/>")
+		return
+	}
+	ctx.Write(">")
+}
+
+func WriteAny[T ~string](ctx *Context, val any, escaper func(val any) (T, error)) {
+	if escaper != nil {
+		s, err := escaper(val)
+		if err != nil {
+			ctx.Panic(err)
+		}
+		ctx.Write(string(s))
+		return
+	}
+
+	s, err := Stringify(val)
+	if err != nil {
+		ctx.Panic(err)
+	}
+
+	ctx.Write(s)
+}
+
+// WriteAttr is a utility for writing attributes, that correctly handles bool
+// values.
+//
+// If val is a bool and true, WriteAttr writes a space followed by name.
+//
+// If val is a bool and false, WriteAttr writes nothing.
+//
+// In any other case, WriteAttr writes a space, followed
+func WriteAttr[T ~string](ctx *Context, name string, val any, escaper func(val any) (T, error)) {
+	if b, ok := val.(bool); ok {
+		if !b {
+			return
+		}
+
+		ctx.Write(" " + name)
+		return
+	}
+
+	if escaper != nil {
+		s, err := escaper(val)
+		if err != nil {
+			ctx.Panic(err)
+		}
+
+		ctx.Write(` ` + name + `="` + string(s) + `"`)
+		return
+	}
+
+	s, err := Stringify(val)
+	if err != nil {
+		ctx.Panic(err)
+	}
+
+	ctx.Write(` ` + name + `="` + s + `"`)
+}
+
+func Must[T ~string](ctx *Context, f func(val any) (T, error), val any) string {
+	t, err := f(val)
+	if err != nil {
+		ctx.Panic(err)
+	}
+
+	return string(t)
+}
+
+func MustFunc[T ~string](ctx *Context, f func() (T, error)) string {
+	t, err := f()
+	if err != nil {
+		ctx.Panic(err)
+	}
+
+	return string(t)
+}
