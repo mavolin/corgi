@@ -4,62 +4,99 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io/fs"
+	"io"
 	"os"
 	"path/filepath"
 
-	"github.com/mavolin/corgi/corgi/resource"
+	"github.com/mavolin/corgi"
 	"github.com/mavolin/corgi/internal/meta"
 )
 
 var (
+	// Misc
+
+	IsGoGenerate bool
+
 	// Flags
 
-	Package         string
-	ResourceSources []resource.Source
+	Package string
 
-	RunGoImports bool
+	PrecompileLibrary bool
+	NoGoImports       bool
 
 	OutFile   string
 	UseStdout bool
 
+	ScriptNonce bool
+
+	GoExecPath string
+
+	Verbose bool
+	Debug   bool
+
+	ForceColorSetting bool
+	Color             bool
+
 	// Args
 
 	InFile string
-	In     string
+	InData []byte
 )
 
 func init() {
+	IsGoGenerate = os.Getenv("GOFILE") != ""
+
 	var (
 		showHelp    bool
 		showVersion bool
-
-		ignoreCorgi bool
 	)
 
 	flag.Usage = usage
 
 	flag.BoolVar(&showHelp, "h", false, "show this help message")
-	flag.BoolVar(&showVersion, "v", false, "show version")
+	flag.BoolVar(&showVersion, "version", false, "show version")
 	flag.StringVar(&Package, "package", "",
-		"the name of the package to generate into; not required when using go generate")
-	flag.Func("r", "add `Path` to the list of resource sources", func(path string) error {
-		_, err := os.Open(path)
-		if err != nil {
-			if errors.Is(err, os.ErrNotExist) {
-				return fmt.Errorf("resource directory does not exist: %w", path)
-			}
+		"the name of the package to generate into (default: GOPACKAGE, or pwd)\n"+
+			"ignored if -lib is set")
+	flag.BoolVar(&NoGoImports, "nogoimports", false, "do not run goimports on the generated file")
+	flag.StringVar(&OutFile, "o", "", "write output to `File` instead of stdout (defaults to `FILE.go`)")
+	flag.BoolVar(&UseStdout, "stdout", false, "write to stdout instead of a file")
 
-			return fmt.Errorf("%s: %w", path, err)
+	flag.BoolVar(&ScriptNonce, "script-nonce", false, "inject a nonce attribute in every script if the woof.ScriptNonce context value is set")
+
+	flag.BoolVar(&PrecompileLibrary, "lib", false,
+		"treat the input file as a library dir, not compatible with stdin;\n"+
+			"`-o`, if not set, will default to `"+corgi.PrecompFileName+"`")
+	flag.StringVar(&GoExecPath, "go", "", "path to the go executable, defaults to a PATH lookup")
+	flag.BoolVar(&Verbose, "v", false, "enable verbose output to stderr")
+	flag.BoolVar(&Debug, "debug", false, "print file and line information as comments in the generated function")
+	flag.Func("color", "force or disable coloring of errors (`true`, `false`)", func(s string) error {
+		ForceColorSetting = true
+
+		switch s {
+		case "", "true":
+			Color = true
+		case "false":
+			Color = false
+		default:
+			return errors.New("invalid color setting, expected `true` or `false`")
 		}
 
-		ResourceSources = append(ResourceSources, resource.NewFSSource(path, os.DirFS(path)))
 		return nil
 	})
-	flag.BoolVar(&RunGoImports, "nofmt", true, "do not run goimports on the generated file")
-	flag.BoolVar(&ignoreCorgi, "ignorecorgi", false, "do not use the corgi resource source")
-	flag.StringVar(&OutFile, "o", "", "write output to `File` instead of stdout (defaults to `my_corgi_file.corgi.go`)")
-	flag.BoolVar(&UseStdout, "stdout", false, "write output to stdout instead of a file")
+	flag.Func("colour", "force or disable colouring of errors, even if you speak British English (`true`, `false`)", func(s string) error {
+		ForceColorSetting = true
+		switch s {
+		case "", "true":
+			Color = true
+		case "false":
+			Color = false
+		default:
+			return errors.New("invalid colour setting, expected `true` or `false`")
+		}
+
+		return nil
+	})
 
 	flag.Parse()
 
@@ -71,55 +108,76 @@ func init() {
 		return
 	}
 
-	if !ignoreCorgi {
-		filesys, err := corgiFS()
-		if err != nil {
-			fmt.Println(err.Error())
-			os.Exit(2)
-		}
-
-		ResourceSources = append([]resource.Source{resource.NewFSSource("corgi", filesys)}, ResourceSources...)
-	}
-
 	if Package == "" {
 		Package = os.Getenv("GOPACKAGE")
 		if Package == "" {
-			fmt.Println("you must either specify a package name or use go generate")
-			os.Exit(2)
+			wd, err := os.Getwd()
+			if err != nil {
+				fmt.Fprintln(os.Stderr, "failed to get workdir\n"+
+					"if this happens again set package manually using the `-package` flag")
+				os.Exit(2)
+			}
+
+			Package = filepath.Base(wd)
 		}
+	}
+
+	if OutFile != "" && UseStdout {
+		fmt.Fprintln(os.Stderr, "conflicting flags -o and -stdout")
+		os.Exit(2)
 	}
 
 	InFile = flag.Arg(0)
 	if InFile == "" {
-		fmt.Println("you must specify exactly one input file")
-		os.Exit(2)
-	}
+		var err error
+		InData, err = io.ReadAll(os.Stdin)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "could not read stdin", err.Error())
+			os.Exit(2)
+		}
 
-	inBytes, err := os.ReadFile(InFile)
-	if err != nil {
-		fmt.Println("could not read input file:", err.Error())
-		os.Exit(2)
-	}
-
-	In = string(inBytes)
-
-	if OutFile != "" && UseStdout {
-		fmt.Println("conflicting flags -o and -stdout")
-		os.Exit(2)
+		if len(InData) == 0 {
+			fmt.Fprintln(os.Stderr, "expected either input via stdin or a filepath as arg")
+			os.Exit(2)
+		}
 	}
 
 	if OutFile == "" && !UseStdout {
-		OutFile = filepath.Base(flag.Arg(0)) + ".go"
+		if PrecompileLibrary {
+			OutFile = corgi.PrecompFileName
+		} else {
+			if InFile == "" {
+				fmt.Fprintln(os.Stderr, "need to specify output file, -o, or not use stdin")
+				os.Exit(2)
+			}
+
+			OutFile = filepath.Base(flag.Arg(0)) + ".go"
+		}
+	}
+
+	if GoExecPath == "" {
+		if goroot := os.Getenv("GOROOT"); goroot != "" {
+			GoExecPath = filepath.Join(goroot, "bin", "go")
+		}
 	}
 }
 
 func usage() {
-	fmt.Fprintln(flag.CommandLine.Output(), "corgi ", version())
-	fmt.Fprintln(flag.CommandLine.Output())
 	fmt.Fprintln(flag.CommandLine.Output(), "This is the compiler for the corgi template language.")
 	fmt.Fprintln(flag.CommandLine.Output(), "https://github.com/mavolin/corgi")
 	fmt.Fprintln(flag.CommandLine.Output())
-	fmt.Fprintln(flag.CommandLine.Output(), "Usage: corgi [options] file.corgi")
+	fmt.Fprintln(flag.CommandLine.Output(), "Usage: corgi [options] [FILE]")
+	fmt.Fprintln(flag.CommandLine.Output())
+	fmt.Fprintln(flag.CommandLine.Output(), "Input may be passed through stdin, however, this will disable loading of the file's dir library.")
+	fmt.Fprintln(flag.CommandLine.Output())
+	fmt.Fprintln(flag.CommandLine.Output(), "If -lib is specified, the file argument is mandatory.")
+	fmt.Fprintln(flag.CommandLine.Output(), "It may be a single directory or a list of files to be precompiled.")
+	fmt.Fprintln(flag.CommandLine.Output())
+	fmt.Fprintln(flag.CommandLine.Output(), "Additionally, the special ./.. argument is allowed, which recursively iterates")
+	fmt.Fprintln(flag.CommandLine.Output(), "through pwd and its subdirectories and pre-compiles all of those containing corgi")
+	fmt.Fprintln(flag.CommandLine.Output(), "library files.")
+	fmt.Fprintln(flag.CommandLine.Output(), "If ./... is used, the -o flag has no effect and the precompiled files will be")
+	fmt.Fprintln(flag.CommandLine.Output(), "placed directly into the respective directories.")
 	fmt.Fprintln(flag.CommandLine.Output())
 	flag.PrintDefaults()
 }
@@ -131,40 +189,4 @@ func version() string {
 	}
 
 	return ver
-}
-
-func corgiFS() (fs.FS, error) {
-	pwd, err := filepath.Abs(".")
-	if err != nil {
-		return nil, err
-	}
-
-	abs := pwd
-
-	for abs != "/" {
-		dir, err := os.ReadDir(abs)
-		if err != nil {
-			return nil, err
-		}
-
-		for _, e := range dir {
-			if e.IsDir() {
-				continue
-			}
-
-			if e.Name() == "go.mod" {
-				for _, e := range dir {
-					if e.IsDir() && e.Name() == "corgi" {
-						return os.DirFS(filepath.Join(abs, "corgi")), nil
-					}
-				}
-
-				return nil, nil
-			}
-		}
-
-		abs = filepath.Dir(abs)
-	}
-
-	return nil, nil
 }
