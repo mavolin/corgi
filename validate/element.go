@@ -435,7 +435,7 @@ func attributePlacement(f *file.File) *errList {
 				Annotation: "in this element",
 			})
 			_, elErrs := _attributePlacement(f, elAnno, nil, itm.Body)
-			elErrs.PushBackList(&elErrs)
+			errs.PushBackList(&elErrs)
 		case file.DivShorthand:
 			elAnno := anno.Anno(f, anno.Annotation{
 				Start:      itm.Position,
@@ -696,11 +696,10 @@ func _attributePlacement(f *file.File, elAnno corgierr.Annotation, firstText *co
 				return false, nil
 			}
 
-			annoLen := len("+")
+			annoLen := len("+") + len(itm.Name.Ident)
 			if itm.Namespace != nil {
 				annoLen += len(itm.Namespace.Ident) + len(".")
 			}
-			annoLen += len(itm.Name.Ident)
 
 			mixinErrs := _mixinCallAndPlacement(f, itm, elAnno, firstText)
 			errs.PushBackList(mixinErrs)
