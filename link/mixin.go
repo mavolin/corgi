@@ -67,7 +67,7 @@ func (l *Linker) analyzeMixins(fs ...*file.File) *errList {
 							"i.e. mixin `a` calls mixin `b` which calls mixin `a`.\n" +
 							"However, this and the other mixins that this error is reported on, perform direct or" +
 							"indirect recursion on each other.\n" +
-							"This error can be resolved, by removing this recursion.",
+							"This error can be resolved by removing this recursion.",
 					},
 				},
 			})

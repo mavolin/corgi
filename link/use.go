@@ -2,6 +2,7 @@ package link
 
 import (
 	"errors"
+	"path"
 
 	"github.com/mavolin/corgi/corgierr"
 	"github.com/mavolin/corgi/file"
@@ -9,6 +10,47 @@ import (
 	"github.com/mavolin/corgi/internal/anno"
 	"github.com/mavolin/corgi/internal/list"
 )
+
+func (l *Linker) linkDependencies(ctx *context, lib *file.Library) {
+	ctx.n += len(lib.Dependencies)
+	for _, dep := range lib.Dependencies {
+		dep := dep
+		go func() {
+			var usingFile *file.File
+
+			reqName := dep.Mixins[0].RequiredBy[0]
+			for _, m := range lib.Mixins {
+				if m.Mixin.Name.Ident == reqName {
+					usingFile = m.File
+					break
+				}
+			}
+
+			var err error
+			dep.Library, err = l.loader.LoadLibrary(usingFile, path.Join(dep.Module, dep.PathInModule))
+			if err == nil { // IS nil
+				ctx.errs <- &errList{}
+				return
+			}
+
+			ctx.errs <- list.List1(&corgierr.Error{
+				Message: "failed to load dependency of precompiled library",
+				ErrorAnnotation: corgierr.Annotation{
+					Line:  1,
+					Start: 1,
+					End:   2,
+					Annotation: "no position;\n" +
+						path.Join(lib.Module, lib.PathInModule) + " failed to " + path.Join(dep.Module, dep.PathInModule),
+					Lines: []string{""},
+				},
+				Suggestions: []corgierr.Suggestion{
+					{Suggestion: "this is either because of an invalid use path, or a module that has become unavailable"},
+				},
+				Cause: err,
+			})
+		}()
+	}
+}
 
 func (l *Linker) linkUses(ctx *context, f *file.File) {
 	for _, use := range f.Uses {

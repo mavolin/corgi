@@ -77,6 +77,8 @@ func (l *Linker) LinkLibrary(lib *file.Library) error {
 	errsChan := make(chan *errList)
 	ctx := context{errs: errsChan}
 
+	l.linkDependencies(&ctx, lib)
+
 	for _, f := range lib.Files {
 		f := f
 		l.linkUses(&ctx, f)

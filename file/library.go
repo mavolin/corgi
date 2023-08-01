@@ -49,11 +49,14 @@ type Library struct {
 type LibDependency struct {
 	// Module is the path/name of the Go module providing this library.
 	Module string
-	// ModulePath is the path to the library in the Go module, relative to the
+	// PathInModule is the path to the library in the Go module, relative to the
 	// module root.
 	//
 	// It is always specified as a forward slash separated path.
-	ModulePath string
+	PathInModule string
+
+	// Library is the linked library.
+	Library *Library
 
 	Mixins []MixinDependency
 }
@@ -81,12 +84,4 @@ type PrecompiledMixin struct {
 	//
 	// Its body is empty.
 	Mixin Mixin
-
-	// Precompiled is the precompiled function literal.
-	// Its args start with the mixins args, followed by func()s for each of
-	// the Blocks, and lastly, if HasAndPlaceholders is true, a final func()
-	// called each time that the mixin's &s are supposed to be placed.
-	//
-	// It is only present, if this mixin was precompiled.
-	Precompiled []byte
 }

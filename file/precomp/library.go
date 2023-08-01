@@ -195,7 +195,7 @@ func newLibDependency(d *cfile.LibDependency) *libDependency {
 		m := m
 		mixins[i] = *newMixinDependency(&m)
 	}
-	return &libDependency{Module: d.Module, ModulePath: d.ModulePath, Mixins: mixins}
+	return &libDependency{Module: d.Module, ModulePath: d.PathInModule, Mixins: mixins}
 }
 
 func (d *libDependency) toFile() *cfile.LibDependency {
@@ -207,7 +207,7 @@ func (d *libDependency) toFile() *cfile.LibDependency {
 	for i, m := range d.Mixins {
 		mixins[i] = *m.toFile()
 	}
-	return &cfile.LibDependency{Module: d.Module, ModulePath: d.ModulePath, Mixins: mixins}
+	return &cfile.LibDependency{Module: d.Module, PathInModule: d.ModulePath, Mixins: mixins}
 }
 
 type mixinDependency struct {
@@ -307,7 +307,7 @@ func newMixin(fs []*cfile.File, m *cfile.PrecompiledMixin) (*mixin, error) {
 		Params:                   params,
 		RParenPos:                newPosition(m.Mixin.RParenPos),
 		Position:                 *newPosition(&m.Mixin.Position),
-		Precompiled:              m.Precompiled,
+		Precompiled:              m.Mixin.Precompiled,
 		WritesBody:               m.Mixin.WritesBody,
 		WritesElements:           m.Mixin.WritesElements,
 		WritesTopLevelAttributes: m.Mixin.WritesTopLevelAttributes,
@@ -346,9 +346,9 @@ func (m *mixin) toFile(fs []*cfile.File) *cfile.PrecompiledMixin {
 				Blocks:                   blocks,
 				HasAndPlaceholders:       m.HasAndPlaceholders,
 			},
-			Position: *m.Position.toFile(),
+			Precompiled: m.Precompiled,
+			Position:    *m.Position.toFile(),
 		},
-		Precompiled: m.Precompiled,
 	}
 }
 
