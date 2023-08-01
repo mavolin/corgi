@@ -49,7 +49,7 @@ func templateFile(f *file.File) *errList {
 			ErrorAnnotation: anno.Anno(f, anno.Annotation{
 				Start:      f.Func.Position,
 				Len:        len("func"),
-				Annotation: "a template file shouldn't have a `func header",
+				Annotation: "a template file shouldn't have a `func` header",
 			}),
 		})
 	}

@@ -47,9 +47,12 @@ type BasicLoader struct {
 	PreLinkValidator func(*file.File) error
 	// Linker links the given file recursively.
 	//
-	// Commonly, it utilizes this Loader to load the linkLibraries of f, f's
+	// Commonly, it utilizes this Loader to link the used libraries of f, f's
 	// includes, and the template of f, if it has one.
-	Linker func(*file.File) error
+	Linker func(f *file.File) error
+
+	// LibraryLinker is the linker used to link a library.
+	LibraryLinker func(lib *file.Library) error
 
 	// FileValidator is the validator function called if a main file is loaded.
 	//
@@ -100,7 +103,7 @@ func (b BasicLoader) LoadLibrary(usingFile *file.File, usePath string) (*file.Li
 	}
 
 	if libw.Precompiled != nil {
-		return libw.Precompiled, nil
+		return libw.Precompiled, b.LibraryLinker(libw.Precompiled)
 	}
 
 	lib := &file.Library{
@@ -131,11 +134,11 @@ func (b BasicLoader) LoadLibrary(usingFile *file.File, usePath string) (*file.Li
 			return lib, err
 		}
 
-		if err = b.Linker(f); err != nil {
-			return lib, err
-		}
-
 		lib.Files = append(lib.Files, f)
+	}
+
+	if err := b.LibraryLinker(lib); err != nil {
+		return nil, err
 	}
 
 	if usingFile == nil {

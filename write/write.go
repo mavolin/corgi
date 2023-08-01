@@ -11,6 +11,7 @@ import (
 
 	"github.com/mavolin/corgi/file"
 	"github.com/mavolin/corgi/internal/stack"
+	"github.com/mavolin/corgi/internal/voidelem"
 	"github.com/mavolin/corgi/woof"
 )
 
@@ -43,27 +44,30 @@ type ctx struct {
 	stackStart int
 
 	// mixin is the mixin we are currently generating.
-	mixin *mixin
+	mixin *file.Mixin
 
 	exprEscaper *stack.Stack[*escaper]
 
-	voidElem       bool
+	elemNames      *stack.Stack[string]
+	customVoidElem bool
 	classBuf       strings.Builder
 	needBufClass   bool
 	haveBufClasses bool
 	closed         *stack.Stack[closeState]
 	calledUnclosed bool
 	calledClosed   bool
-	andAttrs       *stack.Stack[func()]
 
-	mixinFuncNames map[*file.Mixin]mixin
+	mixinFuncNames mixinFuncMap
 
-	debugActive bool
+	debugEnabled bool
 
 	generateBuf bytes.Buffer
 }
 
-type mixin struct {
+type mixinFuncMap map[string]map[string]string
+
+func (mf mixinFuncMap) mixin(mc file.MixinCall) string {
+	return mf[mc.Mixin.File.Module+mc.Mixin.File.PathInModule][mc.Mixin.Mixin.Name.Ident]
 }
 
 type closeState uint8
@@ -99,7 +103,7 @@ func New(o Options) *Writer {
 
 func (w *Writer) GenerateFile(out io.Writer, destPackage string, f *file.File) (err error) {
 	// judge me all you want, no function deserves to have an error check every
-	// two lines
+	// two lines, so write and co. panic
 	defer func() {
 		if rec := recover(); rec != nil {
 			var ok bool
@@ -143,9 +147,10 @@ func newCtx(o Options) *ctx {
 	return &ctx{
 		identPrefix:    o.IdentPrefix,
 		exprEscaper:    stack.New1(bodyEscaper),
+		elemNames:      new(stack.Stack[string]),
 		closed:         stack.New1(closed),
-		mixinFuncNames: make(map[*file.Mixin]mixin),
-		debugActive:    o.Debug,
+		mixinFuncNames: make(mixinFuncMap),
+		debugEnabled:   o.Debug,
 	}
 }
 
@@ -205,7 +210,7 @@ func (ctx *ctx) fmtFunc(name string, args ...string) string {
 	var sb strings.Builder
 
 	sb.WriteString(ctx.identPrefix)
-	ctx.writeString("fmt")
+	sb.WriteString("fmt")
 	sb.WriteByte('.')
 	sb.WriteString(name)
 	sb.WriteByte('(')
@@ -238,16 +243,42 @@ func (ctx *ctx) mainFile() *file.File {
 	return ctx._stack[len(ctx._stack)-1]
 }
 
-func (ctx *ctx) startElem(void bool) {
-	ctx.voidElem = void
+func (ctx *ctx) startElem(name string, void bool) {
+	ctx.closeTag()
+
+	ctx.generate("<"+name, nil)
+	ctx.elemNames.Push(name)
+	ctx.customVoidElem = void
 	ctx.closed.Swap(unclosed)
 	ctx.haveBufClasses = false
 	ctx.calledUnclosed = false
 	ctx.calledClosed = false
+
+	switch name {
+	case "script":
+		ctx.exprEscaper.Push(jsEscaper)
+	case "style":
+		ctx.exprEscaper.Push(cssEscaper)
+	default:
+		ctx.exprEscaper.Push(bodyEscaper)
+	}
+}
+
+func (ctx *ctx) closeElem() {
+	ctx.closeTag()
+	ctx.exprEscaper.Pop()
+
+	name := ctx.elemNames.Pop()
+
+	if ctx.customVoidElem || voidelem.Is(name) {
+		return
+	}
+
+	ctx.generate("</"+name+">", nil)
 }
 
 func (ctx *ctx) debug(typ, s string) {
-	if !ctx.debugActive {
+	if !ctx.debugEnabled {
 		return
 	}
 
@@ -255,7 +286,7 @@ func (ctx *ctx) debug(typ, s string) {
 }
 
 func (ctx *ctx) debugInline(typ, s string) {
-	if !ctx.debugActive {
+	if !ctx.debugEnabled {
 		return
 	}
 
@@ -263,7 +294,7 @@ func (ctx *ctx) debugInline(typ, s string) {
 }
 
 func (ctx *ctx) debugItem(itm file.Poser, s string) {
-	if !ctx.debugActive {
+	if !ctx.debugEnabled {
 		return
 	}
 
@@ -271,7 +302,7 @@ func (ctx *ctx) debugItem(itm file.Poser, s string) {
 }
 
 func (ctx *ctx) debugItemInline(itm file.Poser, s string) {
-	if !ctx.debugActive {
+	if !ctx.debugEnabled {
 		return
 	}
 
@@ -350,7 +381,7 @@ func (ctx *ctx) generateExpr(expr string, esc *escaper) {
 	if esc != nil {
 		escName = esc.qualName(ctx)
 	}
-	ctx.write(ctx.woofFunc("WriteAny", ctx.ident(ctxVar), expr, escName))
+	ctx.writeln(ctx.woofFunc("WriteAny", ctx.ident(ctxVar), expr, escName))
 }
 
 // see generateExpression (func not method)
@@ -445,7 +476,7 @@ func (ctx *ctx) closeTag() {
 			ctx.generateStringAttr("class", classes)
 		}
 
-		if ctx.voidElem {
+		if ctx.customVoidElem {
 			ctx.generate("/>", nil)
 			return
 		}
@@ -460,7 +491,7 @@ func (ctx *ctx) closeTag() {
 	ctx.write(ctx.ident(ctxVar) + ".CloseStartTag(")
 	ctx.writeString(ctx.classBuf.String())
 	ctx.write(", ")
-	if ctx.voidElem {
+	if ctx.customVoidElem {
 		ctx.writeln("true)")
 	} else {
 		ctx.writeln("false)")

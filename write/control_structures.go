@@ -1,6 +1,9 @@
 package write
 
-import "github.com/mavolin/corgi/file"
+import (
+	"github.com/mavolin/corgi/file"
+	"github.com/mavolin/corgi/file/fileutil"
+)
 
 // ============================================================================
 // If
@@ -14,7 +17,7 @@ func _if(ctx *ctx, _if file.If) {
 	cl := ctx.closed.Peek()
 	ctx.closed.Push(cl)
 
-	var allClosed bool
+	allClosed := true
 
 	ctx.write("if ")
 	ctx.write(inlineCondition(ctx, _if.Condition))
@@ -74,7 +77,21 @@ func _if(ctx *ctx, _if file.If) {
 // ======================================================================================
 
 func ifBlock(ctx *ctx, ifb file.IfBlock) {
-	// todo
+	stack := ctx.stack()[1:]
+	for i := len(stack) - 1; i >= 0; i-- {
+		f := stack[i]
+		for _, itm := range f.Scope {
+			filledBlock, ok := itm.(file.Block)
+			if !ok {
+				continue
+			}
+
+			if ifb.Name.Ident == filledBlock.Name.Ident {
+				scope(ctx, ifb.Then)
+				return
+			}
+		}
+	}
 }
 
 // ============================================================================
@@ -89,7 +106,7 @@ func _switch(ctx *ctx, sw file.Switch) {
 	cl := ctx.closed.Peek()
 	ctx.closed.Push(cl)
 
-	var allClosed bool
+	allClosed := true
 
 	ctx.write("switch ")
 	if sw.Comparator != nil {
@@ -144,27 +161,29 @@ func _switch(ctx *ctx, sw file.Switch) {
 // ======================================================================================
 
 func _for(ctx *ctx, f file.For) {
+	_, attrLoop := fileutil.IsFirstNonControlAttr(f.Body)
+	if !attrLoop {
+		ctx.closeTag()
+
+		cl := ctx.closed.Peek()
+		ctx.closed.Push(cl)
+		defer func() {
+			if cl != closed {
+				if ctx.closed.Pop() == closed {
+					ctx.closed.Swap(maybeClosed)
+				}
+			}
+		}()
+	}
+
 	ctx.flushGenerate()
 	ctx.flushClasses()
-	ctx.callUnclosedIfUnclosed()
-
-	cl := ctx.closed.Peek()
-	ctx.closed.Push(cl)
-
-	defer func() {
-		if cl != closed {
-			if ctx.closed.Pop() == closed {
-				ctx.closed.Swap(maybeClosed)
-			}
-		}
-	}()
 
 	if f.Expression == nil && len(f.Expression.Expressions) == 0 {
 		ctx.writeln("for {")
 		scope(ctx, f.Body)
 		ctx.flushGenerate()
 		ctx.flushClasses()
-		ctx.callClosedIfClosed()
 		ctx.writeln("}")
 		return
 	}
@@ -185,6 +204,8 @@ func _for(ctx *ctx, f file.For) {
 }
 
 func forRange(ctx *ctx, f file.For, rangeExpr file.RangeExpression) {
+	ctx.debugItem(rangeExpr, "(see below)")
+
 	chainExpr, ok := rangeExpr.RangeExpression.Expressions[0].(file.ChainExpression)
 	if ok {
 		forChainExpression(ctx, chainExpr, func(rangerExpr string) {
@@ -200,10 +221,20 @@ func _forRange(ctx *ctx, f file.For, rangeExpr file.RangeExpression, rangerExpr 
 	if rangeExpr.Ordered {
 		ctx.writeln("for _, " + ctx.ident("orderVal") + " := range " + ctx.woofFunc("OrderedMap", rangerExpr) + " {")
 		if rangeExpr.Var1 != nil {
-			ctx.writeln(rangeExpr.Var1.Ident + " := " + ctx.ident("orderVal") + ".K")
+			if rangeExpr.Var1.Ident != "_" {
+				if rangeExpr.Declares {
+					ctx.writeln(rangeExpr.Var1.Ident + " := " + ctx.ident("orderVal") + ".K")
+				} else {
+					ctx.writeln(rangeExpr.Var1.Ident + " = " + ctx.ident("orderVal") + ".K")
+				}
+			}
 
-			if rangeExpr.Var2 != nil {
-				ctx.writeln(rangeExpr.Var1.Ident + " := " + ctx.ident("orderVal") + ".V")
+			if rangeExpr.Var2 != nil && rangeExpr.Var2.Ident != "_" {
+				if rangeExpr.Declares {
+					ctx.writeln(rangeExpr.Var2.Ident + " := " + ctx.ident("orderVal") + ".V")
+				} else {
+					ctx.writeln(rangeExpr.Var2.Ident + " = " + ctx.ident("orderVal") + ".V")
+				}
 			}
 		}
 	} else {
@@ -222,5 +253,6 @@ func _forRange(ctx *ctx, f file.For, rangeExpr file.RangeExpression, rangerExpr 
 
 	scope(ctx, f.Body)
 	ctx.flushGenerate()
+	ctx.flushClasses()
 	ctx.writeln("}")
 }

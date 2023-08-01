@@ -7,11 +7,17 @@ import (
 )
 
 func scope(ctx *ctx, s file.Scope) {
+	// todo scope mixins
+
 	for _, itm := range s {
 		switch itm := itm.(type) {
 		case file.CorgiComment:
-			// ignore
+		// ignore
 
+		case file.Block:
+			block(ctx, itm)
+		case file.BlockExpansion:
+			blockExpansion(ctx, itm)
 		case file.Code:
 			code(ctx, itm)
 		case file.If:
@@ -32,6 +38,8 @@ func scope(ctx *ctx, s file.Scope) {
 			divShorthand(ctx, itm)
 		case file.Include:
 			include(ctx, itm)
+		case file.MixinCall:
+			mixinCall(ctx, itm)
 		case file.And:
 			and(ctx, itm)
 		case file.InlineText:

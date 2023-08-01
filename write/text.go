@@ -5,7 +5,6 @@ import (
 	"strconv"
 
 	"github.com/mavolin/corgi/file"
-	"github.com/mavolin/corgi/internal/voidelem"
 )
 
 // ============================================================================
@@ -84,11 +83,7 @@ func simpleInterpolation(ctx *ctx, interp file.SimpleInterpolation) {
 // ================================ ElementInterpolation ================================
 
 func elementInterpolation(ctx *ctx, interp file.ElementInterpolation) {
-	ctx.closeTag()
-	ctx.voidElem = interp.Element.Void
-	ctx.closed.Swap(unclosed)
-	ctx.haveBufClasses = false
-	ctx.calledUnclosed = false
+	ctx.startElem(interp.Element.Name, interp.Element.Void)
 
 	for _, acoll := range interp.Element.Attributes {
 		attributeCollection(ctx, acoll)
@@ -97,10 +92,8 @@ func elementInterpolation(ctx *ctx, interp file.ElementInterpolation) {
 
 	interpolationValue(ctx, interp.Value, false)
 
-	if ctx.voidElem || voidelem.Is(interp.Element.Name) {
-		return
-	}
-	ctx.generate("</"+interp.Element.Name+">", nil)
+	ctx.debugItem(interp, "/"+interp.Element.Name)
+	ctx.closeElem()
 }
 
 // =============================== MixinCallInterpolation ===============================
@@ -143,6 +136,7 @@ func expressionInterpolationValue(ctx *ctx, exprInterp file.ExpressionInterpolat
 	if exprInterp.FormatDirective == "" {
 		ctx.debugItem(exprInterp, "(see sub expressions)")
 		generateExpression(ctx, exprInterp.Expression, nil, esc, nil)
+		return
 	}
 
 	ctx.debugItem(exprInterp, "[%"+exprInterp.FormatDirective+"] (see sub expressions)")

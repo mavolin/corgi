@@ -505,17 +505,17 @@ func inlineStringExpression(ctx *ctx, sb *strings.Builder, sexpr file.StringExpr
 
 		switch exprItm := exprItm.(type) {
 		case file.StringExpressionText:
-			s := unquoteStringExpressionText(sexpr, exprItm)
-			ctx.debugItem(exprItm, s)
+			s := string(sexpr.Quote) + exprItm.Text + string(sexpr.Quote)
+			ctx.debugItemInline(exprItm, s)
 			sb.WriteString(s)
 		case file.StringExpressionInterpolation:
 			if exprItm.FormatDirective == "" {
-				ctx.debugItem(exprItm, "(see sub expressions)")
+				ctx.debugItemInline(exprItm, "(see sub expressions)")
 				sb.WriteString(ctx.woofFunc("Must", ctx.ident(ctxVar), ctx.woofQual("Stringify"), inlineExpression(ctx, exprItm.Expression)))
 				continue
 			}
 
-			ctx.debugItem(exprItm, "[%"+exprItm.FormatDirective+"] (see below)")
+			ctx.debugItemInline(exprItm, "[%"+exprItm.FormatDirective+"] (see below)")
 			fmtString := strconv.Quote("%" + exprItm.FormatDirective)
 			sb.WriteString(ctx.fmtFunc("Sprintf", fmtString, inlineExpression(ctx, exprItm.Expression)))
 		}

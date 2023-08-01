@@ -205,8 +205,16 @@ IfExpression <- cExprI:ChainExpression {
 }
 
 // ============================================================================
-// Range Expression
+// For Expression
 // ======================================================================================
+
+ForExpression <- rExprI:RangeExpression {
+    return &file.Expression{Expressions: []file.ExpressionItem{rExprI.(file.RangeExpression)}}, nil
+} / exprI:IfExpression {
+    return ptr(exprI.(file.Expression)), nil
+} / &(. / !.) {
+    return (*file.Expression)(nil), nil
+}
 
 RangeExpression <- varsI:rangeExpressionVars? orderedI:("ordered" ' '+)? "range" ' '+ exprI:SingleLineExpression {
     re := file.RangeExpression{

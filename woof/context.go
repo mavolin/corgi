@@ -90,10 +90,10 @@ func (ctx *Context) CloseStartTag(extraClasses HTMLAttrVal, void bool) {
 			ctx.WriteBytes(ctx.classBuf.Bytes())
 		}
 		if void {
-			ctx.Write("/>")
+			ctx.Write(`"/>`)
 			return
 		}
-		ctx.Write(">")
+		ctx.Write(`">`)
 
 		ctx.classBuf.Reset()
 		return

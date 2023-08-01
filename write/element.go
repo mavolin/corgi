@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/mavolin/corgi/file"
-	"github.com/mavolin/corgi/internal/voidelem"
 	"github.com/mavolin/corgi/woof"
 )
 
@@ -48,11 +47,7 @@ func htmlComment(ctx *ctx, c file.HTMLComment) {
 
 func element(ctx *ctx, el file.Element) {
 	ctx.debugItem(el, el.Name)
-
-	ctx.closeTag()
-
-	ctx.generate("<"+el.Name, nil)
-	ctx.startElem(el.Void)
+	ctx.startElem(el.Name, el.Void)
 
 	for _, acoll := range el.Attributes {
 		attributeCollection(ctx, acoll)
@@ -60,20 +55,14 @@ func element(ctx *ctx, el file.Element) {
 
 	scope(ctx, el.Body)
 
-	ctx.closeTag()
-	if ctx.voidElem || voidelem.Is(el.Name) {
-		return
-	}
-	ctx.generate("</"+el.Name+">", nil)
+	ctx.debugItem(el, "/"+el.Name)
+	ctx.closeElem()
 }
 
 func divShorthand(ctx *ctx, dsh file.DivShorthand) {
 	ctx.debugItem(dsh, "")
 
-	ctx.closeTag()
-
-	ctx.generate("<div", nil)
-	ctx.startElem(false)
+	ctx.startElem("div", false)
 
 	for _, acoll := range dsh.Attributes {
 		attributeCollection(ctx, acoll)
@@ -81,8 +70,8 @@ func divShorthand(ctx *ctx, dsh file.DivShorthand) {
 
 	scope(ctx, dsh.Body)
 
-	ctx.closeTag()
-	ctx.generate("</div>", nil)
+	ctx.debugItem(dsh, "/div")
+	ctx.closeElem()
 }
 
 // ============================================================================
@@ -176,6 +165,7 @@ func simpleAttribute(ctx *ctx, sattr file.SimpleAttribute) {
 		sexpr, ok := sattr.Value.Expressions[0].(file.StringExpression)
 		if ok {
 			if len(sexpr.Contents) == 0 {
+				ctx.generate(" "+sattr.Name, nil)
 				return
 			} else if len(sexpr.Contents) == 1 {
 				txt, ok := sexpr.Contents[0].(file.StringExpressionText)
@@ -275,11 +265,13 @@ func classAttribute(ctx *ctx, attr file.SimpleAttribute) {
 
 // =================================== AndPlaceholder ===================================
 
+const andPlaceholderFunc = "andPlaceholder"
+
 func andPlaceholder(ctx *ctx, aph file.AndPlaceholder) {
-	if ctx.andAttrs.Len() > 0 {
-		ctx.debugItem(aph, "(see below)")
-		ctx.andAttrs.Peek()()
-	}
+	ctx.debugItem(aph, "(see below)")
+	ctx.writeln("if " + ctx.ident(andPlaceholderFunc) + " != nil {")
+	ctx.writeln("  " + ctx.ident(andPlaceholderFunc) + "()")
+	ctx.writeln("}")
 }
 
 // ================================= MixinCallAttribute =================================

@@ -231,16 +231,10 @@ BadCase <- NOT_EOL+ EOL bodyI:Body? {
 // For
 // ======================================================================================
 
-For <- "for" exprI:forExpression bodyI:then {
+For <- "for" ' '* exprI:ForExpression bodyI:then {
     return file.For{
         Expression: exprI.(*file.Expression),
         Body: bodyI.(file.Scope),
         Position: pos(c),
     }, nil
-}
-
-forExpression <- ' '+ exprI:(RangeExpression / IfExpression) {
-    return ptr(exprI.(file.Expression)), nil
-} / &(. / !.) {
-    return (*file.Expression)(nil), nil
 }

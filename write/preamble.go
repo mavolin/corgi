@@ -32,7 +32,7 @@ func writeImports(ctx *ctx) {
 
 		for _, use := range f.Uses {
 			for _, useSpec := range use.Uses {
-				files = append(files, useSpec.Library.Files...)
+				files = append(files, useSpec.Library.Files...) //nolint:makezero
 			}
 		}
 
@@ -62,6 +62,7 @@ func writeImports(ctx *ctx) {
 }
 
 func writeBaseImports(ctx *ctx) {
+	ctx.writeln(ctx.ident("fmt") + ` "fmt"`)
 	ctx.writeln(ctx.ident("io") + ` "io"`)
 	ctx.writeln(ctx.ident("woof") + ` "github.com/mavolin/corgi/woof"`)
 }
@@ -70,6 +71,20 @@ func writeGlobalCode(ctx *ctx) {
 	for _, code := range ctx.mainFile().GlobalCode {
 		for _, ln := range code.Lines {
 			ctx.writeln(ln.Code)
+		}
+	}
+}
+
+func writeFuncCode(ctx *ctx) {
+	for _, f := range ctx._stack[:len(ctx._stack)-1] {
+		ctx.debug("func code", f.Name)
+		for _, itm := range f.Scope {
+			c, ok := itm.(file.Code)
+			if !ok {
+				continue
+			}
+
+			code(ctx, c)
 		}
 	}
 }
@@ -96,7 +111,8 @@ func writeFunc(ctx *ctx) {
 	ctx.writeln(ctx.ident(ctxVar) + " := " + ctx.woofFunc("NewContext", ctx.ident("w")))
 	ctx.writeln("defer " + ctx.contextFunc("Recover"))
 
-	writeMixins(ctx)
+	writeLibMixins(ctx)
+	writeFuncCode(ctx)
 
 	scope(ctx, ctx.baseFile().Scope)
 	ctx.flushGenerate()

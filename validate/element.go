@@ -572,7 +572,7 @@ func _attributePlacement(f *file.File, elAnno corgierr.Annotation, firstText *co
 							HintAnnotations: []corgierr.Annotation{elAnno, *firstTextAfterFor},
 							Suggestions: []corgierr.Suggestion{
 								{
-									Suggestion: "you can only use the `&` in loops, if you don't also write to the body of the element;\n" +
+									Suggestion: "you can only use an `&` in a loop, if you don't also write to the body of the element;\n" +
 										"consider writing two loops, one for the `&` and one for the rest",
 								},
 							},

@@ -4,6 +4,6 @@ import "github.com/mavolin/corgi/file"
 
 func code(ctx *ctx, c file.Code) {
 	for _, line := range c.Lines {
-		ctx.write(line.Code)
+		ctx.writeln(line.Code)
 	}
 }
