@@ -54,8 +54,6 @@ func UsePath(f *file.File) string {
 // It is followed by optional args, separated by a space from the
 // namespace/directive.
 type MachineComment struct {
-	Source file.CorgiComment
-
 	Namespace string
 	Directive string
 	Args      string
@@ -78,10 +76,15 @@ func ParseMachineComment(c file.CorgiComment) *MachineComment {
 		return nil
 	}
 
-	namespaceAndDirective, args, _ := strings.Cut(line.Comment, " ")
+	mc := ParseMachineCommentLine(line.Comment)
+	return &mc
+}
+
+func ParseMachineCommentLine(ln string) MachineComment {
+	namespaceAndDirective, args, _ := strings.Cut(ln, " ")
 
 	var mc MachineComment
 	mc.Namespace, mc.Directive, _ = strings.Cut(namespaceAndDirective, ":")
 	mc.Args = strings.TrimLeft(args, " ")
-	return &mc
+	return mc
 }

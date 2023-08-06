@@ -149,8 +149,6 @@ type ChainExpression struct {
 	Position
 }
 
-// todo: lint: check that the chain contains at least one check, if it has a default
-
 var _ ExpressionItem = ChainExpression{}
 
 func (ChainExpression) _typeExpressionItem() {}

@@ -10,6 +10,9 @@ import (
 //go:generate msgp -unexported
 
 type library struct {
+	Module       string
+	PathInModule string
+
 	Files []file
 
 	Dependencies []libDependency
@@ -47,6 +50,8 @@ func newLibrary(l *cfile.Library) (*library, error) {
 		}
 	}
 	return &library{
+		Module:       l.Module,
+		PathInModule: l.PathInModule,
 		Files:        files,
 		Dependencies: dependencies,
 		GlobalCode:   globalCode,
@@ -59,29 +64,32 @@ func (l *library) toFile() *cfile.Library {
 		return nil
 	}
 
-	files := make([]*cfile.File, len(l.Files))
-	for i, f := range l.Files {
-		files[i] = f.toFile()
-	}
-	dependencies := make([]cfile.LibDependency, len(l.Dependencies))
-	for i, d := range l.Dependencies {
-		dependencies[i] = *d.toFile()
-	}
-	globalCode := make([]cfile.PrecompiledCode, len(l.GlobalCode))
-	for i, c := range l.GlobalCode {
-		globalCode[i] = *c.toFile()
-	}
-	mixins := make([]cfile.PrecompiledMixin, len(l.Mixins))
-	for i, imp := range l.Mixins {
-		mixins[i] = *imp.toFile(files)
-	}
-	return &cfile.Library{
+	clib := cfile.Library{
+		Module:       l.Module,
+		PathInModule: l.PathInModule,
 		Precompiled:  true,
-		Files:        files,
-		Dependencies: dependencies,
-		GlobalCode:   globalCode,
-		Mixins:       mixins,
+		Files:        make([]*cfile.File, len(l.Files)),
+		Dependencies: make([]cfile.LibDependency, len(l.Dependencies)),
+		GlobalCode:   make([]cfile.PrecompiledCode, len(l.GlobalCode)),
+		Mixins:       make([]cfile.PrecompiledMixin, len(l.Mixins)),
 	}
+
+	for i, f := range l.Files {
+		cf := f.toFile()
+		cf.Library = &clib
+		clib.Files[i] = cf
+	}
+	for i, d := range l.Dependencies {
+		clib.Dependencies[i] = *d.toFile()
+	}
+	for i, c := range l.GlobalCode {
+		clib.GlobalCode[i] = *c.toFile()
+	}
+	for i, imp := range l.Mixins {
+		clib.Mixins[i] = *imp.toFile(clib.Files)
+	}
+
+	return &clib
 }
 
 type file struct {
@@ -212,6 +220,7 @@ func (d *libDependency) toFile() *cfile.LibDependency {
 
 type mixinDependency struct {
 	Name       string
+	Var        string
 	RequiredBy []string
 }
 
@@ -219,14 +228,21 @@ func newMixinDependency(d *cfile.MixinDependency) *mixinDependency {
 	if d == nil {
 		return nil
 	}
-	return &mixinDependency{Name: d.Name, RequiredBy: d.RequiredBy}
+	return &mixinDependency{
+		Name:       d.Name,
+		Var:        d.Var,
+		RequiredBy: d.RequiredBy,
+	}
 }
 
 func (d *mixinDependency) toFile() *cfile.MixinDependency {
 	if d == nil {
 		return nil
 	}
-	return &cfile.MixinDependency{Name: d.Name, RequiredBy: d.RequiredBy}
+	return &cfile.MixinDependency{
+		Name:       d.Name,
+		RequiredBy: d.RequiredBy,
+	}
 }
 
 type code struct {
@@ -261,7 +277,9 @@ type mixin struct {
 
 	Position position
 
+	Var         string
 	Precompiled []byte
+	RequiredBy  []string
 
 	WritesBody               bool
 	WritesElements           bool
@@ -307,6 +325,8 @@ func newMixin(fs []*cfile.File, m *cfile.PrecompiledMixin) (*mixin, error) {
 		Params:                   params,
 		RParenPos:                newPosition(m.Mixin.RParenPos),
 		Position:                 *newPosition(&m.Mixin.Position),
+		Var:                      m.Var,
+		RequiredBy:               m.RequiredBy,
 		Precompiled:              m.Mixin.Precompiled,
 		WritesBody:               m.Mixin.WritesBody,
 		WritesElements:           m.Mixin.WritesElements,
@@ -349,12 +369,15 @@ func (m *mixin) toFile(fs []*cfile.File) *cfile.PrecompiledMixin {
 			Precompiled: m.Precompiled,
 			Position:    *m.Position.toFile(),
 		},
+		Var:        m.Var,
+		RequiredBy: m.RequiredBy,
 	}
 }
 
 type mixinParam struct {
-	Name corgiIdent
-	Type *goType
+	Name         corgiIdent
+	Type         *goType
+	InferredType string
 
 	AssignPos *position
 	Default   *expression
@@ -372,11 +395,12 @@ func newMixinParam(param *cfile.MixinParam) (*mixinParam, error) {
 		return nil, err
 	}
 	return &mixinParam{
-		Name:      *newCorgiIdent(&param.Name),
-		Type:      newGoType(param.Type),
-		AssignPos: newPosition(param.AssignPos),
-		Default:   defaultExpr,
-		Position:  *newPosition(&param.Position),
+		Name:         *newCorgiIdent(&param.Name),
+		Type:         newGoType(param.Type),
+		InferredType: param.InferredType,
+		AssignPos:    newPosition(param.AssignPos),
+		Default:      defaultExpr,
+		Position:     *newPosition(&param.Position),
 	}, nil
 }
 
@@ -385,11 +409,12 @@ func (param *mixinParam) toFile() *cfile.MixinParam {
 		return nil
 	}
 	return &cfile.MixinParam{
-		Name:      *param.Name.toFile(),
-		Type:      param.Type.toFile(),
-		AssignPos: param.AssignPos.toFile(),
-		Default:   param.Default.toFile(),
-		Position:  *param.Position.toFile(),
+		Name:         *param.Name.toFile(),
+		Type:         param.Type.toFile(),
+		InferredType: param.InferredType,
+		AssignPos:    param.AssignPos.toFile(),
+		Default:      param.Default.toFile(),
+		Position:     *param.Position.toFile(),
 	}
 }
 

@@ -66,6 +66,10 @@ type MixinDependency struct {
 	Name string
 	// Var is the variable used by the depending mixins to call this mixin.
 	Var string
+
+	// Mixin is the linked mixin.
+	Mixin *Mixin
+
 	// RequiredBy are the names of the depending mixins.
 	RequiredBy []string
 }
@@ -84,4 +88,9 @@ type PrecompiledMixin struct {
 	//
 	// Its body is empty.
 	Mixin Mixin
+
+	// Var is the variable used by the depending mixins to call this mixin.
+	Var string
+	// RequiredBy are the names of the depending mixins.
+	RequiredBy []string
 }

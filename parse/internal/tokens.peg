@@ -159,7 +159,7 @@ INDENTATION <- (_* { return nil, nil }) &{
     &{ // lvl == 0
         return c.state["Indentation.Level"].(int) == 0, nil
     } / &{ // this is our first indentation
-        return c.state["Indentation.RefLine"].(int) == 0, nil
+        return c.state["Indentation.RefLine"].(int) == 0 && len(c.text) > 0, nil
     } #{
         c.state["Indentation.Char"] = c.text[0]
         c.state["Indentation.Repetitions"] = len(c.text)
@@ -167,7 +167,9 @@ INDENTATION <- (_* { return nil, nil }) &{
         c.state["Indentation.TotalRepetitions"] = len(c.text)
         c.state["Indentation.RefLine"] = c.pos.line
         return nil
-    } / &{
+    } / &{ // this is NOT our first indentation
+        return c.state["Indentation.RefLine"].(int) != 0, nil
+    } &{
         indentChar := c.state["Indentation.Char"].(byte)
         refReps := c.state["Indentation.Repetitions"].(int)
         refLine := c.state["Indentation.RefLine"].(int)
@@ -326,8 +328,12 @@ INDENTATION <- (_* { return nil, nil }) &{
 
 INDENTATION_IGNORE_ADDITIONAL <- &{
     // this is our first ever indentation, INDENTATION will handle it
-    return c.state["Indentation.Char"].(byte) == 0, nil
-} INDENTATION / (
+    return c.state["Indentation.Repetitions"].(int) == 0, nil
+} INDENTATION / &{
+    return c.state["Indentation.Repetitions"].(int) > 0, nil
+} _INDENTATION_IGNORE_ADDITIONAL
+
+_INDENTATION_IGNORE_ADDITIONAL <- (
     (
         &{ // if this is the first INDENTATION after INDENT
             actualReps := c.state["Indentation.ActualRepetitions"].(*stack.Stack[int])
@@ -430,7 +436,7 @@ INDENTATION_IGNORE_ADDITIONAL <- &{
         c.state["Indentation.CharCount"] = 0
         return nil
     }
-) / spaceI:_ &{
+) / spaceI:(_ { return c.text, nil }) &{
     space := byte(char(spaceI))
 
     indentChar := c.state["Indentation.Char"].(byte)
@@ -483,7 +489,7 @@ INDENTATION_IGNORE_ADDITIONAL <- &{
 } #{
     c.state["Indentation.CharCount"] = c.state["Indentation.CharCount"].(int) + 1
     return nil
-} INDENTATION_IGNORE_ADDITIONAL
+} _INDENTATION_IGNORE_ADDITIONAL
 
 INDENT <- #{
     c.state["Indentation.Level"] = c.state["Indentation.Level"].(int) + 1
@@ -491,7 +497,8 @@ INDENT <- #{
 }
 
 DEDENT <- #{
-    c.state["Indentation.Level"] = c.state["Indentation.Level"].(int) - 1
+    lvl := c.state["Indentation.Level"].(int)
+    c.state["Indentation.Level"] = lvl - 1
 
     actualReps := c.state["Indentation.ActualRepetitions"].(*stack.Stack[int])
     c.state["Indentation.TotalRepetitions"] = c.state["Indentation.TotalRepetitions"].(int) - actualReps.Pop()

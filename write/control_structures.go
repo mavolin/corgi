@@ -77,21 +77,99 @@ func _if(ctx *ctx, _if file.If) {
 // ======================================================================================
 
 func ifBlock(ctx *ctx, ifb file.IfBlock) {
-	stack := ctx.stack()[1:]
-	for i := len(stack) - 1; i >= 0; i-- {
-		f := stack[i]
-		for _, itm := range f.Scope {
-			filledBlock, ok := itm.(file.Block)
-			if !ok {
-				continue
-			}
+	if ctx.mixin == nil {
+		ifTemplateBlock(ctx, ifb)
+		return
+	}
 
-			if ifb.Name.Ident == filledBlock.Name.Ident {
-				scope(ctx, ifb.Then)
-				return
-			}
+	ifMixinBlock(ctx, ifb)
+}
+
+func ifTemplateBlock(ctx *ctx, ifb file.IfBlock) {
+	ctx.debugItem(ifb, ifb.Name.Ident)
+
+	if templateBlockFilled(ctx, ifb.Name.Ident) {
+		ctx.debug("if block", "filled")
+		scope(ctx, ifb.Then)
+		return
+	}
+
+	for _, elseIf := range ifb.ElseIfs {
+		ctx.debugItem(ifb, elseIf.Name.Ident)
+
+		if templateBlockFilled(ctx, elseIf.Name.Ident) {
+			ctx.debug("if block", "filled")
+
+			scope(ctx, elseIf.Then)
+			return
 		}
 	}
+
+	if ifb.Else == nil {
+		return
+	}
+
+	ctx.debugItem(ifb.Else, "filled")
+	scope(ctx, ifb.Else.Then)
+}
+
+func ifMixinBlock(ctx *ctx, ifb file.IfBlock) {
+	ctx.flushGenerate()
+	ctx.flushClasses()
+	ctx.callUnclosedIfUnclosed()
+
+	cl := ctx.closed.Peek()
+	ctx.closed.Push(cl)
+
+	allClosed := true
+
+	ctx.writeln("if " + ctx.ident("mixinBlock_"+ifb.Name.Ident) + " != nil {")
+	scope(ctx, ifb.Then)
+	ctx.flushGenerate()
+	ctx.flushClasses()
+	ctx.callClosedIfClosed()
+
+	if ctx.closed.Pop() != closed {
+		allClosed = false
+	}
+
+	for _, elseIf := range ifb.ElseIfs {
+		ctx.closed.Push(cl)
+
+		ctx.write("} else if " + ctx.ident("mixinBlock_"+elseIf.Name.Ident) + " != nil {")
+		scope(ctx, elseIf.Then)
+		ctx.flushGenerate()
+		ctx.flushClasses()
+		ctx.callClosedIfClosed()
+
+		if ctx.closed.Pop() != closed {
+			allClosed = false
+		}
+	}
+
+	if ifb.Else != nil {
+		ctx.closed.Push(cl)
+
+		ctx.writeln("} else {")
+		scope(ctx, ifb.Else.Then)
+		ctx.flushGenerate()
+		ctx.flushClasses()
+		ctx.callUnclosedIfUnclosed()
+
+		if ctx.closed.Pop() != closed {
+			allClosed = false
+		}
+	}
+
+	if cl != closed {
+		if allClosed && ifb.Else != nil {
+			ctx.closed.Swap(closed)
+		} else {
+			ctx.closed.Swap(maybeClosed)
+		}
+	}
+
+	ctx.writeln("}")
 }
 
 // ============================================================================

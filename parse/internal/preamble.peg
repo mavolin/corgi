@@ -50,7 +50,7 @@ Imports <- importsI:(NEW_LNS? Import)+ {
     return imps, nil
 }
 
-Import <- "import"  specsI:importBlock {
+Import <- "import" EOL specsI:importBlock {
     return file.Import{
         Imports: specsI.([]file.ImportSpec),
         Position: pos(c),

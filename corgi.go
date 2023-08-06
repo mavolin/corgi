@@ -22,6 +22,7 @@ import (
 	"github.com/mavolin/corgi/link"
 	"github.com/mavolin/corgi/load"
 	"github.com/mavolin/corgi/parse"
+	"github.com/mavolin/corgi/std"
 	"github.com/mavolin/corgi/validate"
 )
 
@@ -48,6 +49,8 @@ type loader struct {
 	mainMod       *modfile.File
 	mainModSysAbs string
 
+	noPrecompile bool
+
 	loader load.Loader
 	linker *link.Linker
 	cmd    *gocmd.Cmd
@@ -61,6 +64,10 @@ type LoadOptions struct {
 	// used, as resolved once at program start.
 	GoExecPath string
 
+	// NoPrecompile forces the loader to always read corgi files instead of
+	// loading a precompiled file.
+	NoPrecompile bool
+
 	// Logger is used to log the individual steps of the logging process.
 	//
 	// If left as nil, nothing will be logged
@@ -71,6 +78,7 @@ var nopLog = slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level
 
 func newLoader(o LoadOptions) (*loader, error) {
 	var l loader
+	l.noPrecompile = o.NoPrecompile
 	bl := &load.BasicLoader{
 		MainReader:     l.readMain,
 		TemplateReader: l.readTemplate,
@@ -109,6 +117,22 @@ func newLoader(o LoadOptions) (*loader, error) {
 			log.Info("inferred types")
 			log.Info("linking")
 			err := l.linker.LinkFile(f)
+			log.Info("linked file", slog.Any("err", err))
+			return err
+		},
+		LibraryLinker: func(lib *file.Library) error {
+			log := l.log.
+				WithGroup("lib_linker").
+				With(slog.String("mod", lib.Module), slog.String("path_in_mod", lib.PathInModule),
+					slog.String("abs", lib.AbsolutePath))
+
+			log.Info("inferring types of mixin params")
+			for _, f := range lib.Files {
+				typeinfer.Scope(f.Scope)
+			}
+			log.Info("inferred types")
+			log.Info("linking")
+			err := l.linker.LinkLibrary(lib)
 			log.Info("linked file", slog.Any("err", err))
 			return err
 		},
@@ -373,6 +397,13 @@ func (l *loader) readDepLibrary(_ *file.File, usePath string) (*load.Library, er
 	if err != nil {
 		return nil, err
 	}
+	if mod == nil {
+		if stdlib := std.Lib[usePath]; stdlib != nil {
+			return &load.Library{Precompiled: stdlib}, nil
+		}
+
+		return nil, nil
+	}
 
 	sysAbs := filepath.Join(mod.sysAbsPath, filepath.FromSlash(mod.pathInMod))
 	log = log.With(slog.String("abs", sysAbs))
@@ -408,47 +439,51 @@ func (l *loader) readLibraryDir(log *slog.Logger, sysDir string, modulePath, pat
 
 	log.Info("checking if library is precompiled")
 
-	for _, entry := range files {
-		name := entry.Name()
+	if l.noPrecompile {
+		log.Info("loader was configured to ignore precompiled library files, skipping check")
+	} else {
+		for _, entry := range files {
+			name := entry.Name()
 
-		log := log.With(slog.String("file", name))
-		log.Debug("scanning file")
+			log := log.With(slog.String("file", name))
+			log.Debug("scanning file")
 
-		if entry.Type() == os.ModeDir {
-			log.Debug("skipping: file is dir")
-			continue
-		} else if name != PrecompFileName {
-			log.Debug("skipping: name doesn't match: " + PrecompFileName)
-			continue
+			if entry.Type() == os.ModeDir {
+				log.Debug("skipping: file is dir")
+				continue
+			} else if name != PrecompFileName {
+				log.Debug("skipping: name doesn't match: " + PrecompFileName)
+				continue
+			}
+
+			log.Info("found file with matching name, reading")
+
+			f, err := os.Open(filepath.Join(sysDir, name))
+			if err != nil {
+				log.Error("failed to open precompiled library file", slog.Any("err", err))
+				return nil, fmt.Errorf("%s: failed to open precompiled library: %w", sysDir, err)
+			}
+			//goland:noinspection GoDeferInLoop
+			defer f.Close()
+
+			log.Info("decoding precompiled library file")
+
+			lib, err := precomp.Decode(f)
+			if err != nil {
+				log.Error("failed to decode precompiled library file", slog.Any("err", err))
+				return nil, fmt.Errorf("%s: failed to decode precompiled library: %w", sysDir, err)
+			}
+
+			log.Info("decoded precompiled library file, returning it")
+
+			lib.AbsolutePath = dir.sysAbs
+			lib.Module = modulePath
+			lib.PathInModule = pathInModule
+			return &load.Library{Precompiled: lib}, nil
 		}
 
-		log.Info("found file with matching name, reading")
-
-		f, err := os.Open(filepath.Join(sysDir, name))
-		if err != nil {
-			log.Error("failed to open precompiled library file", slog.Any("err", err))
-			return nil, fmt.Errorf("%s: failed to open precompiled library: %w", sysDir, err)
-		}
-		//goland:noinspection GoDeferInLoop
-		defer f.Close()
-
-		log.Info("decoding precompiled library file")
-
-		lib, err := precomp.Decode(f)
-		if err != nil {
-			log.Error("failed to decode precompiled library file", slog.Any("err", err))
-			return nil, fmt.Errorf("%s: failed to decode precompiled library: %w", sysDir, err)
-		}
-
-		log.Info("decoded precompiled library file, returning it")
-
-		lib.AbsolutePath = dir.sysAbs
-		lib.Module = modulePath
-		lib.PathInModule = pathInModule
-		return &load.Library{Precompiled: lib}, nil
+		log.Info("found no precompiled library file, compiling by hand")
 	}
-
-	log.Info("found no precompiled library file, compiling by hand")
 
 	lib := load.Library{
 		AbsolutePath: dir.sysAbs,
@@ -500,112 +535,9 @@ func (l *loader) readLibraryDir(log *slog.Logger, sysDir string, modulePath, pat
 		lib.Files = append(lib.Files, f)
 	}
 
-	log.Info("read directory, returning with library",
-		slog.Int("size", len(lib.Files)), slog.Int("skipped", len(files)-len(lib.Files)))
-
-	return &lib, nil
-}
-
-func (l *loader) loadLibrary(slashAbs, slashModPath, slashPathInMod string) (*load.Library, error) {
-	sysAbs := filepath.FromSlash(slashAbs)
-
-	log := l.log.
-		WithGroup("library_reader").
-		With(slog.String("abs", sysAbs),
-			slog.String("mod", slashModPath), slog.String("path_in_mod", slashPathInMod))
-
-	log.Info("loading dir information")
-
-	files, err := os.ReadDir(sysAbs)
-	if err != nil {
-		log.Info("failed to load dir information", slog.Any("err", err))
+	if len(lib.Files) == 0 {
+		log.Info("found no library files, returning nil")
 		return nil, nil
-	}
-
-	log.Info("loaded dir information")
-
-	for _, entry := range files {
-		name := entry.Name()
-
-		log := log.With(slog.String("file", name))
-		log.Info("looking for precompiled library file")
-
-		if entry.Type() != os.ModeDir {
-			log.Info("skipping: file is dir")
-		} else if name != PrecompFileName {
-			log.Info("skipping: name doesn't match: " + PrecompFileName)
-			continue
-		}
-
-		log.Info("found file with matching name, reading")
-
-		f, err := os.Open(filepath.Join(sysAbs, name))
-		if err != nil {
-			log.Error("failed to open precompiled library file", slog.Any("err", err))
-			return nil, fmt.Errorf("%s: failed to open precompiled library: %w", sysAbs, err)
-		}
-		//goland:noinspection GoDeferInLoop
-		defer f.Close()
-
-		log.Info("decoding precompiled library file")
-
-		lib, err := precomp.Decode(f)
-		if err != nil {
-			log.Error("failed to decode precompiled library file", slog.Any("err", err))
-			return nil, fmt.Errorf("%s: failed to decode precompiled library: %w", sysAbs, err)
-		}
-
-		log.Info("decoded precompiled library file")
-
-		lib.AbsolutePath = sysAbs
-		if l.mainMod != nil {
-			lib.Module = slashModPath
-			lib.PathInModule = slashPathInMod
-		}
-
-		return &load.Library{Precompiled: lib}, nil
-	}
-
-	log.Info("found no precompiled library file, compiling by hand")
-
-	lib := load.Library{
-		Module:       slashModPath,
-		PathInModule: slashPathInMod,
-		AbsolutePath: sysAbs,
-		Files:        make([]load.File, 0, len(files)),
-	}
-
-	for _, entry := range files {
-		name := entry.Name()
-
-		log := log.With(slog.String("file", name))
-		log.Info("looking for corgi lib files")
-
-		if entry.Type() != os.ModeDir {
-			log.Info("skipping: file is dir")
-		} else if !strings.HasSuffix(name, LibExt) {
-			log.Info("skipping: extension doesn't match: " + LibExt)
-			continue
-		}
-
-		log.Info("found corgi lib file, reading")
-
-		readFile, err := os.ReadFile(filepath.Join(sysAbs, name))
-		if err != nil {
-			log.Error("failed to open corgi lib file", slog.Any("err", err))
-			return nil, fmt.Errorf("%s: failed to read library file: %w", filepath.Join(sysAbs, name), err)
-		}
-
-		log.Info("read corgi lib file successfully")
-
-		lib.Files = append(lib.Files, load.File{
-			Name:         name,
-			Module:       slashModPath,
-			PathInModule: slashPathInMod,
-			AbsolutePath: path.Join(slashAbs, name),
-			IsCorgi:      true,
-			Raw:          readFile,
-		})
 	}
 
 	log.Info("read directory, returning with library",

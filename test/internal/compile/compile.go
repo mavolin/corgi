@@ -13,8 +13,9 @@ import (
 
 	"github.com/mavolin/corgi/corgi"
 	"github.com/mavolin/corgi/corgi/resource"
+
 	"github.com/mavolin/corgi/test/internal/voidwriter"
-	"github.com/mavolin/corgi/writer"
+	"github.com/mavolin/corgi/write"
 )
 
 type Options struct {
@@ -49,7 +50,7 @@ func Compile(t *testing.T, name string, o Options) {
 		return
 	}
 
-	w := writer.New(f, o.Package)
+	w := write.New(f, o.Package)
 
 	out, err := os.Create(name + ".go")
 	if err != nil {

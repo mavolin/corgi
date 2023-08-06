@@ -4,78 +4,13 @@ package write
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"strconv"
-	"strings"
 
 	"github.com/mavolin/corgi/file"
-	"github.com/mavolin/corgi/internal/stack"
-	"github.com/mavolin/corgi/internal/voidelem"
-	"github.com/mavolin/corgi/woof"
-)
-
-const (
-	ctxVar = "ctx"
-)
-
-// A Writer is used to convert a corgi file or scope item to Go code.
-//
-// It must not be used concurrently
-type ctx struct {
-	out io.Writer
-
-	destPackage string
-
-	identPrefix string
-	gotoCounter int
-
-	// _stack are the files we are currently in.
-	//
-	// If len(stack) > 0, then _stack[0] is the base template,
-	// _stack[1:len(stack)-1] are other templates extending each other
-	// (_stack[1] extends _stack[0], _stack[2] extends _stack[1], etc.), and
-	// _stack[len(_stack)-1] is the main file.
-	_stack []*file.File
-	// stackStart is the start of the file stack for the current file.
-	//
-	// For example, if we are generating from the main file, stackStart will be
-	// len(_stack)-1.
-	stackStart int
-
-	// mixin is the mixin we are currently generating.
-	mixin *file.Mixin
-
-	exprEscaper *stack.Stack[*escaper]
-
-	elemNames      *stack.Stack[string]
-	customVoidElem bool
-	classBuf       strings.Builder
-	needBufClass   bool
-	haveBufClasses bool
-	closed         *stack.Stack[closeState]
-	calledUnclosed bool
-	calledClosed   bool
-
-	mixinFuncNames mixinFuncMap
-
-	debugEnabled bool
-
-	generateBuf bytes.Buffer
-}
-
-type mixinFuncMap map[string]map[string]string
-
-func (mf mixinFuncMap) mixin(mc file.MixinCall) string {
-	return mf[mc.Mixin.File.Module+mc.Mixin.File.PathInModule][mc.Mixin.Mixin.Name.Ident]
-}
-
-type closeState uint8
-
-const (
-	unclosed closeState = iota
-	maybeClosed
-	closed
+	"github.com/mavolin/corgi/file/fileutil"
+	"github.com/mavolin/corgi/file/precomp"
+	"github.com/mavolin/corgi/internal/list"
 )
 
 type Options struct {
@@ -107,9 +42,10 @@ func (w *Writer) GenerateFile(out io.Writer, destPackage string, f *file.File) (
 	defer func() {
 		if rec := recover(); rec != nil {
 			var ok bool
+			//goland:noinspection GoTypeAssertionOnErrors
 			err, ok = rec.(error)
 			if !ok {
-				err = fmt.Errorf("%v", rec)
+				panic(rec)
 			}
 		}
 	}()
@@ -143,398 +79,120 @@ func (w *Writer) GenerateFile(out io.Writer, destPackage string, f *file.File) (
 	return err
 }
 
-func newCtx(o Options) *ctx {
-	return &ctx{
-		identPrefix:    o.IdentPrefix,
-		exprEscaper:    stack.New1(bodyEscaper),
-		elemNames:      new(stack.Stack[string]),
-		closed:         stack.New1(closed),
-		mixinFuncNames: make(mixinFuncMap),
-		debugEnabled:   o.Debug,
-	}
-}
-
-func (ctx *ctx) ident(s string) string {
-	return ctx.identPrefix + s
-}
-
-func (ctx *ctx) contextFunc(name string, args ...string) string {
-	var sb strings.Builder
-
-	sb.WriteString(ctx.identPrefix)
-	sb.WriteString("ctx")
-	sb.WriteByte('.')
-	sb.WriteString(name)
-	sb.WriteByte('(')
-
-	for i, arg := range args {
-		if i > 0 {
-			sb.WriteString(", ")
-		}
-		sb.WriteString(arg)
-	}
-
-	sb.WriteByte(')')
-	return sb.String()
-}
-
-func (ctx *ctx) woofQual(ident string) string {
-	return ctx.identPrefix + "woof" + "." + ident
-}
-
-func (ctx *ctx) woofFunc(name string, args ...string) string {
-	var sb strings.Builder
-
-	sb.WriteString(ctx.identPrefix)
-	sb.WriteString("woof")
-	sb.WriteByte('.')
-	sb.WriteString(name)
-	sb.WriteByte('(')
-
-	for i, arg := range args {
-		if i > 0 {
-			sb.WriteString(", ")
-		}
-		sb.WriteString(arg)
-	}
-
-	sb.WriteByte(')')
-	return sb.String()
-}
-
-func (ctx *ctx) ioQual(ident string) string {
-	return ctx.identPrefix + "io" + "." + ident
-}
-
-func (ctx *ctx) fmtFunc(name string, args ...string) string {
-	var sb strings.Builder
-
-	sb.WriteString(ctx.identPrefix)
-	sb.WriteString("fmt")
-	sb.WriteByte('.')
-	sb.WriteString(name)
-	sb.WriteByte('(')
-
-	for i, arg := range args {
-		if i > 0 {
-			sb.WriteString(", ")
-		}
-		sb.WriteString(arg)
-	}
-
-	sb.WriteByte(')')
-	return sb.String()
-}
-
-func (ctx *ctx) nextGotoIdent() string {
-	ctx.gotoCounter++
-	return fmt.Sprint(ctx.identPrefix, "goto", ctx.gotoCounter-1)
-}
-
-func (ctx *ctx) stack() []*file.File {
-	return ctx._stack[ctx.stackStart:]
-}
-
-func (ctx *ctx) baseFile() *file.File {
-	return ctx._stack[0]
-}
-
-func (ctx *ctx) mainFile() *file.File {
-	return ctx._stack[len(ctx._stack)-1]
-}
-
-func (ctx *ctx) startElem(name string, void bool) {
-	ctx.closeTag()
-
-	ctx.generate("<"+name, nil)
-	ctx.elemNames.Push(name)
-	ctx.customVoidElem = void
-	ctx.closed.Swap(unclosed)
-	ctx.haveBufClasses = false
-	ctx.calledUnclosed = false
-	ctx.calledClosed = false
-
-	switch name {
-	case "script":
-		ctx.exprEscaper.Push(jsEscaper)
-	case "style":
-		ctx.exprEscaper.Push(cssEscaper)
-	default:
-		ctx.exprEscaper.Push(bodyEscaper)
-	}
-}
-
-func (ctx *ctx) closeElem() {
-	ctx.closeTag()
-	ctx.exprEscaper.Pop()
-
-	name := ctx.elemNames.Pop()
-
-	if ctx.customVoidElem || voidelem.Is(name) {
-		return
-	}
-
-	ctx.generate("</"+name+">", nil)
-}
-
-func (ctx *ctx) debug(typ, s string) {
-	if !ctx.debugEnabled {
-		return
-	}
-
-	ctx.writeln(fmt.Sprintf("// [%s] %s", typ, s))
-}
-
-func (ctx *ctx) debugInline(typ, s string) {
-	if !ctx.debugEnabled {
-		return
-	}
-
-	ctx.write(fmt.Sprintf(" /* [%s] %s */ ", typ, s))
-}
-
-func (ctx *ctx) debugItem(itm file.Poser, s string) {
-	if !ctx.debugEnabled {
-		return
-	}
-
-	ctx.debug("item", fmt.Sprintf("%T (%d:%d): %s", itm, itm.Pos().Line, itm.Pos().Col, s))
-}
-
-func (ctx *ctx) debugItemInline(itm file.Poser, s string) {
-	if !ctx.debugEnabled {
-		return
-	}
-
-	ctx.debugInline("item", fmt.Sprintf("%T [%d:%d]: %s", itm, itm.Pos().Line, itm.Pos().Col, s))
-}
-
-func (ctx *ctx) write(s string) {
-	_, err := io.WriteString(ctx.out, s)
-	if err != nil {
-		panic(err)
-	}
-}
-
-func (ctx *ctx) writeln(s string) {
-	ctx.write(s + "\n")
-}
-
-func (ctx *ctx) writeString(s string) {
-	ctx.write(strconv.Quote(s))
-}
-
-func (ctx *ctx) inContext(f func()) {
-	ctx.writeln("{")
-	f()
-	ctx.writeln("}")
-}
-
-func (ctx *ctx) generate(s string, esc *escaper) {
-	s = esc.escape(ctx, s)
-	ctx.debug("write buffer", strconv.Quote(s))
-	ctx.generateBuf.WriteString(s)
-}
-
-func (ctx *ctx) flushGenerate() {
-	if ctx.generateBuf.Len() > 0 {
-		ctx.debug("flush generate buffer", "(see below)")
-		ctx.writeln(ctx.contextFunc("Write", strconv.Quote(ctx.generateBuf.String())))
-		ctx.generateBuf.Reset()
-	} else {
-		ctx.debug("flush generate buffer", "[empty buffer]")
-	}
-}
-
-func (ctx *ctx) flushClasses() {
-	if ctx.classBuf.Len() > 0 {
-		ctx.debug("flush class buffer", "(see below)")
-		ctx.writeln(ctx.contextFunc("BufferClassAttr", strconv.Quote(ctx.classBuf.String())))
-		ctx.haveBufClasses = true
-		ctx.classBuf.Reset()
-	} else {
-		ctx.debug("flush class buffer", "[empty buffer]")
-	}
-}
-
-var unquotedAttrValEscaper = strings.NewReplacer(`&`, `&amp;`)
-
-func (ctx *ctx) generateStringAttr(name, val string) {
-	ctx.generate(" "+name+"=", nil)
-
-	// see if we even need to quote val
-	// https://html.spec.whatwg.org/#syntax-attribute-value
-	if val == "" || strings.ContainsAny(val, "\t\n\f\r \"'=<>`") {
-		ctx.generate(`"`, nil)
-		ctx.generate(val, attrEscaper)
-		ctx.generate(`"`, nil)
-		return
-	}
-
-	ctx.generate(unquotedAttrValEscaper.Replace(val), nil)
-}
-
-func (ctx *ctx) generateExpr(expr string, esc *escaper) {
-	ctx.flushGenerate()
-
-	escName := "nil"
-	if esc != nil {
-		escName = esc.qualName(ctx)
-	}
-	ctx.writeln(ctx.woofFunc("WriteAny", ctx.ident(ctxVar), expr, escName))
-}
-
-// see generateExpression (func not method)
-func (ctx *ctx) generateExpression(expr file.Expression, txtEsc *escaper, exprEsc *escaper, writer func(func())) {
-	if len(expr.Expressions) == 0 {
-		return
-	}
-
-	if writer == nil {
-		writer = func(genExpr func()) {
-			genExpr()
-		}
-	}
-
-	if len(expr.Expressions) == 1 {
-		esc := exprEsc
-		if txtEsc != nil {
-			esc = txtEsc
-		}
-
-		switch exprItm := expr.Expressions[0].(type) {
-		case file.GoExpression:
-			if num, err := strconv.ParseInt(exprItm.Expression, 10, 64); err == nil {
-				writer(func() {
-					ctx.generate(ctx.stringify(num), esc)
-				})
-				return
-			} else if num, err := strconv.ParseUint(exprItm.Expression, 10, 64); err == nil {
-				writer(func() {
-					ctx.generate(ctx.stringify(num), esc)
-				})
-				return
-			} else if num, err := strconv.ParseFloat(exprItm.Expression, 64); err == nil {
-				writer(func() {
-					ctx.generate(ctx.stringify(num), esc)
-				})
-				return
-			}
-		case file.StringExpression:
-			if len(exprItm.Contents) == 0 {
-				return
-			} else if len(exprItm.Contents) != 1 {
-				break
-			}
-
-			txt, ok := exprItm.Contents[0].(file.StringExpressionText)
+func (w *Writer) PrecompileLibrary(out io.Writer, lib *file.Library) (err error) {
+	// judge me all you want, no function deserves to have an error check every
+	// two lines, so write and co. panic
+	defer func() {
+		if rec := recover(); rec != nil {
+			var ok bool
+			//goland:noinspection GoTypeAssertionOnErrors
+			err, ok = rec.(error)
 			if !ok {
-				break
+				panic(rec)
+			}
+		}
+	}()
+
+	lib.Precompiled = true
+
+	deps := fileutil.LibraryDependencies(lib)
+
+	var mixinNames int
+
+	for _, f := range lib.Files {
+		fileutil.Walk(f.Scope, func(parents []fileutil.WalkContext, ctx fileutil.WalkContext) (dive bool, err error) {
+			switch itm := (*ctx.Item).(type) {
+			case file.Code:
+				mComs := make([]string, 0, len(ctx.Comments))
+
+				for _, com := range ctx.Comments {
+					if fileutil.ParseMachineComment(com) != nil {
+						mComs = append(mComs, com.Lines[0].Comment)
+					}
+				}
+
+				lns := make([]string, len(itm.Lines))
+				for i, ln := range itm.Lines {
+					lns[i] = ln.Code
+				}
+
+				lib.GlobalCode = append(lib.GlobalCode, file.PrecompiledCode{
+					MachineComments: mComs,
+					Lines:           lns,
+				})
+			case file.Mixin:
+				mComs := make([]string, 0, len(ctx.Comments))
+
+				for _, com := range ctx.Comments {
+					if fileutil.ParseMachineComment(com) != nil {
+						mComs = append(mComs, com.Lines[0].Comment)
+					}
+				}
+
+				var requiredBy []string
+				for _, mDep := range deps.Self {
+					if mDep.Mixin.Name.Ident == itm.Name.Ident {
+						requiredBy = mDep.RequiredBy
+						break
+					}
+				}
+
+				lib.Mixins = append(lib.Mixins, file.PrecompiledMixin{
+					File:            f,
+					MachineComments: mComs,
+					Mixin:           itm,
+					Var:             w.o.IdentPrefix + "preMixin" + strconv.Itoa(mixinNames),
+					RequiredBy:      requiredBy,
+				})
+
+				mixinNames++
 			}
 
-			s := unquoteStringExpressionText(exprItm, txt)
-
-			writer(func() {
-				ctx.generate(s, esc)
-			})
-		}
+			return false, nil
+		})
 	}
 
-	generateExpression(ctx, expr, txtEsc, exprEsc, writer)
-}
-
-func (ctx *ctx) bufClass(class string) {
-	ctx.debug("class buffer", strconv.Quote(class))
-
-	if ctx.classBuf.Len() == 0 {
-		ctx.classBuf.WriteString(class)
-	} else {
-		ctx.classBuf.Grow(len(" ") + len(class))
-		ctx.classBuf.WriteByte(' ')
-		ctx.classBuf.WriteString(class)
+	mixinFuncNames := mixinFuncMap{
+		m:     make(map[string]map[string]string),
+		scope: make(map[*file.File]*list.List[map[string]string]),
 	}
-}
+	var n int
 
-func (ctx *ctx) closeTag() {
-	cl := ctx.closed.Peek()
-	if cl == closed {
-		return
+	selfMixins := make(map[string]string, len(deps.Self))
+	for _, m := range lib.Mixins {
+		selfMixins[m.Mixin.Name.Ident] = m.Var
 	}
+	mixinFuncNames.m[lib.Module+"/"+lib.PathInModule] = selfMixins
 
-	if cl == unclosed {
-		ctx.debug("close tag", "[prev state: unclosed, class buf: "+ctx.classBuf.String()+"]")
-	} else {
-		ctx.debug("close tag", "[prev state: maybe closed, class buf: "+ctx.classBuf.String()+"]")
-	}
+	for _, ulib := range deps.External {
+		moduleMixins := make(map[string]string, len(ulib.Mixins))
 
-	defer ctx.closed.Swap(closed)
-	defer ctx.classBuf.Reset()
-
-	if cl == unclosed && !ctx.haveBufClasses {
-		classes := ctx.classBuf.String()
-		if classes != "" {
-			ctx.generateStringAttr("class", classes)
+		for _, um := range ulib.Mixins {
+			varName := w.o.IdentPrefix + "preMixin" + strconv.Itoa(n)
+			moduleMixins[um.Mixin.Name.Ident] = varName
+			n++
 		}
 
-		if ctx.customVoidElem {
-			ctx.generate("/>", nil)
-			return
-		}
-
-		ctx.generate(">", nil)
-		return
+		mixinFuncNames.m[ulib.Library.Module+"/"+ulib.Library.PathInModule] = moduleMixins
 	}
 
-	ctx.flushGenerate()
+	for i, pm := range lib.Mixins {
+		var buf bytes.Buffer
 
-	ctx.calledClosed = true
-	ctx.write(ctx.ident(ctxVar) + ".CloseStartTag(")
-	ctx.writeString(ctx.classBuf.String())
-	ctx.write(", ")
-	if ctx.customVoidElem {
-		ctx.writeln("true)")
-	} else {
-		ctx.writeln("false)")
-	}
-}
+		ctx := newCtx(w.o)
+		ctx.out = &buf
+		ctx._stack = []*file.File{pm.File}
+		ctx.mixin = &pm.Mixin
+		ctx.mixinFuncNames = mixinFuncNames
 
-// horrible name, but a ton less confusion than just reading callUnclosed
-func (ctx *ctx) callUnclosedIfUnclosed() {
-	if ctx.calledUnclosed {
-		return
-	}
-	ctx.calledUnclosed = true
-	if ctx.closed.Peek() == unclosed {
-		ctx.writeln(ctx.contextFunc("Unclosed"))
-	}
-}
+		writeMixinFunc(ctx, &pm.Mixin)
 
-// horrible name, but a ton less confusion than just reading callUnclosed
-func (ctx *ctx) callClosedIfClosed() {
-	if ctx.calledClosed {
-		return
-	}
-	ctx.calledClosed = true
-	if ctx.closed.Peek() == closed {
-		ctx.writeln(ctx.contextFunc("Closed"))
-	}
-}
-
-func (ctx *ctx) callCloseState() {
-	if ctx.calledUnclosed {
-		return
-	}
-	ctx.calledUnclosed = true
-	if ctx.closed.Peek() == unclosed {
-		ctx.writeln(ctx.contextFunc("Unclosed"))
-	}
-}
-
-func (ctx *ctx) stringify(val any) string {
-	s, err := woof.Stringify(val)
-	if err != nil {
-		panic(err)
+		lib.Mixins[i].Mixin.Precompiled = buf.Bytes()
 	}
 
-	return s
+	if err := precomp.Encode(out, lib); err != nil {
+		return err
+	}
+
+	return err
 }

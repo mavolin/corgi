@@ -115,7 +115,7 @@ func generateChainExpression(ctx *ctx, cexpr file.ChainExpression, defaultExpr *
 			checksPassedGoto := ctx.nextGotoIdent()
 
 			generateChainExprItems(ctx, cexpr.Chain, &valBuilder, func() {
-				ctx.generate(valBuilder.String(), esc)
+				ctx.generateExpr(valBuilder.String(), esc)
 				ctx.flushGenerate()
 				ctx.writeln("goto " + checksPassedGoto)
 			})
@@ -123,7 +123,7 @@ func generateChainExpression(ctx *ctx, cexpr file.ChainExpression, defaultExpr *
 				ctx.writeln("}")
 			}
 
-			ctx.generate(inlineExpression(ctx, *defaultExpr), esc)
+			ctx.generateExpr(inlineExpression(ctx, *defaultExpr), esc)
 			ctx.flushGenerate()
 			ctx.writeln(checksPassedGoto + ":")
 		})
@@ -140,7 +140,7 @@ func generateChainExpression(ctx *ctx, cexpr file.ChainExpression, defaultExpr *
 
 	generateChainExprItems(ctx, cexpr.Chain, &valBuilder, func() {
 		writer(func() {
-			ctx.generate(valBuilder.String(), esc)
+			ctx.generateExpr(valBuilder.String(), esc)
 		})
 		ctx.flushGenerate()
 	})
@@ -250,10 +250,10 @@ func generateTernaryExpression(ctx *ctx, texpr file.TernaryExpression, txtEsc *e
 	ctx.write("if ")
 	ctx.write(inlineCondition(ctx, texpr.Condition))
 	ctx.writeln(" {")
-	generateExpression(ctx, texpr.IfTrue, txtEsc, exprEsc, nil)
+	ctx.generateExpression(texpr.IfTrue, txtEsc, exprEsc, nil)
 	ctx.flushGenerate()
 	ctx.writeln("} else {")
-	generateExpression(ctx, texpr.IfFalse, txtEsc, exprEsc, nil)
+	ctx.generateExpression(texpr.IfFalse, txtEsc, exprEsc, nil)
 	ctx.flushGenerate()
 	ctx.writeln("}")
 }
@@ -281,7 +281,7 @@ func generateStringExpression(ctx *ctx, sexpr file.StringExpression, txtEsc *esc
 		case file.StringExpressionInterpolation:
 			if exprItm.FormatDirective == "" {
 				ctx.debugItem(exprItm, "(see sub expressions)")
-				generateExpression(ctx, exprItm.Expression, nil, exprEsc, nil)
+				ctx.generateExpression(exprItm.Expression, nil, exprEsc, nil)
 				continue
 			}
 

@@ -152,8 +152,15 @@ elementInterpolationValue <- textInterpolationValue / expressionInterpolationVal
 
 MixinCallInterpolation <- '#' mcPosI:POS '+' namespaceI:(Ident '.')? nameI:MustIdent argsI:singleLineMixinArgList? valueI:mixinCallInterpolationValue? {
     args := castedOrZero[file.MixinCall](argsI)
+
+    var namespace *file.Ident
+    if namespaceI != nil {
+        namespace = ptr(getTuple[file.Ident](namespaceI, 0))
+    }
+
     return file.MixinCallInterpolation{
         MixinCall: file.MixinCall{
+            Namespace: namespace,
             Name: nameI.(file.Ident),
             LParenPos: args.LParenPos,
             Args: args.Args,
@@ -184,7 +191,24 @@ textInterpolationValue <- lBracketPosI:L_BRACKET textI:[^\]\r\n]* rBracketPosI:R
     return file.TextInterpolationValue{
         LBracketPos: lBracketPosI.(file.Position),
         Text: concat(textI),
-    }, errors.New("unclosed text interpolation")
+    }, &corgierr.Error{
+        Message: "unclosed text interpolation",
+        ErrorAnnotation: anno(c, annotation{
+            Start: pos(c),
+            Annotation: "`[` opened here, but never closeed",
+        }),
+        HintAnnotations: []corgierr.Annotation{
+            anno(c, annotation{
+                Start: pos(c),
+                StartOffset: 1,
+                EOLDelta: 1,
+                Annotation: "expected a `]` somewhere here",
+            }),
+        },
+        Suggestions: []corgierr.Suggestion{
+            {Suggestion: "if you didn't mean to start an interpolation, escape the `#`", Code: "`##`"},
+        },
+    }
 }
 
 //
@@ -197,11 +221,28 @@ expressionInterpolationValue <- lBracePosI:L_BRACE exprI:SingleLineExpression rB
         Expression: exprI.(file.Expression),
         RBracePos: rBracePosI.(file.Position),
     }, nil
-} / lBracePosI:L_BRACKET exprI:SingleLineExpression EOL {
+} / lBracePosI:L_BRACE exprI:SingleLineExpression EOL {
     return file.ExpressionInterpolationValue{
         LBracePos: lBracePosI.(file.Position),
         Expression: exprI.(file.Expression),
-    }, errors.New("unclosed expression interpolation")
+    }, &corgierr.Error{
+        Message: "unclosed expression interpolation",
+        ErrorAnnotation: anno(c, annotation{
+            Start: pos(c),
+            Annotation: "`{` opened here, but never closeed",
+        }),
+        HintAnnotations: []corgierr.Annotation{
+            anno(c, annotation{
+                Start: pos(c),
+                StartOffset: 1,
+                EOLDelta: 1,
+                Annotation: "expected a `}` somewhere here",
+            }),
+        },
+        Suggestions: []corgierr.Suggestion{
+            {Suggestion: "if you didn't mean to start an interpolation, escape the `#`", Code: "`##`"},
+        },
+    }
 }
 
 fmtExpressionInterpolationValue <- fmtDirectiveI:fmtDirective eivI:expressionInterpolationValue {

@@ -108,7 +108,7 @@ func init() {
 		return
 	}
 
-	if Package == "" {
+	if !PrecompileLibrary && Package == "" {
 		Package = os.Getenv("GOPACKAGE")
 		if Package == "" {
 			wd, err := os.Getwd()
@@ -129,22 +129,32 @@ func init() {
 
 	InFile = flag.Arg(0)
 	if InFile == "" {
-		var err error
-		InData, err = io.ReadAll(os.Stdin)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "could not read stdin", err.Error())
+		if PrecompileLibrary {
+			fmt.Fprintln(os.Stderr, "need directory to precompile")
 			os.Exit(2)
-		}
+		} else {
+			var err error
+			InData, err = io.ReadAll(os.Stdin)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, "could not read stdin", err.Error())
+				os.Exit(2)
+			}
 
-		if len(InData) == 0 {
-			fmt.Fprintln(os.Stderr, "expected either input via stdin or a filepath as arg")
-			os.Exit(2)
+			if len(InData) == 0 {
+				fmt.Fprintln(os.Stderr, "expected either input via stdin or a filepath as arg")
+				os.Exit(2)
+			}
 		}
+	}
+
+	if OutFile != "" && PrecompileLibrary && InFile == "./..." {
+		fmt.Fprintln(os.Stderr, "cannot use `-o` with `./...`")
+		os.Exit(2)
 	}
 
 	if OutFile == "" && !UseStdout {
 		if PrecompileLibrary {
-			OutFile = corgi.PrecompFileName
+			OutFile = filepath.Join(InFile, corgi.PrecompFileName)
 		} else {
 			if InFile == "" {
 				fmt.Fprintln(os.Stderr, "need to specify output file, -o, or not use stdin")
@@ -167,11 +177,11 @@ func usage() {
 	fmt.Fprintln(flag.CommandLine.Output(), "https://github.com/mavolin/corgi")
 	fmt.Fprintln(flag.CommandLine.Output())
 	fmt.Fprintln(flag.CommandLine.Output(), "Usage: corgi [options] [FILE]")
+	fmt.Fprintln(flag.CommandLine.Output(), "Usage: corgi [options] -lib DIR")
 	fmt.Fprintln(flag.CommandLine.Output())
 	fmt.Fprintln(flag.CommandLine.Output(), "Input may be passed through stdin, however, this will disable loading of the file's dir library.")
 	fmt.Fprintln(flag.CommandLine.Output())
-	fmt.Fprintln(flag.CommandLine.Output(), "If -lib is specified, the file argument is mandatory.")
-	fmt.Fprintln(flag.CommandLine.Output(), "It may be a single directory or a list of files to be precompiled.")
+	fmt.Fprintln(flag.CommandLine.Output(), "If -lib is specified, the FILE/DIR argument is mandatory.")
 	fmt.Fprintln(flag.CommandLine.Output())
 	fmt.Fprintln(flag.CommandLine.Output(), "Additionally, the special ./.. argument is allowed, which recursively iterates")
 	fmt.Fprintln(flag.CommandLine.Output(), "through pwd and its subdirectories and pre-compiles all of those containing corgi")

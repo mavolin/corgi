@@ -1676,10 +1676,10 @@ func (z *file) DecodeMsg(dc *msgp.Reader) (err error) {
 				err = msgp.WrapError(err, "Module")
 				return
 			}
-		case "PathInModule":
+		case "ModulePath":
 			z.ModulePath, err = dc.ReadString()
 			if err != nil {
-				err = msgp.WrapError(err, "PathInModule")
+				err = msgp.WrapError(err, "ModulePath")
 				return
 			}
 		case "Imports":
@@ -1735,14 +1735,14 @@ func (z *file) EncodeMsg(en *msgp.Writer) (err error) {
 		err = msgp.WrapError(err, "Module")
 		return
 	}
-	// write "PathInModule"
+	// write "ModulePath"
 	err = en.Append(0xaa, 0x4d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x50, 0x61, 0x74, 0x68)
 	if err != nil {
 		return
 	}
 	err = en.WriteString(z.ModulePath)
 	if err != nil {
-		err = msgp.WrapError(err, "PathInModule")
+		err = msgp.WrapError(err, "ModulePath")
 		return
 	}
 	// write "Imports"
@@ -1775,7 +1775,7 @@ func (z *file) MarshalMsg(b []byte) (o []byte, err error) {
 	// string "Module"
 	o = append(o, 0xa6, 0x4d, 0x6f, 0x64, 0x75, 0x6c, 0x65)
 	o = msgp.AppendString(o, z.Module)
-	// string "PathInModule"
+	// string "ModulePath"
 	o = append(o, 0xaa, 0x4d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x50, 0x61, 0x74, 0x68)
 	o = msgp.AppendString(o, z.ModulePath)
 	// string "Imports"
@@ -1821,10 +1821,10 @@ func (z *file) UnmarshalMsg(bts []byte) (o []byte, err error) {
 				err = msgp.WrapError(err, "Module")
 				return
 			}
-		case "PathInModule":
+		case "ModulePath":
 			z.ModulePath, bts, err = msgp.ReadStringBytes(bts)
 			if err != nil {
-				err = msgp.WrapError(err, "PathInModule")
+				err = msgp.WrapError(err, "ModulePath")
 				return
 			}
 		case "Imports":
@@ -2477,10 +2477,10 @@ func (z *libDependency) DecodeMsg(dc *msgp.Reader) (err error) {
 				err = msgp.WrapError(err, "Module")
 				return
 			}
-		case "PathInModule":
+		case "ModulePath":
 			z.ModulePath, err = dc.ReadString()
 			if err != nil {
-				err = msgp.WrapError(err, "PathInModule")
+				err = msgp.WrapError(err, "ModulePath")
 				return
 			}
 		case "Mixins":
@@ -2496,52 +2496,10 @@ func (z *libDependency) DecodeMsg(dc *msgp.Reader) (err error) {
 				z.Mixins = make([]mixinDependency, zb0002)
 			}
 			for za0001 := range z.Mixins {
-				var zb0003 uint32
-				zb0003, err = dc.ReadMapHeader()
+				err = z.Mixins[za0001].DecodeMsg(dc)
 				if err != nil {
 					err = msgp.WrapError(err, "Mixins", za0001)
 					return
-				}
-				for zb0003 > 0 {
-					zb0003--
-					field, err = dc.ReadMapKeyPtr()
-					if err != nil {
-						err = msgp.WrapError(err, "Mixins", za0001)
-						return
-					}
-					switch msgp.UnsafeString(field) {
-					case "Name":
-						z.Mixins[za0001].Name, err = dc.ReadString()
-						if err != nil {
-							err = msgp.WrapError(err, "Mixins", za0001, "Name")
-							return
-						}
-					case "RequiredBy":
-						var zb0004 uint32
-						zb0004, err = dc.ReadArrayHeader()
-						if err != nil {
-							err = msgp.WrapError(err, "Mixins", za0001, "RequiredBy")
-							return
-						}
-						if cap(z.Mixins[za0001].RequiredBy) >= int(zb0004) {
-							z.Mixins[za0001].RequiredBy = (z.Mixins[za0001].RequiredBy)[:zb0004]
-						} else {
-							z.Mixins[za0001].RequiredBy = make([]string, zb0004)
-						}
-						for za0002 := range z.Mixins[za0001].RequiredBy {
-							z.Mixins[za0001].RequiredBy[za0002], err = dc.ReadString()
-							if err != nil {
-								err = msgp.WrapError(err, "Mixins", za0001, "RequiredBy", za0002)
-								return
-							}
-						}
-					default:
-						err = dc.Skip()
-						if err != nil {
-							err = msgp.WrapError(err, "Mixins", za0001)
-							return
-						}
-					}
 				}
 			}
 		default:
@@ -2568,14 +2526,14 @@ func (z *libDependency) EncodeMsg(en *msgp.Writer) (err error) {
 		err = msgp.WrapError(err, "Module")
 		return
 	}
-	// write "PathInModule"
+	// write "ModulePath"
 	err = en.Append(0xaa, 0x4d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x50, 0x61, 0x74, 0x68)
 	if err != nil {
 		return
 	}
 	err = en.WriteString(z.ModulePath)
 	if err != nil {
-		err = msgp.WrapError(err, "PathInModule")
+		err = msgp.WrapError(err, "ModulePath")
 		return
 	}
 	// write "Mixins"
@@ -2589,33 +2547,10 @@ func (z *libDependency) EncodeMsg(en *msgp.Writer) (err error) {
 		return
 	}
 	for za0001 := range z.Mixins {
-		// map header, size 2
-		// write "Name"
-		err = en.Append(0x82, 0xa4, 0x4e, 0x61, 0x6d, 0x65)
+		err = z.Mixins[za0001].EncodeMsg(en)
 		if err != nil {
+			err = msgp.WrapError(err, "Mixins", za0001)
 			return
-		}
-		err = en.WriteString(z.Mixins[za0001].Name)
-		if err != nil {
-			err = msgp.WrapError(err, "Mixins", za0001, "Name")
-			return
-		}
-		// write "RequiredBy"
-		err = en.Append(0xaa, 0x52, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x42, 0x79)
-		if err != nil {
-			return
-		}
-		err = en.WriteArrayHeader(uint32(len(z.Mixins[za0001].RequiredBy)))
-		if err != nil {
-			err = msgp.WrapError(err, "Mixins", za0001, "RequiredBy")
-			return
-		}
-		for za0002 := range z.Mixins[za0001].RequiredBy {
-			err = en.WriteString(z.Mixins[za0001].RequiredBy[za0002])
-			if err != nil {
-				err = msgp.WrapError(err, "Mixins", za0001, "RequiredBy", za0002)
-				return
-			}
 		}
 	}
 	return
@@ -2628,22 +2563,17 @@ func (z *libDependency) MarshalMsg(b []byte) (o []byte, err error) {
 	// string "Module"
 	o = append(o, 0x83, 0xa6, 0x4d, 0x6f, 0x64, 0x75, 0x6c, 0x65)
 	o = msgp.AppendString(o, z.Module)
-	// string "PathInModule"
+	// string "ModulePath"
 	o = append(o, 0xaa, 0x4d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x50, 0x61, 0x74, 0x68)
 	o = msgp.AppendString(o, z.ModulePath)
 	// string "Mixins"
 	o = append(o, 0xa6, 0x4d, 0x69, 0x78, 0x69, 0x6e, 0x73)
 	o = msgp.AppendArrayHeader(o, uint32(len(z.Mixins)))
 	for za0001 := range z.Mixins {
-		// map header, size 2
-		// string "Name"
-		o = append(o, 0x82, 0xa4, 0x4e, 0x61, 0x6d, 0x65)
-		o = msgp.AppendString(o, z.Mixins[za0001].Name)
-		// string "RequiredBy"
-		o = append(o, 0xaa, 0x52, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x42, 0x79)
-		o = msgp.AppendArrayHeader(o, uint32(len(z.Mixins[za0001].RequiredBy)))
-		for za0002 := range z.Mixins[za0001].RequiredBy {
-			o = msgp.AppendString(o, z.Mixins[za0001].RequiredBy[za0002])
+		o, err = z.Mixins[za0001].MarshalMsg(o)
+		if err != nil {
+			err = msgp.WrapError(err, "Mixins", za0001)
+			return
 		}
 	}
 	return
@@ -2673,10 +2603,10 @@ func (z *libDependency) UnmarshalMsg(bts []byte) (o []byte, err error) {
 				err = msgp.WrapError(err, "Module")
 				return
 			}
-		case "PathInModule":
+		case "ModulePath":
 			z.ModulePath, bts, err = msgp.ReadStringBytes(bts)
 			if err != nil {
-				err = msgp.WrapError(err, "PathInModule")
+				err = msgp.WrapError(err, "ModulePath")
 				return
 			}
 		case "Mixins":
@@ -2692,52 +2622,10 @@ func (z *libDependency) UnmarshalMsg(bts []byte) (o []byte, err error) {
 				z.Mixins = make([]mixinDependency, zb0002)
 			}
 			for za0001 := range z.Mixins {
-				var zb0003 uint32
-				zb0003, bts, err = msgp.ReadMapHeaderBytes(bts)
+				bts, err = z.Mixins[za0001].UnmarshalMsg(bts)
 				if err != nil {
 					err = msgp.WrapError(err, "Mixins", za0001)
 					return
-				}
-				for zb0003 > 0 {
-					zb0003--
-					field, bts, err = msgp.ReadMapKeyZC(bts)
-					if err != nil {
-						err = msgp.WrapError(err, "Mixins", za0001)
-						return
-					}
-					switch msgp.UnsafeString(field) {
-					case "Name":
-						z.Mixins[za0001].Name, bts, err = msgp.ReadStringBytes(bts)
-						if err != nil {
-							err = msgp.WrapError(err, "Mixins", za0001, "Name")
-							return
-						}
-					case "RequiredBy":
-						var zb0004 uint32
-						zb0004, bts, err = msgp.ReadArrayHeaderBytes(bts)
-						if err != nil {
-							err = msgp.WrapError(err, "Mixins", za0001, "RequiredBy")
-							return
-						}
-						if cap(z.Mixins[za0001].RequiredBy) >= int(zb0004) {
-							z.Mixins[za0001].RequiredBy = (z.Mixins[za0001].RequiredBy)[:zb0004]
-						} else {
-							z.Mixins[za0001].RequiredBy = make([]string, zb0004)
-						}
-						for za0002 := range z.Mixins[za0001].RequiredBy {
-							z.Mixins[za0001].RequiredBy[za0002], bts, err = msgp.ReadStringBytes(bts)
-							if err != nil {
-								err = msgp.WrapError(err, "Mixins", za0001, "RequiredBy", za0002)
-								return
-							}
-						}
-					default:
-						bts, err = msgp.Skip(bts)
-						if err != nil {
-							err = msgp.WrapError(err, "Mixins", za0001)
-							return
-						}
-					}
 				}
 			}
 		default:
@@ -2756,10 +2644,7 @@ func (z *libDependency) UnmarshalMsg(bts []byte) (o []byte, err error) {
 func (z *libDependency) Msgsize() (s int) {
 	s = 1 + 7 + msgp.StringPrefixSize + len(z.Module) + 11 + msgp.StringPrefixSize + len(z.ModulePath) + 7 + msgp.ArrayHeaderSize
 	for za0001 := range z.Mixins {
-		s += 1 + 5 + msgp.StringPrefixSize + len(z.Mixins[za0001].Name) + 11 + msgp.ArrayHeaderSize
-		for za0002 := range z.Mixins[za0001].RequiredBy {
-			s += msgp.StringPrefixSize + len(z.Mixins[za0001].RequiredBy[za0002])
-		}
+		s += z.Mixins[za0001].Msgsize()
 	}
 	return
 }
@@ -2782,6 +2667,18 @@ func (z *library) DecodeMsg(dc *msgp.Reader) (err error) {
 			return
 		}
 		switch msgp.UnsafeString(field) {
+		case "Module":
+			z.Module, err = dc.ReadString()
+			if err != nil {
+				err = msgp.WrapError(err, "Module")
+				return
+			}
+		case "PathInModule":
+			z.PathInModule, err = dc.ReadString()
+			if err != nil {
+				err = msgp.WrapError(err, "PathInModule")
+				return
+			}
 		case "Files":
 			var zb0002 uint32
 			zb0002, err = dc.ReadArrayHeader()
@@ -2871,9 +2768,29 @@ func (z *library) DecodeMsg(dc *msgp.Reader) (err error) {
 
 // EncodeMsg implements msgp.Encodable
 func (z *library) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 4
+	// map header, size 6
+	// write "Module"
+	err = en.Append(0x86, 0xa6, 0x4d, 0x6f, 0x64, 0x75, 0x6c, 0x65)
+	if err != nil {
+		return
+	}
+	err = en.WriteString(z.Module)
+	if err != nil {
+		err = msgp.WrapError(err, "Module")
+		return
+	}
+	// write "PathInModule"
+	err = en.Append(0xac, 0x50, 0x61, 0x74, 0x68, 0x49, 0x6e, 0x4d, 0x6f, 0x64, 0x75, 0x6c, 0x65)
+	if err != nil {
+		return
+	}
+	err = en.WriteString(z.PathInModule)
+	if err != nil {
+		err = msgp.WrapError(err, "PathInModule")
+		return
+	}
 	// write "Files"
-	err = en.Append(0x84, 0xa5, 0x46, 0x69, 0x6c, 0x65, 0x73)
+	err = en.Append(0xa5, 0x46, 0x69, 0x6c, 0x65, 0x73)
 	if err != nil {
 		return
 	}
@@ -2946,9 +2863,15 @@ func (z *library) EncodeMsg(en *msgp.Writer) (err error) {
 // MarshalMsg implements msgp.Marshaler
 func (z *library) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// map header, size 4
+	// map header, size 6
+	// string "Module"
+	o = append(o, 0x86, 0xa6, 0x4d, 0x6f, 0x64, 0x75, 0x6c, 0x65)
+	o = msgp.AppendString(o, z.Module)
+	// string "PathInModule"
+	o = append(o, 0xac, 0x50, 0x61, 0x74, 0x68, 0x49, 0x6e, 0x4d, 0x6f, 0x64, 0x75, 0x6c, 0x65)
+	o = msgp.AppendString(o, z.PathInModule)
 	// string "Files"
-	o = append(o, 0x84, 0xa5, 0x46, 0x69, 0x6c, 0x65, 0x73)
+	o = append(o, 0xa5, 0x46, 0x69, 0x6c, 0x65, 0x73)
 	o = msgp.AppendArrayHeader(o, uint32(len(z.Files)))
 	for za0001 := range z.Files {
 		o, err = z.Files[za0001].MarshalMsg(o)
@@ -3008,6 +2931,18 @@ func (z *library) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			return
 		}
 		switch msgp.UnsafeString(field) {
+		case "Module":
+			z.Module, bts, err = msgp.ReadStringBytes(bts)
+			if err != nil {
+				err = msgp.WrapError(err, "Module")
+				return
+			}
+		case "PathInModule":
+			z.PathInModule, bts, err = msgp.ReadStringBytes(bts)
+			if err != nil {
+				err = msgp.WrapError(err, "PathInModule")
+				return
+			}
 		case "Files":
 			var zb0002 uint32
 			zb0002, bts, err = msgp.ReadArrayHeaderBytes(bts)
@@ -3098,7 +3033,7 @@ func (z *library) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *library) Msgsize() (s int) {
-	s = 1 + 6 + msgp.ArrayHeaderSize
+	s = 1 + 7 + msgp.StringPrefixSize + len(z.Module) + 13 + msgp.StringPrefixSize + len(z.PathInModule) + 6 + msgp.ArrayHeaderSize
 	for za0001 := range z.Files {
 		s += z.Files[za0001].Msgsize()
 	}
@@ -3272,11 +3207,36 @@ func (z *mixin) DecodeMsg(dc *msgp.Reader) (err error) {
 				err = msgp.WrapError(err, "Position", "Col")
 				return
 			}
+		case "Var":
+			z.Var, err = dc.ReadString()
+			if err != nil {
+				err = msgp.WrapError(err, "Var")
+				return
+			}
 		case "Precompiled":
 			z.Precompiled, err = dc.ReadBytes(z.Precompiled)
 			if err != nil {
 				err = msgp.WrapError(err, "Precompiled")
 				return
+			}
+		case "RequiredBy":
+			var zb0007 uint32
+			zb0007, err = dc.ReadArrayHeader()
+			if err != nil {
+				err = msgp.WrapError(err, "RequiredBy")
+				return
+			}
+			if cap(z.RequiredBy) >= int(zb0007) {
+				z.RequiredBy = (z.RequiredBy)[:zb0007]
+			} else {
+				z.RequiredBy = make([]string, zb0007)
+			}
+			for za0003 := range z.RequiredBy {
+				z.RequiredBy[za0003], err = dc.ReadString()
+				if err != nil {
+					err = msgp.WrapError(err, "RequiredBy", za0003)
+					return
+				}
 			}
 		case "WritesBody":
 			z.WritesBody, err = dc.ReadBool()
@@ -3303,21 +3263,21 @@ func (z *mixin) DecodeMsg(dc *msgp.Reader) (err error) {
 				return
 			}
 		case "Blocks":
-			var zb0007 uint32
-			zb0007, err = dc.ReadArrayHeader()
+			var zb0008 uint32
+			zb0008, err = dc.ReadArrayHeader()
 			if err != nil {
 				err = msgp.WrapError(err, "Blocks")
 				return
 			}
-			if cap(z.Blocks) >= int(zb0007) {
-				z.Blocks = (z.Blocks)[:zb0007]
+			if cap(z.Blocks) >= int(zb0008) {
+				z.Blocks = (z.Blocks)[:zb0008]
 			} else {
-				z.Blocks = make([]mixinBlock, zb0007)
+				z.Blocks = make([]mixinBlock, zb0008)
 			}
-			for za0003 := range z.Blocks {
-				err = z.Blocks[za0003].DecodeMsg(dc)
+			for za0004 := range z.Blocks {
+				err = z.Blocks[za0004].DecodeMsg(dc)
 				if err != nil {
-					err = msgp.WrapError(err, "Blocks", za0003)
+					err = msgp.WrapError(err, "Blocks", za0004)
 					return
 				}
 			}
@@ -3340,9 +3300,9 @@ func (z *mixin) DecodeMsg(dc *msgp.Reader) (err error) {
 
 // EncodeMsg implements msgp.Encodable
 func (z *mixin) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 14
+	// map header, size 16
 	// write "FileIndex"
-	err = en.Append(0x8e, 0xa9, 0x46, 0x69, 0x6c, 0x65, 0x49, 0x6e, 0x64, 0x65, 0x78)
+	err = en.Append(0xde, 0x0, 0x10, 0xa9, 0x46, 0x69, 0x6c, 0x65, 0x49, 0x6e, 0x64, 0x65, 0x78)
 	if err != nil {
 		return
 	}
@@ -3469,6 +3429,16 @@ func (z *mixin) EncodeMsg(en *msgp.Writer) (err error) {
 		err = msgp.WrapError(err, "Position", "Col")
 		return
 	}
+	// write "Var"
+	err = en.Append(0xa3, 0x56, 0x61, 0x72)
+	if err != nil {
+		return
+	}
+	err = en.WriteString(z.Var)
+	if err != nil {
+		err = msgp.WrapError(err, "Var")
+		return
+	}
 	// write "Precompiled"
 	err = en.Append(0xab, 0x50, 0x72, 0x65, 0x63, 0x6f, 0x6d, 0x70, 0x69, 0x6c, 0x65, 0x64)
 	if err != nil {
@@ -3478,6 +3448,23 @@ func (z *mixin) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		err = msgp.WrapError(err, "Precompiled")
 		return
+	}
+	// write "RequiredBy"
+	err = en.Append(0xaa, 0x52, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x42, 0x79)
+	if err != nil {
+		return
+	}
+	err = en.WriteArrayHeader(uint32(len(z.RequiredBy)))
+	if err != nil {
+		err = msgp.WrapError(err, "RequiredBy")
+		return
+	}
+	for za0003 := range z.RequiredBy {
+		err = en.WriteString(z.RequiredBy[za0003])
+		if err != nil {
+			err = msgp.WrapError(err, "RequiredBy", za0003)
+			return
+		}
 	}
 	// write "WritesBody"
 	err = en.Append(0xaa, 0x57, 0x72, 0x69, 0x74, 0x65, 0x73, 0x42, 0x6f, 0x64, 0x79)
@@ -3529,10 +3516,10 @@ func (z *mixin) EncodeMsg(en *msgp.Writer) (err error) {
 		err = msgp.WrapError(err, "Blocks")
 		return
 	}
-	for za0003 := range z.Blocks {
-		err = z.Blocks[za0003].EncodeMsg(en)
+	for za0004 := range z.Blocks {
+		err = z.Blocks[za0004].EncodeMsg(en)
 		if err != nil {
-			err = msgp.WrapError(err, "Blocks", za0003)
+			err = msgp.WrapError(err, "Blocks", za0004)
 			return
 		}
 	}
@@ -3552,9 +3539,9 @@ func (z *mixin) EncodeMsg(en *msgp.Writer) (err error) {
 // MarshalMsg implements msgp.Marshaler
 func (z *mixin) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// map header, size 14
+	// map header, size 16
 	// string "FileIndex"
-	o = append(o, 0x8e, 0xa9, 0x46, 0x69, 0x6c, 0x65, 0x49, 0x6e, 0x64, 0x65, 0x78)
+	o = append(o, 0xde, 0x0, 0x10, 0xa9, 0x46, 0x69, 0x6c, 0x65, 0x49, 0x6e, 0x64, 0x65, 0x78)
 	o = msgp.AppendInt(o, z.FileIndex)
 	// string "MachineComments"
 	o = append(o, 0xaf, 0x4d, 0x61, 0x63, 0x68, 0x69, 0x6e, 0x65, 0x43, 0x6f, 0x6d, 0x6d, 0x65, 0x6e, 0x74, 0x73)
@@ -3605,9 +3592,18 @@ func (z *mixin) MarshalMsg(b []byte) (o []byte, err error) {
 	o = append(o, 0x92)
 	o = msgp.AppendInt(o, z.Position.Line)
 	o = msgp.AppendInt(o, z.Position.Col)
+	// string "Var"
+	o = append(o, 0xa3, 0x56, 0x61, 0x72)
+	o = msgp.AppendString(o, z.Var)
 	// string "Precompiled"
 	o = append(o, 0xab, 0x50, 0x72, 0x65, 0x63, 0x6f, 0x6d, 0x70, 0x69, 0x6c, 0x65, 0x64)
 	o = msgp.AppendBytes(o, z.Precompiled)
+	// string "RequiredBy"
+	o = append(o, 0xaa, 0x52, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x42, 0x79)
+	o = msgp.AppendArrayHeader(o, uint32(len(z.RequiredBy)))
+	for za0003 := range z.RequiredBy {
+		o = msgp.AppendString(o, z.RequiredBy[za0003])
+	}
 	// string "WritesBody"
 	o = append(o, 0xaa, 0x57, 0x72, 0x69, 0x74, 0x65, 0x73, 0x42, 0x6f, 0x64, 0x79)
 	o = msgp.AppendBool(o, z.WritesBody)
@@ -3623,10 +3619,10 @@ func (z *mixin) MarshalMsg(b []byte) (o []byte, err error) {
 	// string "Blocks"
 	o = append(o, 0xa6, 0x42, 0x6c, 0x6f, 0x63, 0x6b, 0x73)
 	o = msgp.AppendArrayHeader(o, uint32(len(z.Blocks)))
-	for za0003 := range z.Blocks {
-		o, err = z.Blocks[za0003].MarshalMsg(o)
+	for za0004 := range z.Blocks {
+		o, err = z.Blocks[za0004].MarshalMsg(o)
 		if err != nil {
-			err = msgp.WrapError(err, "Blocks", za0003)
+			err = msgp.WrapError(err, "Blocks", za0004)
 			return
 		}
 	}
@@ -3789,11 +3785,36 @@ func (z *mixin) UnmarshalMsg(bts []byte) (o []byte, err error) {
 				err = msgp.WrapError(err, "Position", "Col")
 				return
 			}
+		case "Var":
+			z.Var, bts, err = msgp.ReadStringBytes(bts)
+			if err != nil {
+				err = msgp.WrapError(err, "Var")
+				return
+			}
 		case "Precompiled":
 			z.Precompiled, bts, err = msgp.ReadBytesBytes(bts, z.Precompiled)
 			if err != nil {
 				err = msgp.WrapError(err, "Precompiled")
 				return
+			}
+		case "RequiredBy":
+			var zb0007 uint32
+			zb0007, bts, err = msgp.ReadArrayHeaderBytes(bts)
+			if err != nil {
+				err = msgp.WrapError(err, "RequiredBy")
+				return
+			}
+			if cap(z.RequiredBy) >= int(zb0007) {
+				z.RequiredBy = (z.RequiredBy)[:zb0007]
+			} else {
+				z.RequiredBy = make([]string, zb0007)
+			}
+			for za0003 := range z.RequiredBy {
+				z.RequiredBy[za0003], bts, err = msgp.ReadStringBytes(bts)
+				if err != nil {
+					err = msgp.WrapError(err, "RequiredBy", za0003)
+					return
+				}
 			}
 		case "WritesBody":
 			z.WritesBody, bts, err = msgp.ReadBoolBytes(bts)
@@ -3820,21 +3841,21 @@ func (z *mixin) UnmarshalMsg(bts []byte) (o []byte, err error) {
 				return
 			}
 		case "Blocks":
-			var zb0007 uint32
-			zb0007, bts, err = msgp.ReadArrayHeaderBytes(bts)
+			var zb0008 uint32
+			zb0008, bts, err = msgp.ReadArrayHeaderBytes(bts)
 			if err != nil {
 				err = msgp.WrapError(err, "Blocks")
 				return
 			}
-			if cap(z.Blocks) >= int(zb0007) {
-				z.Blocks = (z.Blocks)[:zb0007]
+			if cap(z.Blocks) >= int(zb0008) {
+				z.Blocks = (z.Blocks)[:zb0008]
 			} else {
-				z.Blocks = make([]mixinBlock, zb0007)
+				z.Blocks = make([]mixinBlock, zb0008)
 			}
-			for za0003 := range z.Blocks {
-				bts, err = z.Blocks[za0003].UnmarshalMsg(bts)
+			for za0004 := range z.Blocks {
+				bts, err = z.Blocks[za0004].UnmarshalMsg(bts)
 				if err != nil {
-					err = msgp.WrapError(err, "Blocks", za0003)
+					err = msgp.WrapError(err, "Blocks", za0004)
 					return
 				}
 			}
@@ -3858,7 +3879,7 @@ func (z *mixin) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *mixin) Msgsize() (s int) {
-	s = 1 + 10 + msgp.IntSize + 16 + msgp.ArrayHeaderSize
+	s = 3 + 10 + msgp.IntSize + 16 + msgp.ArrayHeaderSize
 	for za0001 := range z.MachineComments {
 		s += msgp.StringPrefixSize + len(z.MachineComments[za0001])
 	}
@@ -3878,9 +3899,13 @@ func (z *mixin) Msgsize() (s int) {
 	} else {
 		s += 1 + msgp.IntSize + msgp.IntSize
 	}
-	s += 9 + 1 + msgp.IntSize + msgp.IntSize + 12 + msgp.BytesPrefixSize + len(z.Precompiled) + 11 + msgp.BoolSize + 15 + msgp.BoolSize + 25 + msgp.BoolSize + 23 + msgp.BoolSize + 7 + msgp.ArrayHeaderSize
-	for za0003 := range z.Blocks {
-		s += z.Blocks[za0003].Msgsize()
+	s += 9 + 1 + msgp.IntSize + msgp.IntSize + 4 + msgp.StringPrefixSize + len(z.Var) + 12 + msgp.BytesPrefixSize + len(z.Precompiled) + 11 + msgp.ArrayHeaderSize
+	for za0003 := range z.RequiredBy {
+		s += msgp.StringPrefixSize + len(z.RequiredBy[za0003])
+	}
+	s += 11 + msgp.BoolSize + 15 + msgp.BoolSize + 25 + msgp.BoolSize + 23 + msgp.BoolSize + 7 + msgp.ArrayHeaderSize
+	for za0004 := range z.Blocks {
+		s += z.Blocks[za0004].Msgsize()
 	}
 	s += 19 + msgp.BoolSize
 	return
@@ -4163,6 +4188,12 @@ func (z *mixinDependency) DecodeMsg(dc *msgp.Reader) (err error) {
 				err = msgp.WrapError(err, "Name")
 				return
 			}
+		case "Var":
+			z.Var, err = dc.ReadString()
+			if err != nil {
+				err = msgp.WrapError(err, "Var")
+				return
+			}
 		case "RequiredBy":
 			var zb0002 uint32
 			zb0002, err = dc.ReadArrayHeader()
@@ -4195,15 +4226,25 @@ func (z *mixinDependency) DecodeMsg(dc *msgp.Reader) (err error) {
 
 // EncodeMsg implements msgp.Encodable
 func (z *mixinDependency) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 2
+	// map header, size 3
 	// write "Name"
-	err = en.Append(0x82, 0xa4, 0x4e, 0x61, 0x6d, 0x65)
+	err = en.Append(0x83, 0xa4, 0x4e, 0x61, 0x6d, 0x65)
 	if err != nil {
 		return
 	}
 	err = en.WriteString(z.Name)
 	if err != nil {
 		err = msgp.WrapError(err, "Name")
+		return
+	}
+	// write "Var"
+	err = en.Append(0xa3, 0x56, 0x61, 0x72)
+	if err != nil {
+		return
+	}
+	err = en.WriteString(z.Var)
+	if err != nil {
+		err = msgp.WrapError(err, "Var")
 		return
 	}
 	// write "RequiredBy"
@@ -4229,10 +4270,13 @@ func (z *mixinDependency) EncodeMsg(en *msgp.Writer) (err error) {
 // MarshalMsg implements msgp.Marshaler
 func (z *mixinDependency) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// map header, size 2
+	// map header, size 3
 	// string "Name"
-	o = append(o, 0x82, 0xa4, 0x4e, 0x61, 0x6d, 0x65)
+	o = append(o, 0x83, 0xa4, 0x4e, 0x61, 0x6d, 0x65)
 	o = msgp.AppendString(o, z.Name)
+	// string "Var"
+	o = append(o, 0xa3, 0x56, 0x61, 0x72)
+	o = msgp.AppendString(o, z.Var)
 	// string "RequiredBy"
 	o = append(o, 0xaa, 0x52, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x42, 0x79)
 	o = msgp.AppendArrayHeader(o, uint32(len(z.RequiredBy)))
@@ -4264,6 +4308,12 @@ func (z *mixinDependency) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			z.Name, bts, err = msgp.ReadStringBytes(bts)
 			if err != nil {
 				err = msgp.WrapError(err, "Name")
+				return
+			}
+		case "Var":
+			z.Var, bts, err = msgp.ReadStringBytes(bts)
+			if err != nil {
+				err = msgp.WrapError(err, "Var")
 				return
 			}
 		case "RequiredBy":
@@ -4299,7 +4349,7 @@ func (z *mixinDependency) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *mixinDependency) Msgsize() (s int) {
-	s = 1 + 5 + msgp.StringPrefixSize + len(z.Name) + 11 + msgp.ArrayHeaderSize
+	s = 1 + 5 + msgp.StringPrefixSize + len(z.Name) + 4 + msgp.StringPrefixSize + len(z.Var) + 11 + msgp.ArrayHeaderSize
 	for za0001 := range z.RequiredBy {
 		s += msgp.StringPrefixSize + len(z.RequiredBy[za0001])
 	}
@@ -4347,6 +4397,12 @@ func (z *mixinParam) DecodeMsg(dc *msgp.Reader) (err error) {
 					err = msgp.WrapError(err, "Type")
 					return
 				}
+			}
+		case "InferredType":
+			z.InferredType, err = dc.ReadString()
+			if err != nil {
+				err = msgp.WrapError(err, "InferredType")
+				return
 			}
 		case "AssignPos":
 			if dc.IsNil() {
@@ -4469,9 +4525,9 @@ func (z *mixinParam) DecodeMsg(dc *msgp.Reader) (err error) {
 
 // EncodeMsg implements msgp.Encodable
 func (z *mixinParam) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 5
+	// map header, size 6
 	// write "Name"
-	err = en.Append(0x85, 0xa4, 0x4e, 0x61, 0x6d, 0x65)
+	err = en.Append(0x86, 0xa4, 0x4e, 0x61, 0x6d, 0x65)
 	if err != nil {
 		return
 	}
@@ -4496,6 +4552,16 @@ func (z *mixinParam) EncodeMsg(en *msgp.Writer) (err error) {
 			err = msgp.WrapError(err, "Type")
 			return
 		}
+	}
+	// write "InferredType"
+	err = en.Append(0xac, 0x49, 0x6e, 0x66, 0x65, 0x72, 0x72, 0x65, 0x64, 0x54, 0x79, 0x70, 0x65)
+	if err != nil {
+		return
+	}
+	err = en.WriteString(z.InferredType)
+	if err != nil {
+		err = msgp.WrapError(err, "InferredType")
+		return
 	}
 	// write "AssignPos"
 	err = en.Append(0xa9, 0x41, 0x73, 0x73, 0x69, 0x67, 0x6e, 0x50, 0x6f, 0x73)
@@ -4580,9 +4646,9 @@ func (z *mixinParam) EncodeMsg(en *msgp.Writer) (err error) {
 // MarshalMsg implements msgp.Marshaler
 func (z *mixinParam) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// map header, size 5
+	// map header, size 6
 	// string "Name"
-	o = append(o, 0x85, 0xa4, 0x4e, 0x61, 0x6d, 0x65)
+	o = append(o, 0x86, 0xa4, 0x4e, 0x61, 0x6d, 0x65)
 	o, err = z.Name.MarshalMsg(o)
 	if err != nil {
 		err = msgp.WrapError(err, "Name")
@@ -4599,6 +4665,9 @@ func (z *mixinParam) MarshalMsg(b []byte) (o []byte, err error) {
 			return
 		}
 	}
+	// string "InferredType"
+	o = append(o, 0xac, 0x49, 0x6e, 0x66, 0x65, 0x72, 0x72, 0x65, 0x64, 0x54, 0x79, 0x70, 0x65)
+	o = msgp.AppendString(o, z.InferredType)
 	// string "AssignPos"
 	o = append(o, 0xa9, 0x41, 0x73, 0x73, 0x69, 0x67, 0x6e, 0x50, 0x6f, 0x73)
 	if z.AssignPos == nil {
@@ -4675,6 +4744,12 @@ func (z *mixinParam) UnmarshalMsg(bts []byte) (o []byte, err error) {
 					err = msgp.WrapError(err, "Type")
 					return
 				}
+			}
+		case "InferredType":
+			z.InferredType, bts, err = msgp.ReadStringBytes(bts)
+			if err != nil {
+				err = msgp.WrapError(err, "InferredType")
+				return
 			}
 		case "AssignPos":
 			if msgp.IsNil(bts) {
@@ -4802,7 +4877,7 @@ func (z *mixinParam) Msgsize() (s int) {
 	} else {
 		s += z.Type.Msgsize()
 	}
-	s += 10
+	s += 13 + msgp.StringPrefixSize + len(z.InferredType) + 10
 	if z.AssignPos == nil {
 		s += msgp.NilSize
 	} else {

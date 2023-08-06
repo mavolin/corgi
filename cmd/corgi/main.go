@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path"
@@ -30,14 +31,21 @@ func main() {
 }
 
 func run() error {
-	var f *file.File
-	var err error
-
 	loadOpts := corgi.LoadOptions{GoExecPath: GoExecPath}
 	if Verbose {
 		loadOpts.Logger = slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	}
 
+	if PrecompileLibrary {
+		return writeLibraries(loadOpts)
+	}
+
+	return writeFile(loadOpts)
+}
+
+func writeFile(loadOpts corgi.LoadOptions) error {
+	var f *file.File
+	var err error
 	if InFile != "" {
 		f, err = corgi.LoadMain(InFile, loadOpts)
 	} else {
@@ -45,62 +53,14 @@ func run() error {
 	}
 
 	if err != nil {
-		var prettyOpts corgierr.PrettyOptions
-
-		color.Set()
-
-		prettyOpts.Colored = Color
-		if !ForceColorSetting {
-			prettyOpts.Colored = os.Getenv("TERM") != "dumb" &&
-				(isatty.IsTerminal(os.Stdout.Fd()) || isatty.IsCygwinTerminal(os.Stdout.Fd()))
+		var mainMod string
+		if f != nil {
+			mainMod = f.Module
 		}
-
-		if IsGoGenerate {
-			mainFile := f
-			prettyOpts.FileNamePrinter = func(f *file.File) string {
-				if mainFile.Module == f.Module {
-					return filepath.FromSlash(f.PathInModule)
-				}
-
-				return path.Join(f.Module, f.PathInModule)
-			}
-		} else {
-			wd, err := os.Getwd()
-			if err == nil { // IS nil
-				// print the name of the file relative to the current wd
-				prettyOpts.FileNamePrinter = func(f *file.File) string {
-					rel, relErr := filepath.Rel(wd, f.AbsolutePath)
-					if relErr != nil {
-						return rel
-					}
-
-					return f.Name
-				}
-			}
-		}
-
-		var clerr corgierr.List
-		if errors.As(err, &clerr) {
-			fmt.Println(clerr.Pretty(prettyOpts))
-			os.Exit(1)
-		}
-
-		var cerr *corgierr.Error
-		if errors.As(err, &cerr) {
-			fmt.Println(clerr.Pretty(prettyOpts))
-			os.Exit(1)
-		}
-
-		fmt.Println(err)
-		os.Exit(1)
+		writeErrs(err, mainMod)
+		return nil
 	}
 
-	corgi.Foo(os.Stderr)
-
-	return writeFile(f)
-}
-
-func writeFile(f *file.File) error {
 	var out io.Writer
 	closeOut := func() error { return nil }
 	if UseStdout {
@@ -166,7 +126,10 @@ func writeFile(f *file.File) error {
 			w := write.New(write.Options{Debug: Debug})
 			_ = w.GenerateFile(out, Package, f)
 
-			return fmt.Errorf("failed to run goimports (you probably have an erroneous expression in your corgi file): %w", goImportsErr)
+			return fmt.Errorf("failed to run goimports:\n"+
+				"\tyou probably have an erroneous expression in your corgi file,\n"+
+				"\tor need to re-precompile a library: "+
+				"\t\t%w", goImportsErr)
 		}
 	}
 
@@ -174,5 +137,108 @@ func writeFile(f *file.File) error {
 		return fmt.Errorf("close output: %w", err)
 	}
 
+	corgi.Foo(os.Stdout, "foo", true, []string{"cyan"})
+
 	return nil
+}
+
+func writeLibraries(loadOpts corgi.LoadOptions) error {
+	loadOpts.NoPrecompile = true
+
+	if InFile != "./..." {
+		return writeLibrary(InFile, OutFile, loadOpts)
+	}
+
+	return fs.WalkDir(os.DirFS("."), ".", func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if d.IsDir() {
+			return writeLibrary(path, filepath.Join(path, corgi.PrecompFileName), loadOpts)
+		}
+
+		return nil
+	})
+}
+
+func writeLibrary(path, outPath string, loadOpts corgi.LoadOptions) error {
+	lib, err := corgi.LoadLibrary(path, loadOpts)
+	if errors.Is(err, corgi.ErrExists) {
+		return nil
+	} else if err != nil {
+		var mainMod string
+		if lib != nil {
+			mainMod = lib.Module
+		}
+		writeErrs(err, mainMod)
+		return nil
+	}
+
+	out, err := os.Create(outPath)
+	if err != nil {
+		return fmt.Errorf("%s: failed to open output: %w", path, outPath)
+	}
+
+	w := write.New(write.Options{Debug: Debug})
+
+	if err := w.PrecompileLibrary(out, lib); err != nil {
+		return err
+	}
+
+	if err := out.Close(); err != nil {
+		return fmt.Errorf("close output: %w", err)
+	}
+
+	return nil
+}
+
+func writeErrs(err error, mainMod string) {
+	var prettyOpts corgierr.PrettyOptions
+
+	color.Set()
+
+	prettyOpts.Colored = Color
+	if !ForceColorSetting {
+		prettyOpts.Colored = os.Getenv("TERM") != "dumb" &&
+			(isatty.IsTerminal(os.Stdout.Fd()) || isatty.IsCygwinTerminal(os.Stdout.Fd()))
+	}
+
+	if IsGoGenerate {
+		prettyOpts.FileNamePrinter = func(f *file.File) string {
+			if f.Module == mainMod {
+				return filepath.FromSlash(f.PathInModule)
+			}
+
+			return path.Join(f.Module, f.PathInModule)
+		}
+	} else {
+		wd, err := os.Getwd()
+		if err == nil { // IS nil
+			// print the name of the file relative to the current wd
+			prettyOpts.FileNamePrinter = func(f *file.File) string {
+				rel, relErr := filepath.Rel(wd, f.AbsolutePath)
+				if relErr != nil {
+					return rel
+				}
+
+				return f.Name
+			}
+		}
+	}
+
+	var clerr corgierr.List
+	if errors.As(err, &clerr) {
+		fmt.Println(clerr.Pretty(prettyOpts))
+		os.Exit(1)
+	}
+
+	var cerr *corgierr.Error
+	if errors.As(err, &cerr) {
+		fmt.Println(clerr.Pretty(prettyOpts))
+		os.Exit(1)
+	}
+
+	fmt.Println(err)
+	os.Exit(1)
 }

@@ -41,9 +41,9 @@ func inferLit(expr file.Expression) string {
 
 var (
 	// https://go.dev/ref/spec#int_lit
-	numLitRegexp = regexp.MustCompile(`(?i)^(?:0|[1-9](?:_?\d)*|0b(?:_?[01])+|0o?(?:_?[0-8])+|0x[_\da-f]+)`)
+	numLitRegexp = regexp.MustCompile(`(?i)^[+-]?(?:0|[1-9](?:_?\d)*|0b(?:_?[01])+|0o?(?:_?[0-8])+|0x[_\da-f]+)`)
 	// https://go.dev/ref/spec#float_lit
-	floatLitRegexp = regexp.MustCompile(`(?i)^(?:` +
+	floatLitRegexp = regexp.MustCompile(`(?i)^[+-]?(?:` +
 		`\d(?:_?\d)*\.(?:\d(?:_?\d)*)?(?:e[+-]?\d(?:_?\d)*)?|` +
 		`\d(?:_?\d)*e[+-]?\d(?:_?\d)*|` +
 		`\.\d(?:_?\d)*(?:e[+-]?\d(?:_?\d)*)?|` +
@@ -69,7 +69,7 @@ func inferPrimitiveLit(expr file.Expression) string {
 	// using the first rune, we can narrow down the possible types, so we don't
 	// need to run all regexps
 	switch e[0] {
-	case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.':
+	case '+', '-', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.':
 		if numLitRegexp.MatchString(e) {
 			return "int"
 		} else if floatLitRegexp.MatchString(e) {

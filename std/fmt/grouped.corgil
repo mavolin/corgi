@@ -1,3 +1,6 @@
+import
+  __corgi_std_woof "github.com/mavolin/corgi/woof"
+
 // Grouped formats the stringified version of val in groups of size runes.
 //
 // Each group is separated by sep.
@@ -8,10 +11,31 @@
 //
 // If minSize is set and val is shorter than minSize, Grouped will print it as
 // is.
-mixin Grouped(val any, size=4, sep=" " trailRem=false, minSize=0)
+mixin Grouped(val any, size=4, sep=" ", trailRem=false, minSize=0)
+  if size < 1
+    - size = 1
+
+  - s, err := __corgi_std_woof.Stringify(val)
+  if err != nil
+    return err
+  - rs := []rune(s)
+  if len(rs) <= size || len(rs) < minSize
+    > #{s}
+    return
+
+  - i := len(rs) % size
+
+  if !trailRem && i != 0
+    > #{string(rs[:i])}#{sep}
+
+  for ; i < len(rs) - size; i += size
+    > #{string(rs[i:i+size])}#{sep}
+
+  > #{string(rs[i:])}
+
 
 //corgi:formixin Num SetDigitGroupSep
-- numSep := " "
+- digitGroupSep := " "
 //corgi:formixin Num SetDecimalSep
 - decimalSep := "."
 //corgi:formixin Num SetNumWords
@@ -21,7 +45,7 @@ mixin Grouped(val any, size=4, sep=" " trailRem=false, minSize=0)
 // Num is used for grouping numbers in groups of 3, if they are greater or
 // equal to 10 000, or smaller or equal to -10 000.
 //
-// Num handles two special cases that Grouped doesn't.
+// Num handles three special cases that Grouped doesn't.
 //
 //  1. The sign isn't counted towards any group.
 //     Where Grouped would print "- 123 456", Num will print "-123 456".
@@ -35,7 +59,49 @@ mixin Grouped(val any, size=4, sep=" " trailRem=false, minSize=0)
 //
 // By default, Num will separate groups with spaces, however, you may choose to
 // change this default using SetNumSep.
-mixin Num(val number, size=3, groupSep=digitGroupSep, decimalSep=decimalSep, minSize=5, useWords=false)
+//
+// Num does not validate if val is actually a number.
+// Instead, it operates on val's stringified version, scanning for '.' as a
+// decimal separator.
+mixin Num(val any, size=3, groupSep string = digitGroupSep, decimalSep string = decimalSep, minSize=5, useWords=false)
+  if size < 1
+    - size = 1
+
+  - s, err := __corgi_std_woof.Stringify(val)
+  if err != nil
+    return err
+
+  if len(s) == 0
+    return
+
+  if s[0] == '+'
+    - s = s[1:]
+
+  if len(s) == 0
+    return
+
+  if s[0] != '-'
+    if useWords
+      - num, err := strconv.Atoi(s)
+      if err == nil
+        - num -= numWordsStart
+        if num < numWordsStart
+          > #{numWords[num]}
+          return
+  else
+    > -
+    - s = s[1:]
+
+  if len(s) <= size || len(s) < minSize
+    > #{s}
+    return
+
+  - beforeDec, afterDec, _ := strings.Cut(s, ".")
+
+  +Grouped(val=beforeDec, size=size, sep=groupSep, minSize=minSize)
+  if len(afterDec) > 0
+    > #{decimalSep}
+    +Grouped(val=afterDec, size=size, sep=groupSep, minSize=minSize)
 
 // SetDigitGroupSep sets the global default for the digit group separator used
 // by Num.

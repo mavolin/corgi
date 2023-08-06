@@ -23,7 +23,9 @@ func writeImports(ctx *ctx) {
 
 	writeBaseImports(ctx)
 
-	for _, f := range files {
+	for i := 0; i < len(files); i++ {
+		f := files[i]
+
 		if _, ok := found[f.Module+f.PathInModule]; ok {
 			continue
 		}

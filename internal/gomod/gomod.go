@@ -1,7 +1,6 @@
 package gomod
 
 import (
-	"errors"
 	"os"
 	"path/filepath"
 
@@ -25,10 +24,6 @@ func Find(dir string) (*modfile.File, string, error) {
 		p := filepath.Join(dir, "go.mod")
 		f, err := os.ReadFile(p)
 		if err != nil {
-			if !errors.Is(err, os.ErrExist) {
-				return nil, p, err
-			}
-
 			if len(dir) <= 1 {
 				return nil, "", nil
 			}

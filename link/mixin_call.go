@@ -49,9 +49,11 @@ func mixinCallsInText(lns ...file.TextLine) []*file.MixinCall {
 
 	for _, ln := range lns {
 		for txtItmI, txtItm := range ln {
-			_, ok := txtItm.(file.MixinCallInterpolation)
-			if ok {
+			switch txtItm := txtItm.(type) {
+			case file.MixinCallInterpolation:
 				mcs = append(mcs, &ptrOfSliceElem[file.TextItem, file.MixinCallInterpolation](ln, txtItmI).MixinCall)
+			case file.ElementInterpolation:
+				mcs = append(mcs, mixinCallsInAttributeCollections(txtItm.Element.Attributes)...)
 			}
 		}
 	}
@@ -362,7 +364,7 @@ func (l *Linker) _checkRecursion(f *file.File, m *file.Mixin, mcs ...file.MixinC
 		}
 	}
 
-	var errs *errList
+	errs := &errList{}
 	fileutil.Walk(s, func(parents []fileutil.WalkContext, ctx fileutil.WalkContext) (dive bool, err error) {
 		mc, ok := (*ctx.Item).(file.MixinCall)
 		if ok {

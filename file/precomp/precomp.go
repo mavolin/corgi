@@ -10,6 +10,10 @@ import (
 )
 
 func Encode(w io.Writer, l *cfile.Library) error {
+	if !l.Precompiled {
+		panic("precomp.Encode: trying to encode non-precompiled library: " + l.Module + "/" + l.PathInModule)
+	}
+
 	lw, err := newLibrary(l)
 	if err != nil {
 		return err

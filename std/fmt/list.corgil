@@ -1,3 +1,6 @@
+import
+  __corgi_std_reflect "reflect"
+
 //corgi:formixin List SetListSep
 - listSep := ", "
   listLastSep := ", and "
@@ -24,7 +27,22 @@
 // You can change the defaults of sep and lastSep by calling SetListSep.
 //
 // By default sep is ", ", and lastSep is ", and ".
-mixin List(val any, sep=", ", lastSep=", and ")
+mixin List(val any, sep string = listSep, lastSep string = listLastSep)
+  if val == nil
+    return
+
+  - rval := __corgi_std_reflect.ValueOf(val)
+  switch rval.Len()
+    case 0
+      return
+    case 1
+      > #{rval.Index(0).Interface()}
+      return
+
+  > #{rval.Index(0).Interface()}
+  for i := 1; i < rval.Len()-1; i++
+    > #{sep}#{rval.Index(i).Interface()}
+  > #{lastSep}#{rval.Index(rval.Len()-1).Interface()}
 
 // SetListSep updates the global default for the sep and lastSep values used by
 // List.

@@ -196,6 +196,10 @@ func (b BasicLoader) LoadInclude(includingFile *file.File, name string) (file.In
 func (b BasicLoader) LoadTemplate(extendingFile *file.File, extendPath string) (*file.File, error) {
 	fw, err := b.TemplateReader(extendingFile, extendPath)
 	if err != nil {
+		if fw == nil {
+			return nil, err
+		}
+
 		return &file.File{
 			Name:         fw.Name,
 			Module:       fw.Module,
@@ -240,6 +244,10 @@ func (b BasicLoader) LoadTemplate(extendingFile *file.File, extendPath string) (
 func (b BasicLoader) LoadMain(path string) (*file.File, error) {
 	fw, err := b.MainReader(path)
 	if err != nil {
+		if fw == nil {
+			return nil, err
+		}
+
 		return &file.File{
 			Name:         fw.Name,
 			Module:       fw.Module,

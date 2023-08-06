@@ -145,7 +145,14 @@ Return <- "return" errExprI:Expression? unexpectedTokens? EOL {
 
 MixinCall <- '+' namespaceI:(Ident '.')? nameI:MustIdent argsI:mixinArgList? bodyI:mixinCallBody {
     args := castedOrZero[file.MixinCall](argsI)
+
+    var namespace *file.Ident
+    if namespaceI != nil {
+        namespace = ptr(getTuple[file.Ident](namespaceI, 0))
+    }
+
     return file.MixinCall{
+        Namespace: namespace,
         Name: nameI.(file.Ident),
         LParenPos: args.LParenPos,
         Args: args.Args,
@@ -157,7 +164,14 @@ MixinCall <- '+' namespaceI:(Ident '.')? nameI:MustIdent argsI:mixinArgList? bod
 
 InlineMixinCall <- '+' namespaceI:(Ident '.')? nameI:MustIdent argsI:singleLineMixinArgList? bodyI:singleLineMixinCallBody {
     args := castedOrZero[file.MixinCall](argsI)
+
+    var namespace *file.Ident
+    if namespaceI != nil {
+        namespace = ptr(getTuple[file.Ident](namespaceI, 0))
+    }
+
     return file.MixinCall{
+        Namespace: namespace,
         Name: nameI.(file.Ident),
         LParenPos: args.LParenPos,
         Args: args.Args,

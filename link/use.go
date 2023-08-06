@@ -13,8 +13,8 @@ import (
 
 func (l *Linker) linkDependencies(ctx *context, lib *file.Library) {
 	ctx.n += len(lib.Dependencies)
-	for _, dep := range lib.Dependencies {
-		dep := dep
+	for i := range lib.Dependencies {
+		dep := &lib.Dependencies[i]
 		go func() {
 			var usingFile *file.File
 
@@ -28,28 +28,87 @@ func (l *Linker) linkDependencies(ctx *context, lib *file.Library) {
 
 			var err error
 			dep.Library, err = l.loader.LoadLibrary(usingFile, path.Join(dep.Module, dep.PathInModule))
-			if err == nil { // IS nil
-				ctx.errs <- &errList{}
+			if err != nil {
+				ctx.errs <- list.List1(&corgierr.Error{
+					Message: "failed to load dependency of precompiled library",
+					ErrorAnnotation: corgierr.Annotation{
+						Line:  1,
+						Start: 1,
+						End:   2,
+						Annotation: "no position;\n" +
+							path.Join(lib.Module, lib.PathInModule) + " requires " + path.Join(dep.Module, dep.PathInModule),
+						Lines: []string{""},
+					},
+					Suggestions: []corgierr.Suggestion{
+						{Suggestion: "this is either because of an invalid use path, or a module that has become unavailable"},
+					},
+					Cause: err,
+				})
 				return
 			}
 
-			ctx.errs <- list.List1(&corgierr.Error{
-				Message: "failed to load dependency of precompiled library",
+			ctx.errs <- l.linkMixinDependencies(ctx, lib, dep)
+		}()
+	}
+}
+
+func (l *Linker) linkMixinDependencies(ctx *context, lib *file.Library, libDep *file.LibDependency) *errList {
+	var errs errList
+
+mixins:
+	for i, a := range libDep.Mixins {
+		if libDep.Library.Precompiled {
+			for _, b := range libDep.Library.Mixins {
+				if a.Name == b.Mixin.Name.Ident {
+					libDep.Mixins[i].Mixin = &b.Mixin
+					continue mixins
+				}
+			}
+
+			errs.PushBack(&corgierr.Error{
+				Message: "failed to link mixin dependency of precompiled library",
 				ErrorAnnotation: corgierr.Annotation{
 					Line:  1,
 					Start: 1,
 					End:   2,
 					Annotation: "no position;\n" +
-						path.Join(lib.Module, lib.PathInModule) + " failed to " + path.Join(dep.Module, dep.PathInModule),
+						path.Join(lib.Module, lib.PathInModule) + " requires " + path.Join(libDep.Library.Module, libDep.Library.PathInModule) + "." + a.Name + " cannot be found",
 					Lines: []string{""},
 				},
 				Suggestions: []corgierr.Suggestion{
-					{Suggestion: "this is either because of an invalid use path, or a module that has become unavailable"},
+					{Suggestion: "this is likely because of changes in a module and can be resolved by re-precompiling"},
 				},
-				Cause: err,
 			})
-		}()
+			continue
+		}
+
+		for _, f := range libDep.Library.Files {
+			for j, itm := range f.Scope {
+				b, ok := itm.(file.Mixin)
+				if ok && a.Name == b.Name.Ident {
+					libDep.Mixins[i].Mixin = ptrOfSliceElem[file.ScopeItem, file.Mixin](f.Scope, j)
+					continue mixins
+				}
+			}
+		}
+
+		errs.PushBack(&corgierr.Error{
+			Message: "failed to link mixin dependency of precompiled library",
+			ErrorAnnotation: corgierr.Annotation{
+				Line:  1,
+				Start: 1,
+				End:   2,
+				Annotation: "no position;\n" +
+					path.Join(lib.Module, lib.PathInModule) + " requires " + path.Join(libDep.Library.Module, libDep.Library.PathInModule) + "." + a.Name + " cannot be found",
+				Lines: []string{""},
+			},
+			Suggestions: []corgierr.Suggestion{
+				{Suggestion: "this is likely because of changes in a module and can be resolved by re-precompiling"},
+			},
+		})
 	}
+
+	return &errs
 }
 
 func (l *Linker) linkUses(ctx *context, f *file.File) {
@@ -57,9 +116,9 @@ func (l *Linker) linkUses(ctx *context, f *file.File) {
 		use := use
 		ctx.n += len(use.Uses)
 		for specI := range use.Uses {
-			specI := specI
+			spec := &use.Uses[specI]
 			go func() {
-				ctx.errs <- l.linkUseSpec(f, &use.Uses[specI])
+				ctx.errs <- l.linkUseSpec(f, spec)
 			}()
 		}
 	}
@@ -94,7 +153,7 @@ func (l *Linker) linkUseSpec(f *file.File, spec *file.UseSpec) *errList {
 			ErrorAnnotation: anno.Anno(f, anno.Annotation{
 				Start:      spec.Position,
 				ToEOL:      true,
-				Annotation: "there is no library available under this path",
+				Annotation: "found no library with this use path",
 			}),
 		})
 	}

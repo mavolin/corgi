@@ -8,6 +8,8 @@ import (
 )
 
 func include(ctx *ctx, incl file.Include) {
+	ctx.closeTag()
+
 	switch inclF := incl.Include.(type) {
 	case file.CorgiInclude:
 		scope(ctx, inclF.File.Scope)

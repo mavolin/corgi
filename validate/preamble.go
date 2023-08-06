@@ -221,9 +221,10 @@ func unusedUses(f *file.File) *errList {
 	unusedSpecs := make([]file.UseSpec, 0, n)
 	for _, use := range f.Uses {
 		for _, spec := range use.Uses {
-			// import for side effects
 			if spec.Alias != nil && spec.Alias.Ident == "_" {
-				continue
+				continue // import for side effects
+			} else if spec.Library == nil {
+				continue // another check reports this
 			}
 
 			unusedSpecs = append(unusedSpecs, spec)

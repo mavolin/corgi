@@ -4,15 +4,6 @@
 
 GoIdent <- ident:goIdentifier {
     return file.GoIdent{Ident: concat(ident), Position: pos(c)}, nil
-} / identI:('$'? ([\p{Nd}] [_-\pL] / [_-\pL])+) endPosI:POS {
-    return file.GoIdent{Ident: concat(identI), Position: pos(c)}, &corgierr.Error{
-        Message: "invalid identifier",
-        ErrorAnnotation: anno(c, annotation{
-            Start: pos(c),
-            End: endPosI.(file.Position),
-            Annotation: "expected a letter, or `_`, optionally followed by `_`s, letters, and numbers",
-        }),
-    }
 }
 
 // ============================================================================

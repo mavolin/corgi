@@ -150,20 +150,20 @@ CorgiComments <- commentsI:(NEW_LNS? CorgiComment)+ {
     return typedSliceFromTuples[file.CorgiComment](commentsI, -1), nil
 }
 
-CorgiComment <- "//" !'-' linesI:(
-    _* EOL linesI:corgiCommentBlock {
-        return linesI, nil
-    } / lineI:corgiCommentLine {
-        return []file.CorgiCommentLine{lineI.(file.CorgiCommentLine)}, nil
-    }
-) {
+CorgiComment <- "//" !'-' linesI:corgiCommentLines {
     return file.CorgiComment{
         Lines: linesI.([]file.CorgiCommentLine),
         Position: pos(c),
     }, nil
 }
 
-corgiCommentBlock <- INDENT linesI:(NEW_LNS? INDENTATION_IGNORE_ADDITIONAL corgiCommentLine)* DEDENT {
+corgiCommentLines <- _* EOL linesI:corgiCommentBlock {
+    return linesI, nil
+} / lineI:corgiCommentLine {
+    return []file.CorgiCommentLine{lineI.(file.CorgiCommentLine)}, nil
+}
+
+corgiCommentBlock <- INDENT linesI:(NEW_LNS? INDENTATION_IGNORE_ADDITIONAL corgiCommentLine)+ DEDENT {
     return typedSliceFromTuples[file.CorgiCommentLine](linesI, -1), nil
 }
 

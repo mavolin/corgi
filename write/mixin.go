@@ -2,7 +2,7 @@ package write
 
 import (
 	"path"
-	"strconv"
+	"strings"
 
 	"github.com/mavolin/corgi/file"
 	"github.com/mavolin/corgi/file/fileutil"
@@ -13,222 +13,191 @@ import (
 // ======================================================================================
 
 func writeLibMixins(ctx *ctx) {
-	ums := make(usedMixins)
+	ums := fileutil.ListUsedMixins(ctx.mainFile())
 
-	listLibMixinCalls(ctx, ums, ctx.baseFile().Scope)
+	writeMixinVars(ctx, ums)
 
-	var n int
+	ctx.mixinCounter = 0
 
-	mfm := make(mixinFuncMap)
-	for p, src := range ums {
-		moduleMixins := make(map[string]string)
+	for _, src := range ums.External {
+		writeLibrary(ctx, src)
+	}
+}
 
-		for name, um := range src.mixins {
-			m := um.m
-			if um.pm != nil {
-				m = &um.pm.Mixin
-			}
+func writeMixinVars(ctx *ctx, ums fileutil.UsedMixins) {
+	for _, ulib := range ums.External {
+		moduleMixins := make(map[string]string, len(ulib.Mixins))
 
-			varName := ctx.ident("mixin" + strconv.Itoa(n))
-			moduleMixins[name] = varName
+		for _, um := range ulib.Mixins {
+			varName := ctx.nextMixinIdent()
+			moduleMixins[um.Mixin.Name.Ident] = varName
 
-			ctx.write("var " + varName + "func(")
-			for _, param := range m.Params {
-				if param.Default != nil {
-					ctx.write("*")
-				}
-
-				if param.Type != nil {
-					ctx.write(param.Type.Type)
-				} else {
-					ctx.write(param.InferredType)
-				}
-				ctx.write(", ")
-			}
-			for range m.Blocks {
-				ctx.write("func(), ")
-			}
-			if m.HasAndPlaceholders {
-				ctx.write("func()")
-			}
-			ctx.write(")")
+			ctx.write("var " + varName + " ")
+			writeMixinSignature(ctx, um.Mixin)
 			if ctx.debugEnabled {
-				ctx.writeln(" // " + path.Join(src.lib.Module, src.lib.PathInModule) + "." + m.Name.Ident)
+				ctx.writeln(" // " + path.Join(ulib.Library.Module, ulib.Library.PathInModule) + "." + um.Mixin.Name.Ident)
 			} else {
 				ctx.writeln("")
 			}
-
-			n++
 		}
 
-		mfm[p] = moduleMixins
+		ctx.mixinFuncNames.m[ulib.Library.Module+"/"+ulib.Library.PathInModule] = moduleMixins
+	}
+}
+
+func writeLibrary(ctx *ctx, ulib fileutil.UsedLibrary) {
+	ctx.writeln("{")
+	defer ctx.writeln("}")
+	ctx.debug("library", ulib.Library.Module+"/"+ulib.Library.PathInModule)
+	if ulib.Library.Precompiled {
+		ctx.debug("library", "precompiled")
 	}
 
-	n = 0
+	for _, c := range ulib.Library.GlobalCode {
+		allowed := -1
 
-	for _, src := range ums {
-		ctx.writeln("{")
-		ctx.debug("library", path.Join(src.lib.Module, src.lib.PathInModule))
-
-		if src.lib.Precompiled {
-			for _, c := range src.lib.GlobalCode {
-				for _, ln := range c.Lines {
-					ctx.writeln(ln)
+		for _, mcom := range c.MachineComments {
+			mcom := fileutil.ParseMachineCommentLine(mcom)
+			if mcom.Namespace == "corgi" && mcom.Directive == "formixin" {
+				if allowed < 0 {
+					allowed = 0
 				}
-			}
-		} else {
-			for _, f := range src.lib.Files {
-				for _, itm := range f.Scope {
-					c, ok := itm.(file.Code)
-					if ok {
-						code(ctx, c)
+
+				for _, a := range strings.Split(mcom.Args, " ") {
+					for _, b := range ulib.Mixins {
+						if a == b.Mixin.Name.Ident {
+							allowed = 1
+						}
 					}
 				}
 			}
 		}
 
-		for _, um := range src.mixins {
-			m := um.m
-			if um.pm != nil {
-				m = &um.pm.Mixin
-			}
-
-			ctx.writeln(" // " + path.Join(src.lib.Module, src.lib.PathInModule) + "." + m.Name.Ident)
-			ctx.write(ctx.ident("mixin" + strconv.Itoa(n) + " = "))
-			writeMixinFunc(ctx, m)
-			n++
+		if allowed == 0 {
+			continue
 		}
 
-		ctx.writeln("}")
-	}
-}
-
-type (
-	usedMixins  map[string]*mixinSource
-	mixinSource struct {
-		lib    *file.Library
-		mixins map[string]usedMixin
-	}
-	usedMixin struct {
-		m  *file.Mixin // either is set
-		pm *file.PrecompiledMixin
-	}
-)
-
-func (ums usedMixins) insert(ctx *ctx, mc file.MixinCall) {
-	if mc.Mixin.File.Type != file.TypeLibraryFile {
-		return
-	}
-
-	ums.insertMixin(ctx, mc.Mixin.File.Library, mc.Mixin.Mixin)
-}
-
-func (ums usedMixins) insertMixin(ctx *ctx, lib *file.Library, m *file.Mixin) {
-	src, ok := ums[lib.Module+lib.PathInModule]
-	if !ok {
-		src = &mixinSource{
-			lib:    lib,
-			mixins: make(map[string]usedMixin),
+		for _, ln := range c.Lines {
+			ctx.writeln(ln)
 		}
-		ums[lib.Module+lib.PathInModule] = src
 	}
 
-	if _, ok = src.mixins[m.Name.Ident]; ok {
-		return
-	}
-
-	if m.Precompiled == nil {
-		src.mixins[m.Name.Ident] = usedMixin{m: m}
-		listLibMixinCalls(ctx, ums, m.Body)
-	} else {
-		for _, pm := range lib.Mixins {
-			if pm.Mixin.Name.Ident == m.Name.Ident {
-				src.mixins[m.Name.Ident] = usedMixin{pm: &pm}
-			}
-		}
-
-		ums.insertDeps(ctx, m, lib)
-	}
-}
-
-func (ums usedMixins) insertMixinByName(ctx *ctx, lib *file.Library, name string) {
-	if lib.Precompiled {
-		for _, m := range lib.Mixins {
-			if m.Mixin.Name.Ident == name {
-				ums.insertMixin(ctx, lib, &m.Mixin)
-				return
-			}
+	if !ulib.Library.Precompiled {
+		for _, m := range ulib.Mixins {
+			ctx.write(ctx.nextMixinIdent() + " = ")
+			writeMixinFunc(ctx, m.Mixin)
 		}
 
 		return
 	}
 
-	for _, f := range lib.Files {
-		for _, itm := range f.Scope {
-			m, ok := itm.(file.Mixin)
-			if !ok {
-				continue
-			}
-
-			if m.Name.Ident == name {
-				ums.insertMixin(ctx, lib, &m)
-				return
-			}
-		}
-	}
-}
-
-func (ums usedMixins) insertDeps(ctx *ctx, of *file.Mixin, lib *file.Library) {
-	for _, dep := range lib.Dependencies {
-		for _, m := range dep.Mixins {
-			for _, reqBy := range m.RequiredBy {
-				if reqBy != of.Name.Ident {
-					continue
-				}
-
-				ums.insertMixinByName(ctx, dep.Library, m.Name)
-			}
-		}
-	}
-}
-
-func listLibMixinCalls(ctx *ctx, ums usedMixins, s file.Scope) {
-	fileutil.Walk(s, func(parents []fileutil.WalkContext, wctx fileutil.WalkContext) (dive bool, err error) {
-		switch itm := (*wctx.Item).(type) {
-		case file.Block:
-			for _, parent := range parents {
-				switch (*parent.Item).(type) {
-				case file.Mixin:
-					return true, nil
-				case file.MixinCall:
-					return true, nil
+	for _, libDep := range ulib.Library.Dependencies {
+	mixins:
+		for _, mDep := range libDep.Mixins {
+			for _, requiredBy := range mDep.RequiredBy {
+				for _, um := range ulib.Mixins {
+					if um.Mixin.Name.Ident == requiredBy {
+						ctx.write(mDep.Var + " := ")
+						ctx.writeln(ctx.mixinFuncNames.mixinByName(ctx, libDep.Module, libDep.PathInModule, mDep.Name))
+						continue mixins
+					}
 				}
 			}
-
-			b, stackPos := resolveTemplateBlock(ctx, itm)
-
-			oldPos := ctx.stackStart
-			ctx.stackStart = stackPos
-			listLibMixinCalls(ctx, ums, b.Body)
-			ctx.stackStart = oldPos
-			return false, nil
-		case file.MixinCall:
-			ums.insert(ctx, itm)
-			return true, nil
-		default:
-			return true, nil
 		}
-	})
+	}
+
+	for _, a := range ulib.Mixins {
+		for _, b := range ulib.Library.Mixins {
+			if a.Mixin.Name.Ident == b.Mixin.Name.Ident {
+				ctx.write("var " + b.Var + " ")
+				writeMixinSignature(ctx, a.Mixin)
+				if ctx.debugEnabled {
+					ctx.writeln(" // " + path.Join(ulib.Library.Module, ulib.Library.PathInModule) + "." + a.Mixin.Name.Ident)
+				} else {
+					ctx.writeln("")
+				}
+
+				break
+			}
+		}
+	}
+
+	for _, a := range ulib.Mixins {
+		for _, b := range ulib.Library.Mixins {
+			if a.Mixin.Name.Ident == b.Mixin.Name.Ident {
+				ctx.write(b.Var + " = ")
+				ctx.writeBytes(a.Mixin.Precompiled)
+				ctx.writeln("")
+				break
+			}
+		}
+	}
+
+	for _, a := range ulib.Mixins {
+		for _, b := range ulib.Library.Mixins {
+			if a.Mixin.Name.Ident == b.Mixin.Name.Ident {
+				varName := ctx.nextMixinIdent()
+				ctx.writeln(varName + " = " + b.Var)
+				ctx.writeln("_ = " + varName + " // in case this is only a dependency of another mixin in this lib")
+				break
+			}
+		}
+	}
+}
+
+func writeMixinSignature(ctx *ctx, m *file.Mixin) {
+	ctx.write("func(")
+	for _, param := range m.Params {
+		if param.Default != nil {
+			ctx.write("*")
+		}
+
+		if param.Type != nil {
+			ctx.write(param.Type.Type)
+		} else {
+			ctx.write(param.InferredType)
+		}
+		ctx.write(", ")
+	}
+	for range m.Blocks {
+		ctx.write("func(), ")
+	}
+	if m.HasAndPlaceholders {
+		ctx.write("func()")
+	}
+	ctx.write(")")
+}
+
+func scopeMixin(ctx *ctx, m file.Mixin) {
+	name := ctx.mixinFuncNames.addScope(ctx, &m)
+	ctx.write(name + " := ")
+	writeMixinFunc(ctx, &m)
 }
 
 func writeMixinFunc(ctx *ctx, m *file.Mixin) {
+	ctx.flushGenerate()
+	ctx.flushClasses()
+
+	if len(m.Precompiled) > 0 {
+		ctx.writeln(string(m.Precompiled))
+		return
+	}
+
+	ctx.closed.Push(maybeClosed)
+	defer ctx.closed.Pop()
+
 	ctx.write("func(")
 	for _, param := range m.Params {
 		if param.Default != nil {
 			ctx.write(ctx.ident("mixinParam_" + param.Name.Ident))
-			ctx.write("*")
 		} else {
-			ctx.writeln(param.Name.Ident)
+			ctx.write(param.Name.Ident)
+		}
+
+		ctx.write(" ")
+
+		if param.Default != nil {
+			ctx.write("*")
 		}
 
 		if param.Type != nil {
@@ -252,25 +221,18 @@ func writeMixinFunc(ctx *ctx, m *file.Mixin) {
 		}
 
 		ctx.debugItem(param, param.Name.Ident)
-
-		ctx.writeln("var " + param.Name.Ident + " ")
-		if param.Type != nil {
-			ctx.writeln(param.Type.Type)
-		} else {
-			ctx.writeln(param.InferredType)
-		}
-
-		ctx.writeln("if " + ctx.ident("mixinParam_"+param.Name.Ident) + " == nil {")
-		ctx.writeln("  " + param.Name.Ident + " = " + inlineExpression(ctx, *param.Default))
-		ctx.writeln("} else {")
-		ctx.writeln("  " + param.Name.Ident + " = *" + ctx.ident("mixinParam_"+param.Name.Ident))
-		ctx.writeln("}")
+		val := ctx.ident("mixinParam_" + param.Name.Ident)
+		defaultVal := inlineExpression(ctx, *param.Default)
+		ctx.writeln(param.Name.Ident + " := " + ctx.woofFunc("ResolveDefault", val, defaultVal))
 	}
 
 	ctx.mixin = m
 	scope(ctx, m.Body)
 	ctx.mixin = nil
 
+	ctx.flushGenerate()
+	ctx.flushClasses()
+	ctx.callClosedIfClosed()
 	ctx.writeln("}")
 }
 
@@ -279,7 +241,11 @@ func writeMixinFunc(ctx *ctx, m *file.Mixin) {
 // ======================================================================================
 
 func mixinCall(ctx *ctx, mc file.MixinCall) {
-	funcName := ctx.mixinFuncNames.mixin(mc)
+	funcName := ctx.mixinFuncNames.mixin(ctx, mc)
+
+	ctx.flushGenerate()
+	ctx.flushClasses()
+	ctx.callUnclosedIfUnclosed()
 
 	ctx.write(funcName + "(")
 
@@ -287,7 +253,12 @@ params:
 	for _, param := range mc.Mixin.Mixin.Params {
 		for _, arg := range mc.Args {
 			if arg.Name.Ident == param.Name.Ident {
-				inlineExpression(ctx, arg.Value)
+				if param.Default != nil {
+					ctx.write(ctx.woofFunc("Ptr", inlineExpression(ctx, arg.Value)))
+				} else {
+					ctx.write(inlineExpression(ctx, arg.Value))
+				}
+
 				ctx.write(", ")
 				continue params
 			}
@@ -298,6 +269,46 @@ params:
 
 blocks:
 	for _, placeholder := range mc.Mixin.Mixin.Blocks {
+		if placeholder.Name == "_" {
+			if len(mc.Body) == 1 {
+				switch itm := mc.Body[0].(type) {
+				case file.InlineText:
+					ctx.writeln("func() {")
+
+					ctx.closed.Push(maybeClosed)
+					inlineText(ctx, itm)
+					ctx.flushGenerate()
+					ctx.flushClasses()
+					ctx.callClosedIfClosed()
+					ctx.closed.Pop()
+					ctx.write("}, ")
+					continue
+				case file.BlockExpansion:
+					ctx.writeln("func() {")
+
+					ctx.closed.Push(maybeClosed)
+					blockExpansion(ctx, itm)
+					ctx.flushGenerate()
+					ctx.flushClasses()
+					ctx.callClosedIfClosed()
+					ctx.write("}, ")
+					ctx.closed.Pop()
+					continue
+				case file.MixinMainBlockShorthand:
+					ctx.writeln("func() {")
+
+					ctx.closed.Push(maybeClosed)
+					scope(ctx, itm.Body)
+					ctx.flushGenerate()
+					ctx.flushClasses()
+					ctx.callClosedIfClosed()
+					ctx.write("}, ")
+					ctx.closed.Pop()
+					continue
+				}
+			}
+		}
+
 		for _, itm := range mc.Body {
 			b, ok := itm.(file.Block)
 			if !ok {
@@ -306,7 +317,14 @@ blocks:
 
 			if b.Name.Ident == placeholder.Name {
 				ctx.writeln("func() {")
+
+				ctx.closed.Push(maybeClosed)
 				scope(ctx, b.Body)
+				ctx.closed.Pop()
+
+				ctx.flushGenerate()
+				ctx.flushClasses()
+				ctx.callClosedIfClosed()
 				ctx.write("}, ")
 				continue blocks
 			}
@@ -315,7 +333,129 @@ blocks:
 		ctx.write("nil, ")
 	}
 
-	// todo and placeholder
+	if mc.Mixin.Mixin.HasAndPlaceholders {
+		ctx.writeln("func() {")
+
+		fileutil.Walk(mc.Body, func(parents []fileutil.WalkContext, wctx fileutil.WalkContext) (dive bool, err error) {
+			switch itm := (*wctx.Item).(type) {
+			case file.Block:
+				return false, nil
+			case file.InlineText:
+				return false, nil
+			case file.BlockExpansion:
+				return false, nil
+			default:
+				scopeItem(ctx, itm)
+				return false, nil
+			}
+		})
+
+		ctx.flushGenerate()
+		ctx.flushClasses()
+
+		ctx.write("}")
+	}
 
 	ctx.writeln(")")
+
+	ctx.closed.Swap(maybeClosed)
+}
+
+func interpolationValueMixinCall(ctx *ctx, mc file.MixinCall, val file.InterpolationValue) {
+	funcName := ctx.mixinFuncNames.mixin(ctx, mc)
+
+	ctx.flushGenerate()
+	ctx.flushClasses()
+	ctx.callUnclosedIfUnclosed()
+
+	ctx.write(funcName + "(")
+
+params:
+	for _, param := range mc.Mixin.Mixin.Params {
+		for _, arg := range mc.Args {
+			if arg.Name.Ident == param.Name.Ident {
+				if param.Default != nil {
+					ctx.write(ctx.woofFunc("Ptr", inlineExpression(ctx, arg.Value)))
+				} else {
+					ctx.write(inlineExpression(ctx, arg.Value))
+				}
+
+				ctx.write(", ")
+				continue params
+			}
+		}
+
+		ctx.write("nil, ")
+	}
+
+	for _, placeholder := range mc.Mixin.Mixin.Blocks {
+		if placeholder.Name != "_" || val == nil {
+			ctx.write("nil, ")
+		}
+
+		ctx.writeln("func() {")
+
+		ctx.closed.Push(maybeClosed)
+		ctx.closeTag()
+		interpolationValue(ctx, val, false)
+		ctx.flushGenerate()
+		ctx.flushClasses()
+		ctx.callClosedIfClosed()
+		ctx.write("}, ")
+		ctx.closed.Pop()
+	}
+
+	if mc.Mixin.Mixin.HasAndPlaceholders {
+		ctx.writeln("func() {")
+
+		fileutil.Walk(mc.Body, func(parents []fileutil.WalkContext, wctx fileutil.WalkContext) (dive bool, err error) {
+			switch itm := (*wctx.Item).(type) {
+			case file.Block:
+				return false, nil
+			case file.InlineText:
+				return false, nil
+			case file.BlockExpansion:
+				return false, nil
+			default:
+				scopeItem(ctx, itm)
+				return false, nil
+			}
+		})
+
+		ctx.flushGenerate()
+		ctx.flushClasses()
+
+		ctx.write("}")
+	}
+
+	ctx.writeln(")")
+
+	ctx.closed.Swap(maybeClosed)
+}
+
+// ============================================================================
+// Return
+// ======================================================================================
+
+func _return(ctx *ctx, ret file.Return) {
+	ctx.flushGenerate()
+	ctx.flushClasses()
+	ctx.callClosedIfClosed()
+
+	if ctx.mixin != nil {
+		if ret.Err != nil {
+			ctx.writeln(ctx.contextFunc("Panic", inlineExpression(ctx, *ret.Err)))
+			return
+		}
+
+		ctx.writeln("return")
+		return
+	}
+
+	if ret.Err != nil {
+		ctx.writeln("return " + inlineExpression(ctx, *ret.Err))
+		return
+	}
+
+	ctx.writeln("return nil")
 }

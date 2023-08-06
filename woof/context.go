@@ -13,7 +13,7 @@ type Context struct {
 }
 
 func NewContext(w io.Writer) *Context {
-	return &Context{w: w}
+	return &Context{w: w, closed: true}
 }
 
 func (ctx *Context) Panic(err error) {

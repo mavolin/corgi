@@ -170,6 +170,17 @@ params:
 func _mixinCallBody(f *file.File, mc file.MixinCall) *errList {
 	var errs errList
 
+	if len(mc.Body) == 1 {
+		switch mc.Body[0].(type) {
+		case file.BlockExpansion:
+			return &errs
+		case file.InlineText:
+			return &errs
+		case file.MixinMainBlockShorthand:
+			return &errs
+		}
+	}
+
 	fileutil.Walk(mc.Body, func(parents []fileutil.WalkContext, ctx fileutil.WalkContext) (dive bool, err error) {
 		switch itm := (*ctx.Item).(type) {
 		case file.If:

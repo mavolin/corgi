@@ -41,12 +41,14 @@ func (l *Linker) LinkFile(f *file.File) error {
 	var errs list.List[*corgierr.Error]
 	for i := 0; i < ctx.n; i++ {
 		subErrs := <-errsChan
+	subErrs:
 		for errE := subErrs.Front(); errE != nil; errE = errE.Next() {
 			for cmpE := errs.Front(); cmpE != nil; cmpE = cmpE.Next() {
-				if !equalErr(errE.V(), cmpE.V()) {
-					errs.PushBack(errE.V())
+				if equalErr(errE.V(), cmpE.V()) {
+					continue subErrs
 				}
 			}
+			errs.PushBack(errE.V())
 		}
 	}
 
@@ -88,12 +90,14 @@ func (l *Linker) LinkLibrary(lib *file.Library) error {
 	var errs errList
 	for i := 0; i < ctx.n; i++ {
 		subErrs := <-errsChan
+	subErrs:
 		for errE := subErrs.Front(); errE != nil; errE = errE.Next() {
 			for cmpE := errs.Front(); cmpE != nil; cmpE = cmpE.Next() {
-				if !equalErr(errE.V(), cmpE.V()) {
-					errs.PushBack(errE.V())
+				if equalErr(errE.V(), cmpE.V()) {
+					continue subErrs
 				}
 			}
+			errs.PushBack(errE.V())
 		}
 	}
 

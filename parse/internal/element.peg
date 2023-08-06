@@ -415,8 +415,15 @@ SingleLineMixinCallAttribute <- nameI:attributeName ' '* assignPosI:POS '=' ' '*
 
 mixinCallAttributeCall <- '+' namespaceI:(Ident '.')? nameI:MustIdent argsI:mixinArgList? valueI:mixinCallAttributeValue? {
     args := castedOrZero[file.MixinCall](argsI)
+
+    var namespace *file.Ident
+    if namespaceI != nil {
+        namespace = ptr(getTuple[file.Ident](namespaceI, 0))
+    }
+
     return file.MixinCallAttribute{
         MixinCall: file.MixinCall{
+            Namespace: namespace,
             Name: nameI.(file.Ident),
             LParenPos: args.LParenPos,
             Args: args.Args,
@@ -428,8 +435,15 @@ mixinCallAttributeCall <- '+' namespaceI:(Ident '.')? nameI:MustIdent argsI:mixi
 }
 singleLineMixinCallAttributeCall <- '+' namespaceI:(Ident '.')? nameI:MustIdent argsI:singleLineMixinArgList? valueI:mixinCallAttributeValue? {
     args := castedOrZero[file.MixinCall](argsI)
+
+    var namespace *file.Ident
+    if namespaceI != nil {
+        namespace = ptr(getTuple[file.Ident](namespaceI, 0))
+    }
+
     return file.MixinCallAttribute{
         MixinCall: file.MixinCall{
+            Namespace: namespace,
             Name: nameI.(file.Ident),
             LParenPos: args.LParenPos,
             Args: args.Args,

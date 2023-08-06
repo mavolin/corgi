@@ -277,5 +277,11 @@ func andPlaceholder(ctx *ctx, aph file.AndPlaceholder) {
 // ================================= MixinCallAttribute =================================
 
 func mixinCallAttribute(ctx *ctx, mcAttr file.MixinCallAttribute) {
-	// todo
+	ctx.generate(mcAttr.Name+`="`, nil)
+	defer ctx.generate(`"`, nil)
+
+	ctx.txtEscaper.Push(attrEscaper)
+	defer ctx.txtEscaper.Pop()
+
+	interpolationValueMixinCall(ctx, mcAttr.MixinCall, mcAttr.Value)
 }

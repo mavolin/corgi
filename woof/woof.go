@@ -25,6 +25,17 @@ import (
 	"sort"
 )
 
+func Ptr[T any](t T) *T {
+	return &t
+}
+
+func ResolveDefault[T any](val *T, defaultVal T) T {
+	if val != nil {
+		return *val
+	}
+	return defaultVal
+}
+
 func Ternary[T any](cond bool, ifTrue, ifFalse T) T {
 	if cond {
 		return ifTrue

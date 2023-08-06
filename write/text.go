@@ -48,7 +48,7 @@ func textLines(ctx *ctx, lns ...file.TextLine) {
 		for _, txtItm := range ln {
 			switch txtItm := txtItm.(type) {
 			case file.Text:
-				ctx.generate(txtItm.Text, bodyEscaper)
+				ctx.generate(txtItm.Text, ctx.txtEscaper.Peek())
 			case file.Interpolation:
 				interpolation(ctx, txtItm)
 			}
@@ -99,7 +99,7 @@ func elementInterpolation(ctx *ctx, interp file.ElementInterpolation) {
 // =============================== MixinCallInterpolation ===============================
 
 func mixinCallInterpolation(ctx *ctx, interp file.MixinCallInterpolation) {
-	// todo
+	interpolationValueMixinCall(ctx, interp.MixinCall, interp.Value)
 }
 
 // ============================================================================
@@ -124,10 +124,12 @@ func textInterpolationValue(ctx *ctx, tinterp file.TextInterpolationValue, noEsc
 		return
 	}
 
-	ctx.generate(tinterp.Text, bodyEscaper)
+	ctx.generate(tinterp.Text, ctx.txtEscaper.Peek())
 }
 
 func expressionInterpolationValue(ctx *ctx, exprInterp file.ExpressionInterpolationValue, noEscape bool) {
+	ctx.debugItem(exprInterp, "(see below)")
+
 	var esc *escaper
 	if !noEscape {
 		esc = ctx.exprEscaper.Peek()
@@ -135,7 +137,7 @@ func expressionInterpolationValue(ctx *ctx, exprInterp file.ExpressionInterpolat
 
 	if exprInterp.FormatDirective == "" {
 		ctx.debugItem(exprInterp, "(see sub expressions)")
-		generateExpression(ctx, exprInterp.Expression, nil, esc, nil)
+		ctx.generateExpression(exprInterp.Expression, nil, esc, nil)
 		return
 	}
 

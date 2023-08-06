@@ -1,0 +1,154 @@
+import
+  __corgi_std_woof "github.com/mavolin/corgi/woof"
+  __corgi_std_strings "github.com/mavolin/corgi/std/strings"
+  __corgi_std_rand "crypto/rand"
+  __corgi_std_big "math/big"
+
+// Trunc truncates the stringified version of val after the at-th rune.
+//
+// If at is negative, Trunc will truncate the at-th rune starting from the last
+// rune.
+//
+// If |at| is bigger than or equal to the rune length of val, then all of val
+// will be printed.
+//
+// Examples
+//
+//  +Trunc(val="abcdef", at=3) -> abc
+//  +Trunc(val="abcdef", at=-3) -> def
+mixin Trunc(val any, at int)
+  if at == 0
+    return
+
+  - atPos := at
+  if atPos < 0
+    - atPos = -at
+
+  - s, err := woof.Stringify(val)
+  if err != nil
+    return err
+  - rs := []rune(s)
+  if len(rs) >= atPos
+    > #{s}
+    return
+
+  if at > 0
+    > #{string(rs[:at])}
+    return
+
+  > #{string(rs[len(rs)+at:])}
+
+// TruncWords truncates the stringified version of val after max words.
+//
+// A word is a sequence of one or more characters that is separated from
+// another such sequence by one or more of [ \t\r\n].
+//
+// If max is negative, TruncWords will truncate from the end of val instead of
+// from the beginning.
+//
+// If |max| >= numWords(val), the stringified version of val will be printed as
+// is.
+mixin TruncWords(val any, max int)
+
+// Abbrev truncates the stringified version of val according to the rules of
+// trunc and then appends replacement, if it truncated anything.
+//
+// If at is negative, Abbrev prepends replacement instead of appending it
+//
+// By default, replacement is U+2026 Horizontal Ellipsis.
+mixin Abbrev(val any, at int, replacement="…")
+  if at == 0
+    return
+
+  - atPos := at
+  if atPos < 0
+    - atPos = -at
+
+  - s, err := woof.Stringify(val)
+  if err != nil
+    return err
+  - rs := []rune(s)
+  if len(rs) >= atPos
+    > #{s}
+    return
+
+  if at > 0
+    > #{string(rs[:at])}#{replacement}
+    return
+
+  > #{replacement}#{string(rs[len(rs)+at:])}
+
+// AbbrevWords is the TruncWords version of Abbrev.
+mixin AbbrevWords(val any, max int, replacement="…")
+
+// Initials prints the first letter of each word in the stringified version of
+// val.
+//
+// A word is a sequence of one or more characters that is separated from
+// another such sequence by one or more of [ \t\r\n].
+//
+// If max is set to a number higher than 0, Initials will print at most max
+// initials.
+//
+// If upper is set to true, the initials will be uppercased before printing.
+//
+// Similarly, if lower is set to true, the initials will be lowercase.
+//
+// If both are false, the initials will be printed as is, and if both are true,
+// upper takes precedence.
+mixin Initials(val any, max=0, upper=false, lower=false)
+
+// Wrap wraps the stringified version of val by printing `with` unescaped every
+// `after` runes.
+mixin Wrap(val any, after int, with __corgi_std_woof.HTMLBody = "<br>")
+  - s, err := __corgi_std_woof.Stringify(val)
+  if err != nil
+    return err
+
+  > #{s[:after]}
+  - s = s[after:]
+
+  for len(s) > 0
+    > #{with}#{s[:after]}
+    - s = s[after:]
+
+// RandText produces a string of length runes generated from the passed charset.
+//
+// The charset may consist of character ranges such as a-z, or literal
+// characters.
+//
+// If charset is set to an empty or invalid string, RandText returns with an
+// error from the generated function.
+//
+// If length is negative or zero, RandText prints nothing.
+//
+// The generated text is cryptographically secure, utilizing crypto/rand.
+mixin RandText(charset="a-zA-Z", length int)
+  if length <= 0
+    return
+
+  - var n int
+
+  - rs := []rune(charset)
+  for i := 0; i < len(rs); i++
+    if i+2 >= len(rs) || rs[i+1] != '-'
+      - n++
+    else
+      - n += int(rs[i+2] - rs[i])
+        i += 2
+
+  - chars := make([]rune, 0, n)
+  for i := 0; i < len(rs); i++
+    if i+2 >= len(rs) || rs[i+1] != '-'
+      - chars = append(chars, rs[i])
+    else
+      for r := rs[i]; r <= rs[i+2]; r++
+        - chars = append(chars, r)
+
+  - max := __corgi_std_big.NewInt(int64(n))
+  for i := 0; i < length; i++
+    - index, err := __corgi_std_rand.Int(__corgi_std_rand.Reader, max)
+    if err != nil
+      return err
+
+    > #{string(chars[int(index.Int64())])}
