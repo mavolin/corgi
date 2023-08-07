@@ -449,7 +449,7 @@ _INDENTATION_IGNORE_ADDITIONAL <- (
                 Message: "mix of tabs and spaces for indentation",
                 ErrorAnnotation: anno(c, annotation{
                     Start: pos(c),
-                                        Annotation: "this is a tab",
+                    Annotation: "this is a tab",
                 }),
                 HintAnnotations: []corgierr.Annotation{
                     anno(c, annotation{

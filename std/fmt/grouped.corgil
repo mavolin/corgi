@@ -151,7 +151,7 @@ mixin SetDecimalSep(sep string)
 // Further calls to SetNumWords inside the block, even if without a _ block,
 // will also be reverted.
 //
-// By default, words[0] will be assumed to be 0.
+// By default, words[0] will be assumed to be zero.
 // This can be changed by setting the start param.
 mixin SetNumWords(start=0, words []string)
   if block _

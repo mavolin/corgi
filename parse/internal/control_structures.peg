@@ -193,19 +193,25 @@ switchBodyItem <- caseI:(Case / Default) {
     return []any{caseI, false}, nil
 }
 
-Case <- "case" condI:condition thenI:then {
+Case <- "case" condI:condition thenI:switchThen? {
     return file.Case{
         Expression: ptrOrNil[file.Expression](condI),
-        Then: thenI.(file.Scope),
+        Then: castedOrZero[file.Scope](thenI),
         Position: pos(c),
     }, nil
 }
 
-Default <- "default" thenI:then {
+Default <- "default" thenI:switchThen? {
     return file.Case{
-        Then: thenI.(file.Scope),
+        Then: castedOrZero[file.Scope](thenI),
         Position: pos(c),
     }, nil
+}
+
+switchThen <- EOL scopeI:Body {
+    return scopeI, nil
+} / beI:BlockExpansion {
+    return file.Scope{beI.(file.BlockExpansion)}, nil
 }
 
 BadCase <- NOT_EOL+ EOL bodyI:Body? {

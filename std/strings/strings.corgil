@@ -1,6 +1,7 @@
 import
   __corgi_std_woof "github.com/mavolin/corgi/woof"
   __corgi_std_strings "github.com/mavolin/corgi/std/strings"
+  __corgi_std_stdstrings "strings"
   __corgi_std_rand "crypto/rand"
   __corgi_std_big "math/big"
 
@@ -49,6 +50,69 @@ mixin Trunc(val any, at int)
 // If |max| >= numWords(val), the stringified version of val will be printed as
 // is.
 mixin TruncWords(val any, max int)
+  if max == 0
+    > #{val}
+    return
+
+  - s, err := __corgi_std_woof.Stringify(val)
+  if err != nil
+    return err
+
+  if max > 0
+    // the way the doc is worded, we should include leading whitespace
+    for i, b := range s
+      switch b
+        case ' ', '\t', '\r', '\n'
+        default
+          if i > 0
+            > #{s[:i]}
+            - s = s[i:]
+
+    - var n int
+      var prev bool
+
+    for i, b := range s
+      switch b
+        case ' ', '\t', '\r', '\n'
+          if !prev
+            - n++
+            if n == max
+              > #{s[:i]}
+              return
+            - prev = true
+        default
+          - prev = false
+
+    > #{s}
+    return
+
+  // the way the doc is worded, we should include leading whitespace
+  for i := len(s)-1; i >= 0; i--
+    - b := s[i]
+    switch b
+      case ' ', '\t', '\r', '\n'
+      default
+        if i > 0
+          > #{s[i+1:]}
+          - s = s[:i+1]
+
+  - var n int
+    var prev bool
+
+  for i := len(s)-1; i >= 0; i--
+    - b := s[i]
+    switch b
+      case ' ', '\t', '\r', '\n'
+        if !prev
+          - n++
+          if n == max
+            > #{s[i+1:]}
+            return
+          - prev = true
+      default
+        - prev = false
+
+  > #{s}
 
 // Abbrev truncates the stringified version of val according to the rules of
 // trunc and then appends replacement, if it truncated anything.
@@ -80,6 +144,69 @@ mixin Abbrev(val any, at int, replacement="…")
 
 // AbbrevWords is the TruncWords version of Abbrev.
 mixin AbbrevWords(val any, max int, replacement="…")
+  if max == 0
+    > #{val}
+    return
+
+  - s, err := __corgi_std_woof.Stringify(val)
+  if err != nil
+    return err
+
+  if max > 0
+    // the way the doc is worded, we should include leading whitespace
+    for i, b := range s
+      switch b
+        case ' ', '\t', '\r', '\n'
+        default
+          if i > 0
+            > #{s[:i]}
+            - s = s[i:]
+
+    - var n int
+      var prev bool
+
+    for i, b := range s
+      switch b
+        case ' ', '\t', '\r', '\n'
+          if !prev
+            - n++
+            if n == max
+              > #{s[:i]}#{replacement}
+              return
+            - prev = true
+        default
+          - prev = false
+
+    > #{s}
+    return
+
+  // the way the doc is worded, we should include leading whitespace
+  for i := len(s)-1; i >= 0; i--
+    - b := s[i]
+    switch b
+      case ' ', '\t', '\r', '\n'
+      default
+        if i > 0
+          > #{s[i+1:]}
+          - s = s[:i+1]
+
+  - var n int
+    var prev bool
+
+  for i := len(s)-1; i >= 0; i--
+    - b := s[i]
+    switch b
+      case ' ', '\t', '\r', '\n'
+        if !prev
+          - n++
+          if n == max
+            > #{s[i+1:]}#{replacement}
+            return
+          - prev = true
+      default
+        - prev = false
+
+  > #{s}
 
 // Initials prints the first letter of each word in the stringified version of
 // val.
@@ -97,6 +224,30 @@ mixin AbbrevWords(val any, max int, replacement="…")
 // If both are false, the initials will be printed as is, and if both are true,
 // upper takes precedence.
 mixin Initials(val any, max=0, upper=false, lower=false)
+  - s, err := __corgi_std_woof.Stringify(val)
+  if err != nil
+    return err
+
+  if len(s) == 0
+    return
+
+  - var n int
+    prev := s[0] != ' ' && s[0] != '\t' && s[0] != '\r' && s[0] != '\n'
+
+  for _, b := range s
+    switch b
+      case ' ', '\t', '\r', '\n'
+        if prev
+          - prev = false
+      default
+        if !prev
+          if upper:> #{__corgi_std_stdstrings.ToUpper(string(b))}
+          else if lower:> #{__corgi_std_stdstrings.ToLower(string(b))}
+          else:> #{string(b)}
+          - n++
+          if n >= max
+            - return
+        - prev = true
 
 // Wrap wraps the stringified version of val by printing `with` unescaped every
 // `after` runes.

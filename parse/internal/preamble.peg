@@ -71,7 +71,7 @@ Import <- "import" EOL specsI:importBlock {
     }
 }
 
-importBlock <- INDENT importsI:(NEW_LNS? INDENTATION importSpec)* DEDENT {
+importBlock <- INDENT importsI:(NEW_LNS? INDENTATION importSpec)+ DEDENT {
     return typedSliceFromTuples[file.ImportSpec](importsI, -1), nil
 }
 
@@ -122,7 +122,7 @@ Uses <- usesI:(NEW_LNS? Use)+ {
     return uses, nil
 }
 
-Use <- "use"  specsI:useBlock {
+Use <- "use" EOL specsI:useBlock {
     return file.Use{
         Uses: specsI.([]file.UseSpec),
         Position: pos(c),
@@ -143,7 +143,7 @@ Use <- "use"  specsI:useBlock {
     }
 }
 
-useBlock <- INDENT usesI:(NEW_LNS? INDENTATION useSpec)* DEDENT {
+useBlock <- INDENT usesI:(NEW_LNS? INDENTATION useSpec)+ DEDENT {
     return typedSliceFromTuples[file.UseSpec](usesI, -1), nil
 }
 

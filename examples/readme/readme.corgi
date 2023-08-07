@@ -1,0 +1,28 @@
+import "strings"
+
+use "fmt"
+
+func LearnCorgi(name string, knowsPug bool, friends []string)
+
+mixin greet(name string) Hello, #{name}!
+
+doctype html
+html(lang="en")
+  head
+    title Learn Corgi
+  body
+    h1 Learn Corgi
+    p#greeting.greeting
+      // the & allows you to add additional attributes to an element
+      if strings.HasPrefix(name, "M"): &.font-size--big
+      +greet(name=name)
+
+    p
+      if knowsPug
+        > #{name}, since you already know pug,
+          learning corgi will be even more of #strong[a breeze] for you!#[ ]
+
+      > Head over to #a(href="https://mavolin.gitbook.io/corgi")[GitBook]
+        to learn it.
+
+    p And make sure to tell #+fmt.List(val=friends) about corgi too!

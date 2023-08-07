@@ -33,7 +33,7 @@ func Parse(input []byte) (*file.File, error) {
 		}
 	}
 
-	fi, err := internal.Parse("test.corgi", input, internal.GlobalStore("lines", lines))
+	fi, err := internal.Parse("bytedata", input, internal.GlobalStore("lines", lines))
 
 	f, ok := fi.(*file.File)
 	if ok {

@@ -17,8 +17,7 @@ File <-
     importsAndCommentsI:importsAndComments? NEW_LNS?
     usesAndCommentsI:usesAndComments? NEW_LNS?
     globalCodeAndFuncI:globalCodeAndFunc? NEW_LNS?
-    doctypeCommentsI:CorgiComments? NEW_LNS?
-    doctypeI:Doctype? NEW_LNS?
+    preScopeI:preScope? NEW_LNS?
     scopeI:Scope? NEW_LNS?
     EOF {
     var f file.File
@@ -45,22 +44,10 @@ File <-
         f.Func = partFile.Func
     }
 
-    f.Scope = castedOrZero[file.Scope](scopeI)
+    preScope := castedOrZero[file.Scope](preScopeI)
+    s := castedOrZero[file.Scope](scopeI)
 
-    if doctypeI != nil {
-        f.Scope = append(file.Scope{doctypeI.(file.Doctype)}, f.Scope...)
-    }
-
-    if doctypeCommentsI != nil {
-        comments := doctypeCommentsI.([]file.CorgiComment)
-
-        commentScope := make(file.Scope, len(comments))
-        for i, comment := range comments {
-            commentScope[i] = comment
-        }
-
-        f.Scope = append(commentScope, f.Scope...)
-    }
+    f.Scope = append(preScope, s...)
 
     return &f, nil
 }
@@ -123,6 +110,25 @@ globalCodeAndFunc <- codesAndCommentsI:codesAndComments? NEW_LNS? commentsI:Corg
     f.Func = &fun
     
     return f, nil
+}
+
+preScope <- itmsI:((CorgiComment / Code / Mixin) NEW_LNS?)* doctypeI:Doctype {
+    itmIs := islice(itmsI)
+    n := len(itmIs)
+    if doctypeI != nil {
+        n ++
+    }
+
+    itms := make(file.Scope, n)
+    for i, itmI := range itmIs {
+        itms[i] = getTuple[file.ScopeItem](itmI, 0)
+    }
+
+    if doctypeI != nil {
+        itms[len(itms)-1] = doctypeI.(file.Doctype)
+    }
+
+    return itms, nil
 }
 
 init <- #{

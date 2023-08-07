@@ -232,24 +232,23 @@ func unusedUses(f *file.File) *errList {
 	}
 
 	fileutil.Walk(f.Scope, func(parents []fileutil.WalkContext, ctx fileutil.WalkContext) (dive bool, err error) {
-		mc, ok := (*ctx.Item).(file.MixinCall)
-		if !ok {
-			return true, nil
-		}
-
-	unusedSpecs:
-		for i, spec := range unusedSpecs {
-			for _, specFile := range spec.Library.Files {
-				if mc.Mixin.File.Module+mc.Mixin.File.PathInModule == specFile.Module+specFile.PathInModule {
-					copy(unusedSpecs[i:], unusedSpecs[i+1:])
-					unusedSpecs = unusedSpecs[:len(unusedSpecs)-1]
-					break unusedSpecs
-				}
-			}
-		}
-
 		if len(unusedSpecs) == 0 {
 			return false, fileutil.StopWalk
+		}
+
+		switch itm := (*ctx.Item).(type) {
+		case file.MixinCall:
+			_unusedUsesMixinCall(&unusedSpecs, itm)
+		case file.Element:
+			_unusedUsesAttributeCollection(&unusedSpecs, itm.Attributes)
+		case file.DivShorthand:
+			_unusedUsesAttributeCollection(&unusedSpecs, itm.Attributes)
+		case file.And:
+			_unusedUsesAttributeCollection(&unusedSpecs, itm.Attributes)
+		case file.InlineText:
+			_unusedUsesTextLines(&unusedSpecs, itm.Text)
+		case file.ArrowBlock:
+			_unusedUsesTextLines(&unusedSpecs, itm.Lines...)
 		}
 
 		return true, nil
@@ -279,4 +278,60 @@ func unusedUses(f *file.File) *errList {
 	}
 
 	return &errs
+}
+
+func _unusedUsesMixinCall(unusedSpecs *[]file.UseSpec, mc file.MixinCall) {
+	for i, spec := range *unusedSpecs {
+		for _, specFile := range spec.Library.Files {
+			if mc.Mixin.File.Module != specFile.Module || mc.Mixin.File.PathInModule != specFile.PathInModule {
+				continue
+			}
+
+			copy((*unusedSpecs)[i:], (*unusedSpecs)[i+1:])
+			*unusedSpecs = (*unusedSpecs)[:len(*unusedSpecs)-1]
+			return
+		}
+	}
+}
+
+func _unusedUsesAttributeCollection(unusedSpecs *[]file.UseSpec, acolls []file.AttributeCollection) {
+	for _, acoll := range acolls {
+		alist, ok := acoll.(file.AttributeList)
+		if !ok {
+			continue
+		}
+
+		for _, attr := range alist.Attributes {
+			mcAttr, ok := attr.(file.MixinCallAttribute)
+			if !ok {
+				continue
+			}
+
+		unusedSpecs:
+			for i, spec := range *unusedSpecs {
+				for _, specFile := range spec.Library.Files {
+					if mcAttr.MixinCall.Mixin.File.Module != specFile.Module || mcAttr.MixinCall.Mixin.File.PathInModule != specFile.PathInModule {
+						continue
+					}
+
+					copy((*unusedSpecs)[i:], (*unusedSpecs)[i+1:])
+					*unusedSpecs = (*unusedSpecs)[:len(*unusedSpecs)-1]
+					break unusedSpecs
+				}
+			}
+		}
+	}
+}
+
+func _unusedUsesTextLines(unusedSpecs *[]file.UseSpec, lns ...file.TextLine) {
+	for _, ln := range lns {
+		for _, itm := range ln {
+			switch itm := itm.(type) {
+			case file.MixinCallInterpolation:
+				_unusedUsesMixinCall(unusedSpecs, itm.MixinCall)
+			case file.ElementInterpolation:
+				_unusedUsesAttributeCollection(unusedSpecs, itm.Element.Attributes)
+			}
+		}
+	}
 }
