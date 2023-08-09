@@ -20,7 +20,11 @@ type errList = list.List[*corgierr.Error]
 //
 // If it returns an error, that error will be of type [corgierr.List].
 func PreLink(f *file.File) error {
-	errs := useNamespaces(f)
+	var errs errList
+
+	errs.PushBackList(useNamespaces(f))
+	errs.PushBackList(usePathBaseIsValidIdent(f))
+
 	if errs.Len() == 0 {
 		return nil
 	}

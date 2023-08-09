@@ -2,6 +2,7 @@ package validate
 
 import (
 	"path"
+	"regexp"
 	"strconv"
 
 	"github.com/mavolin/corgi/corgierr"
@@ -206,6 +207,36 @@ func importNamespaces(cmps map[string]importNamespace, f *file.File) *errList {
 				},
 				Suggestions: suggestions,
 			})
+		}
+	}
+
+	return &errs
+}
+
+var identRegexp = regexp.MustCompile(`^[\pL_][\pL\p{Nd}_]*$`)
+
+func usePathBaseIsValidIdent(f *file.File) *errList {
+	var errs errList
+
+	for _, use := range f.Uses {
+		for _, spec := range use.Uses {
+			if spec.Alias != nil {
+				continue
+			}
+
+			base := path.Base(fileutil.Unquote(spec.Path))
+			if !identRegexp.MatchString(base) {
+				errs.PushBack(&corgierr.Error{
+					Message: "use path with non-identifier as base",
+					ErrorAnnotation: anno.Anno(f, anno.Annotation{
+						Start:       spec.Path.Position,
+						StartOffset: 1 + len(spec.Path.Contents) - len(base),
+						EOLDelta:    -1,
+						Annotation:  "this is not a valid identifier, so you need to define a use alias",
+					}),
+					Example: "foo " + fileutil.Quote(spec.Path),
+				})
+			}
 		}
 	}
 
