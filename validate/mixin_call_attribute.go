@@ -6,6 +6,7 @@ import (
 	"github.com/mavolin/corgi/file/fileutil"
 	"github.com/mavolin/corgi/internal/anno"
 	"github.com/mavolin/corgi/internal/list"
+	"github.com/mavolin/corgi/woof"
 )
 
 func mixinCallAttributeChecks(f *file.File) *errList {
@@ -32,6 +33,7 @@ func mixinCallAttributeChecks(f *file.File) *errList {
 
 			for _, a := range al.Attributes {
 				if mca, ok := a.(file.MixinCallAttribute); ok {
+					errs.PushBackList(_mixinCallAttributeIsPlain(f, mca))
 					errs.PushBackList(_mixinCallAttributesOnlyWriteText(f, mca))
 					errs.PushBackList(_topLevelAndInMixinCallAttribute(f, mca))
 					errs.PushBackList(_requiredMixinCallAttributeAttributes(f, mca))
@@ -44,6 +46,22 @@ func mixinCallAttributeChecks(f *file.File) *errList {
 	})
 
 	return &errs
+}
+
+func _mixinCallAttributeIsPlain(f *file.File, mca file.MixinCallAttribute) *errList {
+	at := woof.AttrType(mca.Name)
+	if at != woof.ContentTypePlain {
+		return list.List1(&corgierr.Error{
+			Message: "mixin call attribute as " + at.String() + " attribute",
+			ErrorAnnotation: anno.Anno(f, anno.Annotation{
+				Start:      mca.Position,
+				End:        interpolationEnd(mca.Value),
+				Annotation: "you can only use mixin calls as attributes for plain attributes",
+			}),
+		})
+	}
+
+	return new(errList)
 }
 
 func _mixinCallAttributesOnlyWriteText(f *file.File, mca file.MixinCallAttribute) *errList {
