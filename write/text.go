@@ -79,7 +79,7 @@ func interpolation(ctx *ctx, interp file.Interpolation) {
 	case file.MixinCallInterpolation:
 		mixinCallInterpolation(ctx, interp)
 	default:
-		panic(fmt.Errorf("unrecognized interpolation %T (you shouldn't see this error, please open an issue)", interp))
+		ctx.youShouldntSeeThisError(fmt.Errorf("unrecognized interpolation %T", interp))
 	}
 }
 
@@ -123,7 +123,7 @@ func interpolationValue(ctx *ctx, interp file.InterpolationValue, noEscape bool)
 	case file.ExpressionInterpolationValue:
 		expressionInterpolationValue(ctx, interp, noEscape)
 	default:
-		panic(fmt.Errorf("unrecognized interpolation value %T (you shouldn't see this error, please open an issue)", interp))
+		ctx.youShouldntSeeThisError(fmt.Errorf("unrecognized interpolation value %T", interp))
 	}
 }
 

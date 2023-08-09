@@ -108,7 +108,7 @@ func minifyStyleElement(ctx *ctx, el file.Element) bool {
 	s := styleBodyTextEscaper.f(sb.String())
 	css, err := mini.String("text/css", s)
 	if err != nil {
-		panic(fmt.Errorf("%d:%d: style contains invalid CSS: %w", el.Line, el.Col, err))
+		panic(fmt.Errorf("%s:%d:%d: style contains invalid CSS: %w", ctx.currentFile().Name, el.Line, el.Col, err))
 	}
 
 	ctx.closeTag()
@@ -315,7 +315,7 @@ func attributeCollection(ctx *ctx, acoll file.AttributeCollection) {
 	case file.AttributeList:
 		attributeList(ctx, acoll)
 	default:
-		panic(fmt.Errorf("unrecognized attribute collection %T (you shouldn't see this error, please open an issue)", acoll))
+		ctx.youShouldntSeeThisError(fmt.Errorf("unrecognized attribute collection %T", acoll))
 	}
 }
 
@@ -356,7 +356,7 @@ func attribute(ctx *ctx, attr file.Attribute) {
 	case file.MixinCallAttribute:
 		mixinCallAttribute(ctx, attr)
 	default:
-		panic(fmt.Errorf("unrecognized attribute %T (you shouldn't see this error, please open an issue)", attr))
+		ctx.youShouldntSeeThisError(fmt.Errorf("unrecognized attribute %T", attr))
 	}
 }
 
@@ -447,7 +447,7 @@ func simpleAttribute(ctx *ctx, sattr file.SimpleAttribute) {
 			ctx.generate(`"`, nil)
 		})
 	default:
-		panic(fmt.Errorf("unrecognized content type %v (you shouldn't see this error, please open an issue)", attrType))
+		ctx.youShouldntSeeThisError(fmt.Errorf("unrecognized content type %v", attrType))
 	}
 
 }

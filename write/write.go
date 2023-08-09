@@ -7,6 +7,7 @@ import (
 	"io"
 	"strconv"
 
+	"github.com/mavolin/corgi/corgierr"
 	"github.com/mavolin/corgi/file"
 	"github.com/mavolin/corgi/file/fileutil"
 	"github.com/mavolin/corgi/file/precomp"
@@ -18,6 +19,18 @@ type Options struct {
 	//
 	// It defaults to "__corgi_".
 	IdentPrefix string
+
+	AllowedFilters  []string
+	AllowAllFilters bool
+
+	// CLI indicates that this writer is run by the corgi CLI and may reference
+	// CLI options in error messages, and print to stderr on its own.
+	CLI bool
+	// CorgierrPretty are the [corgierr.PrettyOptions] used to print pretty
+	// errors.
+	//
+	// Only used if CLI is true.
+	CorgierrPretty corgierr.PrettyOptions
 
 	// Debug, if set to true, attaches file and position information of scope
 	// items to the generated file.

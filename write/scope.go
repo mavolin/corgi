@@ -61,6 +61,6 @@ func scopeItem(ctx *ctx, itm file.ScopeItem) {
 	case file.ArrowBlock:
 		arrowBlock(ctx, itm)
 	default:
-		panic(fmt.Errorf("%d:%d: unknown scope item %T", itm.Pos().Line, itm.Pos().Col, itm))
+		ctx.youShouldntSeeThisError(fmt.Errorf("%s:%d:%d: unknown scope item %T", ctx.currentFile().Name, itm.Pos().Line, itm.Pos().Col, itm))
 	}
 }

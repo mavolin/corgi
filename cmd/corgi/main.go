@@ -108,7 +108,13 @@ func writeFile(loadOpts corgi.LoadOptions) error {
 		}()
 	}
 
-	w := write.New(write.Options{Debug: Debug})
+	w := write.New(write.Options{
+		AllowedFilters:  TrustedFilters,
+		AllowAllFilters: TrustAllFilters,
+		CLI:             true,
+		CorgierrPretty:  prettyOptions(f.Module),
+		Debug:           Debug,
+	})
 
 	if err := w.GenerateFile(prettyOut, Package, f); err != nil {
 		return err
@@ -178,7 +184,13 @@ func writeLibrary(path, outPath string, loadOpts corgi.LoadOptions) error {
 		return fmt.Errorf("%s: failed to open output: %w", path, outPath)
 	}
 
-	w := write.New(write.Options{Debug: Debug})
+	w := write.New(write.Options{
+		AllowedFilters:  TrustedFilters,
+		AllowAllFilters: TrustAllFilters,
+		CLI:             true,
+		CorgierrPretty:  prettyOptions(lib.Module),
+		Debug:           Debug,
+	})
 
 	if err := w.PrecompileLibrary(out, lib); err != nil {
 		return err
@@ -192,6 +204,25 @@ func writeLibrary(path, outPath string, loadOpts corgi.LoadOptions) error {
 }
 
 func writeErrs(err error, mainMod string) {
+	prettyOpts := prettyOptions(mainMod)
+
+	var clerr corgierr.List
+	if errors.As(err, &clerr) {
+		fmt.Println(clerr.Pretty(prettyOpts))
+		os.Exit(1)
+	}
+
+	var cerr *corgierr.Error
+	if errors.As(err, &cerr) {
+		fmt.Println(clerr.Pretty(prettyOpts))
+		os.Exit(1)
+	}
+
+	fmt.Println(err)
+	os.Exit(1)
+}
+
+func prettyOptions(mainMod string) corgierr.PrettyOptions {
 	var prettyOpts corgierr.PrettyOptions
 
 	color.Set()
@@ -225,18 +256,5 @@ func writeErrs(err error, mainMod string) {
 		}
 	}
 
-	var clerr corgierr.List
-	if errors.As(err, &clerr) {
-		fmt.Println(clerr.Pretty(prettyOpts))
-		os.Exit(1)
-	}
-
-	var cerr *corgierr.Error
-	if errors.As(err, &cerr) {
-		fmt.Println(clerr.Pretty(prettyOpts))
-		os.Exit(1)
-	}
-
-	fmt.Println(err)
-	os.Exit(1)
+	return prettyOpts
 }

@@ -5,7 +5,9 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -17,7 +19,9 @@ import (
 var (
 	// Misc
 
-	IsGoGenerate bool
+	IsGoGenerate       bool
+	ConfigDir          string
+	TrustedFiltersFile string
 
 	// Flags
 
@@ -39,8 +43,9 @@ var (
 	ForceColorSetting bool
 	Color             bool
 
-	TrustedExecutables  []string
-	TrustAllExecutables bool
+	TrustedFilters     []string
+	TrustAllFilters    bool
+	editTrustedFilters bool
 
 	// Args
 
@@ -50,6 +55,18 @@ var (
 
 func init() {
 	IsGoGenerate = os.Getenv("GOFILE") != ""
+
+	if runtime.GOOS == "windows" {
+		if appData := os.Getenv("AppData"); appData != "" {
+			ConfigDir = filepath.Join(appData, `Local\corgi`)
+			TrustedFiltersFile = filepath.Join(ConfigDir, "trusted_filters")
+		}
+	} else if runtime.GOOS == "linux" || runtime.GOOS == "darwin" {
+		if home := os.Getenv("HOME"); home != "" {
+			ConfigDir = filepath.Join(home, ".config/corgi")
+			TrustedFiltersFile = filepath.Join(ConfigDir, "trusted_filters")
+		}
+	}
 
 	var (
 		showHelp    bool
@@ -101,47 +118,52 @@ func init() {
 		return nil
 	})
 
-	var configDir string
-	if runtime.GOOS == "windows" {
-		if appData := os.Getenv("AppData"); appData != "" {
-			configDir = filepath.Join(appData, `Local\corgi`)
-		}
-	} else if runtime.GOOS == "linux" || runtime.GOOS == "darwin" {
-		if home := os.Getenv("HOME"); home != "" {
-			configDir = filepath.Join(home, ".config/corgi")
-		}
-	}
-
 	var exePreferencesText string
-	if configDir != "" {
-		exePreferencesText = "\nthis does not affect preferences stored in `" + filepath.Join(configDir, "trusted_filters")
+	if ConfigDir != "" {
+		exePreferencesText = "\nthis does not affect preferences stored in `" + filepath.Join(ConfigDir, "trusted_filters")
 	}
 
 	flag.Func("trust-filter", "trust these comma-separated executables to be run as filters"+exePreferencesText,
 		func(s string) error {
-			TrustedExecutables = append(TrustedExecutables, strings.Split(s, ",")...)
+			TrustedFilters = append(TrustedFilters, strings.Split(s, ",")...)
 			return nil
 		})
 	flag.Func("trust-all-filters",
-		"set to `i know this is dangerous` to allow running all executables as filters\n"+
+		"set to 'i know this is dangerous' to allow running all executables as filters\n"+
 			"only set this if you trust the file you are compiling or are running corgi in a secure environment (i.e. a container)",
 		func(s string) error {
 			if s == "i know this is dangerous" {
-				TrustAllExecutables = true
+				TrustAllFilters = true
 				return nil
 			}
 
 			return fmt.Errorf("invalid value for `-trust-all-filters` flag, consult help (`-h`): %s", s)
 		})
+	flag.BoolVar(&editTrustedFilters, "edit-trusted-filters",
+		false, "opens $EDITOR to edit the file containing trusted filter executables\n"+
+			"if it doesn't exist yet, it also creates it")
 
 	flag.Parse()
 
 	if showHelp {
 		flag.Usage()
-		return
+		os.Exit(0)
 	} else if showVersion {
 		fmt.Println("corgi", version())
-		return
+		os.Exit(0)
+	} else if editTrustedFilters {
+		doEditTrustedFilters()
+		os.Exit(0)
+	}
+
+	tff, err := os.ReadFile(TrustedFiltersFile)
+	if err == nil { // IS nil
+		for _, ln := range strings.Split(string(tff), "\n") {
+			if !strings.HasPrefix(ln, "#") {
+				TrustedFilters = append(TrustedFilters, strings.TrimRight(ln, " \r"))
+			}
+		}
+
 	}
 
 	if !PrecompileLibrary && Package == "" {
@@ -235,4 +257,60 @@ func version() string {
 	}
 
 	return ver
+}
+
+const defaultTrustFiltersFile = "# This file contains newline-separated names of executables\n" +
+	"# that you trust. This means, corgi will execute all filters with the listed names without asking,\n" +
+	"# assuming they are approved by you.\n" +
+	"# You should only place programs here, that cannot do any damage to the system.\n"
+
+func doEditTrustedFilters() {
+	if TrustedFiltersFile == "" {
+		fmt.Fprintln(os.Stderr, "cannot locate corgi config directory;\n"+
+			"this is either because you are not running linux, macOS, or windows,"+
+			"or because your HOME/AppData env is not set")
+		os.Exit(1)
+	}
+
+	f, err := os.Open(TrustedFiltersFile)
+	if errors.Is(err, fs.ErrNotExist) {
+		err := os.MkdirAll(ConfigDir, os.ModePerm)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "failed to create config directory: ", err.Error())
+			os.Exit(1)
+			return
+		}
+		tff, err := os.Create(TrustedFiltersFile)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "failed to create trusted filters file: ", err.Error())
+			os.Exit(1)
+			return
+		}
+		if _, err := io.WriteString(tff, defaultTrustFiltersFile); err != nil {
+			fmt.Fprintln(os.Stderr, "failed to create trusted filters file:", err.Error())
+			os.Exit(1)
+		}
+	} else if err != nil {
+		fmt.Fprintln(os.Stderr, "failed to open trusted filters file:", err.Error())
+		os.Exit(1)
+	} else {
+		_ = f.Close()
+	}
+
+	editor := os.Getenv("EDITOR")
+	if editor == "" {
+		fmt.Fprintln(os.Stderr, "$EDITOR not set, please open the editor yourself:", TrustedFiltersFile)
+		os.Exit(1)
+	}
+
+	editorCmd := exec.Command(editor, TrustedFiltersFile)
+	editorCmd.Stdin = os.Stdin
+	editorCmd.Stdout = os.Stdout
+	editorCmd.Stderr = os.Stderr
+	if err := editorCmd.Run(); err != nil {
+		fmt.Fprintf(os.Stderr, "failed to run editor: %s\nplease open the editor yourself: %s\n", err.Error(), TrustedFiltersFile)
+		os.Exit(1)
+	}
+
+	os.Exit(0)
 }

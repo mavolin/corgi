@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/mavolin/corgi/corgierr"
 	"github.com/mavolin/corgi/file"
 	"github.com/mavolin/corgi/internal/list"
 	"github.com/mavolin/corgi/internal/stack"
@@ -59,6 +60,12 @@ type ctx struct {
 	calledUnclosed bool
 
 	mixinFuncNames mixinFuncMap
+
+	allowedFilters  []string
+	allowAllFilters bool
+
+	cli            bool
+	corgierrPretty corgierr.PrettyOptions
 
 	debugEnabled bool
 
@@ -150,8 +157,20 @@ func newCtx(o Options) *ctx {
 			m:     make(map[string]map[string]string),
 			scope: make(map[*file.File]*list.List[map[string]string]),
 		},
-		debugEnabled: o.Debug,
+		allowedFilters:  o.AllowedFilters,
+		allowAllFilters: o.AllowAllFilters,
+		cli:             o.CLI,
+		corgierrPretty:  o.CorgierrPretty,
+		debugEnabled:    o.Debug,
 	}
+}
+
+func (ctx *ctx) youShouldntSeeThisError(err error) {
+	if ctx.cli {
+		panic(fmt.Errorf("%w (you shouldn't see this error, please open an issue)", err))
+	}
+
+	panic(err)
 }
 
 func (ctx *ctx) ident(s string) string {

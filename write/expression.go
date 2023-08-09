@@ -388,7 +388,7 @@ func inlineExpression(ctx *ctx, expr file.Expression) string {
 		case file.StringExpression:
 			inlineStringExpression(ctx, &sb, exprItm)
 		default:
-			panic(fmt.Errorf("unknown expression item %T (you shouldn't see this error, please open an issue)", exprItm))
+			ctx.youShouldntSeeThisError(fmt.Errorf("unknown expression item %T", exprItm))
 		}
 	}
 
