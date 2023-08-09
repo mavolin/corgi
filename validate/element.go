@@ -475,7 +475,7 @@ func _attributePlacement(f *file.File, elAnno corgierr.Annotation, firstText *co
 			}
 
 			errs.PushBack(&corgierr.Error{
-				Message: "use of attribute after writing to element's body",
+				Message: "use of `&` after writing to element's body",
 				ErrorAnnotation: anno.Anno(f, anno.Annotation{
 					Start:      itm.Position,
 					Annotation: "so you cannot place an `&` here",
@@ -579,7 +579,7 @@ func _attributePlacement(f *file.File, elAnno corgierr.Annotation, firstText *co
 						})
 					} else if mixin, ok := nonCtrl.(file.MixinCall); ok {
 						errs.PushBack(&corgierr.Error{
-							Message: "use of attribute in for-loop that also writes to element's body",
+							Message: "use of `&` in for-loop that also writes to element's body",
 							ErrorAnnotation: anno.Anno(f, anno.Annotation{
 								Start:      mixin.Position,
 								Annotation: "you placed a mixin writing an attribute (and possibly also text) here",
@@ -665,16 +665,16 @@ func _attributePlacement(f *file.File, elAnno corgierr.Annotation, firstText *co
 				}
 
 				errs.PushBack(&corgierr.Error{
-					Message: "use of attribute after writing to element's body",
+					Message: "attribute placed after writing to element's body",
 					ErrorAnnotation: anno.Anno(f, anno.Annotation{
 						Start:      itm.Position,
 						End:        end,
-						Annotation: "so you cannot place an attribute here",
+						Annotation: "so you cannot place a mixin writing an attribute here",
 					}),
 					HintAnnotations: []corgierr.Annotation{elAnno, *firstText},
 					Suggestions: []corgierr.Suggestion{
 						{
-							Suggestion: "you can only use the `&` operator before you write to the body of an element.",
+							Suggestion: "you can only place attributes before you write to the body of an element",
 						},
 					},
 				})
