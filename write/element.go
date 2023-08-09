@@ -53,10 +53,226 @@ func element(ctx *ctx, el file.Element) {
 		attributeCollection(ctx, acoll)
 	}
 
-	scope(ctx, el.Body)
+	var success bool
+	switch el.Name {
+	case "style":
+		success = minifyStyleElement(ctx, el)
+	case "script":
+		success = minifyScriptElement(ctx, el)
+	}
+
+	if !success {
+		scope(ctx, el.Body)
+	}
 
 	ctx.debugItem(el, "/"+el.Name)
 	ctx.closeElem()
+}
+
+func minifyStyleElement(ctx *ctx, el file.Element) bool {
+	var n int
+
+	for _, itm := range el.Body {
+		switch itm := itm.(type) {
+		case file.InlineText:
+			txtLen := onlyTextInTextLines(itm.Text)
+			if txtLen < 0 {
+				return false
+			}
+			n += txtLen
+		case file.ArrowBlock:
+			txtLen := onlyTextInTextLines(itm.Lines...)
+			if txtLen < 0 {
+				return false
+			}
+			n += txtLen
+		default:
+			return false
+		}
+	}
+
+	var sb strings.Builder
+	sb.Grow(n)
+
+	for _, itm := range el.Body {
+		switch itm := itm.(type) {
+		case file.InlineText:
+			writeTextLines(&sb, nil, itm.Text)
+		case file.ArrowBlock:
+			writeTextLines(&sb, nil, itm.Lines...)
+		default:
+			return false
+		}
+	}
+
+	s := styleBodyTextEscaper.f(sb.String())
+	css, err := mini.String("text/css", s)
+	if err != nil {
+		panic(fmt.Errorf("%d:%d: style contains invalid CSS: %w", el.Line, el.Col, err))
+	}
+
+	ctx.closeTag()
+	ctx.generate(css, nil)
+	return true
+}
+
+func onlyTextInTextLines(lns ...file.TextLine) int {
+	var n int
+
+	var prevLnNo int
+
+	for _, ln := range lns {
+		if prevLnNo > 0 {
+			n += ln.Pos().Line - prevLnNo
+		}
+
+		for _, itm := range ln {
+			switch itm := itm.(type) {
+			case file.Text:
+				n += len(itm.Text)
+			case file.SimpleInterpolation:
+				txt, ok := itm.Value.(file.TextInterpolationValue)
+				if ok {
+					n += len(txt.Text)
+				} else {
+					return -1
+				}
+			default:
+				return -1
+			}
+		}
+	}
+
+	return n
+}
+
+const jsExprPlaceholder = "__corgi_expr"
+
+func minifyScriptElement(ctx *ctx, el file.Element) bool {
+	var n int
+
+	for _, itm := range el.Body {
+		switch itm := itm.(type) {
+		case file.InlineText:
+			txtLen := onlyExprsInTextLines(itm.Text)
+			if txtLen < 0 {
+				return false
+			}
+			n += txtLen
+		case file.ArrowBlock:
+			txtLen := onlyExprsInTextLines(itm.Lines...)
+			if txtLen < 0 {
+				return false
+			}
+			n += txtLen
+		default:
+			return false
+		}
+	}
+
+	var sb strings.Builder
+	sb.Grow(n)
+
+	placeholderExprs := make([]file.Expression, 0, n)
+
+	for _, itm := range el.Body {
+		switch itm := itm.(type) {
+		case file.InlineText:
+			writeTextLines(&sb, &placeholderExprs, itm.Text)
+		case file.ArrowBlock:
+			writeTextLines(&sb, &placeholderExprs, itm.Lines...)
+		default:
+			return false
+		}
+	}
+
+	s := scriptBodyTextEscaper.f(sb.String())
+	js, err := mini.String("application/javascript", s)
+	if err != nil {
+		return false
+	}
+
+	ctx.closeTag()
+
+	for i, expr := range placeholderExprs {
+		ph := jsExprPlaceholder + strconv.Itoa(i)
+		placeholderIndex := strings.Index(js, ph)
+		if placeholderIndex < 0 {
+			return false
+		}
+
+		ctx.generate(js[:placeholderIndex], nil)
+		generateExpression(ctx, expr, nil, &scriptBodyExprEscaper, nil)
+		js = js[placeholderIndex+len(ph):]
+	}
+
+	ctx.generate(js, nil)
+
+	return true
+}
+
+func onlyExprsInTextLines(lns ...file.TextLine) int {
+	var n int
+
+	var prevLnNo int
+
+	for _, ln := range lns {
+		if prevLnNo > 0 {
+			n += ln.Pos().Line - prevLnNo
+		}
+
+		for _, itm := range ln {
+			switch itm := itm.(type) {
+			case file.Text:
+				n += len(itm.Text)
+			case file.SimpleInterpolation:
+				txt, ok := itm.Value.(file.TextInterpolationValue)
+				if ok {
+					n += len(txt.Text)
+				} else {
+					n += len(jsExprPlaceholder) + len("12")
+				}
+			default:
+				return -1
+			}
+		}
+	}
+
+	return n
+}
+
+func writeTextLines(sb *strings.Builder, placeholderExprs *[]file.Expression, lns ...file.TextLine) {
+	var prevLnNo int
+	for _, ln := range lns {
+		if prevLnNo > 0 {
+			sb.WriteString(strings.Repeat("\n", ln.Pos().Line-prevLnNo))
+		}
+
+		for _, itm := range ln {
+			switch itm := itm.(type) {
+			case file.Text:
+				sb.WriteString(hashUnescaper.Replace(itm.Text))
+			case file.SimpleInterpolation:
+				txt, ok := itm.Value.(file.TextInterpolationValue)
+				if ok {
+					sb.WriteString(txt.Text)
+					continue
+				}
+
+				if placeholderExprs == nil {
+					continue
+				}
+
+				expr, ok := itm.Value.(file.ExpressionInterpolationValue)
+				if ok {
+					sb.WriteString(jsExprPlaceholder)
+					sb.WriteString(strconv.Itoa(len(*placeholderExprs)))
+					*placeholderExprs = append(*placeholderExprs, expr.Expression)
+				}
+			}
+		}
+		prevLnNo = ln.Pos().Line
+	}
 }
 
 func divShorthand(ctx *ctx, dsh file.DivShorthand) {
@@ -176,7 +392,7 @@ func simpleAttribute(ctx *ctx, sattr file.SimpleAttribute) {
 			}
 
 			if attrType == woof.ContentTypePlain {
-				ctx.generateExpression(*sattr.Value, nil, attrEscaper, func(f func()) {
+				generateExpression(ctx, *sattr.Value, &attrTextEscaper, &plainAttrExprEscaper, func(f func()) {
 					ctx.generate(` `+sattr.Name+`="`, nil)
 					f()
 					ctx.generate(`"`, nil)
@@ -196,38 +412,36 @@ func simpleAttribute(ctx *ctx, sattr file.SimpleAttribute) {
 		}
 	}
 
-	if attrType == woof.ContentTypePlain {
+	switch attrType { //nolint:exhaustive
+	case woof.ContentTypePlain:
 		expr := inlineExpression(ctx, *sattr.Value)
 		ctx.writeln(ctx.woofFunc("WriteAttr", ctx.ident(ctxVar), strconv.Quote(sattr.Name), expr, ctx.woofQual("EscapeHTMLAttr")))
-	}
-
-	switch attrType { //nolint:exhaustive
 	case woof.ContentTypeCSS:
-		ctx.generateExpression(*sattr.Value, attrEscaper, cssEscaper, func(f func()) {
+		generateExpression(ctx, *sattr.Value, &attrTextEscaper, &cssAttrExprEscaper, func(f func()) {
+			ctx.generate(` `+sattr.Name+`="`, nil)
+			f()
+			ctx.generate(`"`, nil)
+		})
+	case woof.ContentTypeJS:
+		generateExpression(ctx, *sattr.Value, &attrTextEscaper, &jsAttrExprEscaper, func(f func()) {
 			ctx.generate(` `+sattr.Name+`="`, nil)
 			f()
 			ctx.generate(`"`, nil)
 		})
 	case woof.ContentTypeHTML:
-		ctx.generateExpression(*sattr.Value, attrEscaper, nil, func(f func()) {
+		generateExpression(ctx, *sattr.Value, &attrTextEscaper, &htmlAttrExprEscaper, func(f func()) {
 			ctx.generate(` `+sattr.Name+`="`, nil)
 			f()
 			ctx.generate(`"`, nil)
 		})
 	case woof.ContentTypeURL:
-		generateContextExpression(ctx, *sattr.Value, "FilterURL", "URL", func(s string) string {
-			u := woof.NormalizeURL(woof.URL(s))
-			return string(u)
-		}, func(f func()) {
+		generateContextExpression(ctx, *sattr.Value, urlAttrExprEscaper, func(f func()) {
 			ctx.generate(` `+sattr.Name+`="`, nil)
 			f()
 			ctx.generate(`"`, nil)
 		})
 	case woof.ContentTypeSrcset:
-		generateContextExpression(ctx, *sattr.Value, "FilterSrcset", "Srcset", func(s string) string {
-			u := woof.NormalizeURL(woof.URL(s))
-			return string(u)
-		}, func(f func()) {
+		generateContextExpression(ctx, *sattr.Value, srcsetAttrExprEscaper, func(f func()) {
 			ctx.generate(` `+sattr.Name+`="`, nil)
 			f()
 			ctx.generate(`"`, nil)
@@ -254,11 +468,16 @@ func classAttribute(ctx *ctx, attr file.SimpleAttribute) {
 				return
 			}
 		}
+
+		ctx.flushClasses()
+		ctx.writeln(ctx.contextFunc("BufferClass", inlineExpression(ctx, *attr.Value)))
 	case file.ChainExpression:
+		ctx.flushClasses()
 		valueChainExpression(ctx, exprItm, func(expr string) {
 			ctx.writeln(ctx.contextFunc("BufferClass", expr))
 		})
 	default:
+		ctx.flushClasses()
 		ctx.writeln(ctx.contextFunc("BufferClass", inlineExpression(ctx, *attr.Value)))
 	}
 }
@@ -280,8 +499,10 @@ func mixinCallAttribute(ctx *ctx, mcAttr file.MixinCallAttribute) {
 	ctx.generate(mcAttr.Name+`="`, nil)
 	defer ctx.generate(`"`, nil)
 
-	ctx.txtEscaper.Push(attrEscaper)
+	ctx.txtEscaper.Push(attrTextEscaper)
+	ctx.exprEscaper.Push(plainAttrExprEscaper)
 	defer ctx.txtEscaper.Pop()
+	defer ctx.exprEscaper.Pop()
 
 	interpolationValueMixinCall(ctx, mcAttr.MixinCall, mcAttr.Value)
 }

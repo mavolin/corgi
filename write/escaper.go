@@ -1,21 +1,27 @@
 package write
 
-import "github.com/mavolin/corgi/woof"
+import (
+	"strings"
 
-type escaper struct {
-	f    func(s string) string
+	"github.com/mavolin/corgi/woof"
+)
+
+type textEscaper struct {
 	name string
+	f    func(string) string
 }
 
-func (esc *escaper) escape(ctx *ctx, s string) string {
-	if esc == nil {
-		return s
-	}
-	escaped := esc.f(s)
-	ctx.debug(esc.name, s+" -> "+escaped)
-	return escaped
+type expressionEscaper struct {
+	funcName string
 }
-func (esc *escaper) qualName(ctx *ctx) string { return ctx.woofQual(esc.name) }
+
+type contextEscaper struct {
+	name     string
+	funcName string
+
+	normalizer func(string) string
+	safeType   string
+}
 
 func toEscaperFunc[T ~string](f func(any) (T, error)) func(s string) string {
 	return func(s string) string {
@@ -28,26 +34,52 @@ func toEscaperFunc[T ~string](f func(any) (T, error)) func(s string) string {
 }
 
 var (
-	bodyEscaper = &escaper{
+	plainBodyTextEscaper = textEscaper{
+		name: "plain body",
 		f:    toEscaperFunc(woof.EscapeHTMLBody),
-		name: "EscapeHTMLBody",
+	}
+	// Browsers will interpret HTML escapes in script elements as part of js
+	// i.e. ignore them.
+	//
+	// Therefore, our regular body escaper is not suitable, as there is nothing
+	// escapable (except for `</script>`).
+	//
+	// Since corgi auto-escapes all text in elements, the same expectation may
+	// be put forth for escaping in scripts.
+	// So in case anyone writes `</script>` in script texts, (which can only
+	// happen in strings) we should correctly replace it with `<\/script>` to
+	// prevent premature termination of the script.
+	scriptBodyTextEscaper = textEscaper{
+		name: "script body",
+		f:    strings.NewReplacer(`</script>`, `<\/script>`).Replace,
+	}
+	styleBodyTextEscaper = textEscaper{
+		name: "style body",
+		f:    strings.NewReplacer(`</style>`, `<\/style>`).Replace,
 	}
 
-	attrEscaper = &escaper{
+	attrTextEscaper = textEscaper{
+		name: "html attr",
 		f:    toEscaperFunc(woof.EscapeHTMLAttrVal),
-		name: "EscapeHTMLAttrVal",
 	}
 
-	cssEscaper = &escaper{
-		f:    toEscaperFunc(woof.FilterCSSValue),
-		name: "FilterCSSValue",
+	plainBodyExprEscaper  = expressionEscaper{funcName: "EscapeHTMLBody"}
+	scriptBodyExprEscaper = expressionEscaper{funcName: "JSify"}
+	styleBodyExprEscaper  = expressionEscaper{funcName: "FilterCSSValue"}
+
+	plainAttrExprEscaper = expressionEscaper{funcName: "EscapeHTMLAttrVal"}
+	jsAttrExprEscaper    = expressionEscaper{funcName: "EscapeJSAttrVal"}
+	cssAttrExprEscaper   = expressionEscaper{funcName: "FilterCSSValue"}
+	htmlAttrExprEscaper  = expressionEscaper{funcName: "EscapeHTML"}
+	urlAttrExprEscaper   = contextEscaper{
+		name:       "url attr",
+		funcName:   "FilterURL",
+		normalizer: func(s string) string { return string(woof.NormalizeURL(woof.URL(s))) },
+		safeType:   "URL",
 	}
-	htmlEscaper = &escaper{
-		f:    toEscaperFunc(woof.EscapeHTML),
-		name: "EscapeHTML",
-	}
-	jsEscaper = &escaper{
-		f:    toEscaperFunc(woof.JSify),
-		name: "JSify",
+	srcsetAttrExprEscaper = contextEscaper{
+		name:     "srcset attr",
+		funcName: "FilterSrcset",
+		safeType: "Srcset",
 	}
 )

@@ -113,6 +113,16 @@ func writeFunc(ctx *ctx) {
 	ctx.writeln(ctx.ident(ctxVar) + " := " + ctx.woofFunc("NewContext", ctx.ident("w")))
 	ctx.writeln("defer " + ctx.contextFunc("Recover"))
 
+	for _, comm := range ctx.mainFile().TopLevelComments {
+		mcom := fileutil.ParseMachineComment(comm)
+		if mcom.Namespace == "corgi" && mcom.Directive == "nonce" {
+			ctx.debugItem(comm, comm.Lines[0].Comment+" (used to inject script nonce attr)")
+			ctx.writeln(ctx.contextFunc("SetScriptNonce", mcom.Args))
+			ctx.hasNonce = true
+			break
+		}
+	}
+
 	writeLibMixins(ctx)
 	writeFuncCode(ctx)
 

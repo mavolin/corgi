@@ -36,7 +36,7 @@ func include(ctx *ctx, incl file.Include) {
 				contents = inclF.Contents
 			}
 		default:
-			contents = bodyEscaper.escape(ctx, inclF.Contents)
+			contents = plainBodyTextEscaper.f(inclF.Contents)
 		}
 
 		ctx.generate(contents, nil)

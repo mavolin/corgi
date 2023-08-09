@@ -24,6 +24,25 @@ const (
 	// ContentTypeUnsafe
 )
 
+func (t ContentType) String() string {
+	switch t {
+	case ContentTypePlain:
+		return "plain"
+	case ContentTypeCSS:
+		return "css"
+	case ContentTypeHTML:
+		return "html"
+	case ContentTypeJS:
+		return "js"
+	case ContentTypeURL:
+		return "url"
+	case ContentTypeSrcset:
+		return "srcset"
+	default:
+		return "<invalid>"
+	}
+}
+
 // AttrTypes describes the value of the given attribute.
 // If an attribute affects (or can mask) the encoding or interpretation of
 // other content, or affects the contents, idempotency, or credentials of a

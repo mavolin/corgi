@@ -44,9 +44,11 @@ func Ternary[T any](cond bool, ifTrue, ifFalse T) T {
 	return ifFalse
 }
 
-func IsZero[T comparable](t T) bool {
-	var zero T
-	return t == zero
+func IsZero(t any) bool {
+	if t == nil {
+		return true
+	}
+	return reflect.ValueOf(t).IsZero()
 }
 
 func CanIndex(val any, i any) bool {

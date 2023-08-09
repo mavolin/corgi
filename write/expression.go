@@ -15,46 +15,49 @@ import (
 
 // generateExpression writes the passed expression using the passed escapers.
 //
-// If txtEsc is set, this expression is assumed to required contextual escaping.
+// If txtEsc is set and expr contains a single ExpressionItem of type
+// [file.StringExpression], then the text parts of the string will be escaped
+// using txtEsc, everything else will be escaped using exprEsc.
 //
-// If that is the case, string text is escaped with txtEsc, all else is escaped
-// using exprEsc.
-//
-// If expr is contains a single ExpressionItem of type [file.ChainExpression],
+// If expr contains a single ExpressionItem of type [file.ChainExpression],
 // generateExpression generates code that performs the checks of the chain
-// expression, calling writer with a function that generated the resolved
+// expression, calling writer with a function that generates the resolved
 // expression at the point in code where all checks pass.
 //
 // If the chain expression has a default, writer is instead called immediately,
 // then when genExpr is called, either the chain expression result or the
 // default is written.
 //
-// If expr contains a single [file.TernaryExpression], generateExpression similarly
-// writes an if else, calling write twice, once for the ifTrue and once for the
-// ifFalse expression
+// If expr contains a single [file.TernaryExpression], generateExpression
+// similarly writes an if else, calling write twice, once for the ifTrue and
+// once for the ifFalse expression.
 //
 // If expr is any other expression, writer is called immediately with a
 // function generating the expression.
 //
-// If writer is nil, generateExpression calls genExpr immediately, instead of
+// If writer is nil, generateExpression calls genExpr directly, instead of
 // passing it to writer.
 //
 // writer must call genExpr only once.
-func generateExpression(ctx *ctx, expr file.Expression, txtEsc *escaper, exprEsc *escaper, writer func(genExpr func())) {
-	txtEscName := "nil"
-	if txtEsc != nil {
-		txtEscName = txtEsc.name
+func generateExpression(ctx *ctx, expr file.Expression, txtEsc *textEscaper, exprEsc *expressionEscaper, writer func(genExpr func())) {
+	if ctx.debugEnabled {
+		txtEscName := "none"
+		if txtEsc != nil {
+			txtEscName = txtEsc.name
+		}
+		exprEscName := "none"
+		if exprEsc != nil {
+			exprEscName = exprEsc.funcName
+		}
+		ctx.debugItem(expr, fmt.Sprintf("txt escaper: %s, expr esc: %s) (see below)", txtEscName, exprEscName))
 	}
-	exprEscName := "nil"
-	if exprEsc != nil {
-		exprEscName = exprEsc.name
+
+	if len(expr.Expressions) == 0 {
+		return
 	}
-	ctx.debugItem(expr, fmt.Sprintf("(txt escaper: %s, expr esc: %s) (see below)", txtEscName, exprEscName))
 
 	if writer == nil {
-		writer = func(genExpr func()) {
-			genExpr()
-		}
+		writer = func(genExpr func()) { genExpr() }
 	}
 
 	if len(expr.Expressions) == 1 {
@@ -68,11 +71,42 @@ func generateExpression(ctx *ctx, expr file.Expression, txtEsc *escaper, exprEsc
 			})
 			return
 		case file.GoExpression:
+			if txtEsc != nil {
+				if num, err := strconv.ParseInt(exprItm.Expression, 10, 64); err == nil {
+					writer(func() {
+						ctx.generate(ctx.stringify(num), txtEsc)
+					})
+					return
+				} else if num, err := strconv.ParseUint(exprItm.Expression, 10, 64); err == nil {
+					writer(func() {
+						ctx.generate(ctx.stringify(num), txtEsc)
+					})
+					return
+				} else if num, err := strconv.ParseFloat(exprItm.Expression, 64); err == nil {
+					writer(func() {
+						ctx.generate(ctx.stringify(num), txtEsc)
+					})
+					return
+				}
+			}
+
 			writer(func() {
 				generateGoExpression(ctx, exprItm, exprEsc)
 			})
 			return
 		case file.StringExpression:
+			if txtEsc != nil && len(exprItm.Contents) == 1 {
+				txt, ok := exprItm.Contents[0].(file.StringExpressionText)
+				if ok {
+					s := unquoteStringExpressionText(exprItm, txt)
+
+					writer(func() {
+						ctx.generate(s, txtEsc)
+					})
+					return
+				}
+			}
+
 			writer(func() {
 				generateStringExpression(ctx, exprItm, txtEsc, exprEsc)
 			})
@@ -80,13 +114,8 @@ func generateExpression(ctx *ctx, expr file.Expression, txtEsc *escaper, exprEsc
 		}
 	}
 
-	if txtEsc != nil {
-		panic(fmt.Errorf("generateExpression (%d:%d): attempting to generated contextual escaped complex expression"+
-			" (this should've been caught during validation)", expr.Pos().Line, expr.Pos().Col))
-	}
-
 	writer(func() {
-		ctx.generate(inlineExpression(ctx, expr), exprEsc)
+		ctx.generateExpr(inlineExpression(ctx, expr), exprEsc)
 	})
 }
 
@@ -95,7 +124,7 @@ const (
 	chainIndexVar = "chainIndex"
 )
 
-func generateChainExpression(ctx *ctx, cexpr file.ChainExpression, defaultExpr *file.Expression, esc *escaper, writer func(func())) {
+func generateChainExpression(ctx *ctx, cexpr file.ChainExpression, defaultExpr *file.Expression, esc *expressionEscaper, writer func(func())) {
 	if cexpr.Default != nil {
 		defaultExpr = cexpr.Default
 	}
@@ -131,26 +160,33 @@ func generateChainExpression(ctx *ctx, cexpr file.ChainExpression, defaultExpr *
 	}
 
 	ctx.flushGenerate()
+	ctx.flushClasses()
 	if cexpr.CheckRoot {
-		setChainValVar(ctx, &valBuilder)
 		ctx.write("if ")
+		setChainValVar(ctx, &valBuilder)
 		ctx.writeln("; !" + ctx.woofFunc("IsZero", ctx.ident(chainValVar)) + " {")
-		defer ctx.writeln("}")
+	} else {
+		ctx.writeln("{")
 	}
+	defer ctx.writeln("}")
 
 	generateChainExprItems(ctx, cexpr.Chain, &valBuilder, func() {
 		writer(func() {
-			ctx.generateExpr(valBuilder.String(), esc)
+			ctx.generateExpr(strings.Repeat("*", cexpr.DerefCount)+valBuilder.String(), esc)
 		})
 		ctx.flushGenerate()
+		ctx.flushClasses()
 	})
 }
 
-func generateChainExprItems(ctx *ctx, cexprs []file.ChainExpressionItem, valBuilder *strings.Builder, checksPassed func()) {
-	for _, cexpr := range cexprs {
-		switch cexpr := cexpr.(type) {
+func generateChainExprItems(ctx *ctx, cexprItms []file.ChainExpressionItem, valBuilder *strings.Builder, checksPassed func()) {
+	for _, cexprItm := range cexprItms {
+		switch cexpr := cexprItm.(type) {
 		case file.IndexExpression:
 			if cexpr.CheckIndex {
+				ctx.writeln("{")
+				//goland:noinspection GoDeferInLoop
+				defer ctx.writeln("}")
 				setChainValVar(ctx, valBuilder) // set now, in case chainIndexVar is in the valBuilder
 				ctx.writeln("")
 				ctx.writeln(ctx.ident(chainIndexVar) + " := " + inlineExpression(ctx, cexpr.Index))
@@ -224,6 +260,7 @@ func generateChainExprItems(ctx *ctx, cexprs []file.ChainExpressionItem, valBuil
 
 			if cexpr.Check {
 				setChainValVar(ctx, valBuilder)
+				ctx.writeln("")
 				ctx.writeln("if " + ctx.ident(chainValVar) + ", " + ctx.ident("ok") + " := " + ctx.ident(chainValVar) + ".(" + typ + "); " + ctx.ident("ok") + " {")
 				//goland:noinspection GoDeferInLoop
 				defer ctx.writeln("}")
@@ -244,26 +281,26 @@ func setChainValVar(ctx *ctx, sb *strings.Builder) {
 	sb.WriteString(ctx.ident(chainValVar))
 }
 
-func generateTernaryExpression(ctx *ctx, texpr file.TernaryExpression, txtEsc *escaper, exprEsc *escaper) {
+func generateTernaryExpression(ctx *ctx, texpr file.TernaryExpression, txtEsc *textEscaper, exprEsc *expressionEscaper) {
 	ctx.debugItem(texpr, "(generated) (see below)")
 	ctx.flushGenerate()
 	ctx.write("if ")
 	ctx.write(inlineCondition(ctx, texpr.Condition))
 	ctx.writeln(" {")
-	ctx.generateExpression(texpr.IfTrue, txtEsc, exprEsc, nil)
+	generateExpression(ctx, texpr.IfTrue, txtEsc, exprEsc, nil)
 	ctx.flushGenerate()
 	ctx.writeln("} else {")
-	ctx.generateExpression(texpr.IfFalse, txtEsc, exprEsc, nil)
+	generateExpression(ctx, texpr.IfFalse, txtEsc, exprEsc, nil)
 	ctx.flushGenerate()
 	ctx.writeln("}")
 }
 
-func generateGoExpression(ctx *ctx, gexpr file.GoExpression, esc *escaper) {
+func generateGoExpression(ctx *ctx, gexpr file.GoExpression, esc *expressionEscaper) {
 	ctx.debugItem(gexpr, gexpr.Expression)
 	ctx.generateExpr(gexpr.Expression, esc)
 }
 
-func generateStringExpression(ctx *ctx, sexpr file.StringExpression, txtEsc *escaper, exprEsc *escaper) {
+func generateStringExpression(ctx *ctx, sexpr file.StringExpression, txtEsc *textEscaper, exprEsc *expressionEscaper) {
 	ctx.debugItem(sexpr, "(generated) (see below)")
 
 	for _, exprItm := range sexpr.Contents {
@@ -276,12 +313,12 @@ func generateStringExpression(ctx *ctx, sexpr file.StringExpression, txtEsc *esc
 			if txtEsc != nil {
 				ctx.generate(s, txtEsc)
 			} else {
-				ctx.generate(s, exprEsc)
+				ctx.generateExpr(strconv.Quote(exprItm.Text), exprEsc)
 			}
 		case file.StringExpressionInterpolation:
 			if exprItm.FormatDirective == "" {
 				ctx.debugItem(exprItm, "(see sub expressions)")
-				ctx.generateExpression(exprItm.Expression, nil, exprEsc, nil)
+				generateExpression(ctx, exprItm.Expression, nil, exprEsc, nil)
 				continue
 			}
 
@@ -302,8 +339,8 @@ func valueChainExpression(ctx *ctx, cexpr file.ChainExpression, onValue func(exp
 
 	ctx.flushGenerate()
 	if cexpr.CheckRoot {
-		setChainValVar(ctx, &valBuilder)
 		ctx.write("if ")
+		setChainValVar(ctx, &valBuilder)
 		ctx.writeln("; !" + ctx.woofFunc("IsZero", ctx.ident(chainValVar)) + " {")
 	}
 
@@ -313,7 +350,8 @@ func valueChainExpression(ctx *ctx, cexpr file.ChainExpression, onValue func(exp
 	}
 
 	generateChainExprItems(ctx, cexpr.Chain, &valBuilder, func() {
-		onValue(valBuilder.String())
+		ctx.flushGenerate()
+		onValue(strings.Repeat("*", cexpr.DerefCount) + valBuilder.String())
 		ctx.flushGenerate()
 		if cexpr.Default != nil {
 			ctx.writeln("goto " + checksPassedGoto)
@@ -324,6 +362,7 @@ func valueChainExpression(ctx *ctx, cexpr file.ChainExpression, onValue func(exp
 	}
 
 	if cexpr.Default != nil {
+		ctx.flushGenerate()
 		onValue(inlineExpression(ctx, *cexpr.Default))
 		ctx.flushGenerate()
 		ctx.writeln(checksPassedGoto + ":")
@@ -348,50 +387,98 @@ func inlineExpression(ctx *ctx, expr file.Expression) string {
 			inlineGoExpression(ctx, &sb, exprItm)
 		case file.StringExpression:
 			inlineStringExpression(ctx, &sb, exprItm)
+		default:
+			panic(fmt.Errorf("unknown expression item %T (you shouldn't see this error, please open an issue)", exprItm))
 		}
 	}
 
 	return sb.String()
 }
 
-func inlineChainExpression(ctx *ctx, sb *strings.Builder, cexpr file.ChainExpression, defaultExpr *file.Expression, typ string) {
-	if cexpr.Default != nil {
-		defaultExpr = cexpr.Default
+// ============================================================================
+// Mixin Arg Expression
+// ======================================================================================
+
+func mixinArgExpression(ctx *ctx, param file.MixinParam, arg file.MixinArg) {
+	if len(arg.Value.Expressions) == 1 {
+		cExpr, ok := arg.Value.Expressions[0].(file.ChainExpression)
+		if ok {
+			var typ string
+			if param.Type != nil {
+				typ = param.Type.Type
+			} else {
+				typ = param.InferredType
+			}
+
+			ctx.write(mixinArgChainExpression(ctx, cExpr, typ, param.Default != nil))
+			return
+		}
 	}
 
-	sb.WriteString("func () ")
+	if param.Default != nil {
+		ctx.write(ctx.woofFunc("Ptr", inlineExpression(ctx, arg.Value)))
+	} else {
+		ctx.write(inlineExpression(ctx, arg.Value))
+	}
+}
+
+func mixinArgChainExpression(ctx *ctx, cexpr file.ChainExpression, typ string, attrHasDefault bool) string {
+	var sb strings.Builder
+
+	sb.WriteString(`func () `)
+	if attrHasDefault {
+		sb.WriteByte('*')
+	}
 	sb.WriteString(typ)
 	sb.WriteString(" {\n")
-	defer sb.WriteString("}()")
 
 	var valBuilder strings.Builder
 	valBuilder.WriteString(inlineExpression(ctx, file.Expression{Expressions: []file.ExpressionItem{cexpr.Root}}))
 
 	if cexpr.CheckRoot {
-		setChainValVar(ctx, &valBuilder)
 		sb.WriteString("if ")
+		setChainValVar(ctx, &valBuilder)
 		sb.WriteString("; !" + ctx.woofFunc("IsZero", ctx.ident(chainValVar)) + " {\n")
 	}
 
-	inlineChainExprItems(ctx, sb, cexpr.Chain, &valBuilder, func() {
+	mixinArgChainExprItms(ctx, &sb, cexpr.Chain, &valBuilder, func() {
 		sb.WriteString("return ")
-		sb.WriteString(valBuilder.String())
+		if attrHasDefault {
+			sb.WriteString(ctx.woofFunc("Ptr", strings.Repeat("*", cexpr.DerefCount)+valBuilder.String()))
+		} else {
+			sb.WriteString(valBuilder.String())
+		}
 		sb.WriteByte('\n')
 	})
 	if cexpr.CheckRoot {
 		sb.WriteString("}\n")
 	}
 
-	sb.WriteString("return ")
-	sb.WriteString(inlineExpression(ctx, *defaultExpr))
-	sb.WriteByte('\n')
+	if cexpr.Default != nil {
+		sb.WriteString("return ")
+		if attrHasDefault {
+			sb.WriteString(ctx.woofFunc("Ptr", inlineExpression(ctx, *cexpr.Default)))
+		} else {
+			sb.WriteString(inlineExpression(ctx, *cexpr.Default))
+		}
+		sb.WriteByte('\n')
+	} else {
+		sb.WriteString("return nil\n")
+	}
+
+	sb.WriteString("}()")
+	return sb.String()
 }
 
-func inlineChainExprItems(ctx *ctx, exprBuilder *strings.Builder, cexprs []file.ChainExpressionItem, valBuilder *strings.Builder, checksPassed func()) {
-	for _, cexpr := range cexprs {
-		switch cexpr := cexpr.(type) {
+func mixinArgChainExprItms(ctx *ctx, exprBuilder *strings.Builder, cexprItms []file.ChainExpressionItem, valBuilder *strings.Builder, checksPassed func()) {
+	for _, cexprItm := range cexprItms {
+		switch cexpr := cexprItm.(type) {
 		case file.IndexExpression:
 			if cexpr.CheckIndex {
+				exprBuilder.WriteString("{\n")
+				//goland:noinspection GoDeferInLoop
+				defer exprBuilder.WriteString("}\n")
+
 				inlineSetChainValVar(ctx, exprBuilder, valBuilder) // set now, in case chainIndexVar is in the valBuilder
 				exprBuilder.WriteByte('\n')
 				exprBuilder.WriteString(ctx.ident(chainIndexVar) + " := " + inlineExpression(ctx, cexpr.Index) + "\n")
@@ -418,7 +505,7 @@ func inlineChainExprItems(ctx *ctx, exprBuilder *strings.Builder, cexprs []file.
 			}
 
 			if cexpr.CheckValue {
-				ctx.write("if ")
+				exprBuilder.WriteString("if ")
 				inlineSetChainValVar(ctx, exprBuilder, valBuilder)
 				exprBuilder.WriteString("; !" + ctx.woofFunc("IsZero", ctx.ident(chainValVar)) + " {\n")
 				//goland:noinspection GoDeferInLoop
@@ -429,7 +516,7 @@ func inlineChainExprItems(ctx *ctx, exprBuilder *strings.Builder, cexprs []file.
 			valBuilder.WriteString(cexpr.Ident.Ident)
 
 			if cexpr.Check {
-				ctx.write("if ")
+				exprBuilder.WriteString("if ")
 				inlineSetChainValVar(ctx, exprBuilder, valBuilder)
 				exprBuilder.WriteString("; !" + ctx.woofFunc("IsZero", ctx.ident(chainValVar)) + " {\n")
 				//goland:noinspection GoDeferInLoop
@@ -447,7 +534,7 @@ func inlineChainExprItems(ctx *ctx, exprBuilder *strings.Builder, cexprs []file.
 			valBuilder.WriteByte(')')
 
 			if cexpr.Check {
-				ctx.write("if ")
+				exprBuilder.WriteString("if ")
 				inlineSetChainValVar(ctx, exprBuilder, valBuilder)
 				exprBuilder.WriteString("; !" + ctx.woofFunc("IsZero", ctx.ident(chainValVar)) + " {\n")
 				//goland:noinspection GoDeferInLoop
@@ -465,6 +552,7 @@ func inlineChainExprItems(ctx *ctx, exprBuilder *strings.Builder, cexprs []file.
 
 			if cexpr.Check {
 				inlineSetChainValVar(ctx, exprBuilder, valBuilder)
+				exprBuilder.WriteByte('\n')
 				exprBuilder.WriteString("if " + ctx.ident(chainValVar) + ", " + ctx.ident("ok") + " := " + ctx.ident(chainValVar) + ".(" + typ + "); " + ctx.ident("ok") + " {\n")
 				//goland:noinspection GoDeferInLoop
 				defer exprBuilder.WriteString("}\n")
@@ -560,12 +648,12 @@ func inlineConditionChainExpression(ctx *ctx, sb *strings.Builder, cexpr file.Ch
 	valBuilder.WriteString(inlineExpression(ctx, file.Expression{Expressions: []file.ExpressionItem{cexpr.Root}}))
 
 	if cexpr.CheckRoot {
-		setChainValVar(ctx, &valBuilder)
 		sb.WriteString("if ")
+		setChainValVar(ctx, &valBuilder)
 		sb.WriteString("; !" + ctx.woofFunc("IsZero", ctx.ident(chainValVar)) + " {\n")
 	}
 
-	inlineChainExprItems(ctx, sb, cexpr.Chain, &valBuilder, func() {
+	mixinArgChainExprItms(ctx, sb, cexpr.Chain, &valBuilder, func() {
 		sb.WriteString("return true\n")
 	})
 	if cexpr.CheckRoot {
@@ -588,8 +676,8 @@ func forChainExpression(ctx *ctx, cexpr file.ChainExpression, writer func(string
 			ctx.writeln(ctx.ident("ranger") + " := " + inlineExpression(ctx, *cexpr.Default))
 
 			if cexpr.CheckRoot {
-				setChainValVar(ctx, &valBuilder)
 				ctx.write("if ")
+				setChainValVar(ctx, &valBuilder)
 				ctx.writeln("; !" + ctx.woofFunc("IsZero", ctx.ident(chainValVar)) + " {")
 			}
 
@@ -607,8 +695,8 @@ func forChainExpression(ctx *ctx, cexpr file.ChainExpression, writer func(string
 	}
 
 	if cexpr.CheckRoot {
-		setChainValVar(ctx, &valBuilder)
 		ctx.write("if ")
+		setChainValVar(ctx, &valBuilder)
 		ctx.writeln("; !" + ctx.woofFunc("IsZero", ctx.ident(chainValVar)) + " {")
 		defer ctx.writeln("}")
 	}
@@ -622,55 +710,61 @@ func forChainExpression(ctx *ctx, cexpr file.ChainExpression, writer func(string
 // contextExpression
 // ======================================================================================
 
-func generateContextExpression(ctx *ctx, expr file.Expression, escFunc, safeTyp string, normalizer func(string) string, writer func(func())) {
+func generateContextExpression(ctx *ctx, expr file.Expression, ctxEsc contextEscaper, writer func(func())) {
+	if writer == nil {
+		writer = func(genExpr func()) { genExpr() }
+	}
+
 	if len(expr.Expressions) == 1 {
 		switch exprItm := expr.Expressions[0].(type) {
 		case file.ChainExpression:
-			generateChainExpression(ctx, exprItm, nil, &escaper{name: escFunc}, writer)
+			valueChainExpression(ctx, exprItm, func(expr string) {
+				writer(func() {
+					ctx.flushGenerate()
+					ctx.writeln(ctx.woofFunc("WriteAnys", ctx.ident(ctxVar), ctx.woofQual(ctxEsc.funcName), expr))
+				})
+			})
 			return
 		case file.TernaryExpression:
 			writer(func() {
-				generateContextTernaryExpression(ctx, exprItm, escFunc, safeTyp, normalizer)
-			})
-			return
-		case file.GoExpression:
-			writer(func() {
-				generateGoExpression(ctx, exprItm, &escaper{name: escFunc})
+				generateContextTernaryExpression(ctx, exprItm, ctxEsc)
 			})
 			return
 		case file.StringExpression:
 			writer(func() {
-				generateContextStringExpression(ctx, exprItm, escFunc, safeTyp, normalizer)
+				generateContextStringExpression(ctx, exprItm, ctxEsc)
 			})
 			return
 		}
 	}
 
-	panic(fmt.Errorf("generateContextExpression (%d:%d): attempting to generated contextual escaped complex expression"+
-		" (this should've been caught during validation)", expr.Pos().Line, expr.Pos().Col))
+	writer(func() {
+		ctx.writeln(ctx.woofFunc("WriteAnys", ctx.ident(ctxVar), ctx.woofQual(ctxEsc.funcName), inlineExpression(ctx, expr)))
+	})
 }
 
-func generateContextTernaryExpression(ctx *ctx, texpr file.TernaryExpression, escFunc, safeTyp string, normalizer func(string) string) {
+func generateContextTernaryExpression(ctx *ctx, texpr file.TernaryExpression, ctxEsc contextEscaper) {
 	ctx.debugItem(texpr, "(generated) (see below)")
 	ctx.flushGenerate()
+	ctx.flushClasses()
 	ctx.write("if ")
 	ctx.write(inlineCondition(ctx, texpr.Condition))
 	ctx.writeln(" {")
-	generateContextExpression(ctx, texpr.IfTrue, escFunc, safeTyp, normalizer, nil)
+	generateContextExpression(ctx, texpr.IfTrue, ctxEsc, nil)
 	ctx.flushGenerate()
+	ctx.flushClasses()
 	ctx.writeln("} else {")
-	generateContextExpression(ctx, texpr.IfFalse, escFunc, safeTyp, normalizer, nil)
+	generateContextExpression(ctx, texpr.IfFalse, ctxEsc, nil)
 	ctx.flushGenerate()
+	ctx.flushClasses()
 	ctx.writeln("}")
 }
 
-func generateContextStringExpression(ctx *ctx, sexpr file.StringExpression, escFunc, safeTyp string, normalizer func(string) string) {
+func generateContextStringExpression(ctx *ctx, sexpr file.StringExpression, ctxEsc contextEscaper) {
 	ctx.debugItem(sexpr, "(generated) (see below)")
 
 	var b strings.Builder
-	b.WriteString(ctx.woofQual(escFunc))
-	b.WriteByte('(')
-
+	b.WriteString(ctx.woofQual(ctxEsc.funcName))
 	for i, exprItm := range sexpr.Contents {
 		if i > 0 {
 			b.WriteString(", ")
@@ -680,8 +774,10 @@ func generateContextStringExpression(ctx *ctx, sexpr file.StringExpression, escF
 		case file.StringExpressionText:
 			s := unquoteStringExpressionText(sexpr, exprItm)
 			ctx.debugItem(exprItm, s)
-			s = normalizer(s)
-			b.WriteString(ctx.woofFunc(safeTyp, strconv.Quote(s)))
+			if ctxEsc.normalizer != nil {
+				s = ctxEsc.normalizer(s)
+			}
+			b.WriteString(ctx.woofFunc(ctxEsc.safeType, strconv.Quote(s)))
 		case file.StringExpressionInterpolation:
 			ctx.debugItem(exprItm, "(see sub expressions)")
 			b.WriteString(inlineExpression(ctx, exprItm.Expression))
@@ -689,7 +785,7 @@ func generateContextStringExpression(ctx *ctx, sexpr file.StringExpression, escF
 		}
 	}
 
-	ctx.write(ctx.contextFunc("Write", ctx.woofFunc("MustFunc", ctx.ident(ctxVar), "func() ("+safeTyp+", error) { return "+b.String()+" }")))
+	ctx.writeln(ctx.woofFunc("WriteAnys", ctx.ident(ctxVar), ctx.woofQual(ctxEsc.funcName), b.String()))
 }
 
 func unquoteStringExpressionText(sexpr file.StringExpression, txt file.StringExpressionText) string {

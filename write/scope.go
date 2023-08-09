@@ -42,6 +42,10 @@ func scopeItem(ctx *ctx, itm file.ScopeItem) {
 		element(ctx, itm)
 	case file.DivShorthand:
 		divShorthand(ctx, itm)
+	case file.CommandFilter:
+		commandFilter(ctx, itm)
+	case file.RawFilter:
+		rawFilter(ctx, itm)
 	case file.Include:
 		include(ctx, itm)
 	case file.Mixin:

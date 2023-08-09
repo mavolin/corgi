@@ -190,12 +190,12 @@ func (err *UnprintableValueError) Error() string {
 // JSify converts the passed value to a JavaScript value.
 //
 // It is safe to embed into HTML without further escaping.
-func JSify(val any) (string, error) {
+func JSify(val any) (JS, error) {
 	switch t := val.(type) {
 	case JS:
-		return string(t), nil
+		return t, nil
 	case JSStr:
-		return `"` + string(t) + `"`, nil
+		return `"` + JS(t) + `"`, nil
 	case json.Marshaler:
 		// Do not treat as a Stringer.
 	case fmt.Stringer:
@@ -244,7 +244,7 @@ func JSify(val any) (string, error) {
 		if pad {
 			buf.WriteByte(' ')
 		}
-		return buf.String(), nil
+		return JS(buf.String()), nil
 	}
-	return string(jsonVal), nil
+	return JS(jsonVal), nil
 }

@@ -7,6 +7,8 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
+	"strings"
 
 	"github.com/mavolin/corgi"
 	"github.com/mavolin/corgi/internal/meta"
@@ -37,6 +39,9 @@ var (
 	ForceColorSetting bool
 	Color             bool
 
+	TrustedExecutables  []string
+	TrustAllExecutables bool
+
 	// Args
 
 	InFile string
@@ -58,15 +63,13 @@ func init() {
 	flag.StringVar(&Package, "package", "",
 		"the name of the package to generate into (default: GOPACKAGE, or pwd)\n"+
 			"ignored if -lib is set")
-	flag.BoolVar(&NoGoImports, "nogoimports", false, "do not run goimports on the generated file")
 	flag.StringVar(&OutFile, "o", "", "write output to `File` instead of stdout (defaults to `FILE.go`)")
 	flag.BoolVar(&UseStdout, "stdout", false, "write to stdout instead of a file")
-
-	flag.BoolVar(&ScriptNonce, "script-nonce", false, "inject a nonce attribute in every script if the woof.ScriptNonce context value is set")
 
 	flag.BoolVar(&PrecompileLibrary, "lib", false,
 		"treat the input file as a library dir, not compatible with stdin;\n"+
 			"`-o`, if not set, will default to `"+corgi.PrecompFileName+"`")
+	flag.BoolVar(&NoGoImports, "nogoimports", false, "do not run goimports on the generated file")
 	flag.StringVar(&GoExecPath, "go", "", "path to the go executable, defaults to a PATH lookup")
 	flag.BoolVar(&Verbose, "v", false, "enable verbose output to stderr")
 	flag.BoolVar(&Debug, "debug", false, "print file and line information as comments in the generated function")
@@ -84,7 +87,7 @@ func init() {
 
 		return nil
 	})
-	flag.Func("colour", "force or disable colouring of errors, even if you speak British English (`true`, `false`)", func(s string) error {
+	flag.Func("colour", "force or disable colouring of errors, even if you're British (`true`, `false`)", func(s string) error {
 		ForceColorSetting = true
 		switch s {
 		case "", "true":
@@ -97,6 +100,39 @@ func init() {
 
 		return nil
 	})
+
+	var configDir string
+	if runtime.GOOS == "windows" {
+		if appData := os.Getenv("AppData"); appData != "" {
+			configDir = filepath.Join(appData, `Local\corgi`)
+		}
+	} else if runtime.GOOS == "linux" || runtime.GOOS == "darwin" {
+		if home := os.Getenv("HOME"); home != "" {
+			configDir = filepath.Join(home, ".config/corgi")
+		}
+	}
+
+	var exePreferencesText string
+	if configDir != "" {
+		exePreferencesText = "\nthis does not affect preferences stored in `" + filepath.Join(configDir, "trusted_filters")
+	}
+
+	flag.Func("trust-filter", "trust these comma-separated executables to be run as filters"+exePreferencesText,
+		func(s string) error {
+			TrustedExecutables = append(TrustedExecutables, strings.Split(s, ",")...)
+			return nil
+		})
+	flag.Func("trust-all-filters",
+		"set to `i know this is dangerous` to allow running all executables as filters\n"+
+			"only set this if you trust the file you are compiling or are running corgi in a secure environment (i.e. a container)",
+		func(s string) error {
+			if s == "i know this is dangerous" {
+				TrustAllExecutables = true
+				return nil
+			}
+
+			return fmt.Errorf("invalid value for `-trust-all-filters` flag, consult help (`-h`): %s", s)
+		})
 
 	flag.Parse()
 
@@ -114,7 +150,7 @@ func init() {
 			wd, err := os.Getwd()
 			if err != nil {
 				fmt.Fprintln(os.Stderr, "failed to get workdir\n"+
-					"if this happens again set package manually using the `-package` flag")
+					"please set package manually using the `-package` flag")
 				os.Exit(2)
 			}
 

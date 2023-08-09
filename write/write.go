@@ -184,6 +184,7 @@ func (w *Writer) PrecompileLibrary(out io.Writer, lib *file.Library) (err error)
 		ctx._stack = []*file.File{pm.File}
 		ctx.mixin = &pm.Mixin
 		ctx.mixinFuncNames = mixinFuncNames
+		ctx.hasNonce = true
 
 		writeMixinFunc(ctx, &pm.Mixin)
 

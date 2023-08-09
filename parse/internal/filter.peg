@@ -4,11 +4,35 @@ Filter <- RawFilter / CommandFilter / BadFilter
 // Raw Filter
 // ======================================================================================
 
-RawFilter <- ":raw" EOL bodyI:filterBody? {
+RawFilter <- ":raw" typI:(' '+ rawFilterType)? EOL bodyI:filterBody? {
+    var typ file.RawFilterType
+    if typI != nil {
+        typ = getTuple[file.RawFilterType](typI, -1)
+    }
+
     return file.RawFilter{
+        Type: typ,
         Body: castedOrZero[[]file.FilterLine](bodyI),
         Position: pos(c),
     }, nil
+}
+
+rawFilterType <- ("html" / "svg" / "js" / "css") {
+    return file.RawFilterType(string(c.text)), nil
+} / NOT_EOL+ {
+    return file.RawFilterType(string(c.text)), &corgierr.Error{
+        Message: "invalid raw filter type",
+        ErrorAnnotation: anno(c, annotation{
+           Start: pos(c),
+           ToEOL: true,
+           Annotation: "expected either `html`, `svg`, `js`, or `css`",
+        }),
+        Suggestions: []corgierr.Suggestion{
+            {
+                Suggestion: "remove the type entirely, or replace it with one of the above",
+            },
+        },
+    }
 }
 
 // ============================================================================

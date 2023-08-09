@@ -29,7 +29,8 @@ type ctx struct {
 	identPrefix  string
 	gotoCounter  int
 	mixinCounter int
-	tempCounter  int
+
+	hasNonce bool
 
 	// _stack are the files we are currently in.
 	//
@@ -47,13 +48,12 @@ type ctx struct {
 	// mixin is the mixin we are currently generating.
 	mixin *file.Mixin
 
-	exprEscaper *stack.Stack[*escaper]
-	txtEscaper  *stack.Stack[*escaper]
+	exprEscaper *stack.Stack[expressionEscaper]
+	txtEscaper  *stack.Stack[textEscaper]
 
 	elemNames      *stack.Stack[string]
 	customVoidElem bool
 	classBuf       strings.Builder
-	needBufClass   bool
 	haveBufClasses bool
 	closed         *stack.Stack[closeState]
 	calledUnclosed bool
@@ -142,8 +142,8 @@ func (s closeState) String() string {
 func newCtx(o Options) *ctx {
 	return &ctx{
 		identPrefix: o.IdentPrefix,
-		exprEscaper: stack.New1(bodyEscaper),
-		txtEscaper:  stack.New1(bodyEscaper),
+		exprEscaper: stack.New1(plainBodyExprEscaper),
+		txtEscaper:  stack.New1(plainBodyTextEscaper),
 		elemNames:   new(stack.Stack[string]),
 		closed:      stack.New1(closed),
 		mixinFuncNames: mixinFuncMap{
@@ -236,11 +236,6 @@ func (ctx *ctx) nextMixinIdent() string {
 	return fmt.Sprint(ctx.identPrefix, "mixin", ctx.mixinCounter-1)
 }
 
-func (ctx *ctx) nextTempIdent() string {
-	ctx.tempCounter++
-	return fmt.Sprint(ctx.identPrefix, "temp", ctx.tempCounter-1)
-}
-
 func (ctx *ctx) stack() []*file.File {
 	return ctx._stack[ctx.stackStart:]
 }
@@ -269,17 +264,26 @@ func (ctx *ctx) startElem(name string, void bool) {
 
 	switch name {
 	case "script":
-		ctx.exprEscaper.Push(jsEscaper)
+		ctx.exprEscaper.Push(scriptBodyExprEscaper)
+		ctx.txtEscaper.Push(scriptBodyTextEscaper)
+
+		if ctx.hasNonce {
+			ctx.flushGenerate()
+			ctx.writeln(ctx.contextFunc("InjectNonce"))
+		}
 	case "style":
-		ctx.exprEscaper.Push(cssEscaper)
+		ctx.exprEscaper.Push(styleBodyExprEscaper)
+		ctx.txtEscaper.Push(styleBodyTextEscaper)
 	default:
-		ctx.exprEscaper.Push(bodyEscaper)
+		ctx.exprEscaper.Push(plainBodyExprEscaper)
+		ctx.txtEscaper.Push(plainBodyTextEscaper)
 	}
 }
 
 func (ctx *ctx) closeElem() {
 	ctx.closeTag()
 	ctx.exprEscaper.Pop()
+	ctx.txtEscaper.Pop()
 
 	name := ctx.elemNames.Pop()
 
@@ -350,8 +354,18 @@ func (ctx *ctx) inContext(f func()) {
 	ctx.writeln("}")
 }
 
-func (ctx *ctx) generate(s string, esc *escaper) {
-	s = esc.escape(ctx, s)
+func (ctx *ctx) generate(s string, esc *textEscaper) {
+	if esc != nil {
+		if ctx.debugEnabled {
+			old := s
+			s = esc.f(s)
+			ctx.debug("escape/"+esc.name, strconv.Quote(old)+" -> "+strconv.Quote(s))
+		} else {
+			s = esc.f(s)
+		}
+	} else {
+		ctx.debug("escape/none", strconv.Quote(s)+" -> [equal]")
+	}
 	ctx.debug("write buffer", strconv.Quote(s))
 	ctx.generateBuf.WriteString(s)
 }
@@ -386,7 +400,7 @@ func (ctx *ctx) generateStringAttr(name, val string) {
 	// https://html.spec.whatwg.org/#syntax-attribute-value
 	if val == "" || strings.ContainsAny(val, "\t\n\f\r \"'=<>`") {
 		ctx.generate(`"`, nil)
-		ctx.generate(val, attrEscaper)
+		ctx.generate(val, &attrTextEscaper)
 		ctx.generate(`"`, nil)
 		return
 	}
@@ -394,73 +408,11 @@ func (ctx *ctx) generateStringAttr(name, val string) {
 	ctx.generate(unquotedAttrValEscaper.Replace(val), nil)
 }
 
-func (ctx *ctx) generateExpr(expr string, esc *escaper) {
+func (ctx *ctx) generateExpr(expr string, esc *expressionEscaper) {
 	ctx.flushGenerate()
 
-	escName := "nil"
-	if esc != nil {
-		escName = esc.qualName(ctx)
-	}
-	ctx.writeln(ctx.woofFunc("WriteAny", ctx.ident(ctxVar), expr, escName))
-}
-
-// see generateExpression (func not method)
-func (ctx *ctx) generateExpression(expr file.Expression, txtEsc *escaper, exprEsc *escaper, writer func(func())) {
-	if len(expr.Expressions) == 0 {
-		return
-	}
-
-	if writer == nil {
-		writer = func(genExpr func()) {
-			genExpr()
-		}
-	}
-
-	if len(expr.Expressions) == 1 {
-		esc := exprEsc
-		if txtEsc != nil {
-			esc = txtEsc
-		}
-
-		switch exprItm := expr.Expressions[0].(type) {
-		case file.GoExpression:
-			if num, err := strconv.ParseInt(exprItm.Expression, 10, 64); err == nil {
-				writer(func() {
-					ctx.generate(ctx.stringify(num), esc)
-				})
-				return
-			} else if num, err := strconv.ParseUint(exprItm.Expression, 10, 64); err == nil {
-				writer(func() {
-					ctx.generate(ctx.stringify(num), esc)
-				})
-				return
-			} else if num, err := strconv.ParseFloat(exprItm.Expression, 64); err == nil {
-				writer(func() {
-					ctx.generate(ctx.stringify(num), esc)
-				})
-				return
-			}
-		case file.StringExpression:
-			if len(exprItm.Contents) == 0 {
-				return
-			} else if len(exprItm.Contents) != 1 {
-				break
-			}
-
-			txt, ok := exprItm.Contents[0].(file.StringExpressionText)
-			if !ok {
-				break
-			}
-
-			s := unquoteStringExpressionText(exprItm, txt)
-
-			writer(func() {
-				ctx.generate(s, esc)
-			})
-		}
-	}
-
-	generateExpression(ctx, expr, txtEsc, exprEsc, writer)
+	escName := ctx.woofQual(esc.funcName)
+	ctx.writeln(ctx.woofFunc("WriteAny", ctx.ident(ctxVar), escName, expr))
 }
 
 func (ctx *ctx) bufClass(class string) {
@@ -517,7 +469,7 @@ func (ctx *ctx) closeTag() {
 	}
 }
 
-// horrible name, but a ton less confusion than just reading callUnclosed
+// horrible name, but a ton less confusion than just reading callUnclosed.
 func (ctx *ctx) callUnclosedIfUnclosed() {
 	ctx.debug("call unclosed if unclosed", "close state: "+ctx.closed.Peek().String()+", called before: "+fmt.Sprint(ctx.calledUnclosed))
 
@@ -530,7 +482,7 @@ func (ctx *ctx) callUnclosedIfUnclosed() {
 	}
 }
 
-// horrible name, but a ton less confusion than just reading callUnclosed
+// horrible name, but a ton less confusion than just reading callUnclosed.
 func (ctx *ctx) callClosedIfClosed() {
 	ctx.debug("call closed if closed", "close state: "+ctx.closed.Peek().String())
 

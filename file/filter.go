@@ -49,9 +49,19 @@ func (StringCommandFilterArg) _typeCommandFilterArg() {}
 // ======================================================================================
 
 type RawFilter struct {
+	Type RawFilterType
 	Body []FilterLine
 	Position
 }
+
+type RawFilterType string
+
+const (
+	RawHTML RawFilterType = "html"
+	RawSVG  RawFilterType = "svg"
+	RawJS   RawFilterType = "js"
+	RawCSS  RawFilterType = "css"
+)
 
 var _ Filter = RawFilter{}
 

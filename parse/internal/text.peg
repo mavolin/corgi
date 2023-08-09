@@ -129,7 +129,7 @@ SimpleInterpolation <- '#' noEscapeI:'!'? valueI:textInterpolationValue {
 // ElementInterpolation
 // ======================================================================================
 
-ElementInterpolation <- '#' elPosI:POS nameI:htmlTagName attrsI:SingleLineAttributeCollection* valueI:elementInterpolationValue? {
+ElementInterpolation <- '#' elPosI:POS nameI:htmlTagName attrsI:SingleLineAttributeCollection* valueI:elementInterpolationValue {
     return file.ElementInterpolation{
         Element: file.Element{
             Name: concat(nameI),
@@ -144,6 +144,14 @@ ElementInterpolation <- '#' elPosI:POS nameI:htmlTagName attrsI:SingleLineAttrib
 
 elementInterpolationValue <- textInterpolationValue / expressionInterpolationValue / '/' {
     return true, nil // hacky, but whatev
+} / &(. / !.) {
+    return nil, &corgierr.Error{
+        Message: "invalid interpolation value",
+        ErrorAnnotation: anno(c, annotation{
+            Start: pos(c),
+            Annotation: "expected either an `{` expression `}`, `[` text `]`, or a `/` void indicator",
+        }),
+    }
 }
 
 // ============================================================================

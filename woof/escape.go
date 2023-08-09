@@ -100,8 +100,9 @@ type (
 	// as it will only be HTML escaped before including in template output.
 	URL string
 
-	// Srcset represents a known safe srcset attribute value, that is not yet
-	// HTML escaped.
+	// Srcset represents a known safe srcset attribute value, safe to be
+	// embedded between two double quotes and used as a srcset attribute or
+	// part of a srcset attribute.
 	//
 	// Use of this type presents a security risk:
 	// the encapsulated content should come from a trusted source,
@@ -137,6 +138,19 @@ type (
 	// the encapsulated content should come from a trusted source,
 	// as it will be included verbatim in the template output.
 	JSStr string
+
+	// JSAttrVal is a js attribute safe to be embedded in double quotes and used
+	// as an attribute value.
+	//
+	// Use of this type presents a security risk:
+	// the encapsulated content should come from a trusted source,
+	// as it will be included verbatim in the template output.
+	//
+	// Using JS to include valid but untrusted JSON is not safe.
+	// A safe alternative is to parse the JSON with json.Unmarshal and then
+	// pass the resultant object into the template, where it will be
+	// converted to sanitized JSON when presented in a JavaScript context.
+	JSAttrVal string
 )
 
 const UnsafeReplacement = "ZcorgiZ"
@@ -548,19 +562,9 @@ func EscapeURL(vals ...any) (URL, error) {
 	var sb strings.Builder
 	sb.Grow(128)
 
-	var inQuery bool
 	for _, val := range vals {
 		if u, ok := val.(URL); ok {
 			sb.WriteString(string(u))
-
-			if !inQuery {
-				for _, b := range string(u) {
-					if b == '?' {
-						inQuery = true
-						break
-					}
-				}
-			}
 			continue
 		}
 
@@ -593,9 +597,10 @@ func EscapeURLSegment(val any) (URL, error) {
 
 func NormalizeURL(u URL) URL {
 	var sb strings.Builder
-	sb.Grow(len(u) + 16)
-	processURLOnto(string(u), true, false, &sb)
-	return URL(sb.String())
+	if processURLOnto(string(u), true, false, &sb) {
+		return URL(sb.String())
+	}
+	return u
 }
 
 // processURLOnto appends a normalized URL corresponding to its input to b
@@ -672,8 +677,8 @@ func FilterSrcset(vals ...any) (Srcset, error) {
 
 		switch val := val.(type) {
 		case Srcset:
-			trusted = trusted
-			s = string(val)
+			trusted = true
+			s = htmlAttrValEscaper.Replace(string(val))
 		case URL:
 			// Normalizing gets rid of all HTML whitespace
 			// which separate the image URL from its metadata.
@@ -759,13 +764,18 @@ func isHTMLSpaceOrASCIIAlnum(c byte) bool {
 // JS
 // ======================================================================================
 
-func EscapeJSAttr(val any) (HTMLAttrVal, error) {
+func EscapeJSAttrVal(val any) (JSAttrVal, error) {
+	attrVal, ok := val.(JSAttrVal)
+	if ok {
+		return attrVal, nil
+	}
+
 	s, err := JSify(val)
 	if err != nil {
 		return "", err
 	}
 
-	return EscapeHTMLAttrVal(s)
+	return JSAttrVal(htmlAttrValEscaper.Replace(string(s))), nil
 }
 
 // isJSIdentPart reports whether the given rune is a JS identifier part.

@@ -136,7 +136,7 @@ func ifMixinBlock(ctx *ctx, ifb file.IfBlock) {
 	for _, elseIf := range ifb.ElseIfs {
 		ctx.closed.Push(cl)
 
-		ctx.write("} else if " + ctx.ident("mixinBlock_"+elseIf.Name.Ident) + " != nil {")
+		ctx.writeln("} else if " + ctx.ident("mixinBlock_"+elseIf.Name.Ident) + " != nil {")
 		scope(ctx, elseIf.Then)
 		ctx.flushGenerate()
 		ctx.flushClasses()

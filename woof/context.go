@@ -8,12 +8,28 @@ import (
 type Context struct {
 	err      error
 	w        io.Writer
+	nonce    string
 	classBuf bytes.Buffer
 	closed   bool
 }
 
 func NewContext(w io.Writer) *Context {
 	return &Context{w: w, closed: true}
+}
+
+func (ctx *Context) SetScriptNonce(nonce any) {
+	s, err := Stringify(nonce)
+	if err != nil {
+		ctx.Panic(err)
+	}
+	ctx.nonce = htmlAttrValEscaper.Replace(s)
+}
+
+func (ctx *Context) InjectNonce() {
+	if ctx.nonce == "" {
+		return
+	}
+	ctx.Write(` nonce="` + ctx.nonce + `"`)
 }
 
 func (ctx *Context) Panic(err error) {
@@ -23,7 +39,7 @@ func (ctx *Context) Panic(err error) {
 
 func (ctx *Context) Recover() {
 	if ctx.err != nil {
-		recover()
+		_ = recover()
 	}
 }
 
@@ -115,7 +131,7 @@ func (ctx *Context) CloseStartTag(extraClasses HTMLAttrVal, void bool) {
 	ctx.Write(">")
 }
 
-func WriteAny[T ~string](ctx *Context, val any, escaper func(val any) (T, error)) {
+func WriteAny[T ~string](ctx *Context, escaper func(val any) (T, error), val any) {
 	if escaper != nil {
 		s, err := escaper(val)
 		if err != nil {
@@ -131,6 +147,14 @@ func WriteAny[T ~string](ctx *Context, val any, escaper func(val any) (T, error)
 	}
 
 	ctx.Write(s)
+}
+
+func WriteAnys[T ~string](ctx *Context, escaper func(vals ...any) (T, error), vals ...any) {
+	s, err := escaper(vals...)
+	if err != nil {
+		ctx.Panic(err)
+	}
+	ctx.Write(string(s))
 }
 
 // WriteAttr is a utility for writing attributes, that correctly handles bool
@@ -178,8 +202,8 @@ func Must[T ~string](ctx *Context, f func(val any) (T, error), val any) string {
 	return string(t)
 }
 
-func MustFunc[T ~string](ctx *Context, f func() (T, error)) string {
-	t, err := f()
+func MustContext[T ~string](ctx *Context, f func(vals ...any) (T, error), vals ...any) string {
+	t, err := f(vals...)
 	if err != nil {
 		ctx.Panic(err)
 	}

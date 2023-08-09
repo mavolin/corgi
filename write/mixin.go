@@ -169,6 +169,9 @@ func writeMixinSignature(ctx *ctx, m *file.Mixin) {
 }
 
 func scopeMixin(ctx *ctx, m file.Mixin) {
+	ctx.flushGenerate()
+	ctx.flushClasses()
+
 	name := ctx.mixinFuncNames.addScope(ctx, &m)
 	ctx.write(name + " := ")
 	writeMixinFunc(ctx, &m)
@@ -249,18 +252,12 @@ func mixinCall(ctx *ctx, mc file.MixinCall) {
 
 	ctx.write(funcName + "(")
 
-params:
 	for _, param := range mc.Mixin.Mixin.Params {
 		for _, arg := range mc.Args {
 			if arg.Name.Ident == param.Name.Ident {
-				if param.Default != nil {
-					ctx.write(ctx.woofFunc("Ptr", inlineExpression(ctx, arg.Value)))
-				} else {
-					ctx.write(inlineExpression(ctx, arg.Value))
-				}
-
+				mixinArgExpression(ctx, param, arg)
 				ctx.write(", ")
-				continue params
+				break
 			}
 		}
 
@@ -353,7 +350,7 @@ blocks:
 		ctx.flushGenerate()
 		ctx.flushClasses()
 
-		ctx.write("}")
+		ctx.write("}\n")
 	}
 
 	ctx.writeln(")")
@@ -374,11 +371,7 @@ params:
 	for _, param := range mc.Mixin.Mixin.Params {
 		for _, arg := range mc.Args {
 			if arg.Name.Ident == param.Name.Ident {
-				if param.Default != nil {
-					ctx.write(ctx.woofFunc("Ptr", inlineExpression(ctx, arg.Value)))
-				} else {
-					ctx.write(inlineExpression(ctx, arg.Value))
-				}
+				mixinArgExpression(ctx, param, arg)
 
 				ctx.write(", ")
 				continue params

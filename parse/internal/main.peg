@@ -223,7 +223,7 @@ Beaitb <- scopeItemI:(BlockExpansion / InlineText) {
         ErrorAnnotation: anno(c, annotation{
             Start: pos(c),
             ToEOL: true,
-            Annotation: "expected a block expansion (`:`), an assign (`=` or `!=`), inline text, a body, or nothing",
+            Annotation: "expected a block expansion (`:`), inline text, a body, or nothing",
         }),
     }
 }
@@ -241,7 +241,7 @@ Beait <- scopeItemI:(BlockExpansion / InlineText) {
         ErrorAnnotation: anno(c, annotation{
             Start: pos(c),
             ToEOL: true,
-            Annotation: "expected a block expansion (`:`), an assign (`=` or `!=`), inline text, or nothing",
+            Annotation: "expected a block expansion (`:`), inline text, or nothing",
         }),
     }
 }

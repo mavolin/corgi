@@ -137,8 +137,6 @@ func writeFile(loadOpts corgi.LoadOptions) error {
 		return fmt.Errorf("close output: %w", err)
 	}
 
-	corgi.LearnCorgi(os.Stdout, "Maxi", true, []string{"Huey", "Dewey", "Louie"})
-
 	return nil
 }
 

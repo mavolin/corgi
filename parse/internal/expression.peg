@@ -196,7 +196,33 @@ IfExpression <- cExprI:ChainExpression {
 
     return expr, nil
 } / exprsI:(
-    goParenExpr / StringExpression / TernaryExpression / goRuneExpr /
+    singleLineGoParenExpr / StringExpression / TernaryExpression / goRuneExpr /
+    posI:POS !IfExpressionTerminator NOT_EOL (!IfExpressionTerminator !EOL [^'"`?([{])* {
+        return file.GoExpression{Expression: string(c.text), Position: posI.(file.Position)}, nil
+    }
+)+ {
+    return combineExpressions(exprsI)
+}
+
+SingleLineIfExpression <- cExprI:SingleLineChainExpression {
+    cExpr := cExprI.(file.ChainExpression)
+    expr := file.Expression{Expressions: []file.ExpressionItem{cExpr}}
+    if cExpr.Default != nil {
+        return expr, &corgierr.Error{
+            Message: "chain expression with default as conditional",
+            ErrorAnnotation: anno(c, annotation{
+                Start: pos(c),
+                Annotation: "here", // todo: span the entire len of the expression
+            }),
+            Suggestions: []corgierr.Suggestion{
+                {Suggestion: "remove the default"},
+            },
+        }
+    }
+
+    return expr, nil
+} / exprsI:(
+    goParenExpr / StringExpression / SingleLineTernaryExpression / goRuneExpr /
     posI:POS !IfExpressionTerminator NOT_EOL (!IfExpressionTerminator !EOL [^'"`?([{])* {
         return file.GoExpression{Expression: string(c.text), Position: posI.(file.Position)}, nil
     }
@@ -216,7 +242,32 @@ ForExpression <- rExprI:RangeExpression {
     return (*file.Expression)(nil), nil
 }
 
+SingleLineForExpression <- rExprI:SingleLineRangeExpression {
+    return &file.Expression{Expressions: []file.ExpressionItem{rExprI.(file.RangeExpression)}}, nil
+} / exprI:SingleLineIfExpression {
+    return ptr(exprI.(file.Expression)), nil
+} / &(. / !.) {
+    return (*file.Expression)(nil), nil
+}
+
 RangeExpression <- varsI:rangeExpressionVars? orderedI:("ordered" ' '+)? "range" ' '+ exprI:SingleLineExpression {
+    re := file.RangeExpression{
+        Ordered: orderedI != nil,
+        Position: pos(c),
+        RangeExpression: exprI.(file.Expression),
+    }
+
+    if partRE, ok := varsI.(file.RangeExpression); ok {
+        re.Var1 = partRE.Var1
+        re.Var2 = partRE.Var2
+        re.EqPos = partRE.EqPos
+        re.Declares = partRE.Declares
+    }
+
+    return re, nil
+}
+
+SingleLineRangeExpression <- varsI:rangeExpressionVars? orderedI:("ordered" ' '+)? "range" ' '+ exprI:SingleLineExpression {
     re := file.RangeExpression{
         Ordered: orderedI != nil,
         Position: pos(c),
@@ -637,7 +688,7 @@ chainExpressionRootParenContent <- '(' chainExpressionRootParenContent ')' /
                                    [^({[\]})]+
 
 SingleLineChainExpression <- derefsI:'*'* rootI:chainExpressionRoot checkRootI:'?'? chainI:SingleLineChainExpressionItem*
-                             defaultI:(' '* defaultPosI:POS "?!" ' '* SingleLineGoExpression)? endPosI:POS &(EOL / expressionTerminator) &{
+                             defaultI:(' '* defaultPosI:POS "~" ' '* SingleLineGoExpression)? endPosI:POS &(EOL / expressionTerminator) &{
     return checkRootI != nil || len(islice(chainI)) > 0 || defaultI != nil, nil
 } {
     expr := file.ChainExpression{
