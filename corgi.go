@@ -348,7 +348,7 @@ func (l *loader) readInclude(includingFile *file.File, slashPath string) (*load.
 	return &load.File{
 		Name:         path.Base(slashAbs),
 		AbsolutePath: slashAbs,
-		IsCorgi:      true,
+		IsCorgi:      path.Ext(slashPath) == ".corgi",
 		Raw:          f,
 	}, nil
 }
