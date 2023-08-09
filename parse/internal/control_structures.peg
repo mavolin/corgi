@@ -19,6 +19,27 @@ condition <- ' '+ condI:IfExpression {
     }
 }
 
+singleLineCondition <- ' '+ condI:SingleLineIfExpression {
+    return condI, nil
+} / posI:POS &EOL {
+    return file.Expression{}, &corgierr.Error{
+        Message: "missing condition",
+        ErrorAnnotation: anno(c, annotation{
+            Start: posI.(file.Position),
+            StartOffset: 1,
+            Annotation: "expected an expression here",
+        }),
+    }
+} / posI:POS {
+    return file.Expression{}, &corgierr.Error{
+        Message: "missing condition",
+        ErrorAnnotation: anno(c, annotation{
+            Start: posI.(file.Position),
+            Annotation: "expected an expression here",
+        }),
+    }
+}
+
 then <- EOL scopeI:Body {
     return scopeI, nil
 } / beI:BlockExpansion {
@@ -60,6 +81,14 @@ If <- "if" !" block" condI:condition thenI:then elseIfsI:ElseIf* elseI:Else? {
     }, nil
 }
 
+InlineIf <- "if" !" block" condI:condition thenI:BlockExpansion {
+    return file.If{
+        Condition: condI.(file.Expression),
+        Then: file.Scope{thenI.(file.BlockExpansion)},
+        Position: pos(c),
+    }, nil
+}
+
 ElseIf <- NEW_LNS? INDENTATION posI:POS "else if" condI:condition thenI:then {
     return file.ElseIf{
         Condition: condI.(file.Expression),
@@ -85,6 +114,14 @@ IfBlock <- "if block" nameI:blockName thenI:then elseIfsI:ElseIfBlock* elseI:Els
         Then: thenI.(file.Scope),
         ElseIfs: typedSlice[file.ElseIfBlock](elseIfsI),
         Else: ptrOrNil[file.Else](elseI),
+        Position: pos(c),
+    }, nil
+}
+
+InlineIfBlock <- "if block" nameI:blockName thenI:BlockExpansion {
+    return file.IfBlock{
+        Name: nameI.(file.Ident),
+        Then: file.Scope{thenI.(file.BlockExpansion)},
         Position: pos(c),
     }, nil
 }
@@ -241,6 +278,14 @@ For <- "for" ' '* exprI:ForExpression bodyI:then {
     return file.For{
         Expression: exprI.(*file.Expression),
         Body: bodyI.(file.Scope),
+        Position: pos(c),
+    }, nil
+}
+
+InlineFor <- "for" ' '* exprI:SingleLineForExpression bodyI:BlockExpansion {
+    return file.For{
+        Expression: exprI.(*file.Expression),
+        Body: file.Scope{bodyI.(file.BlockExpansion)},
         Position: pos(c),
     }, nil
 }

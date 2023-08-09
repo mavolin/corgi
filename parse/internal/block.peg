@@ -89,6 +89,14 @@ spacedBlockExpansionItem <- ' '+ sI:_spacedBlockExpansionItem {
         fromThe = "mixin call"
     case file.And:
         fromThe = "&"
+    case file.If:
+        fromThe = "if"
+    case file.IfBlock:
+        fromThe = "if block"
+    case file.For:
+        fromThe = "for"
+    case file.Include:
+        fromThe = "include"
     default:
         fromThe = "rest"
     }
@@ -104,7 +112,9 @@ spacedBlockExpansionItem <- ' '+ sI:_spacedBlockExpansionItem {
         }),
     }
 }
-_spacedBlockExpansionItem <- InlineBlock / InlineElement / InlineDivShorthand / InlineMixinCall / InlineAnd
+_spacedBlockExpansionItem <- InlineBlock  / InlineAnd / InlineMixinCall /
+                             InlineIf / InlineIfBlock / InlineFor / Include /
+                             InlineElement / InlineDivShorthand
 
 badBlockExpansion <- lineI:NOT_EOL* EOL {
     firstWordLen := strings.IndexByte(string(c.text), ' ')
