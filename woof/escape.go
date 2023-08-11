@@ -510,40 +510,56 @@ func EscapeHTMLAttrVal(val any) (HTMLAttrVal, error) {
 // ======================================================================================
 
 func FilterURL(vals ...any) (URL, error) {
-	if len(vals) == 0 {
-		return "", nil
-	}
-
-	var isSafe bool
-
-	u0, ok := vals[0].(URL)
-	if ok {
-		// an URL is considered safe, if the protocol is contained in the first
-		// element and that element is of type URL
-		if _, ok := urlProtocol(u0); ok {
-			isSafe = true
-		}
-	}
-
-	u, err := EscapeURL(vals...)
+	u, safe, err := escapeURL(vals...)
 	if err != nil {
 		return "", err
 	}
 
-	if isSafe {
-		return u, nil
-	}
-
-	proto, ok := urlProtocol(u)
-	if !ok {
-		return u, nil
-	}
-
-	if !isSafeURLProtocol(proto) {
+	if !safe {
 		return "#" + UnsafeReplacement, nil
 	}
 
 	return u, nil
+}
+
+func EscapeURL(vals ...any) (URL, error) {
+	u, _, err := escapeURL(vals...)
+	return u, err
+}
+
+func escapeURL(vals ...any) (u URL, safe bool, err error) {
+	if len(vals) == 0 {
+		return "", true, nil
+	}
+
+	safe = true
+	var protoEnd bool
+	var inQuery bool
+
+	var b strings.Builder
+	for _, val := range vals {
+		s, err := Stringify(val)
+		if err != nil {
+			return "", false, err
+		}
+
+		if inQuery {
+			escapeURLQuery(&b, s)
+			continue
+		}
+
+		inQuery2, colPos := normalizeURL(&b, URL(s))
+		if !inQuery {
+			inQuery = inQuery2
+		}
+
+		if !protoEnd && colPos > 0 {
+			safe = isSafeURLProtocol(b.String()[:colPos])
+			protoEnd = true
+		}
+	}
+
+	return URL(b.String()), safe, nil
 }
 
 func isSafeURLProtocol(protocol string) bool {
@@ -553,69 +569,24 @@ func isSafeURLProtocol(protocol string) bool {
 	return true
 }
 
-func urlProtocol(u URL) (proto string, ok bool) {
-	proto, _, ok = strings.Cut(string(u), ":")
-	return proto, ok && !strings.Contains(proto, "/")
-}
-
-func EscapeURL(vals ...any) (URL, error) {
-	var sb strings.Builder
-	sb.Grow(128)
-
-	for _, val := range vals {
-		if u, ok := val.(URL); ok {
-			sb.WriteString(string(u))
-			continue
-		}
-
-		s, err := Stringify(val)
-		if err != nil {
-			return "", err
-		}
-
-		processURLOnto(s, false, false, &sb)
-	}
-
-	return URL(sb.String()), nil
-}
-
-func EscapeURLSegment(val any) (URL, error) {
-	if u, ok := val.(URL); ok {
-		return u, nil
-	}
-
-	s, err := Stringify(val)
-	if err != nil {
-		return "", err
-	}
-
-	var sb strings.Builder
-	sb.Grow(len(s) + 16)
-	processURLOnto(s, false, true, &sb)
-	return URL(sb.String()), nil
-}
-
 func NormalizeURL(u URL) URL {
 	var sb strings.Builder
-	if processURLOnto(string(u), true, false, &sb) {
-		return URL(sb.String())
-	}
-	return u
+	normalizeURL(&sb, u)
+	return URL(sb.String())
 }
 
-// processURLOnto appends a normalized URL corresponding to its input to b
-// and reports whether the appended content differs from s.
-func processURLOnto(s string, norm, encSlash bool, b *strings.Builder) bool {
-	b.Grow(len(s) + 16)
-	written := 0
+func normalizeURL(b *strings.Builder, u URL) (inQuery bool, colPos int) {
+	colPos = -1
+	b.Grow(len(u) + 16)
 	// The byte loop below assumes that all URLs use UTF-8 as the
 	// content-encoding. This is similar to the URI to IRI encoding scheme
 	// defined in section 3.1 of  RFC 3987, and behaves the same as the
 	// EcmaScript builtin encodeURIComponent.
 	// It should not cause any misencoding of URLs in pages with
 	// Content-type: text/html;charset=UTF-8.
-	for i, n := 0, len(s); i < n; i++ {
-		c := s[i]
+	var written int
+	for i, n := 0, len(u); i < n; i++ {
+		c := u[i]
 		switch c {
 		// Single quote and parens are sub-delims in RFC 3986, but we
 		// escape them so the output can be embedded in single
@@ -623,14 +594,16 @@ func processURLOnto(s string, norm, encSlash bool, b *strings.Builder) bool {
 		// Single quotes are reserved in URLs, but are only used in
 		// the obsolete "mark" rule in an appendix in RFC 3986
 		// so can be safely encoded.
-		case '/':
-			if norm || !encSlash {
-				continue
+		case ':':
+			if colPos <= 0 {
+				colPos = b.Len() + (i - written)
 			}
-		case '!', '#', '$', '&', '*', '+', ',', ':', ';', '=', '?', '@', '[', ']':
-			if norm {
-				continue
-			}
+			continue
+		case '!', '#', '$', '&', '*', '+', ',', '/', ';', '=', '@', '[', ']':
+			continue
+		case '?':
+			inQuery = true
+			continue
 		// Unreserved according to RFC 3986 sec 2.3
 		// "For consistency, percent-encoded octets in the ranges of
 		// ALPHA (%41-%5A and %61-%7A), DIGIT (%30-%39), hyphen (%2D),
@@ -640,7 +613,7 @@ func processURLOnto(s string, norm, encSlash bool, b *strings.Builder) bool {
 			continue
 		case '%':
 			// When normalizing do not re-encode valid escapes.
-			if norm && i+2 < len(s) && isHex(s[i+1]) && isHex(s[i+2]) {
+			if i+2 < len(u) && isHex(u[i+1]) && isHex(u[i+2]) {
 				continue
 			}
 		default:
@@ -655,12 +628,40 @@ func processURLOnto(s string, norm, encSlash bool, b *strings.Builder) bool {
 				continue
 			}
 		}
+		b.WriteString(string(u[written:i]))
+		fmt.Fprintf(b, "%%%02x", c)
+		written = i + 1
+	}
+	b.WriteString(string(u[written:]))
+	return inQuery, colPos
+}
+
+func escapeURLQuery(b *strings.Builder, s string) {
+	b.Grow(len(s) + 16)
+	// The byte loop below assumes that all URLs use UTF-8 as the
+	// content-encoding. This is similar to the URI to IRI encoding scheme
+	// defined in section 3.1 of  RFC 3987, and behaves the same as the
+	// EcmaScript builtin encodeURIComponent.
+	// It should not cause any misencoding of URLs in pages with
+	// Content-type: text/html;charset=UTF-8.
+	var written int
+	for i, n := 0, len(s); i < n; i++ {
+		c := s[i]
+		// Unreserved according to RFC 3986 sec 2.3
+		if 'a' <= c && c <= 'z' {
+			continue
+		}
+		if 'A' <= c && c <= 'Z' {
+			continue
+		}
+		if '0' <= c && c <= '9' {
+			continue
+		}
 		b.WriteString(s[written:i])
 		fmt.Fprintf(b, "%%%02x", c)
 		written = i + 1
 	}
 	b.WriteString(s[written:])
-	return written != 0
 }
 
 // ============================================================================
@@ -713,6 +714,15 @@ func FilterSrcset(vals ...any) (Srcset, error) {
 	return Srcset(b.String()), nil
 }
 
+func urlProto(s string) string {
+	proto, _, ok := strings.Cut(s, ":")
+	if !ok || strings.Contains(proto, "/") {
+		return ""
+	}
+
+	return proto
+}
+
 func filterSrcsetElement(s string, left int, right int, b *strings.Builder) {
 	start := left
 	for start < right && isHTMLSpace(s[start]) {
@@ -726,7 +736,8 @@ func filterSrcsetElement(s string, left int, right int, b *strings.Builder) {
 		}
 	}
 	url := s[start:end]
-	if proto, ok := urlProtocol(URL(url)); !ok || isSafeURLProtocol(proto) {
+	proto := urlProto(url)
+	if proto == "" || isSafeURLProtocol(proto) {
 		// If image metadata is only spaces or alnums then
 		// we don't need to URL normalize it.
 		metadataOk := true
@@ -738,7 +749,7 @@ func filterSrcsetElement(s string, left int, right int, b *strings.Builder) {
 		}
 		if metadataOk {
 			b.WriteString(s[left:start])
-			processURLOnto(url, true, false, b)
+			normalizeURL(b, URL(url))
 			b.WriteString(s[end:right])
 			return
 		}
