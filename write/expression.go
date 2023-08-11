@@ -734,11 +734,13 @@ func generateContextExpression(ctx *ctx, expr file.Expression, ctxEsc contextEsc
 			return
 		case file.TernaryExpression:
 			writer(func() {
+				ctx.flushGenerate()
 				generateContextTernaryExpression(ctx, exprItm, ctxEsc)
 			})
 			return
 		case file.StringExpression:
 			writer(func() {
+				ctx.flushGenerate()
 				generateContextStringExpression(ctx, exprItm, ctxEsc)
 			})
 			return
@@ -746,6 +748,7 @@ func generateContextExpression(ctx *ctx, expr file.Expression, ctxEsc contextEsc
 	}
 
 	writer(func() {
+		ctx.flushGenerate()
 		ctx.writeln(ctx.woofFunc("WriteAnys", ctx.ident(ctxVar), ctx.woofQual(ctxEsc.funcName), inlineExpression(ctx, expr)))
 	})
 }
