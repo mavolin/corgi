@@ -10,7 +10,8 @@ import (
 
 func LearnCorgi(__corgi_w __corgi_io.Writer, name string, knowsPug bool, friends []string) error {
 	__corgi_ctx := __corgi_woof.NewContext(__corgi_w)
-	defer __corgi_ctx.Recover()
+	var __corgi_err error
+	defer func() { __corgi_err = __corgi_ctx.Recover() }()
 	var __corgi_mixin0 func(any, *string, *string)
 	{
 		listSep := ", "
@@ -28,19 +29,27 @@ func LearnCorgi(__corgi_w __corgi_io.Writer, name string, knowsPug bool, friends
 				return
 			case 1:
 				__corgi_ctx.CloseStartTag("", false)
-				__corgi_woof.WriteAny(__corgi_ctx, rval.Index(0).Interface(), __corgi_woof.EscapeHTMLBody)
+				{
+					__corgi_woof.WriteAny(__corgi_ctx, __corgi_woof.EscapeHTMLBody, rval.Index(0).Interface())
+				}
 				__corgi_ctx.Closed()
 				return
 				__corgi_ctx.Closed()
 			}
 			__corgi_ctx.CloseStartTag("", false)
-			__corgi_woof.WriteAny(__corgi_ctx, rval.Index(0).Interface(), __corgi_woof.EscapeHTMLBody)
-			for i := 1; i < rval.Len()-1; i++ {
-				__corgi_woof.WriteAny(__corgi_ctx, sep, __corgi_woof.EscapeHTMLBody)
-				__corgi_woof.WriteAny(__corgi_ctx, rval.Index(i).Interface(), __corgi_woof.EscapeHTMLBody)
+			{
+				__corgi_woof.WriteAny(__corgi_ctx, __corgi_woof.EscapeHTMLBody, rval.Index(0).Interface())
 			}
-			__corgi_woof.WriteAny(__corgi_ctx, lastSep, __corgi_woof.EscapeHTMLBody)
-			__corgi_woof.WriteAny(__corgi_ctx, rval.Index(rval.Len()-1).Interface(), __corgi_woof.EscapeHTMLBody)
+			for i := 1; i < rval.Len()-1; i++ {
+				__corgi_woof.WriteAny(__corgi_ctx, __corgi_woof.EscapeHTMLBody, sep)
+				{
+					__corgi_woof.WriteAny(__corgi_ctx, __corgi_woof.EscapeHTMLBody, rval.Index(i).Interface())
+				}
+			}
+			__corgi_woof.WriteAny(__corgi_ctx, __corgi_woof.EscapeHTMLBody, lastSep)
+			{
+				__corgi_woof.WriteAny(__corgi_ctx, __corgi_woof.EscapeHTMLBody, rval.Index(rval.Len()-1).Interface())
+			}
 			__corgi_ctx.Closed()
 		}
 
@@ -50,7 +59,7 @@ func LearnCorgi(__corgi_w __corgi_io.Writer, name string, knowsPug bool, friends
 	__corgi_mixin1 := func(name string) {
 		__corgi_ctx.CloseStartTag("", false)
 		__corgi_ctx.Write("Hello, ")
-		__corgi_woof.WriteAny(__corgi_ctx, name, __corgi_woof.EscapeHTMLBody)
+		__corgi_woof.WriteAny(__corgi_ctx, __corgi_woof.EscapeHTMLBody, name)
 		__corgi_ctx.Write("!")
 		__corgi_ctx.Closed()
 	}
@@ -66,7 +75,7 @@ func LearnCorgi(__corgi_w __corgi_io.Writer, name string, knowsPug bool, friends
 	__corgi_ctx.Unclosed()
 	if knowsPug {
 		__corgi_ctx.Write(">")
-		__corgi_woof.WriteAny(__corgi_ctx, name, __corgi_woof.EscapeHTMLBody)
+		__corgi_woof.WriteAny(__corgi_ctx, __corgi_woof.EscapeHTMLBody, name)
 		__corgi_ctx.Write(", since you already know pug,\nlearning corgi will be even more of <strong>a breeze</strong> for you! ")
 		__corgi_ctx.Closed()
 	}
@@ -76,5 +85,5 @@ func LearnCorgi(__corgi_w __corgi_io.Writer, name string, knowsPug bool, friends
 	__corgi_ctx.Write(" about corgi too!")
 	__corgi_ctx.CloseStartTag("", false)
 	__corgi_ctx.Write("</p></body></html>")
-	return __corgi_ctx.Err()
+	return __corgi_err
 }

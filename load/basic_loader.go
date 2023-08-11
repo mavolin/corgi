@@ -6,6 +6,8 @@ import (
 	"github.com/mavolin/corgi/file"
 )
 
+var ErrEmptyLib = errors.New("directory contains no library files")
+
 // BasicLoader is a [Loader] implementation that allows configuration of every
 // step of the loading process.
 type BasicLoader struct {
@@ -104,6 +106,10 @@ func (b BasicLoader) LoadLibrary(usingFile *file.File, usePath string) (*file.Li
 
 	if libw.Precompiled != nil {
 		return libw.Precompiled, b.LibraryLinker(libw.Precompiled)
+	}
+
+	if len(libw.Files) == 0 {
+		return nil, ErrEmptyLib
 	}
 
 	lib := &file.Library{

@@ -20,6 +20,7 @@ import (
 	"github.com/mavolin/corgi"
 	"github.com/mavolin/corgi/corgierr"
 	"github.com/mavolin/corgi/file"
+	"github.com/mavolin/corgi/load"
 	"github.com/mavolin/corgi/write"
 )
 
@@ -157,7 +158,7 @@ func writeLibraries(loadOpts corgi.LoadOptions) error {
 	loadOpts.NoPrecompile = true
 
 	if InFile != "./..." {
-		return writeLibrary(InFile, OutFile, loadOpts)
+		return writeLibrary(InFile, OutFile, loadOpts, false)
 	}
 
 	return fs.WalkDir(os.DirFS("."), ".", func(path string, d fs.DirEntry, err error) error {
@@ -166,18 +167,26 @@ func writeLibraries(loadOpts corgi.LoadOptions) error {
 		}
 
 		if d.IsDir() {
-			return writeLibrary(path, filepath.Join(path, corgi.PrecompFileName), loadOpts)
+			return writeLibrary(path, filepath.Join(path, corgi.PrecompFileName), loadOpts, true)
 		}
 
 		return nil
 	})
 }
 
-func writeLibrary(path, outPath string, loadOpts corgi.LoadOptions) error {
+func writeLibrary(path, outPath string, loadOpts corgi.LoadOptions, ignoreNotExist bool) error {
 	lib, err := corgi.LoadLibrary(path, loadOpts)
-	if errors.Is(err, corgi.ErrExists) {
-		return nil
+	if errors.Is(err, corgi.ErrNotExists) {
+		if ignoreNotExist {
+			return nil
+		}
+
+		return err
 	} else if err != nil {
+		if errors.Is(err, load.ErrEmptyLib) {
+			return nil
+		}
+
 		var mainMod string
 		if lib != nil {
 			mainMod = lib.Module

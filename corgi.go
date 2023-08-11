@@ -32,7 +32,7 @@ const (
 	LibExt          = ".corgil"
 )
 
-var ErrExists = errors.New("file does not exist")
+var ErrNotExists = errors.New("file does not exist")
 
 // loader is responsible for loading, i.e. reading, parsing, validating, and
 // linking corgi files, like the CLI does.
@@ -164,11 +164,11 @@ func newLoader(o LoadOptions) (*loader, error) {
 		return cl.LoadDirLibrary(f, func() (*file.Library, error) {
 			lib, err := bl.LoadLibrary(f, path.Join(f.Module, path.Dir(f.PathInModule)))
 			if err != nil {
-				return lib, err
-			}
+				if errors.Is(err, load.ErrEmptyLib) {
+					return nil, nil
+				}
 
-			if len(lib.Files) == 0 {
-				return nil, nil
+				return lib, err
 			}
 
 			return lib, nil
@@ -207,7 +207,7 @@ func LoadMain(sysPath string, o LoadOptions) (*file.File, error) {
 	}
 
 	if f == nil && err == nil {
-		return nil, ErrExists
+		return nil, ErrNotExists
 	}
 
 	return f, nil
@@ -257,7 +257,7 @@ func LoadLibrary(sysPath string, o LoadOptions) (*file.Library, error) {
 	}
 
 	if lib == nil && err == nil {
-		return nil, ErrExists
+		return nil, ErrNotExists
 	}
 
 	return lib, nil
