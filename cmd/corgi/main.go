@@ -221,7 +221,8 @@ func writeLibrary(path, outPath string, loadOpts corgi.LoadOptions, ignoreNotExi
 
 func writeErrs(err error, mainMod string) {
 	if lerr := corgierr.As(err); lerr != nil {
-		lerr.Pretty(prettyOptions(mainMod))
+		fmt.Println(lerr.Pretty(prettyOptions(mainMod)))
+		os.Exit(1)
 	}
 
 	fmt.Println(err)
