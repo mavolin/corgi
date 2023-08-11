@@ -389,7 +389,7 @@ StringExpressionInterpolation <- '#' fmtDirectiveI:fmtDirective? lBracePosI:L_BR
         FormatDirective: castedOrZero[string](fmtDirectiveI),
         Position: pos(c),
     }, &corgierr.Error{
-        Message: "interpolation is missing an expression",
+        Message: "string interpolation is missing an expression",
         ErrorAnnotation: anno(c, annotation{
             Start: parenPosI.(file.Position),
             Annotation: "expected a `"+lbrace+"` here",

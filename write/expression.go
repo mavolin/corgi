@@ -101,6 +101,7 @@ func generateExpression(ctx *ctx, expr file.Expression, txtEsc *textEscaper, exp
 				txt, ok := exprItm.Contents[0].(file.StringExpressionText)
 				if ok {
 					s := unquoteStringExpressionText(exprItm, txt)
+					s = strings.ReplaceAll(s, "##", "#")
 
 					writer(func() {
 						ctx.generate(s, txtEsc)
@@ -312,6 +313,7 @@ func generateStringExpression(ctx *ctx, sexpr file.StringExpression, txtEsc *tex
 		switch exprItm := exprItm.(type) {
 		case file.StringExpressionText:
 			s := unquoteStringExpressionText(sexpr, exprItm)
+			s = strings.ReplaceAll(s, "##", "#")
 
 			ctx.debugItem(exprItm, s)
 
@@ -598,7 +600,7 @@ func inlineStringExpression(ctx *ctx, sb *strings.Builder, sexpr file.StringExpr
 
 		switch exprItm := exprItm.(type) {
 		case file.StringExpressionText:
-			s := string(sexpr.Quote) + exprItm.Text + string(sexpr.Quote)
+			s := string(sexpr.Quote) + strings.ReplaceAll(exprItm.Text, "##", "#") + string(sexpr.Quote)
 			ctx.debugItemInline(exprItm, s)
 			sb.WriteString(s)
 		case file.StringExpressionInterpolation:
@@ -778,6 +780,7 @@ func generateContextStringExpression(ctx *ctx, sexpr file.StringExpression, ctxE
 		switch exprItm := exprItm.(type) {
 		case file.StringExpressionText:
 			s := unquoteStringExpressionText(sexpr, exprItm)
+			s = strings.ReplaceAll(s, "##", "#")
 			ctx.debugItem(exprItm, s)
 			if ctxEsc.normalizer != nil {
 				s = ctxEsc.normalizer(s)

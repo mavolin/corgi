@@ -386,7 +386,9 @@ func simpleAttribute(ctx *ctx, sattr file.SimpleAttribute) {
 			} else if len(sexpr.Contents) == 1 {
 				txt, ok := sexpr.Contents[0].(file.StringExpressionText)
 				if ok {
-					ctx.generateStringAttr(sattr.Name, unquoteStringExpressionText(sexpr, txt))
+					s := unquoteStringExpressionText(sexpr, txt)
+					s = strings.ReplaceAll(s, "##", "#")
+					ctx.generateStringAttr(sattr.Name, s)
 					return
 				}
 			}
@@ -465,7 +467,9 @@ func classAttribute(ctx *ctx, attr file.SimpleAttribute) {
 		} else if len(exprItm.Contents) == 1 {
 			txt, ok := exprItm.Contents[0].(file.StringExpressionText)
 			if ok {
-				ctx.bufClass(unquoteStringExpressionText(exprItm, txt))
+				s := unquoteStringExpressionText(exprItm, txt)
+				s = strings.ReplaceAll(s, "##", "#")
+				ctx.bufClass(s)
 				return
 			}
 		}
