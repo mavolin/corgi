@@ -1,19 +1,21 @@
-// Element writes a new element with the passed name.
-//
-// It's _ block can be used to fill the body of the element and set its
-// attributes.
-mixin Element(name string, void=false)
+import __corgi_std_woof "github.com/mavolin/corgi/woof"
 
-// Attr writes an attribute to the element it is called in.
+//// Element writes a new element with the passed name.
+////
+//// It's _ block can be used to fill the body of the element and set its
+//// attributes.
+//mixin Element(name string, void=false)
 //
-// It must be placed before writing to the body of the element.
-//
-// If val is a bool, Attr will write only the name for val == true, and nothing
-// for val == false, just like any other boolean attribute.
-//
-// Use a string if you require true or false to spelled out, like for the
-// aria-hidden attribute.
-mixin Attr(name string, val any)
+//// Attr writes an attribute to the element it is called in.
+////
+//// It must be placed before writing to the body of the element.
+////
+//// If val is a bool, Attr will write only the name for val == true, and nothing
+//// for val == false, just like any other boolean attribute.
+////
+//// Use a string if you require true or false to spelled out, like for the
+//// aria-hidden attribute.
+//mixin Attr(name string, val any)
 
 // Breaked replaces each newline in the stringified version of val with a <br>
 // and prints it.
@@ -27,3 +29,19 @@ mixin Attr(name string, val any)
 //
 // A negative value is the default and causes all <br>s to be printed.
 mixin Breaked(val any, maxAdjacent=-1)
+  - s, err := __corgi_std_woof
+  if err != nil
+    return err
+
+  - var adjacent int
+  for _, ln := range strings.Split(s, "\n")
+    if len(ln) == 0
+      - adjacent++
+      if maxAdjacent < 0 || adjacent <= maxAdjacent
+        > #![<br>]
+        - continue
+
+    > #{ln}
+    if adjacent > 0
+      > #![<br>]
+    - adjacent = 1
