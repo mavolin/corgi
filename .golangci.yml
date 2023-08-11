@@ -49,9 +49,15 @@ linters-settings:
     exclude:
       - ^\s*.+:.+$
       - ^\s*(?:=+|/+|-+|\++)
+      - ^\s*\w+$
   unparam:
     check-exported: true
 
   errcheck:
     exclude-functions:
       - github.com/mavolin/corgi/file/fileutil.Walk
+
+issues:
+  exclude-rules:
+    - path: ^test/
+      linters: [unused]
