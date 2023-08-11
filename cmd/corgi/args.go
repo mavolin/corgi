@@ -215,7 +215,7 @@ func init() {
 			OutFile = filepath.Join(InFile, corgi.PrecompFileName)
 		} else {
 			if InFile == "" {
-				fmt.Fprintln(os.Stderr, "need to specify output file, -o, or not use stdin")
+				fmt.Fprintln(os.Stderr, "need to specify output file, -stdout, or not use stdin")
 				os.Exit(2)
 			}
 
