@@ -1,15 +1,13 @@
 func Mixins()
 
-mixin myMixin(foo string, bar string = "baz", foobar = "foozbaz", fooz = nil)
+mixin myMixin(foo string, bar string = "baz", foobar = "foozbaz", fooz any = nil)
   p
-    | #{foo}, #{bar}, #{foobar}
+    > #{foo}, #{bar}, #{foobar}
     if fooz != nil
-      | , ${fooz}
+      > , #{fooz}
 
 mixin noArgs(favDog = "corgi")
-  | My favorite dogs are #{favDog}s.
+  > My favorite dogs are #{favDog}s.
 
-div
-  +myMixin(foo="abc", foobar="def")
-div
-  +noArgs
+div: +myMixin(foo="abc", foobar="def")
+div: +noArgs

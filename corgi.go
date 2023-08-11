@@ -32,10 +32,7 @@ const (
 	LibExt          = ".corgil"
 )
 
-var (
-	ErrExists      = errors.New("file does not exist")
-	ErrGoNotInPath = errors.New("the go command is not in the path (set the -go flag/call corgi.SetGoExecPath)")
-)
+var ErrExists = errors.New("file does not exist")
 
 // loader is responsible for loading, i.e. reading, parsing, validating, and
 // linking corgi files, like the CLI does.
@@ -60,8 +57,7 @@ type loader struct {
 type LoadOptions struct {
 	// GoExecPath is the path to the go binary to used.
 	//
-	// If not set, the Go executable referenced in the system's PATH will be
-	// used, as resolved once at program start.
+	// If not set, $GOROOT/bin/go will be used.
 	GoExecPath string
 
 	// NoPrecompile forces the loader to always read corgi files instead of
@@ -166,18 +162,30 @@ func newLoader(o LoadOptions) (*loader, error) {
 		}
 
 		return cl.LoadDirLibrary(f, func() (*file.Library, error) {
-			return bl.LoadLibrary(f, path.Join(f.Module, path.Dir(f.PathInModule)))
+			lib, err := bl.LoadLibrary(f, path.Join(f.Module, path.Dir(f.PathInModule)))
+			if err != nil {
+				return lib, err
+			}
+
+			if len(lib.Files) == 0 {
+				return nil, nil
+			}
+
+			return lib, nil
 		})
 	}
 
 	l.loader = cl
-
 	l.linker = link.New(l.loader)
 
-	l.cmd = gocmd.NewCmd(o.GoExecPath)
-	if l.cmd == nil {
-		return nil, ErrGoNotInPath
+	if o.GoExecPath == "" {
+		if goroot := os.Getenv("GOROOT"); goroot != "" {
+			o.GoExecPath = filepath.Join(goroot, "bin", "go")
+		} else {
+			return nil, errors.New("corgi.LoadOptions: GoExecPath not set and $GOROOT is empty")
+		}
 	}
+	l.cmd = gocmd.NewCmd(o.GoExecPath)
 
 	l.log = o.Logger
 	if l.log == nil {
@@ -300,14 +308,17 @@ func (l *loader) readTemplate(_ *file.File, extendPath string) (*load.File, erro
 	if err != nil {
 		return nil, err
 	}
+	if mod == nil {
+		return nil, nil
+	}
 
 	sysAbs := filepath.Join(mod.sysAbsPath, filepath.FromSlash(mod.pathInMod))
 	log = log.With(slog.String("module", mod.path), slog.String("path_in_mod", mod.pathInMod), slog.String("abs", mod.sysAbsPath))
 	log.Info("located parent module", slog.String("module", mod.path))
 
-	f, err := os.ReadFile(mod.sysAbsPath)
+	f, err := os.ReadFile(sysAbs)
 	if err != nil {
-		if errors.Is(err, os.ErrExist) {
+		if errors.Is(err, os.ErrNotExist) {
 			log.Info("file doesn't exist in module")
 			return nil, nil
 		}
@@ -533,11 +544,6 @@ func (l *loader) readLibraryDir(log *slog.Logger, sysDir string, modulePath, pat
 		}
 
 		lib.Files = append(lib.Files, f)
-	}
-
-	if len(lib.Files) == 0 {
-		log.Info("found no library files, returning nil")
-		return nil, nil
 	}
 
 	log.Info("read directory, returning with library",

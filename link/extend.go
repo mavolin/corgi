@@ -55,6 +55,6 @@ func (l *Linker) linkExtend(ctx *context, f *file.File) {
 		}
 
 		f.Extend.File = template
-		ctx.errs <- nil
+		ctx.errs <- new(errList)
 	}()
 }

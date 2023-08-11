@@ -1,6 +1,7 @@
 package corgierr
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"sort"
@@ -11,6 +12,21 @@ import (
 
 	"github.com/mavolin/corgi/file"
 )
+
+// As returns a [List] if [errors.As] yields a List or an [Error].
+func As(err error) List {
+	var lerr List
+	if errors.As(err, &lerr) {
+		return lerr
+	}
+
+	var cerr *Error
+	if errors.As(err, &cerr) {
+		return List{cerr}
+	}
+
+	return nil
+}
 
 type Error struct {
 	Message string

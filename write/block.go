@@ -8,24 +8,38 @@ import "github.com/mavolin/corgi/file"
 
 func block(ctx *ctx, b file.Block) {
 	if ctx.mixin != nil {
+		ctx.flushGenerate()
+		ctx.flushClasses()
 		ctx.callUnclosedIfUnclosed()
 		ctx.writeln("if " + ctx.ident("mixinBlock_"+b.Name.Ident) + " != nil {")
 		ctx.writeln("  " + ctx.ident("mixinBlock_"+b.Name.Ident) + "()")
 		if len(b.Body) > 0 {
 			ctx.writeln("} else {")
 			scope(ctx, b.Body)
+			ctx.flushGenerate()
+			ctx.flushClasses()
+			ctx.callClosedIfClosed()
 		}
 		ctx.writeln("}")
+		ctx.closed.Swap(maybeClosed)
 
 		return
 	}
 
 	fill, stackPos := resolveTemplateBlock(ctx, b)
 
+	if fill.Type == file.BlockTypeAppend {
+		scope(ctx, b.Body)
+	}
+
 	oldStart := ctx.stackStart
 	ctx.stackStart = stackPos
 	scope(ctx, fill.Body)
 	ctx.stackStart = oldStart
+
+	if fill.Type == file.BlockTypePrepend {
+		scope(ctx, b.Body)
+	}
 }
 
 func resolveTemplateBlock(ctx *ctx, call file.Block) (b file.Block, stackPos int) {

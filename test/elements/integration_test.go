@@ -22,23 +22,10 @@ func TestEmptyElement(t *testing.T) {
 func TestVoidElements(t *testing.T) {
 	t.Parallel()
 
-	t.Run("html", func(t *testing.T) {
-		t.Parallel()
+	w := outcheck.New(t, "void_elements.expect")
 
-		w := outcheck.New(t, "void_elements.html.expect")
-
-		err := VoidElementsHTML(w)
-		require.NoError(t, err)
-	})
-
-	t.Run("xhtml", func(t *testing.T) {
-		t.Parallel()
-
-		w := outcheck.New(t, "void_elements.xhtml.expect")
-
-		err := VoidElementsXHTML(w)
-		require.NoError(t, err)
-	})
+	err := VoidElements(w)
+	require.NoError(t, err)
 }
 
 func TestAttributes(t *testing.T) {
@@ -68,33 +55,11 @@ func TestSelfClosing(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestMirror(t *testing.T) {
+func TestBoolAttrs(t *testing.T) {
 	t.Parallel()
 
-	t.Run("html", func(t *testing.T) {
-		t.Parallel()
+	w := outcheck.New(t, "bool_attrs.expect")
 
-		w := outcheck.New(t, "mirror.html.expect")
-
-		err := MirrorHTML(w)
-		require.NoError(t, err)
-	})
-
-	t.Run("xhtml", func(t *testing.T) {
-		t.Parallel()
-
-		w := outcheck.New(t, "mirror.xhtml.expect")
-
-		err := MirrorXHTML(w)
-		require.NoError(t, err)
-	})
-
-	t.Run("xml", func(t *testing.T) {
-		t.Parallel()
-
-		w := outcheck.New(t, "mirror.xml.expect")
-
-		err := MirrorXML(w)
-		require.NoError(t, err)
-	})
+	err := BoolAttrs(w)
+	require.NoError(t, err)
 }

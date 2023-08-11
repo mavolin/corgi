@@ -77,13 +77,10 @@ func writeFile(loadOpts corgi.LoadOptions) error {
 	prettyOut := out
 	prettyClose := func() error { return nil }
 
-	var goImportsErr error
-	var goImportsDone <-chan struct{}
+	var goimportsErr error
+	var goimportsWait func() error
 
 	if !NoGoImports {
-		done := make(chan struct{})
-		goImportsDone = done
-
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 		defer cancel()
 
@@ -99,13 +96,12 @@ func writeFile(loadOpts corgi.LoadOptions) error {
 		prettyOut = pipe
 		prettyClose = pipe.Close
 
-		go func() {
-			goImportsErr = goimports.Run()
-			if stderr.Len() > 0 {
-				goImportsErr = errors.New(stderr.String())
-			}
-			close(done)
-		}()
+		goimportsErr = goimports.Start()
+		if stderr.Len() > 0 {
+			goimportsErr = errors.New(stderr.String())
+		}
+
+		goimportsWait = goimports.Wait
 	}
 
 	w := write.New(write.Options{
@@ -125,8 +121,7 @@ func writeFile(loadOpts corgi.LoadOptions) error {
 	}
 
 	if !NoGoImports {
-		<-goImportsDone
-		if goImportsErr != nil {
+		if err := goimportsWait(); err != nil {
 			// goimport's error probably contains line/col info, so generate the
 			// file again, but this time directly
 			w := write.New(write.Options{Debug: Debug})
@@ -135,7 +130,19 @@ func writeFile(loadOpts corgi.LoadOptions) error {
 			return fmt.Errorf("failed to run goimports:\n"+
 				"\tyou probably have an erroneous expression in your corgi file,\n"+
 				"\tor need to re-precompile a library: "+
-				"\t\t%w", goImportsErr)
+				"\t\t%w", err)
+		}
+
+		if goimportsErr != nil {
+			// goimport's error probably contains line/col info, so generate the
+			// file again, but this time directly
+			w := write.New(write.Options{Debug: Debug})
+			_ = w.GenerateFile(out, Package, f)
+
+			return fmt.Errorf("failed to run goimports:\n"+
+				"\tyou probably have an erroneous expression in your corgi file,\n"+
+				"\tor need to re-precompile a library: "+
+				"\t\t%w", goimportsErr)
 		}
 	}
 
@@ -204,18 +211,8 @@ func writeLibrary(path, outPath string, loadOpts corgi.LoadOptions) error {
 }
 
 func writeErrs(err error, mainMod string) {
-	prettyOpts := prettyOptions(mainMod)
-
-	var clerr corgierr.List
-	if errors.As(err, &clerr) {
-		fmt.Println(clerr.Pretty(prettyOpts))
-		os.Exit(1)
-	}
-
-	var cerr *corgierr.Error
-	if errors.As(err, &cerr) {
-		fmt.Println(clerr.Pretty(prettyOpts))
-		os.Exit(1)
+	if lerr := corgierr.As(err); lerr != nil {
+		lerr.Pretty(prettyOptions(mainMod))
 	}
 
 	fmt.Println(err)

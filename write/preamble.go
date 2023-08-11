@@ -111,7 +111,8 @@ func writeFunc(ctx *ctx) {
 	defer ctx.writeln("}")
 
 	ctx.writeln(ctx.ident(ctxVar) + " := " + ctx.woofFunc("NewContext", ctx.ident("w")))
-	ctx.writeln("defer " + ctx.contextFunc("Recover"))
+	ctx.writeln("var " + ctx.ident("err") + " error")
+	ctx.writeln("defer func() { " + ctx.ident("err") + " = " + ctx.contextFunc("Recover") + "}()")
 
 	for _, comm := range ctx.mainFile().TopLevelComments {
 		mcom := fileutil.ParseMachineComment(comm)
@@ -128,5 +129,5 @@ func writeFunc(ctx *ctx) {
 
 	scope(ctx, ctx.baseFile().Scope)
 	ctx.flushGenerate()
-	ctx.writeln("return " + ctx.contextFunc("Err"))
+	ctx.writeln("return " + ctx.ident("err"))
 }

@@ -84,7 +84,7 @@ filterBody <- INDENT linesI:(NEW_LNS? filterLine)+ DEDENT {
     return typedSliceFromTuples[file.FilterLine](linesI, -1), nil
 }
 
-filterLine <- INDENTATION posI:POS lineI:NOT_EOL+ EOL {
+filterLine <- INDENTATION_IGNORE_ADDITIONAL posI:POS lineI:NOT_EOL+ EOL {
     return file.FilterLine{
         Line: concat(lineI),
         Position: pos(c),

@@ -1,4 +1,4 @@
-func MirrorHTML()
+func BoolAttrs()
 input(disabled)
 input(disabled=true)
 input(disabled=false)

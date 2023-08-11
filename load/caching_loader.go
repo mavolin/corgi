@@ -1,6 +1,7 @@
 package load
 
 import (
+	"errors"
 	"path"
 	"sync"
 
@@ -47,12 +48,18 @@ func (l *CachingLoader) LoadLibrary(usingFile *file.File, usePath string) (*file
 	if usingFile == nil {
 		cached := l.load(l.linkedLibraries, func(cached *cachedFile) {
 			cached.lib, cached.err = l.l.LoadLibrary(nil, usePath)
+			if cached.err == nil && len(cached.lib.Files) == 0 {
+				cached.err = errors.New("directory contains no library files")
+			}
 		}, usePath)
 		return cached.lib, cached.err
 	}
 
 	cached := l.load(l.unlinkedLibraries, func(cached *cachedFile) {
 		cached.lib, cached.err = l.l.LoadLibrary(usingFile, usePath)
+		if cached.err == nil && len(cached.lib.Files) == 0 {
+			cached.err = errors.New("directory contains no library files")
+		}
 	}, usePath)
 	return cached.lib, cached.err
 }

@@ -1,5 +1,4 @@
--
-  type methodTestType struct {
+- type methodTestType struct {
       ret *int
   }
 
@@ -10,108 +9,78 @@
 func NilCheckExpression()
 
 - chain := struct{F *struct{S []string}}{F: nil}
-p= chain.F.S[1]?
-p= chain.F.S[1]?("default")
+p #{chain.F?.S[1]}
+p #{chain.F?.S[1] ~ "default"}
 - chain = struct{F *struct{S []string}}{F: &struct{S []string}{S: nil}}
-p= chain.F.S[1]?("default")
+p #{chain.F.S?[1] ~ "default"}
 - chain = struct{F *struct{S []string}}{F: &struct{S []string}{S: []string{"abc"}}}
-p= chain.F.S[1]?("default")
+p #{chain.F.S[1?] ~ "default"}
 - chain = struct{F *struct{S []string}}{F: &struct{S []string}{S: []string{"abc", "def"}}}
-p= chain.F.S[1]?("no default")
+p #{chain.F.S[1?] ~ "no default"}
 
-mixin greet(name="world")
-  | Hello #{name}!
+mixin greet(name="world") Hello #{name}!
 
 - t := struct{F *string}{F: nil}
 
 a(href=*t.F?) Click me!
-a(href=*t.F?("bar")) Click me!
+a(href=*t.F? ~ "bar") Click me!
 
-p= *t.F?
-p= *t.F?("bar")
+p #{*t.F?}
+p #{*t.F? ~ "bar"}
 
 p #+greet(name=*t.F?)
-p #+greet(name=*t.F?("universe"))
+p #+greet(name=*t.F? ~ "universe")
 
 p The value is: #{*t.F?}
-p The value is: #{*t.F?("unknown")}
+p The value is: #{*t.F? ~ "unknown"}
 
-if t.F?
-  p The value is: #{*t.F}
-else
-  p The value is not accessible.
+if t.F?: p The value is: #{*t.F}
+else: p The value is not accessible.
 
--
-  s := "foo"
+- s := "foo"
   t = struct{F *string}{F: &s}
 
 a(href=*t.F?) Click me!
-a(href=*t.F?("bar")) Click me!
+a(href=*t.F? ~ "bar") Click me!
 
-p= *t.F?
-p= *t.F?("bar")
+p #{*t.F?}
+p #{*t.F? ~ "bar"}
 
 p #+greet(name=*t.F?)
-p #+greet(name=*t.F?("universe"))
+p #+greet(name=*t.F? ~ "universe")
 
 p The value is: #{*t.F?}
-p The value is: #{*t.F?("unknown")}
+p The value is: #{*t.F? ~ "unknown"}
 
-if t.F?
-  p The value is: #{*t.F}
-else
-  p The value is not accessible.
+if t.F?: p The value is: #{*t.F}
+else: p The value is not accessible.
 
 - var f func() *string
-
-p= f()?
-
+p #{f?()?}
 - f = func() *string { return nil }
-
-p= f()?
-
--
-  f = func() *string {
+p #{f?()?}
+- f = func() *string {
       s := "foo"
       return &s
   }
-
-p= f()?
+p #{f?()?}
 
 - a := struct{F func() *string}{F: nil}
-
-p= a.F()?
-
+p #{a?.F?()}
 - a = struct{F func() *string}{F: func() *string { return nil }}
-
-p= a.F()?
-
+p #{a.F()?}
 - a = struct{F func() *string}{F: f}
-
-p= a.F()?
+p #{a.F()?}
 
 - var mtt *methodTestType
-
-p= mtt.M()?
-
+p #{mtt?.M()?}
 - mtt = &methodTestType{}
-
-p= mtt.M()?
-
--
-  ret := 15
+p #{mtt?.M()?}
+- ret := 15
   mtt = &methodTestType{ret: &ret}
-
-p= mtt.M()?
+p #{mtt?.M()?}
 
 - var slice []string
-
-ul
-  for _, s range slice?
-    li= s
-
+ul: for _, s := range slice?: li #{s}
 - slice = []string{"foo", "bar"}
-
-ul
-  for _, s range slice?
-    li= s
+ul: for _, s := range slice?: li #{s}

@@ -67,6 +67,7 @@ func generateExpression(ctx *ctx, expr file.Expression, txtEsc *textEscaper, exp
 			return
 		case file.TernaryExpression:
 			writer(func() {
+				ctx.flushGenerate()
 				generateTernaryExpression(ctx, exprItm, txtEsc, exprEsc)
 			})
 			return
@@ -91,6 +92,7 @@ func generateExpression(ctx *ctx, expr file.Expression, txtEsc *textEscaper, exp
 			}
 
 			writer(func() {
+				ctx.flushGenerate()
 				generateGoExpression(ctx, exprItm, exprEsc)
 			})
 			return
@@ -108,6 +110,7 @@ func generateExpression(ctx *ctx, expr file.Expression, txtEsc *textEscaper, exp
 			}
 
 			writer(func() {
+				ctx.flushGenerate()
 				generateStringExpression(ctx, exprItm, txtEsc, exprEsc)
 			})
 			return
@@ -115,6 +118,7 @@ func generateExpression(ctx *ctx, expr file.Expression, txtEsc *textEscaper, exp
 	}
 
 	writer(func() {
+		ctx.flushGenerate()
 		ctx.generateExpr(inlineExpression(ctx, expr), exprEsc)
 	})
 }
@@ -172,6 +176,7 @@ func generateChainExpression(ctx *ctx, cexpr file.ChainExpression, defaultExpr *
 
 	generateChainExprItems(ctx, cexpr.Chain, &valBuilder, func() {
 		writer(func() {
+			ctx.flushGenerate()
 			ctx.generateExpr(strings.Repeat("*", cexpr.DerefCount)+valBuilder.String(), esc)
 		})
 		ctx.flushGenerate()

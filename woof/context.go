@@ -37,14 +37,13 @@ func (ctx *Context) Panic(err error) {
 	panic(err)
 }
 
-func (ctx *Context) Recover() {
+func (ctx *Context) Recover() error {
 	if ctx.err != nil {
 		_ = recover()
+		return ctx.err
 	}
-}
 
-func (ctx *Context) Err() error {
-	return ctx.err
+	return nil
 }
 
 func (ctx *Context) Write(s string) {

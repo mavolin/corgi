@@ -178,6 +178,8 @@ func _mixinCallBody(f *file.File, mc file.MixinCall) *errList {
 
 	fileutil.Walk(mc.Body, func(parents []fileutil.WalkContext, ctx fileutil.WalkContext) (dive bool, err error) {
 		switch itm := (*ctx.Item).(type) {
+		case file.CorgiComment:
+			return true, nil
 		case file.If:
 			return true, nil
 		case file.IfBlock:
@@ -185,6 +187,29 @@ func _mixinCallBody(f *file.File, mc file.MixinCall) *errList {
 		case file.Switch:
 			return true, nil
 		case file.For:
+			return true, nil
+		case file.And:
+			if mc.Mixin.Mixin.HasAndPlaceholders {
+				return true, nil
+			}
+
+			for _, b := range mc.Mixin.Mixin.Blocks {
+				if b.DefaultTopLevelAndPlaceholder {
+					return true, nil
+				}
+			}
+
+			errs.PushBack(&corgierr.Error{
+				Message: "use of & in mixin call to mixin without &-placeholder",
+				ErrorAnnotation: anno.Anno(f, anno.Annotation{
+					Start:      itm.Position,
+					Annotation: "no element to place these attributes on",
+				}),
+				HintAnnotations: []corgierr.Annotation{inThisMixinCall(f, mc)},
+				Suggestions: []corgierr.Suggestion{
+					{Suggestion: "remove these attributes or add an &-placeholder to the mixin"},
+				},
+			})
 			return true, nil
 		case file.Block:
 			if len(parents) == 0 {

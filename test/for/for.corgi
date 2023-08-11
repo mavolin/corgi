@@ -2,10 +2,6 @@ func For()
 
 - s := []string{"foo", "bar", "fooz", "baz"}
 
-ul
-  for i range s
-    li= i
+ul: for i := range s: li #{i}
 
-ul
-  for i, v range s
-    li #{i} -- #{v}
+ul: for i, v := range s: li #{i} -- #{v}

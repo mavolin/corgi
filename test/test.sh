@@ -6,9 +6,7 @@ function main() {
   local test_status=$?
 
   # don't delete on test failure to allow debugging
-  if [ $test_status -eq 0 ]; then
-    ./rm_generated_files.sh
-  fi
+  [[ $test_status -eq 0 ]] && ./rm_generated_files.sh
 
   exit $test_status
 }

@@ -33,8 +33,6 @@ var (
 	OutFile   string
 	UseStdout bool
 
-	ScriptNonce bool
-
 	GoExecPath string
 
 	Verbose bool
@@ -87,7 +85,7 @@ func init() {
 		"treat the input file as a library dir, not compatible with stdin;\n"+
 			"`-o`, if not set, will default to `"+corgi.PrecompFileName+"`")
 	flag.BoolVar(&NoGoImports, "nogoimports", false, "do not run goimports on the generated file")
-	flag.StringVar(&GoExecPath, "go", "", "path to the go executable, defaults to a PATH lookup")
+	flag.StringVar(&GoExecPath, "go", "", "path to the go executable, defaults to $GOROOT/bin/go")
 	flag.BoolVar(&Verbose, "v", false, "enable verbose output to stderr")
 	flag.BoolVar(&Debug, "debug", false, "print file and line information as comments in the generated function")
 	flag.Func("color", "force or disable coloring of errors (`true`, `false`)", func(s string) error {
@@ -226,6 +224,9 @@ func init() {
 	if GoExecPath == "" {
 		if goroot := os.Getenv("GOROOT"); goroot != "" {
 			GoExecPath = filepath.Join(goroot, "bin", "go")
+		} else {
+			fmt.Fprintln(os.Stderr, "$GOROOT is not set, and no -go flag was specified")
+			os.Exit(2)
 		}
 	}
 }

@@ -40,7 +40,32 @@ func (l *Linker) linkDependencies(ctx *context, lib *file.Library) {
 						Lines: []string{""},
 					},
 					Suggestions: []corgierr.Suggestion{
-						{Suggestion: "this is either because of an invalid use path, or a module that has become unavailable"},
+						{
+							Suggestion: "this is probably a module that has become unavailable;\n" +
+								"re-recompiling the library will give you a more exact error message",
+						},
+					},
+					Cause: err,
+				})
+				return
+			}
+
+			if len(dep.Library.Files) == 0 {
+				ctx.errs <- list.List1(&corgierr.Error{
+					Message: "dependency of precompiled library contains no library files",
+					ErrorAnnotation: corgierr.Annotation{
+						Line:  1,
+						Start: 1,
+						End:   2,
+						Annotation: "no position;\n" +
+							path.Join(lib.Module, lib.PathInModule) + " requires " + path.Join(dep.Module, dep.PathInModule),
+						Lines: []string{""},
+					},
+					Suggestions: []corgierr.Suggestion{
+						{
+							Suggestion: "the dependency has probably been changed since the library was precompiled;\n" +
+								"you should re-precompile",
+						},
 					},
 					Cause: err,
 				})

@@ -186,9 +186,6 @@ func writeMixinFunc(ctx *ctx, m *file.Mixin) {
 		return
 	}
 
-	ctx.closed.Push(maybeClosed)
-	defer ctx.closed.Pop()
-
 	ctx.write("func(")
 	for _, param := range m.Params {
 		if param.Default != nil {
@@ -229,6 +226,9 @@ func writeMixinFunc(ctx *ctx, m *file.Mixin) {
 		ctx.writeln(param.Name.Ident + " := " + ctx.woofFunc("ResolveDefault", val, defaultVal))
 	}
 
+	ctx.closed.Push(maybeClosed)
+	defer ctx.closed.Pop()
+
 	ctx.mixin = m
 	scope(ctx, m.Body)
 	ctx.mixin = nil
@@ -252,12 +252,16 @@ func mixinCall(ctx *ctx, mc file.MixinCall) {
 
 	ctx.write(funcName + "(")
 
+	haveBufClasses := ctx.haveBufClasses
+	defer func() { ctx.haveBufClasses = haveBufClasses }()
+
+params:
 	for _, param := range mc.Mixin.Mixin.Params {
 		for _, arg := range mc.Args {
 			if arg.Name.Ident == param.Name.Ident {
 				mixinArgExpression(ctx, param, arg)
 				ctx.write(", ")
-				break
+				continue params
 			}
 		}
 
@@ -350,7 +354,7 @@ blocks:
 		ctx.flushGenerate()
 		ctx.flushClasses()
 
-		ctx.write("}\n")
+		ctx.write("}")
 	}
 
 	ctx.writeln(")")

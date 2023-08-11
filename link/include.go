@@ -17,9 +17,11 @@ func (l *Linker) linkIncludes(lctx *context, f *file.File) {
 			return true, nil
 		}
 
+		inclPtr := ptrOfSliceElem[file.ScopeItem, file.Include](ctx.Scope, ctx.Index)
+
 		lctx.n++
 		go func() {
-			errs := l.linkInclude(f, &incl)
+			errs := l.linkInclude(f, inclPtr)
 			*ctx.Item = incl
 			lctx.errs <- errs
 		}()

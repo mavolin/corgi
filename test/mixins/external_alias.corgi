@@ -1,6 +1,6 @@
-use baz "foo/bar"
+use fooz "github.com/mavolin/corgi/test/mixins/foo"
 
 func ExternalAlias()
 
 p
-  +baz.Fooz
+  +fooz.Fooz

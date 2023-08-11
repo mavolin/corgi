@@ -1,4 +1,4 @@
 func InlineCode(executed *bool)
 - *executed = true
--
+
 p

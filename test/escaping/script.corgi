@@ -1,9 +1,8 @@
-import "github.com/mavolin/corgi/writeutil"
+import "github.com/mavolin/corgi/woof"
 
 func Script()
 
--
-  c := struct{
+- c := struct{
       A string
       B struct{C int}
     }{
@@ -11,11 +10,11 @@ func Script()
       B: struct{C int}{C: 123},
     }
 
-- d := writeutil.JS("foo();")
-- e := writeutil.JSStr("\\n")
-script.
-  let a = #{123};
-  let b = #{"abc\n"};
-  let c = #{c};
-  #{d}
-  let e = #{e};
+- d := woof.JS("foo()")
+- e := woof.JSStr("\\n")
+script
+  > let a = #{123};
+    let b = #{"abc\n"};
+    let c = #{c};
+    #{d};
+    let e = #{e};

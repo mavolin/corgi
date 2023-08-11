@@ -1,18 +1,17 @@
 import "github.com/mavolin/corgi/test/internal/extra"
 
--
-  func sayWork() string {
-  return "work"
-          }
+- func sayWork() string {
+      return "work"
+  }
 
 func Interpolation()
 
 - var variable = "variables"
 
-p.
-  I can easily interpolate #{variable} or
-  even a global constant #{extra.PartyPopper}.
-p.
-  I can even interpolate literals
-  like #{123} or #{"a" == "b"}.
+p
+  > I can easily interpolate #{variable} or
+    even a global constant #{extra.PartyPopper}.
+p
+  > I can even interpolate literals
+    like #{123} or #{"a" == "b"}.
 p And functions #{sayWork()} too.

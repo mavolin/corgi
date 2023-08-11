@@ -21,8 +21,29 @@ func onlyTemplateFilesContainBlockPlaceholders(f *file.File) *errList {
 		case file.Mixin:
 			return false, nil
 		case file.Block:
+			if len(parents) == 0 {
+				if f.Extend != nil {
+					return false, nil
+				}
+
+				errs.PushBack(&corgierr.Error{
+					Message: "use of template block without extending a template",
+					ErrorAnnotation: anno.Anno(f, anno.Annotation{
+						Start:      itm.Position,
+						Len:        (itm.Name.Col - itm.Col) + len(itm.Name.Ident),
+						Annotation: "you can't fill a template block if you aren't extending a template",
+					}),
+					Suggestions: []corgierr.Suggestion{
+						{
+							Suggestion: "Template blocks are used to fill placeholders in a template file.\n" +
+								"To fill such a placeholder, you must place an `extend` directive at the start of the file.",
+						},
+					},
+				})
+			}
+
 			// don't accidentally report (ill-placed) nested mixin call blocks
-			ok := true
+			reportErr := true
 			var parentBlock bool
 			for i := len(parents) - 1; i >= 0; i-- {
 				switch (*parents[i].Item).(type) {
@@ -30,12 +51,12 @@ func onlyTemplateFilesContainBlockPlaceholders(f *file.File) *errList {
 					parentBlock = true
 				case file.MixinCall:
 					if !parentBlock {
-						ok = false
+						reportErr = false
 					}
 				}
 			}
 
-			if !ok {
+			if !reportErr {
 				return true, nil
 			}
 
@@ -53,7 +74,7 @@ func onlyTemplateFilesContainBlockPlaceholders(f *file.File) *errList {
 					},
 				},
 			})
-			return true, nil
+			return false, nil
 		default:
 			return true, nil
 		}
@@ -134,7 +155,7 @@ scope:
 				case file.Mixin:
 					return false, nil
 				case file.Block:
-					if itm.Name != block.Name {
+					if itm.Name.Ident != block.Name.Ident {
 						return true, nil
 					}
 

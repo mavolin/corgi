@@ -1,3 +1,0 @@
-func VoidElementsXHTML()
-
-include "void_elements.include"

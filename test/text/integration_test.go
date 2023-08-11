@@ -10,20 +10,11 @@ import (
 	"github.com/mavolin/corgi/test/internal/outcheck"
 )
 
-func TestDotBlock(t *testing.T) {
+func TestArrowBlock(t *testing.T) {
 	t.Parallel()
 
-	w := outcheck.New(t, "dot_block.expect")
+	w := outcheck.New(t, "arrow_block.expect")
 
-	err := DotBlock(w)
-	require.NoError(t, err)
-}
-
-func TestPipes(t *testing.T) {
-	t.Parallel()
-
-	w := outcheck.New(t, "pipes.expect")
-
-	err := Pipes(w)
+	err := ArrowBlock(w)
 	require.NoError(t, err)
 }

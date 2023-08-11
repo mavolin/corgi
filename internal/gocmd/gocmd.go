@@ -14,9 +14,6 @@ type Cmd struct {
 
 // NewCmd creates a new go command using the passed path as the path to the Go
 // executable.
-//
-// If goExecPath is empty, the Go executable in the system's PATH is used.
-// If there is no Go executable in the PATH, NewCmd returns nil.
 func NewCmd(goExecPath string) *Cmd {
 	return &Cmd{path: goExecPath}
 }

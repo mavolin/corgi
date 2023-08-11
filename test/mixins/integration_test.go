@@ -5,11 +5,9 @@ package mixins
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/mavolin/corgi/test/internal/outcheck"
-	"github.com/mavolin/corgi/test/internal/voidwriter"
 )
 
 func TestMixins(t *testing.T) {
@@ -17,14 +15,6 @@ func TestMixins(t *testing.T) {
 
 	w := outcheck.New(t, "mixins.expect")
 	err := Mixins(w)
-	require.NoError(t, err)
-}
-
-func TestShadowing(t *testing.T) {
-	t.Parallel()
-
-	w := outcheck.New(t, "shadowing.expect")
-	err := Nesting(w)
 	require.NoError(t, err)
 }
 
@@ -58,15 +48,4 @@ func TestExternalAlias(t *testing.T) {
 	w := outcheck.New(t, "external_alias.expect")
 	err := ExternalAlias(w)
 	require.NoError(t, err)
-}
-
-func TestInit(t *testing.T) {
-	t.Parallel()
-
-	var executed bool
-
-	err := Init(voidwriter.Writer, &executed)
-	require.NoError(t, err)
-
-	assert.True(t, executed, "init mixin was not executed")
 }

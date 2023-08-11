@@ -1,10 +1,9 @@
 func And()
 
 mixin foo()
-  p: block
+  p(&&): block _
 
 div
   +foo
     &.fooz.bar
-    block.
-      Content
+    block _ Content

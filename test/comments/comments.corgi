@@ -1,8 +1,8 @@
 func Comments()
 
 p Hello
-// I'm included
+//- I'm included
 p World!
-//-
+//
   However, I am not
   included.

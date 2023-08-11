@@ -405,7 +405,8 @@ func simpleAttribute(ctx *ctx, sattr file.SimpleAttribute) {
 			cexpr, ok := sattr.Value.Expressions[0].(file.ChainExpression)
 			if ok {
 				valueChainExpression(ctx, cexpr, func(expr string) {
-					ctx.writeln(ctx.woofFunc("WriteAttr", ctx.ident(ctxVar), strconv.Quote(sattr.Name), expr, ctx.woofQual("EscapeHTMLAttr")))
+					ctx.flushGenerate()
+					ctx.writeln(ctx.woofFunc("WriteAttr", ctx.ident(ctxVar), strconv.Quote(sattr.Name), expr, ctx.woofQual("EscapeHTMLAttrVal")))
 				})
 				return
 			}
@@ -415,7 +416,8 @@ func simpleAttribute(ctx *ctx, sattr file.SimpleAttribute) {
 	switch attrType {
 	case woof.ContentTypePlain:
 		expr := inlineExpression(ctx, *sattr.Value)
-		ctx.writeln(ctx.woofFunc("WriteAttr", ctx.ident(ctxVar), strconv.Quote(sattr.Name), expr, ctx.woofQual("EscapeHTMLAttr")))
+		ctx.flushGenerate()
+		ctx.writeln(ctx.woofFunc("WriteAttr", ctx.ident(ctxVar), strconv.Quote(sattr.Name), expr, ctx.woofQual("EscapeHTMLAttrVal")))
 	case woof.ContentTypeCSS:
 		generateExpression(ctx, *sattr.Value, &attrTextEscaper, &cssAttrExprEscaper, func(f func()) {
 			ctx.generate(` `+sattr.Name+`="`, nil)
@@ -487,9 +489,16 @@ const andPlaceholderFunc = "andPlaceholder"
 
 func andPlaceholder(ctx *ctx, aph file.AndPlaceholder) {
 	ctx.debugItem(aph, "(see below)")
+	ctx.flushGenerate()
+	ctx.flushClasses()
+	ctx.callUnclosedIfUnclosed()
+
 	ctx.writeln("if " + ctx.ident(andPlaceholderFunc) + " != nil {")
 	ctx.writeln("  " + ctx.ident(andPlaceholderFunc) + "()")
 	ctx.writeln("}")
+
+	// force call to CloseStartTag to flush class buffer
+	ctx.closed.Swap(maybeClosed)
 }
 
 // ================================= MixinCallAttribute =================================

@@ -43,7 +43,7 @@ behindDoctype <- " html" EOL /
 // Comment
 // ======================================================================================
 
-HTMLComment <- "//-" linesI:(
+HTMLComment <- "//-" ' '* linesI:(
     EOL linesI:htmlCommentBlock {
         return linesI, nil
     } / lineI:htmlCommentLine {
@@ -206,7 +206,7 @@ SingleLineAttributeCollection <- IDShorthand / ClassShorthand / SingleLineAttrib
 // IDShorthand
 //
 
-IDShorthand <- '#' idI:[^ \t\r\n.()[\]{}]+ {
+IDShorthand <- '#' idI:[^ \t\r\n.#()[\]{}]+ {
     return file.IDShorthand{
         ID: concat(idI),
         Position: pos(c),
@@ -225,7 +225,7 @@ IDShorthand <- '#' idI:[^ \t\r\n.()[\]{}]+ {
 // ClassShorthand
 //
 
-ClassShorthand <- '.' nameI:[^ \t\r\n.()[\]{}]+ {
+ClassShorthand <- '.' nameI:[^ \t\r\n.#()[\]{}]+ {
     return file.ClassShorthand{
         Name: concat(nameI),
         Position: pos(c),

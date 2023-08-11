@@ -4,8 +4,6 @@ block vars
 html(lang=lang)
   head
     link(rel="stylesheet", href="/foo.css")
-    title
-      block title
+    title: block title
     block head
-  body
-    block body
+  body: block body

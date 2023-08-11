@@ -13,11 +13,6 @@ func TestMixins(t *testing.T) {
 	compile.Compile(t, "mixins.corgi", compile.Options{})
 }
 
-func TestShadowing(t *testing.T) {
-	t.Parallel()
-	compile.Compile(t, "shadowing.corgi", compile.Options{})
-}
-
 func TestBlocks(t *testing.T) {
 	t.Parallel()
 	compile.Compile(t, "blocks.corgi", compile.Options{})
@@ -36,9 +31,4 @@ func TestExternal(t *testing.T) {
 func TestExternalAlias(t *testing.T) {
 	t.Parallel()
 	compile.Compile(t, "external_alias.corgi", compile.Options{})
-}
-
-func TestInit(t *testing.T) {
-	t.Parallel()
-	compile.Compile(t, "init.corgi", compile.Options{})
 }

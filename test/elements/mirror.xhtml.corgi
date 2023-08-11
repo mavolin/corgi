@@ -1,4 +1,0 @@
-func MirrorXHTML()
-input(disabled)
-input(disabled=true)
-input(disabled=false)

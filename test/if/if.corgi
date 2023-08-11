@@ -4,12 +4,8 @@ func If()
 
 - s := "fOo"
 
-if s == "foo"
-  p s is 'foo'!
-else if strings.EqualFold(s, "foo")
-  p s is almost 'foo'!
+if s == "foo": p s is 'foo'!
+else if strings.EqualFold(s, "foo"): p s is almost 'foo'!
 
-if b := true; b
-  p It worked!
-else
-  p It didn't work! :(
+if b := true; b: p It worked!
+else: p It didn't work! :(

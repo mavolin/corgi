@@ -91,6 +91,8 @@ func stringify(val any, escaper func(string) string) (string, error) {
 		return val.String(), nil
 
 	// remaining elem types
+	case bool:
+		return strconv.FormatBool(val), nil
 	case int8:
 		return strconv.FormatInt(int64(val), 10), nil
 	case int16:
@@ -154,6 +156,8 @@ func stringify(val any, escaper func(string) string) (string, error) {
 				return escaper(rv.String()), nil
 			}
 			return rv.String(), nil
+		case reflect.Bool:
+			return strconv.FormatBool(rv.Bool()), nil
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 			return strconv.FormatInt(rv.Int(), 10), nil
 		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:

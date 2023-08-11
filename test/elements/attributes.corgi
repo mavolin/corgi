@@ -5,12 +5,11 @@ input(disabled=true)
 input(disabled=false)
 div(
   id="multiline",
-  aria-label="foo"
+  aria-label="foo",
 )
 div(id="trailing-comma",)
 div(id="expr"+"ession")
-div((onclick)="foo()")
-div(id!="unescaped\" style=\"color: red;")
+div(onclick="foo()")
 div(id="escaped\" style=\"color: red;")
 .shorthand1
 #shorthand2

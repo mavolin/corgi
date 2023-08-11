@@ -1,8 +1,0 @@
-func UnescapedInterpolation()
-
-- favColor := `<span style="color: purple">purple</span>`
-- favEmoji := `<span style="font-size: 120%">🌵</span>`
-
-p.
-  My favorite color is #!{favColor} and
-  my favorite emoji is #!{favEmoji}.

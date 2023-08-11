@@ -96,6 +96,7 @@ func commandFilter(ctx *ctx, filter file.CommandFilter) {
 		panic(fmt.Errorf("%s:%d:%d: failed to run filter: %w", ctx.currentFile().Name, filter.Line, filter.Col, err))
 	}
 
+	ctx.closeTag()
 	ctx.generate(out.String(), nil)
 }
 
@@ -114,6 +115,7 @@ func rawFilter(ctx *ctx, filter file.RawFilter) {
 	var sb strings.Builder
 	sb.Grow(n)
 
+	prevLnNo = 0
 	for _, ln := range filter.Body {
 		if prevLnNo > 0 {
 			sb.WriteString(strings.Repeat("\n", ln.Position.Line-prevLnNo))
@@ -122,6 +124,7 @@ func rawFilter(ctx *ctx, filter file.RawFilter) {
 		prevLnNo = ln.Position.Line
 	}
 
+	ctx.closeTag()
 	switch filter.Type {
 	case file.RawHTML:
 		minified, err := mini.String("text/html", sb.String())
