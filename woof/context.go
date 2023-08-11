@@ -164,7 +164,8 @@ func WriteAnys[T ~string](ctx *Context, escaper func(vals ...any) (T, error), va
 //
 // If val is a bool and false, WriteAttr writes nothing.
 //
-// In any other case, WriteAttr writes a space, followed
+// In any other case, WriteAttr writes a space, followed by the name, '="', and
+// then the escaped attributes.
 func WriteAttr[T ~string](ctx *Context, name string, val any, escaper func(val any) (T, error)) {
 	if b, ok := val.(bool); ok {
 		if !b {

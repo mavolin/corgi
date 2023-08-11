@@ -181,7 +181,7 @@ func (l *usedMixinsLister) listDeps(mc file.MixinCall) {
 }
 
 func (l *usedMixinsLister) listScope(s file.Scope, requiredBy string, direct bool) {
-	Walk(s, func(parents []WalkContext, ctx WalkContext) (dive bool, err error) {
+	Walk(s, func(parents []WalkContext, ctx WalkContext) (dive bool, err error) { //nolint:errcheck
 		switch itm := (*ctx.Item).(type) {
 		case file.MixinCall:
 			oldInMixin := l.inMixin

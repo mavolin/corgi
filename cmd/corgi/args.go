@@ -145,13 +145,14 @@ func init() {
 
 	flag.Parse()
 
-	if showHelp {
+	switch {
+	case showHelp:
 		flag.Usage()
 		os.Exit(0)
-	} else if showVersion {
+	case showVersion:
 		fmt.Println("corgi", version())
 		os.Exit(0)
-	} else if editTrustedFilters {
+	case editTrustedFilters:
 		doEditTrustedFilters()
 		os.Exit(0)
 	}
@@ -163,7 +164,6 @@ func init() {
 				TrustedFilters = append(TrustedFilters, strings.TrimRight(ln, " \r"))
 			}
 		}
-
 	}
 
 	if !PrecompileLibrary && Package == "" {
@@ -190,18 +190,18 @@ func init() {
 		if PrecompileLibrary {
 			fmt.Fprintln(os.Stderr, "need directory to precompile")
 			os.Exit(2)
-		} else {
-			var err error
-			InData, err = io.ReadAll(os.Stdin)
-			if err != nil {
-				fmt.Fprintln(os.Stderr, "could not read stdin", err.Error())
-				os.Exit(2)
-			}
+		}
 
-			if len(InData) == 0 {
-				fmt.Fprintln(os.Stderr, "expected either input via stdin or a filepath as arg")
-				os.Exit(2)
-			}
+		var err error
+		InData, err = io.ReadAll(os.Stdin)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "could not read stdin", err.Error())
+			os.Exit(2)
+		}
+
+		if len(InData) == 0 {
+			fmt.Fprintln(os.Stderr, "expected either input via stdin or a filepath as arg")
+			os.Exit(2)
 		}
 	}
 
@@ -273,7 +273,8 @@ func doEditTrustedFilters() {
 	}
 
 	f, err := os.Open(TrustedFiltersFile)
-	if errors.Is(err, fs.ErrNotExist) {
+	switch {
+	case errors.Is(err, fs.ErrNotExist):
 		err := os.MkdirAll(ConfigDir, os.ModePerm)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "failed to create config directory: ", err.Error())
@@ -290,10 +291,10 @@ func doEditTrustedFilters() {
 			fmt.Fprintln(os.Stderr, "failed to create trusted filters file:", err.Error())
 			os.Exit(1)
 		}
-	} else if err != nil {
+	case err != nil:
 		fmt.Fprintln(os.Stderr, "failed to open trusted filters file:", err.Error())
 		os.Exit(1)
-	} else {
+	default:
 		_ = f.Close()
 	}
 

@@ -65,7 +65,7 @@ func _requiredInterpolatedMixinCallAttributes(f *file.File, mci file.MixinCallIn
 
 	annoLen := len("+") + len(mci.MixinCall.Name.Ident)
 	if mci.MixinCall.Namespace != nil {
-		annoLen += len(mci.MixinCall.Namespace.Ident) + len(".")
+		annoLen += len(mci.MixinCall.Namespace.Ident) + len(".") //nolint:ineffassign
 	}
 
 params:

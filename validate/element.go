@@ -696,11 +696,6 @@ func _attributePlacement(f *file.File, elAnno corgierr.Annotation, firstText *co
 				return false, nil
 			}
 
-			annoLen := len("+") + len(itm.Name.Ident)
-			if itm.Namespace != nil {
-				annoLen += len(itm.Namespace.Ident) + len(".")
-			}
-
 			mixinErrs := _mixinCallAndPlacement(f, itm, elAnno, firstText)
 			errs.PushBackList(mixinErrs)
 

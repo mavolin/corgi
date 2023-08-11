@@ -217,7 +217,7 @@ func LoadMainData(in []byte, o LoadOptions) (*file.File, error) {
 
 	f, err := parse.Parse(in)
 	if f == nil && err == nil {
-		return nil, err
+		return nil, nil
 	}
 	if err != nil {
 		return nil, err

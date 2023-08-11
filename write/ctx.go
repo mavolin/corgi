@@ -19,9 +19,9 @@ const (
 	ctxVar = "ctx"
 )
 
-// A Writer is used to convert a corgi file or scope item to Go code.
+// A ctx is used to convert a corgi file or scope item to Go code.
 //
-// It must not be used concurrently
+// It must not be used concurrently.
 type ctx struct {
 	out io.Writer
 

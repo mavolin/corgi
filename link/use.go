@@ -47,18 +47,19 @@ func (l *Linker) linkDependencies(ctx *context, lib *file.Library) {
 				return
 			}
 
-			ctx.errs <- l.linkMixinDependencies(ctx, lib, dep)
+			ctx.errs <- l.linkMixinDependencies(lib, dep)
 		}()
 	}
 }
 
-func (l *Linker) linkMixinDependencies(ctx *context, lib *file.Library, libDep *file.LibDependency) *errList {
+func (l *Linker) linkMixinDependencies(lib *file.Library, libDep *file.LibDependency) *errList {
 	var errs errList
 
 mixins:
 	for i, a := range libDep.Mixins {
 		if libDep.Library.Precompiled {
 			for _, b := range libDep.Library.Mixins {
+				b := b
 				if a.Name == b.Mixin.Name.Ident {
 					libDep.Mixins[i].Mixin = &b.Mixin
 					continue mixins

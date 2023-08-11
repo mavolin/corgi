@@ -120,12 +120,6 @@ func _topLevelAndInMixinCallAttribute(f *file.File, mca file.MixinCallAttribute)
 func _requiredMixinCallAttributeAttributes(f *file.File, mca file.MixinCallAttribute) *errList {
 	var errs errList
 
-	annoLen := len("+")
-	if mca.MixinCall.Namespace != nil {
-		annoLen += len(mca.MixinCall.Namespace.Ident) + len(".")
-	}
-	annoLen += len(mca.MixinCall.Name.Ident)
-
 params:
 	for _, param := range mca.MixinCall.Mixin.Mixin.Params {
 		if param.Default != nil {

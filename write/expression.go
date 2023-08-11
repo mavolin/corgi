@@ -375,7 +375,7 @@ func valueChainExpression(ctx *ctx, cexpr file.ChainExpression, onValue func(exp
 // Inline Expression
 // ======================================================================================
 
-// yields an unescaped expression
+// yields an unescaped expression.
 func inlineExpression(ctx *ctx, expr file.Expression) string {
 	var sb strings.Builder
 

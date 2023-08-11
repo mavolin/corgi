@@ -412,7 +412,7 @@ func simpleAttribute(ctx *ctx, sattr file.SimpleAttribute) {
 		}
 	}
 
-	switch attrType { //nolint:exhaustive
+	switch attrType {
 	case woof.ContentTypePlain:
 		expr := inlineExpression(ctx, *sattr.Value)
 		ctx.writeln(ctx.woofFunc("WriteAttr", ctx.ident(ctxVar), strconv.Quote(sattr.Name), expr, ctx.woofQual("EscapeHTMLAttr")))
@@ -449,7 +449,6 @@ func simpleAttribute(ctx *ctx, sattr file.SimpleAttribute) {
 	default:
 		ctx.youShouldntSeeThisError(fmt.Errorf("unrecognized content type %v", attrType))
 	}
-
 }
 
 func classAttribute(ctx *ctx, attr file.SimpleAttribute) {

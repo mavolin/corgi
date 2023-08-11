@@ -181,7 +181,7 @@ func writeLibrary(path, outPath string, loadOpts corgi.LoadOptions) error {
 
 	out, err := os.Create(outPath)
 	if err != nil {
-		return fmt.Errorf("%s: failed to open output: %w", path, outPath)
+		return fmt.Errorf("%s: failed to open output: %s: %w", path, outPath, err)
 	}
 
 	w := write.New(write.Options{

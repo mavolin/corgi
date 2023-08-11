@@ -97,11 +97,6 @@ func _duplicateMixinCallArgs(f *file.File, mc file.MixinCall) *errList {
 func _requiredMixinCallAttributes(f *file.File, mc file.MixinCall) *errList {
 	var errs errList
 
-	annoLen := len("+") + len(mc.Name.Ident)
-	if mc.Namespace != nil {
-		annoLen += len(mc.Namespace.Ident) + len(".")
-	}
-
 params:
 	for _, param := range mc.Mixin.Mixin.Params {
 		if param.Default != nil {
