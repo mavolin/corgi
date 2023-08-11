@@ -771,7 +771,6 @@ func generateContextStringExpression(ctx *ctx, sexpr file.StringExpression, ctxE
 	ctx.debugItem(sexpr, "(generated) (see below)")
 
 	var b strings.Builder
-	b.WriteString(ctx.woofQual(ctxEsc.funcName))
 	for i, exprItm := range sexpr.Contents {
 		if i > 0 {
 			b.WriteString(", ")
