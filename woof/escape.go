@@ -538,22 +538,36 @@ func escapeURL(vals ...any) (u URL, safe bool, err error) {
 
 	var b strings.Builder
 	for _, val := range vals {
-		var s string
 		if u, ok := val.(URL); ok {
-			s = string(u)
-			// if this is part of the proto, consider the proto automatically
-			// safe
-			protoEnd = true
+			inQuery2, protoEndPos := normalizeURL(&b, u)
+			if !inQuery {
+				inQuery = inQuery2
+			}
 
-			if inQuery {
-				normalizeURL(&b, URL(s))
+			if protoEnd {
 				continue
 			}
-		} else {
-			s, err = Stringify(val)
-			if err != nil {
-				return "", false, err
+
+			// if the protocol hasn't ended yet and u adds to it
+			if protoEndPos != 0 {
+				protoEnd = true
+				continue
 			}
+
+			// u ends the proto, but the proto was written entirely by
+			// non-URL types
+			if protoEndPos == 0 {
+				if u[protoEndPos] == ':' {
+					safe = isSafeURLProtocol(b.String()[:(b.Len()-len(u))+protoEndPos])
+				}
+				protoEnd = true
+			}
+			continue
+		}
+
+		s, err := Stringify(val)
+		if err != nil {
+			return "", false, err
 		}
 
 		if inQuery {
@@ -561,13 +575,15 @@ func escapeURL(vals ...any) (u URL, safe bool, err error) {
 			continue
 		}
 
-		inQuery2, colPos := normalizeURL(&b, URL(s))
+		inQuery2, protoEndPos := normalizeURL(&b, URL(s))
 		if !inQuery {
 			inQuery = inQuery2
 		}
 
-		if !protoEnd && colPos > 0 {
-			safe = isSafeURLProtocol(b.String()[:colPos])
+		if !protoEnd && protoEndPos >= 0 {
+			if s[protoEndPos] == ':' {
+				safe = isSafeURLProtocol(b.String()[:(b.Len()-len(u))+protoEndPos])
+			}
 			protoEnd = true
 		}
 	}
@@ -588,8 +604,8 @@ func NormalizeURL(u URL) URL {
 	return URL(sb.String())
 }
 
-func normalizeURL(b *strings.Builder, u URL) (inQuery bool, colPos int) {
-	colPos = -1
+func normalizeURL(b *strings.Builder, u URL) (inQuery bool, protoEndPos int) {
+	protoEndPos = -1
 	b.Grow(len(u) + 16)
 	// The byte loop below assumes that all URLs use UTF-8 as the
 	// content-encoding. This is similar to the URI to IRI encoding scheme
@@ -607,12 +623,12 @@ func normalizeURL(b *strings.Builder, u URL) (inQuery bool, colPos int) {
 		// Single quotes are reserved in URLs, but are only used in
 		// the obsolete "mark" rule in an appendix in RFC 3986
 		// so can be safely encoded.
-		case ':':
-			if colPos <= 0 {
-				colPos = b.Len() + (i - written)
+		case ':', '/':
+			if protoEndPos <= 0 {
+				protoEndPos = i
 			}
 			continue
-		case '!', '#', '$', '&', '*', '+', ',', '/', ';', '=', '@', '[', ']':
+		case '!', '#', '$', '&', '*', '+', ',', ';', '=', '@', '[', ']':
 			continue
 		case '?':
 			inQuery = true
@@ -646,7 +662,7 @@ func normalizeURL(b *strings.Builder, u URL) (inQuery bool, colPos int) {
 		written = i + 1
 	}
 	b.WriteString(string(u[written:]))
-	return inQuery, colPos
+	return inQuery, protoEndPos
 }
 
 func escapeURLQuery(b *strings.Builder, s string) {
