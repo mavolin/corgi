@@ -20,5 +20,5 @@ func TestTernaryExpression(t *testing.T) {
 
 func TestNilCheckExpression(t *testing.T) {
 	t.Parallel()
-	compile.Compile(t, "nil_check_expression.corgi", compile.Options{})
+	compile.Compile(t, "chain_expression.corgi", compile.Options{})
 }

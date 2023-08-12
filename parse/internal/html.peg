@@ -1,0 +1,40 @@
+// mostly used by element.peg.
+
+// ============================================================================
+// Code points
+// ======================================================================================
+// https://infra.spec.whatwg.org/#code-points
+
+htmlNoncharacter <- [\ufdd0-\ufdef] / [\ufffe\uffff] /
+    [\U0001fffe\U0001ffff\U0002fffe\U0002ffff\U0003fffe\U0003ffff\U0004fffe\U0004ffff] /
+    [\U0005fffe\U0005ffff\U0006fffe\U0006ffff\U0007fffe\U0007ffff\U0008fffe\U0008ffff] /
+    [\U0009fffe\U0009ffff\U000afffe\U000affff\U000bfffe\U000bffff\U000cfffe\U000cffff] /
+    [\U000dfffe\U000dffff\U000efffe\U000fffff\U000efffe\U000fffff\U0010fffe\U0010ffff]
+htmlASCIICodePoint     <- [\u0000-\u007f]
+htmlASCIITabOrNewline  <- [\u0009\u000a\u000d]
+htmlASCIIWhitespace    <- [\u0009\u000a\u000c\u000d\u0020]
+htmlC0Control          <- [\u0000-\u001f]
+htmlC0OrSpace          <- htmlC0Control / '\u0020'
+htmlControl            <- htmlC0Control / [\u007f-\u009f]
+htmlASCIIDigit         <- [\u0030-\u0039]
+htmlASCIIUpperHexDigit <- htmlASCIIDigit / [\u0041-\u0046]
+htmlASCIILowerHexDigit <- htmlASCIIDigit / [\u0061-\u0066]
+htmlASCIIHexDigit      <- htmlASCIIUpperHexDigit / htmlASCIILowerHexDigit
+htmlASCIIUpperAlpha    <- [\u0041-\u005a]
+htmlASCIILowerAlpha    <- [\u0061-\u007a]
+htmlASCIIAlpha         <- htmlASCIIUpperAlpha / htmlASCIILowerAlpha
+htmlASCIIAlphanumeric  <- htmlASCIIDigit / htmlASCIIAlpha
+
+// ============================================================================
+// Elements
+// ======================================================================================
+// https://html.spec.whatwg.org/#elements-2
+
+htmlTagName <- htmlASCIIAlphanumeric+
+
+// ============================================================================
+// Attributes
+// ======================================================================================
+// https://html.spec.whatwg.org/#attributes-2
+
+htmlAttributeNameChar <- !(htmlControl / [\u0020\u0022\u0027\u003e\u002f\u003d] / htmlNoncharacter) .

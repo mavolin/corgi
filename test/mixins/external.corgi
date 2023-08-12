@@ -1,6 +1,5 @@
-use "foo/bar"
+use "github.com/mavolin/corgi/test/mixins/foo"
 
 func External()
 
-p
-  +bar.Fooz
+p: +foo.Fooz

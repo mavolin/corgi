@@ -1,0 +1,147 @@
+// ============================================================================
+// Block, Append, Prepend
+// ======================================================================================
+
+Block <- blockI:blockDirective bodyI:Beaitb {
+    block := blockI.(file.Block)
+    block.Body = bodyI.(file.Scope)
+    return block, nil
+}
+InlineBlock <- blockI:blockDirective scopeI:Beait {
+    block := blockI.(file.Block)
+    block.Body = castedOrZero[file.Scope](scopeI)
+    return block, nil
+}
+Prepend <- blockI:prependDirective bodyI:Beaitb {
+    block := blockI.(file.Block)
+    block.Body = bodyI.(file.Scope)
+    return block, nil
+}
+Append <- blockI:appendDirective bodyI:Beaitb {
+    block := blockI.(file.Block)
+    block.Body = bodyI.(file.Scope)
+    return block, nil
+}
+
+blockDirective <- "block" nameI:blockName {
+    name := nameI.(file.Ident)
+    return file.Block{
+        Type: file.BlockTypeBlock,
+        Name: name,
+        Position: pos(c),
+    }, nil
+}
+prependDirective <- "prepend" nameI:blockName {
+    name := nameI.(file.Ident)
+    return file.Block{
+        Type: file.BlockTypePrepend,
+        Name: name,
+        Position: pos(c),
+    }, nil
+}
+appendDirective <- "append" nameI:blockName {
+    name := nameI.(file.Ident)
+    return file.Block{
+        Type: file.BlockTypeAppend,
+        Name: name,
+        Position: pos(c),
+    }, nil
+}
+
+blockName <- ' '+ identI:MustIdent {
+    return identI, nil
+} / &EOL {
+    return file.Ident{}, &corgierr.Error{
+        Message: "missing block name",
+        ErrorAnnotation: anno(c, annotation{
+            Start: pos(c),
+            StartOffset: 1,
+            Annotation: "expected a block name",
+        }),
+    }
+}
+
+// ============================================================================
+// BlockExpansion
+// ======================================================================================
+
+BlockExpansion <- ':' sI:blockExpansionItem {
+    return file.BlockExpansion{
+        Item: sI.(file.ScopeItem),
+        Position: pos(c),
+    }, nil
+}
+
+blockExpansionItem <- InlineArrowBlock / spacedBlockExpansionItem / badBlockExpansion
+
+spacedBlockExpansionItem <- ' '+ sI:_spacedBlockExpansionItem {
+    return sI, nil
+} / posI:POS sI:_spacedBlockExpansionItem {
+    var fromThe string
+    switch sI.(type) {
+    case file.Block:
+        fromThe = "block"
+    case file.Element:
+        fromThe = "inline element"
+    case file.DivShorthand:
+        fromThe = "div shorthand"
+    case file.MixinCall:
+        fromThe = "mixin call"
+    case file.And:
+        fromThe = "&"
+    case file.If:
+        fromThe = "if"
+    case file.IfBlock:
+        fromThe = "if block"
+    case file.For:
+        fromThe = "for"
+    case file.Include:
+        fromThe = "include"
+    default:
+        fromThe = "rest"
+    }
+
+    return file.BlockExpansion{
+        Item: sI.(file.ScopeItem),
+        Position: pos(c),
+    }, &corgierr.Error{
+        Message: "missing space",
+        ErrorAnnotation: anno(c, annotation{
+            Start: posI.(file.Position),
+            Annotation: "expected a space here, separating the `:` from the "+fromThe,
+        }),
+    }
+}
+_spacedBlockExpansionItem <- InlineBlock  / InlineAnd / InlineMixinCall /
+                             InlineIf / InlineIfBlock / InlineFor / Include /
+                             InlineElement / InlineDivShorthand
+
+badBlockExpansion <- lineI:NOT_EOL* EOL {
+    firstWordLen := strings.IndexByte(string(c.text), ' ')
+    if firstWordLen <= 0 {
+        firstWordLen = len([]rune(string(c.text)))
+    }
+
+    bi := file.BadItem{
+        Line: concat(lineI),
+        Position: pos(c),
+    }
+
+    var suggestions []corgierr.Suggestion
+    if bi.Line != "" {
+        suggestions = append(suggestions, corgierr.Suggestion{
+            Suggestion: "if this is supposed to be an element name, make sure it conforms to the HTML spec",
+        })
+    }
+
+    return bi, &corgierr.Error{
+        Message: "malformed block expansion",
+        ErrorAnnotation: anno(c, annotation{
+            Start: pos(c),
+            Len: firstWordLen,
+            Annotation: "expected a block directive, an inline element, an inline arrow block,\n" +
+                "a mixin call, or inline &-attributes",
+        }),
+        Suggestions: suggestions,
+    }
+}

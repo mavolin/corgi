@@ -1,1 +1,1 @@
-<div><input id="id" type="text" class="class"></div>
+<div><input id=id type=text class=class>foo</div>

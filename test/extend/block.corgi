@@ -1,12 +1,11 @@
-extend "base"
+extend "github.com/mavolin/corgi/test/extend/base.corgi"
 
 func Block()
 
-block title
-  | Learn Corgi
+block title Learn Corgi
 
 block body
-  p.
-    Head over to
-    #a(href="https://mavolin.gitbook.io/corgi")[GitBook]
-    to learn corgi!
+  p
+    > Head over to
+      #a(href="https://mavolin.gitbook.io/corgi")[GitBook]
+      to learn corgi!

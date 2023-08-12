@@ -1,4 +1,4 @@
-//go:build integration_test
+//go:build integration_test && !prepare_integration_test
 
 package expressions
 
@@ -29,7 +29,7 @@ func TestTernaryExpression(t *testing.T) {
 func TestNilCheckExpression(t *testing.T) {
 	t.Parallel()
 
-	w := outcheck.New(t, "nil_check_expression.expect")
+	w := outcheck.New(t, "chain_expression.expect")
 	err := NilCheckExpression(w)
 	require.NoError(t, err)
 }

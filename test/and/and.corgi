@@ -9,7 +9,7 @@ a
   if b
     &.bar.fooz
     &(rel="external")
-  | Wow, this is so cool!
+  > Wow, this is so cool!
 
 - b = false
 a
@@ -19,4 +19,4 @@ a
   if b
     &.bar.fooz
     &(rel="external")
-  | Wow, this is so cool!
+  > Wow, this is so cool!

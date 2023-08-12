@@ -3,15 +3,15 @@ func Switch(s string)
 p
   switch s
     case "foo", "bar"
-      | foo, bar
+      > foo, bar
     case "abc", "def", "jkl"
-      | alphabet
+      > alphabet
 
 p
   switch
     case s == "foo"
-      | foo
+      > foo
     case s == "bar"
-      | bar
+      > bar
     default
-      | something else
+      > something else

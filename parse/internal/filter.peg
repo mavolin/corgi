@@ -1,0 +1,92 @@
+Filter <- RawFilter / CommandFilter / BadFilter
+
+// ============================================================================
+// Raw Filter
+// ======================================================================================
+
+RawFilter <- ":raw" typI:(' '+ rawFilterType)? EOL bodyI:filterBody? {
+    var typ file.RawFilterType
+    if typI != nil {
+        typ = getTuple[file.RawFilterType](typI, -1)
+    }
+
+    return file.RawFilter{
+        Type: typ,
+        Body: castedOrZero[[]file.FilterLine](bodyI),
+        Position: pos(c),
+    }, nil
+}
+
+rawFilterType <- ("html" / "svg" / "js" / "css") {
+    return file.RawFilterType(string(c.text)), nil
+} / NOT_EOL+ {
+    return file.RawFilterType(string(c.text)), &corgierr.Error{
+        Message: "invalid raw filter type",
+        ErrorAnnotation: anno(c, annotation{
+           Start: pos(c),
+           ToEOL: true,
+           Annotation: "expected either `html`, `svg`, `js`, or `css`",
+        }),
+        Suggestions: []corgierr.Suggestion{
+            {
+                Suggestion: "remove the type entirely, or replace it with one of the above",
+            },
+        },
+    }
+}
+
+// ============================================================================
+// Command Filter
+// ======================================================================================
+
+CommandFilter <- ':' nameI:[^ \t\r\n]+ argsI:(' '+ commandFilterArg)* EOL bodyI:filterBody? {
+    return file.CommandFilter{
+        Name: concat(nameI),
+        Args: typedSliceFromTuples[file.CommandFilterArg](argsI, -1),
+        Body: castedOrZero[[]file.FilterLine](bodyI),
+        Position: pos(c),
+    }, nil
+}
+
+commandFilterArg <- stringCommandFilterArg / rawCommand
+
+stringCommandFilterArg <- stringI:String {
+    return file.StringCommandFilterArg(stringI.(file.String)), nil
+}
+
+rawCommand <- argI:[^ \t\r\n]+ {
+    return file.RawCommandFilterArg{Value: concat(argI), Position: pos(c)}, nil
+}
+
+// ============================================================================
+// Bad Filter
+// ======================================================================================
+
+BadFilter <- ':' EOL bodyI:filterBody? {
+    return file.CommandFilter{
+        Position: pos(c),
+        Body: castedOrZero[[]file.FilterLine](bodyI),
+    }, &corgierr.Error{
+        Message: "bad filter",
+        ErrorAnnotation: anno(c, annotation{
+            Start: pos(c),
+            StartOffset: 1,
+            Annotation: "expected `raw` or a command name",
+        }),
+    }
+}
+
+// ============================================================================
+// Utils
+// ======================================================================================
+
+filterBody <- INDENT linesI:(NEW_LNS? filterLine)+ DEDENT {
+    return typedSliceFromTuples[file.FilterLine](linesI, -1), nil
+}
+
+filterLine <- INDENTATION_IGNORE_ADDITIONAL posI:POS lineI:NOT_EOL+ EOL {
+    return file.FilterLine{
+        Line: concat(lineI),
+        Position: pos(c),
+    }, nil
+}

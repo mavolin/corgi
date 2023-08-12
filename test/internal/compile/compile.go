@@ -3,32 +3,29 @@
 package compile
 
 import (
+	"bytes"
+	"errors"
 	"log"
-	"regexp"
-	"runtime"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
-	"github.com/mavolin/corgi/cmd/corgi/app"
-	"github.com/mavolin/corgi/corgi/file"
+	"github.com/mavolin/corgi"
+	"github.com/mavolin/corgi/corgierr"
 	"github.com/mavolin/corgi/test/internal/voidwriter"
+	"github.com/mavolin/corgi/write"
 )
 
 type Options struct {
-	// FileType overwrites the file type of the file to compile.
-	FileType file.Type
-	// OutName overwrites the name of the output file.
-	OutName string
-	// Format calls gofmt on the output file.
-	Format bool
-
 	// Package sets the name of the package in which the generated function
 	// will be placed.
 	//
 	// If not set, the name of the directory in which the calling file is
 	// located, will be used.
 	Package string
+
+	AllowedFilters []string
 }
 
 func init() {
@@ -40,48 +37,64 @@ func init() {
 func Compile(t *testing.T, name string, o Options) {
 	t.Helper()
 
-	args := []string{"-p", callingPackage(t, o)}
+	if o.Package == "" {
+		wd, err := os.Getwd()
+		if err != nil {
+			t.Fatalf("failed to get workdir: %s", err.Error())
+		}
 
-	if o.OutName != "" {
-		args = append(args, "-f", o.OutName)
+		o.Package = filepath.Base(wd)
 	}
 
-	if !o.Format {
-		args = append(args, "-nofmt")
+	f, err := corgi.LoadMain(name, corgi.LoadOptions{})
+	if err != nil {
+		if lerr := corgierr.As(err); lerr != nil {
+			t.Fatalf(lerr.Pretty(corgierr.PrettyOptions{Colored: true}))
+			return
+		}
+
+		t.Fatalf("parse: %s", err)
+		return
 	}
 
-	switch o.FileType {
-	case file.TypeHTML:
-		args = append(args, "-t", "html")
-	case file.TypeXHTML:
-		args = append(args, "-t", "xhtml")
-	case file.TypeXML:
-		args = append(args, "-t", "xml")
+	w := write.New(write.Options{
+		AllowedFilters: o.AllowedFilters,
+	})
+
+	file, err := os.Create(name + ".go")
+	if err != nil {
+		t.Fatalf("could not create output file: %s", err)
+		return
 	}
 
-	args = append(args, name)
-
-	err := app.Run(append([]string{"corgi"}, args...))
-
-	require.NoErrorf(t, err, "failed to compile %s:\n%s", name, err)
-}
-
-// packageRegexp is a regular expression that allows extraction of the package
-// name from the return of runtime.FuncForPC(pc).Name().
-var packageRegexp = regexp.MustCompile(`^(?:[^/]+/)*(?P<package>[^.]+)(?:\.[^.]+)?\.[^.]+$`)
-
-func callingPackage(t *testing.T, o Options) string {
-	t.Helper()
-
-	if o.Package != "" {
-		return o.Package
+	goimports := exec.Command("goimports")
+	goimports.Stdout = file
+	var stderr bytes.Buffer
+	goimports.Stderr = &stderr
+	genOut, err := goimports.StdinPipe()
+	if err != nil {
+		t.Fatalf("failed to create pipe:")
 	}
 
-	pc, _, _, ok := runtime.Caller(2)
-	if !ok {
-		require.Fail(t, "could not determine calling function")
+	if err := goimports.Start(); err != nil {
+		t.Fatalf("failed to start goimports: %s", err.Error())
 	}
 
-	callerName := runtime.FuncForPC(pc).Name()
-	return packageRegexp.FindStringSubmatch(callerName)[1]
+	if err = w.GenerateFile(genOut, o.Package, f); err != nil {
+		t.Fatalf("could not write to output file: %s", err)
+		return
+	}
+
+	genOut.Close()
+
+	if err := goimports.Wait(); err != nil {
+		if stderr.Len() > 0 {
+			err = errors.New(stderr.String())
+		}
+		t.Fatalf("failed to wait for goimports: %s", err.Error())
+	}
+
+	if err = file.Close(); err != nil {
+		t.Errorf("could not close output file: %s", err)
+	}
 }

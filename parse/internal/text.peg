@@ -1,0 +1,260 @@
+// ============================================================================
+// Inline Text
+// ======================================================================================
+
+InlineText <- ' ' lineI:TextLine {
+    return file.InlineText{
+        Text: lineI.(file.TextLine),
+        Position: pos(c),
+    }, nil
+}
+
+// ============================================================================
+// Arrow Block
+// ======================================================================================
+
+ArrowBlock <- "> " firstLineI:(TextLine / EOL) additionalLinesI:(NEW_LNS? INDENTATION2 TextLine)* {
+    firstLine, firstLineOk := firstLineI.(file.TextLine)
+    additionalLineTuples := islice(additionalLinesI)
+
+    n := len(additionalLineTuples)
+    if firstLineOk {
+        n++
+    }
+
+    lines := make([]file.TextLine, 0, n)
+    if firstLineOk {
+        lines = append(lines, firstLine)
+    }
+    for _, lt := range additionalLineTuples {
+        lines = append(lines, getTuple[file.TextLine](lt, -1))
+    }
+
+    return file.ArrowBlock{
+        Lines: lines,
+        Position: pos(c),
+    }, nil
+} / ">" EOL {
+    return file.ArrowBlock{Position: pos(c)}, nil
+}
+
+InlineArrowBlock <- "> " lineI:TextLine {
+    return file.ArrowBlock{
+        Lines: []file.TextLine{lineI.(file.TextLine)},
+        Position: pos(c),
+    }, nil
+} / '>' posI:POS lineI:TextLine {
+    return file.ArrowBlock{
+        Lines: []file.TextLine{lineI.(file.TextLine)},
+        Position: pos(c),
+    }, &corgierr.Error{
+        Message: "missing space",
+        ErrorAnnotation: anno(c, annotation{
+            Start: posI.(file.Position),
+            Annotation: "expected a space here, separating the `>` from the text",
+        }),
+        Example: "`> woof`",
+    }
+}
+
+// ============================================================================
+// TextLine
+// ======================================================================================
+
+TextLine <- itemsI:TextItem+ EOL {
+    return file.TextLine(typedSlice[file.TextItem](itemsI)), nil
+}
+
+// ============================================================================
+// TextItem
+// ======================================================================================
+
+TextItem <- Text / Interpolation
+
+// ============================================================================
+// Text
+// ======================================================================================
+
+Text <- textI:((!EOL [^#])+ / "##")+ {
+    return file.Text{
+        Text: concat(textI),
+        Position: pos(c),
+    }, nil
+}
+
+// ============================================================================
+// Interpolation
+// ======================================================================================
+
+Interpolation <- SimpleInterpolation / ElementInterpolation / MixinCallInterpolation / BadInterpolation
+
+BadInterpolation <- '#' {
+    return nil, &corgierr.Error{
+        Message: "bad interpolation",
+        ErrorAnnotation: anno(c, annotation{
+            Start: pos(c),
+            Annotation: "start of interpolation",
+        }),
+        HintAnnotations: []corgierr.Annotation{
+            anno(c, annotation{
+                Start: pos(c),
+                StartOffset: 1,
+                Annotation: "expected a `#`, `[`, `"+lbrace+"`, a mixin call, or an element name here",
+            }),
+        },
+        Suggestions: []corgierr.Suggestion{
+            {Suggestion: "if you didn't mean to start an interpolation, escape the `#`", Code: "`##`"},
+        },
+    }
+}
+
+// ============================================================================
+// SimpleInterpolation
+// ======================================================================================
+
+SimpleInterpolation <- '#' noEscapeI:'!'? valueI:textInterpolationValue {
+    return file.SimpleInterpolation{
+        NoEscape: noEscapeI != nil,
+        Value: valueI.(file.InterpolationValue),
+        Position: pos(c),
+    }, nil
+} / '#' valueI:(expressionInterpolationValue / fmtExpressionInterpolationValue) {
+    return file.SimpleInterpolation{
+        Value: valueI.(file.InterpolationValue),
+        Position: pos(c),
+    }, nil
+}
+
+// ============================================================================
+// ElementInterpolation
+// ======================================================================================
+
+ElementInterpolation <- '#' elPosI:POS nameI:htmlTagName attrsI:SingleLineAttributeCollection* valueI:elementInterpolationValue {
+    return file.ElementInterpolation{
+        Element: file.Element{
+            Name: concat(nameI),
+            Attributes: typedSlice[file.AttributeCollection](attrsI),
+            Void: castedOrZero[bool](valueI),
+            Position: elPosI.(file.Position),
+        },
+        Value: castedOrZero[file.InterpolationValue](valueI),
+        Position: pos(c),
+    }, nil
+}
+
+elementInterpolationValue <- textInterpolationValue / expressionInterpolationValue / '/' {
+    return true, nil // hacky, but whatev
+} / &(. / !.) {
+    return nil, &corgierr.Error{
+        Message: "invalid interpolation value",
+        ErrorAnnotation: anno(c, annotation{
+            Start: pos(c),
+            Annotation: "expected either an `{` expression `}`, `[` text `]`, or a `/` void indicator",
+        }),
+    }
+}
+
+// ============================================================================
+// MixinCallInterpolation
+// ======================================================================================
+
+MixinCallInterpolation <- '#' mcPosI:POS '+' namespaceI:(Ident '.')? nameI:MustIdent argsI:singleLineMixinArgList? valueI:mixinCallInterpolationValue? {
+    args := castedOrZero[file.MixinCall](argsI)
+
+    var namespace *file.Ident
+    if namespaceI != nil {
+        namespace = ptr(getTuple[file.Ident](namespaceI, 0))
+    }
+
+    return file.MixinCallInterpolation{
+        MixinCall: file.MixinCall{
+            Namespace: namespace,
+            Name: nameI.(file.Ident),
+            LParenPos: args.LParenPos,
+            Args: args.Args,
+            RParenPos: args.RParenPos,
+            Position: mcPosI.(file.Position),
+        },
+        Value: castedOrZero[file.InterpolationValue](valueI),
+        Position: pos(c),
+    }, nil
+}
+
+mixinCallInterpolationValue <- textInterpolationValue / expressionInterpolationValue
+
+// ============================================================================
+// InterpolationValue
+// ======================================================================================
+
+// TextInterpolationValue
+//
+
+textInterpolationValue <- lBracketPosI:L_BRACKET textI:[^\]\r\n]* rBracketPosI:R_BRACKET {
+    return file.TextInterpolationValue{
+        LBracketPos: lBracketPosI.(file.Position),
+        Text: concat(textI),
+        RBracketPos: rBracketPosI.(file.Position),
+    }, nil
+} / lBracketPosI:L_BRACKET textI:[^\]\r\n]* EOL {
+    return file.TextInterpolationValue{
+        LBracketPos: lBracketPosI.(file.Position),
+        Text: concat(textI),
+    }, &corgierr.Error{
+        Message: "unclosed text interpolation",
+        ErrorAnnotation: anno(c, annotation{
+            Start: pos(c),
+            Annotation: "`[` opened here, but never closeed",
+        }),
+        HintAnnotations: []corgierr.Annotation{
+            anno(c, annotation{
+                Start: pos(c),
+                StartOffset: 1,
+                EOLDelta: 1,
+                Annotation: "expected a `]` somewhere here",
+            }),
+        },
+        Suggestions: []corgierr.Suggestion{
+            {Suggestion: "if you didn't mean to start an interpolation, escape the `#`", Code: "`##`"},
+        },
+    }
+}
+
+//
+// ExpressionInterpolationValue
+//
+
+expressionInterpolationValue <- lBracePosI:L_BRACE exprI:SingleLineExpression rBracePosI:R_BRACE {
+    return file.ExpressionInterpolationValue{
+        LBracePos: lBracePosI.(file.Position),
+        Expression: exprI.(file.Expression),
+        RBracePos: rBracePosI.(file.Position),
+    }, nil
+} / lBracePosI:L_BRACE exprI:SingleLineExpression EOL {
+    return file.ExpressionInterpolationValue{
+        LBracePos: lBracePosI.(file.Position),
+        Expression: exprI.(file.Expression),
+    }, &corgierr.Error{
+        Message: "unclosed expression interpolation",
+        ErrorAnnotation: anno(c, annotation{
+            Start: pos(c),
+            Annotation: "`{` opened here, but never closeed",
+        }),
+        HintAnnotations: []corgierr.Annotation{
+            anno(c, annotation{
+                Start: pos(c),
+                StartOffset: 1,
+                EOLDelta: 1,
+                Annotation: "expected a `}` somewhere here",
+            }),
+        },
+        Suggestions: []corgierr.Suggestion{
+            {Suggestion: "if you didn't mean to start an interpolation, escape the `#`", Code: "`##`"},
+        },
+    }
+}
+
+fmtExpressionInterpolationValue <- fmtDirectiveI:fmtDirective eivI:expressionInterpolationValue {
+    eiv := eivI.(file.ExpressionInterpolationValue)
+    eiv.FormatDirective = fmtDirectiveI.(string)
+    return eiv, nil
+}

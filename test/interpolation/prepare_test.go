@@ -13,11 +13,6 @@ func TestInterpolation(t *testing.T) {
 	compile.Compile(t, "interpolation.corgi", compile.Options{})
 }
 
-func TestUnescapedInterpolation(t *testing.T) {
-	t.Parallel()
-	compile.Compile(t, "unescaped_interpolation.corgi", compile.Options{})
-}
-
 func TestHashEscape(t *testing.T) {
 	t.Parallel()
 	compile.Compile(t, "hash_escape.corgi", compile.Options{})

@@ -1,0 +1,33 @@
+Codes <- codesI:(NEW_LNS? Code)+ {
+    return typedSliceFromTuples[file.Code](codesI, 1), nil
+}
+
+Code <- "- " firstLineI:codeSpec additionalLinesI:(NEW_LNS? INDENTATION2 codeSpec)* {
+    additionalLineTuples := islice(additionalLinesI)
+
+    lines := make([]file.CodeLine, 1+len(additionalLineTuples))
+    lines[0] = firstLineI.(file.CodeLine)
+    for i, lt := range additionalLineTuples {
+        lines[i+1] = getTuple[file.CodeLine](lt, -1)
+    }
+
+    return file.Code{
+        Lines: lines,
+        Position: pos(c),
+    }, nil
+} / '-' posI:POS EOL {
+    return file.Code{Position: pos(c)}, &corgierr.Error{
+        Message: "empty code block",
+        ErrorAnnotation: anno(c, annotation{
+            Start: posI.(file.Position),
+            Annotation: "expected code here",
+        }),
+        Suggestions: []corgierr.Suggestion{
+            {Suggestion: "either write some code, or delete this line"},
+        },
+    }
+}
+
+codeSpec <- code:NOT_EOL+ EOL {
+    return file.CodeLine{Code: concat(code), Position: pos(c)}, nil
+}

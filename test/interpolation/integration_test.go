@@ -1,4 +1,4 @@
-//go:build integration_test
+//go:build integration_test && !prepare_integration_test
 
 package interpolation
 
@@ -15,14 +15,6 @@ func TestInterpolation(t *testing.T) {
 
 	w := outcheck.New(t, "interpolation.expect")
 	err := Interpolation(w)
-	require.NoError(t, err)
-}
-
-func TestUnescapedInterpolation(t *testing.T) {
-	t.Parallel()
-
-	w := outcheck.New(t, "unescaped_interpolation.expect")
-	err := UnescapedInterpolation(w)
 	require.NoError(t, err)
 }
 

@@ -1,6 +1,22 @@
 func Filter()
 
 p
-  //- built-in on most unix system, reverses the input
+  // built-in on most unix system, reverses the input
   :rev
     .erofeb enog sah eno on erehw og yldlob oT
+p
+  :raw
+    <foo>
+      bar
+    </foo>
+p
+  :raw html
+    <foo>
+      bar
+    </foo>
+p
+  // https://developer.mozilla.org/en-US/docs/Web/SVG/Element/line
+  :raw svg
+    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <line x1="0" y1="80" x2="100" y2="20" stroke="black" />
+    </svg>

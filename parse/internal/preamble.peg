@@ -1,0 +1,306 @@
+spacedDirPath <- ' '+ sI:String {
+    return sI, nil
+} / ' '* pathI:NOT_EOL* {
+    return file.String{Position: pos(c)}, &corgierr.Error{
+        Message: "invalid path",
+        ErrorAnnotation: anno(c, annotation{
+            Start: pos(c),
+            StartOffset: 1,
+            ToEOL: true,
+            Annotation: "expected a path wrapped in quotes",
+        }),
+        Example: "`\"github.com/mavolin/woof/bark\"`",
+    }
+}
+dirPath <- String / pathI:NOT_EOL* {
+    return file.String{Position: pos(c)}, &corgierr.Error{
+        Message: "invalid path",
+        ErrorAnnotation: anno(c, annotation{
+            Start: pos(c),
+            ToEOL: true,
+            Annotation: "expected a path wrapped in quotes",
+        }),
+        Example: "`\"github.com/mavolin/woof/bark\"`",
+    }
+}
+
+// ============================================================================
+// Extend
+// ======================================================================================
+
+Extend <- "extend" extendI:spacedDirPath EOL {
+    return file.Extend{Path: extendI.(file.String), Position: pos(c)}, nil
+}
+
+// ============================================================================
+// Import
+// ======================================================================================
+
+Imports <- importsI:(NEW_LNS? Import)+ {
+    impTuples := islice(importsI)
+    if impTuples == nil {
+        return []file.Import(nil), nil
+    }
+
+    var imps []file.Import
+    for _, impTuple := range impTuples {
+        imps = append(imps, getTuple[file.Import](impTuple, 1))
+    }
+
+    return imps, nil
+}
+
+Import <- "import" EOL specsI:importBlock {
+    return file.Import{
+        Imports: specsI.([]file.ImportSpec),
+        Position: pos(c),
+    }, nil
+} / "import" ' '+ specI:importSpec {
+    return file.Import{
+        Imports: []file.ImportSpec{specI.(file.ImportSpec)},
+        Position: pos(c),
+    }, nil
+} / "import" posI:POS EOL {
+    return file.Import{Position: pos(c)}, &corgierr.Error{
+        Message: "missing import path",
+        ErrorAnnotation: anno(c, annotation{
+            Start: posI.(file.Position),
+            StartOffset: 1,
+            Annotation: "expected an import path, optionally preceded by an import alias",
+        }),
+    }
+}
+
+importBlock <- INDENT importsI:(NEW_LNS? INDENTATION importSpec)+ DEDENT {
+    return typedSliceFromTuples[file.ImportSpec](importsI, -1), nil
+}
+
+importSpec <- aliasI:(importAlias ' '+)? pathI:dirPath EOL {
+    var spec file.ImportSpec
+    spec.Position = pos(c)
+
+    if aliasI != nil {
+        alias := getTuple[file.GoIdent](aliasI, 0)
+        spec.Alias = &alias
+    }
+
+    spec.Path = pathI.(file.String)
+    return spec, nil
+}
+
+importAlias <- '.' {
+    return file.GoIdent{Ident: ".", Position: pos(c)}, nil
+} / GoIdent / [^"`' ]+ endPosI:POS {
+    return file.GoIdent{
+        Ident: string(c.text),
+        Position: pos(c),
+    }, &corgierr.Error{
+        Message: "invalid import alias",
+        ErrorAnnotation: anno(c, annotation{
+            Start: pos(c),
+            End: endPosI.(file.Position),
+            Annotation: "expected a letter, or `_`, optionally followed by `_`s, letters, and numbers",
+        }),
+    }
+}
+
+// ============================================================================
+// Use
+// ======================================================================================
+
+Uses <- usesI:(NEW_LNS? Use)+ {
+    useTuples := islice(usesI)
+    if useTuples == nil {
+        return []file.Use(nil), nil
+    }
+
+    var uses []file.Use
+    for _, useTuple := range useTuples {
+        uses = append(uses, getTuple[file.Use](useTuple, 1))
+    }
+
+    return uses, nil
+}
+
+Use <- "use" EOL specsI:useBlock {
+    return file.Use{
+        Uses: specsI.([]file.UseSpec),
+        Position: pos(c),
+    }, nil
+} / "use" ' '+ specI:useSpec {
+    return file.Use{
+        Uses: []file.UseSpec{specI.(file.UseSpec)},
+        Position: pos(c),
+    }, nil
+} / "use" posI:POS EOL {
+    return file.Use{Position: pos(c)}, &corgierr.Error{
+        Message: "missing use path",
+        ErrorAnnotation: anno(c, annotation{
+            Start: posI.(file.Position),
+            StartOffset: 1,
+            Annotation: "expected an use path, optionally preceded by an use alias",
+        }),
+    }
+}
+
+useBlock <- INDENT usesI:(NEW_LNS? INDENTATION useSpec)+ DEDENT {
+    return typedSliceFromTuples[file.UseSpec](usesI, -1), nil
+}
+
+useSpec <- aliasI:(useAlias ' '+)? pathI:dirPath EOL {
+    var spec file.UseSpec
+    spec.Position = pos(c)
+
+    if aliasI != nil {
+        alias := getTuple[file.Ident](aliasI, 0)
+        spec.Alias = &alias
+    }
+
+    spec.Path = pathI.(file.String)
+    return spec, nil
+}
+
+useAlias <- '.' {
+    return file.Ident{Ident: ".", Position: pos(c)}, nil
+} / Ident / [^"`' ]+ endPosI:POS {
+    return file.Ident{
+        Ident: string(c.text),
+        Position: pos(c),
+    }, &corgierr.Error{
+        Message: "invalid import alias",
+        ErrorAnnotation: anno(c, annotation{
+            Start: pos(c),
+            End: endPosI.(file.Position),
+            Annotation: "expected a letter, or `_`, optionally followed by `_`s, letters, and numbers",
+        }),
+    }
+}
+
+// ============================================================================
+// Func
+// ======================================================================================
+
+Func <- "func" ' '+ nameI:GoIdent paramsI:(
+    lParenPosI:L_PAREN paramsI:(
+        WS* paramsI:funcParamList? ' '* (',' WS*)? {
+            return castedOrZero[[]file.FuncParam](paramsI), nil
+        } / [^)]* endPosI:POS {
+            return ([]file.FuncParam)(nil), &corgierr.Error{
+                Message: "invalid parameter list",
+                ErrorAnnotation: anno(c, annotation{
+                    Start: pos(c),
+                    End: endPosI.(file.Position),
+                    Annotation: "this is not correct, maybe a missing comma?",
+                }),
+            }
+        }
+    ) rParenPosI:R_PAREN {
+        return file.Func{
+            LParenPos: lParenPosI.(file.Position),
+            Params: paramsI.([]file.FuncParam),
+            RParenPos: rParenPosI.(file.Position),
+        }, nil
+    } / NOT_EOL* {
+        return file.Func{}, &corgierr.Error{
+            Message: "missing `(` or `)` or invalid param list",
+            ErrorAnnotation: anno(c, annotation{
+                Start: pos(c),
+                ToEOL: true,
+                Annotation: "here",
+            }),
+        }
+    }
+) EOL {
+    params := paramsI.(file.Func)
+    return file.Func{
+        Name: nameI.(file.GoIdent),
+        LParenPos: params.LParenPos,
+        Params: params.Params,
+        RParenPos: params.RParenPos,
+        Position: pos(c),
+    }, nil
+} / "func" posI:POS EOL {
+    return file.Func{Position: pos(c)}, &corgierr.Error{
+        Message: "missing func name",
+        ErrorAnnotation: anno(c, annotation{
+            Start: posI.(file.Position),
+            StartOffset: 1,
+            ToEOL: true,
+            Annotation: "expected an identifier followed by a parameter list",
+        }),
+    }
+}
+
+funcParamList <- funcOtherParamList / funcOnlyVariadicParamList
+funcOnlyVariadicParamList <- variadicI:funcVariadicParam {
+    return []file.FuncParam{variadicI.(file.FuncParam)}, nil
+}
+funcOtherParamList <- firstI:funcParam ' '* restI:(',' WS* funcParam)* variadicI:(',' WS* funcVariadicParam)? {
+    restTuples := islice(restI)
+
+    n := 1 + len(restTuples)
+    if variadicI != nil {
+        n++
+    }
+    params := make([]file.FuncParam, 1, n)
+    params[0] = firstI.(file.FuncParam)
+
+    for _, t := range restTuples {
+        params = append(params, getTuple[file.FuncParam](t, -1))
+    }
+
+    if variadicI != nil {
+        params = append(params, getTuple[file.FuncParam](variadicI, -1))
+    }
+
+    return params, nil
+}
+
+funcParam <- namesI:funcIdentList ' '+ typeI:funcType {
+    return file.FuncParam{
+        Names: namesI.([]file.GoIdent),
+        Type: typeI.(file.GoType),
+    }, nil
+} / typeI:funcType {
+    return file.FuncParam{
+        Type: typeI.(file.GoType),
+    }, nil
+}
+funcVariadicParam <- nameI:(GoIdent ' '+)? "..." typeI:funcType {
+    var names []file.GoIdent
+    if nameI != nil {
+        names = []file.GoIdent{getTuple[file.GoIdent](nameI, 0)}
+    }
+
+    return file.FuncParam{
+        Names: names,
+        Variadic: true,
+        Type: typeI.(file.GoType),
+    }, nil
+}
+
+funcIdentList <- firstI:GoIdent restI:(' '* ',' WS* GoIdent)* {
+    restTuples := islice(restI)
+    idents := make([]file.GoIdent, 1, 1+len(restTuples))
+    idents[0] = firstI.(file.GoIdent)
+
+    for _, t := range restTuples {
+        idents = append(idents, getTuple[file.GoIdent](t, -1))
+    }
+
+    return idents, nil
+}
+
+funcType <- GoType / typeI:[^,)]+ endPosI:POS {
+    return file.GoType{
+        Type: concat(typeI),
+        Position: pos(c),
+    }, &corgierr.Error{
+        Message: "invalid type",
+        ErrorAnnotation: anno(c, annotation{
+            Start: pos(c),
+            End: endPosI.(file.Position),
+            Annotation: "not a valid Go type",
+        }),
+    }
+}

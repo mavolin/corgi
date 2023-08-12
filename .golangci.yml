@@ -1,13 +1,19 @@
 linters:
   disable-all: true
   enable:
+    - asasalint
+    - asciicheck
+    - bidichk
     - bodyclose
-    - deadcode
+    - dupword
     - durationcheck
     - errcheck
+    - errname
     - errorlint
+    - execinquery
+    - exhaustive
     - exportloopref
-    - forbidigo
+    - gocheckcompilerdirectives
     - gocritic
     - godot
     - gofumpt
@@ -16,22 +22,26 @@ linters:
     - gosimple
     - govet
     - ineffassign
-    - lll
+    - loggercheck
+    - makezero
     - misspell
     - nakedret
+    - nilerr
+    - nolintlint
+    - nosprintfhostport
     - prealloc
     - predeclared
+    - reassign
     - revive
-    - rowserrcheck
     - staticcheck
-    - structcheck
-    - thelper
+    - tenv
     - tparallel
     - typecheck
     - unconvert
     - unparam
     - unused
-    - varcheck
+    - usestdlibvars
+    - wastedassign
     - whitespace
 
 linters-settings:
@@ -39,31 +49,15 @@ linters-settings:
     exclude:
       - ^\s*.+:.+$
       - ^\s*(?:=+|/+|-+|\++)
+      - ^\s*\w+$
+  unparam:
+    check-exported: true
+
+  errcheck:
+    exclude-functions:
+      - github.com/mavolin/corgi/file/fileutil.Walk
 
 issues:
   exclude-rules:
-    - linters:
-        - revive
-      source: "(?:func|import|import|if|else|switch|case|default|for)_"
-    - linters:
-        - deadcode
-        - unused
-      path: test/...
-    # prevent errors on type assertions with field access
-    - linters:
-        - errorlint
-      source: \w\.\(\*?\w+\)\.\w+
-    - linters:
-        - lll
-      source: //(?:nolint|go|goland)
-    # io.EOF and sql.ErrNoRows should, according to the doc, never be wrapped
-    - linters:
-        - errorlint
-      source: "\\w+\\s*==\\s*(io.EOF|sql.ErrNoRows)"
-    - path: (?:_test|test_util)\.go$
-      linters:
-        - bodyclose
-        - errcheck
-        - errorlint
-        - gosec
-        - unparam
+    - path: ^test/
+      linters: [unused]

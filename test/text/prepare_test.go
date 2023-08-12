@@ -10,10 +10,5 @@ import (
 
 func TestDotBlock(t *testing.T) {
 	t.Parallel()
-	compile.Compile(t, "dot_block.corgi", compile.Options{})
-}
-
-func TestPipes(t *testing.T) {
-	t.Parallel()
-	compile.Compile(t, "pipes.corgi", compile.Options{})
+	compile.Compile(t, "arrow_block.corgi", compile.Options{})
 }

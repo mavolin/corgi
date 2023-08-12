@@ -1,0 +1,291 @@
+condition <- ' '+ condI:IfExpression {
+    return condI, nil
+} / posI:POS &EOL {
+    return file.Expression{}, &corgierr.Error{
+        Message: "missing condition",
+        ErrorAnnotation: anno(c, annotation{
+            Start: posI.(file.Position),
+            StartOffset: 1,
+            Annotation: "expected an expression here",
+        }),
+    }
+} / posI:POS {
+    return file.Expression{}, &corgierr.Error{
+        Message: "missing condition",
+        ErrorAnnotation: anno(c, annotation{
+            Start: posI.(file.Position),
+            Annotation: "expected an expression here",
+        }),
+    }
+}
+
+singleLineCondition <- ' '+ condI:SingleLineIfExpression {
+    return condI, nil
+} / posI:POS &EOL {
+    return file.Expression{}, &corgierr.Error{
+        Message: "missing condition",
+        ErrorAnnotation: anno(c, annotation{
+            Start: posI.(file.Position),
+            StartOffset: 1,
+            Annotation: "expected an expression here",
+        }),
+    }
+} / posI:POS {
+    return file.Expression{}, &corgierr.Error{
+        Message: "missing condition",
+        ErrorAnnotation: anno(c, annotation{
+            Start: posI.(file.Position),
+            Annotation: "expected an expression here",
+        }),
+    }
+}
+
+then <- EOL scopeI:Body {
+    return scopeI, nil
+} / beI:BlockExpansion {
+    return file.Scope{beI.(file.BlockExpansion)}, nil
+} / EOL {
+    return file.Scope(nil), &corgierr.Error{
+        Message: "missing body",
+        ErrorAnnotation: anno(c, annotation{
+            Start: pos(c),
+            Annotation: "expected an indented body or a block expansion",
+        }),
+    }
+} / (
+    ([^:\r\n]+ { return c.text, nil }) &{
+        return true, &corgierr.Error{
+            Message: "unexpected tokens",
+            ErrorAnnotation: anno(c, annotation{
+                Start: pos(c),
+                Annotation: "expected an indented body or a block expansion",
+            }),
+        }
+    }
+) then
+
+// ============================================================================
+// If
+// ======================================================================================
+
+// Regular If
+//
+
+If <- "if" !" block" condI:condition thenI:then elseIfsI:ElseIf* elseI:Else? {
+    return file.If{
+        Condition: condI.(file.Expression),
+        Then: thenI.(file.Scope),
+        ElseIfs: typedSlice[file.ElseIf](elseIfsI),
+        Else: ptrOrNil[file.Else](elseI),
+        Position: pos(c),
+    }, nil
+}
+
+InlineIf <- "if" !" block" condI:condition thenI:BlockExpansion {
+    return file.If{
+        Condition: condI.(file.Expression),
+        Then: file.Scope{thenI.(file.BlockExpansion)},
+        Position: pos(c),
+    }, nil
+}
+
+ElseIf <- NEW_LNS? INDENTATION posI:POS "else if" condI:condition thenI:then {
+    return file.ElseIf{
+        Condition: condI.(file.Expression),
+        Then: thenI.(file.Scope),
+        Position: posI.(file.Position),
+    }, nil
+}
+
+Else <- NEW_LNS? INDENTATION "else" thenI:then {
+    return file.Else{
+        Then: thenI.(file.Scope),
+        Position: pos(c),
+    }, nil
+}
+
+//
+// If Block
+//
+
+IfBlock <- "if block" nameI:blockName thenI:then elseIfsI:ElseIfBlock* elseI:Else? {
+    return file.IfBlock{
+        Name: nameI.(file.Ident),
+        Then: thenI.(file.Scope),
+        ElseIfs: typedSlice[file.ElseIfBlock](elseIfsI),
+        Else: ptrOrNil[file.Else](elseI),
+        Position: pos(c),
+    }, nil
+}
+
+InlineIfBlock <- "if block" nameI:blockName thenI:BlockExpansion {
+    return file.IfBlock{
+        Name: nameI.(file.Ident),
+        Then: file.Scope{thenI.(file.BlockExpansion)},
+        Position: pos(c),
+    }, nil
+}
+
+ElseIfBlock <- NEW_LNS? INDENTATION posI:POS "else if block" nameI:blockName thenI:then {
+    return file.ElseIfBlock{
+        Name: nameI.(file.Ident),
+        Then: thenI.(file.Scope),
+        Position: posI.(file.Position),
+    }, nil
+}
+
+ElseBlock <- NEW_LNS? INDENTATION "else" thenI:then {
+    return file.Else{
+        Then: thenI.(file.Scope),
+        Position: pos(c),
+    }, nil
+}
+
+// ============================================================================
+// Switch
+// ======================================================================================
+
+Switch <- "switch" comparatorI:switchComparator bodyI:switchBody {
+    body := bodyI.(file.Switch)
+
+    s := file.Switch{
+        Comparator: comparatorI.(*file.Expression),
+        Cases: body.Cases,
+        Default: body.Default,
+        Position: pos(c),
+    }
+
+     if len(s.Cases) == 0 {
+        return s, &corgierr.Error{
+            Message: "switch must have at least one case",
+            ErrorAnnotation: anno(c, annotation{
+                ContextEndDelta: 1,
+                Start: pos(c),
+                ToEOL: true,
+                Annotation: "expected switch to have at least one non-default case",
+            }),
+        }
+    }
+
+    return s, nil
+}
+
+switchComparator <- EOL {
+    return (*file.Expression)(nil), nil
+} / ' '+ compI:IfExpression EOL {
+    comp := compI.(file.Expression)
+    return &comp, nil
+} / ' '+ compI:IfExpression startPosI:POS NOT_EOL+ EOL {
+    comp := compI.(file.Expression)
+    return &comp, &corgierr.Error{
+        Message: "unexpected tokens",
+        ErrorAnnotation: anno(c, annotation{
+            Start: startPosI.(file.Position),
+            Annotation: "expression was terminated here, but should span entire line",
+        }),
+    }
+}
+
+switchBody <- INDENT itms:(NEW_LNS? INDENTATION switchBodyItem)* DEDENT {
+    tupleTuples := islice(itms)
+
+    s := file.Switch{Cases: make([]file.Case, 0, len(tupleTuples))}
+
+    var err error
+    for _, tupleTuple := range tupleTuples {
+        tuple := getTuple[any](tupleTuple, -1)
+
+        switchCase, ok := getTuple[file.Case](tuple, 0), getTuple[bool](tuple, -1)
+        if switchCase.Expression != nil || !ok {
+            s.Cases = append(s.Cases, switchCase)
+        } else {
+            if s.Default != nil {
+                err = &corgierr.Error{
+                    Message: "multiple default cases in switch",
+                    ErrorAnnotation: anno(c, annotation{
+                        Start: switchCase.Position,
+                        Len: len("default"),
+                        Annotation: "second default case",
+                    }),
+                    HintAnnotations: []corgierr.Annotation{
+                        anno(c, annotation{
+                            Start: s.Default.Position,
+                            Len: len("default"),
+                            Annotation: "first default case",
+                        }),
+                    },
+                }
+            } else {
+                s.Default = &switchCase
+            }
+        }
+    }
+
+    return s, err
+}
+
+switchBodyItem <- caseI:(Case / Default) {
+    return []any{caseI, true}, nil
+} / caseI:BadCase {
+    return []any{caseI, false}, nil
+}
+
+Case <- "case" condI:condition thenI:switchThen? {
+    return file.Case{
+        Expression: ptrOrNil[file.Expression](condI),
+        Then: castedOrZero[file.Scope](thenI),
+        Position: pos(c),
+    }, nil
+}
+
+Default <- "default" thenI:switchThen? {
+    return file.Case{
+        Then: castedOrZero[file.Scope](thenI),
+        Position: pos(c),
+    }, nil
+}
+
+switchThen <- EOL scopeI:Body {
+    return scopeI, nil
+} / beI:BlockExpansion {
+    return file.Scope{beI.(file.BlockExpansion)}, nil
+}
+
+BadCase <- NOT_EOL+ EOL bodyI:Body? {
+    firstWordLen := strings.IndexByte(string(c.text), ' ')
+    if firstWordLen <= 0 {
+        firstWordLen = len([]rune(string(c.text)))
+    }
+
+    return file.Case{
+        Then: castedOrZero[file.Scope](bodyI),
+        Position: pos(c),
+    }, &corgierr.Error{
+        Message: "unrecognized directive in switch body",
+        ErrorAnnotation: anno(c, annotation{
+            Start: pos(c),
+            Len: firstWordLen,
+            Annotation: "expected a case or a default",
+        }),
+    }
+}
+
+// ============================================================================
+// For
+// ======================================================================================
+
+For <- "for" ' '* exprI:ForExpression bodyI:then {
+    return file.For{
+        Expression: exprI.(*file.Expression),
+        Body: bodyI.(file.Scope),
+        Position: pos(c),
+    }, nil
+}
+
+InlineFor <- "for" ' '* exprI:SingleLineForExpression bodyI:BlockExpansion {
+    return file.For{
+        Expression: exprI.(*file.Expression),
+        Body: file.Scope{bodyI.(file.BlockExpansion)},
+        Position: pos(c),
+    }, nil
+}

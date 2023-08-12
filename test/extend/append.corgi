@@ -1,17 +1,14 @@
-extend "base"
-
-use "morehead"
+extend "github.com/mavolin/corgi/test/extend/base.corgi"
 
 func Append()
 
 append vars
   - lang = "de"
 
-block title
-  | Lerne Corgi
+block title Lerne Corgi
 
 block body
-  p.
-    Schau bei
-    #a(href="https://mavolin.gitbook.io/corgi")[GitBook]
-    vorbei, um corgi zu lernen!
+  p
+    > Schau bei
+      #a(href="https://mavolin.gitbook.io/corgi")[GitBook]
+      vorbei, um corgi zu lernen!

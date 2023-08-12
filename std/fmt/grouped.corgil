@@ -1,0 +1,163 @@
+import
+  __corgi_std_woof "github.com/mavolin/corgi/woof"
+
+// Grouped formats the stringified version of val in groups of size runes.
+//
+// Each group is separated by sep.
+//
+// If trailRem is set, the remainder group, i.e. the group that has less than
+// size elements, will be the last group.
+// Otherwise, the first group will be that group.
+//
+// If minSize is set and val is shorter than minSize, Grouped will print it as
+// is.
+mixin Grouped(val any, size=4, sep=" ", trailRem=false, minSize=0)
+  if size < 1
+    - size = 1
+
+  - s, err := __corgi_std_woof.Stringify(val)
+  if err != nil
+    return err
+  - rs := []rune(s)
+  if len(rs) <= size || len(rs) < minSize
+    > #{s}
+    return
+
+  - i := len(rs) % size
+
+  if !trailRem && i != 0
+    > #{string(rs[:i])}#{sep}
+
+  for ; i < len(rs) - size; i += size
+    > #{string(rs[i:i+size])}#{sep}
+
+  > #{string(rs[i:])}
+
+
+//corgi:formixin Num SetDigitGroupSep
+- digitGroupSep := " "
+//corgi:formixin Num SetDecimalSep
+- decimalSep := "."
+//corgi:formixin Num SetNumWords
+- numWordsStart := 0
+  numWords := []string{"zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"}
+
+// Num is used for grouping numbers in groups of 3, if they are greater or
+// equal to 10 000, or smaller or equal to -10 000.
+//
+// Num handles three special cases that Grouped doesn't.
+//
+//  1. The sign isn't counted towards any group.
+//     Where Grouped would print "- 123 456", Num will print "-123 456".
+//  2. Num correctly handles decimal points:
+//     123456.7891 will be printed as "123 456.7891" and 12345.67891 will be
+//     printed as "12 345.67 890".
+//  3. If useWords is set to true, Num will write out the number if it is in
+//     the range of 0-9.
+//     This means instead of printing "7", Num will print "seven".
+//     That range and those numbers can be changed using SetNumWords.
+//
+// By default, Num will separate groups with spaces, however, you may choose to
+// change this default using SetNumSep.
+//
+// Num does not validate if val is actually a number.
+// Instead, it operates on val's stringified version, scanning for '.' as a
+// decimal separator.
+mixin Num(val any, size=3, groupSep string = digitGroupSep, decimalSep string = decimalSep, minSize=5, useWords=false)
+  if size < 1
+    - size = 1
+
+  - s, err := __corgi_std_woof.Stringify(val)
+  if err != nil
+    return err
+
+  if len(s) == 0
+    return
+
+  if s[0] == '+'
+    - s = s[1:]
+
+  if len(s) == 0
+    return
+
+  if s[0] != '-'
+    if useWords
+      - num, err := strconv.Atoi(s)
+      if err == nil
+        - num -= numWordsStart
+        if num < numWordsStart
+          > #{numWords[num]}
+          return
+  else
+    > -
+    - s = s[1:]
+
+  if len(s) <= size || len(s) < minSize
+    > #{s}
+    return
+
+  - beforeDec, afterDec, _ := strings.Cut(s, ".")
+
+  +Grouped(val=beforeDec, size=size, sep=groupSep, minSize=minSize)
+  if len(afterDec) > 0
+    > #{decimalSep}
+    +Grouped(val=afterDec, size=size, sep=groupSep, minSize=minSize)
+
+// SetDigitGroupSep sets the global default for the digit group separator used
+// by Num.
+//
+// SetDigitGroupSep may be called at any time, only affecting the calls to Num
+// made after updating the separator.
+//
+// If SetDigitGroupSep's _ block is set, the group separator will only be
+// changed inside the block.
+// Further calls to SetDigitGroupSep inside the block, even if without a
+// _ block, will also be reverted.
+mixin SetDigitGroupSep(sep string)
+  if block _
+    - oldSep = digitGroupSep
+      digitGroupSep = sep
+    block _
+    - digitGroupSep = oldSep
+    return
+  - digitGroupSep = sep
+
+// SetDecimalSep sets the global default for the decimal separator used by Num.
+//
+// SetDecimalSep may be called at any time, only affecting the calls to Num
+// made after updating the separator.
+//
+// If SetDecimalSep's _ block is set, the decimal separator will only be
+// changed inside the block.
+// Further calls to SetDecimalSep inside the block, even if without a _ block,
+// will also be reverted.
+mixin SetDecimalSep(sep string)
+  if block _
+    - oldSep = decimalSep
+      decimalSep = sep
+    block _
+    - decimalSep = oldSep
+    return
+  - decimalSep = sep
+
+// SetNumWords sets the global default for the spelled-out numbers used by Num,
+// if useWords is set to true.
+//
+// SetNumWords may be called at any time, only affecting the calls to Num made
+// after updating the words.
+//
+// If SetNumWords's _ block is set, the spelled-out words will only be changed
+// inside the block.
+// Further calls to SetNumWords inside the block, even if without a _ block,
+// will also be reverted.
+//
+// By default, words[0] will be assumed to be zero.
+// This can be changed by setting the start param.
+mixin SetNumWords(start=0, words []string)
+  if block _
+    - oldWords, oldWordsStart = numWords, numWordsStart
+      numWords, numWordsStart = words, start
+    block _
+    - numWords, numWordsStart = oldWords, oldWordsStart
+    return
+  - numWords, numWordsStart = words, start

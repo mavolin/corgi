@@ -19,6 +19,7 @@
 
 ### Local Testing ###
 testlocal/
+./test.corgi
 
 # GoReleaser
 dist/

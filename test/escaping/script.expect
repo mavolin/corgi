@@ -1,5 +1,1 @@
-<script>let a =  123 ;
-let b = "abc\n";
-let c = {"A":"foo","B":{"C":123}};
-foo();
-let e = "\n";</script>
+<script>let a= 123 ;let b="abc\\n";let c={"A":"foo","B":{"C":123}};foo();let e="\n";</script>

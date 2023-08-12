@@ -1,0 +1,6 @@
+Include <- "include" pathI:spacedDirPath {
+    return file.Include{
+        Path: pathI.(file.String),
+        Position: pos(c),
+    }, nil
+}

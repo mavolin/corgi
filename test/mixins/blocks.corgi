@@ -1,66 +1,52 @@
 func Blocks()
 
 mixin foo()
-  p: block
+  p: block _
 
 mixin namedBlocks()
   div
-    p
-      block myFirstBlock
-    p
-      block myOtherBlock
+    p: block myFirstBlock
+    p: block myOtherBlock
 
 mixin withDefaults()
-  p
-    block
-      | Nothing to see here.
+  p: block _ Nothing to see here.
 
 mixin leftRight()
   div(style="display: flex; justify-content: space-between;")
     div: block left
-    if block right
-      div: block right
+    if block right: div: block right
 
 div
   +foo
-    block
-      | This is the content of the block.
+    block _ This is the content of the block.
 
 div
   +namedBlocks
     block myFirstBlock
       &.foo
-      | This text will appear in the first <p>.
+      > This text will appear in the first <p>.
 
-    block myOtherBlock.
-      This text will appear in the second <p>.
+    block myOtherBlock This text will appear in the second <p>.
 
 div
-  +foo>.
-    Beam me up, Scotty!
-  +foo> Beam me up, Scotty!
-  +foo>
-    | Beam me up, Scotty!
+  +foo\
+    > Beam me up, Scotty!
+  +foo Beam me up, Scotty!
 
 div
   +withDefaults
-  +withDefaults> A lot to see here.
+  +withDefaults A lot to see here.
 
 div
   +leftRight
-    block left
-      p Left only
+    block left: p Left only
 
 
   +leftRight
-    //- no block left
-    block right
-      p Right only
+    // no block left
+    block right: p Right only
 
 
   +leftRight
-    block left
-      p Left...
-
-    block right
-      p ...and right
+    block left: p Left...
+    block right: p ...and right

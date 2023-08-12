@@ -1,45 +1,54 @@
 <div align="center">
 <h1>corgi</h1>
 
-[![GitBook](https://img.shields.io/badge/Docs-GitBook-blue)](https://mavolin.gitbook.io/corgi)
+[![GitBook](https://img.shields.io/badge/docs-GitBook-blue)](https://mavolin.gitbook.io/corgi)
 [![Test](https://github.com/mavolin/corgi/actions/workflows/test.yml/badge.svg)](https://github.com/mavolin/corgi/actions)
 [![Code Coverage](https://codecov.io/gh/mavolin/corgi/branch/develop/graph/badge.svg?token=ewFEQGgMES)](https://codecov.io/gh/mavolin/corgi)
 [![Go Report Card](https://goreportcard.com/badge/github.com/mavolin/corgi)](https://goreportcard.com/report/github.com/mavolin/corgi)
-[![License MIT](https://img.shields.io/github/license/mavolin/corgi)](https://github.com/mavolin/corgi/blob/develop/LICENSE)
+[![License MIT](https://img.shields.io/github/license/mavolin/corgi)](./LICENSE)
 </div>
 
 ---
 
 ## About
 
-Corgi is an HTML and XML template language for Go, inspired by pug (hence the name).
+Corgi is an HTML template language for Go, inspired by pug (hence the name).
 Just like pug, corgi also uses code generation to generate its templates.
 
 ## Main Features
 
-* 👀 Highly readable syntax, not just replacing placeholders
-* 👪 Support for inheritance
-* ➕ Mixins—functions (with parameters) that render repeated pieces of corgi
-* 🗄 Import mixins from other files
+* 👀 Highly readable syntax that models HTML, not just replacing placeholders
+* ➕ Mixins—functions that render repeated pieces of corgi
+* 🌀 Conditional attributes that are actually readable
+* 🗄 Import other files to use their mixins
 * 🖇 Split large templates into multiple files
-* ✨ Import any Go package and use its constants, variables, types, and functions—no need for `FuncMap`s or the like
-* 🤏 Generates minified HTML (and through the use of filters also minified CSS and JS)
-* 🔒 Automatically escapes HTML/XML, and in HTML mode also interpolated CSS and JS
+* 👪 Support for inheritance
+* ✨ Import any Go package and use any of its types, functions and constants—no need for `FuncMap`s
+* 🤏 Generates compile-time minified HTML, CSS, and JS
+* 🔒 Context-aware auto-escaping and filtering of HTML, CSS, JS, and special HTML attributes
+* 🛡️ Script CSRF nonce injection
+* ⚠️ Descriptive, Rust-style errors
 
-## Examples
+## Example
 
 First impressions matter, so here is an example of a simple template:
 
 ```jade
 import "strings"
 
-//- These are the name and params of the function that corgi will generate.
-//- Besides the params you specify here, corgi will also add an io.Writer that
-//- it'll write the output to.
+// corgi has a stdlib with a handful of useful mixins
+use "fmt"
+
+// These are the name and params of the function that corgi will generate.
+// Besides the params you specify here, corgi will also add an io.Writer that
+// it'll write the output to, and an error return, that returns any errors
+// it encounters when writing to the io.Writer.
+//
+// The real signature will look like this:
+// func LearnCorgi(w io.Writer, name string, knowsPug bool, friends []string) error
 func LearnCorgi(name string, knowsPug bool, friends []string)
 
-mixin greet(name string)
-  | Hello, #{name}!
+mixin greet(name string) Hello, #{name}!
 
 doctype html
 html(lang="en")
@@ -47,59 +56,49 @@ html(lang="en")
     title Learn Corgi
   body
     h1 Learn Corgi
-    p#features.font-size--big
+    p#greeting.greeting
+      // the & allows you to add additional attributes to an element
+      if strings.HasPrefix(name, "M"): &.font-size--big
       +greet(name=name)
 
     p
       if knowsPug
-        | #{name}, since you already know pug,
-        | learning corgi will be even more of #strong[a breeze] for you!
-        |
+        > #{name}, since you already know pug,
+          learning corgi will be even more of #strong[a breeze] for you!#[ ]
 
-      .
-        Head over to
-        #a(href="https://mavolin.gitbook.io/corgi")[GitBook]
+      > Head over to #a(href="https://mavolin.gitbook.io/corgi")[GitBook]
         to learn it.
 
-    switch len(friends)
-      case 0
-      case 1
-        p And make sure to tell #{friends[0]} about corgi too!
-      case 2
-        p And make sure to tell #{friends[0]} and #{friends[1]} about corgi too!
-      default
-        p.
-          And make sure to tell
-          #{strings.Join(friends[:len(friends)-1], ", ")},
-          and #{friends[len(friends)-1]} about corgi too!
+    p And make sure to tell #+fmt.List(val=friends) about corgi too!
 ```
 
+Pretty-Printed output:
+
 ```html
-<!-- LearnCorgi("Maxi", true, []string{"Huey", "Dewey", "Louie"}) -->
+<!-- LearnCorgi(myWriter, "Maxi", true, []string{"Huey", "Dewey", "Louie"}) -->
 
 <!doctype html>
-<html lang="en">
-<head>
-    <title>Learn Corgi</title>
-</head>
+<html lang=en>
+<head><title>Learn Corgi</title></head>
 <body>
 <h1>Learn Corgi</h1>
-<p id="features" class="font-size--big">Hello, Maxi!</p>
+<p id=greeting class="greeting font-size--big">Hello, Maxi!</p>
 <p>
     Maxi, since you already know pug,
-    learning corgi will be even more of <strong>a breeze</strong> for you!
-    Head over to <a href="https://mavolin.gitbook.io/corgi">GitBook</a> to
-    learn it.
+    learning corgi will be even more of <strong>a breeze</strong> for you! Head over to
+    <a href=https://mavolin.gitbook.io/corgi>GitBook</a> to learn it.
 </p>
 <p>And make sure to tell Huey, Dewey, and Louie about corgi too!</p>
 </body>
 </html>
 ```
 
+> If you're interested in the generated code, or want to see more examples
+> before diving into the docs below, have a look at the `examples` directory.
+
 ## Want to know more?
 
 Have a look at the guide on [GitBook](https://mavolin.gitbook.io/corgi).
-If you already know pug, you can also find a detailed list of differences there.
 
 ## License
 

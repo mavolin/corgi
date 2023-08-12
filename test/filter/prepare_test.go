@@ -10,5 +10,5 @@ import (
 
 func TestFilter(t *testing.T) {
 	t.Parallel()
-	compile.Compile(t, "filter.corgi", compile.Options{})
+	compile.Compile(t, "filter.corgi", compile.Options{AllowedFilters: []string{"rev"}})
 }

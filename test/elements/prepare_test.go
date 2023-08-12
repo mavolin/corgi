@@ -5,7 +5,6 @@ package elements
 import (
 	"testing"
 
-	"github.com/mavolin/corgi/corgi/file"
 	"github.com/mavolin/corgi/test/internal/compile"
 )
 
@@ -17,8 +16,7 @@ func TestEmptyElement(t *testing.T) {
 func TestVoidElements(t *testing.T) {
 	t.Parallel()
 
-	compile.Compile(t, "void_elements.html.corgi", compile.Options{FileType: file.TypeHTML})
-	compile.Compile(t, "void_elements.xhtml.corgi", compile.Options{FileType: file.TypeXHTML})
+	compile.Compile(t, "void_elements.corgi", compile.Options{})
 }
 
 func TestAttributes(t *testing.T) {
@@ -39,7 +37,5 @@ func TestSelfClosing(t *testing.T) {
 func TestMirror(t *testing.T) {
 	t.Parallel()
 
-	compile.Compile(t, "mirror.html.corgi", compile.Options{FileType: file.TypeHTML})
-	compile.Compile(t, "mirror.xhtml.corgi", compile.Options{FileType: file.TypeXHTML})
-	compile.Compile(t, "mirror.xml.corgi", compile.Options{FileType: file.TypeXML})
+	compile.Compile(t, "bool_attrs.corgi", compile.Options{})
 }

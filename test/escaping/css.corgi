@@ -1,13 +1,17 @@
-import "github.com/mavolin/corgi/pkg/writeutil"
+import "github.com/mavolin/corgi/woof"
 
 func CSS()
 
-- a := "'"
-- b := writeutil.CSS(".test { color: green; }")
+- a := ".test { color: green; }"
+- b := woof.CSS(".test { color: green; }")
+- c := "'"
+- d := ".abc"
 
-style.
-  .#{a} {
-    display: none;
-  }
+style
+  > .#{a} {
+      display: none;
+    }
 
-  #{b}
+    #{b}
+    #{c}
+    #{d}

@@ -1,0 +1,75 @@
+import
+  __corgi_std_reflect "reflect"
+
+//corgi:formixin List SetListSep
+- listSep := ", "
+  listLastSep := ", and "
+
+// List will format the stringified elements of val, which must be a slice, as
+// a list.
+//
+// If val is not a slice, List will return from the generated function with an
+// error.
+//
+// The list will be constructed as follows:
+//
+// If the slice is empty or nil, nothing will be printed.
+//
+// If the slice contains a single element, only that will be printed.
+//
+// If the slice contains two elements they will both be printed, separated by
+// lastSep.
+//
+// If the slice contains more than two elements, all but the last will be
+// printed, separated by sep.
+// Then, the last element will be printed, separated from the rest by lastSep.
+//
+// You can change the defaults of sep and lastSep by calling SetListSep.
+//
+// By default sep is ", ", and lastSep is ", and ".
+mixin List(val any, sep string = listSep, lastSep string = listLastSep)
+  if val == nil
+    return
+
+  - rval := __corgi_std_reflect.ValueOf(val)
+  switch rval.Len()
+    case 0
+      return
+    case 1
+      > #{rval.Index(0).Interface()}
+      return
+
+  > #{rval.Index(0).Interface()}
+  for i := 1; i < rval.Len()-1; i++
+    > #{sep}#{rval.Index(i).Interface()}
+  > #{lastSep}#{rval.Index(rval.Len()-1).Interface()}
+
+// SetListSep updates the global default for the sep and lastSep values used by
+// List.
+// If you don't specify sep or lastSep, or assign them empty value, they won't
+// get updated.
+//
+// SetListSep may be called at any time, only affecting the calls to List made
+// after updating the separator.
+//
+// If SetListSeps's _ block is set, the spelled-out words will only be changed
+// inside the block.
+// Further calls to SetNumWords inside the block, even if without a _ block,
+// will also be reverted.
+mixin SetListSep(sep="", lastSep="")
+  if block _
+    - oldSep, oldLastSep := listSep, listLastSep
+    if sep != ""
+      - listSep = sep
+    if lastSep != ""
+      - listLastSep = lastSep
+
+    block _
+
+    - listSep, listLastSep = oldSep, oldLastSep
+    return
+
+  if sep != ""
+    - listSep = sep
+  if lastSep != ""
+    - listLastSep = lastSep
