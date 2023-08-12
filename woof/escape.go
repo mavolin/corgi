@@ -544,6 +544,11 @@ func escapeURL(vals ...any) (u URL, safe bool, err error) {
 			// if this is part of the proto, consider the proto automatically
 			// safe
 			protoEnd = true
+
+			if inQuery {
+				normalizeURL(&b, URL(s))
+				continue
+			}
 		} else {
 			s, err = Stringify(val)
 			if err != nil {
