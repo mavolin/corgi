@@ -99,7 +99,6 @@ Pretty-Printed output:
 ## Want to know more?
 
 Have a look at the guide on [GitBook](https://mavolin.gitbook.io/corgi).
-If you already know pug, you can also find a detailed list of differences there.
 
 ## License
 
