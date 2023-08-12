@@ -26,7 +26,7 @@ Just like pug, corgi also uses code generation to generate its templates.
 * ✨ Import any Go package and use any of its types, functions and constants—no need for `FuncMap`s
 * 🤏 Generates compile-time minified HTML, CSS, and JS
 * 🔒 Context-aware auto-escaping and filtering of HTML, CSS, JS, and special HTML attributes
-* 🛡️ Script CSRF nonce injection
+* 🛡️ Script CSP nonce injection
 * ⚠️ Descriptive, Rust-style errors
 
 ## Example
