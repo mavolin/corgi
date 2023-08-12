@@ -76,19 +76,19 @@ func init() {
 	flag.BoolVar(&showHelp, "h", false, "show this help message")
 	flag.BoolVar(&showVersion, "version", false, "show version")
 	flag.StringVar(&Package, "package", "",
-		"the name of the package to generate into (default: GOPACKAGE, or pwd)\n"+
+		"the name of the package to generate into (default: $GOPACKAGE, or $(pwd))\n"+
 			"ignored if -lib is set")
-	flag.StringVar(&OutFile, "o", "", "write output to `File` instead of stdout (defaults to `FILE.go`)")
+	flag.StringVar(&OutFile, "o", "", "write output to `OUTFILE` (default: INFILE.go)")
 	flag.BoolVar(&UseStdout, "stdout", false, "write to stdout instead of a file")
 
 	flag.BoolVar(&PrecompileLibrary, "lib", false,
-		"treat the input file as a library dir, not compatible with stdin;\n"+
-			"`-o`, if not set, will default to `"+corgi.PrecompFileName+"`")
+		"treat the input file as a library dir; not compatible with stdin;\n"+
+			"'-o', if not set, will default to `"+corgi.PrecompFileName+"`")
 	flag.BoolVar(&NoGoImports, "nogoimports", false, "do not run goimports on the generated file")
-	flag.StringVar(&GoExecPath, "go", "", "path to the go executable, defaults to $GOROOT/bin/go")
+	flag.StringVar(&GoExecPath, "go", "", "set the `PATH` of the go executable (default: $GOROOT/bin/go")
 	flag.BoolVar(&Verbose, "v", false, "enable verbose output to stderr")
 	flag.BoolVar(&Debug, "debug", false, "print file and line information as comments in the generated function")
-	flag.Func("color", "force or disable coloring of errors (`true`, `false`)", func(s string) error {
+	flag.Func("color", "force or disable coloring of errors (`true/false`)", func(s string) error {
 		ForceColorSetting = true
 
 		switch s {
@@ -102,7 +102,7 @@ func init() {
 
 		return nil
 	})
-	flag.Func("colour", "force or disable colouring of errors, even if you're British (`true`, `false`)", func(s string) error {
+	flag.Func("colour", "force or disable colouring of errors, even if you're British (`true/false`)", func(s string) error {
 		ForceColorSetting = true
 		switch s {
 		case "", "true":
@@ -118,10 +118,10 @@ func init() {
 
 	var exePreferencesText string
 	if ConfigDir != "" {
-		exePreferencesText = "\nthis does not affect preferences stored in `" + filepath.Join(ConfigDir, "trusted_filters")
+		exePreferencesText = "\nthis does not affect preferences stored in " + filepath.Join(ConfigDir, "trusted_filters")
 	}
 
-	flag.Func("trust-filter", "trust these comma-separated executables to be run as filters"+exePreferencesText,
+	flag.Func("trust-filter", "trust these comma-separated `executables` to be run as filters"+exePreferencesText,
 		func(s string) error {
 			TrustedFilters = append(TrustedFilters, strings.Split(s, ",")...)
 			return nil
@@ -235,7 +235,7 @@ func usage() {
 	fmt.Fprintln(flag.CommandLine.Output(), "This is the compiler for the corgi template language.")
 	fmt.Fprintln(flag.CommandLine.Output(), "https://github.com/mavolin/corgi")
 	fmt.Fprintln(flag.CommandLine.Output())
-	fmt.Fprintln(flag.CommandLine.Output(), "Usage: corgi [options] [FILE]")
+	fmt.Fprintln(flag.CommandLine.Output(), "Usage: corgi [options] [INFILE]")
 	fmt.Fprintln(flag.CommandLine.Output(), "Usage: corgi [options] -lib DIR")
 	fmt.Fprintln(flag.CommandLine.Output())
 	fmt.Fprintln(flag.CommandLine.Output(), "Input may be passed through stdin, however, this will disable loading of the file's dir library.")
@@ -260,16 +260,16 @@ func version() string {
 	return ver
 }
 
-const defaultTrustFiltersFile = "# This file contains newline-separated names of executables\n" +
-	"# that you trust. This means, corgi will execute all filters with the listed names without asking,\n" +
+const defaultTrustFiltersFile = "# This file contains newline-separated names of executables that you trust.\n" +
+	"# This means, corgi will execute all filters with the listed names without asking,\n" +
 	"# assuming they are approved by you.\n" +
-	"# You should only place programs here, that cannot do any damage to the system.\n"
+	"# You should only place programs here that cannot do any damage to the system.\n"
 
 func doEditTrustedFilters() {
 	if TrustedFiltersFile == "" {
 		fmt.Fprintln(os.Stderr, "cannot locate corgi config directory;\n"+
 			"this is either because you are not running linux, macOS, or windows,"+
-			"or because your HOME/AppData env is not set")
+			"or because $HOME/%AppData% is not set")
 		os.Exit(1)
 	}
 
