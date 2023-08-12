@@ -18,7 +18,7 @@ mixin SetLocation(loc __corgi_std_timeLocation)
 // default is time.Location, changeable trough SetLocation.
 //
 // If asIs is true, the time won't be converted to another timezone.
-mixin Time(t __corgi_std_timeTime, format string = timeFormat, in __corgi_std_time.Location = location, asIs=false)
+mixin Time(t __corgi_std_time.Time, format string = timeFormat, in __corgi_std_time.Location = location, asIs=false)
   if !asIs
     - t=t.In(in)
 
@@ -44,7 +44,7 @@ mixin SetTimeFormat(format string)
 // changeable trough SetLocation.
 // This is usually only desired, if t is a datetime and we only want to print
 // the date.
-mixin Date(t __corgi_std_timeTime, format string = dateFormat, in __corgi_std_timeLocation = location, asIs=true)
+mixin Date(t __corgi_std_time.Time, format string = dateFormat, in __corgi_std_time.Location = location, asIs=true)
   if !asIs
     - t=t.In(in)
 
@@ -66,7 +66,7 @@ mixin SetDateFormat(format string)
 // default is time.Location, changeable trough SetLocation.
 //
 // If asIs is true, the time won't be converted to another timezone.
-mixin DateTime(t __corgi_std_timeTime, format string = dateTimeFormat, in __corgi_std_timeLocal = location, asIs=false)
+mixin DateTime(t __corgi_std_time.Time, format string = dateTimeFormat, in __corgi_std_time.Location = location, asIs=false)
   if !asIs
     - t=t.In(in)
 
