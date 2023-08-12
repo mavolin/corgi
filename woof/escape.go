@@ -538,9 +538,17 @@ func escapeURL(vals ...any) (u URL, safe bool, err error) {
 
 	var b strings.Builder
 	for _, val := range vals {
-		s, err := Stringify(val)
-		if err != nil {
-			return "", false, err
+		var s string
+		if u, ok := val.(URL); ok {
+			s = string(u)
+			// if this is part of the proto, consider the proto automatically
+			// safe
+			protoEnd = true
+		} else {
+			s, err = Stringify(val)
+			if err != nil {
+				return "", false, err
+			}
 		}
 
 		if inQuery {
