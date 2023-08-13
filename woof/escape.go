@@ -592,7 +592,7 @@ func escapeURL(vals ...any) (u URL, safe bool, err error) {
 }
 
 func isSafeURLProtocol(protocol string) bool {
-	if !strings.EqualFold(protocol, "http") && !strings.EqualFold(protocol, "https") && !strings.EqualFold(protocol, "mailto") {
+	if !strings.EqualFold(protocol, "http") && !strings.EqualFold(protocol, "https") && !strings.EqualFold(protocol, "mailto") && !strings.EqualFold(protocol, "tel") {
 		return false
 	}
 	return true
