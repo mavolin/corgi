@@ -582,7 +582,7 @@ func escapeURL(vals ...any) (u URL, safe bool, err error) {
 
 		if !protoEnd && protoEndPos >= 0 {
 			if s[protoEndPos] == ':' {
-				safe = isSafeURLProtocol(b.String()[:(b.Len()-len(u))+protoEndPos])
+				safe = isSafeURLProtocol(b.String()[:(b.Len()-len(s))+protoEndPos])
 			}
 			protoEnd = true
 		}
