@@ -57,12 +57,13 @@ mixin Grouped(val any, size=4, sep=" ", trailRem=false, minSize=0)
 //     This means instead of printing "7", Num will print "seven".
 //     That range and those numbers can be changed using SetNumWords.
 //
-// By default, Num will separate groups with spaces, however, you may choose to
-// change this default using SetNumSep.
+// By default, Num will separate groups with spaces, however, you may change
+// this using groupSep or by setting a global default using SetDigitGroupSep.
 //
-// Num does not validate if val is actually a number.
-// Instead, it operates on val's stringified version, scanning for '.' as a
-// decimal separator.
+// Num does not validate if val is actually a number. Instead, it operates on
+// val's stringified version, scanning for '.' as a decimal separator.
+// When printing, Num uses that same separator, unless decimalSep is set, or
+// the global default was changed by calling SetDecimalSep.
 mixin Num(val any, size=3, groupSep string = digitGroupSep, decimalSep string = decimalSep, minSize=5, useWords=false)
   if size < 1
     - size = 1

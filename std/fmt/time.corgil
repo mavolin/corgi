@@ -2,10 +2,10 @@ import
   __corgi_std_time "time"
 
 //corgi:formixin Time Date DateTime SetLocation
-- location := __corgi_std_timeLocal
+- location := __corgi_std_time.Local
 
 // SetLocation updates the default location used for Time, Date, and DateTime.
-mixin SetLocation(loc __corgi_std_timeLocation)
+mixin SetLocation(loc __corgi_std_time.Location)
   - location=loc
 
 //corgi:formixin Time SetTimeFormat
@@ -15,7 +15,7 @@ mixin SetLocation(loc __corgi_std_timeLocation)
 // changeable through SetTimeFormat.
 //
 // By default, the time is printed in the global default location, which by
-// default is time.Location, changeable trough SetLocation.
+// default is time.Local, changeable trough SetLocation.
 //
 // If asIs is true, the time won't be converted to another timezone.
 mixin Time(t __corgi_std_time.Time, format string = timeFormat, in __corgi_std_time.Location = location, asIs=false)
@@ -33,16 +33,16 @@ mixin SetTimeFormat(format string)
 //corgi:formixin Date SetDateFormat
 - dateFormat := "2006-01-02"
 
-// Date formats t according to format, which defaults to the global time format,
-// changeable through SetTimeFormat.
+// Date formats t according to format, which defaults to the global date format,
+// changeable through SetDateFormat.
 //
 // Unlike Time and DateTime, the date will be printed in the timezone that t is
 // already in.
 //
-// This can be changed by setting asIs to true, after which, the date is
-// printed in the global default location, which by default is time.Location,
+// This can be changed by setting asIs to false, after which, the date is
+// printed in the global default location, which by default is time.Local,
 // changeable trough SetLocation.
-// This is usually only desired, if t is a datetime and we only want to print
+// This is usually only desired if t is a datetime and you only want to print
 // the date.
 mixin Date(t __corgi_std_time.Time, format string = dateFormat, in __corgi_std_time.Location = location, asIs=true)
   if !asIs
@@ -63,7 +63,7 @@ mixin SetDateFormat(format string)
 // format, changeable through SetDateTimeFormat.
 //
 // By default, the datetime is printed in the global default location, which by
-// default is time.Location, changeable trough SetLocation.
+// default is time.Local, changeable trough SetLocation.
 //
 // If asIs is true, the time won't be converted to another timezone.
 mixin DateTime(t __corgi_std_time.Time, format string = dateTimeFormat, in __corgi_std_time.Location = location, asIs=false)

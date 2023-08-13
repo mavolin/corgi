@@ -115,9 +115,9 @@ mixin TruncWords(val any, max int)
   > #{s}
 
 // Abbrev truncates the stringified version of val according to the rules of
-// trunc and then appends replacement, if it truncated anything.
+// Trunc and then appends replacement, if it truncated anything.
 //
-// If at is negative, Abbrev prepends replacement instead of appending it
+// If at is negative, Abbrev prepends replacement instead of appending it.
 //
 // By default, replacement is U+2026 Horizontal Ellipsis.
 mixin Abbrev(val any, at int, replacement="…")
@@ -249,8 +249,8 @@ mixin Initials(val any, max=0, upper=false, lower=false)
             - return
         - prev = true
 
-// Wrap wraps the stringified version of val by printing `with` unescaped every
-// `after` runes.
+// Wrap wraps the stringified version of val by printing with unescaped every
+// after runes.
 mixin Wrap(val any, after int, with __corgi_std_woof.HTMLBody = "<br>")
   - s, err := __corgi_std_woof.Stringify(val)
   if err != nil
@@ -262,6 +262,16 @@ mixin Wrap(val any, after int, with __corgi_std_woof.HTMLBody = "<br>")
   for len(s) > 0
     > #{with}#{s[:after]}
     - s = s[after:]
+
+// Nbsp replaces all spaces in the stringified version of val with non-breaking
+// spaces.
+mixin Nbsp(val any)
+  - h, err := __corgi_std_woof.EscapeHTMLBody(val)
+  if err != nil
+    return err
+
+  - h = __corgi_std_woof.HTMLBody(__corgi_std_strings.ReplaceAll(string(h), " ", "&nbsp;"))
+  > #{h}
 
 // RandText produces a string of length runes generated from the passed charset.
 //

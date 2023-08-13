@@ -5,8 +5,8 @@ import
 - listSep := ", "
   listLastSep := ", and "
 
-// List will format the stringified elements of val, which must be a slice, as
-// a list.
+// List formats the stringified elements of val, which must be a slice, as a
+// list.
 //
 // If val is not a slice, List will return from the generated function with an
 // error.
@@ -46,8 +46,8 @@ mixin List(val any, sep string = listSep, lastSep string = listLastSep)
 
 // SetListSep updates the global default for the sep and lastSep values used by
 // List.
-// If you don't specify sep or lastSep, or assign them empty value, they won't
-// get updated.
+// If you don't specify sep or lastSep, or assign them an empty value, they
+// won't get updated.
 //
 // SetListSep may be called at any time, only affecting the calls to List made
 // after updating the separator.
