@@ -86,6 +86,7 @@ func (w *Writer) GenerateFile(out io.Writer, destPackage string, f *file.File) (
 
 	writePackage(ctx)
 	writeImports(ctx)
+	writeCodegenComment(ctx)
 	writeGlobalCode(ctx)
 	writeFunc(ctx)
 
