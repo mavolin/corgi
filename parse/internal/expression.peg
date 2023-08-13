@@ -689,7 +689,7 @@ chainExpressionRootParenContent <- '(' chainExpressionRootParenContent ')' /
 
 SingleLineChainExpression <- derefsI:'*'* rootI:chainExpressionRoot checkRootI:'?'? chainI:SingleLineChainExpressionItem*
                              defaultI:(' '* defaultPosI:POS "~" ' '* SingleLineGoExpression)? endPosI:POS &(EOL / expressionTerminator) &{
-    return checkRootI != nil || len(islice(chainI)) > 0 || defaultI != nil, nil
+    return checkRootI != nil || chainExprItmsCheck(typedSlice[file.ChainExpressionItem](chainI)) || defaultI != nil, nil
 } {
     expr := file.ChainExpression{
         Root: rootI.(file.GoExpression),

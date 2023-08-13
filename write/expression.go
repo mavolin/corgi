@@ -49,7 +49,7 @@ func generateExpression(ctx *ctx, expr file.Expression, txtEsc *textEscaper, exp
 		if exprEsc != nil {
 			exprEscName = exprEsc.funcName
 		}
-		ctx.debugItem(expr, fmt.Sprintf("txt escaper: %s, expr esc: %s) (see below)", txtEscName, exprEscName))
+		ctx.debugItem(expr, fmt.Sprintf("(txt escaper: %s, expr esc: %s) (see below)", txtEscName, exprEscName))
 	}
 
 	if len(expr.Expressions) == 0 {
@@ -130,6 +130,8 @@ const (
 )
 
 func generateChainExpression(ctx *ctx, cexpr file.ChainExpression, defaultExpr *file.Expression, esc *expressionEscaper, writer func(func())) {
+	ctx.debugItem(cexpr, "(see below)")
+
 	if cexpr.Default != nil {
 		defaultExpr = cexpr.Default
 	}
