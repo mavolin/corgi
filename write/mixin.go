@@ -81,6 +81,47 @@ func writeLibrary(ctx *ctx, ulib fileutil.UsedLibrary) {
 			ctx.writeln(ln)
 		}
 	}
+	for _, f := range ulib.Library.Files {
+		fileutil.Walk(f.Scope, func(parents []fileutil.WalkContext, wctx fileutil.WalkContext) (dive bool, err error) {
+			c, ok := (*wctx.Item).(file.Code)
+			if !ok {
+				return false, nil
+			}
+
+			allowed := -1
+
+			for _, mcom := range wctx.Comments {
+				mcom := fileutil.ParseMachineComment(mcom)
+				if mcom == nil {
+					continue
+				}
+				if mcom.Namespace == "corgi" && mcom.Directive == "formixin" {
+					if allowed < 0 {
+						allowed = 0
+					}
+
+					for _, a := range strings.Split(mcom.Args, " ") {
+						for _, b := range ulib.Mixins {
+							if a == b.Mixin.Name.Ident {
+								allowed = 1
+							}
+						}
+					}
+				}
+			}
+
+			if allowed == 0 {
+				return false, nil
+			}
+
+			ctx.debugItem(c, "(see below)")
+			for _, ln := range c.Lines {
+				ctx.writeln(ln.Code)
+			}
+
+			return false, nil
+		})
+	}
 
 	if !ulib.Library.Precompiled {
 		for _, m := range ulib.Mixins {
