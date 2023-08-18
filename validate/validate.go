@@ -100,6 +100,10 @@ func _file(f *file.File, valedFiles map[string]struct{}, impNamespaces map[strin
 	errs.PushBackList(topLevelAttribute(f))
 	errs.PushBackList(topLevelTemplateBlockAnds(f))
 
+	if f.Extend != nil {
+		errs.PushBackList(_file(f.Extend.File, valedFiles, impNamespaces))
+	}
+
 	for _, use := range f.Uses {
 		for _, spec := range use.Uses {
 			errs.PushBackList(libraryMixinNameConflicts(spec.Library.Files))
