@@ -234,19 +234,19 @@ SingleLineIfExpression <- cExprI:SingleLineChainExpression {
 // For Expression
 // ======================================================================================
 
-ForExpression <- rExprI:RangeExpression {
+ForExpression <- ' '+ rExprI:RangeExpression {
     return &file.Expression{Expressions: []file.ExpressionItem{rExprI.(file.RangeExpression)}}, nil
-} / exprI:IfExpression {
+} / ' '+ exprI:IfExpression {
     return ptr(exprI.(file.Expression)), nil
-} / &(. / !.) {
+} / &(' '* (EOL / ':')) {
     return (*file.Expression)(nil), nil
 }
 
-SingleLineForExpression <- rExprI:SingleLineRangeExpression {
+SingleLineForExpression <- ' '+ rExprI:SingleLineRangeExpression {
     return &file.Expression{Expressions: []file.ExpressionItem{rExprI.(file.RangeExpression)}}, nil
-} / exprI:SingleLineIfExpression {
+} / ' '+ exprI:SingleLineIfExpression {
     return ptr(exprI.(file.Expression)), nil
-} / &(. / !.) {
+} / &(' '* (EOL / ':')) {
     return (*file.Expression)(nil), nil
 }
 

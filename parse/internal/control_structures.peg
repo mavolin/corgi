@@ -274,7 +274,7 @@ BadCase <- NOT_EOL+ EOL bodyI:Body? {
 // For
 // ======================================================================================
 
-For <- "for" ' '* exprI:ForExpression bodyI:then {
+For <- "for" exprI:ForExpression bodyI:then {
     return file.For{
         Expression: exprI.(*file.Expression),
         Body: bodyI.(file.Scope),
