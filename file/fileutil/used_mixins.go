@@ -188,12 +188,46 @@ func (l *usedMixinsLister) listScope(s file.Scope, requiredBy string, direct boo
 			l.inMixin = true
 			l.insertMixinCall(itm, requiredBy, direct)
 			l.inMixin = oldInMixin
+		case file.Mixin:
+			oldInMixin := l.inMixin
+			l.inMixin = true
+			l.listScope(itm.Body, requiredBy, direct)
+			l.inMixin = oldInMixin
+			return false, nil
+		case file.IfBlock:
+			if l.inMixin {
+				return true, nil
+			}
+
+			fill, _ := resolveTemplateBlock(l, itm.Name.Ident)
+			if fill != nil {
+				l.listScope(itm.Then, requiredBy, direct)
+				return false, nil
+			}
+
+			for _, elseIf := range itm.ElseIfs {
+				fill, _ := resolveTemplateBlock(l, elseIf.Name.Ident)
+				if fill != nil {
+					l.listScope(elseIf.Then, requiredBy, direct)
+					return false, nil
+				}
+			}
+
+			if itm.Else != nil {
+				l.listScope(itm.Else.Then, requiredBy, direct)
+				return false, nil
+			}
+
+			return false, nil
 		case file.Block:
 			if l.inMixin {
 				return true, nil
 			}
 
-			fill, stackPos := resolveTemplateBlock(l, itm)
+			fill, stackPos := resolveTemplateBlock(l, itm.Name.Ident)
+			if fill == nil {
+				fill, stackPos = &itm, l.stackStart
+			}
 
 			oldStart := l.stackStart
 			l.stackStart = stackPos
@@ -215,7 +249,7 @@ func (l *usedMixinsLister) listScope(s file.Scope, requiredBy string, direct boo
 	})
 }
 
-func resolveTemplateBlock(ctx *usedMixinsLister, call file.Block) (b file.Block, stackPos int) {
+func resolveTemplateBlock(ctx *usedMixinsLister, name string) (b *file.Block, stackPos int) {
 	stack := ctx.stack()[1:]
 	for i := len(stack) - 1; i >= 0; i-- {
 		f := stack[i]
@@ -225,13 +259,13 @@ func resolveTemplateBlock(ctx *usedMixinsLister, call file.Block) (b file.Block,
 				continue
 			}
 
-			if call.Name.Ident == fill.Name.Ident {
-				return fill, i
+			if fill.Name.Ident == name {
+				return &fill, i
 			}
 		}
 	}
 
-	return call, ctx.stackStart
+	return nil, -1
 }
 
 func (l *usedMixinsLister) listAttributeCollections(acolls []file.AttributeCollection, requiredBy string, direct bool) {
@@ -279,7 +313,7 @@ func ListUsedMixins(f *file.File) UsedMixins {
 		f = f.Extend.File
 	}
 	l._stack = make([]*file.File, n)
-	for i := n - 1; n >= 0; n-- {
+	for i := n - 1; i >= 0; i-- {
 		l._stack[i] = f
 		if f.Extend != nil {
 			f = f.Extend.File
