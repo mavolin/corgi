@@ -7,13 +7,14 @@ import (
 	"github.com/mavolin/corgi/file"
 	"github.com/mavolin/corgi/file/fileutil"
 	"github.com/mavolin/corgi/internal/anno"
-	"github.com/mavolin/corgi/internal/list"
 )
 
 func mainFile(f *file.File) *errList {
 	if f.Type != file.TypeMain {
 		return &errList{}
 	}
+
+	var errs errList
 
 	if f.Func == nil {
 		expectPos := file.Position{Line: 1, Col: 1}
@@ -23,7 +24,7 @@ func mainFile(f *file.File) *errList {
 			expectPos.Line = f.Imports[len(f.Imports)-1].Imports[len(f.Imports[len(f.Uses)-1].Imports)-1].Line + 1
 		}
 
-		return list.List1(&corgierr.Error{
+		errs.PushBack(&corgierr.Error{
 			Message: "missing func header",
 			ErrorAnnotation: anno.Anno(f, anno.Annotation{
 				Start:      expectPos,
@@ -33,7 +34,46 @@ func mainFile(f *file.File) *errList {
 		})
 	}
 
-	return &errList{}
+	fileutil.Walk(f.Scope, func(parents []fileutil.WalkContext, ctx fileutil.WalkContext) (dive bool, err error) {
+		switch itm := (*ctx.Item).(type) {
+		case file.Mixin:
+			return false, nil
+		case file.MixinCall:
+			return false, nil
+		case file.Block:
+			if len(parents) == 0 {
+				return true, nil
+			}
+
+			errs.PushBack(&corgierr.Error{
+				Message: "template block placeholder in main file",
+				ErrorAnnotation: anno.Anno(f, anno.Annotation{
+					Start:      itm.Position,
+					ToEOL:      true,
+					Annotation: "cannot use template block placeholder in a main file",
+				}),
+				Suggestions: []corgierr.Suggestion{
+					{Suggestion: "did you accidentally try to compile a template file?"},
+				},
+			})
+		case file.IfBlock:
+			errs.PushBack(&corgierr.Error{
+				Message: "`if block` in main file",
+				ErrorAnnotation: anno.Anno(f, anno.Annotation{
+					Start:      itm.Position,
+					ToEOL:      true,
+					Annotation: "cannot use `if block` in a main file",
+				}),
+				Suggestions: []corgierr.Suggestion{
+					{Suggestion: "did you accidentally try to compile a template file?"},
+				},
+			})
+		}
+
+		return true, nil
+	})
+
+	return &errs
 }
 
 func templateFile(f *file.File) *errList {
