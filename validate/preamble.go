@@ -285,10 +285,6 @@ func unusedUses(f *file.File) *errList {
 		return true, nil
 	})
 
-	if len(unusedSpecs) == 0 {
-		return &errList{}
-	}
-
 	var errs errList
 	for _, spec := range unusedSpecs {
 		errs.PushBack(&corgierr.Error{

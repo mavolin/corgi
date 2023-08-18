@@ -497,12 +497,10 @@ func (l *loader) readLibraryDir(log *slog.Logger, sysDir string, modulePath, pat
 	}
 
 	lib := load.Library{
+		Module:       modulePath,
+		PathInModule: pathInModule,
 		AbsolutePath: dir.sysAbs,
 		Files:        make([]load.File, 0, len(files)),
-	}
-	if l.mainMod != nil {
-		lib.Module = l.mainMod.Module.Mod.Path
-		lib.PathInModule, _ = filepath.Rel(l.mainModSysAbs, dir.sysAbs)
 	}
 
 	log.Info("looking for corgi lib files")
@@ -540,7 +538,7 @@ func (l *loader) readLibraryDir(log *slog.Logger, sysDir string, modulePath, pat
 			Raw:          readFile,
 		}
 		if modulePath != "" {
-			f.PathInModule = filepath.Join(f.PathInModule, name)
+			f.PathInModule = path.Join(pathInModule, name)
 		}
 
 		lib.Files = append(lib.Files, f)
