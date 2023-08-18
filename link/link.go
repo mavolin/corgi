@@ -51,6 +51,9 @@ func (l *Linker) LinkFile(f *file.File) error {
 			errs.PushBack(errE.V())
 		}
 	}
+	if errs.Len() > 0 {
+		return corgierr.List(errs.ToSlice())
+	}
 
 	mcErrs := l.linkMixinCalls(f)
 	errs.PushBackList(mcErrs)
@@ -99,6 +102,9 @@ func (l *Linker) LinkLibrary(lib *file.Library) error {
 			}
 			errs.PushBack(errE.V())
 		}
+	}
+	if errs.Len() > 0 {
+		return corgierr.List(errs.ToSlice())
 	}
 
 	var hasRecursionErrs bool

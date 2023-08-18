@@ -110,12 +110,22 @@ func (l *Linker) analyzeMixin(f *file.File, m *file.Mixin) bool {
 	blockInfos := make(map[string]file.MixinBlockInfo)
 
 	var canAttrs stack.Stack[bool]
+	canAttrs.Push(true)
 
 	fileutil.Walk(m.Body, func(parents []fileutil.WalkContext, ctx fileutil.WalkContext) (dive bool, err error) {
 		if len(parents)+1 > canAttrs.Len() {
-			canAttrs.Push(true)
+			switch (*parents[len(parents)-1].Item).(type) {
+			case file.Element:
+				canAttrs.Push(true)
+			case file.DivShorthand:
+				canAttrs.Push(true)
+			default:
+				canAttrs.Push(canAttrs.Peek())
+			}
 		} else if len(parents)+1 < canAttrs.Len() {
-			canAttrs.Pop()
+			for i := 0; i < canAttrs.Len()-(len(parents)+1); i++ {
+				canAttrs.Pop()
+			}
 		}
 
 		switch itm := (*ctx.Item).(type) {
@@ -151,7 +161,8 @@ func (l *Linker) analyzeMixin(f *file.File, m *file.Mixin) bool {
 				}
 			}
 		case file.MixinCall:
-			anal, abort2 := analyzeMixinCall(m.MixinInfo, itm, isTopLevel(parents), canAttrs.Peek(), blockInfos)
+			topLvl := isTopLevel(parents)
+			anal, abort2 := analyzeMixinCall(m.MixinInfo, itm, topLvl, canAttrs.Peek(), blockInfos)
 			if abort2 {
 				abort = true
 				return false, fileutil.StopWalk
@@ -163,13 +174,13 @@ func (l *Linker) analyzeMixin(f *file.File, m *file.Mixin) bool {
 			if anal.writesElements {
 				m.WritesElements = true
 			}
-			if anal.writesTopLevelAttrs {
+			if topLvl && anal.writesTopLevelAttrs {
 				m.WritesTopLevelAttributes = true
 			}
 			if anal.usesAndPlaceholders {
 				m.HasAndPlaceholders = true
 			}
-			if anal.usesTopLvlAndPlaceholder {
+			if topLvl && anal.usesTopLvlAndPlaceholder {
 				m.TopLevelAndPlaceholder = true
 			}
 			return false, nil
@@ -247,13 +258,23 @@ func analyzeBlock(mi *file.MixinInfo, b file.Block, topLvl, canAttrs bool, block
 	defer func() { blockInfos[b.Name.Ident] = bi }()
 
 	var canAttrsStack stack.Stack[bool]
+	canAttrsStack.Push(canAttrs)
 
 	var abort bool
 	fileutil.Walk(b.Body, func(parents []fileutil.WalkContext, ctx fileutil.WalkContext) (dive bool, err error) {
 		if len(parents)+1 > canAttrsStack.Len() {
-			canAttrsStack.Push(true)
+			switch (*parents[len(parents)-1].Item).(type) {
+			case file.Element:
+				canAttrsStack.Push(true)
+			case file.DivShorthand:
+				canAttrsStack.Push(true)
+			default:
+				canAttrsStack.Push(canAttrsStack.Peek())
+			}
 		} else if len(parents)+1 < canAttrsStack.Len() {
-			canAttrsStack.Pop()
+			for i := 0; i < canAttrsStack.Len()-(len(parents)+1); i++ {
+				canAttrsStack.Pop()
+			}
 		}
 
 		switch itm := (*ctx.Item).(type) {
@@ -333,7 +354,7 @@ type mixinCallAnalysis struct {
 }
 
 func analyzeMixinCall(mi *file.MixinInfo, mc file.MixinCall, topLvl, canAttrs bool, blockInfos map[string]file.MixinBlockInfo) (anal mixinCallAnalysis, abort bool) {
-	if mc.Mixin.Mixin.MixinInfo == nil {
+	if mc.Mixin == nil || mc.Mixin.Mixin.MixinInfo == nil {
 		return mixinCallAnalysis{}, true
 	}
 
@@ -350,11 +371,6 @@ func analyzeMixinCall(mi *file.MixinInfo, mc file.MixinCall, topLvl, canAttrs bo
 		anal.usesAndPlaceholders = true
 	}
 
-	// no need to check the blocks
-	if anal.writesBody && anal.writesElements && anal.writesTopLevelAttrs && anal.usesAndPlaceholders && anal.usesTopLvlAndPlaceholder {
-		return anal, false
-	}
-
 	blocks := make(map[string]*mixinCallBlockAnalysis, len(mc.Mixin.Mixin.Blocks))
 	for _, block := range mc.Mixin.Mixin.Blocks {
 		blocks[block.Name] = &mixinCallBlockAnalysis{
@@ -366,6 +382,57 @@ func analyzeMixinCall(mi *file.MixinInfo, mc file.MixinCall, topLvl, canAttrs bo
 			// and placeholder is placed inside this block, not whether this block's
 			// default has an and placeholder
 			isDefault: true,
+		}
+	}
+
+	if len(mc.Body) == 1 {
+		switch itm := mc.Body[0].(type) {
+		case file.BlockExpansion:
+			var blockInfo *file.MixinBlockInfo
+			for _, block := range mc.Mixin.Mixin.Blocks {
+				if block.Name == "_" {
+					block := block
+					blockInfo = &block
+					break
+				}
+			}
+			if blockInfo == nil {
+				// validate will catch this
+				break
+			}
+
+			abort = analyzeMixinCallBlock(mi, blocks["_"], file.Block{
+				Type: file.BlockTypeBlock,
+				Name: file.Ident{Ident: "_"},
+				Body: file.Scope{itm.Item},
+			}, *blockInfo, topLvl, canAttrs, blockInfos)
+			if abort {
+				return anal, true
+			}
+			goto analyzed
+		case file.MixinMainBlockShorthand:
+			var blockInfo *file.MixinBlockInfo
+			for _, block := range mc.Mixin.Mixin.Blocks {
+				if block.Name == "_" {
+					block := block
+					blockInfo = &block
+					break
+				}
+			}
+			if blockInfo == nil {
+				// validate will catch this
+				break
+			}
+
+			abort = analyzeMixinCallBlock(mi, blocks["_"], file.Block{
+				Type: file.BlockTypeBlock,
+				Name: file.Ident{Ident: "_"},
+				Body: itm.Body,
+			}, *blockInfo, topLvl, canAttrs, blockInfos)
+			if abort {
+				return anal, true
+			}
+			goto analyzed
 		}
 	}
 
@@ -387,7 +454,8 @@ func analyzeMixinCall(mi *file.MixinInfo, mc file.MixinCall, topLvl, canAttrs bo
 			var blockInfo *file.MixinBlockInfo
 			for _, block := range mc.Mixin.Mixin.Blocks {
 				if block.Name == itm.Name.Ident {
-					blockInfo = &block //nolint:gosec,exportloopref
+					block := block
+					blockInfo = &block
 					break
 				}
 			}
@@ -423,6 +491,7 @@ func analyzeMixinCall(mi *file.MixinInfo, mc file.MixinCall, topLvl, canAttrs bo
 		return true, nil
 	})
 
+analyzed:
 	for _, block := range blocks {
 		if block.writesBody {
 			anal.writesBody = true
@@ -472,6 +541,21 @@ func analyzeMixinCallBlock(
 	}
 
 	fileutil.Walk(b.Body, func(parents []fileutil.WalkContext, ctx fileutil.WalkContext) (dive bool, err error) {
+		if len(parents)+1 > canAttrsStack.Len() {
+			switch (*parents[len(parents)-1].Item).(type) {
+			case file.Element:
+				canAttrsStack.Push(true)
+			case file.DivShorthand:
+				canAttrsStack.Push(true)
+			default:
+				canAttrsStack.Push(canAttrsStack.Peek())
+			}
+		} else if len(parents)+1 < canAttrsStack.Len() {
+			for i := 0; i < canAttrsStack.Len()-(len(parents)+1); i++ {
+				canAttrsStack.Pop()
+			}
+		}
+
 		switch itm := (*ctx.Item).(type) {
 		case file.Element:
 			anal.writesBody = true
