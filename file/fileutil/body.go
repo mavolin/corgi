@@ -30,11 +30,15 @@ func Body(itm file.ScopeItem) (body file.Scope, has bool) {
 	// element.go
 	case file.Element:
 		return itm.Body, true
+	case file.DivShorthand:
+		return itm.Body, true
 
 	// mixin.go
 	case file.Mixin:
 		return itm.Body, true
 	case file.MixinCall:
+		return itm.Body, true
+	case file.MixinMainBlockShorthand:
 		return itm.Body, true
 	default:
 		return nil, false
