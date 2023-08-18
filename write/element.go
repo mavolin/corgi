@@ -460,31 +460,31 @@ func classAttribute(ctx *ctx, attr file.SimpleAttribute) {
 		return
 	}
 
-	switch exprItm := attr.Value.Expressions[0].(type) {
-	case file.StringExpression:
-		if len(exprItm.Contents) == 0 {
-			return
-		} else if len(exprItm.Contents) == 1 {
-			txt, ok := exprItm.Contents[0].(file.StringExpressionText)
-			if ok {
-				s := unquoteStringExpressionText(exprItm, txt)
-				s = strings.ReplaceAll(s, "##", "#")
-				ctx.bufClass(s)
+	if len(attr.Value.Expressions) == 1 {
+		switch exprItm := attr.Value.Expressions[0].(type) {
+		case file.StringExpression:
+			if len(exprItm.Contents) == 0 {
 				return
+			} else if len(exprItm.Contents) == 1 {
+				txt, ok := exprItm.Contents[0].(file.StringExpressionText)
+				if ok {
+					s := unquoteStringExpressionText(exprItm, txt)
+					s = strings.ReplaceAll(s, "##", "#")
+					ctx.bufClass(s)
+					return
+				}
 			}
+		case file.ChainExpression:
+			ctx.flushClasses()
+			valueChainExpression(ctx, exprItm, func(expr string) {
+				ctx.writeln(ctx.contextFunc("BufferClass", expr))
+			})
+			return
 		}
-
-		ctx.flushClasses()
-		ctx.writeln(ctx.contextFunc("BufferClass", inlineExpression(ctx, *attr.Value)))
-	case file.ChainExpression:
-		ctx.flushClasses()
-		valueChainExpression(ctx, exprItm, func(expr string) {
-			ctx.writeln(ctx.contextFunc("BufferClass", expr))
-		})
-	default:
-		ctx.flushClasses()
-		ctx.writeln(ctx.contextFunc("BufferClass", inlineExpression(ctx, *attr.Value)))
 	}
+
+	ctx.flushClasses()
+	ctx.writeln(ctx.contextFunc("BufferClass", inlineExpression(ctx, *attr.Value)))
 }
 
 // =================================== AndPlaceholder ===================================

@@ -595,6 +595,11 @@ func inlineGoExpression(ctx *ctx, sb *strings.Builder, gexpr file.GoExpression) 
 func inlineStringExpression(ctx *ctx, sb *strings.Builder, sexpr file.StringExpression) {
 	ctx.debugItemInline(sexpr, "(see below)")
 
+	if len(sexpr.Contents) == 0 {
+		sb.WriteString(string(sexpr.Quote) + string(sexpr.Quote))
+		return
+	}
+
 	for i, exprItm := range sexpr.Contents {
 		if i > 0 {
 			sb.WriteString(" + ")
