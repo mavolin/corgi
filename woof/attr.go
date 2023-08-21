@@ -168,6 +168,19 @@ var AttrTypes = map[string]ContentType{
 	"width": ContentTypePlain,
 	"wrap":  ContentTypePlain,
 	"xmlns": ContentTypeURL,
+
+	//
+	// HTMX
+	//
+
+	"hx-get":         ContentTypeURL,
+	"hx-post":        ContentTypeURL,
+	"hx-delete":      ContentTypeURL,
+	"hx-patch":       ContentTypeURL,
+	"hx-put":         ContentTypeURL,
+	"hx-replace-url": ContentTypeURL,
+	"hx-vals":        ContentTypeJS,
+	"hx-vars":        ContentTypeJS,
 }
 
 // AttrType returns a conservative (upper-bound on authority) guess at the
@@ -189,7 +202,7 @@ func AttrType(name string) ContentType {
 		return t
 	}
 	// Treat partial event handler names as script.
-	if strings.HasPrefix(name, "on") {
+	if strings.HasPrefix(name, "on") || strings.HasPrefix(name, "hx-on") {
 		return ContentTypeJS
 	}
 
