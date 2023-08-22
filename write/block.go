@@ -55,7 +55,7 @@ func resolveTemplateBlock(ctx *ctx, call file.Block) (b file.Block, stackPos int
 			}
 
 			if call.Name.Ident == fill.Name.Ident {
-				return fill, i
+				return fill, ctx.stackStart + 1 + i
 			}
 		}
 	}
