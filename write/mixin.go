@@ -386,6 +386,8 @@ blocks:
 				return false, nil
 			case file.BlockExpansion:
 				return false, nil
+			case file.MixinMainBlockShorthand:
+				return false, nil
 			default:
 				scopeItem(ctx, itm)
 				return false, nil
