@@ -7,6 +7,8 @@ import "github.com/mavolin/corgi/file"
 // ======================================================================================
 
 func block(ctx *ctx, b file.Block) {
+	ctx.debugItem(b, b.Name.Ident)
+
 	if ctx.mixin != nil {
 		ctx.flushGenerate()
 		ctx.flushClasses()
