@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"io"
 	"strconv"
+	"strings"
 
 	"github.com/mavolin/corgi/corgierr"
 	"github.com/mavolin/corgi/file"
@@ -57,7 +58,7 @@ func (w *Writer) GenerateFile(out io.Writer, destPackage string, f *file.File) (
 			var ok bool
 			//goland:noinspection GoTypeAssertionOnErrors
 			err, ok = rec.(error)
-			if !ok {
+			if !ok || strings.HasPrefix(err.Error(), "runtime error:") {
 				panic(rec)
 			}
 		}
@@ -101,7 +102,7 @@ func (w *Writer) PrecompileLibrary(out io.Writer, lib *file.Library) (err error)
 			var ok bool
 			//goland:noinspection GoTypeAssertionOnErrors
 			err, ok = rec.(error)
-			if !ok {
+			if !ok || strings.HasPrefix(err.Error(), "runtime error:") {
 				panic(rec)
 			}
 		}
@@ -191,6 +192,7 @@ func (w *Writer) PrecompileLibrary(out io.Writer, lib *file.Library) (err error)
 	}
 
 	for i, pm := range lib.Mixins {
+		pm := pm
 		var buf bytes.Buffer
 
 		ctx := newCtx(w.o)
