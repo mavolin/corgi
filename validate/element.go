@@ -284,7 +284,7 @@ func _topLevelTemplateBlockAnds(f *file.File, s file.Scope) *errList {
 
 			andPos := mixinCallAttrPos(itm)
 
-			if andPos != file.InvalidPosition && itm.Mixin.Mixin.HasAndPlaceholders {
+			if andPos != file.InvalidPosition && itm.Mixin.Mixin.TopLevelAndPlaceholder {
 				errs.PushBack(&corgierr.Error{
 					Message: "top-level `&`",
 					ErrorAnnotation: anno.Anno(f, anno.Annotation{
