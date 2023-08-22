@@ -323,7 +323,7 @@ singleLineAttributes <- firstI:Attribute restI:(' '* ',' ' '* SingleLineAttribut
 Attribute           <- MixinCallAttribute / AndPlaceholder / SimpleAttribute
 SingleLineAttribute <- SingleLineMixinCallAttribute / AndPlaceholder / SingleLineSimpleAttribute
 
-attributeName <- (![()] htmlAttributeNameChar)+
+attributeName <- (![(),] htmlAttributeNameChar)+
 
 //
 // Simple Attribute
