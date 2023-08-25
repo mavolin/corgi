@@ -282,7 +282,7 @@ For <- "for" exprI:ForExpression bodyI:then {
     }, nil
 }
 
-InlineFor <- "for" ' '* exprI:SingleLineForExpression bodyI:BlockExpansion {
+InlineFor <- "for" exprI:SingleLineForExpression bodyI:BlockExpansion {
     return file.For{
         Expression: exprI.(*file.Expression),
         Body: file.Scope{bodyI.(file.BlockExpansion)},
