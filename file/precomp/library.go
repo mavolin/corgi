@@ -241,6 +241,7 @@ func (d *mixinDependency) toFile() *cfile.MixinDependency {
 	}
 	return &cfile.MixinDependency{
 		Name:       d.Name,
+		Var:        d.Var,
 		RequiredBy: d.RequiredBy,
 	}
 }
