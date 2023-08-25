@@ -12,8 +12,7 @@
 File <-
     init
     NEW_LNS?
-    extendComments:CorgiComments? NEW_LNS?
-    extendI:Extend? NEW_LNS?
+    extendAndCommentsI:extendAndComments? NEW_LNS?
     importsAndCommentsI:importsAndComments? NEW_LNS?
     usesAndCommentsI:usesAndComments? NEW_LNS?
     globalCodeAndFuncI:globalCodeAndFunc? NEW_LNS?
@@ -22,9 +21,10 @@ File <-
     EOF {
     var f file.File
     
-    f.TopLevelComments = append(f.TopLevelComments, castedOrZero[[]file.CorgiComment](extendComments)...)
-
-    f.Extend = ptrOrNil[file.Extend](extendI)
+    if extendAndCommentsI != nil {
+      f.Extend = ptrOrNil[file.Extend](getTuple[file.Extend](extendAndCommentsI, 0))
+      f.TopLevelComments = append(f.TopLevelComments, getTuple[[]file.CorgiComment](extendAndCommentsI, 1)...)
+    }
 
     if importsAndCommentsI != nil {
         f.Imports = getTuple[[]file.Import](importsAndCommentsI, 0)
@@ -50,6 +50,10 @@ File <-
     f.Scope = append(preScope, s...)
 
     return &f, nil
+}
+
+extendAndComments <- commsI:CorgiComments? NEW_LNS? extI:Extend {
+    return []any{extI.(file.Extend), castedOrZero[[]file.CorgiComment](commsI)}, nil
 }
 
 importsAndComments <- valsI:(CorgiComments? NEW_LNS? Imports)+ {
