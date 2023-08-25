@@ -79,7 +79,7 @@ func (l *usedMixinsLister) insertMixinCall(mc file.MixinCall, requiredBy string,
 			RequiredBy: []string{requiredBy},
 		})
 		if !direct {
-			l.listDeps(mc)
+			l.listDeps(mc.Mixin.File.Library, mc.Mixin.Mixin)
 		}
 		return
 	}
@@ -94,7 +94,7 @@ func (l *usedMixinsLister) insertMixinCall(mc file.MixinCall, requiredBy string,
 		},
 	})
 	if !direct {
-		l.listDeps(mc)
+		l.listDeps(mc.Mixin.File.Library, mc.Mixin.Mixin)
 	}
 }
 
@@ -123,7 +123,7 @@ func (l *usedMixinsLister) insertSelfMixinCall(b file.MixinCall, requiredBy stri
 	})
 
 	if !direct {
-		l.listDeps(b)
+		l.listDeps(b.Mixin.File.Library, b.Mixin.Mixin)
 	}
 }
 
@@ -142,6 +142,7 @@ func (l *usedMixinsLister) insertPrecomp(lib *file.Library, m *file.Mixin) {
 		l.External[i].Mixins = append(l.External[i].Mixins, UsedMixin{
 			Mixin: m,
 		})
+		l.listDeps(lib, m)
 		return
 	}
 
@@ -149,18 +150,19 @@ func (l *usedMixinsLister) insertPrecomp(lib *file.Library, m *file.Mixin) {
 		Library: lib,
 		Mixins:  []UsedMixin{{Mixin: m}},
 	})
+	l.listDeps(lib, m)
 }
 
-func (l *usedMixinsLister) listDeps(mc file.MixinCall) {
-	if !mc.Mixin.File.Library.Precompiled {
-		l.listScope(mc.Mixin.Mixin.Body, "", false)
+func (l *usedMixinsLister) listDeps(lib *file.Library, m *file.Mixin) {
+	if !lib.Precompiled {
+		l.listScope(m.Body, "", false)
 		return
 	}
 
-	for _, libDep := range mc.Mixin.File.Library.Dependencies {
+	for _, libDep := range lib.Dependencies {
 		for _, mDep := range libDep.Mixins {
 			for _, requiredBy := range mDep.RequiredBy {
-				if requiredBy == mc.Name.Ident {
+				if requiredBy == m.Name.Ident {
 					l.insertPrecomp(libDep.Library, mDep.Mixin)
 					break
 				}
@@ -168,12 +170,12 @@ func (l *usedMixinsLister) listDeps(mc file.MixinCall) {
 		}
 	}
 
-	for _, m := range mc.Mixin.File.Library.Mixins {
-		m := m
+	for _, b := range lib.Mixins {
+		b := b
 
-		for _, requiredBy := range m.RequiredBy {
-			if requiredBy == mc.Name.Ident {
-				l.insertPrecomp(mc.Mixin.File.Library, &m.Mixin)
+		for _, requiredBy := range b.RequiredBy {
+			if requiredBy == m.Name.Ident {
+				l.insertPrecomp(lib, &b.Mixin)
 				break
 			}
 		}
