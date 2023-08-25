@@ -32,9 +32,12 @@ func (l *Linker) linkDependencies(ctx *context, lib *file.Library) {
 				ctx.errs <- list.List1(&corgierr.Error{
 					Message: "failed to load dependency of precompiled library",
 					ErrorAnnotation: corgierr.Annotation{
-						Line:  1,
-						Start: 1,
-						End:   2,
+						File:         usingFile,
+						ContextStart: 1,
+						Line:         1,
+						ContextEnd:   2,
+						Start:        1,
+						End:          2,
 						Annotation: "no position;\n" +
 							path.Join(lib.Module, lib.PathInModule) + " requires " + path.Join(dep.Module, dep.PathInModule),
 						Lines: []string{""},
@@ -54,9 +57,12 @@ func (l *Linker) linkDependencies(ctx *context, lib *file.Library) {
 				ctx.errs <- list.List1(&corgierr.Error{
 					Message: "dependency of precompiled library contains no library files",
 					ErrorAnnotation: corgierr.Annotation{
-						Line:  1,
-						Start: 1,
-						End:   2,
+						File:         usingFile,
+						ContextStart: 1,
+						Line:         1,
+						ContextEnd:   2,
+						Start:        1,
+						End:          2,
 						Annotation: "no position;\n" +
 							path.Join(lib.Module, lib.PathInModule) + " requires " + path.Join(dep.Module, dep.PathInModule),
 						Lines: []string{""},
@@ -94,9 +100,12 @@ mixins:
 			errs.PushBack(&corgierr.Error{
 				Message: "failed to link mixin dependency of precompiled library",
 				ErrorAnnotation: corgierr.Annotation{
-					Line:  1,
-					Start: 1,
-					End:   2,
+					File:         lib.Files[0],
+					ContextStart: 1,
+					Line:         1,
+					ContextEnd:   2,
+					Start:        1,
+					End:          2,
 					Annotation: "no position;\n" +
 						path.Join(lib.Module, lib.PathInModule) + " requires " + path.Join(libDep.Library.Module, libDep.Library.PathInModule) + "." + a.Name + " cannot be found",
 					Lines: []string{""},
@@ -121,9 +130,12 @@ mixins:
 		errs.PushBack(&corgierr.Error{
 			Message: "failed to link mixin dependency of precompiled library",
 			ErrorAnnotation: corgierr.Annotation{
-				Line:  1,
-				Start: 1,
-				End:   2,
+				File:         lib.Files[0],
+				ContextStart: 1,
+				Line:         1,
+				ContextEnd:   2,
+				Start:        1,
+				End:          2,
 				Annotation: "no position;\n" +
 					path.Join(lib.Module, lib.PathInModule) + " requires " + path.Join(libDep.Library.Module, libDep.Library.PathInModule) + "." + a.Name + " cannot be found",
 				Lines: []string{""},

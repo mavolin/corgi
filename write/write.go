@@ -171,7 +171,6 @@ func (w *Writer) PrecompileLibrary(out io.Writer, lib *file.Library) (err error)
 		m:     make(map[string]map[string]string),
 		scope: make(map[*file.File]*list.List[map[string]string]),
 	}
-	var n int
 
 	selfMixins := make(map[string]string, len(deps.Self))
 	for _, m := range lib.Mixins {
@@ -179,14 +178,29 @@ func (w *Writer) PrecompileLibrary(out io.Writer, lib *file.Library) (err error)
 	}
 	mixinFuncNames.m[lib.Module+"/"+lib.PathInModule] = selfMixins
 
-	for _, ulib := range deps.External {
+	lib.Dependencies = make([]file.LibDependency, len(deps.External))
+	for i, ulib := range deps.External {
 		moduleMixins := make(map[string]string, len(ulib.Mixins))
 
-		for _, um := range ulib.Mixins {
-			varName := w.o.IdentPrefix + "preMixin" + strconv.Itoa(n)
-			moduleMixins[um.Mixin.Name.Ident] = varName
-			n++
+		libDep := file.LibDependency{
+			Module:       ulib.Library.Module,
+			PathInModule: ulib.Library.PathInModule,
+			Library:      ulib.Library,
+			Mixins:       make([]file.MixinDependency, len(ulib.Mixins)),
 		}
+
+		for i, um := range ulib.Mixins {
+			varName := w.o.IdentPrefix + "preMixin" + strconv.Itoa(mixinNames)
+			moduleMixins[um.Mixin.Name.Ident] = varName
+			libDep.Mixins[i] = file.MixinDependency{
+				Name:       um.Mixin.Name.Ident,
+				Var:        varName,
+				Mixin:      um.Mixin,
+				RequiredBy: um.RequiredBy,
+			}
+			mixinNames++
+		}
+		lib.Dependencies[i] = libDep
 
 		mixinFuncNames.m[ulib.Library.Module+"/"+ulib.Library.PathInModule] = moduleMixins
 	}

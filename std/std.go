@@ -54,6 +54,8 @@ func init() {
 		}
 
 		p = path.Dir(strings.TrimPrefix(p, "./"))
+		lib.Module = ""
+		lib.PathInModule = p
 		Lib[p] = lib
 		return nil
 	})

@@ -409,33 +409,33 @@ func inlineExpression(ctx *ctx, expr file.Expression) string {
 // ======================================================================================
 
 func mixinArgExpression(ctx *ctx, param file.MixinParam, arg file.MixinArg) {
+	var typ string
+	if param.Type != nil {
+		typ = param.Type.Type
+	} else {
+		typ = param.InferredType
+	}
+
 	if len(arg.Value.Expressions) == 1 {
 		cExpr, ok := arg.Value.Expressions[0].(file.ChainExpression)
 		if ok {
-			var typ string
-			if param.Type != nil {
-				typ = param.Type.Type
-			} else {
-				typ = param.InferredType
-			}
-
 			ctx.write(mixinArgChainExpression(ctx, cExpr, typ, param.Default != nil))
 			return
 		}
 	}
 
 	if param.Default != nil {
-		ctx.write(ctx.woofFunc("Ptr", inlineExpression(ctx, arg.Value)))
+		ctx.write(ctx.woofFunc("Ptr["+typ+"]", inlineExpression(ctx, arg.Value)))
 	} else {
 		ctx.write(inlineExpression(ctx, arg.Value))
 	}
 }
 
-func mixinArgChainExpression(ctx *ctx, cexpr file.ChainExpression, typ string, attrHasDefault bool) string {
+func mixinArgChainExpression(ctx *ctx, cexpr file.ChainExpression, typ string, hasDefault bool) string {
 	var sb strings.Builder
 
 	sb.WriteString(`func () `)
-	if attrHasDefault {
+	if hasDefault {
 		sb.WriteByte('*')
 	}
 	sb.WriteString(typ)
@@ -452,8 +452,8 @@ func mixinArgChainExpression(ctx *ctx, cexpr file.ChainExpression, typ string, a
 
 	mixinArgChainExprItms(ctx, &sb, cexpr.Chain, &valBuilder, func() {
 		sb.WriteString("return ")
-		if attrHasDefault {
-			sb.WriteString(ctx.woofFunc("Ptr", strings.Repeat("*", cexpr.DerefCount)+valBuilder.String()))
+		if hasDefault {
+			sb.WriteString(ctx.woofFunc("Ptr["+typ+"]", strings.Repeat("*", cexpr.DerefCount)+valBuilder.String()))
 		} else {
 			sb.WriteString(valBuilder.String())
 		}
@@ -465,8 +465,8 @@ func mixinArgChainExpression(ctx *ctx, cexpr file.ChainExpression, typ string, a
 
 	if cexpr.Default != nil {
 		sb.WriteString("return ")
-		if attrHasDefault {
-			sb.WriteString(ctx.woofFunc("Ptr", inlineExpression(ctx, *cexpr.Default)))
+		if hasDefault {
+			sb.WriteString(ctx.woofFunc("Ptr["+typ+"]", inlineExpression(ctx, *cexpr.Default)))
 		} else {
 			sb.WriteString(inlineExpression(ctx, *cexpr.Default))
 		}

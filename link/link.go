@@ -107,19 +107,20 @@ func (l *Linker) LinkLibrary(lib *file.Library) error {
 		return corgierr.List(errs.ToSlice())
 	}
 
-	var hasRecursionErrs bool
 	for _, f := range lib.Files {
 		f := f
 		mcErrs := l.linkMixinCalls(f)
 		errs.PushBackList(mcErrs)
+	}
+	if errs.Len() > 0 {
+		return corgierr.List(errs.ToSlice())
+	}
 
+	for _, f := range lib.Files {
 		recErrs := l.checkRecursion(f)
 		errs.PushBackList(recErrs)
-		if recErrs.Len() > 0 {
-			hasRecursionErrs = true
-		}
 	}
-	if hasRecursionErrs {
+	if errs.Len() > 0 {
 		return corgierr.List(errs.ToSlice())
 	}
 

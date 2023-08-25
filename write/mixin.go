@@ -132,21 +132,6 @@ func writeLibrary(ctx *ctx, ulib fileutil.UsedLibrary) {
 		return
 	}
 
-	for _, libDep := range ulib.Library.Dependencies {
-	mixins:
-		for _, mDep := range libDep.Mixins {
-			for _, requiredBy := range mDep.RequiredBy {
-				for _, um := range ulib.Mixins {
-					if um.Mixin.Name.Ident == requiredBy {
-						ctx.write(mDep.Var + " := ")
-						ctx.writeln(ctx.mixinFuncNames.mixinByName(ctx, libDep.Module, libDep.PathInModule, mDep.Name))
-						continue mixins
-					}
-				}
-			}
-		}
-	}
-
 	for _, a := range ulib.Mixins {
 		for _, b := range ulib.Library.Mixins {
 			if a.Mixin.Name.Ident == b.Mixin.Name.Ident {
@@ -159,6 +144,21 @@ func writeLibrary(ctx *ctx, ulib fileutil.UsedLibrary) {
 				}
 
 				break
+			}
+		}
+	}
+
+	for _, libDep := range ulib.Library.Dependencies {
+	mixins:
+		for _, mDep := range libDep.Mixins {
+			for _, requiredBy := range mDep.RequiredBy {
+				for _, um := range ulib.Mixins {
+					if um.Mixin.Name.Ident == requiredBy {
+						ctx.write(mDep.Var + " := ")
+						ctx.writeln(ctx.mixinFuncNames.mixinByName(ctx, libDep.Module, libDep.PathInModule, mDep.Name))
+						continue mixins
+					}
+				}
 			}
 		}
 	}
