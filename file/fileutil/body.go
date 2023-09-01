@@ -33,6 +33,14 @@ func Body(itm file.ScopeItem) (body file.Scope, has bool) {
 	case file.DivShorthand:
 		return itm.Body, true
 
+	// include.go
+	case file.Include:
+		cincl, ok := itm.Include.(file.CorgiInclude)
+		if ok {
+			return cincl.File.Scope, true
+		}
+		return nil, false
+
 	// mixin.go
 	case file.Mixin:
 		return itm.Body, true
