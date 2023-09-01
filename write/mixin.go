@@ -1,6 +1,7 @@
 package write
 
 import (
+	"fmt"
 	"path"
 	"strings"
 
@@ -35,7 +36,8 @@ func writeMixinVars(ctx *ctx, ums fileutil.UsedMixins) {
 			ctx.write("var " + varName + " ")
 			writeMixinSignature(ctx, um.Mixin)
 			if ctx.debugEnabled {
-				ctx.writeln(" // " + path.Join(ulib.Library.Module, ulib.Library.PathInModule) + "." + um.Mixin.Name.Ident)
+				ctx.writeln(" // " + path.Join(ulib.Library.Module,
+					ulib.Library.PathInModule) + "." + um.Mixin.Name.Ident)
 			} else {
 				ctx.writeln("")
 			}
@@ -82,45 +84,46 @@ func writeLibrary(ctx *ctx, ulib fileutil.UsedLibrary) {
 		}
 	}
 	for _, f := range ulib.Library.Files {
-		fileutil.Walk(f.Scope, func(parents []fileutil.WalkContext, wctx fileutil.WalkContext) (dive bool, err error) {
-			c, ok := (*wctx.Item).(file.Code)
-			if !ok {
-				return false, nil
-			}
-
-			allowed := -1
-
-			for _, mcom := range wctx.Comments {
-				mcom := fileutil.ParseMachineComment(mcom)
-				if mcom == nil {
-					continue
+		fileutil.Walk(f.Scope,
+			func(parents []fileutil.WalkContext, wctx fileutil.WalkContext) (dive bool, err error) {
+				c, ok := (*wctx.Item).(file.Code)
+				if !ok {
+					return false, nil
 				}
-				if mcom.Namespace == "corgi" && mcom.Directive == "formixin" {
-					if allowed < 0 {
-						allowed = 0
-					}
 
-					for _, a := range strings.Split(mcom.Args, " ") {
-						for _, b := range ulib.Mixins {
-							if a == b.Mixin.Name.Ident {
-								allowed = 1
+				allowed := -1
+
+				for _, mcom := range wctx.Comments {
+					mcom := fileutil.ParseMachineComment(mcom)
+					if mcom == nil {
+						continue
+					}
+					if mcom.Namespace == "corgi" && mcom.Directive == "formixin" {
+						if allowed < 0 {
+							allowed = 0
+						}
+
+						for _, a := range strings.Split(mcom.Args, " ") {
+							for _, b := range ulib.Mixins {
+								if a == b.Mixin.Name.Ident {
+									allowed = 1
+								}
 							}
 						}
 					}
 				}
-			}
 
-			if allowed == 0 {
+				if allowed == 0 {
+					return false, nil
+				}
+
+				ctx.debugItem(c, "(see below)")
+				for _, ln := range c.Lines {
+					ctx.writeln(ln.Code)
+				}
+
 				return false, nil
-			}
-
-			ctx.debugItem(c, "(see below)")
-			for _, ln := range c.Lines {
-				ctx.writeln(ln.Code)
-			}
-
-			return false, nil
-		})
+			})
 	}
 
 	if !ulib.Library.Precompiled {
@@ -138,7 +141,8 @@ func writeLibrary(ctx *ctx, ulib fileutil.UsedLibrary) {
 				ctx.write("var " + b.Var + " ")
 				writeMixinSignature(ctx, a.Mixin)
 				if ctx.debugEnabled {
-					ctx.writeln(" // " + path.Join(ulib.Library.Module, ulib.Library.PathInModule) + "." + a.Mixin.Name.Ident)
+					ctx.writeln(" // " + path.Join(ulib.Library.Module, ulib.Library.PathInModule) +
+						"." + a.Mixin.Name.Ident)
 				} else {
 					ctx.writeln("")
 				}
@@ -154,8 +158,39 @@ func writeLibrary(ctx *ctx, ulib fileutil.UsedLibrary) {
 			for _, requiredBy := range mDep.RequiredBy {
 				for _, um := range ulib.Mixins {
 					if um.Mixin.Name.Ident == requiredBy {
-						ctx.write(mDep.Var + " := ")
-						ctx.writeln(ctx.mixinFuncNames.mixinByName(ctx, libDep.Module, libDep.PathInModule, mDep.Name))
+						ctx.write(mDep.Var + " := func(")
+						for i, param := range mDep.Mixin.Params {
+							ctx.write(fmt.Sprint("p", i, " "))
+							if param.Default != nil {
+								ctx.write("*")
+							}
+
+							if param.Type != nil {
+								ctx.write(param.Type.Type)
+							} else {
+								ctx.write(param.InferredType)
+							}
+							ctx.write(", ")
+						}
+						for i := range mDep.Mixin.Blocks {
+							ctx.write(fmt.Sprint("b", i, " func(), "))
+						}
+						if mDep.Mixin.HasAndPlaceholders {
+							ctx.write("ab func()")
+						}
+						ctx.write(") { ")
+						ctx.write(ctx.mixinFuncNames.mixinByName(ctx, libDep.Module, libDep.PathInModule, mDep.Name))
+						ctx.write("(")
+						for i := range mDep.Mixin.Params {
+							ctx.write(fmt.Sprint("p", i, ", "))
+						}
+						for i := range mDep.Mixin.Blocks {
+							ctx.write(fmt.Sprint("b", i, ", "))
+						}
+						if mDep.Mixin.HasAndPlaceholders {
+							ctx.write("ab")
+						}
+						ctx.writeln(") }")
 						continue mixins
 					}
 				}
@@ -225,6 +260,33 @@ func writeMixinFunc(ctx *ctx, m *file.Mixin) {
 	if len(m.Precompiled) > 0 {
 		ctx.writeln(string(m.Precompiled))
 		return
+	}
+
+	textOnlyMixin := true
+	fileutil.Walk(m.Body, func(parents []fileutil.WalkContext, ctx fileutil.WalkContext) (dive bool, err error) {
+		switch (*ctx.Item).(type) {
+		case file.Element:
+			textOnlyMixin = false
+			return false, fileutil.StopWalk
+		case file.DivShorthand:
+			textOnlyMixin = false
+			return false, fileutil.StopWalk
+		case file.And:
+			textOnlyMixin = false
+			return false, fileutil.StopWalk
+		case file.Mixin:
+			return false, nil
+		}
+
+		return true, nil
+	})
+
+	// mixin could be used as attr value, so also escape attr values
+	if textOnlyMixin {
+		ctx.txtEscaper.Push(htmlTextEscaper)
+		defer ctx.txtEscaper.Pop()
+		ctx.exprEscaper.Push(htmlExprEscaper)
+		defer ctx.exprEscaper.Pop()
 	}
 
 	ctx.write("func(")
@@ -378,21 +440,22 @@ blocks:
 	if mc.Mixin.Mixin.HasAndPlaceholders {
 		ctx.writeln("func() {")
 
-		fileutil.Walk(mc.Body, func(parents []fileutil.WalkContext, wctx fileutil.WalkContext) (dive bool, err error) {
-			switch itm := (*wctx.Item).(type) {
-			case file.Block:
-				return false, nil
-			case file.InlineText:
-				return false, nil
-			case file.BlockExpansion:
-				return false, nil
-			case file.MixinMainBlockShorthand:
-				return false, nil
-			default:
-				scopeItem(ctx, itm)
-				return false, nil
-			}
-		})
+		fileutil.Walk(mc.Body,
+			func(parents []fileutil.WalkContext, wctx fileutil.WalkContext) (dive bool, err error) {
+				switch itm := (*wctx.Item).(type) {
+				case file.Block:
+					return false, nil
+				case file.InlineText:
+					return false, nil
+				case file.BlockExpansion:
+					return false, nil
+				case file.MixinMainBlockShorthand:
+					return false, nil
+				default:
+					scopeItem(ctx, itm)
+					return false, nil
+				}
+			})
 
 		ctx.flushGenerate()
 		ctx.flushClasses()
@@ -436,7 +499,7 @@ params:
 		ctx.writeln("func() {")
 
 		ctx.closed.Push(maybeClosed)
-		ctx.closeTag()
+		ctx.closeStartTag()
 		interpolationValue(ctx, val, false)
 		ctx.flushGenerate()
 		ctx.flushClasses()
@@ -448,19 +511,20 @@ params:
 	if mc.Mixin.Mixin.HasAndPlaceholders {
 		ctx.writeln("func() {")
 
-		fileutil.Walk(mc.Body, func(parents []fileutil.WalkContext, wctx fileutil.WalkContext) (dive bool, err error) {
-			switch itm := (*wctx.Item).(type) {
-			case file.Block:
-				return false, nil
-			case file.InlineText:
-				return false, nil
-			case file.BlockExpansion:
-				return false, nil
-			default:
-				scopeItem(ctx, itm)
-				return false, nil
-			}
-		})
+		fileutil.Walk(mc.Body,
+			func(parents []fileutil.WalkContext, wctx fileutil.WalkContext) (dive bool, err error) {
+				switch itm := (*wctx.Item).(type) {
+				case file.Block:
+					return false, nil
+				case file.InlineText:
+					return false, nil
+				case file.BlockExpansion:
+					return false, nil
+				default:
+					scopeItem(ctx, itm)
+					return false, nil
+				}
+			})
 
 		ctx.flushGenerate()
 		ctx.flushClasses()
