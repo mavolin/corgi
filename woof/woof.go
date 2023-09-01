@@ -60,7 +60,7 @@ func CanIndex(val any, i any) bool {
 		return ok && rval.Len() > i
 	case reflect.Map:
 		val := rval.MapIndex(reflect.ValueOf(i))
-		return val.IsZero()
+		return val.IsValid()
 	default:
 		return false
 	}

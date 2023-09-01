@@ -138,6 +138,14 @@ func (l *Linker) analyzeMixin(f *file.File, m *file.Mixin) bool {
 			}
 
 			canAttrs.Swap(false)
+		case file.DivShorthand:
+			m.WritesElements = true
+			m.WritesBody = true
+			if !m.HasAndPlaceholders && hasAndPlaceholder(itm.Attributes) {
+				m.HasAndPlaceholders = true
+			}
+
+			canAttrs.Swap(false)
 		case file.ArrowBlock:
 			m.WritesBody = true
 			canAttrs.Swap(false)
@@ -243,7 +251,9 @@ func hasAndPlaceholder(acolls []file.AttributeCollection) bool {
 	return false
 }
 
-func analyzeBlock(mi *file.MixinInfo, b file.Block, topLvl, canAttrs bool, blockInfos map[string]file.MixinBlockInfo) (file.MixinBlockInfo, bool) {
+func analyzeBlock(
+	mi *file.MixinInfo, b file.Block, topLvl, canAttrs bool, blockInfos map[string]file.MixinBlockInfo,
+) (file.MixinBlockInfo, bool) {
 	bi, ok := blockInfos[b.Name.Ident]
 	bi.Name = b.Name.Ident
 	if !ok {
@@ -353,7 +363,9 @@ type mixinCallAnalysis struct {
 	usesTopLvlAndPlaceholder bool
 }
 
-func analyzeMixinCall(mi *file.MixinInfo, mc file.MixinCall, topLvl, canAttrs bool, blockInfos map[string]file.MixinBlockInfo) (anal mixinCallAnalysis, abort bool) {
+func analyzeMixinCall(
+	mi *file.MixinInfo, mc file.MixinCall, topLvl, canAttrs bool, blockInfos map[string]file.MixinBlockInfo,
+) (anal mixinCallAnalysis, abort bool) {
 	if mc.Mixin == nil || mc.Mixin.Mixin.MixinInfo == nil {
 		return mixinCallAnalysis{}, true
 	}
@@ -527,7 +539,8 @@ type mixinCallBlockAnalysis struct {
 }
 
 func analyzeMixinCallBlock(
-	mi *file.MixinInfo, anal *mixinCallBlockAnalysis, b file.Block, bInfo file.MixinBlockInfo, mixinTopLvl, mixinCanAttrs bool, blockInfos map[string]file.MixinBlockInfo,
+	mi *file.MixinInfo, anal *mixinCallBlockAnalysis, b file.Block, bInfo file.MixinBlockInfo,
+	mixinTopLvl, mixinCanAttrs bool, blockInfos map[string]file.MixinBlockInfo,
 ) (abort bool) {
 	if anal.isDefault {
 		*anal = mixinCallBlockAnalysis{topLvl: anal.topLvl}
@@ -584,7 +597,8 @@ func analyzeMixinCallBlock(
 				}
 			}
 		case file.MixinCall:
-			callAnal, abort2 := analyzeMixinCall(mi, itm, mixinTopLvl && bInfo.TopLevel && isTopLevel(parents), canAttrsStack.Peek(), blockInfos)
+			callAnal, abort2 := analyzeMixinCall(mi, itm, mixinTopLvl && bInfo.TopLevel && isTopLevel(parents),
+				canAttrsStack.Peek(), blockInfos)
 			if abort2 {
 				abort = true
 				return false, fileutil.StopWalk
@@ -607,7 +621,8 @@ func analyzeMixinCallBlock(
 
 			return false, nil
 		case file.Block:
-			blockAnal, abort2 := analyzeBlock(mi, itm, mixinTopLvl && bInfo.TopLevel && isTopLevel(parents), canAttrsStack.Peek(), blockInfos)
+			blockAnal, abort2 := analyzeBlock(mi, itm, mixinTopLvl && bInfo.TopLevel && isTopLevel(parents),
+				canAttrsStack.Peek(), blockInfos)
 			if abort2 {
 				abort = true
 				return false, fileutil.StopWalk
