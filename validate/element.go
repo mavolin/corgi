@@ -235,7 +235,7 @@ func _topLevelTemplateBlockAnds(f *file.File, s file.Scope) *errList {
 				Message: "top-level `&` in block",
 				ErrorAnnotation: anno.Anno(f, anno.Annotation{
 					Start:      itm.Position,
-					Annotation: "attributes may not be placed at the top level of a template block",
+					Annotation: "attributes may not be placed at the top-level of a template block",
 				}),
 			})
 			return false, nil
@@ -464,7 +464,9 @@ func attributePlacement(f *file.File) *errList {
 	return &errs
 }
 
-func _attributePlacement(f *file.File, elAnno corgierr.Annotation, firstText *corgierr.Annotation, scope file.Scope) (*corgierr.Annotation, errList) {
+func _attributePlacement(
+	f *file.File, elAnno corgierr.Annotation, firstText *corgierr.Annotation, scope file.Scope,
+) (*corgierr.Annotation, errList) {
 	var errs errList
 
 	fileutil.Walk(scope, func(parents []fileutil.WalkContext, ctx fileutil.WalkContext) (dive bool, err error) {
@@ -713,7 +715,9 @@ func _attributePlacement(f *file.File, elAnno corgierr.Annotation, firstText *co
 // _mixinCallAndPlacement checks whether the mixin call can be placed, or if it
 // attempts to write attributes to the element containing it, even though the
 // elements body has already been written.
-func _mixinCallAndPlacement(f *file.File, mc file.MixinCall, elAnno corgierr.Annotation, firstText *corgierr.Annotation) *errList {
+func _mixinCallAndPlacement(
+	f *file.File, mc file.MixinCall, elAnno corgierr.Annotation, firstText *corgierr.Annotation,
+) *errList {
 	var errs errList
 
 	if firstText == nil {
