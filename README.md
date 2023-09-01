@@ -19,7 +19,7 @@ Just like pug, corgi also uses code generation to generate its templates.
 
 * 👀 Highly readable syntax that models HTML, not just replacing placeholders
 * ➕ Mixins—functions that render repeated pieces of corgi
-* 🌀 Conditional attributes that are actually readable
+* 🌀 Conditional classes that are actually readable
 * 🗄 Import other files to use their mixins
 * 🖇 Split large templates into multiple files
 * 👪 Support for inheritance
@@ -93,8 +93,7 @@ Pretty-Printed output:
 </html>
 ```
 
-> If you're interested in the generated code, or want to see more examples
-> before diving into the docs below, have a look at the `examples` directory.
+> If you're interested in the generated code,  have a look at the `examples` directory.
 
 ## Want to know more?
 
