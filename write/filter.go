@@ -38,7 +38,8 @@ func commandFilter(ctx *ctx, filter file.CommandFilter) {
 			}).Pretty(ctx.corgierrPretty))
 		}
 
-		panic(fmt.Errorf("%s:%d:%d: filter `%s` not allowed by settings", ctx.currentFile().Name, filter.Line, filter.Col, filter.Name))
+		panic(fmt.Errorf("%s:%d:%d: filter `%s` not allowed by settings", ctx.currentFile().Name, filter.Line,
+			filter.Col, filter.Name))
 	allowed:
 	}
 
@@ -52,7 +53,8 @@ func commandFilter(ctx *ctx, filter file.CommandFilter) {
 			args[i], err = strconv.Unquote(string(arg.Quote) + arg.Contents + string(arg.Quote))
 			if err != nil {
 				// this should be caught by the parser, so we're fine
-				panic(fmt.Errorf("%s:%d:%d: filter arg %d: invalid string", ctx.currentFile().Name, filter.Line, filter.Col, i+1))
+				panic(fmt.Errorf("%s:%d:%d: filter arg %d: invalid string", ctx.currentFile().Name, filter.Line,
+					filter.Col, i+1))
 			}
 		}
 	}
@@ -96,7 +98,7 @@ func commandFilter(ctx *ctx, filter file.CommandFilter) {
 		panic(fmt.Errorf("%s:%d:%d: failed to run filter: %w", ctx.currentFile().Name, filter.Line, filter.Col, err))
 	}
 
-	ctx.closeTag()
+	ctx.closeStartTag()
 	ctx.generate(out.String(), nil)
 }
 
@@ -124,33 +126,37 @@ func rawFilter(ctx *ctx, filter file.RawFilter) {
 		prevLnNo = ln.Position.Line
 	}
 
-	ctx.closeTag()
+	ctx.closeStartTag()
 	switch filter.Type {
 	case file.RawHTML:
 		minified, err := mini.String("text/html", sb.String())
 		if err != nil {
-			panic(fmt.Errorf("%s:%d:%d: failed to minify in HTML raw filter: %w", ctx.currentFile().Name, filter.Line, filter.Col, err))
+			panic(fmt.Errorf("%s:%d:%d: failed to minify in HTML raw filter: %w", ctx.currentFile().Name, filter.Line,
+				filter.Col, err))
 		}
 
 		ctx.generate(minified, nil)
 	case file.RawSVG:
 		minified, err := mini.String("image/svg+xml", sb.String())
 		if err != nil {
-			panic(fmt.Errorf("%s:%d:%d: failed to minify in SVG raw filter: %w", ctx.currentFile().Name, filter.Line, filter.Col, err))
+			panic(fmt.Errorf("%s:%d:%d: failed to minify in SVG raw filter: %w", ctx.currentFile().Name, filter.Line,
+				filter.Col, err))
 		}
 
 		ctx.generate(minified, nil)
 	case file.RawJS:
 		minified, err := mini.String("application/javascript", sb.String())
 		if err != nil {
-			panic(fmt.Errorf("%s:%d:%d: failed to minify in JS raw filter: %w", ctx.currentFile().Name, filter.Line, filter.Col, err))
+			panic(fmt.Errorf("%s:%d:%d: failed to minify in JS raw filter: %w", ctx.currentFile().Name, filter.Line,
+				filter.Col, err))
 		}
 
 		ctx.generate(minified, nil)
 	case file.RawCSS:
 		minified, err := mini.String("text/css", sb.String())
 		if err != nil {
-			panic(fmt.Errorf("%s:%d:%d: failed to minify in CSS raw filter: %w", ctx.currentFile().Name, filter.Line, filter.Col, err))
+			panic(fmt.Errorf("%s:%d:%d: failed to minify in CSS raw filter: %w", ctx.currentFile().Name, filter.Line,
+				filter.Col, err))
 		}
 
 		ctx.generate(minified, nil)

@@ -63,6 +63,11 @@ var (
 		f:    toEscaperFunc(woof.EscapeHTMLAttrVal),
 	}
 
+	htmlTextEscaper = textEscaper{
+		name: "html",
+		f:    toEscaperFunc(woof.EscapeHTML),
+	}
+
 	plainBodyExprEscaper  = expressionEscaper{funcName: "EscapeHTMLBody"}
 	scriptBodyExprEscaper = expressionEscaper{funcName: "JSify"}
 	styleBodyExprEscaper  = expressionEscaper{funcName: "FilterCSSValue"}
@@ -82,4 +87,6 @@ var (
 		funcName: "FilterSrcset",
 		safeType: "Srcset",
 	}
+
+	htmlExprEscaper = expressionEscaper{funcName: "EscapeHTML"}
 )

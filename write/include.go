@@ -8,7 +8,7 @@ import (
 )
 
 func include(ctx *ctx, incl file.Include) {
-	ctx.closeTag()
+	ctx.closeStartTag()
 
 	switch inclF := incl.Include.(type) {
 	case file.CorgiInclude:

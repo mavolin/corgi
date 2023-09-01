@@ -241,7 +241,7 @@ func _switch(ctx *ctx, sw file.Switch) {
 func _for(ctx *ctx, f file.For) {
 	_, attrLoop := fileutil.IsFirstNonControlAttr(f.Body)
 	if !attrLoop {
-		ctx.closeTag()
+		ctx.closeStartTag()
 
 		cl := ctx.closed.Peek()
 		ctx.closed.Push(cl)

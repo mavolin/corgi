@@ -272,7 +272,7 @@ func (ctx *ctx) mainFile() *file.File {
 }
 
 func (ctx *ctx) startElem(name string, void bool) {
-	ctx.closeTag()
+	ctx.closeStartTag()
 
 	ctx.generate("<"+name, nil)
 	ctx.elemNames.Push(name)
@@ -300,7 +300,7 @@ func (ctx *ctx) startElem(name string, void bool) {
 }
 
 func (ctx *ctx) closeElem() {
-	ctx.closeTag()
+	ctx.closeStartTag()
 	ctx.exprEscaper.Pop()
 	ctx.txtEscaper.Pop()
 
@@ -405,6 +405,8 @@ func (ctx *ctx) flushClasses() {
 		ctx.writeln(ctx.contextFunc("BufferClassAttr", strconv.Quote(ctx.classBuf.String())))
 		ctx.haveBufClasses = true
 		ctx.classBuf.Reset()
+
+		ctx.callUnclosedIfUnclosed()
 	} else {
 		ctx.debug("flush class buffer", "[empty buffer]")
 	}
@@ -446,16 +448,16 @@ func (ctx *ctx) bufClass(class string) {
 	}
 }
 
-func (ctx *ctx) closeTag() {
+func (ctx *ctx) closeStartTag() {
 	cl := ctx.closed.Peek()
 	if cl == closed {
 		return
 	}
 
 	if cl == unclosed {
-		ctx.debug("close tag", "[prev state: unclosed, class buf: "+ctx.classBuf.String()+"]")
+		ctx.debug("close start tag", "[prev state: unclosed, class buf: "+ctx.classBuf.String()+"]")
 	} else {
-		ctx.debug("close tag", "[prev state: maybe closed, class buf: "+ctx.classBuf.String()+"]")
+		ctx.debug("close start tag", "[prev state: maybe closed, class buf: "+ctx.classBuf.String()+"]")
 	}
 
 	defer ctx.closed.Swap(closed)
@@ -490,7 +492,8 @@ func (ctx *ctx) closeTag() {
 
 // horrible name, but a ton less confusion than just reading callUnclosed.
 func (ctx *ctx) callUnclosedIfUnclosed() {
-	ctx.debug("call unclosed if unclosed", "close state: "+ctx.closed.Peek().String()+", called before: "+fmt.Sprint(ctx.calledUnclosed))
+	ctx.debug("call unclosed if unclosed",
+		"close state: "+ctx.closed.Peek().String()+", called before: "+fmt.Sprint(ctx.calledUnclosed))
 
 	if ctx.calledUnclosed {
 		return

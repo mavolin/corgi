@@ -17,7 +17,7 @@ var hashUnescaper = strings.NewReplacer("##", "#")
 func inlineText(ctx *ctx, txt file.InlineText) {
 	ctx.debugItem(txt, "(see below)")
 
-	ctx.closeTag()
+	ctx.closeStartTag()
 	textLines(ctx, txt.Text)
 }
 
@@ -28,7 +28,7 @@ func inlineText(ctx *ctx, txt file.InlineText) {
 func arrowBlock(ctx *ctx, ab file.ArrowBlock) {
 	ctx.debugItem(ab, "(see below)")
 
-	ctx.closeTag()
+	ctx.closeStartTag()
 
 	if len(ab.Lines) == 0 { // special case
 		ctx.generate("\n", nil)
@@ -98,7 +98,7 @@ func elementInterpolation(ctx *ctx, interp file.ElementInterpolation) {
 	for _, acoll := range interp.Element.Attributes {
 		attributeCollection(ctx, acoll)
 	}
-	ctx.closeTag()
+	ctx.closeStartTag()
 
 	interpolationValue(ctx, interp.Value, false)
 

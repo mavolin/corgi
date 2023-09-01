@@ -14,7 +14,7 @@ import (
 // ======================================================================================
 
 func doctype(ctx *ctx, _ file.Doctype) {
-	ctx.closeTag()
+	ctx.closeStartTag()
 
 	ctx.generate("<!doctype html>", nil)
 }
@@ -26,7 +26,7 @@ func doctype(ctx *ctx, _ file.Doctype) {
 var htmlCommentEscaper = strings.NewReplacer("-->", "-- >")
 
 func htmlComment(ctx *ctx, c file.HTMLComment) {
-	ctx.closeTag()
+	ctx.closeStartTag()
 
 	ctx.generate("<!--", nil)
 
@@ -64,6 +64,8 @@ func element(ctx *ctx, el file.Element) {
 	if !success {
 		scope(ctx, el.Body)
 	}
+
+	ctx.closeStartTag()
 
 	ctx.debugItem(el, "/"+el.Name)
 	ctx.closeElem()
@@ -111,7 +113,7 @@ func minifyStyleElement(ctx *ctx, el file.Element) bool {
 		panic(fmt.Errorf("%s:%d:%d: style contains invalid CSS: %w", ctx.currentFile().Name, el.Line, el.Col, err))
 	}
 
-	ctx.closeTag()
+	ctx.closeStartTag()
 	ctx.generate(css, nil)
 	return true
 }
@@ -192,7 +194,7 @@ func minifyScriptElement(ctx *ctx, el file.Element) bool {
 		return false
 	}
 
-	ctx.closeTag()
+	ctx.closeStartTag()
 
 	for i, expr := range placeholderExprs {
 		ph := jsExprPlaceholder + strconv.Itoa(i)
@@ -408,7 +410,8 @@ func simpleAttribute(ctx *ctx, sattr file.SimpleAttribute) {
 			if ok {
 				valueChainExpression(ctx, cexpr, func(expr string) {
 					ctx.flushGenerate()
-					ctx.writeln(ctx.woofFunc("WriteAttr", ctx.ident(ctxVar), strconv.Quote(sattr.Name), expr, ctx.woofQual("EscapeHTMLAttrVal")))
+					ctx.writeln(ctx.woofFunc("WriteAttr", ctx.ident(ctxVar), strconv.Quote(sattr.Name), expr,
+						ctx.woofQual("EscapeHTMLAttrVal")))
 				})
 				return
 			}
@@ -419,7 +422,8 @@ func simpleAttribute(ctx *ctx, sattr file.SimpleAttribute) {
 	case woof.ContentTypePlain:
 		expr := inlineExpression(ctx, *sattr.Value)
 		ctx.flushGenerate()
-		ctx.writeln(ctx.woofFunc("WriteAttr", ctx.ident(ctxVar), strconv.Quote(sattr.Name), expr, ctx.woofQual("EscapeHTMLAttrVal")))
+		ctx.writeln(ctx.woofFunc("WriteAttr", ctx.ident(ctxVar), strconv.Quote(sattr.Name), expr,
+			ctx.woofQual("EscapeHTMLAttrVal")))
 	case woof.ContentTypeCSS:
 		generateExpression(ctx, *sattr.Value, &attrTextEscaper, &cssAttrExprEscaper, func(f func()) {
 			ctx.generate(` `+sattr.Name+`="`, nil)
