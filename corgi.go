@@ -313,7 +313,8 @@ func (l *loader) readTemplate(_ *file.File, extendPath string) (*load.File, erro
 	}
 
 	sysAbs := filepath.Join(mod.sysAbsPath, filepath.FromSlash(mod.pathInMod))
-	log = log.With(slog.String("module", mod.path), slog.String("path_in_mod", mod.pathInMod), slog.String("abs", mod.sysAbsPath))
+	log = log.With(slog.String("module", mod.path), slog.String("path_in_mod", mod.pathInMod),
+		slog.String("abs", mod.sysAbsPath))
 	log.Info("located parent module", slog.String("module", mod.path))
 
 	f, err := os.ReadFile(sysAbs)
@@ -340,8 +341,7 @@ func (l *loader) readTemplate(_ *file.File, extendPath string) (*load.File, erro
 }
 
 func (l *loader) readInclude(includingFile *file.File, slashPath string) (*load.File, error) {
-	slashAbs := filepath.Join(path.Dir(includingFile.AbsolutePath), filepath.FromSlash(slashPath))
-	sysAbs := filepath.FromSlash(slashAbs)
+	sysAbs := filepath.Join(path.Dir(includingFile.AbsolutePath), filepath.FromSlash(slashPath))
 
 	log := l.log.
 		WithGroup("include_reader").
@@ -357,8 +357,10 @@ func (l *loader) readInclude(includingFile *file.File, slashPath string) (*load.
 	}
 
 	return &load.File{
-		Name:         path.Base(slashAbs),
-		AbsolutePath: slashAbs,
+		Name:         path.Base(sysAbs),
+		Module:       includingFile.Module,
+		PathInModule: path.Join(includingFile.PathInModule, slashPath),
+		AbsolutePath: sysAbs,
 		IsCorgi:      path.Ext(slashPath) == ".corgi",
 		Raw:          f,
 	}, nil
@@ -422,7 +424,9 @@ func (l *loader) readDepLibrary(_ *file.File, usePath string) (*load.Library, er
 	return l.readLibraryDir(log, sysAbs, mod.path, mod.pathInMod)
 }
 
-func (l *loader) readLibraryDir(log *slog.Logger, sysDir string, modulePath, pathInModule string) (*load.Library, error) {
+func (l *loader) readLibraryDir(
+	log *slog.Logger, sysDir string, modulePath, pathInModule string,
+) (*load.Library, error) {
 	log.Info("loading dir information")
 
 	dir, err := l.resolvePaths(log, sysDir)
@@ -612,7 +616,8 @@ func (l *loader) locateModule(of string) (*mod, error) {
 	}
 
 	if strings.HasPrefix(of, l.mainMod.Module.Mod.Path) {
-		log.Info("file is in main module, using workdir instead of module cache", slog.String("module", l.mainMod.Module.Mod.Path))
+		log.Info("file is in main module, using workdir instead of module cache",
+			slog.String("module", l.mainMod.Module.Mod.Path))
 		return &mod{
 			path:       l.mainMod.Module.Mod.Path,
 			pathInMod:  pathInMod(l.mainMod.Module.Mod.Path, of),
@@ -708,7 +713,8 @@ func (l *loader) _downloadModule(log *slog.Logger, modulePath, pathInModule, ver
 
 	m, err := l.cmd.DownloadMod(query)
 	if err != nil {
-		if strings.Contains(err.Error(), "malformed module path") || strings.Contains(err.Error(), "unrecognized import path") {
+		if strings.Contains(err.Error(), "malformed module path") || strings.Contains(err.Error(),
+			"unrecognized import path") {
 			log.Info("module does not exist")
 			return nil, nil
 		} else if strings.Contains(err.Error(), "no matching versions") {
