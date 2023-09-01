@@ -232,7 +232,7 @@ mixin Initials(val any, max=0, upper=false, lower=false)
     return
 
   - var n int
-    prev := s[0] != ' ' && s[0] != '\t' && s[0] != '\r' && s[0] != '\n'
+    prev := s[0] == ' ' || s[0] == '\t' || s[0] == '\r' || s[0] == '\n'
 
   for _, b := range s
     switch b
