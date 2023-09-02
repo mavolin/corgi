@@ -73,7 +73,8 @@ func mixinCallsInAttributeCollections(acolls []file.AttributeCollection) []*file
 		for attrI, attr := range attrList.Attributes {
 			_, ok := attr.(file.MixinCallAttribute)
 			if ok {
-				mcs = append(mcs, &ptrOfSliceElem[file.Attribute, file.MixinCallAttribute](attrList.Attributes, attrI).MixinCall)
+				mcs = append(mcs,
+					&ptrOfSliceElem[file.Attribute, file.MixinCallAttribute](attrList.Attributes, attrI).MixinCall)
 			}
 		}
 	}
@@ -81,7 +82,9 @@ func mixinCallsInAttributeCollections(acolls []file.AttributeCollection) []*file
 	return mcs
 }
 
-func (l *Linker) linkMixinCall(f *file.File, parents []fileutil.WalkContext, ctx fileutil.WalkContext, mc *file.MixinCall) *errList {
+func (l *Linker) linkMixinCall(
+	f *file.File, parents []fileutil.WalkContext, ctx fileutil.WalkContext, mc *file.MixinCall,
+) *errList {
 	if mc.Namespace == nil {
 		l.linkScopeMixinCall(f, ctx.Scope, mc)
 		if mc.Mixin != nil {
@@ -266,9 +269,10 @@ func (l *Linker) linkPrecompiledMixinsMixinCall(ms []file.PrecompiledMixin, mc *
 			continue
 		}
 
+		m := m
 		mc.Mixin = &file.LinkedMixin{
 			File:  m.File,
-			Mixin: &m.Mixin, //nolint:exportloopref
+			Mixin: &m.Mixin,
 		}
 		return
 	}

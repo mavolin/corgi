@@ -65,7 +65,7 @@ func _requiredInterpolatedMixinCallAttributes(f *file.File, mci file.MixinCallIn
 
 	annoLen := len("+") + len(mci.MixinCall.Name.Ident)
 	if mci.MixinCall.Namespace != nil {
-		annoLen += len(mci.MixinCall.Namespace.Ident) + len(".") //nolint:ineffassign
+		annoLen += len(mci.MixinCall.Namespace.Ident) + len(".")
 	}
 
 params:
@@ -122,7 +122,7 @@ params:
 			Message: "required mixin call arg not set",
 			ErrorAnnotation: anno.Anno(f, anno.Annotation{
 				Start:      mci.MixinCall.Position,
-				Len:        len("+") + (mci.MixinCall.Name.Col - mci.MixinCall.Col) + len(mci.MixinCall.Name.Ident),
+				Len:        annoLen,
 				Annotation: "you need to set `" + param.Name.Ident + "` to call this mixin",
 			}),
 		})
