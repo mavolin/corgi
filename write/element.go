@@ -520,5 +520,7 @@ func mixinCallAttribute(ctx *ctx, mcAttr file.MixinCallAttribute) {
 	defer ctx.txtEscaper.Pop()
 	defer ctx.exprEscaper.Pop()
 
+	ctx.writeln(ctx.contextFunc("StartAttribute"))
 	interpolationValueMixinCall(ctx, mcAttr.MixinCall, mcAttr.Value)
+	ctx.writeln(ctx.contextFunc("EndAttribute"))
 }

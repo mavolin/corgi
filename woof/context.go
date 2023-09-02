@@ -11,6 +11,7 @@ type Context struct {
 	nonce    string
 	classBuf bytes.Buffer
 	closed   bool
+	inAttr   bool
 }
 
 func NewContext(w io.Writer) *Context {
@@ -76,14 +77,32 @@ func (ctx *Context) BufferClassAttr(class HTMLAttrVal) {
 	ctx.classBuf.WriteString(string(class))
 }
 
+// StartAttribute is a helper signalling that a mixin is about to be called that
+// is being used as an attribute value.
+//
+// It causes calls to [Context.Unclosed], [Context.Closed], and
+// [Context.CloseStartTag] made by the mixin to be ignored.
+func (ctx *Context) StartAttribute() {
+	ctx.inAttr = true
+}
+
+// EndAttribute reverts the effects of [Context.StartAttribute].
+func (ctx *Context) EndAttribute() {
+	ctx.inAttr = false
+}
+
 // Unclosed signals that an element tag has been opened but not yet closed.
 func (ctx *Context) Unclosed() {
-	ctx.closed = false
+	if !ctx.inAttr {
+		ctx.closed = false
+	}
 }
 
 // Closed signals that an element tag has been closed.
 func (ctx *Context) Closed() {
-	ctx.closed = true
+	if !ctx.inAttr {
+		ctx.closed = true
+	}
 }
 
 // CloseStartTag writes the buffered classes, if any, plus, optionally, the
@@ -91,7 +110,7 @@ func (ctx *Context) Closed() {
 //
 // If the tag has already been closed, CloseStartTag is a no-op.
 func (ctx *Context) CloseStartTag(extraClasses HTMLAttrVal, void bool) {
-	if ctx.closed {
+	if ctx.closed || ctx.inAttr {
 		return
 	}
 	ctx.closed = true
