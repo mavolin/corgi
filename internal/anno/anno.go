@@ -106,7 +106,7 @@ func Lines(lines []string, aw Annotation) corgierr.Annotation {
 			break
 		}
 
-		a.End = aw.End.Col
+		a.End = aw.End.Col + 1
 	case aw.Len > 0:
 		a.End = a.Start + aw.Len
 	case aw.EOLDelta != 0:

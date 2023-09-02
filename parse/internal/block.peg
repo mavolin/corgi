@@ -97,6 +97,8 @@ spacedBlockExpansionItem <- ' '+ sI:_spacedBlockExpansionItem {
         fromThe = "for"
     case file.Include:
         fromThe = "include"
+    case file.Return:
+        fromThe = "return"
     default:
         fromThe = "rest"
     }
@@ -112,7 +114,7 @@ spacedBlockExpansionItem <- ' '+ sI:_spacedBlockExpansionItem {
         }),
     }
 }
-_spacedBlockExpansionItem <- InlineBlock  / InlineAnd / InlineMixinCall /
+_spacedBlockExpansionItem <- InlineBlock  / InlineAnd / InlineMixinCall / Return /
                              InlineIf / InlineIfBlock / InlineFor / Include /
                              InlineElement / InlineDivShorthand
 

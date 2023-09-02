@@ -55,7 +55,7 @@ func _mixinCallAttributeIsPlain(f *file.File, mca file.MixinCallAttribute) *errL
 			Message: "mixin call attribute as " + at.String() + " attribute",
 			ErrorAnnotation: anno.Anno(f, anno.Annotation{
 				Start:      mca.Position,
-				End:        interpolationEnd(mca.Value),
+				End:        mixinCallAttributeEnd(mca),
 				Annotation: "you can only use mixin calls as attributes for plain attributes",
 			}),
 		})
@@ -71,7 +71,7 @@ func _mixinCallAttributesOnlyWriteText(f *file.File, mca file.MixinCallAttribute
 			Message: "mixin call attribute: mixin writes other attributes",
 			ErrorAnnotation: anno.Anno(f, anno.Annotation{
 				Start:      mca.Position,
-				End:        interpolationEnd(mca.Value),
+				End:        mixinCallAttributeEnd(mca),
 				Annotation: "this mixin should only write text",
 			}),
 			Suggestions: []corgierr.Suggestion{
@@ -83,7 +83,7 @@ func _mixinCallAttributesOnlyWriteText(f *file.File, mca file.MixinCallAttribute
 			Message: "mixin call attribute: mixin writes elements",
 			ErrorAnnotation: anno.Anno(f, anno.Annotation{
 				Start:      mca.Position,
-				End:        interpolationEnd(mca.Value),
+				End:        mixinCallAttributeEnd(mca),
 				Annotation: "this mixin should only write text, not elements",
 			}),
 			Suggestions: []corgierr.Suggestion{
@@ -101,7 +101,7 @@ func _topLevelAndInMixinCallAttribute(f *file.File, mca file.MixinCallAttribute)
 			Message: "interpolated mixin writes attributes",
 			ErrorAnnotation: anno.Anno(f, anno.Annotation{
 				Start:      mca.Position,
-				End:        interpolationEnd(mca.Value),
+				End:        mixinCallAttributeEnd(mca),
 				Annotation: "here",
 			}),
 			Suggestions: []corgierr.Suggestion{
@@ -204,4 +204,18 @@ func _mixinCallAttributeBlockExists(f *file.File, mca file.MixinCallAttribute) *
 			Annotation: "this mixin has no `_` block, so you can't call this mixin with a value",
 		}),
 	})
+}
+
+func mixinCallAttributeEnd(mca file.MixinCallAttribute) file.Position {
+	if pos := interpolationEnd(mca.Value); pos != file.InvalidPosition {
+		return pos
+	}
+
+	if mca.MixinCall.RParenPos != nil {
+		return *mca.MixinCall.RParenPos
+	}
+
+	pos := mca.MixinCall.Name.Position
+	pos.Col += len(mca.MixinCall.Name.Ident)
+	return pos
 }
