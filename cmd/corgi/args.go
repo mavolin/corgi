@@ -102,23 +102,25 @@ func init() {
 
 		return nil
 	})
-	flag.Func("colour", "force or disable colouring of errors, even if you're British (`true/false`)", func(s string) error {
-		ForceColorSetting = true
-		switch s {
-		case "", "true":
-			Color = true
-		case "false":
-			Color = false
-		default:
-			return errors.New("invalid colour setting, expected `true` or `false`")
-		}
+	flag.Func("colour", "force or disable colouring of errors, even if you're British (`true/false`)",
+		func(s string) error {
+			ForceColorSetting = true
+			switch s {
+			case "", "true":
+				Color = true
+			case "false":
+				Color = false
+			default:
+				return errors.New("invalid colour setting, expected `true` or `false`")
+			}
 
-		return nil
-	})
+			return nil
+		})
 
 	var exePreferencesText string
 	if ConfigDir != "" {
-		exePreferencesText = "\nthis does not affect preferences stored in " + filepath.Join(ConfigDir, "trusted_filters")
+		exePreferencesText = "\nthis does not affect preferences stored in " + filepath.Join(ConfigDir,
+			"trusted_filters")
 	}
 
 	flag.Func("trust-filter", "trust these comma-separated `executables` to be run as filters"+exePreferencesText,
@@ -217,7 +219,7 @@ func init() {
 				os.Exit(2)
 			}
 
-			OutFile = filepath.Base(flag.Arg(0)) + ".go"
+			OutFile = InFile + ".go"
 		}
 	}
 
@@ -238,14 +240,18 @@ func usage() {
 	fmt.Fprintln(flag.CommandLine.Output(), "Usage: corgi [options] [INFILE]")
 	fmt.Fprintln(flag.CommandLine.Output(), "Usage: corgi [options] -lib DIR")
 	fmt.Fprintln(flag.CommandLine.Output())
-	fmt.Fprintln(flag.CommandLine.Output(), "Input may be passed through stdin, however, this will disable loading of the file's dir library.")
+	fmt.Fprintln(flag.CommandLine.Output(),
+		"Input may be passed through stdin, however, this will disable loading of the file's dir library.")
 	fmt.Fprintln(flag.CommandLine.Output())
 	fmt.Fprintln(flag.CommandLine.Output(), "If -lib is specified, the FILE/DIR argument is mandatory.")
 	fmt.Fprintln(flag.CommandLine.Output())
-	fmt.Fprintln(flag.CommandLine.Output(), "Additionally, the special ./.. argument is allowed, which recursively iterates")
-	fmt.Fprintln(flag.CommandLine.Output(), "through pwd and its subdirectories and pre-compiles all of those containing corgi")
+	fmt.Fprintln(flag.CommandLine.Output(),
+		"Additionally, the special ./.. argument is allowed, which recursively iterates")
+	fmt.Fprintln(flag.CommandLine.Output(),
+		"through pwd and its subdirectories and pre-compiles all of those containing corgi")
 	fmt.Fprintln(flag.CommandLine.Output(), "library files.")
-	fmt.Fprintln(flag.CommandLine.Output(), "If ./... is used, the -o flag has no effect and the precompiled files will be")
+	fmt.Fprintln(flag.CommandLine.Output(),
+		"If ./... is used, the -o flag has no effect and the precompiled files will be")
 	fmt.Fprintln(flag.CommandLine.Output(), "placed directly into the respective directories.")
 	fmt.Fprintln(flag.CommandLine.Output())
 	flag.PrintDefaults()
@@ -310,7 +316,8 @@ func doEditTrustedFilters() {
 	editorCmd.Stdout = os.Stdout
 	editorCmd.Stderr = os.Stderr
 	if err := editorCmd.Run(); err != nil {
-		fmt.Fprintf(os.Stderr, "failed to run editor: %s\nplease open the editor yourself: %s\n", err.Error(), TrustedFiltersFile)
+		fmt.Fprintf(os.Stderr, "failed to run editor: %s\nplease open the editor yourself: %s\n", err.Error(),
+			TrustedFiltersFile)
 		os.Exit(1)
 	}
 
