@@ -68,15 +68,21 @@ func (l *usedMixinsLister) insertMixinCall(mc file.MixinCall, requiredBy string,
 			continue
 		}
 
-		for _, m := range lib.Mixins {
+		for i, m := range lib.Mixins {
 			if m.Mixin.Name.Ident == mc.Name.Ident {
+				m.RequiredBy = append(m.RequiredBy, requiredBy)
+				lib.Mixins[i] = m
 				return
 			}
 		}
 
+		var requiredBySlice []string
+		if requiredBy != "" {
+			requiredBySlice = []string{requiredBy}
+		}
 		l.External[i].Mixins = append(l.External[i].Mixins, UsedMixin{
 			Mixin:      mc.Mixin.Mixin,
-			RequiredBy: []string{requiredBy},
+			RequiredBy: requiredBySlice,
 		})
 		if !direct {
 			l.listDeps(mc.Mixin.File.Library, mc.Mixin.Mixin)
