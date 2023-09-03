@@ -1,7 +1,6 @@
 import
   __corgi_std_woof "github.com/mavolin/corgi/woof"
-  __corgi_std_strings "github.com/mavolin/corgi/std/strings"
-  __corgi_std_stdstrings "strings"
+  __corgi_std_strings "strings"
   __corgi_std_rand "crypto/rand"
   __corgi_std_big "math/big"
 
@@ -241,8 +240,8 @@ mixin Initials(val any, max=0, upper=false, lower=false)
           - prev = false
       default
         if !prev
-          if upper:> #{__corgi_std_stdstrings.ToUpper(string(b))}
-          else if lower:> #{__corgi_std_stdstrings.ToLower(string(b))}
+          if upper:> #{__corgi_std_strings.ToUpper(string(b))}
+          else if lower:> #{__corgi_std_strings.ToLower(string(b))}
           else:> #{string(b)}
           - n++
           if n >= max
