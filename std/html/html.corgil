@@ -29,7 +29,7 @@ import __corgi_std_woof "github.com/mavolin/corgi/woof"
 //
 // A negative value is the default and causes all <br>s to be printed.
 mixin Breaked(val any, maxAdjacent=-1)
-  - s, err := __corgi_std_woof
+  - s, err := __corgi_std_woof.Stringify(val)
   if err != nil
     return err
 
