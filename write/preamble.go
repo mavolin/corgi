@@ -13,7 +13,7 @@ func writePackage(ctx *ctx) {
 }
 
 func writeImports(ctx *ctx) {
-	found := make(map[string]struct{})
+	processed := make(map[string]struct{})
 	namespaceUsed := make(map[string]struct{})
 
 	files := make([]*file.File, len(ctx._stack))
@@ -27,15 +27,19 @@ func writeImports(ctx *ctx) {
 	for i := 0; i < len(files); i++ {
 		f := files[i]
 
-		if _, ok := found[f.Module+f.PathInModule]; ok {
+		if _, ok := processed[f.Module+"/"+f.PathInModule]; ok {
 			continue
 		}
 
-		found[f.Module+f.PathInModule] = struct{}{}
+		processed[f.Module+"/"+f.PathInModule] = struct{}{}
 
 		for _, use := range f.Uses {
 			for _, useSpec := range use.Uses {
 				files = append(files, useSpec.Library.Files...) //nolint:makezero
+
+				for _, dep := range useSpec.Library.Dependencies {
+					files = append(files, dep.Library.Files...)
+				}
 			}
 		}
 
