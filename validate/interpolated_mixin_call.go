@@ -14,6 +14,8 @@ func interpolatedMixinCallChecks(f *file.File) *errList {
 	fileutil.Walk(f.Scope, func(parents []fileutil.WalkContext, ctx fileutil.WalkContext) (dive bool, err error) {
 		var lines []file.TextLine
 		switch itm := (*ctx.Item).(type) {
+		case file.Include:
+			return false, nil
 		case file.ArrowBlock:
 			lines = itm.Lines
 		case file.InlineText:

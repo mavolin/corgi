@@ -14,6 +14,8 @@ func mixinCallAttrPos(mc file.MixinCall) (pos file.Position) {
 func _mixinCallAttrPos(s file.Scope) (pos file.Position) {
 	fileutil.Walk(s, func(parents []fileutil.WalkContext, ctx fileutil.WalkContext) (dive bool, err error) {
 		switch itm := (*ctx.Item).(type) {
+		case file.Include:
+			return false, nil
 		case file.Block:
 			return false, nil
 		case file.MixinMainBlockShorthand:

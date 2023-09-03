@@ -268,6 +268,8 @@ func unusedUses(f *file.File) *errList {
 		}
 
 		switch itm := (*ctx.Item).(type) {
+		case file.Include:
+			return false, nil
 		case file.MixinCall:
 			_unusedUsesMixinCall(&unusedSpecs, itm)
 		case file.Element:

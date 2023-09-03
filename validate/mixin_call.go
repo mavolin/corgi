@@ -14,6 +14,10 @@ func mixinCallChecks(f *file.File) *errList {
 	var errs errList
 
 	fileutil.Walk(f.Scope, func(parents []fileutil.WalkContext, ctx fileutil.WalkContext) (dive bool, err error) {
+		if _, ok := (*ctx.Item).(file.Include); ok {
+			return false, nil
+		}
+
 		mc, ok := (*ctx.Item).(file.MixinCall)
 		if !ok {
 			return true, nil
@@ -178,6 +182,8 @@ func _mixinCallBody(f *file.File, mc file.MixinCall) *errList {
 
 	fileutil.Walk(mc.Body, func(parents []fileutil.WalkContext, ctx fileutil.WalkContext) (dive bool, err error) {
 		switch itm := (*ctx.Item).(type) {
+		case file.Include:
+			return false, nil
 		case file.CorgiComment:
 			return true, nil
 		case file.If:
@@ -457,6 +463,8 @@ func andPlaceholderPlacement(f *file.File) *errList {
 	fileutil.Walk(f.Scope, func(parents []fileutil.WalkContext, ctx fileutil.WalkContext) (dive bool, err error) {
 		var ap *file.AndPlaceholder
 		switch itm := (*ctx.Item).(type) {
+		case file.Include:
+			return false, nil
 		case file.Element:
 			ap = getAndPlaceholder(itm.Attributes)
 		case file.DivShorthand:

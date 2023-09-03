@@ -15,6 +15,8 @@ func mixinCallAttributeChecks(f *file.File) *errList {
 	fileutil.Walk(f.Scope, func(parents []fileutil.WalkContext, ctx fileutil.WalkContext) (dive bool, err error) {
 		var acs []file.AttributeCollection
 		switch itm := (*ctx.Item).(type) {
+		case file.Include:
+			return false, nil
 		case file.Element:
 			acs = itm.Attributes
 		case file.DivShorthand:

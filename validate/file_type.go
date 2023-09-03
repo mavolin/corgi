@@ -36,6 +36,8 @@ func mainFile(f *file.File) *errList {
 
 	fileutil.Walk(f.Scope, func(parents []fileutil.WalkContext, ctx fileutil.WalkContext) (dive bool, err error) {
 		switch itm := (*ctx.Item).(type) {
+		case file.Include:
+			return false, nil
 		case file.Mixin:
 			return false, nil
 		case file.MixinCall:

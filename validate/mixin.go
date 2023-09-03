@@ -13,6 +13,10 @@ func mixinChecks(f *file.File) *errList {
 	var errs errList
 
 	fileutil.Walk(f.Scope, func(parents []fileutil.WalkContext, ctx fileutil.WalkContext) (dive bool, err error) {
+		if _, ok := (*ctx.Item).(file.Include); ok {
+			return false, nil
+		}
+
 		m, ok := (*ctx.Item).(file.Mixin)
 		if !ok {
 			return true, nil
@@ -32,6 +36,10 @@ func mixinsInMixins(f *file.File) *errList {
 	var errs errList
 
 	fileutil.Walk(f.Scope, func(parents []fileutil.WalkContext, ctx fileutil.WalkContext) (dive bool, err error) {
+		if _, ok := (*ctx.Item).(file.Include); ok {
+			return false, nil
+		}
+
 		inner, ok := (*ctx.Item).(file.Mixin)
 		if !ok {
 			return true, nil
@@ -76,6 +84,10 @@ func duplicateMixinNames(f *file.File) *errList {
 	var s stack.Stack[*list.List[file.Mixin]]
 
 	fileutil.Walk(f.Scope, func(parents []fileutil.WalkContext, ctx fileutil.WalkContext) (dive bool, err error) {
+		if _, ok := (*ctx.Item).(file.Include); ok {
+			return false, nil
+		}
+
 		if len(parents)+1 > s.Len() {
 			s.Push(&list.List[file.Mixin]{})
 		} else if len(parents)+1 < s.Len() {

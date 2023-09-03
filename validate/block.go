@@ -18,6 +18,8 @@ func onlyTemplateFilesContainBlockPlaceholders(f *file.File) *errList {
 
 	fileutil.Walk(f.Scope, func(parents []fileutil.WalkContext, ctx fileutil.WalkContext) (dive bool, err error) {
 		switch itm := (*ctx.Item).(type) {
+		case file.Include:
+			return false, nil
 		case file.Mixin:
 			return false, nil
 		case file.Block:
@@ -150,31 +152,34 @@ scope:
 		extend := f.Extend
 		for extend != nil {
 			var found bool
-			fileutil.Walk(extend.File.Scope, func(parents []fileutil.WalkContext, ctx fileutil.WalkContext) (dive bool, err error) {
-				switch itm := (*ctx.Item).(type) {
-				case file.Mixin:
-					return false, nil
-				case file.Block:
-					if itm.Name.Ident != block.Name.Ident {
+			fileutil.Walk(extend.File.Scope,
+				func(parents []fileutil.WalkContext, ctx fileutil.WalkContext) (dive bool, err error) {
+					switch itm := (*ctx.Item).(type) {
+					case file.Include:
+						return false, nil
+					case file.Mixin:
+						return false, nil
+					case file.Block:
+						if itm.Name.Ident != block.Name.Ident {
+							return true, nil
+						}
+
+						if len(parents) == 0 {
+							found = true
+							return false, fileutil.StopWalk
+						}
+
+						_, ok := (*parents[len(parents)-1].Item).(file.MixinCall)
+						if !ok {
+							found = true
+							return false, fileutil.StopWalk
+						}
+
+						return true, nil
+					default:
 						return true, nil
 					}
-
-					if len(parents) == 0 {
-						found = true
-						return false, fileutil.StopWalk
-					}
-
-					_, ok := (*parents[len(parents)-1].Item).(file.MixinCall)
-					if !ok {
-						found = true
-						return false, fileutil.StopWalk
-					}
-
-					return true, nil
-				default:
-					return true, nil
-				}
-			})
+				})
 			if found {
 				continue scope
 			}

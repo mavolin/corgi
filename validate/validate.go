@@ -116,7 +116,7 @@ func _file(f *file.File, valedFiles map[string]struct{}, impNamespaces map[strin
 	fileutil.Walk(f.Scope, func(parents []fileutil.WalkContext, ctx fileutil.WalkContext) (dive bool, err error) {
 		incl, ok := (*ctx.Item).(file.Include)
 		if !ok {
-			return true, nil
+			return false, nil
 		}
 
 		cincl, ok := incl.Include.(file.CorgiInclude)

@@ -22,6 +22,8 @@ func _topLevelAttributes(f *file.File, s file.Scope) *errList {
 
 	fileutil.Walk(s, func(parents []fileutil.WalkContext, ctx fileutil.WalkContext) (dive bool, err error) {
 		switch itm := (*ctx.Item).(type) {
+		case file.Include:
+			return false, nil
 		case file.And:
 			errs.PushBack(&corgierr.Error{
 				Message: "top-level attribute",
@@ -230,6 +232,8 @@ func _topLevelTemplateBlockAnds(f *file.File, s file.Scope) *errList {
 
 	fileutil.Walk(s, func(parents []fileutil.WalkContext, ctx fileutil.WalkContext) (dive bool, err error) {
 		switch itm := (*ctx.Item).(type) {
+		case file.Include:
+			return false, nil
 		case file.And:
 			errs.PushBack(&corgierr.Error{
 				Message: "top-level `&` in block",
@@ -428,6 +432,8 @@ func attributePlacement(f *file.File) *errList {
 
 	fileutil.Walk(f.Scope, func(parents []fileutil.WalkContext, ctx fileutil.WalkContext) (dive bool, err error) {
 		switch itm := (*ctx.Item).(type) {
+		case file.Include:
+			return false, nil
 		case file.Element:
 			elAnno := anno.Anno(f, anno.Annotation{
 				Start:      itm.Position,
@@ -655,6 +661,7 @@ func _attributePlacement(
 				})
 				firstText = &a
 			}
+			return false, nil
 		case file.MixinCall:
 			if fileutil.IsAttrMixin(*itm.Mixin) {
 				var end file.Position
