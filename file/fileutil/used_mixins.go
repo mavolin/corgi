@@ -339,6 +339,7 @@ func ListUsedMixins(f *file.File) UsedMixins {
 func LibraryDependencies(lib *file.Library) UsedMixins {
 	var l usedMixinsLister
 	l.self = lib
+	l.inMixin = true
 
 	for _, f := range lib.Files {
 		l._stack = []*file.File{f}
