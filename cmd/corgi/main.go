@@ -184,7 +184,10 @@ func writeLibrary(path, outPath string, loadOpts corgi.LoadOptions, ignoreNotExi
 		return err
 	} else if err != nil {
 		if errors.Is(err, load.ErrEmptyLib) {
-			return nil
+			if ignoreNotExist {
+				return nil
+			}
+			return err
 		}
 
 		var mainMod string
