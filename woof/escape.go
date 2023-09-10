@@ -592,7 +592,8 @@ func escapeURL(vals ...any) (u URL, safe bool, err error) {
 }
 
 func isSafeURLProtocol(protocol string) bool {
-	if !strings.EqualFold(protocol, "http") && !strings.EqualFold(protocol, "https") && !strings.EqualFold(protocol, "mailto") && !strings.EqualFold(protocol, "tel") {
+	if !strings.EqualFold(protocol, "http") && !strings.EqualFold(protocol, "https") &&
+		!strings.EqualFold(protocol, "mailto") && !strings.EqualFold(protocol, "tel") {
 		return false
 	}
 	return true
@@ -816,6 +817,22 @@ func EscapeJSAttrVal(val any) (JSAttrVal, error) {
 	}
 
 	return JSAttrVal(htmlAttrValEscaper.Replace(string(s))), nil
+}
+
+// EscapeJSStr escapes the stringified version of val so that it fulfills
+// the conditions outlined in the [JSStr] doc.
+func EscapeJSStr(val any) (JSStr, error) {
+	s, err := Stringify(val)
+	if err != nil {
+		return "", err
+	}
+
+	js, err := JSify(s)
+	if err != nil {
+		return "", err
+	}
+
+	return JSStr(js[1 : len(js)-1]), nil
 }
 
 // isJSIdentPart reports whether the given rune is a JS identifier part.
