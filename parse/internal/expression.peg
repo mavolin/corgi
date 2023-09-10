@@ -196,7 +196,7 @@ IfExpression <- cExprI:ChainExpression {
 
     return expr, nil
 } / exprsI:(
-    singleLineGoParenExpr / StringExpression / TernaryExpression / goRuneExpr /
+    goParenExpr / StringExpression / TernaryExpression / goRuneExpr /
     posI:POS !IfExpressionTerminator NOT_EOL (!IfExpressionTerminator !EOL [^'"`?([{])* {
         return file.GoExpression{Expression: string(c.text), Position: posI.(file.Position)}, nil
     }
@@ -222,7 +222,7 @@ SingleLineIfExpression <- cExprI:SingleLineChainExpression {
 
     return expr, nil
 } / exprsI:(
-    goParenExpr / StringExpression / SingleLineTernaryExpression / goRuneExpr /
+    singleLineGoParenExpr / StringExpression / SingleLineTernaryExpression / goRuneExpr /
     posI:POS !IfExpressionTerminator NOT_EOL (!IfExpressionTerminator !EOL [^'"`?([{])* {
         return file.GoExpression{Expression: string(c.text), Position: posI.(file.Position)}, nil
     }

@@ -31251,14 +31251,14 @@ var g = &grammar{
 									alternatives: []interface{}{
 										&ruleRefExpr{
 											pos:  position{line: 1599, col: 5, offset: 51430},
-											name: "singleLineGoParenExpr",
+											name: "goParenExpr",
 										},
 										&ruleRefExpr{
-											pos:  position{line: 1599, col: 29, offset: 51454},
+											pos:  position{line: 1599, col: 19, offset: 51444},
 											name: "StringExpression",
 										},
 										&ruleRefExpr{
-											pos:  position{line: 1599, col: 48, offset: 51473},
+											pos:  position{line: 1599, col: 38, offset: 51463},
 											name: "TernaryExpression",
 										},
 										&actionExpr{
@@ -32463,13 +32463,13 @@ var g = &grammar{
 											},
 										},
 										&actionExpr{
-											pos: position{line: 1600, col: 5, offset: 51510},
+											pos: position{line: 1600, col: 5, offset: 51500},
 											run: (*parser).callonIfExpression228,
 											expr: &seqExpr{
-												pos: position{line: 1600, col: 5, offset: 51510},
+												pos: position{line: 1600, col: 5, offset: 51500},
 												exprs: []interface{}{
 													&labeledExpr{
-														pos:   position{line: 1600, col: 5, offset: 51510},
+														pos:   position{line: 1600, col: 5, offset: 51500},
 														label: "posI",
 														expr: &actionExpr{
 															pos: position{line: 3803, col: 8, offset: 129339},
@@ -32494,7 +32494,7 @@ var g = &grammar{
 														},
 													},
 													&notExpr{
-														pos: position{line: 1600, col: 14, offset: 51519},
+														pos: position{line: 1600, col: 14, offset: 51509},
 														expr: &choiceExpr{
 															pos: position{line: 1579, col: 27, offset: 50770},
 															alternatives: []interface{}{
@@ -32536,12 +32536,12 @@ var g = &grammar{
 														inverted:   true,
 													},
 													&zeroOrMoreExpr{
-														pos: position{line: 1600, col: 46, offset: 51551},
+														pos: position{line: 1600, col: 46, offset: 51541},
 														expr: &seqExpr{
-															pos: position{line: 1600, col: 47, offset: 51552},
+															pos: position{line: 1600, col: 47, offset: 51542},
 															exprs: []interface{}{
 																&notExpr{
-																	pos: position{line: 1600, col: 47, offset: 51552},
+																	pos: position{line: 1600, col: 47, offset: 51542},
 																	expr: &choiceExpr{
 																		pos: position{line: 1579, col: 27, offset: 50770},
 																		alternatives: []interface{}{
@@ -32576,7 +32576,7 @@ var g = &grammar{
 																	},
 																},
 																&notExpr{
-																	pos: position{line: 1600, col: 71, offset: 51576},
+																	pos: position{line: 1600, col: 71, offset: 51566},
 																	expr: &seqExpr{
 																		pos: position{line: 3800, col: 12, offset: 129290},
 																		exprs: []interface{}{
@@ -32625,7 +32625,7 @@ var g = &grammar{
 																	},
 																},
 																&charClassMatcher{
-																	pos:        position{line: 1600, col: 76, offset: 51581},
+																	pos:        position{line: 1600, col: 76, offset: 51571},
 																	val:        "[^\\\"`?([{]",
 																	chars:      []rune{'\'', '"', '`', '?', '(', '[', '{'},
 																	ignoreCase: false,
@@ -32647,43 +32647,43 @@ var g = &grammar{
 		},
 		{
 			name: "SingleLineIfExpression",
-			pos:  position{line: 1607, col: 1, offset: 51746},
+			pos:  position{line: 1607, col: 1, offset: 51736},
 			expr: &choiceExpr{
-				pos: position{line: 1607, col: 27, offset: 51772},
+				pos: position{line: 1607, col: 27, offset: 51762},
 				alternatives: []interface{}{
 					&actionExpr{
-						pos: position{line: 1607, col: 27, offset: 51772},
+						pos: position{line: 1607, col: 27, offset: 51762},
 						run: (*parser).callonSingleLineIfExpression2,
 						expr: &labeledExpr{
-							pos:   position{line: 1607, col: 27, offset: 51772},
+							pos:   position{line: 1607, col: 27, offset: 51762},
 							label: "cExprI",
 							expr: &ruleRefExpr{
-								pos:  position{line: 1607, col: 34, offset: 51779},
+								pos:  position{line: 1607, col: 34, offset: 51769},
 								name: "SingleLineChainExpression",
 							},
 						},
 					},
 					&actionExpr{
-						pos: position{line: 1624, col: 5, offset: 52394},
+						pos: position{line: 1624, col: 5, offset: 52384},
 						run: (*parser).callonSingleLineIfExpression5,
 						expr: &labeledExpr{
-							pos:   position{line: 1624, col: 5, offset: 52394},
+							pos:   position{line: 1624, col: 5, offset: 52384},
 							label: "exprsI",
 							expr: &oneOrMoreExpr{
-								pos: position{line: 1624, col: 12, offset: 52401},
+								pos: position{line: 1624, col: 12, offset: 52391},
 								expr: &choiceExpr{
-									pos: position{line: 1625, col: 5, offset: 52407},
+									pos: position{line: 1625, col: 5, offset: 52397},
 									alternatives: []interface{}{
 										&ruleRefExpr{
-											pos:  position{line: 1625, col: 5, offset: 52407},
-											name: "goParenExpr",
+											pos:  position{line: 1625, col: 5, offset: 52397},
+											name: "singleLineGoParenExpr",
 										},
 										&ruleRefExpr{
-											pos:  position{line: 1625, col: 19, offset: 52421},
+											pos:  position{line: 1625, col: 29, offset: 52421},
 											name: "StringExpression",
 										},
 										&ruleRefExpr{
-											pos:  position{line: 1625, col: 38, offset: 52440},
+											pos:  position{line: 1625, col: 48, offset: 52440},
 											name: "SingleLineTernaryExpression",
 										},
 										&actionExpr{
