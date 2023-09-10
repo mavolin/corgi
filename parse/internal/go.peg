@@ -400,7 +400,7 @@ goInterpretedStringEscapedChar  <- '\\' [abfnrtv\\"] // altered from escaped_cha
 // Types
 //
 
-goType     <- (goTypeName ' '* goTypeArgs?) / goTypeLit / '(' ' '* goType ' '* ')'
+goType     <- (goTypeName (' '* goTypeArgs)?) / goTypeLit / '(' ' '* goType ' '* ')'
 goTypeName <- goQualifiedIdent / goIdentifier
 goTypeArgs <- '[' ' '* goTypeList ' '* (',' ' '*)? ']'
 goTypeList <- goType ' '* (',' ' '* goType)*
