@@ -85,7 +85,7 @@ func init() {
 		"treat the input file as a library dir; not compatible with stdin;\n"+
 			"'-o', if not set, will default to `"+corgi.PrecompFileName+"`")
 	flag.BoolVar(&NoGoImports, "nogoimports", false, "do not run goimports on the generated file")
-	flag.StringVar(&GoExecPath, "go", "", "set the `PATH` of the go executable (default: $GOROOT/bin/go")
+	flag.StringVar(&GoExecPath, "go", "", "set the `PATH` of the go executable (default: $GOROOT/bin/go)")
 	flag.BoolVar(&Verbose, "v", false, "enable verbose output to stderr")
 	flag.BoolVar(&Debug, "debug", false, "print file and line information as comments in the generated function")
 	flag.Func("color", "force or disable coloring of errors (`true/false`)", func(s string) error {
@@ -97,7 +97,7 @@ func init() {
 		case "false":
 			Color = false
 		default:
-			return errors.New("invalid color setting, expected `true` or `false`")
+			return errors.New("expected `true` or `false`")
 		}
 
 		return nil
@@ -111,7 +111,7 @@ func init() {
 			case "false":
 				Color = false
 			default:
-				return errors.New("invalid colour setting, expected `true` or `false`")
+				return errors.New("expected `true` or `false`")
 			}
 
 			return nil
@@ -130,14 +130,14 @@ func init() {
 		})
 	flag.Func("trust-all-filters",
 		"set to 'i know this is dangerous' to allow running all executables as filters\n"+
-			"only set this if you trust the file you are compiling or are running corgi in a secure environment (i.e. a container)",
+			"only set this if you trust the file you are compiling or are running corgi in a secure environment (e.g. a container)",
 		func(s string) error {
 			if s == "i know this is dangerous" {
 				TrustAllFilters = true
 				return nil
 			}
 
-			return fmt.Errorf("invalid value for `-trust-all-filters` flag, consult help (`-h`): %s", s)
+			return fmt.Errorf("invalid value %q, consult help ('-h')", s)
 		})
 	flag.BoolVar(&editTrustedFilters, "edit-trusted-filters",
 		false, "opens $EDITOR to edit the file containing trusted filter executables\n"+
@@ -238,7 +238,7 @@ func usage() {
 	fmt.Fprintln(flag.CommandLine.Output(), "https://github.com/mavolin/corgi")
 	fmt.Fprintln(flag.CommandLine.Output())
 	fmt.Fprintln(flag.CommandLine.Output(), "Usage: corgi [options] [INFILE]")
-	fmt.Fprintln(flag.CommandLine.Output(), "Usage: corgi [options] -lib DIR")
+	fmt.Fprintln(flag.CommandLine.Output(), "       corgi [options] -lib DIR")
 	fmt.Fprintln(flag.CommandLine.Output())
 	fmt.Fprintln(flag.CommandLine.Output(),
 		"Input may be passed through stdin, however, this will disable loading of the file's dir library.")
@@ -246,7 +246,7 @@ func usage() {
 	fmt.Fprintln(flag.CommandLine.Output(), "If -lib is specified, the FILE/DIR argument is mandatory.")
 	fmt.Fprintln(flag.CommandLine.Output())
 	fmt.Fprintln(flag.CommandLine.Output(),
-		"Additionally, the special ./.. argument is allowed, which recursively iterates")
+		"Additionally, the special ./... argument is allowed, which recursively iterates")
 	fmt.Fprintln(flag.CommandLine.Output(),
 		"through pwd and its subdirectories and pre-compiles all of those containing corgi")
 	fmt.Fprintln(flag.CommandLine.Output(), "library files.")
@@ -254,6 +254,7 @@ func usage() {
 		"If ./... is used, the -o flag has no effect and the precompiled files will be")
 	fmt.Fprintln(flag.CommandLine.Output(), "placed directly into the respective directories.")
 	fmt.Fprintln(flag.CommandLine.Output())
+	fmt.Fprintln(flag.CommandLine.Output(), "Flags:")
 	flag.PrintDefaults()
 }
 
