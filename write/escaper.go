@@ -74,8 +74,9 @@ var (
 
 	plainAttrExprEscaper = expressionEscaper{funcName: "EscapeHTMLAttrVal"}
 	jsAttrExprEscaper    = expressionEscaper{funcName: "EscapeJSAttrVal"}
-	cssAttrExprEscaper   = expressionEscaper{funcName: "FilterCSSValue"}
-	htmlAttrExprEscaper  = expressionEscaper{funcName: "EscapeHTML"}
+	jsStrExprEscaper     = expressionEscaper{funcName: "EscapeJSStr"}
+	cssExprEscaper       = expressionEscaper{funcName: "FilterCSSValue"}
+	htmlExprEscaper      = expressionEscaper{funcName: "EscapeHTML"}
 	urlAttrExprEscaper   = contextEscaper{
 		name:       "url attr",
 		funcName:   "FilterURL",
@@ -87,6 +88,4 @@ var (
 		funcName: "FilterSrcset",
 		safeType: "Srcset",
 	}
-
-	htmlExprEscaper = expressionEscaper{funcName: "EscapeHTML"}
 )

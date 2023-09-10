@@ -425,7 +425,7 @@ func simpleAttribute(ctx *ctx, sattr file.SimpleAttribute) {
 		ctx.writeln(ctx.woofFunc("WriteAttr", ctx.ident(ctxVar), strconv.Quote(sattr.Name), expr,
 			ctx.woofQual("EscapeHTMLAttrVal")))
 	case woof.ContentTypeCSS:
-		generateExpression(ctx, *sattr.Value, &attrTextEscaper, &cssAttrExprEscaper, func(f func()) {
+		generateExpression(ctx, *sattr.Value, &attrTextEscaper, &cssExprEscaper, func(f func()) {
 			ctx.generate(` `+sattr.Name+`="`, nil)
 			f()
 			ctx.generate(`"`, nil)
@@ -437,7 +437,7 @@ func simpleAttribute(ctx *ctx, sattr file.SimpleAttribute) {
 			ctx.generate(`"`, nil)
 		})
 	case woof.ContentTypeHTML:
-		generateExpression(ctx, *sattr.Value, &attrTextEscaper, &htmlAttrExprEscaper, func(f func()) {
+		generateExpression(ctx, *sattr.Value, &attrTextEscaper, &htmlExprEscaper, func(f func()) {
 			ctx.generate(` `+sattr.Name+`="`, nil)
 			f()
 			ctx.generate(`"`, nil)

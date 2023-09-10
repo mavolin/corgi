@@ -317,7 +317,24 @@ func writeMixinFunc(ctx *ctx, m *file.Mixin) {
 
 		ctx.debugItem(param, param.Name.Ident)
 		val := ctx.ident("mixinParam_" + param.Name.Ident)
-		defaultVal := inlineExpression(ctx, *param.Default)
+
+		var defaultVal string
+
+		var typ string
+		if param.Type != nil {
+			typ = param.Type.Type
+		} else {
+			typ = param.InferredType
+		}
+		switch woofType(ctx, typ) {
+		case "URL":
+			defaultVal = escapedInlineContextExpression(ctx, *param.Default, urlAttrExprEscaper)
+		case "Srcset":
+			defaultVal = escapedInlineContextExpression(ctx, *param.Default, srcsetAttrExprEscaper)
+		default:
+			defaultVal = inlineExpression(ctx, *param.Default)
+		}
+
 		ctx.writeln(param.Name.Ident + " := " + ctx.woofFunc("ResolveDefault", val, defaultVal))
 	}
 
@@ -364,7 +381,7 @@ params:
 	for _, param := range mc.Mixin.Mixin.Params {
 		for _, arg := range mc.Args {
 			if arg.Name.Ident == param.Name.Ident {
-				mixinArgExpression(ctx, param, arg)
+				ctx.write(mixinArgExpression(ctx, param, arg))
 				ctx.write(", ")
 				continue params
 			}
@@ -490,8 +507,7 @@ params:
 	for _, param := range mc.Mixin.Mixin.Params {
 		for _, arg := range mc.Args {
 			if arg.Name.Ident == param.Name.Ident {
-				mixinArgExpression(ctx, param, arg)
-
+				ctx.write(mixinArgExpression(ctx, param, arg))
 				ctx.write(", ")
 				continue params
 			}
