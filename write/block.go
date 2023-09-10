@@ -33,16 +33,16 @@ func block(ctx *ctx, b file.Block) {
 	fill, stackPos := resolveTemplateBlock(ctx, b)
 
 	if fill.Type == file.BlockTypeAppend {
-		scope(ctx, b.Body, true)
+		scope(ctx, b.Body, ctx.scopes.Len() != 2)
 	}
 
 	oldStart := ctx.stackStart
 	ctx.stackStart = stackPos
-	scope(ctx, fill.Body, true)
+	scope(ctx, fill.Body, ctx.scopes.Len() != 2)
 	ctx.stackStart = oldStart
 
 	if fill.Type == file.BlockTypePrepend {
-		scope(ctx, b.Body, true)
+		scope(ctx, b.Body, ctx.scopes.Len() != 2)
 	}
 }
 
