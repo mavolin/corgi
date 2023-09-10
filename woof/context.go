@@ -212,20 +212,20 @@ func WriteAttr[T ~string](ctx *Context, name string, val any, escaper func(val a
 	ctx.Write(` ` + name + `="` + s + `"`)
 }
 
-func Must[T ~string](ctx *Context, f func(val any) (T, error), val any) string {
+func Must[T ~string](ctx *Context, f func(val any) (T, error), val any) T {
 	t, err := f(val)
 	if err != nil {
 		ctx.Panic(err)
 	}
 
-	return string(t)
+	return t
 }
 
-func MustContext[T ~string](ctx *Context, f func(vals ...any) (T, error), vals ...any) string {
+func MustContext[T ~string](ctx *Context, f func(vals ...any) (T, error), vals ...any) T {
 	t, err := f(vals...)
 	if err != nil {
 		ctx.Panic(err)
 	}
 
-	return string(t)
+	return t
 }
