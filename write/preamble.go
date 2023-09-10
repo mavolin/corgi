@@ -138,7 +138,7 @@ func writeFunc(ctx *ctx) {
 	writeLibMixins(ctx)
 	writeFuncCode(ctx)
 
-	scope(ctx, ctx.baseFile().Scope)
+	scope(ctx, ctx.baseFile().Scope, false)
 	ctx.flushGenerate()
 	ctx.writeln("return " + ctx.ident("err"))
 }

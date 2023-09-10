@@ -20,7 +20,7 @@ func _if(ctx *ctx, _if file.If) {
 	ctx.write("if ")
 	ctx.write(inlineCondition(ctx, _if.Condition))
 	ctx.writeln(" {")
-	scope(ctx, _if.Then)
+	scope(ctx, _if.Then, false)
 	ctx.flushGenerate()
 	ctx.flushClasses()
 	ctx.callClosedIfClosed()
@@ -35,7 +35,7 @@ func _if(ctx *ctx, _if file.If) {
 		ctx.write("} else if ")
 		ctx.write(inlineCondition(ctx, elseIf.Condition))
 		ctx.writeln(" {")
-		scope(ctx, elseIf.Then)
+		scope(ctx, elseIf.Then, false)
 		ctx.flushGenerate()
 		ctx.flushClasses()
 		ctx.callClosedIfClosed()
@@ -49,7 +49,7 @@ func _if(ctx *ctx, _if file.If) {
 		ctx.startScope(false)
 
 		ctx.writeln("} else {")
-		scope(ctx, _if.Else.Then)
+		scope(ctx, _if.Else.Then, false)
 		ctx.flushGenerate()
 		ctx.flushClasses()
 		ctx.callClosedIfClosed()
@@ -88,7 +88,7 @@ func ifTemplateBlock(ctx *ctx, ifb file.IfBlock) {
 
 	if templateBlockFilled(ctx, ifb.Name.Ident) {
 		ctx.debug("if block", "filled")
-		scope(ctx, ifb.Then)
+		scope(ctx, ifb.Then, false)
 		return
 	}
 
@@ -98,7 +98,7 @@ func ifTemplateBlock(ctx *ctx, ifb file.IfBlock) {
 		if templateBlockFilled(ctx, elseIf.Name.Ident) {
 			ctx.debug("if block", "filled")
 
-			scope(ctx, elseIf.Then)
+			scope(ctx, elseIf.Then, false)
 			return
 		}
 	}
@@ -108,7 +108,7 @@ func ifTemplateBlock(ctx *ctx, ifb file.IfBlock) {
 	}
 
 	ctx.debugItem(ifb.Else, "filled")
-	scope(ctx, ifb.Else.Then)
+	scope(ctx, ifb.Else.Then, false)
 }
 
 func ifMixinBlock(ctx *ctx, ifb file.IfBlock) {
@@ -120,7 +120,7 @@ func ifMixinBlock(ctx *ctx, ifb file.IfBlock) {
 
 	ctx.startScope(false)
 	ctx.writeln("if " + ctx.ident("mixinBlock_"+ifb.Name.Ident) + " != nil {")
-	scope(ctx, ifb.Then)
+	scope(ctx, ifb.Then, false)
 	ctx.flushGenerate()
 	ctx.flushClasses()
 	ctx.callClosedIfClosed()
@@ -133,7 +133,7 @@ func ifMixinBlock(ctx *ctx, ifb file.IfBlock) {
 		ctx.startScope(false)
 
 		ctx.writeln("} else if " + ctx.ident("mixinBlock_"+elseIf.Name.Ident) + " != nil {")
-		scope(ctx, elseIf.Then)
+		scope(ctx, elseIf.Then, false)
 		ctx.flushGenerate()
 		ctx.flushClasses()
 		ctx.callClosedIfClosed()
@@ -147,7 +147,7 @@ func ifMixinBlock(ctx *ctx, ifb file.IfBlock) {
 		ctx.startScope(false)
 
 		ctx.writeln("} else {")
-		scope(ctx, ifb.Else.Then)
+		scope(ctx, ifb.Else.Then, false)
 		ctx.flushGenerate()
 		ctx.flushClasses()
 		ctx.callUnclosedIfUnclosed()
@@ -192,7 +192,7 @@ func _switch(ctx *ctx, sw file.Switch) {
 		ctx.write("case ")
 		ctx.write(inlineCondition(ctx, *c.Expression))
 		ctx.writeln(":")
-		scope(ctx, c.Then)
+		scope(ctx, c.Then, false)
 		ctx.flushGenerate()
 		ctx.flushClasses()
 		ctx.callClosedIfClosed()
@@ -206,7 +206,7 @@ func _switch(ctx *ctx, sw file.Switch) {
 		ctx.startScope(false)
 
 		ctx.writeln("default:")
-		scope(ctx, sw.Default.Then)
+		scope(ctx, sw.Default.Then, false)
 		ctx.flushGenerate()
 		ctx.flushClasses()
 		ctx.callClosedIfClosed()
@@ -253,7 +253,7 @@ func _for(ctx *ctx, f file.For) {
 
 	if f.Expression == nil && len(f.Expression.Expressions) == 0 {
 		ctx.writeln("for {")
-		scope(ctx, f.Body)
+		scope(ctx, f.Body, false)
 		ctx.flushGenerate()
 		ctx.flushClasses()
 		ctx.writeln("}")
@@ -269,7 +269,7 @@ func _for(ctx *ctx, f file.For) {
 	}
 
 	ctx.writeln("for " + inlineExpression(ctx, *f.Expression) + " {")
-	scope(ctx, f.Body)
+	scope(ctx, f.Body, false)
 	ctx.flushGenerate()
 	ctx.flushClasses()
 	ctx.writeln("}")
@@ -323,7 +323,7 @@ func _forRange(ctx *ctx, f file.For, rangeExpr file.RangeExpression, rangerExpr 
 		ctx.writeln("range " + rangerExpr + " {")
 	}
 
-	scope(ctx, f.Body)
+	scope(ctx, f.Body, false)
 	ctx.flushGenerate()
 	ctx.flushClasses()
 	ctx.writeln("}")

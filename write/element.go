@@ -62,7 +62,7 @@ func element(ctx *ctx, el file.Element) {
 	}
 
 	if !success {
-		scope(ctx, el.Body)
+		scope(ctx, el.Body, true)
 	}
 
 	ctx.closeStartTag()
@@ -286,7 +286,7 @@ func divShorthand(ctx *ctx, dsh file.DivShorthand) {
 		attributeCollection(ctx, acoll)
 	}
 
-	scope(ctx, dsh.Body)
+	scope(ctx, dsh.Body, true)
 
 	ctx.debugItem(dsh, "/div")
 	ctx.closeElem()

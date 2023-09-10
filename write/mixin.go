@@ -330,7 +330,7 @@ func writeMixinFunc(ctx *ctx, m *file.Mixin) {
 	defer ctx.endScope()
 
 	ctx.mixin = m
-	scope(ctx, m.Body)
+	scope(ctx, m.Body, false)
 	ctx.mixin = nil
 
 	ctx.flushGenerate()
@@ -404,7 +404,7 @@ blocks:
 					ctx.writeln("func() {")
 
 					ctx.startScope(false).startClosed = maybeClosed
-					scope(ctx, itm.Body)
+					scope(ctx, itm.Body, false)
 					ctx.flushGenerate()
 					ctx.flushClasses()
 					ctx.callClosedIfClosed()
@@ -425,7 +425,7 @@ blocks:
 				ctx.writeln("func() {")
 
 				ctx.startScope(false).startClosed = maybeClosed
-				scope(ctx, b.Body)
+				scope(ctx, b.Body, false)
 				ctx.endScope()
 
 				ctx.flushGenerate()

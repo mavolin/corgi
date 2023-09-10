@@ -17,7 +17,7 @@ func block(ctx *ctx, b file.Block) {
 		ctx.writeln("  " + ctx.ident("mixinBlock_"+b.Name.Ident) + "()")
 		if len(b.Body) > 0 {
 			ctx.writeln("} else {")
-			scope(ctx, b.Body)
+			scope(ctx, b.Body, false)
 			ctx.flushGenerate()
 			ctx.flushClasses()
 			ctx.callClosedIfClosed()
@@ -33,16 +33,16 @@ func block(ctx *ctx, b file.Block) {
 	fill, stackPos := resolveTemplateBlock(ctx, b)
 
 	if fill.Type == file.BlockTypeAppend {
-		scope(ctx, b.Body)
+		scope(ctx, b.Body, true)
 	}
 
 	oldStart := ctx.stackStart
 	ctx.stackStart = stackPos
-	scope(ctx, fill.Body)
+	scope(ctx, fill.Body, true)
 	ctx.stackStart = oldStart
 
 	if fill.Type == file.BlockTypePrepend {
-		scope(ctx, b.Body)
+		scope(ctx, b.Body, true)
 	}
 }
 
@@ -89,5 +89,5 @@ func templateBlockFilled(ctx *ctx, name string) bool {
 // ======================================================================================
 
 func blockExpansion(ctx *ctx, bexp file.BlockExpansion) {
-	scope(ctx, file.Scope{bexp.Item})
+	scope(ctx, file.Scope{bexp.Item}, true)
 }

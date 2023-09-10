@@ -12,7 +12,7 @@ func include(ctx *ctx, incl file.Include) {
 
 	switch inclF := incl.Include.(type) {
 	case file.CorgiInclude:
-		scope(ctx, inclF.File.Scope)
+		scope(ctx, inclF.File.Scope, true)
 	case file.OtherInclude:
 		var contents string
 

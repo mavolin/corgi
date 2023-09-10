@@ -6,14 +6,16 @@ import (
 	"github.com/mavolin/corgi/file"
 )
 
-func scope(ctx *ctx, s file.Scope) {
-	for _, itm := range s {
-		_, ok := itm.(file.Code)
-		if ok {
-			ctx.writeln("{")
-			//goland:noinspection GoDeferInLoop
-			defer ctx.writeln("}")
-			break
+func scope(ctx *ctx, s file.Scope, needsCodeScoping bool) {
+	if needsCodeScoping {
+		for _, itm := range s {
+			_, ok := itm.(file.Code)
+			if ok {
+				ctx.writeln("{")
+				//goland:noinspection GoDeferInLoop
+				defer ctx.writeln("}")
+				break
+			}
 		}
 	}
 
