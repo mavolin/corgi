@@ -460,6 +460,8 @@ func simpleAttribute(ctx *ctx, sattr file.SimpleAttribute) {
 }
 
 func classAttribute(ctx *ctx, attr file.SimpleAttribute) {
+	ctx.debugItem(attr, "(identified as class attr)")
+
 	if attr.Value == nil || len(attr.Value.Expressions) == 0 {
 		return
 	}
@@ -506,19 +508,21 @@ func andPlaceholder(ctx *ctx, aph file.AndPlaceholder) {
 	ctx.writeln("}")
 
 	// force call to CloseStartTag to flush class buffer
-	ctx.closed.Swap(maybeClosed)
+	ctx.scope().haveBufClasses = true
 }
 
 // ================================= MixinCallAttribute =================================
 
 func mixinCallAttribute(ctx *ctx, mcAttr file.MixinCallAttribute) {
+	ctx.debugItem(mcAttr, "(see below)")
+
 	ctx.generate(mcAttr.Name+`="`, nil)
 	defer ctx.generate(`"`, nil)
 
-	ctx.txtEscaper.Push(attrTextEscaper)
-	ctx.exprEscaper.Push(plainAttrExprEscaper)
-	defer ctx.txtEscaper.Pop()
-	defer ctx.exprEscaper.Pop()
+	nest := ctx.startScope(true)
+	defer ctx.endScope()
+	nest.txtEscaper = attrTextEscaper
+	nest.exprEscaper = plainAttrExprEscaper
 
 	ctx.writeln(ctx.contextFunc("StartAttribute"))
 	interpolationValueMixinCall(ctx, mcAttr.MixinCall, mcAttr.Value)

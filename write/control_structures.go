@@ -14,11 +14,9 @@ func _if(ctx *ctx, _if file.If) {
 	ctx.flushClasses()
 	ctx.callUnclosedIfUnclosed()
 
-	cl := ctx.closed.Peek()
-	ctx.closed.Push(cl)
-
 	allClosed := true
 
+	ctx.startScope(false)
 	ctx.write("if ")
 	ctx.write(inlineCondition(ctx, _if.Condition))
 	ctx.writeln(" {")
@@ -27,12 +25,12 @@ func _if(ctx *ctx, _if file.If) {
 	ctx.flushClasses()
 	ctx.callClosedIfClosed()
 
-	if ctx.closed.Pop() != closed {
+	if ctx.endScope().startClosed != closed {
 		allClosed = false
 	}
 
 	for _, elseIf := range _if.ElseIfs {
-		ctx.closed.Push(cl)
+		ctx.startScope(false)
 
 		ctx.write("} else if ")
 		ctx.write(inlineCondition(ctx, elseIf.Condition))
@@ -42,13 +40,13 @@ func _if(ctx *ctx, _if file.If) {
 		ctx.flushClasses()
 		ctx.callClosedIfClosed()
 
-		if ctx.closed.Pop() != closed {
+		if ctx.endScope().startClosed != closed {
 			allClosed = false
 		}
 	}
 
 	if _if.Else != nil {
-		ctx.closed.Push(cl)
+		ctx.startScope(false)
 
 		ctx.writeln("} else {")
 		scope(ctx, _if.Else.Then)
@@ -56,16 +54,16 @@ func _if(ctx *ctx, _if file.If) {
 		ctx.flushClasses()
 		ctx.callClosedIfClosed()
 
-		if ctx.closed.Pop() != closed {
+		if ctx.endScope().startClosed != closed {
 			allClosed = false
 		}
 	}
 
-	if cl != closed {
+	if ctx.scope().startClosed != closed {
 		if allClosed && _if.Else != nil {
-			ctx.closed.Swap(closed)
+			ctx.scope().startClosed = closed
 		} else {
-			ctx.closed.Swap(maybeClosed)
+			ctx.scope().startClosed = maybeClosed
 		}
 	}
 
@@ -118,23 +116,21 @@ func ifMixinBlock(ctx *ctx, ifb file.IfBlock) {
 	ctx.flushClasses()
 	ctx.callUnclosedIfUnclosed()
 
-	cl := ctx.closed.Peek()
-	ctx.closed.Push(cl)
-
 	allClosed := true
 
+	ctx.startScope(false)
 	ctx.writeln("if " + ctx.ident("mixinBlock_"+ifb.Name.Ident) + " != nil {")
 	scope(ctx, ifb.Then)
 	ctx.flushGenerate()
 	ctx.flushClasses()
 	ctx.callClosedIfClosed()
 
-	if ctx.closed.Pop() != closed {
+	if ctx.endScope().startClosed != closed {
 		allClosed = false
 	}
 
 	for _, elseIf := range ifb.ElseIfs {
-		ctx.closed.Push(cl)
+		ctx.startScope(false)
 
 		ctx.writeln("} else if " + ctx.ident("mixinBlock_"+elseIf.Name.Ident) + " != nil {")
 		scope(ctx, elseIf.Then)
@@ -142,13 +138,13 @@ func ifMixinBlock(ctx *ctx, ifb file.IfBlock) {
 		ctx.flushClasses()
 		ctx.callClosedIfClosed()
 
-		if ctx.closed.Pop() != closed {
+		if ctx.endScope().startClosed != closed {
 			allClosed = false
 		}
 	}
 
 	if ifb.Else != nil {
-		ctx.closed.Push(cl)
+		ctx.startScope(false)
 
 		ctx.writeln("} else {")
 		scope(ctx, ifb.Else.Then)
@@ -156,16 +152,16 @@ func ifMixinBlock(ctx *ctx, ifb file.IfBlock) {
 		ctx.flushClasses()
 		ctx.callUnclosedIfUnclosed()
 
-		if ctx.closed.Pop() != closed {
+		if ctx.endScope().startClosed != closed {
 			allClosed = false
 		}
 	}
 
-	if cl != closed {
+	if ctx.scope().startClosed != closed {
 		if allClosed && ifb.Else != nil {
-			ctx.closed.Swap(closed)
+			ctx.scope().startClosed = closed
 		} else {
-			ctx.closed.Swap(maybeClosed)
+			ctx.scope().startClosed = maybeClosed
 		}
 	}
 
@@ -181,9 +177,6 @@ func _switch(ctx *ctx, sw file.Switch) {
 	ctx.flushClasses()
 	ctx.callUnclosedIfUnclosed()
 
-	cl := ctx.closed.Peek()
-	ctx.closed.Push(cl)
-
 	allClosed := true
 
 	ctx.write("switch ")
@@ -194,7 +187,7 @@ func _switch(ctx *ctx, sw file.Switch) {
 	ctx.writeln("{")
 
 	for _, c := range sw.Cases {
-		ctx.closed.Push(cl)
+		ctx.startScope(false)
 
 		ctx.write("case ")
 		ctx.write(inlineCondition(ctx, *c.Expression))
@@ -204,13 +197,13 @@ func _switch(ctx *ctx, sw file.Switch) {
 		ctx.flushClasses()
 		ctx.callClosedIfClosed()
 
-		if ctx.closed.Pop() != closed {
+		if ctx.endScope().startClosed != closed {
 			allClosed = false
 		}
 	}
 
 	if sw.Default != nil {
-		ctx.closed.Push(cl)
+		ctx.startScope(false)
 
 		ctx.writeln("default:")
 		scope(ctx, sw.Default.Then)
@@ -218,16 +211,16 @@ func _switch(ctx *ctx, sw file.Switch) {
 		ctx.flushClasses()
 		ctx.callClosedIfClosed()
 
-		if ctx.closed.Pop() != closed {
+		if ctx.endScope().startClosed != closed {
 			allClosed = false
 		}
 	}
 
-	if cl != closed {
+	if ctx.scope().startClosed != closed {
 		if allClosed && sw.Default != nil {
-			ctx.closed.Swap(closed)
+			ctx.scope().startClosed = closed
 		} else {
-			ctx.closed.Swap(maybeClosed)
+			ctx.scope().startClosed = maybeClosed
 		}
 	}
 
@@ -243,12 +236,13 @@ func _for(ctx *ctx, f file.For) {
 	if !attrLoop {
 		ctx.closeStartTag()
 
-		cl := ctx.closed.Peek()
-		ctx.closed.Push(cl)
+		nest := ctx.scope()
+		ctx.startScope(false)
 		defer func() {
-			if cl != closed {
-				if ctx.closed.Pop() == closed {
-					ctx.closed.Swap(maybeClosed)
+			pop := ctx.endScope()
+			if nest.startClosed != closed {
+				if pop.startClosed == closed {
+					ctx.scope().startClosed = maybeClosed
 				}
 			}
 		}()

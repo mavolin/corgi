@@ -7,12 +7,21 @@ import (
 )
 
 func scope(ctx *ctx, s file.Scope) {
-	ctx.mixinFuncNames.startScope(ctx)
-	defer ctx.mixinFuncNames.endScope(ctx)
+	for _, itm := range s {
+		_, ok := itm.(file.Code)
+		if ok {
+			ctx.writeln("{")
+			//goland:noinspection GoDeferInLoop
+			defer ctx.writeln("}")
+			break
+		}
+	}
 
+	ctx.startScope(true)
 	for _, itm := range s {
 		scopeItem(ctx, itm)
 	}
+	ctx.endScope()
 }
 
 func scopeItem(ctx *ctx, itm file.ScopeItem) {
@@ -61,6 +70,7 @@ func scopeItem(ctx *ctx, itm file.ScopeItem) {
 	case file.ArrowBlock:
 		arrowBlock(ctx, itm)
 	default:
-		ctx.youShouldntSeeThisError(fmt.Errorf("%s:%d:%d: unknown scope item %T", ctx.currentFile().Name, itm.Pos().Line, itm.Pos().Col, itm))
+		ctx.youShouldntSeeThisError(fmt.Errorf("%s:%d:%d: unknown scope item %T", ctx.currentFile().Name,
+			itm.Pos().Line, itm.Pos().Col, itm))
 	}
 }

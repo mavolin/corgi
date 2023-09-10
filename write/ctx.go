@@ -49,14 +49,8 @@ type ctx struct {
 	// mixin is the mixin we are currently generating.
 	mixin *file.Mixin
 
-	exprEscaper *stack.Stack[expressionEscaper]
-	txtEscaper  *stack.Stack[textEscaper]
-
-	elemNames      *stack.Stack[string]
-	customVoidElem bool
+	scopes         *stack.Stack[*nesting]
 	classBuf       strings.Builder
-	haveBufClasses bool
-	closed         *stack.Stack[closeState]
 	calledUnclosed bool
 
 	mixinFuncNames mixinFuncMap
@@ -70,6 +64,17 @@ type ctx struct {
 	debugEnabled bool
 
 	generateBuf bytes.Buffer
+}
+
+// intentional misspell of stack of prevent import coll
+type nesting struct {
+	elemName       string
+	customVoidElem bool
+	exprEscaper    expressionEscaper
+	txtEscaper     textEscaper
+	startClosed    closeState
+	haveBufClasses bool
+	shallow        bool
 }
 
 type mixinFuncMap struct {
@@ -149,10 +154,11 @@ func (s closeState) String() string {
 func newCtx(o Options) *ctx {
 	return &ctx{
 		identPrefix: o.IdentPrefix,
-		exprEscaper: stack.New1(plainBodyExprEscaper),
-		txtEscaper:  stack.New1(plainBodyTextEscaper),
-		elemNames:   new(stack.Stack[string]),
-		closed:      stack.New1(closed),
+		scopes: stack.New1(&nesting{
+			exprEscaper: plainBodyExprEscaper,
+			txtEscaper:  plainBodyTextEscaper,
+			startClosed: closed,
+		}),
 		mixinFuncNames: mixinFuncMap{
 			m:     make(map[string]map[string]string),
 			scope: make(map[*file.File]*list.List[map[string]string]),
@@ -163,6 +169,44 @@ func newCtx(o Options) *ctx {
 		corgierrPretty:  o.CorgierrPretty,
 		debugEnabled:    o.Debug,
 	}
+}
+
+// start scope starts a new scope.
+//
+// If shallow is set to true, the scope is considered shallow and as such, if
+// the scope is ended, its startClosed and haveBufClasses values will be copied
+// into the current state.
+// Effectively, shallow should be set to true, if the scope started does not
+// reflect a new scope (i.e. '{}') in Go and does not start a new element.
+func (ctx *ctx) startScope(shallow bool) *nesting {
+	ctx.mixinFuncNames.startScope(ctx)
+
+	old := ctx.scope()
+	newScope := &nesting{
+		elemName:       old.elemName,
+		customVoidElem: old.customVoidElem,
+		exprEscaper:    old.exprEscaper,
+		txtEscaper:     old.txtEscaper,
+		startClosed:    old.startClosed,
+		haveBufClasses: old.haveBufClasses,
+		shallow:        shallow,
+	}
+	ctx.scopes.Push(newScope)
+	return newScope
+}
+
+func (ctx *ctx) scope() *nesting {
+	return ctx.scopes.Peek()
+}
+
+func (ctx *ctx) endScope() *nesting {
+	ctx.mixinFuncNames.endScope(ctx)
+	old := ctx.scopes.Pop()
+	if old.shallow {
+		ctx.scope().startClosed = old.startClosed
+		ctx.scope().haveBufClasses = old.haveBufClasses
+	}
+	return old
 }
 
 func (ctx *ctx) youShouldntSeeThisError(err error) {
@@ -275,42 +319,40 @@ func (ctx *ctx) startElem(name string, void bool) {
 	ctx.closeStartTag()
 
 	ctx.generate("<"+name, nil)
-	ctx.elemNames.Push(name)
-	ctx.customVoidElem = void
-	ctx.closed.Swap(unclosed)
-	ctx.haveBufClasses = false
+	ctx.scopes.Push(&nesting{
+		elemName:       name,
+		customVoidElem: void,
+		startClosed:    unclosed,
+	})
 	ctx.calledUnclosed = false
 
 	switch name {
 	case "script":
-		ctx.exprEscaper.Push(scriptBodyExprEscaper)
-		ctx.txtEscaper.Push(scriptBodyTextEscaper)
+		ctx.scope().exprEscaper = scriptBodyExprEscaper
+		ctx.scope().txtEscaper = scriptBodyTextEscaper
 
 		if ctx.hasNonce {
 			ctx.flushGenerate()
 			ctx.writeln(ctx.contextFunc("InjectNonce"))
 		}
 	case "style":
-		ctx.exprEscaper.Push(styleBodyExprEscaper)
-		ctx.txtEscaper.Push(styleBodyTextEscaper)
+		ctx.scope().exprEscaper = styleBodyExprEscaper
+		ctx.scope().txtEscaper = styleBodyTextEscaper
 	default:
-		ctx.exprEscaper.Push(plainBodyExprEscaper)
-		ctx.txtEscaper.Push(plainBodyTextEscaper)
+		ctx.scope().exprEscaper = plainBodyExprEscaper
+		ctx.scope().txtEscaper = plainBodyTextEscaper
 	}
 }
 
 func (ctx *ctx) closeElem() {
 	ctx.closeStartTag()
-	ctx.exprEscaper.Pop()
-	ctx.txtEscaper.Pop()
+	nest := ctx.scopes.Pop()
 
-	name := ctx.elemNames.Pop()
-
-	if ctx.customVoidElem || voidelem.Is(name) {
+	if nest.customVoidElem || voidelem.Is(nest.elemName) {
 		return
 	}
 
-	ctx.generate("</"+name+">", nil)
+	ctx.generate("</"+nest.elemName+">", nil)
 }
 
 func (ctx *ctx) debug(typ, s string) {
@@ -403,7 +445,7 @@ func (ctx *ctx) flushClasses() {
 	if ctx.classBuf.Len() > 0 {
 		ctx.debug("flush class buffer", "(see below)")
 		ctx.writeln(ctx.contextFunc("BufferClassAttr", strconv.Quote(ctx.classBuf.String())))
-		ctx.haveBufClasses = true
+		ctx.scope().haveBufClasses = true
 		ctx.classBuf.Reset()
 
 		ctx.callUnclosedIfUnclosed()
@@ -449,27 +491,27 @@ func (ctx *ctx) bufClass(class string) {
 }
 
 func (ctx *ctx) closeStartTag() {
-	cl := ctx.closed.Peek()
-	if cl == closed {
+	nest := ctx.scope()
+	if nest.startClosed == closed {
 		return
 	}
 
-	if cl == unclosed {
+	if nest.startClosed == unclosed {
 		ctx.debug("close start tag", "[prev state: unclosed, class buf: "+ctx.classBuf.String()+"]")
 	} else {
 		ctx.debug("close start tag", "[prev state: maybe closed, class buf: "+ctx.classBuf.String()+"]")
 	}
 
-	defer ctx.closed.Swap(closed)
+	defer func() { nest.startClosed = closed }()
 	defer ctx.classBuf.Reset()
 
-	if cl == unclosed && !ctx.haveBufClasses {
+	if nest.startClosed == unclosed && !nest.haveBufClasses {
 		classes := ctx.classBuf.String()
 		if classes != "" {
 			ctx.generateStringAttr("class", classes)
 		}
 
-		if ctx.customVoidElem {
+		if nest.customVoidElem {
 			ctx.generate("/>", nil)
 			return
 		}
@@ -483,7 +525,7 @@ func (ctx *ctx) closeStartTag() {
 	ctx.write(ctx.ident(ctxVar) + ".CloseStartTag(")
 	ctx.writeString(ctx.classBuf.String())
 	ctx.write(", ")
-	if ctx.customVoidElem {
+	if nest.customVoidElem {
 		ctx.writeln("true)")
 	} else {
 		ctx.writeln("false)")
@@ -493,22 +535,22 @@ func (ctx *ctx) closeStartTag() {
 // horrible name, but a ton less confusion than just reading callUnclosed.
 func (ctx *ctx) callUnclosedIfUnclosed() {
 	ctx.debug("call unclosed if unclosed",
-		"close state: "+ctx.closed.Peek().String()+", called before: "+fmt.Sprint(ctx.calledUnclosed))
+		"close state: "+ctx.scope().startClosed.String()+", called before: "+fmt.Sprint(ctx.calledUnclosed))
 
 	if ctx.calledUnclosed {
 		return
 	}
 	ctx.calledUnclosed = true
-	if ctx.closed.Peek() == unclosed {
+	if ctx.scope().startClosed == unclosed {
 		ctx.writeln(ctx.contextFunc("Unclosed"))
 	}
 }
 
 // horrible name, but a ton less confusion than just reading callUnclosed.
 func (ctx *ctx) callClosedIfClosed() {
-	ctx.debug("call closed if closed", "close state: "+ctx.closed.Peek().String())
+	ctx.debug("call closed if closed", "close state: "+ctx.scope().startClosed.String())
 
-	if ctx.closed.Peek() == closed {
+	if ctx.scope().startClosed == closed {
 		ctx.writeln(ctx.contextFunc("Closed"))
 	}
 }

@@ -281,14 +281,6 @@ func writeMixinFunc(ctx *ctx, m *file.Mixin) {
 		return true, nil
 	})
 
-	// mixin could be used as attr value, so also escape attr values
-	if textOnlyMixin {
-		ctx.txtEscaper.Push(htmlTextEscaper)
-		defer ctx.txtEscaper.Pop()
-		ctx.exprEscaper.Push(htmlExprEscaper)
-		defer ctx.exprEscaper.Pop()
-	}
-
 	ctx.write("func(")
 	for _, param := range m.Params {
 		if param.Default != nil {
@@ -329,8 +321,13 @@ func writeMixinFunc(ctx *ctx, m *file.Mixin) {
 		ctx.writeln(param.Name.Ident + " := " + ctx.woofFunc("ResolveDefault", val, defaultVal))
 	}
 
-	ctx.closed.Push(maybeClosed)
-	defer ctx.closed.Pop()
+	ctx.startScope(false).startClosed = maybeClosed
+	// mixin could be used as attr value, so also escape attr values
+	if textOnlyMixin {
+		ctx.scope().txtEscaper = htmlTextEscaper
+		ctx.scope().exprEscaper = htmlExprEscaper
+	}
+	defer ctx.endScope()
 
 	ctx.mixin = m
 	scope(ctx, m.Body)
@@ -347,6 +344,12 @@ func writeMixinFunc(ctx *ctx, m *file.Mixin) {
 // ======================================================================================
 
 func mixinCall(ctx *ctx, mc file.MixinCall) {
+	if mc.Namespace != nil {
+		ctx.debugItem(mc, mc.Namespace.Ident+"."+mc.Name.Ident)
+	} else {
+		ctx.debugItem(mc, mc.Name.Ident)
+	}
+
 	funcName := ctx.mixinFuncNames.mixin(ctx, mc)
 
 	ctx.flushGenerate()
@@ -355,8 +358,7 @@ func mixinCall(ctx *ctx, mc file.MixinCall) {
 
 	ctx.write(funcName + "(")
 
-	haveBufClasses := ctx.haveBufClasses
-	defer func() { ctx.haveBufClasses = haveBufClasses }()
+	ctx.startScope(false)
 
 params:
 	for _, param := range mc.Mixin.Mixin.Params {
@@ -379,35 +381,35 @@ blocks:
 				case file.InlineText:
 					ctx.writeln("func() {")
 
-					ctx.closed.Push(maybeClosed)
+					ctx.startScope(false).startClosed = maybeClosed
 					inlineText(ctx, itm)
 					ctx.flushGenerate()
 					ctx.flushClasses()
 					ctx.callClosedIfClosed()
-					ctx.closed.Pop()
+					ctx.endScope()
 					ctx.write("}, ")
 					continue
 				case file.BlockExpansion:
 					ctx.writeln("func() {")
 
-					ctx.closed.Push(maybeClosed)
+					ctx.startScope(false).startClosed = maybeClosed
 					blockExpansion(ctx, itm)
 					ctx.flushGenerate()
 					ctx.flushClasses()
 					ctx.callClosedIfClosed()
 					ctx.write("}, ")
-					ctx.closed.Pop()
+					ctx.endScope()
 					continue
 				case file.MixinMainBlockShorthand:
 					ctx.writeln("func() {")
 
-					ctx.closed.Push(maybeClosed)
+					ctx.startScope(false).startClosed = maybeClosed
 					scope(ctx, itm.Body)
 					ctx.flushGenerate()
 					ctx.flushClasses()
 					ctx.callClosedIfClosed()
 					ctx.write("}, ")
-					ctx.closed.Pop()
+					ctx.endScope()
 					continue
 				}
 			}
@@ -422,9 +424,9 @@ blocks:
 			if b.Name.Ident == placeholder.Name {
 				ctx.writeln("func() {")
 
-				ctx.closed.Push(maybeClosed)
+				ctx.startScope(false).startClosed = maybeClosed
 				scope(ctx, b.Body)
-				ctx.closed.Pop()
+				ctx.endScope()
 
 				ctx.flushGenerate()
 				ctx.flushClasses()
@@ -465,10 +467,17 @@ blocks:
 
 	ctx.writeln(")")
 
-	ctx.closed.Swap(maybeClosed)
+	ctx.endScope()
+	ctx.scope().startClosed = maybeClosed
 }
 
 func interpolationValueMixinCall(ctx *ctx, mc file.MixinCall, val file.InterpolationValue) {
+	if mc.Namespace != nil {
+		ctx.debugItem(mc, mc.Namespace.Ident+"."+mc.Name.Ident)
+	} else {
+		ctx.debugItem(mc, mc.Name.Ident)
+	}
+
 	funcName := ctx.mixinFuncNames.mixin(ctx, mc)
 
 	ctx.flushGenerate()
@@ -498,14 +507,14 @@ params:
 
 		ctx.writeln("func() {")
 
-		ctx.closed.Push(maybeClosed)
+		ctx.startScope(false).startClosed = maybeClosed
 		ctx.closeStartTag()
 		interpolationValue(ctx, val, false)
 		ctx.flushGenerate()
 		ctx.flushClasses()
 		ctx.callClosedIfClosed()
 		ctx.write("}, ")
-		ctx.closed.Pop()
+		ctx.endScope()
 	}
 
 	if mc.Mixin.Mixin.HasAndPlaceholders {
@@ -534,7 +543,7 @@ params:
 
 	ctx.writeln(")")
 
-	ctx.closed.Swap(maybeClosed)
+	ctx.scope().startClosed = maybeClosed
 }
 
 // ============================================================================

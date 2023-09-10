@@ -23,7 +23,9 @@ func block(ctx *ctx, b file.Block) {
 			ctx.callClosedIfClosed()
 		}
 		ctx.writeln("}")
-		ctx.closed.Swap(maybeClosed)
+		if ctx.scope().startClosed != closed {
+			ctx.scope().startClosed = maybeClosed
+		}
 
 		return
 	}

@@ -55,7 +55,7 @@ func textLines(ctx *ctx, lns ...file.TextLine) {
 		for _, txtItm := range ln {
 			switch txtItm := txtItm.(type) {
 			case file.Text:
-				esc := ctx.txtEscaper.Peek()
+				esc := ctx.scope().txtEscaper
 				ctx.generate(hashUnescaper.Replace(txtItm.Text), &esc)
 			case file.Interpolation:
 				interpolation(ctx, txtItm)
@@ -93,6 +93,7 @@ func simpleInterpolation(ctx *ctx, interp file.SimpleInterpolation) {
 // ================================ ElementInterpolation ================================
 
 func elementInterpolation(ctx *ctx, interp file.ElementInterpolation) {
+	ctx.debugItem(interp, "(see below)")
 	ctx.startElem(interp.Element.Name, interp.Element.Void)
 
 	for _, acoll := range interp.Element.Attributes {
@@ -109,6 +110,7 @@ func elementInterpolation(ctx *ctx, interp file.ElementInterpolation) {
 // =============================== MixinCallInterpolation ===============================
 
 func mixinCallInterpolation(ctx *ctx, interp file.MixinCallInterpolation) {
+	ctx.debugItem(interp, "(see below)")
 	interpolationValueMixinCall(ctx, interp.MixinCall, interp.Value)
 }
 
@@ -134,7 +136,7 @@ func textInterpolationValue(ctx *ctx, tinterp file.TextInterpolationValue, noEsc
 		return
 	}
 
-	esc := ctx.txtEscaper.Peek()
+	esc := ctx.scope().txtEscaper
 	ctx.generate(tinterp.Text, &esc)
 }
 
@@ -143,7 +145,7 @@ func expressionInterpolationValue(ctx *ctx, exprInterp file.ExpressionInterpolat
 
 	var esc *expressionEscaper
 	if !noEscape {
-		esc2 := ctx.exprEscaper.Peek()
+		esc2 := ctx.scope().exprEscaper
 		esc = &esc2
 	}
 
