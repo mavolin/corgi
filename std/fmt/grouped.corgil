@@ -116,7 +116,7 @@ mixin Num(val any, size=3, groupSep string = digitGroupSep, decimalSep string = 
 // _ block, will also be reverted.
 mixin SetDigitGroupSep(sep string)
   if block _
-    - oldSep = digitGroupSep
+    - oldSep := digitGroupSep
       digitGroupSep = sep
     block _
     - digitGroupSep = oldSep
@@ -134,7 +134,7 @@ mixin SetDigitGroupSep(sep string)
 // will also be reverted.
 mixin SetDecimalSep(sep string)
   if block _
-    - oldSep = decimalSep
+    - oldSep := decimalSep
       decimalSep = sep
     block _
     - decimalSep = oldSep
@@ -156,7 +156,7 @@ mixin SetDecimalSep(sep string)
 // This can be changed by setting the start param.
 mixin SetNumWords(start=0, words []string)
   if block _
-    - oldWords, oldWordsStart = numWords, numWordsStart
+    - oldWords, oldWordsStart := numWords, numWordsStart
       numWords, numWordsStart = words, start
     block _
     - numWords, numWordsStart = oldWords, oldWordsStart
