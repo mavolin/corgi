@@ -443,12 +443,12 @@ blocks:
 
 				ctx.startScope(false).startClosed = maybeClosed
 				scope(ctx, b.Body, false)
-				ctx.endScope()
 
 				ctx.flushGenerate()
 				ctx.flushClasses()
 				ctx.callClosedIfClosed()
 				ctx.write("}, ")
+				ctx.endScope()
 				continue blocks
 			}
 		}
