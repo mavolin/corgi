@@ -1,10 +1,6 @@
 {
     package internal
 
-    // todo: rm these as soon as pigeon#115 is fixed
-    const lbrace = "{"
-    const rbrace = "}"
-
     type ErrList = errList
     type ParserError = parserError
 }

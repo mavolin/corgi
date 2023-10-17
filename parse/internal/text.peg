@@ -99,7 +99,7 @@ BadInterpolation <- '#' {
             anno(c, annotation{
                 Start: pos(c),
                 StartOffset: 1,
-                Annotation: "expected a `#`, `[`, `"+lbrace+"`, a mixin call, or an element name here",
+                Annotation: "expected a `#`, `[`, `{`, a mixin call, or an element name here",
             }),
         },
         Suggestions: []corgierr.Suggestion{

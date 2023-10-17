@@ -392,7 +392,7 @@ StringExpressionInterpolation <- '#' fmtDirectiveI:fmtDirective? lBracePosI:L_BR
         Message: "string interpolation is missing an expression",
         ErrorAnnotation: anno(c, annotation{
             Start: parenPosI.(file.Position),
-            Annotation: "expected a `"+lbrace+"` here",
+            Annotation: "expected a `{` here",
         }),
         HintAnnotations: []corgierr.Annotation{
             anno(c, annotation{
@@ -422,7 +422,7 @@ StringExpressionInterpolation <- '#' fmtDirectiveI:fmtDirective? lBracePosI:L_BR
         ErrorAnnotation: anno(c, annotation{
             Start: startPosI.(file.Position),
             EOLDelta: 1,
-            Annotation: "expected a `"+rbrace+"` somewhere here",
+            Annotation: "expected a `}` somewhere here",
         }),
         HintAnnotations: []corgierr.Annotation{
             anno(c, annotation{
@@ -432,7 +432,7 @@ StringExpressionInterpolation <- '#' fmtDirectiveI:fmtDirective? lBracePosI:L_BR
             }),
         },
         Suggestions: []corgierr.Suggestion{
-            {Suggestion: "add the missing `"+rbrace+"`"},
+            {Suggestion: "add the missing `}`"},
             {
                 Suggestion: "escape the `#` by writing `##`, if you didn't mean to start an interpolation",
                 Code: "`#" + string(c.text) + "`",
