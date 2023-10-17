@@ -1,25 +1,2 @@
-### Go ###
-
-# Binaries for programs and plugins
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
-
-# Test binary, built with `go test -c`
-*.test
-
-# Output of the go coverage tool
-*.out
-
-
-### GoLand ###
-.idea/
-
-### Local Testing ###
-testlocal/
-./test.corgi
-
-# GoReleaser
-dist/
+/test.corgi
+/test.corgi.go
