@@ -87,6 +87,7 @@ func newLoader(o LoadOptions) (*loader, error) {
 			f, err := parse.Parse(in)
 			if err != nil {
 				log.Error("parse failed", slog.Any("err", err))
+				return f, err
 			}
 			log.Info("parsed")
 			return f, err
