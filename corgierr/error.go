@@ -15,17 +15,29 @@ import (
 
 // As returns a [List] if [errors.As] yields a List or an [Error].
 func As(err error) List {
-	var lerr List
-	if errors.As(err, &lerr) {
-		return lerr
+	var errs []error
+	if uw, ok := err.(interface{ Unwrap() []error }); ok {
+		errs = uw.Unwrap()
+	} else {
+		errs = []error{err}
 	}
 
-	var cerr *Error
-	if errors.As(err, &cerr) {
-		return List{cerr}
+	var list List
+
+	for _, err := range errs {
+		var lerr List
+		if errors.As(err, &lerr) {
+			list = append(list, lerr...)
+			continue
+		}
+
+		var cerr *Error
+		if errors.As(err, &cerr) {
+			list = append(list, cerr)
+		}
 	}
 
-	return nil
+	return list
 }
 
 type Error struct {
@@ -230,11 +242,6 @@ func (err *Error) prettyFile(sb *strings.Builder, annotations []Annotation, errF
 			sb.WriteByte('\n')
 		}
 	}, color.Bold, color.Faint)
-
-	coloredFunc(sb, o, func(sb *strings.Builder) {
-		sb.WriteString(noLineNoPad)
-		sb.WriteString(" |\n")
-	}, color.Faint)
 
 	for i, lr := range lineRanges {
 		if i > 0 {
