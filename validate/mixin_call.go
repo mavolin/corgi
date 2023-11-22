@@ -194,6 +194,8 @@ func _mixinCallBody(f *file.File, mc file.MixinCall) *errList {
 			return true, nil
 		case file.For:
 			return true, nil
+		case file.BlockExpansion:
+			return true, nil
 		case file.And:
 			if mc.Mixin.Mixin.HasAndPlaceholders {
 				return true, nil
