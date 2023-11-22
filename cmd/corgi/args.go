@@ -150,7 +150,7 @@ func init() {
 		flag.Usage()
 		os.Exit(0)
 	case showVersion:
-		fmt.Println("corgi", version())
+		fmt.Println("corgi", meta.Version)
 		os.Exit(0)
 	case editTrustedFilters:
 		doEditTrustedFilters()
@@ -256,15 +256,6 @@ func usage() {
 	fmt.Fprintln(flag.CommandLine.Output())
 	fmt.Fprintln(flag.CommandLine.Output(), "Flags:")
 	flag.PrintDefaults()
-}
-
-func version() string {
-	ver := meta.Version
-	if meta.Commit != meta.UnknownCommit {
-		ver += " (" + meta.Commit + ")"
-	}
-
-	return ver
 }
 
 const defaultTrustFiltersFile = "# This file contains newline-separated names of executables that you trust.\n" +
