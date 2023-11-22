@@ -66,7 +66,6 @@ type ctx struct {
 	generateBuf bytes.Buffer
 }
 
-// intentional misspell of stack of prevent import coll
 type nesting struct {
 	elemName       string
 	customVoidElem bool

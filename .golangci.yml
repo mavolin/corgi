@@ -23,7 +23,6 @@ linters:
     - govet
     - ineffassign
     - loggercheck
-    - makezero
     - misspell
     - nakedret
     - nilerr
@@ -52,6 +51,9 @@ linters-settings:
       - ^\s*\w+$
   unparam:
     check-exported: true
+  gocritic:
+    disabled-checks:
+      - singleCaseSwitch
 
   errcheck:
     exclude-functions:

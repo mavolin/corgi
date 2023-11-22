@@ -2,10 +2,11 @@ package write
 
 import (
 	"fmt"
-	"github.com/mavolin/corgi/file/fileutil"
 	"path"
 	"strconv"
 	"strings"
+
+	"github.com/mavolin/corgi/file/fileutil"
 
 	"github.com/mavolin/corgi/file"
 	"github.com/mavolin/corgi/file/typeinfer"

@@ -16,7 +16,7 @@ import (
 // As returns a [List] if [errors.As] yields a List or an [Error].
 func As(err error) List {
 	var errs []error
-	if uw, ok := err.(interface{ Unwrap() []error }); ok {
+	if uw, ok := err.(interface{ Unwrap() []error }); ok { //nolint:errorlint
 		errs = uw.Unwrap()
 	} else {
 		errs = []error{err}

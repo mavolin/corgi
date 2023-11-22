@@ -25,6 +25,7 @@ func main() {
 
 	now := time.Now()
 	f, err := parse.Parse(data)
+	//nolint:govet // we actually don't want time.Since to be deferred
 	defer fmt.Printf("\nparse took %s\n", time.Since(now))
 
 	if f != nil {
@@ -46,9 +47,9 @@ func main() {
 
 	now = time.Now()
 	err = validate.PreLink(f)
-	defer fmt.Printf("\nuse namespace validation took %s", time.Since(now))
+	defer fmt.Printf("\nuse namespace validation took %s", time.Since(now)) //nolint:govet // we actually don't want time.Since to be deferred
 	if err != nil {
-		errs := err.(corgierr.List) //nolint:errorlint
+		errs := corgierr.As(err)
 		fmt.Println("")
 		fmt.Println(errs.Pretty(corgierr.PrettyOptions{
 			Colored: isatty.IsTerminal(os.Stdout.Fd()),
@@ -59,7 +60,7 @@ func main() {
 
 	now = time.Now()
 	typeinfer.Scope(f.Scope)
-	defer fmt.Printf("\nmixin param type infer took %s", time.Since(now))
+	defer fmt.Printf("\nmixin param type infer took %s", time.Since(now)) //nolint:govet // we actually don't want time.Since to be deferred
 
 	now = time.Now()
 	err = link.New(nil).LinkFile(f)
@@ -79,6 +80,7 @@ func main() {
 
 	now = time.Now()
 	err = validate.File(f)
+	//nolint:govet // we actually don't want time.Since to be deferred
 	defer fmt.Printf("\nvalidation took %s", time.Since(now))
 	if err != nil {
 		errs := err.(corgierr.List) //nolint:errorlint

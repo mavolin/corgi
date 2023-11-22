@@ -35,7 +35,7 @@ func writeImports(ctx *ctx) {
 
 		for _, use := range f.Uses {
 			for _, useSpec := range use.Uses {
-				files = append(files, useSpec.Library.Files...) //nolint:makezero
+				files = append(files, useSpec.Library.Files...)
 
 				for _, dep := range useSpec.Library.Dependencies {
 					files = append(files, dep.Library.Files...)
