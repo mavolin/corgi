@@ -3,9 +3,9 @@ package validate
 import (
 	"fmt"
 
-	"github.com/mavolin/corgi/corgierr"
 	"github.com/mavolin/corgi/file"
 	"github.com/mavolin/corgi/file/fileutil"
+	"github.com/mavolin/corgi/fileerr"
 	"github.com/mavolin/corgi/internal/anno"
 	"github.com/mavolin/corgi/internal/list"
 )
@@ -49,7 +49,7 @@ args:
 			}
 		}
 
-		errs.PushBack(&corgierr.Error{
+		errs.PushBack(&fileerr.Error{
 			Message: "non-existent mixin call arg",
 			ErrorAnnotation: anno.Anno(f, anno.Annotation{
 				ContextStart: mc.Position,
@@ -70,7 +70,7 @@ func _duplicateMixinCallArgs(f *file.File, mc file.MixinCall) *errList {
 	for i, arg := range mc.Args {
 		for _, cmp := range mc.Args[:i] {
 			if arg.Name.Ident == cmp.Name.Ident {
-				errs.PushBack(&corgierr.Error{
+				errs.PushBack(&fileerr.Error{
 					Message: "duplicate mixin call arg",
 					ErrorAnnotation: anno.Anno(f, anno.Annotation{
 						ContextStart: mc.Position,
@@ -78,7 +78,7 @@ func _duplicateMixinCallArgs(f *file.File, mc file.MixinCall) *errList {
 						Len:          len(arg.Name.Ident),
 						Annotation:   "and then here again",
 					}),
-					HintAnnotations: []corgierr.Annotation{
+					HintAnnotations: []fileerr.Annotation{
 						anno.Anno(f, anno.Annotation{
 							ContextStart: mc.Position,
 							Start:        cmp.Name.Position,
@@ -86,7 +86,7 @@ func _duplicateMixinCallArgs(f *file.File, mc file.MixinCall) *errList {
 							Annotation:   "you first set `" + cmp.Name.Ident + "` here",
 						}),
 					},
-					Suggestions: []corgierr.Suggestion{
+					Suggestions: []fileerr.Suggestion{
 						{Suggestion: "you should only set the arg once"},
 					},
 				})
@@ -139,7 +139,7 @@ params:
 					}
 				}
 
-				errs.PushBack(&corgierr.Error{
+				errs.PushBack(&fileerr.Error{
 					Message: "required mixin call arg set with chain expression without default",
 					ErrorAnnotation: anno.Anno(f, anno.Annotation{
 						Start:      ce.Position,
@@ -151,7 +151,7 @@ params:
 			}
 		}
 
-		errs.PushBack(&corgierr.Error{
+		errs.PushBack(&fileerr.Error{
 			Message: "required mixin call arg not set",
 			ErrorAnnotation: anno.Anno(f, anno.Annotation{
 				Start:      mc.Position,
@@ -207,14 +207,14 @@ func _mixinCallBody(f *file.File, mc file.MixinCall) *errList {
 				}
 			}
 
-			errs.PushBack(&corgierr.Error{
+			errs.PushBack(&fileerr.Error{
 				Message: "use of & in mixin call to mixin without &-placeholder",
 				ErrorAnnotation: anno.Anno(f, anno.Annotation{
 					Start:      itm.Position,
 					Annotation: "no element to place these attributes on",
 				}),
-				HintAnnotations: []corgierr.Annotation{inThisMixinCall(f, mc)},
-				Suggestions: []corgierr.Suggestion{
+				HintAnnotations: []fileerr.Annotation{inThisMixinCall(f, mc)},
+				Suggestions: []fileerr.Suggestion{
 					{Suggestion: "remove these attributes or add an &-placeholder to the mixin"},
 				},
 			})
@@ -236,7 +236,7 @@ func _mixinCallBody(f *file.File, mc file.MixinCall) *errList {
 					continue parents
 				}
 
-				errs.PushBack(&corgierr.Error{
+				errs.PushBack(&fileerr.Error{
 					Message: "conditional mixin call block",
 					ErrorAnnotation: anno.Anno(f, anno.Annotation{
 						ContextStartDelta: -1,
@@ -244,8 +244,8 @@ func _mixinCallBody(f *file.File, mc file.MixinCall) *errList {
 						Len:               (itm.Name.Col - itm.Col) + len(itm.Name.Ident),
 						Annotation:        "you cannot set a mixin call block conditionally",
 					}),
-					HintAnnotations: []corgierr.Annotation{inThisMixinCall(f, mc)},
-					Suggestions: []corgierr.Suggestion{
+					HintAnnotations: []fileerr.Annotation{inThisMixinCall(f, mc)},
+					Suggestions: []fileerr.Suggestion{
 						{Suggestion: "put the conditional inside the block"},
 					},
 				})
@@ -254,14 +254,14 @@ func _mixinCallBody(f *file.File, mc file.MixinCall) *errList {
 
 			return false, nil
 		default:
-			errs.PushBack(&corgierr.Error{
+			errs.PushBack(&fileerr.Error{
 				Message: fmt.Sprintf("unexpected item %T in mixin call", itm),
 				ErrorAnnotation: anno.Anno(f, anno.Annotation{
 					Start:      itm.Pos(),
 					ToEOL:      true,
 					Annotation: "cannot place this inside a mixin call",
 				}),
-				HintAnnotations: []corgierr.Annotation{inThisMixinCall(f, mc)},
+				HintAnnotations: []fileerr.Annotation{inThisMixinCall(f, mc)},
 			})
 			return false, nil
 		}
@@ -279,13 +279,13 @@ func _mixinCallBlocksExist(f *file.File, mc file.MixinCall) *errList {
 				}
 			}
 
-			return list.List1(&corgierr.Error{
+			return list.List1(&fileerr.Error{
 				Message: "unknown block in mixin call",
 				ErrorAnnotation: anno.Anno(f, anno.Annotation{
 					Start:      sh.Position,
 					Annotation: "this mixin has no `_` block, so you can't use a shorthand",
 				}),
-				HintAnnotations: []corgierr.Annotation{inThisMixinCall(f, mc)},
+				HintAnnotations: []fileerr.Annotation{inThisMixinCall(f, mc)},
 			})
 		}
 	}
@@ -305,14 +305,14 @@ body:
 			}
 		}
 
-		errs.PushBack(&corgierr.Error{
+		errs.PushBack(&fileerr.Error{
 			Message: "unknown block in mixin call",
 			ErrorAnnotation: anno.Anno(f, anno.Annotation{
 				Start:      block.Position,
 				Len:        (block.Name.Col - block.Col) + len(block.Name.Ident),
 				Annotation: "the mixin you are calling has no block named `" + block.Name.Ident + "`",
 			}),
-			HintAnnotations: []corgierr.Annotation{inThisMixinCall(f, mc)},
+			HintAnnotations: []fileerr.Annotation{inThisMixinCall(f, mc)},
 		})
 	}
 
@@ -332,14 +332,14 @@ func _duplicateMixinCallBlocks(f *file.File, mc file.MixinCall) *errList {
 
 		for otherE := foundBlocks.Front(); otherE != nil; otherE = otherE.Next() {
 			if block.Name.Ident == otherE.V().Name.Ident {
-				errs.PushBack(&corgierr.Error{
+				errs.PushBack(&fileerr.Error{
 					Message: "mixin call block filled twice",
 					ErrorAnnotation: anno.Anno(f, anno.Annotation{
 						Start:      block.Position,
 						Len:        (block.Name.Col - block.Col) + len(block.Name.Ident),
 						Annotation: "and then here again",
 					}),
-					HintAnnotations: []corgierr.Annotation{
+					HintAnnotations: []fileerr.Annotation{
 						anno.Anno(f, anno.Annotation{
 							Start:      otherE.V().Position,
 							Len:        (otherE.V().Name.Col - otherE.V().Col) + len(otherE.V().Name.Ident),
@@ -376,17 +376,17 @@ func _mixinCallBlockAttrs(f *file.File, mc file.MixinCall) *errList {
 				}
 				switch attr := attr.(type) {
 				case file.And:
-					return list.List1(&corgierr.Error{
+					return list.List1(&fileerr.Error{
 						Message: "top-level attribute in mixin call block that doesn't allow top-level attributes",
 						ErrorAnnotation: anno.Anno(f, anno.Annotation{
 							Start: attr.Position,
 							Annotation: "this mixin places the `_` block after it has written to the body of an element\n" +
 								" and you can therefore not place any attributes in it",
 						}),
-						HintAnnotations: []corgierr.Annotation{inThisMixinCall(f, mc)},
+						HintAnnotations: []fileerr.Annotation{inThisMixinCall(f, mc)},
 					})
 				case file.MixinCall:
-					return list.List1(&corgierr.Error{
+					return list.List1(&fileerr.Error{
 						Message: "top-level attribute in mixin call block that doesn't allow top-level attributes",
 						ErrorAnnotation: anno.Anno(f, anno.Annotation{
 							Start: attr.Position,
@@ -394,7 +394,7 @@ func _mixinCallBlockAttrs(f *file.File, mc file.MixinCall) *errList {
 							Annotation: "the outer mixin places the `_` block after it has written to the body of an element\n" +
 								" and you can therefore not place any attributes in it",
 						}),
-						HintAnnotations: []corgierr.Annotation{inThisMixinCall(f, mc)},
+						HintAnnotations: []fileerr.Annotation{inThisMixinCall(f, mc)},
 					})
 				default:
 					panic("shouldn't happen")
@@ -429,17 +429,17 @@ body:
 			}
 			switch attr := attr.(type) {
 			case file.And:
-				errs.PushBack(&corgierr.Error{
+				errs.PushBack(&fileerr.Error{
 					Message: "top-level attribute in mixin call block that doesn't allow top-level attributes",
 					ErrorAnnotation: anno.Anno(f, anno.Annotation{
 						Start: attr.Position,
 						Annotation: "this mixin places the `" + mcBlock.Name.Ident + "` block after it has written\n" +
 							"to the body of an element and you can therefore not place any attributes in it",
 					}),
-					HintAnnotations: []corgierr.Annotation{inThisMixinCall(f, mc)},
+					HintAnnotations: []fileerr.Annotation{inThisMixinCall(f, mc)},
 				})
 			case file.MixinCall:
-				errs.PushBack(&corgierr.Error{
+				errs.PushBack(&fileerr.Error{
 					Message: "top-level attribute in mixin call block that doesn't allow top-level attributes",
 					ErrorAnnotation: anno.Anno(f, anno.Annotation{
 						Start: attr.Position,
@@ -447,7 +447,7 @@ body:
 						Annotation: "the outer mixin places the `" + mcBlock.Name.Ident + "` block after it has written\n" +
 							"to the body of an element and you can therefore not place any attributes in it",
 					}),
-					HintAnnotations: []corgierr.Annotation{inThisMixinCall(f, mc)},
+					HintAnnotations: []fileerr.Annotation{inThisMixinCall(f, mc)},
 				})
 			default:
 				panic("shouldn't happen")
@@ -487,7 +487,7 @@ func andPlaceholderPlacement(f *file.File) *errList {
 			}
 		}
 
-		errs.PushBack(&corgierr.Error{
+		errs.PushBack(&fileerr.Error{
 			Message: "&-placeholder used outside of mixin",
 			ErrorAnnotation: anno.Anno(f, anno.Annotation{
 				Start:      ap.Position,

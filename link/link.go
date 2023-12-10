@@ -7,8 +7,8 @@ package link
 import (
 	"unsafe"
 
-	"github.com/mavolin/corgi/corgierr"
 	"github.com/mavolin/corgi/file"
+	"github.com/mavolin/corgi/fileerr"
 	"github.com/mavolin/corgi/internal/list"
 	"github.com/mavolin/corgi/load"
 )
@@ -17,7 +17,7 @@ type Linker struct {
 	loader load.Loader
 }
 
-type errList = list.List[*corgierr.Error]
+type errList = list.List[*fileerr.Error]
 
 // New creates a new *Linker that uses the passed load.
 func New(loader load.Loader) *Linker {
@@ -29,7 +29,7 @@ func New(loader load.Loader) *Linker {
 // It expects the passed file to have passed [validate.PreLink] and have
 // a linked DirLibrary, or none at all.
 //
-// If it returns an error, that error will be of type [corgierr.List].
+// If it returns an error, that error will be of type [fileerr.List].
 func (l *Linker) LinkFile(f *file.File) error {
 	errsChan := make(chan *errList)
 	ctx := context{errs: errsChan}
@@ -38,7 +38,7 @@ func (l *Linker) LinkFile(f *file.File) error {
 	l.linkUses(&ctx, f)
 	l.linkIncludes(&ctx, f)
 
-	var errs list.List[*corgierr.Error]
+	var errs list.List[*fileerr.Error]
 	for i := 0; i < ctx.n; i++ {
 		subErrs := <-errsChan
 	subErrs:
@@ -52,7 +52,7 @@ func (l *Linker) LinkFile(f *file.File) error {
 		}
 	}
 	if errs.Len() > 0 {
-		return corgierr.List(errs.ToSlice())
+		return fileerr.List(errs.ToSlice())
 	}
 
 	mcErrs := l.linkMixinCalls(f)
@@ -61,7 +61,7 @@ func (l *Linker) LinkFile(f *file.File) error {
 	recErrs := l.checkRecursion(f)
 	errs.PushBackList(recErrs)
 	if recErrs.Len() > 0 {
-		return corgierr.List(errs.ToSlice())
+		return fileerr.List(errs.ToSlice())
 	}
 
 	mErrs := l.analyzeMixins(f)
@@ -70,14 +70,14 @@ func (l *Linker) LinkFile(f *file.File) error {
 	if errs.Len() == 0 {
 		return nil
 	}
-	return corgierr.List(errs.ToSlice())
+	return fileerr.List(errs.ToSlice())
 }
 
 // LinkLibrary concurrently links the passed library.
 //
 // It expects all files in the passed library to have passed [validate.PreLink].
 //
-// If it returns an error, that error will be of type [corgierr.List].
+// If it returns an error, that error will be of type [fileerr.List].
 func (l *Linker) LinkLibrary(lib *file.Library) error {
 	errsChan := make(chan *errList)
 	ctx := context{errs: errsChan}
@@ -104,7 +104,7 @@ func (l *Linker) LinkLibrary(lib *file.Library) error {
 		}
 	}
 	if errs.Len() > 0 {
-		return corgierr.List(errs.ToSlice())
+		return fileerr.List(errs.ToSlice())
 	}
 
 	for _, f := range lib.Files {
@@ -113,7 +113,7 @@ func (l *Linker) LinkLibrary(lib *file.Library) error {
 		errs.PushBackList(mcErrs)
 	}
 	if errs.Len() > 0 {
-		return corgierr.List(errs.ToSlice())
+		return fileerr.List(errs.ToSlice())
 	}
 
 	for _, f := range lib.Files {
@@ -121,7 +121,7 @@ func (l *Linker) LinkLibrary(lib *file.Library) error {
 		errs.PushBackList(recErrs)
 	}
 	if errs.Len() > 0 {
-		return corgierr.List(errs.ToSlice())
+		return fileerr.List(errs.ToSlice())
 	}
 
 	mErrs := l.analyzeMixins(lib.Files...)
@@ -130,7 +130,7 @@ func (l *Linker) LinkLibrary(lib *file.Library) error {
 	if errs.Len() == 0 {
 		return nil
 	}
-	return corgierr.List(errs.ToSlice())
+	return fileerr.List(errs.ToSlice())
 }
 
 type context struct {
@@ -138,7 +138,7 @@ type context struct {
 	errs chan<- *errList
 }
 
-func equalErr(a, b *corgierr.Error) bool {
+func equalErr(a, b *fileerr.Error) bool {
 	aa, ba := a.ErrorAnnotation, b.ErrorAnnotation
 
 	if aa.Start != ba.Start || aa.End != ba.End || aa.Annotation != ba.Annotation {

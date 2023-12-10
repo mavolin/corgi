@@ -1,8 +1,8 @@
 package anno
 
 import (
-	"github.com/mavolin/corgi/corgierr"
 	"github.com/mavolin/corgi/file"
+	"github.com/mavolin/corgi/fileerr"
 )
 
 type Annotation struct {
@@ -23,14 +23,14 @@ type Annotation struct {
 	Annotation string
 }
 
-func Anno(f *file.File, aw Annotation) corgierr.Annotation {
+func Anno(f *file.File, aw Annotation) fileerr.Annotation {
 	a := Lines(f.Lines, aw)
 	a.File = f
 	return a
 }
 
-func Lines(lines []string, aw Annotation) corgierr.Annotation {
-	var a corgierr.Annotation
+func Lines(lines []string, aw Annotation) fileerr.Annotation {
+	var a fileerr.Annotation
 	a.Annotation = aw.Annotation
 
 	if aw.ContextStart.Line > 0 {

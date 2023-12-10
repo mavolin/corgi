@@ -5,8 +5,8 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/mavolin/corgi/corgierr"
 	"github.com/mavolin/corgi/file"
+	"github.com/mavolin/corgi/fileerr"
 	anno2 "github.com/mavolin/corgi/internal/anno"
 )
 
@@ -140,7 +140,7 @@ func concatBuilder(sb *strings.Builder, iface any) {
 
 type annotation = anno2.Annotation
 
-func anno(c *current, aw annotation) corgierr.Annotation {
+func anno(c *current, aw annotation) fileerr.Annotation {
 	return anno2.Lines(c.globalStore["lines"].([]string), aw)
 }
 

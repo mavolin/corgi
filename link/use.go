@@ -4,9 +4,9 @@ import (
 	"errors"
 	"path"
 
-	"github.com/mavolin/corgi/corgierr"
 	"github.com/mavolin/corgi/file"
 	"github.com/mavolin/corgi/file/fileutil"
+	"github.com/mavolin/corgi/fileerr"
 	"github.com/mavolin/corgi/internal/anno"
 	"github.com/mavolin/corgi/internal/list"
 )
@@ -29,9 +29,9 @@ func (l *Linker) linkDependencies(ctx *context, lib *file.Library) {
 			var err error
 			dep.Library, err = l.loader.LoadLibrary(usingFile, path.Join(dep.Module, dep.PathInModule))
 			if err != nil {
-				ctx.errs <- list.List1(&corgierr.Error{
+				ctx.errs <- list.List1(&fileerr.Error{
 					Message: "failed to load dependency of precompiled library",
-					ErrorAnnotation: corgierr.Annotation{
+					ErrorAnnotation: fileerr.Annotation{
 						File:         usingFile,
 						ContextStart: 1,
 						Line:         1,
@@ -42,7 +42,7 @@ func (l *Linker) linkDependencies(ctx *context, lib *file.Library) {
 							path.Join(lib.Module, lib.PathInModule) + " requires " + path.Join(dep.Module, dep.PathInModule),
 						Lines: []string{""},
 					},
-					Suggestions: []corgierr.Suggestion{
+					Suggestions: []fileerr.Suggestion{
 						{
 							Suggestion: "this is probably a module that has become unavailable;\n" +
 								"re-recompiling the library will give you a more exact error message",
@@ -54,9 +54,9 @@ func (l *Linker) linkDependencies(ctx *context, lib *file.Library) {
 			}
 
 			if len(dep.Library.Files) == 0 {
-				ctx.errs <- list.List1(&corgierr.Error{
+				ctx.errs <- list.List1(&fileerr.Error{
 					Message: "dependency of precompiled library contains no library files",
-					ErrorAnnotation: corgierr.Annotation{
+					ErrorAnnotation: fileerr.Annotation{
 						File:         usingFile,
 						ContextStart: 1,
 						Line:         1,
@@ -67,7 +67,7 @@ func (l *Linker) linkDependencies(ctx *context, lib *file.Library) {
 							path.Join(lib.Module, lib.PathInModule) + " requires " + path.Join(dep.Module, dep.PathInModule),
 						Lines: []string{""},
 					},
-					Suggestions: []corgierr.Suggestion{
+					Suggestions: []fileerr.Suggestion{
 						{
 							Suggestion: "the dependency has probably been changed since the library was precompiled;\n" +
 								"you should re-precompile",
@@ -97,9 +97,9 @@ mixins:
 				}
 			}
 
-			errs.PushBack(&corgierr.Error{
+			errs.PushBack(&fileerr.Error{
 				Message: "failed to link mixin dependency of precompiled library",
-				ErrorAnnotation: corgierr.Annotation{
+				ErrorAnnotation: fileerr.Annotation{
 					File:         lib.Files[0],
 					ContextStart: 1,
 					Line:         1,
@@ -110,7 +110,7 @@ mixins:
 						path.Join(lib.Module, lib.PathInModule) + " requires " + path.Join(libDep.Library.Module, libDep.Library.PathInModule) + "." + a.Name + " cannot be found",
 					Lines: []string{""},
 				},
-				Suggestions: []corgierr.Suggestion{
+				Suggestions: []fileerr.Suggestion{
 					{Suggestion: "this is likely because of changes in a module and can be resolved by re-precompiling"},
 				},
 			})
@@ -127,9 +127,9 @@ mixins:
 			}
 		}
 
-		errs.PushBack(&corgierr.Error{
+		errs.PushBack(&fileerr.Error{
 			Message: "failed to link mixin dependency of precompiled library",
-			ErrorAnnotation: corgierr.Annotation{
+			ErrorAnnotation: fileerr.Annotation{
 				File:         lib.Files[0],
 				ContextStart: 1,
 				Line:         1,
@@ -140,7 +140,7 @@ mixins:
 					path.Join(lib.Module, lib.PathInModule) + " requires " + path.Join(libDep.Library.Module, libDep.Library.PathInModule) + "." + a.Name + " cannot be found",
 				Lines: []string{""},
 			},
-			Suggestions: []corgierr.Suggestion{
+			Suggestions: []fileerr.Suggestion{
 				{Suggestion: "this is likely because of changes in a module and can be resolved by re-precompiling"},
 			},
 		})
@@ -165,16 +165,16 @@ func (l *Linker) linkUses(ctx *context, f *file.File) {
 func (l *Linker) linkUseSpec(f *file.File, spec *file.UseSpec) *errList {
 	lib, err := l.loader.LoadLibrary(f, fileutil.Unquote(spec.Path))
 	if err != nil {
-		var cerr *corgierr.Error
+		var cerr *fileerr.Error
 		if errors.As(err, &cerr) {
 			return list.List1(cerr)
 		}
-		var clerr corgierr.List
+		var clerr fileerr.List
 		if errors.As(err, &clerr) {
 			return list.FromSlice(clerr)
 		}
 
-		return list.List1(&corgierr.Error{
+		return list.List1(&fileerr.Error{
 			Message: "failed to load library",
 			ErrorAnnotation: anno.Anno(f, anno.Annotation{
 				Start:      spec.Position,
@@ -186,7 +186,7 @@ func (l *Linker) linkUseSpec(f *file.File, spec *file.UseSpec) *errList {
 	}
 
 	if lib == nil {
-		return list.List1(&corgierr.Error{
+		return list.List1(&fileerr.Error{
 			Message: "library not found",
 			ErrorAnnotation: anno.Anno(f, anno.Annotation{
 				Start:      spec.Position,

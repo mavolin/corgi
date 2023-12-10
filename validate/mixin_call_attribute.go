@@ -1,9 +1,9 @@
 package validate
 
 import (
-	"github.com/mavolin/corgi/corgierr"
 	"github.com/mavolin/corgi/file"
 	"github.com/mavolin/corgi/file/fileutil"
+	"github.com/mavolin/corgi/fileerr"
 	"github.com/mavolin/corgi/internal/anno"
 	"github.com/mavolin/corgi/internal/list"
 	"github.com/mavolin/corgi/woof"
@@ -53,7 +53,7 @@ func mixinCallAttributeChecks(f *file.File) *errList {
 func _mixinCallAttributeIsPlain(f *file.File, mca file.MixinCallAttribute) *errList {
 	at := woof.AttrType(mca.Name)
 	if at != woof.ContentTypePlain {
-		return list.List1(&corgierr.Error{
+		return list.List1(&fileerr.Error{
 			Message: "mixin call attribute as " + at.String() + " attribute",
 			ErrorAnnotation: anno.Anno(f, anno.Annotation{
 				Start:      mca.Position,
@@ -69,26 +69,26 @@ func _mixinCallAttributeIsPlain(f *file.File, mca file.MixinCallAttribute) *errL
 func _mixinCallAttributesOnlyWriteText(f *file.File, mca file.MixinCallAttribute) *errList {
 	lm := mca.MixinCall.Mixin.Mixin
 	if lm.WritesTopLevelAttributes {
-		return list.List1(&corgierr.Error{
+		return list.List1(&fileerr.Error{
 			Message: "mixin call attribute: mixin writes other attributes",
 			ErrorAnnotation: anno.Anno(f, anno.Annotation{
 				Start:      mca.Position,
 				End:        mixinCallAttributeEnd(mca),
 				Annotation: "this mixin should only write text",
 			}),
-			Suggestions: []corgierr.Suggestion{
+			Suggestions: []fileerr.Suggestion{
 				{Suggestion: "modify the mixin, or construct the attributes value manually"},
 			},
 		})
 	} else if lm.WritesElements {
-		return list.List1(&corgierr.Error{
+		return list.List1(&fileerr.Error{
 			Message: "mixin call attribute: mixin writes elements",
 			ErrorAnnotation: anno.Anno(f, anno.Annotation{
 				Start:      mca.Position,
 				End:        mixinCallAttributeEnd(mca),
 				Annotation: "this mixin should only write text, not elements",
 			}),
-			Suggestions: []corgierr.Suggestion{
+			Suggestions: []fileerr.Suggestion{
 				{Suggestion: "modify the mixin, or construct the attributes value manually"},
 			},
 		})
@@ -99,14 +99,14 @@ func _mixinCallAttributesOnlyWriteText(f *file.File, mca file.MixinCallAttribute
 
 func _topLevelAndInMixinCallAttribute(f *file.File, mca file.MixinCallAttribute) *errList {
 	if mca.MixinCall.Mixin.Mixin.WritesTopLevelAttributes {
-		return list.List1(&corgierr.Error{
+		return list.List1(&fileerr.Error{
 			Message: "interpolated mixin writes attributes",
 			ErrorAnnotation: anno.Anno(f, anno.Annotation{
 				Start:      mca.Position,
 				End:        mixinCallAttributeEnd(mca),
 				Annotation: "here",
 			}),
-			Suggestions: []corgierr.Suggestion{
+			Suggestions: []fileerr.Suggestion{
 				{
 					Suggestion: "you can only use mixins as attribute values, that don't have any top-level attributes,\n" +
 						"i.e. don't write any attribute to the element they are called in",
@@ -160,7 +160,7 @@ params:
 					}
 				}
 
-				errs.PushBack(&corgierr.Error{
+				errs.PushBack(&fileerr.Error{
 					Message: "required mixin call arg set with chain expression without default",
 					ErrorAnnotation: anno.Anno(f, anno.Annotation{
 						Start:      ce.Position,
@@ -172,7 +172,7 @@ params:
 			}
 		}
 
-		errs.PushBack(&corgierr.Error{
+		errs.PushBack(&fileerr.Error{
 			Message: "required mixin call arg not set",
 			ErrorAnnotation: anno.Anno(f, anno.Annotation{
 				Start:      mca.MixinCall.Position,
@@ -198,7 +198,7 @@ func _mixinCallAttributeBlockExists(f *file.File, mca file.MixinCallAttribute) *
 
 	start, end := interpolationBounds(mca.Value)
 
-	return list.List1(&corgierr.Error{
+	return list.List1(&fileerr.Error{
 		Message: "mixin call attribute has value, but called mixin has no `_` block",
 		ErrorAnnotation: anno.Anno(f, anno.Annotation{
 			Start:      start,

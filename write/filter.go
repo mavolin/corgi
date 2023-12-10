@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/mavolin/corgi/corgierr"
 	"github.com/mavolin/corgi/file"
+	"github.com/mavolin/corgi/fileerr"
 	"github.com/mavolin/corgi/internal/anno"
 )
 
@@ -21,7 +21,7 @@ func commandFilter(ctx *ctx, filter file.CommandFilter) {
 		}
 
 		if ctx.cli {
-			fmt.Println((&corgierr.Error{
+			fmt.Println((&fileerr.Error{
 				Message: "disallowed filter",
 				ErrorAnnotation: anno.Anno(ctx.currentFile(), anno.Annotation{
 					Start:       filter.Position,
@@ -29,7 +29,7 @@ func commandFilter(ctx *ctx, filter file.CommandFilter) {
 					Len:         len(filter.Name),
 					Annotation:  "this filter is not allowed to be executed under the current settings",
 				}),
-				Suggestions: []corgierr.Suggestion{
+				Suggestions: []fileerr.Suggestion{
 					{
 						Suggestion: "allow this filter using the `-allow-filter` flag\n" +
 							"or edit the list of allowed filters using `-edit-allowed-filters`",
@@ -84,7 +84,7 @@ func commandFilter(ctx *ctx, filter file.CommandFilter) {
 	cmd.Stdout = &out
 	if err := cmd.Run(); err != nil {
 		if ctx.cli {
-			fmt.Println((&corgierr.Error{
+			fmt.Println((&fileerr.Error{
 				Message: "failed to run filter",
 				ErrorAnnotation: anno.Anno(ctx.currentFile(), anno.Annotation{
 					Start:      filter.Position,

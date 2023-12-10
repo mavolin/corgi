@@ -5,9 +5,9 @@ import (
 	"regexp"
 	"strconv"
 
-	"github.com/mavolin/corgi/corgierr"
 	"github.com/mavolin/corgi/file"
 	"github.com/mavolin/corgi/file/fileutil"
+	"github.com/mavolin/corgi/fileerr"
 	"github.com/mavolin/corgi/internal/anno"
 )
 
@@ -58,9 +58,9 @@ func duplicateImports(f *file.File) *errList {
 					bLine = bPathQuot
 				}
 
-				errs.PushBack(&corgierr.Error{
+				errs.PushBack(&fileerr.Error{
 					Message: "duplicate import",
-					ErrorAnnotation: corgierr.Annotation{
+					ErrorAnnotation: fileerr.Annotation{
 						File:         f,
 						ContextStart: a.Path.Line,
 						ContextEnd:   a.Path.Line + 1,
@@ -70,7 +70,7 @@ func duplicateImports(f *file.File) *errList {
 						Annotation:   "duplicate",
 						Lines:        []string{aLine},
 					},
-					HintAnnotations: []corgierr.Annotation{
+					HintAnnotations: []fileerr.Annotation{
 						{
 							File:         f,
 							ContextStart: b.Path.Line,
@@ -82,7 +82,7 @@ func duplicateImports(f *file.File) *errList {
 							Lines:        []string{bLine},
 						},
 					},
-					Suggestions: []corgierr.Suggestion{{Suggestion: "remove one of these"}},
+					Suggestions: []fileerr.Suggestion{{Suggestion: "remove one of these"}},
 				})
 			}
 		}
@@ -119,37 +119,37 @@ func importNamespaces(cmps map[string]importNamespace, f *file.File) *errList {
 				continue
 			}
 
-			var suggestions []corgierr.Suggestion
+			var suggestions []fileerr.Suggestion
 			switch {
 			case a.Alias == nil && b.Alias == nil:
-				suggestions = append(suggestions, corgierr.Suggestion{
+				suggestions = append(suggestions, fileerr.Suggestion{
 					Suggestion: "use an import alias",
 					Example:    "`" + namespace + "1 " + strconv.Quote(aPath) + "` or `" + namespace + "1 " + strconv.Quote(bPath) + "`",
 				})
 			case a.Alias == nil:
-				suggestions = append(suggestions, corgierr.Suggestion{
+				suggestions = append(suggestions, fileerr.Suggestion{
 					Suggestion: "use an import alias",
 					Example:    "`" + namespace + "1 " + strconv.Quote(aPath) + "`",
 				})
 			case b.Alias == nil:
-				suggestions = append(suggestions, corgierr.Suggestion{
+				suggestions = append(suggestions, fileerr.Suggestion{
 					Suggestion: "use an import alias",
 					Example:    "`" + namespace + "1 " + strconv.Quote(bPath) + "`",
 				})
 			}
 			switch {
 			case a.Alias != nil && b.Alias != nil:
-				suggestions = append(suggestions, corgierr.Suggestion{
+				suggestions = append(suggestions, fileerr.Suggestion{
 					Suggestion: "use a different import alias",
 					Example:    "`" + namespace + "1 " + strconv.Quote(aPath) + "` or `" + namespace + "1 " + strconv.Quote(bPath) + "`",
 				})
 			case a.Alias != nil:
-				suggestions = append(suggestions, corgierr.Suggestion{
+				suggestions = append(suggestions, fileerr.Suggestion{
 					Suggestion: "use a different import alias",
 					Example:    "`" + namespace + "1 " + strconv.Quote(aPath) + "`",
 				})
 			case b.Alias != nil:
-				suggestions = append(suggestions, corgierr.Suggestion{
+				suggestions = append(suggestions, fileerr.Suggestion{
 					Suggestion: "use a different import alias",
 					Example:    "`" + namespace + "1 " + strconv.Quote(bPath) + "`",
 				})
@@ -181,9 +181,9 @@ func importNamespaces(cmps map[string]importNamespace, f *file.File) *errList {
 				bLine = bPathQuot
 			}
 
-			errs.PushBack(&corgierr.Error{
+			errs.PushBack(&fileerr.Error{
 				Message: "duplicate import namespace",
-				ErrorAnnotation: corgierr.Annotation{
+				ErrorAnnotation: fileerr.Annotation{
 					File:         f,
 					ContextStart: a.Path.Line,
 					ContextEnd:   a.Path.Line + 1,
@@ -193,7 +193,7 @@ func importNamespaces(cmps map[string]importNamespace, f *file.File) *errList {
 					Annotation:   "second import",
 					Lines:        []string{aLine},
 				},
-				HintAnnotations: []corgierr.Annotation{
+				HintAnnotations: []fileerr.Annotation{
 					{
 						File:         f,
 						ContextStart: b.Path.Line,
@@ -226,7 +226,7 @@ func usePathBaseIsValidIdent(f *file.File) *errList {
 
 			base := path.Base(fileutil.Unquote(spec.Path))
 			if !identRegexp.MatchString(base) {
-				errs.PushBack(&corgierr.Error{
+				errs.PushBack(&fileerr.Error{
 					Message: "use path with non-identifier as base",
 					ErrorAnnotation: anno.Anno(f, anno.Annotation{
 						Start:       spec.Path.Position,
@@ -289,14 +289,14 @@ func unusedUses(f *file.File) *errList {
 
 	var errs errList
 	for _, spec := range unusedSpecs {
-		errs.PushBack(&corgierr.Error{
+		errs.PushBack(&fileerr.Error{
 			Message: "unused `use`",
 			ErrorAnnotation: anno.Anno(f, anno.Annotation{
 				Start:      spec.Position,
 				ToEOL:      true,
 				Annotation: "no mixin requires this package",
 			}),
-			Suggestions: []corgierr.Suggestion{
+			Suggestions: []fileerr.Suggestion{
 				{Suggestion: "remove this `use`"},
 				{
 					Suggestion: "if you are using this package for side effects, add the `_` use alias",

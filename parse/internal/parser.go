@@ -16,8 +16,8 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/mavolin/corgi/corgierr"
 	"github.com/mavolin/corgi/file"
+	"github.com/mavolin/corgi/fileerr"
 	"github.com/mavolin/corgi/internal/stack"
 )
 
@@ -55010,7 +55010,7 @@ func (c *current) onextendAndComments33(strI any) (any, error) {
 			Quote:    '`',
 			Contents: concat(strI),
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "unclosed string literal",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
@@ -55027,7 +55027,7 @@ func (p *parser) callonextendAndComments33() (any, error) {
 }
 
 func (c *current) onextendAndComments65() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid hex byte escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -55035,7 +55035,7 @@ func (c *current) onextendAndComments65() (any, error) {
 			Annotation: "expected `\\x`, followed by two hex digits",
 		}),
 		Example: "`\\x1f`",
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 				Code:       "`\\\\" + string(c.text[1:]) + "`",
@@ -55052,24 +55052,24 @@ func (p *parser) callonextendAndComments65() (any, error) {
 }
 
 func (c *current) onextendAndComments78() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 6-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 6-len(c.text)) + "`",
 	})
 
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid little u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -55089,29 +55089,29 @@ func (p *parser) callonextendAndComments78() (any, error) {
 }
 
 func (c *current) onextendAndComments99() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a big U escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
 	if len(c.text) >= 6 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a little u escape",
 			Code:       "`\\u" + string(c.text[2:6]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 10-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 10-len(c.text)) + "`",
 	})
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid big u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -55131,14 +55131,14 @@ func (p *parser) callonextendAndComments99() (any, error) {
 }
 
 func (c *current) onextendAndComments122() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -55163,14 +55163,14 @@ func (p *parser) callonextendAndComments122() (any, error) {
 }
 
 func (c *current) onextendAndComments133() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -55192,14 +55192,14 @@ func (p *parser) callonextendAndComments133() (any, error) {
 }
 
 func (c *current) onextendAndComments140() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -55218,14 +55218,14 @@ func (p *parser) callonextendAndComments140() (any, error) {
 }
 
 func (c *current) onextendAndComments145() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, an octal escape, `\\u`, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -55251,7 +55251,7 @@ func (p *parser) callonextendAndComments50() (any, error) {
 }
 
 func (c *current) onextendAndComments166() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid hex byte escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -55259,7 +55259,7 @@ func (c *current) onextendAndComments166() (any, error) {
 			Annotation: "expected `\\x`, followed by two hex digits",
 		}),
 		Example: "`\\x1f`",
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 				Code:       "`\\\\" + string(c.text[1:]) + "`",
@@ -55276,24 +55276,24 @@ func (p *parser) callonextendAndComments166() (any, error) {
 }
 
 func (c *current) onextendAndComments179() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 6-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 6-len(c.text)) + "`",
 	})
 
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid little u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -55313,29 +55313,29 @@ func (p *parser) callonextendAndComments179() (any, error) {
 }
 
 func (c *current) onextendAndComments200() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a big U escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
 	if len(c.text) >= 6 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a little u escape",
 			Code:       "`\\u" + string(c.text[2:6]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 10-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 10-len(c.text)) + "`",
 	})
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid big u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -55355,14 +55355,14 @@ func (p *parser) callonextendAndComments200() (any, error) {
 }
 
 func (c *current) onextendAndComments223() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -55387,14 +55387,14 @@ func (p *parser) callonextendAndComments223() (any, error) {
 }
 
 func (c *current) onextendAndComments234() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -55416,14 +55416,14 @@ func (p *parser) callonextendAndComments234() (any, error) {
 }
 
 func (c *current) onextendAndComments241() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -55442,14 +55442,14 @@ func (p *parser) callonextendAndComments241() (any, error) {
 }
 
 func (c *current) onextendAndComments246() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, an octal escape, `\\u`, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -55479,7 +55479,7 @@ func (c *current) onextendAndComments151(strI, endPosI any) (any, error) {
 			Quote:    '"',
 			Contents: concat(strI),
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "unclosed string literal",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
@@ -55508,12 +55508,12 @@ func (p *parser) callonextendAndComments277() (any, error) {
 func (c *current) onextendAndComments269(strI, endPosI any) (any, error) {
 	raw := concat(strI)
 
-	suggestion := corgierr.Suggestion{
+	suggestion := fileerr.Suggestion{
 		Suggestion: "enclose this string in double quotes or backticks, instead of single quotes",
 		Code:       "`" + strconv.Quote(raw) + "` or ``" + raw + "``",
 	}
 	if strings.Contains(raw, "`") {
-		suggestion = corgierr.Suggestion{
+		suggestion = fileerr.Suggestion{
 			Suggestion: "enclose this string in double quotes, instead of single quotes",
 			Code:       "`" + strconv.Quote(raw) + "`",
 		}
@@ -55523,14 +55523,14 @@ func (c *current) onextendAndComments269(strI, endPosI any) (any, error) {
 			Quote:    '\'',
 			Contents: concat(strI),
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "use of single-quoted string",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
 				End:        endPosI.(file.Position),
 				Annotation: "this should be a valid Go string",
 			}),
-			Suggestions: []corgierr.Suggestion{suggestion},
+			Suggestions: []fileerr.Suggestion{suggestion},
 		}
 }
 
@@ -55551,7 +55551,7 @@ func (p *parser) callonextendAndComments20() (any, error) {
 }
 
 func (c *current) onextendAndComments283(pathI any) (any, error) {
-	return file.String{Position: pos(c)}, &corgierr.Error{
+	return file.String{Position: pos(c)}, &fileerr.Error{
 		Message: "invalid path",
 		ErrorAnnotation: anno(c, annotation{
 			Start:       pos(c),
@@ -55623,37 +55623,37 @@ func (c *current) onimportsAndComments58() (bool, error) {
 	for i, ws := range c.text[1:] {
 		if byte(ws) != firstChar {
 			if firstChar == ' ' {
-				panic(&corgierr.Error{
+				panic(&fileerr.Error{
 					Message: "mix of tabs and spaces for indentation",
 					ErrorAnnotation: anno(c, annotation{
 						Start:      file.Position{Line: c.pos.line, Col: i + 2},
 						Annotation: "this is a tab",
 					}),
-					HintAnnotations: []corgierr.Annotation{
+					HintAnnotations: []fileerr.Annotation{
 						anno(c, annotation{
 							Start:      file.Position{Line: c.pos.line, Col: 1},
 							Annotation: "this is a space",
 						}),
 					},
-					Suggestions: []corgierr.Suggestion{
+					Suggestions: []fileerr.Suggestion{
 						{Suggestion: "use only tabs OR spaces for indentation, but not both"},
 					},
 				})
 			}
 
-			panic(&corgierr.Error{
+			panic(&fileerr.Error{
 				Message: "mix of tabs and spaces for indentation",
 				ErrorAnnotation: anno(c, annotation{
 					Start:      file.Position{Line: c.pos.line, Col: i + 2},
 					Annotation: "this is a space",
 				}),
-				HintAnnotations: []corgierr.Annotation{
+				HintAnnotations: []fileerr.Annotation{
 					anno(c, annotation{
 						Start:      file.Position{Line: c.pos.line, Col: 1},
 						Annotation: "this is a tab",
 					}),
 				},
-				Suggestions: []corgierr.Suggestion{
+				Suggestions: []fileerr.Suggestion{
 					{Suggestion: "use only tabs OR spaces for indentation, but not both"},
 				},
 			})
@@ -55729,14 +55729,14 @@ func (c *current) onimportsAndComments66() (bool, error) {
 	for _, space := range c.text {
 		if space != indentChar {
 			if indentChar == ' ' {
-				panic(&corgierr.Error{
+				panic(&fileerr.Error{
 					Message: "mix of tabs and spaces for indentation",
 					ErrorAnnotation: anno(c, annotation{
 						Start:      file.Position{Line: c.pos.line, Col: 1},
 						Len:        len(c.text),
 						Annotation: "but these are tabs",
 					}),
-					HintAnnotations: []corgierr.Annotation{
+					HintAnnotations: []fileerr.Annotation{
 						anno(c, annotation{
 							ContextStartDelta: -1,
 							Start:             file.Position{Line: refLine, Col: 1},
@@ -55744,20 +55744,20 @@ func (c *current) onimportsAndComments66() (bool, error) {
 							Annotation:        "these are spaces",
 						}),
 					},
-					Suggestions: []corgierr.Suggestion{
+					Suggestions: []fileerr.Suggestion{
 						{Suggestion: "use only tabs OR spaces for indentation, but not both"},
 					},
 				})
 			}
 
-			panic(&corgierr.Error{
+			panic(&fileerr.Error{
 				Message: "mix of tabs and spaces for indentation",
 				ErrorAnnotation: anno(c, annotation{
 					Start:      file.Position{Line: c.pos.line, Col: 1},
 					Len:        len(c.text),
 					Annotation: "but these are spaces",
 				}),
-				HintAnnotations: []corgierr.Annotation{
+				HintAnnotations: []fileerr.Annotation{
 					anno(c, annotation{
 						ContextStartDelta: -1,
 						Start:             file.Position{Line: refLine, Col: 1},
@@ -55765,7 +55765,7 @@ func (c *current) onimportsAndComments66() (bool, error) {
 						Annotation:        "these are tabs",
 					}),
 				},
-				Suggestions: []corgierr.Suggestion{
+				Suggestions: []fileerr.Suggestion{
 					{Suggestion: "use only tabs OR spaces for indentation, but not both"},
 				},
 			})
@@ -55811,7 +55811,7 @@ func (c *current) onimportsAndComments70() (bool, error) {
 
 	if (actualCount - totalReps) != refReps {
 		if indentChar == ' ' {
-			return true, &corgierr.Error{
+			return true, &fileerr.Error{
 				Message: "inconsistent indentation",
 				ErrorAnnotation: anno(c, annotation{
 					ContextStartDelta: -1,
@@ -55819,7 +55819,7 @@ func (c *current) onimportsAndComments70() (bool, error) {
 					Len:               actualCount - totalReps,
 					Annotation:        fmt.Sprintf("however, here you used %d spaces", actualCount-totalReps),
 				}),
-				HintAnnotations: []corgierr.Annotation{
+				HintAnnotations: []fileerr.Annotation{
 					anno(c, annotation{
 						ContextStartDelta: -1,
 						Start:             file.Position{Line: refLine, Col: 1},
@@ -55827,7 +55827,7 @@ func (c *current) onimportsAndComments70() (bool, error) {
 						Annotation:        fmt.Sprintf("this line uses %d spaces to indent a single level", refReps),
 					}),
 				},
-				Suggestions: []corgierr.Suggestion{
+				Suggestions: []fileerr.Suggestion{
 					{
 						Suggestion: "be consistent in your indentation:\n" +
 							"if you use two spaces for a single indentation, use four for a two-level indentation",
@@ -55836,7 +55836,7 @@ func (c *current) onimportsAndComments70() (bool, error) {
 			}
 		}
 
-		return true, &corgierr.Error{
+		return true, &fileerr.Error{
 			Message: "inconsistent indentation",
 			ErrorAnnotation: anno(c, annotation{
 				ContextStartDelta: -1,
@@ -55844,7 +55844,7 @@ func (c *current) onimportsAndComments70() (bool, error) {
 				Len:               actualCount - totalReps,
 				Annotation:        fmt.Sprintf("however, here you used %d tabs", actualCount-totalReps),
 			}),
-			HintAnnotations: []corgierr.Annotation{
+			HintAnnotations: []fileerr.Annotation{
 				anno(c, annotation{
 					ContextStartDelta: -1,
 					Start:             file.Position{Line: refLine, Col: 1},
@@ -55852,7 +55852,7 @@ func (c *current) onimportsAndComments70() (bool, error) {
 					Annotation:        fmt.Sprintf("this line uses %d tabs to indent a single level", refReps),
 				}),
 			},
-			Suggestions: []corgierr.Suggestion{
+			Suggestions: []fileerr.Suggestion{
 				{
 					Suggestion: "be consistent in your indentation:\n" +
 						"if you use two tabs for a single indentation, use four for a two-level indentation, ...",
@@ -55911,7 +55911,7 @@ func (c *current) onimportsAndComments74() (bool, error) {
 		return false, nil
 	}
 
-	panic(&corgierr.Error{
+	panic(&fileerr.Error{
 		Message: "unexpected increase of indentation",
 		ErrorAnnotation: anno(c, annotation{
 			ContextStartDelta: -1,
@@ -55963,7 +55963,7 @@ func (c *current) onimportsAndComments89(endPosI any) (any, error) {
 	return file.GoIdent{
 			Ident:    string(c.text),
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "invalid import alias",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
@@ -55994,7 +55994,7 @@ func (c *current) onimportsAndComments111(strI any) (any, error) {
 			Quote:    '`',
 			Contents: concat(strI),
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "unclosed string literal",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
@@ -56011,7 +56011,7 @@ func (p *parser) callonimportsAndComments111() (any, error) {
 }
 
 func (c *current) onimportsAndComments143() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid hex byte escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -56019,7 +56019,7 @@ func (c *current) onimportsAndComments143() (any, error) {
 			Annotation: "expected `\\x`, followed by two hex digits",
 		}),
 		Example: "`\\x1f`",
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 				Code:       "`\\\\" + string(c.text[1:]) + "`",
@@ -56036,24 +56036,24 @@ func (p *parser) callonimportsAndComments143() (any, error) {
 }
 
 func (c *current) onimportsAndComments156() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 6-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 6-len(c.text)) + "`",
 	})
 
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid little u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -56073,29 +56073,29 @@ func (p *parser) callonimportsAndComments156() (any, error) {
 }
 
 func (c *current) onimportsAndComments177() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a big U escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
 	if len(c.text) >= 6 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a little u escape",
 			Code:       "`\\u" + string(c.text[2:6]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 10-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 10-len(c.text)) + "`",
 	})
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid big u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -56115,14 +56115,14 @@ func (p *parser) callonimportsAndComments177() (any, error) {
 }
 
 func (c *current) onimportsAndComments200() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -56147,14 +56147,14 @@ func (p *parser) callonimportsAndComments200() (any, error) {
 }
 
 func (c *current) onimportsAndComments211() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -56176,14 +56176,14 @@ func (p *parser) callonimportsAndComments211() (any, error) {
 }
 
 func (c *current) onimportsAndComments218() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -56202,14 +56202,14 @@ func (p *parser) callonimportsAndComments218() (any, error) {
 }
 
 func (c *current) onimportsAndComments223() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, an octal escape, `\\u`, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -56235,7 +56235,7 @@ func (p *parser) callonimportsAndComments128() (any, error) {
 }
 
 func (c *current) onimportsAndComments244() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid hex byte escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -56243,7 +56243,7 @@ func (c *current) onimportsAndComments244() (any, error) {
 			Annotation: "expected `\\x`, followed by two hex digits",
 		}),
 		Example: "`\\x1f`",
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 				Code:       "`\\\\" + string(c.text[1:]) + "`",
@@ -56260,24 +56260,24 @@ func (p *parser) callonimportsAndComments244() (any, error) {
 }
 
 func (c *current) onimportsAndComments257() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 6-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 6-len(c.text)) + "`",
 	})
 
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid little u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -56297,29 +56297,29 @@ func (p *parser) callonimportsAndComments257() (any, error) {
 }
 
 func (c *current) onimportsAndComments278() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a big U escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
 	if len(c.text) >= 6 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a little u escape",
 			Code:       "`\\u" + string(c.text[2:6]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 10-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 10-len(c.text)) + "`",
 	})
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid big u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -56339,14 +56339,14 @@ func (p *parser) callonimportsAndComments278() (any, error) {
 }
 
 func (c *current) onimportsAndComments301() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -56371,14 +56371,14 @@ func (p *parser) callonimportsAndComments301() (any, error) {
 }
 
 func (c *current) onimportsAndComments312() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -56400,14 +56400,14 @@ func (p *parser) callonimportsAndComments312() (any, error) {
 }
 
 func (c *current) onimportsAndComments319() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -56426,14 +56426,14 @@ func (p *parser) callonimportsAndComments319() (any, error) {
 }
 
 func (c *current) onimportsAndComments324() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, an octal escape, `\\u`, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -56463,7 +56463,7 @@ func (c *current) onimportsAndComments229(strI, endPosI any) (any, error) {
 			Quote:    '"',
 			Contents: concat(strI),
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "unclosed string literal",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
@@ -56492,12 +56492,12 @@ func (p *parser) callonimportsAndComments355() (any, error) {
 func (c *current) onimportsAndComments347(strI, endPosI any) (any, error) {
 	raw := concat(strI)
 
-	suggestion := corgierr.Suggestion{
+	suggestion := fileerr.Suggestion{
 		Suggestion: "enclose this string in double quotes or backticks, instead of single quotes",
 		Code:       "`" + strconv.Quote(raw) + "` or ``" + raw + "``",
 	}
 	if strings.Contains(raw, "`") {
-		suggestion = corgierr.Suggestion{
+		suggestion = fileerr.Suggestion{
 			Suggestion: "enclose this string in double quotes, instead of single quotes",
 			Code:       "`" + strconv.Quote(raw) + "`",
 		}
@@ -56507,14 +56507,14 @@ func (c *current) onimportsAndComments347(strI, endPosI any) (any, error) {
 			Quote:    '\'',
 			Contents: concat(strI),
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "use of single-quoted string",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
 				End:        endPosI.(file.Position),
 				Annotation: "this should be a valid Go string",
 			}),
-			Suggestions: []corgierr.Suggestion{suggestion},
+			Suggestions: []fileerr.Suggestion{suggestion},
 		}
 }
 
@@ -56525,7 +56525,7 @@ func (p *parser) callonimportsAndComments347() (any, error) {
 }
 
 func (c *current) onimportsAndComments361(pathI any) (any, error) {
-	return file.String{Position: pos(c)}, &corgierr.Error{
+	return file.String{Position: pos(c)}, &fileerr.Error{
 		Message: "invalid path",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -56633,7 +56633,7 @@ func (c *current) onimportsAndComments395(endPosI any) (any, error) {
 	return file.GoIdent{
 			Ident:    string(c.text),
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "invalid import alias",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
@@ -56664,7 +56664,7 @@ func (c *current) onimportsAndComments417(strI any) (any, error) {
 			Quote:    '`',
 			Contents: concat(strI),
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "unclosed string literal",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
@@ -56681,7 +56681,7 @@ func (p *parser) callonimportsAndComments417() (any, error) {
 }
 
 func (c *current) onimportsAndComments449() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid hex byte escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -56689,7 +56689,7 @@ func (c *current) onimportsAndComments449() (any, error) {
 			Annotation: "expected `\\x`, followed by two hex digits",
 		}),
 		Example: "`\\x1f`",
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 				Code:       "`\\\\" + string(c.text[1:]) + "`",
@@ -56706,24 +56706,24 @@ func (p *parser) callonimportsAndComments449() (any, error) {
 }
 
 func (c *current) onimportsAndComments462() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 6-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 6-len(c.text)) + "`",
 	})
 
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid little u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -56743,29 +56743,29 @@ func (p *parser) callonimportsAndComments462() (any, error) {
 }
 
 func (c *current) onimportsAndComments483() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a big U escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
 	if len(c.text) >= 6 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a little u escape",
 			Code:       "`\\u" + string(c.text[2:6]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 10-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 10-len(c.text)) + "`",
 	})
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid big u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -56785,14 +56785,14 @@ func (p *parser) callonimportsAndComments483() (any, error) {
 }
 
 func (c *current) onimportsAndComments506() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -56817,14 +56817,14 @@ func (p *parser) callonimportsAndComments506() (any, error) {
 }
 
 func (c *current) onimportsAndComments517() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -56846,14 +56846,14 @@ func (p *parser) callonimportsAndComments517() (any, error) {
 }
 
 func (c *current) onimportsAndComments524() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -56872,14 +56872,14 @@ func (p *parser) callonimportsAndComments524() (any, error) {
 }
 
 func (c *current) onimportsAndComments529() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, an octal escape, `\\u`, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -56905,7 +56905,7 @@ func (p *parser) callonimportsAndComments434() (any, error) {
 }
 
 func (c *current) onimportsAndComments550() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid hex byte escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -56913,7 +56913,7 @@ func (c *current) onimportsAndComments550() (any, error) {
 			Annotation: "expected `\\x`, followed by two hex digits",
 		}),
 		Example: "`\\x1f`",
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 				Code:       "`\\\\" + string(c.text[1:]) + "`",
@@ -56930,24 +56930,24 @@ func (p *parser) callonimportsAndComments550() (any, error) {
 }
 
 func (c *current) onimportsAndComments563() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 6-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 6-len(c.text)) + "`",
 	})
 
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid little u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -56967,29 +56967,29 @@ func (p *parser) callonimportsAndComments563() (any, error) {
 }
 
 func (c *current) onimportsAndComments584() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a big U escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
 	if len(c.text) >= 6 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a little u escape",
 			Code:       "`\\u" + string(c.text[2:6]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 10-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 10-len(c.text)) + "`",
 	})
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid big u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -57009,14 +57009,14 @@ func (p *parser) callonimportsAndComments584() (any, error) {
 }
 
 func (c *current) onimportsAndComments607() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -57041,14 +57041,14 @@ func (p *parser) callonimportsAndComments607() (any, error) {
 }
 
 func (c *current) onimportsAndComments618() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -57070,14 +57070,14 @@ func (p *parser) callonimportsAndComments618() (any, error) {
 }
 
 func (c *current) onimportsAndComments625() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -57096,14 +57096,14 @@ func (p *parser) callonimportsAndComments625() (any, error) {
 }
 
 func (c *current) onimportsAndComments630() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, an octal escape, `\\u`, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -57133,7 +57133,7 @@ func (c *current) onimportsAndComments535(strI, endPosI any) (any, error) {
 			Quote:    '"',
 			Contents: concat(strI),
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "unclosed string literal",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
@@ -57162,12 +57162,12 @@ func (p *parser) callonimportsAndComments661() (any, error) {
 func (c *current) onimportsAndComments653(strI, endPosI any) (any, error) {
 	raw := concat(strI)
 
-	suggestion := corgierr.Suggestion{
+	suggestion := fileerr.Suggestion{
 		Suggestion: "enclose this string in double quotes or backticks, instead of single quotes",
 		Code:       "`" + strconv.Quote(raw) + "` or ``" + raw + "``",
 	}
 	if strings.Contains(raw, "`") {
-		suggestion = corgierr.Suggestion{
+		suggestion = fileerr.Suggestion{
 			Suggestion: "enclose this string in double quotes, instead of single quotes",
 			Code:       "`" + strconv.Quote(raw) + "`",
 		}
@@ -57177,14 +57177,14 @@ func (c *current) onimportsAndComments653(strI, endPosI any) (any, error) {
 			Quote:    '\'',
 			Contents: concat(strI),
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "use of single-quoted string",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
 				End:        endPosI.(file.Position),
 				Annotation: "this should be a valid Go string",
 			}),
-			Suggestions: []corgierr.Suggestion{suggestion},
+			Suggestions: []fileerr.Suggestion{suggestion},
 		}
 }
 
@@ -57195,7 +57195,7 @@ func (p *parser) callonimportsAndComments653() (any, error) {
 }
 
 func (c *current) onimportsAndComments667(pathI any) (any, error) {
-	return file.String{Position: pos(c)}, &corgierr.Error{
+	return file.String{Position: pos(c)}, &fileerr.Error{
 		Message: "invalid path",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -57255,7 +57255,7 @@ func (p *parser) callonimportsAndComments684() (any, error) {
 }
 
 func (c *current) onimportsAndComments680(posI any) (any, error) {
-	return file.Import{Position: pos(c)}, &corgierr.Error{
+	return file.Import{Position: pos(c)}, &fileerr.Error{
 		Message: "missing import path",
 		ErrorAnnotation: anno(c, annotation{
 			Start:       posI.(file.Position),
@@ -57345,37 +57345,37 @@ func (c *current) onusesAndComments58() (bool, error) {
 	for i, ws := range c.text[1:] {
 		if byte(ws) != firstChar {
 			if firstChar == ' ' {
-				panic(&corgierr.Error{
+				panic(&fileerr.Error{
 					Message: "mix of tabs and spaces for indentation",
 					ErrorAnnotation: anno(c, annotation{
 						Start:      file.Position{Line: c.pos.line, Col: i + 2},
 						Annotation: "this is a tab",
 					}),
-					HintAnnotations: []corgierr.Annotation{
+					HintAnnotations: []fileerr.Annotation{
 						anno(c, annotation{
 							Start:      file.Position{Line: c.pos.line, Col: 1},
 							Annotation: "this is a space",
 						}),
 					},
-					Suggestions: []corgierr.Suggestion{
+					Suggestions: []fileerr.Suggestion{
 						{Suggestion: "use only tabs OR spaces for indentation, but not both"},
 					},
 				})
 			}
 
-			panic(&corgierr.Error{
+			panic(&fileerr.Error{
 				Message: "mix of tabs and spaces for indentation",
 				ErrorAnnotation: anno(c, annotation{
 					Start:      file.Position{Line: c.pos.line, Col: i + 2},
 					Annotation: "this is a space",
 				}),
-				HintAnnotations: []corgierr.Annotation{
+				HintAnnotations: []fileerr.Annotation{
 					anno(c, annotation{
 						Start:      file.Position{Line: c.pos.line, Col: 1},
 						Annotation: "this is a tab",
 					}),
 				},
-				Suggestions: []corgierr.Suggestion{
+				Suggestions: []fileerr.Suggestion{
 					{Suggestion: "use only tabs OR spaces for indentation, but not both"},
 				},
 			})
@@ -57451,14 +57451,14 @@ func (c *current) onusesAndComments66() (bool, error) {
 	for _, space := range c.text {
 		if space != indentChar {
 			if indentChar == ' ' {
-				panic(&corgierr.Error{
+				panic(&fileerr.Error{
 					Message: "mix of tabs and spaces for indentation",
 					ErrorAnnotation: anno(c, annotation{
 						Start:      file.Position{Line: c.pos.line, Col: 1},
 						Len:        len(c.text),
 						Annotation: "but these are tabs",
 					}),
-					HintAnnotations: []corgierr.Annotation{
+					HintAnnotations: []fileerr.Annotation{
 						anno(c, annotation{
 							ContextStartDelta: -1,
 							Start:             file.Position{Line: refLine, Col: 1},
@@ -57466,20 +57466,20 @@ func (c *current) onusesAndComments66() (bool, error) {
 							Annotation:        "these are spaces",
 						}),
 					},
-					Suggestions: []corgierr.Suggestion{
+					Suggestions: []fileerr.Suggestion{
 						{Suggestion: "use only tabs OR spaces for indentation, but not both"},
 					},
 				})
 			}
 
-			panic(&corgierr.Error{
+			panic(&fileerr.Error{
 				Message: "mix of tabs and spaces for indentation",
 				ErrorAnnotation: anno(c, annotation{
 					Start:      file.Position{Line: c.pos.line, Col: 1},
 					Len:        len(c.text),
 					Annotation: "but these are spaces",
 				}),
-				HintAnnotations: []corgierr.Annotation{
+				HintAnnotations: []fileerr.Annotation{
 					anno(c, annotation{
 						ContextStartDelta: -1,
 						Start:             file.Position{Line: refLine, Col: 1},
@@ -57487,7 +57487,7 @@ func (c *current) onusesAndComments66() (bool, error) {
 						Annotation:        "these are tabs",
 					}),
 				},
-				Suggestions: []corgierr.Suggestion{
+				Suggestions: []fileerr.Suggestion{
 					{Suggestion: "use only tabs OR spaces for indentation, but not both"},
 				},
 			})
@@ -57533,7 +57533,7 @@ func (c *current) onusesAndComments70() (bool, error) {
 
 	if (actualCount - totalReps) != refReps {
 		if indentChar == ' ' {
-			return true, &corgierr.Error{
+			return true, &fileerr.Error{
 				Message: "inconsistent indentation",
 				ErrorAnnotation: anno(c, annotation{
 					ContextStartDelta: -1,
@@ -57541,7 +57541,7 @@ func (c *current) onusesAndComments70() (bool, error) {
 					Len:               actualCount - totalReps,
 					Annotation:        fmt.Sprintf("however, here you used %d spaces", actualCount-totalReps),
 				}),
-				HintAnnotations: []corgierr.Annotation{
+				HintAnnotations: []fileerr.Annotation{
 					anno(c, annotation{
 						ContextStartDelta: -1,
 						Start:             file.Position{Line: refLine, Col: 1},
@@ -57549,7 +57549,7 @@ func (c *current) onusesAndComments70() (bool, error) {
 						Annotation:        fmt.Sprintf("this line uses %d spaces to indent a single level", refReps),
 					}),
 				},
-				Suggestions: []corgierr.Suggestion{
+				Suggestions: []fileerr.Suggestion{
 					{
 						Suggestion: "be consistent in your indentation:\n" +
 							"if you use two spaces for a single indentation, use four for a two-level indentation",
@@ -57558,7 +57558,7 @@ func (c *current) onusesAndComments70() (bool, error) {
 			}
 		}
 
-		return true, &corgierr.Error{
+		return true, &fileerr.Error{
 			Message: "inconsistent indentation",
 			ErrorAnnotation: anno(c, annotation{
 				ContextStartDelta: -1,
@@ -57566,7 +57566,7 @@ func (c *current) onusesAndComments70() (bool, error) {
 				Len:               actualCount - totalReps,
 				Annotation:        fmt.Sprintf("however, here you used %d tabs", actualCount-totalReps),
 			}),
-			HintAnnotations: []corgierr.Annotation{
+			HintAnnotations: []fileerr.Annotation{
 				anno(c, annotation{
 					ContextStartDelta: -1,
 					Start:             file.Position{Line: refLine, Col: 1},
@@ -57574,7 +57574,7 @@ func (c *current) onusesAndComments70() (bool, error) {
 					Annotation:        fmt.Sprintf("this line uses %d tabs to indent a single level", refReps),
 				}),
 			},
-			Suggestions: []corgierr.Suggestion{
+			Suggestions: []fileerr.Suggestion{
 				{
 					Suggestion: "be consistent in your indentation:\n" +
 						"if you use two tabs for a single indentation, use four for a two-level indentation, ...",
@@ -57633,7 +57633,7 @@ func (c *current) onusesAndComments74() (bool, error) {
 		return false, nil
 	}
 
-	panic(&corgierr.Error{
+	panic(&fileerr.Error{
 		Message: "unexpected increase of indentation",
 		ErrorAnnotation: anno(c, annotation{
 			ContextStartDelta: -1,
@@ -57682,7 +57682,7 @@ func (p *parser) callonusesAndComments102() (any, error) {
 }
 
 func (c *current) onusesAndComments89(identI, endPosI any) (any, error) {
-	return file.Ident{Ident: concat(identI), Position: pos(c)}, &corgierr.Error{
+	return file.Ident{Ident: concat(identI), Position: pos(c)}, &fileerr.Error{
 		Message: "invalid identifier",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -57713,7 +57713,7 @@ func (c *current) onusesAndComments108(endPosI any) (any, error) {
 	return file.Ident{
 			Ident:    string(c.text),
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "invalid import alias",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
@@ -57744,7 +57744,7 @@ func (c *current) onusesAndComments130(strI any) (any, error) {
 			Quote:    '`',
 			Contents: concat(strI),
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "unclosed string literal",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
@@ -57761,7 +57761,7 @@ func (p *parser) callonusesAndComments130() (any, error) {
 }
 
 func (c *current) onusesAndComments162() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid hex byte escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -57769,7 +57769,7 @@ func (c *current) onusesAndComments162() (any, error) {
 			Annotation: "expected `\\x`, followed by two hex digits",
 		}),
 		Example: "`\\x1f`",
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 				Code:       "`\\\\" + string(c.text[1:]) + "`",
@@ -57786,24 +57786,24 @@ func (p *parser) callonusesAndComments162() (any, error) {
 }
 
 func (c *current) onusesAndComments175() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 6-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 6-len(c.text)) + "`",
 	})
 
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid little u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -57823,29 +57823,29 @@ func (p *parser) callonusesAndComments175() (any, error) {
 }
 
 func (c *current) onusesAndComments196() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a big U escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
 	if len(c.text) >= 6 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a little u escape",
 			Code:       "`\\u" + string(c.text[2:6]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 10-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 10-len(c.text)) + "`",
 	})
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid big u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -57865,14 +57865,14 @@ func (p *parser) callonusesAndComments196() (any, error) {
 }
 
 func (c *current) onusesAndComments219() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -57897,14 +57897,14 @@ func (p *parser) callonusesAndComments219() (any, error) {
 }
 
 func (c *current) onusesAndComments230() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -57926,14 +57926,14 @@ func (p *parser) callonusesAndComments230() (any, error) {
 }
 
 func (c *current) onusesAndComments237() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -57952,14 +57952,14 @@ func (p *parser) callonusesAndComments237() (any, error) {
 }
 
 func (c *current) onusesAndComments242() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, an octal escape, `\\u`, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -57985,7 +57985,7 @@ func (p *parser) callonusesAndComments147() (any, error) {
 }
 
 func (c *current) onusesAndComments263() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid hex byte escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -57993,7 +57993,7 @@ func (c *current) onusesAndComments263() (any, error) {
 			Annotation: "expected `\\x`, followed by two hex digits",
 		}),
 		Example: "`\\x1f`",
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 				Code:       "`\\\\" + string(c.text[1:]) + "`",
@@ -58010,24 +58010,24 @@ func (p *parser) callonusesAndComments263() (any, error) {
 }
 
 func (c *current) onusesAndComments276() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 6-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 6-len(c.text)) + "`",
 	})
 
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid little u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -58047,29 +58047,29 @@ func (p *parser) callonusesAndComments276() (any, error) {
 }
 
 func (c *current) onusesAndComments297() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a big U escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
 	if len(c.text) >= 6 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a little u escape",
 			Code:       "`\\u" + string(c.text[2:6]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 10-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 10-len(c.text)) + "`",
 	})
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid big u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -58089,14 +58089,14 @@ func (p *parser) callonusesAndComments297() (any, error) {
 }
 
 func (c *current) onusesAndComments320() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -58121,14 +58121,14 @@ func (p *parser) callonusesAndComments320() (any, error) {
 }
 
 func (c *current) onusesAndComments331() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -58150,14 +58150,14 @@ func (p *parser) callonusesAndComments331() (any, error) {
 }
 
 func (c *current) onusesAndComments338() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -58176,14 +58176,14 @@ func (p *parser) callonusesAndComments338() (any, error) {
 }
 
 func (c *current) onusesAndComments343() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, an octal escape, `\\u`, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -58213,7 +58213,7 @@ func (c *current) onusesAndComments248(strI, endPosI any) (any, error) {
 			Quote:    '"',
 			Contents: concat(strI),
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "unclosed string literal",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
@@ -58242,12 +58242,12 @@ func (p *parser) callonusesAndComments374() (any, error) {
 func (c *current) onusesAndComments366(strI, endPosI any) (any, error) {
 	raw := concat(strI)
 
-	suggestion := corgierr.Suggestion{
+	suggestion := fileerr.Suggestion{
 		Suggestion: "enclose this string in double quotes or backticks, instead of single quotes",
 		Code:       "`" + strconv.Quote(raw) + "` or ``" + raw + "``",
 	}
 	if strings.Contains(raw, "`") {
-		suggestion = corgierr.Suggestion{
+		suggestion = fileerr.Suggestion{
 			Suggestion: "enclose this string in double quotes, instead of single quotes",
 			Code:       "`" + strconv.Quote(raw) + "`",
 		}
@@ -58257,14 +58257,14 @@ func (c *current) onusesAndComments366(strI, endPosI any) (any, error) {
 			Quote:    '\'',
 			Contents: concat(strI),
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "use of single-quoted string",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
 				End:        endPosI.(file.Position),
 				Annotation: "this should be a valid Go string",
 			}),
-			Suggestions: []corgierr.Suggestion{suggestion},
+			Suggestions: []fileerr.Suggestion{suggestion},
 		}
 }
 
@@ -58275,7 +58275,7 @@ func (p *parser) callonusesAndComments366() (any, error) {
 }
 
 func (c *current) onusesAndComments380(pathI any) (any, error) {
-	return file.String{Position: pos(c)}, &corgierr.Error{
+	return file.String{Position: pos(c)}, &fileerr.Error{
 		Message: "invalid path",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -58380,7 +58380,7 @@ func (p *parser) callonusesAndComments427() (any, error) {
 }
 
 func (c *current) onusesAndComments414(identI, endPosI any) (any, error) {
-	return file.Ident{Ident: concat(identI), Position: pos(c)}, &corgierr.Error{
+	return file.Ident{Ident: concat(identI), Position: pos(c)}, &fileerr.Error{
 		Message: "invalid identifier",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -58411,7 +58411,7 @@ func (c *current) onusesAndComments433(endPosI any) (any, error) {
 	return file.Ident{
 			Ident:    string(c.text),
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "invalid import alias",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
@@ -58442,7 +58442,7 @@ func (c *current) onusesAndComments455(strI any) (any, error) {
 			Quote:    '`',
 			Contents: concat(strI),
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "unclosed string literal",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
@@ -58459,7 +58459,7 @@ func (p *parser) callonusesAndComments455() (any, error) {
 }
 
 func (c *current) onusesAndComments487() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid hex byte escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -58467,7 +58467,7 @@ func (c *current) onusesAndComments487() (any, error) {
 			Annotation: "expected `\\x`, followed by two hex digits",
 		}),
 		Example: "`\\x1f`",
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 				Code:       "`\\\\" + string(c.text[1:]) + "`",
@@ -58484,24 +58484,24 @@ func (p *parser) callonusesAndComments487() (any, error) {
 }
 
 func (c *current) onusesAndComments500() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 6-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 6-len(c.text)) + "`",
 	})
 
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid little u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -58521,29 +58521,29 @@ func (p *parser) callonusesAndComments500() (any, error) {
 }
 
 func (c *current) onusesAndComments521() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a big U escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
 	if len(c.text) >= 6 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a little u escape",
 			Code:       "`\\u" + string(c.text[2:6]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 10-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 10-len(c.text)) + "`",
 	})
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid big u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -58563,14 +58563,14 @@ func (p *parser) callonusesAndComments521() (any, error) {
 }
 
 func (c *current) onusesAndComments544() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -58595,14 +58595,14 @@ func (p *parser) callonusesAndComments544() (any, error) {
 }
 
 func (c *current) onusesAndComments555() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -58624,14 +58624,14 @@ func (p *parser) callonusesAndComments555() (any, error) {
 }
 
 func (c *current) onusesAndComments562() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -58650,14 +58650,14 @@ func (p *parser) callonusesAndComments562() (any, error) {
 }
 
 func (c *current) onusesAndComments567() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, an octal escape, `\\u`, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -58683,7 +58683,7 @@ func (p *parser) callonusesAndComments472() (any, error) {
 }
 
 func (c *current) onusesAndComments588() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid hex byte escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -58691,7 +58691,7 @@ func (c *current) onusesAndComments588() (any, error) {
 			Annotation: "expected `\\x`, followed by two hex digits",
 		}),
 		Example: "`\\x1f`",
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 				Code:       "`\\\\" + string(c.text[1:]) + "`",
@@ -58708,24 +58708,24 @@ func (p *parser) callonusesAndComments588() (any, error) {
 }
 
 func (c *current) onusesAndComments601() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 6-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 6-len(c.text)) + "`",
 	})
 
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid little u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -58745,29 +58745,29 @@ func (p *parser) callonusesAndComments601() (any, error) {
 }
 
 func (c *current) onusesAndComments622() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a big U escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
 	if len(c.text) >= 6 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a little u escape",
 			Code:       "`\\u" + string(c.text[2:6]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 10-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 10-len(c.text)) + "`",
 	})
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid big u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -58787,14 +58787,14 @@ func (p *parser) callonusesAndComments622() (any, error) {
 }
 
 func (c *current) onusesAndComments645() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -58819,14 +58819,14 @@ func (p *parser) callonusesAndComments645() (any, error) {
 }
 
 func (c *current) onusesAndComments656() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -58848,14 +58848,14 @@ func (p *parser) callonusesAndComments656() (any, error) {
 }
 
 func (c *current) onusesAndComments663() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -58874,14 +58874,14 @@ func (p *parser) callonusesAndComments663() (any, error) {
 }
 
 func (c *current) onusesAndComments668() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, an octal escape, `\\u`, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -58911,7 +58911,7 @@ func (c *current) onusesAndComments573(strI, endPosI any) (any, error) {
 			Quote:    '"',
 			Contents: concat(strI),
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "unclosed string literal",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
@@ -58940,12 +58940,12 @@ func (p *parser) callonusesAndComments699() (any, error) {
 func (c *current) onusesAndComments691(strI, endPosI any) (any, error) {
 	raw := concat(strI)
 
-	suggestion := corgierr.Suggestion{
+	suggestion := fileerr.Suggestion{
 		Suggestion: "enclose this string in double quotes or backticks, instead of single quotes",
 		Code:       "`" + strconv.Quote(raw) + "` or ``" + raw + "``",
 	}
 	if strings.Contains(raw, "`") {
-		suggestion = corgierr.Suggestion{
+		suggestion = fileerr.Suggestion{
 			Suggestion: "enclose this string in double quotes, instead of single quotes",
 			Code:       "`" + strconv.Quote(raw) + "`",
 		}
@@ -58955,14 +58955,14 @@ func (c *current) onusesAndComments691(strI, endPosI any) (any, error) {
 			Quote:    '\'',
 			Contents: concat(strI),
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "use of single-quoted string",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
 				End:        endPosI.(file.Position),
 				Annotation: "this should be a valid Go string",
 			}),
-			Suggestions: []corgierr.Suggestion{suggestion},
+			Suggestions: []fileerr.Suggestion{suggestion},
 		}
 }
 
@@ -58973,7 +58973,7 @@ func (p *parser) callonusesAndComments691() (any, error) {
 }
 
 func (c *current) onusesAndComments705(pathI any) (any, error) {
-	return file.String{Position: pos(c)}, &corgierr.Error{
+	return file.String{Position: pos(c)}, &fileerr.Error{
 		Message: "invalid path",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -59033,7 +59033,7 @@ func (p *parser) callonusesAndComments722() (any, error) {
 }
 
 func (c *current) onusesAndComments718(posI any) (any, error) {
-	return file.Use{Position: pos(c)}, &corgierr.Error{
+	return file.Use{Position: pos(c)}, &fileerr.Error{
 		Message: "missing use path",
 		ErrorAnnotation: anno(c, annotation{
 			Start:       posI.(file.Position),
@@ -59144,7 +59144,7 @@ func (p *parser) callonpreScope39() (any, error) {
 }
 
 func (c *current) onpreScope35(startPosI any) (any, error) {
-	return nil, &corgierr.Error{
+	return nil, &fileerr.Error{
 		Message: "invalid doctype",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      startPosI.(file.Position),
@@ -59163,7 +59163,7 @@ func (p *parser) callonpreScope35() (any, error) {
 }
 
 func (c *current) onpreScope56() (any, error) {
-	return nil, &corgierr.Error{
+	return nil, &fileerr.Error{
 		Message: "invalid doctype",
 		ErrorAnnotation: anno(c, annotation{
 			Start:       pos(c),
@@ -59203,7 +59203,7 @@ func (p *parser) callonpreScope90() (any, error) {
 }
 
 func (c *current) onpreScope86(startPosI any) (any, error) {
-	return nil, &corgierr.Error{
+	return nil, &fileerr.Error{
 		Message: "invalid doctype",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      startPosI.(file.Position),
@@ -59222,7 +59222,7 @@ func (p *parser) callonpreScope86() (any, error) {
 }
 
 func (c *current) onpreScope107() (any, error) {
-	return nil, &corgierr.Error{
+	return nil, &fileerr.Error{
 		Message: "invalid doctype",
 		ErrorAnnotation: anno(c, annotation{
 			Start:       pos(c),
@@ -59242,7 +59242,7 @@ func (p *parser) callonpreScope107() (any, error) {
 }
 
 func (c *current) onpreScope71() (any, error) {
-	return file.Doctype{Position: pos(c)}, &corgierr.Error{
+	return file.Doctype{Position: pos(c)}, &fileerr.Error{
 		Message: "the corgi doctype directive does not start with a `!`",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -59306,37 +59306,37 @@ func (c *current) onScope16() (bool, error) {
 	for i, ws := range c.text[1:] {
 		if byte(ws) != firstChar {
 			if firstChar == ' ' {
-				panic(&corgierr.Error{
+				panic(&fileerr.Error{
 					Message: "mix of tabs and spaces for indentation",
 					ErrorAnnotation: anno(c, annotation{
 						Start:      file.Position{Line: c.pos.line, Col: i + 2},
 						Annotation: "this is a tab",
 					}),
-					HintAnnotations: []corgierr.Annotation{
+					HintAnnotations: []fileerr.Annotation{
 						anno(c, annotation{
 							Start:      file.Position{Line: c.pos.line, Col: 1},
 							Annotation: "this is a space",
 						}),
 					},
-					Suggestions: []corgierr.Suggestion{
+					Suggestions: []fileerr.Suggestion{
 						{Suggestion: "use only tabs OR spaces for indentation, but not both"},
 					},
 				})
 			}
 
-			panic(&corgierr.Error{
+			panic(&fileerr.Error{
 				Message: "mix of tabs and spaces for indentation",
 				ErrorAnnotation: anno(c, annotation{
 					Start:      file.Position{Line: c.pos.line, Col: i + 2},
 					Annotation: "this is a space",
 				}),
-				HintAnnotations: []corgierr.Annotation{
+				HintAnnotations: []fileerr.Annotation{
 					anno(c, annotation{
 						Start:      file.Position{Line: c.pos.line, Col: 1},
 						Annotation: "this is a tab",
 					}),
 				},
-				Suggestions: []corgierr.Suggestion{
+				Suggestions: []fileerr.Suggestion{
 					{Suggestion: "use only tabs OR spaces for indentation, but not both"},
 				},
 			})
@@ -59412,14 +59412,14 @@ func (c *current) onScope24() (bool, error) {
 	for _, space := range c.text {
 		if space != indentChar {
 			if indentChar == ' ' {
-				panic(&corgierr.Error{
+				panic(&fileerr.Error{
 					Message: "mix of tabs and spaces for indentation",
 					ErrorAnnotation: anno(c, annotation{
 						Start:      file.Position{Line: c.pos.line, Col: 1},
 						Len:        len(c.text),
 						Annotation: "but these are tabs",
 					}),
-					HintAnnotations: []corgierr.Annotation{
+					HintAnnotations: []fileerr.Annotation{
 						anno(c, annotation{
 							ContextStartDelta: -1,
 							Start:             file.Position{Line: refLine, Col: 1},
@@ -59427,20 +59427,20 @@ func (c *current) onScope24() (bool, error) {
 							Annotation:        "these are spaces",
 						}),
 					},
-					Suggestions: []corgierr.Suggestion{
+					Suggestions: []fileerr.Suggestion{
 						{Suggestion: "use only tabs OR spaces for indentation, but not both"},
 					},
 				})
 			}
 
-			panic(&corgierr.Error{
+			panic(&fileerr.Error{
 				Message: "mix of tabs and spaces for indentation",
 				ErrorAnnotation: anno(c, annotation{
 					Start:      file.Position{Line: c.pos.line, Col: 1},
 					Len:        len(c.text),
 					Annotation: "but these are spaces",
 				}),
-				HintAnnotations: []corgierr.Annotation{
+				HintAnnotations: []fileerr.Annotation{
 					anno(c, annotation{
 						ContextStartDelta: -1,
 						Start:             file.Position{Line: refLine, Col: 1},
@@ -59448,7 +59448,7 @@ func (c *current) onScope24() (bool, error) {
 						Annotation:        "these are tabs",
 					}),
 				},
-				Suggestions: []corgierr.Suggestion{
+				Suggestions: []fileerr.Suggestion{
 					{Suggestion: "use only tabs OR spaces for indentation, but not both"},
 				},
 			})
@@ -59494,7 +59494,7 @@ func (c *current) onScope28() (bool, error) {
 
 	if (actualCount - totalReps) != refReps {
 		if indentChar == ' ' {
-			return true, &corgierr.Error{
+			return true, &fileerr.Error{
 				Message: "inconsistent indentation",
 				ErrorAnnotation: anno(c, annotation{
 					ContextStartDelta: -1,
@@ -59502,7 +59502,7 @@ func (c *current) onScope28() (bool, error) {
 					Len:               actualCount - totalReps,
 					Annotation:        fmt.Sprintf("however, here you used %d spaces", actualCount-totalReps),
 				}),
-				HintAnnotations: []corgierr.Annotation{
+				HintAnnotations: []fileerr.Annotation{
 					anno(c, annotation{
 						ContextStartDelta: -1,
 						Start:             file.Position{Line: refLine, Col: 1},
@@ -59510,7 +59510,7 @@ func (c *current) onScope28() (bool, error) {
 						Annotation:        fmt.Sprintf("this line uses %d spaces to indent a single level", refReps),
 					}),
 				},
-				Suggestions: []corgierr.Suggestion{
+				Suggestions: []fileerr.Suggestion{
 					{
 						Suggestion: "be consistent in your indentation:\n" +
 							"if you use two spaces for a single indentation, use four for a two-level indentation",
@@ -59519,7 +59519,7 @@ func (c *current) onScope28() (bool, error) {
 			}
 		}
 
-		return true, &corgierr.Error{
+		return true, &fileerr.Error{
 			Message: "inconsistent indentation",
 			ErrorAnnotation: anno(c, annotation{
 				ContextStartDelta: -1,
@@ -59527,7 +59527,7 @@ func (c *current) onScope28() (bool, error) {
 				Len:               actualCount - totalReps,
 				Annotation:        fmt.Sprintf("however, here you used %d tabs", actualCount-totalReps),
 			}),
-			HintAnnotations: []corgierr.Annotation{
+			HintAnnotations: []fileerr.Annotation{
 				anno(c, annotation{
 					ContextStartDelta: -1,
 					Start:             file.Position{Line: refLine, Col: 1},
@@ -59535,7 +59535,7 @@ func (c *current) onScope28() (bool, error) {
 					Annotation:        fmt.Sprintf("this line uses %d tabs to indent a single level", refReps),
 				}),
 			},
-			Suggestions: []corgierr.Suggestion{
+			Suggestions: []fileerr.Suggestion{
 				{
 					Suggestion: "be consistent in your indentation:\n" +
 						"if you use two tabs for a single indentation, use four for a two-level indentation, ...",
@@ -59594,7 +59594,7 @@ func (c *current) onScope32() (bool, error) {
 		return false, nil
 	}
 
-	panic(&corgierr.Error{
+	panic(&fileerr.Error{
 		Message: "unexpected increase of indentation",
 		ErrorAnnotation: anno(c, annotation{
 			ContextStartDelta: -1,
@@ -59647,7 +59647,7 @@ func (c *current) onscopeItem32(strI any) (any, error) {
 			Quote:    '`',
 			Contents: concat(strI),
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "unclosed string literal",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
@@ -59664,7 +59664,7 @@ func (p *parser) callonscopeItem32() (any, error) {
 }
 
 func (c *current) onscopeItem64() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid hex byte escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -59672,7 +59672,7 @@ func (c *current) onscopeItem64() (any, error) {
 			Annotation: "expected `\\x`, followed by two hex digits",
 		}),
 		Example: "`\\x1f`",
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 				Code:       "`\\\\" + string(c.text[1:]) + "`",
@@ -59689,24 +59689,24 @@ func (p *parser) callonscopeItem64() (any, error) {
 }
 
 func (c *current) onscopeItem77() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 6-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 6-len(c.text)) + "`",
 	})
 
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid little u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -59726,29 +59726,29 @@ func (p *parser) callonscopeItem77() (any, error) {
 }
 
 func (c *current) onscopeItem98() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a big U escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
 	if len(c.text) >= 6 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a little u escape",
 			Code:       "`\\u" + string(c.text[2:6]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 10-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 10-len(c.text)) + "`",
 	})
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid big u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -59768,14 +59768,14 @@ func (p *parser) callonscopeItem98() (any, error) {
 }
 
 func (c *current) onscopeItem121() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -59800,14 +59800,14 @@ func (p *parser) callonscopeItem121() (any, error) {
 }
 
 func (c *current) onscopeItem132() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -59829,14 +59829,14 @@ func (p *parser) callonscopeItem132() (any, error) {
 }
 
 func (c *current) onscopeItem139() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -59855,14 +59855,14 @@ func (p *parser) callonscopeItem139() (any, error) {
 }
 
 func (c *current) onscopeItem144() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, an octal escape, `\\u`, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -59888,7 +59888,7 @@ func (p *parser) callonscopeItem49() (any, error) {
 }
 
 func (c *current) onscopeItem165() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid hex byte escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -59896,7 +59896,7 @@ func (c *current) onscopeItem165() (any, error) {
 			Annotation: "expected `\\x`, followed by two hex digits",
 		}),
 		Example: "`\\x1f`",
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 				Code:       "`\\\\" + string(c.text[1:]) + "`",
@@ -59913,24 +59913,24 @@ func (p *parser) callonscopeItem165() (any, error) {
 }
 
 func (c *current) onscopeItem178() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 6-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 6-len(c.text)) + "`",
 	})
 
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid little u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -59950,29 +59950,29 @@ func (p *parser) callonscopeItem178() (any, error) {
 }
 
 func (c *current) onscopeItem199() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a big U escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
 	if len(c.text) >= 6 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a little u escape",
 			Code:       "`\\u" + string(c.text[2:6]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 10-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 10-len(c.text)) + "`",
 	})
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid big u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -59992,14 +59992,14 @@ func (p *parser) callonscopeItem199() (any, error) {
 }
 
 func (c *current) onscopeItem222() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -60024,14 +60024,14 @@ func (p *parser) callonscopeItem222() (any, error) {
 }
 
 func (c *current) onscopeItem233() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -60053,14 +60053,14 @@ func (p *parser) callonscopeItem233() (any, error) {
 }
 
 func (c *current) onscopeItem240() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -60079,14 +60079,14 @@ func (p *parser) callonscopeItem240() (any, error) {
 }
 
 func (c *current) onscopeItem245() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, an octal escape, `\\u`, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -60116,7 +60116,7 @@ func (c *current) onscopeItem150(strI, endPosI any) (any, error) {
 			Quote:    '"',
 			Contents: concat(strI),
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "unclosed string literal",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
@@ -60145,12 +60145,12 @@ func (p *parser) callonscopeItem276() (any, error) {
 func (c *current) onscopeItem268(strI, endPosI any) (any, error) {
 	raw := concat(strI)
 
-	suggestion := corgierr.Suggestion{
+	suggestion := fileerr.Suggestion{
 		Suggestion: "enclose this string in double quotes or backticks, instead of single quotes",
 		Code:       "`" + strconv.Quote(raw) + "` or ``" + raw + "``",
 	}
 	if strings.Contains(raw, "`") {
-		suggestion = corgierr.Suggestion{
+		suggestion = fileerr.Suggestion{
 			Suggestion: "enclose this string in double quotes, instead of single quotes",
 			Code:       "`" + strconv.Quote(raw) + "`",
 		}
@@ -60160,14 +60160,14 @@ func (c *current) onscopeItem268(strI, endPosI any) (any, error) {
 			Quote:    '\'',
 			Contents: concat(strI),
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "use of single-quoted string",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
 				End:        endPosI.(file.Position),
 				Annotation: "this should be a valid Go string",
 			}),
-			Suggestions: []corgierr.Suggestion{suggestion},
+			Suggestions: []fileerr.Suggestion{suggestion},
 		}
 }
 
@@ -60188,7 +60188,7 @@ func (p *parser) callonscopeItem19() (any, error) {
 }
 
 func (c *current) onscopeItem282(pathI any) (any, error) {
-	return file.String{Position: pos(c)}, &corgierr.Error{
+	return file.String{Position: pos(c)}, &fileerr.Error{
 		Message: "invalid path",
 		ErrorAnnotation: anno(c, annotation{
 			Start:       pos(c),
@@ -60230,7 +60230,7 @@ func (p *parser) callonscopeItem315() (any, error) {
 }
 
 func (c *current) onscopeItem311(startPosI any) (any, error) {
-	return nil, &corgierr.Error{
+	return nil, &fileerr.Error{
 		Message: "invalid doctype",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      startPosI.(file.Position),
@@ -60249,7 +60249,7 @@ func (p *parser) callonscopeItem311() (any, error) {
 }
 
 func (c *current) onscopeItem332() (any, error) {
-	return nil, &corgierr.Error{
+	return nil, &fileerr.Error{
 		Message: "invalid doctype",
 		ErrorAnnotation: anno(c, annotation{
 			Start:       pos(c),
@@ -60289,7 +60289,7 @@ func (p *parser) callonscopeItem366() (any, error) {
 }
 
 func (c *current) onscopeItem362(startPosI any) (any, error) {
-	return nil, &corgierr.Error{
+	return nil, &fileerr.Error{
 		Message: "invalid doctype",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      startPosI.(file.Position),
@@ -60308,7 +60308,7 @@ func (p *parser) callonscopeItem362() (any, error) {
 }
 
 func (c *current) onscopeItem383() (any, error) {
-	return nil, &corgierr.Error{
+	return nil, &fileerr.Error{
 		Message: "invalid doctype",
 		ErrorAnnotation: anno(c, annotation{
 			Start:       pos(c),
@@ -60328,7 +60328,7 @@ func (p *parser) callonscopeItem383() (any, error) {
 }
 
 func (c *current) onscopeItem347() (any, error) {
-	return file.Doctype{Position: pos(c)}, &corgierr.Error{
+	return file.Doctype{Position: pos(c)}, &fileerr.Error{
 		Message: "the corgi doctype directive does not start with a `!`",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -60345,7 +60345,7 @@ func (p *parser) callonscopeItem347() (any, error) {
 }
 
 func (c *current) onscopeItem293(doctypeI any) (any, error) {
-	return doctypeI, &corgierr.Error{
+	return doctypeI, &fileerr.Error{
 		Message: "`doctype` not first item",
 		ErrorAnnotation: anno(c, annotation{
 			ContextStartDelta: -1,
@@ -60353,7 +60353,7 @@ func (c *current) onscopeItem293(doctypeI any) (any, error) {
 			ToEOL:             true,
 			Annotation:        "cannot place doctype directive here",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "`doctype`s may only be placed as the first element after the `func` declaration\n" +
 					"remove this `doctype` and move it right under the `func` of your file, if there isn't a doctype there already",
@@ -60439,7 +60439,7 @@ func (c *current) onBeaitb31(lineI, bodyI any) (any, error) {
 			Line:     concat(lineI),
 			Body:     castedOrZero[file.Scope](bodyI),
 			Position: pos(c),
-		}}, &corgierr.Error{
+		}}, &fileerr.Error{
 			Message: "unexpected tokens",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
@@ -60479,7 +60479,7 @@ func (c *current) onBeait18(lineI any) (any, error) {
 	return file.Scope{file.BadItem{
 			Line:     concat(lineI),
 			Position: pos(c),
-		}}, &corgierr.Error{
+		}}, &fileerr.Error{
 			Message: "unexpected tokens",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
@@ -60507,14 +60507,14 @@ func (c *current) onBadItem1(lineI, bodyI any) (any, error) {
 			Line:     line,
 			Body:     castedOrZero[file.Scope](bodyI),
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "unrecognized directive or invalid element name",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
 				Len:        firstWordLen,
 				Annotation: "expected a valid corgi directive or an element name",
 			}),
-			Suggestions: []corgierr.Suggestion{
+			Suggestions: []fileerr.Suggestion{
 				{Suggestion: "if this is supposed to be an element name, make sure it conforms to the HTML spec"},
 				{
 					Suggestion: "use a valid corgi directive",
@@ -60553,7 +60553,7 @@ func (p *parser) callonBlock37() (any, error) {
 }
 
 func (c *current) onBlock24(identI, endPosI any) (any, error) {
-	return file.Ident{Ident: concat(identI), Position: pos(c)}, &corgierr.Error{
+	return file.Ident{Ident: concat(identI), Position: pos(c)}, &fileerr.Error{
 		Message: "invalid identifier",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -60593,7 +60593,7 @@ func (p *parser) callonBlock46() (any, error) {
 func (c *current) onBlock43(posI any) (any, error) {
 	return file.Ident{
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "missing identifier",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      posI.(file.Position),
@@ -60623,7 +60623,7 @@ func (c *current) onBlock65(identI, endPosI any) (any, error) {
 	return file.Ident{
 			Ident:    concat(identI),
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "invalid identifier",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
@@ -60651,7 +60651,7 @@ func (p *parser) callonBlock9() (any, error) {
 }
 
 func (c *current) onBlock77() (any, error) {
-	return file.Ident{}, &corgierr.Error{
+	return file.Ident{}, &fileerr.Error{
 		Message: "missing block name",
 		ErrorAnnotation: anno(c, annotation{
 			Start:       pos(c),
@@ -60715,7 +60715,7 @@ func (p *parser) callonInlineBlock37() (any, error) {
 }
 
 func (c *current) onInlineBlock24(identI, endPosI any) (any, error) {
-	return file.Ident{Ident: concat(identI), Position: pos(c)}, &corgierr.Error{
+	return file.Ident{Ident: concat(identI), Position: pos(c)}, &fileerr.Error{
 		Message: "invalid identifier",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -60755,7 +60755,7 @@ func (p *parser) callonInlineBlock46() (any, error) {
 func (c *current) onInlineBlock43(posI any) (any, error) {
 	return file.Ident{
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "missing identifier",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      posI.(file.Position),
@@ -60785,7 +60785,7 @@ func (c *current) onInlineBlock65(identI, endPosI any) (any, error) {
 	return file.Ident{
 			Ident:    concat(identI),
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "invalid identifier",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
@@ -60813,7 +60813,7 @@ func (p *parser) callonInlineBlock9() (any, error) {
 }
 
 func (c *current) onInlineBlock77() (any, error) {
-	return file.Ident{}, &corgierr.Error{
+	return file.Ident{}, &fileerr.Error{
 		Message: "missing block name",
 		ErrorAnnotation: anno(c, annotation{
 			Start:       pos(c),
@@ -60877,7 +60877,7 @@ func (p *parser) callonPrepend37() (any, error) {
 }
 
 func (c *current) onPrepend24(identI, endPosI any) (any, error) {
-	return file.Ident{Ident: concat(identI), Position: pos(c)}, &corgierr.Error{
+	return file.Ident{Ident: concat(identI), Position: pos(c)}, &fileerr.Error{
 		Message: "invalid identifier",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -60917,7 +60917,7 @@ func (p *parser) callonPrepend46() (any, error) {
 func (c *current) onPrepend43(posI any) (any, error) {
 	return file.Ident{
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "missing identifier",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      posI.(file.Position),
@@ -60947,7 +60947,7 @@ func (c *current) onPrepend65(identI, endPosI any) (any, error) {
 	return file.Ident{
 			Ident:    concat(identI),
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "invalid identifier",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
@@ -60975,7 +60975,7 @@ func (p *parser) callonPrepend9() (any, error) {
 }
 
 func (c *current) onPrepend77() (any, error) {
-	return file.Ident{}, &corgierr.Error{
+	return file.Ident{}, &fileerr.Error{
 		Message: "missing block name",
 		ErrorAnnotation: anno(c, annotation{
 			Start:       pos(c),
@@ -61039,7 +61039,7 @@ func (p *parser) callonAppend37() (any, error) {
 }
 
 func (c *current) onAppend24(identI, endPosI any) (any, error) {
-	return file.Ident{Ident: concat(identI), Position: pos(c)}, &corgierr.Error{
+	return file.Ident{Ident: concat(identI), Position: pos(c)}, &fileerr.Error{
 		Message: "invalid identifier",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -61079,7 +61079,7 @@ func (p *parser) callonAppend46() (any, error) {
 func (c *current) onAppend43(posI any) (any, error) {
 	return file.Ident{
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "missing identifier",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      posI.(file.Position),
@@ -61109,7 +61109,7 @@ func (c *current) onAppend65(identI, endPosI any) (any, error) {
 	return file.Ident{
 			Ident:    concat(identI),
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "invalid identifier",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
@@ -61137,7 +61137,7 @@ func (p *parser) callonAppend9() (any, error) {
 }
 
 func (c *current) onAppend77() (any, error) {
-	return file.Ident{}, &corgierr.Error{
+	return file.Ident{}, &fileerr.Error{
 		Message: "missing block name",
 		ErrorAnnotation: anno(c, annotation{
 			Start:       pos(c),
@@ -61204,14 +61204,14 @@ func (c *current) onblockExpansionItem4(lineI any) (any, error) {
 		Position: pos(c),
 	}
 
-	var suggestions []corgierr.Suggestion
+	var suggestions []fileerr.Suggestion
 	if bi.Line != "" {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "if this is supposed to be an element name, make sure it conforms to the HTML spec",
 		})
 	}
 
-	return bi, &corgierr.Error{
+	return bi, &fileerr.Error{
 		Message: "malformed block expansion",
 		ErrorAnnotation: anno(c, annotation{
 			Start: pos(c),
@@ -61279,7 +61279,7 @@ func (c *current) onspacedBlockExpansionItem8(posI, sI any) (any, error) {
 	return file.BlockExpansion{
 			Item:     sI.(file.ScopeItem),
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "missing space",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      posI.(file.Position),
@@ -61309,7 +61309,7 @@ func (c *current) on_spacedBlockExpansionItem27(strI any) (any, error) {
 			Quote:    '`',
 			Contents: concat(strI),
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "unclosed string literal",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
@@ -61326,7 +61326,7 @@ func (p *parser) callon_spacedBlockExpansionItem27() (any, error) {
 }
 
 func (c *current) on_spacedBlockExpansionItem59() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid hex byte escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -61334,7 +61334,7 @@ func (c *current) on_spacedBlockExpansionItem59() (any, error) {
 			Annotation: "expected `\\x`, followed by two hex digits",
 		}),
 		Example: "`\\x1f`",
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 				Code:       "`\\\\" + string(c.text[1:]) + "`",
@@ -61351,24 +61351,24 @@ func (p *parser) callon_spacedBlockExpansionItem59() (any, error) {
 }
 
 func (c *current) on_spacedBlockExpansionItem72() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 6-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 6-len(c.text)) + "`",
 	})
 
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid little u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -61388,29 +61388,29 @@ func (p *parser) callon_spacedBlockExpansionItem72() (any, error) {
 }
 
 func (c *current) on_spacedBlockExpansionItem93() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a big U escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
 	if len(c.text) >= 6 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a little u escape",
 			Code:       "`\\u" + string(c.text[2:6]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 10-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 10-len(c.text)) + "`",
 	})
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid big u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -61430,14 +61430,14 @@ func (p *parser) callon_spacedBlockExpansionItem93() (any, error) {
 }
 
 func (c *current) on_spacedBlockExpansionItem116() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -61462,14 +61462,14 @@ func (p *parser) callon_spacedBlockExpansionItem116() (any, error) {
 }
 
 func (c *current) on_spacedBlockExpansionItem127() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -61491,14 +61491,14 @@ func (p *parser) callon_spacedBlockExpansionItem127() (any, error) {
 }
 
 func (c *current) on_spacedBlockExpansionItem134() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -61517,14 +61517,14 @@ func (p *parser) callon_spacedBlockExpansionItem134() (any, error) {
 }
 
 func (c *current) on_spacedBlockExpansionItem139() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, an octal escape, `\\u`, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -61550,7 +61550,7 @@ func (p *parser) callon_spacedBlockExpansionItem44() (any, error) {
 }
 
 func (c *current) on_spacedBlockExpansionItem160() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid hex byte escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -61558,7 +61558,7 @@ func (c *current) on_spacedBlockExpansionItem160() (any, error) {
 			Annotation: "expected `\\x`, followed by two hex digits",
 		}),
 		Example: "`\\x1f`",
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 				Code:       "`\\\\" + string(c.text[1:]) + "`",
@@ -61575,24 +61575,24 @@ func (p *parser) callon_spacedBlockExpansionItem160() (any, error) {
 }
 
 func (c *current) on_spacedBlockExpansionItem173() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 6-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 6-len(c.text)) + "`",
 	})
 
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid little u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -61612,29 +61612,29 @@ func (p *parser) callon_spacedBlockExpansionItem173() (any, error) {
 }
 
 func (c *current) on_spacedBlockExpansionItem194() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a big U escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
 	if len(c.text) >= 6 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a little u escape",
 			Code:       "`\\u" + string(c.text[2:6]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 10-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 10-len(c.text)) + "`",
 	})
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid big u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -61654,14 +61654,14 @@ func (p *parser) callon_spacedBlockExpansionItem194() (any, error) {
 }
 
 func (c *current) on_spacedBlockExpansionItem217() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -61686,14 +61686,14 @@ func (p *parser) callon_spacedBlockExpansionItem217() (any, error) {
 }
 
 func (c *current) on_spacedBlockExpansionItem228() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -61715,14 +61715,14 @@ func (p *parser) callon_spacedBlockExpansionItem228() (any, error) {
 }
 
 func (c *current) on_spacedBlockExpansionItem235() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -61741,14 +61741,14 @@ func (p *parser) callon_spacedBlockExpansionItem235() (any, error) {
 }
 
 func (c *current) on_spacedBlockExpansionItem240() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, an octal escape, `\\u`, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -61778,7 +61778,7 @@ func (c *current) on_spacedBlockExpansionItem145(strI, endPosI any) (any, error)
 			Quote:    '"',
 			Contents: concat(strI),
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "unclosed string literal",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
@@ -61807,12 +61807,12 @@ func (p *parser) callon_spacedBlockExpansionItem271() (any, error) {
 func (c *current) on_spacedBlockExpansionItem263(strI, endPosI any) (any, error) {
 	raw := concat(strI)
 
-	suggestion := corgierr.Suggestion{
+	suggestion := fileerr.Suggestion{
 		Suggestion: "enclose this string in double quotes or backticks, instead of single quotes",
 		Code:       "`" + strconv.Quote(raw) + "` or ``" + raw + "``",
 	}
 	if strings.Contains(raw, "`") {
-		suggestion = corgierr.Suggestion{
+		suggestion = fileerr.Suggestion{
 			Suggestion: "enclose this string in double quotes, instead of single quotes",
 			Code:       "`" + strconv.Quote(raw) + "`",
 		}
@@ -61822,14 +61822,14 @@ func (c *current) on_spacedBlockExpansionItem263(strI, endPosI any) (any, error)
 			Quote:    '\'',
 			Contents: concat(strI),
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "use of single-quoted string",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
 				End:        endPosI.(file.Position),
 				Annotation: "this should be a valid Go string",
 			}),
-			Suggestions: []corgierr.Suggestion{suggestion},
+			Suggestions: []fileerr.Suggestion{suggestion},
 		}
 }
 
@@ -61850,7 +61850,7 @@ func (p *parser) callon_spacedBlockExpansionItem14() (any, error) {
 }
 
 func (c *current) on_spacedBlockExpansionItem277(pathI any) (any, error) {
-	return file.String{Position: pos(c)}, &corgierr.Error{
+	return file.String{Position: pos(c)}, &fileerr.Error{
 		Message: "invalid path",
 		ErrorAnnotation: anno(c, annotation{
 			Start:       pos(c),
@@ -61943,13 +61943,13 @@ func (p *parser) callonCode50() (any, error) {
 }
 
 func (c *current) onCode46(posI any) (any, error) {
-	return file.Code{Position: pos(c)}, &corgierr.Error{
+	return file.Code{Position: pos(c)}, &fileerr.Error{
 		Message: "empty code block",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      posI.(file.Position),
 			Annotation: "expected code here",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{Suggestion: "either write some code, or delete this line"},
 		},
 	}
@@ -61982,7 +61982,7 @@ func (p *parser) calloncondition11() (any, error) {
 }
 
 func (c *current) oncondition8(posI any) (any, error) {
-	return file.Expression{}, &corgierr.Error{
+	return file.Expression{}, &fileerr.Error{
 		Message: "missing condition",
 		ErrorAnnotation: anno(c, annotation{
 			Start:       posI.(file.Position),
@@ -62009,7 +62009,7 @@ func (p *parser) calloncondition30() (any, error) {
 }
 
 func (c *current) oncondition28(posI any) (any, error) {
-	return file.Expression{}, &corgierr.Error{
+	return file.Expression{}, &fileerr.Error{
 		Message: "missing condition",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      posI.(file.Position),
@@ -62045,7 +62045,7 @@ func (p *parser) callonthen15() (any, error) {
 }
 
 func (c *current) onthen18() (any, error) {
-	return file.Scope(nil), &corgierr.Error{
+	return file.Scope(nil), &fileerr.Error{
 		Message: "missing body",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -62071,7 +62071,7 @@ func (p *parser) callonthen30() (any, error) {
 }
 
 func (c *current) onthen33() (bool, error) {
-	return true, &corgierr.Error{
+	return true, &fileerr.Error{
 		Message: "unexpected tokens",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -62140,37 +62140,37 @@ func (c *current) onElseIf14() (bool, error) {
 	for i, ws := range c.text[1:] {
 		if byte(ws) != firstChar {
 			if firstChar == ' ' {
-				panic(&corgierr.Error{
+				panic(&fileerr.Error{
 					Message: "mix of tabs and spaces for indentation",
 					ErrorAnnotation: anno(c, annotation{
 						Start:      file.Position{Line: c.pos.line, Col: i + 2},
 						Annotation: "this is a tab",
 					}),
-					HintAnnotations: []corgierr.Annotation{
+					HintAnnotations: []fileerr.Annotation{
 						anno(c, annotation{
 							Start:      file.Position{Line: c.pos.line, Col: 1},
 							Annotation: "this is a space",
 						}),
 					},
-					Suggestions: []corgierr.Suggestion{
+					Suggestions: []fileerr.Suggestion{
 						{Suggestion: "use only tabs OR spaces for indentation, but not both"},
 					},
 				})
 			}
 
-			panic(&corgierr.Error{
+			panic(&fileerr.Error{
 				Message: "mix of tabs and spaces for indentation",
 				ErrorAnnotation: anno(c, annotation{
 					Start:      file.Position{Line: c.pos.line, Col: i + 2},
 					Annotation: "this is a space",
 				}),
-				HintAnnotations: []corgierr.Annotation{
+				HintAnnotations: []fileerr.Annotation{
 					anno(c, annotation{
 						Start:      file.Position{Line: c.pos.line, Col: 1},
 						Annotation: "this is a tab",
 					}),
 				},
-				Suggestions: []corgierr.Suggestion{
+				Suggestions: []fileerr.Suggestion{
 					{Suggestion: "use only tabs OR spaces for indentation, but not both"},
 				},
 			})
@@ -62246,14 +62246,14 @@ func (c *current) onElseIf22() (bool, error) {
 	for _, space := range c.text {
 		if space != indentChar {
 			if indentChar == ' ' {
-				panic(&corgierr.Error{
+				panic(&fileerr.Error{
 					Message: "mix of tabs and spaces for indentation",
 					ErrorAnnotation: anno(c, annotation{
 						Start:      file.Position{Line: c.pos.line, Col: 1},
 						Len:        len(c.text),
 						Annotation: "but these are tabs",
 					}),
-					HintAnnotations: []corgierr.Annotation{
+					HintAnnotations: []fileerr.Annotation{
 						anno(c, annotation{
 							ContextStartDelta: -1,
 							Start:             file.Position{Line: refLine, Col: 1},
@@ -62261,20 +62261,20 @@ func (c *current) onElseIf22() (bool, error) {
 							Annotation:        "these are spaces",
 						}),
 					},
-					Suggestions: []corgierr.Suggestion{
+					Suggestions: []fileerr.Suggestion{
 						{Suggestion: "use only tabs OR spaces for indentation, but not both"},
 					},
 				})
 			}
 
-			panic(&corgierr.Error{
+			panic(&fileerr.Error{
 				Message: "mix of tabs and spaces for indentation",
 				ErrorAnnotation: anno(c, annotation{
 					Start:      file.Position{Line: c.pos.line, Col: 1},
 					Len:        len(c.text),
 					Annotation: "but these are spaces",
 				}),
-				HintAnnotations: []corgierr.Annotation{
+				HintAnnotations: []fileerr.Annotation{
 					anno(c, annotation{
 						ContextStartDelta: -1,
 						Start:             file.Position{Line: refLine, Col: 1},
@@ -62282,7 +62282,7 @@ func (c *current) onElseIf22() (bool, error) {
 						Annotation:        "these are tabs",
 					}),
 				},
-				Suggestions: []corgierr.Suggestion{
+				Suggestions: []fileerr.Suggestion{
 					{Suggestion: "use only tabs OR spaces for indentation, but not both"},
 				},
 			})
@@ -62328,7 +62328,7 @@ func (c *current) onElseIf26() (bool, error) {
 
 	if (actualCount - totalReps) != refReps {
 		if indentChar == ' ' {
-			return true, &corgierr.Error{
+			return true, &fileerr.Error{
 				Message: "inconsistent indentation",
 				ErrorAnnotation: anno(c, annotation{
 					ContextStartDelta: -1,
@@ -62336,7 +62336,7 @@ func (c *current) onElseIf26() (bool, error) {
 					Len:               actualCount - totalReps,
 					Annotation:        fmt.Sprintf("however, here you used %d spaces", actualCount-totalReps),
 				}),
-				HintAnnotations: []corgierr.Annotation{
+				HintAnnotations: []fileerr.Annotation{
 					anno(c, annotation{
 						ContextStartDelta: -1,
 						Start:             file.Position{Line: refLine, Col: 1},
@@ -62344,7 +62344,7 @@ func (c *current) onElseIf26() (bool, error) {
 						Annotation:        fmt.Sprintf("this line uses %d spaces to indent a single level", refReps),
 					}),
 				},
-				Suggestions: []corgierr.Suggestion{
+				Suggestions: []fileerr.Suggestion{
 					{
 						Suggestion: "be consistent in your indentation:\n" +
 							"if you use two spaces for a single indentation, use four for a two-level indentation",
@@ -62353,7 +62353,7 @@ func (c *current) onElseIf26() (bool, error) {
 			}
 		}
 
-		return true, &corgierr.Error{
+		return true, &fileerr.Error{
 			Message: "inconsistent indentation",
 			ErrorAnnotation: anno(c, annotation{
 				ContextStartDelta: -1,
@@ -62361,7 +62361,7 @@ func (c *current) onElseIf26() (bool, error) {
 				Len:               actualCount - totalReps,
 				Annotation:        fmt.Sprintf("however, here you used %d tabs", actualCount-totalReps),
 			}),
-			HintAnnotations: []corgierr.Annotation{
+			HintAnnotations: []fileerr.Annotation{
 				anno(c, annotation{
 					ContextStartDelta: -1,
 					Start:             file.Position{Line: refLine, Col: 1},
@@ -62369,7 +62369,7 @@ func (c *current) onElseIf26() (bool, error) {
 					Annotation:        fmt.Sprintf("this line uses %d tabs to indent a single level", refReps),
 				}),
 			},
-			Suggestions: []corgierr.Suggestion{
+			Suggestions: []fileerr.Suggestion{
 				{
 					Suggestion: "be consistent in your indentation:\n" +
 						"if you use two tabs for a single indentation, use four for a two-level indentation, ...",
@@ -62428,7 +62428,7 @@ func (c *current) onElseIf30() (bool, error) {
 		return false, nil
 	}
 
-	panic(&corgierr.Error{
+	panic(&fileerr.Error{
 		Message: "unexpected increase of indentation",
 		ErrorAnnotation: anno(c, annotation{
 			ContextStartDelta: -1,
@@ -62493,37 +62493,37 @@ func (c *current) onElse14() (bool, error) {
 	for i, ws := range c.text[1:] {
 		if byte(ws) != firstChar {
 			if firstChar == ' ' {
-				panic(&corgierr.Error{
+				panic(&fileerr.Error{
 					Message: "mix of tabs and spaces for indentation",
 					ErrorAnnotation: anno(c, annotation{
 						Start:      file.Position{Line: c.pos.line, Col: i + 2},
 						Annotation: "this is a tab",
 					}),
-					HintAnnotations: []corgierr.Annotation{
+					HintAnnotations: []fileerr.Annotation{
 						anno(c, annotation{
 							Start:      file.Position{Line: c.pos.line, Col: 1},
 							Annotation: "this is a space",
 						}),
 					},
-					Suggestions: []corgierr.Suggestion{
+					Suggestions: []fileerr.Suggestion{
 						{Suggestion: "use only tabs OR spaces for indentation, but not both"},
 					},
 				})
 			}
 
-			panic(&corgierr.Error{
+			panic(&fileerr.Error{
 				Message: "mix of tabs and spaces for indentation",
 				ErrorAnnotation: anno(c, annotation{
 					Start:      file.Position{Line: c.pos.line, Col: i + 2},
 					Annotation: "this is a space",
 				}),
-				HintAnnotations: []corgierr.Annotation{
+				HintAnnotations: []fileerr.Annotation{
 					anno(c, annotation{
 						Start:      file.Position{Line: c.pos.line, Col: 1},
 						Annotation: "this is a tab",
 					}),
 				},
-				Suggestions: []corgierr.Suggestion{
+				Suggestions: []fileerr.Suggestion{
 					{Suggestion: "use only tabs OR spaces for indentation, but not both"},
 				},
 			})
@@ -62599,14 +62599,14 @@ func (c *current) onElse22() (bool, error) {
 	for _, space := range c.text {
 		if space != indentChar {
 			if indentChar == ' ' {
-				panic(&corgierr.Error{
+				panic(&fileerr.Error{
 					Message: "mix of tabs and spaces for indentation",
 					ErrorAnnotation: anno(c, annotation{
 						Start:      file.Position{Line: c.pos.line, Col: 1},
 						Len:        len(c.text),
 						Annotation: "but these are tabs",
 					}),
-					HintAnnotations: []corgierr.Annotation{
+					HintAnnotations: []fileerr.Annotation{
 						anno(c, annotation{
 							ContextStartDelta: -1,
 							Start:             file.Position{Line: refLine, Col: 1},
@@ -62614,20 +62614,20 @@ func (c *current) onElse22() (bool, error) {
 							Annotation:        "these are spaces",
 						}),
 					},
-					Suggestions: []corgierr.Suggestion{
+					Suggestions: []fileerr.Suggestion{
 						{Suggestion: "use only tabs OR spaces for indentation, but not both"},
 					},
 				})
 			}
 
-			panic(&corgierr.Error{
+			panic(&fileerr.Error{
 				Message: "mix of tabs and spaces for indentation",
 				ErrorAnnotation: anno(c, annotation{
 					Start:      file.Position{Line: c.pos.line, Col: 1},
 					Len:        len(c.text),
 					Annotation: "but these are spaces",
 				}),
-				HintAnnotations: []corgierr.Annotation{
+				HintAnnotations: []fileerr.Annotation{
 					anno(c, annotation{
 						ContextStartDelta: -1,
 						Start:             file.Position{Line: refLine, Col: 1},
@@ -62635,7 +62635,7 @@ func (c *current) onElse22() (bool, error) {
 						Annotation:        "these are tabs",
 					}),
 				},
-				Suggestions: []corgierr.Suggestion{
+				Suggestions: []fileerr.Suggestion{
 					{Suggestion: "use only tabs OR spaces for indentation, but not both"},
 				},
 			})
@@ -62681,7 +62681,7 @@ func (c *current) onElse26() (bool, error) {
 
 	if (actualCount - totalReps) != refReps {
 		if indentChar == ' ' {
-			return true, &corgierr.Error{
+			return true, &fileerr.Error{
 				Message: "inconsistent indentation",
 				ErrorAnnotation: anno(c, annotation{
 					ContextStartDelta: -1,
@@ -62689,7 +62689,7 @@ func (c *current) onElse26() (bool, error) {
 					Len:               actualCount - totalReps,
 					Annotation:        fmt.Sprintf("however, here you used %d spaces", actualCount-totalReps),
 				}),
-				HintAnnotations: []corgierr.Annotation{
+				HintAnnotations: []fileerr.Annotation{
 					anno(c, annotation{
 						ContextStartDelta: -1,
 						Start:             file.Position{Line: refLine, Col: 1},
@@ -62697,7 +62697,7 @@ func (c *current) onElse26() (bool, error) {
 						Annotation:        fmt.Sprintf("this line uses %d spaces to indent a single level", refReps),
 					}),
 				},
-				Suggestions: []corgierr.Suggestion{
+				Suggestions: []fileerr.Suggestion{
 					{
 						Suggestion: "be consistent in your indentation:\n" +
 							"if you use two spaces for a single indentation, use four for a two-level indentation",
@@ -62706,7 +62706,7 @@ func (c *current) onElse26() (bool, error) {
 			}
 		}
 
-		return true, &corgierr.Error{
+		return true, &fileerr.Error{
 			Message: "inconsistent indentation",
 			ErrorAnnotation: anno(c, annotation{
 				ContextStartDelta: -1,
@@ -62714,7 +62714,7 @@ func (c *current) onElse26() (bool, error) {
 				Len:               actualCount - totalReps,
 				Annotation:        fmt.Sprintf("however, here you used %d tabs", actualCount-totalReps),
 			}),
-			HintAnnotations: []corgierr.Annotation{
+			HintAnnotations: []fileerr.Annotation{
 				anno(c, annotation{
 					ContextStartDelta: -1,
 					Start:             file.Position{Line: refLine, Col: 1},
@@ -62722,7 +62722,7 @@ func (c *current) onElse26() (bool, error) {
 					Annotation:        fmt.Sprintf("this line uses %d tabs to indent a single level", refReps),
 				}),
 			},
-			Suggestions: []corgierr.Suggestion{
+			Suggestions: []fileerr.Suggestion{
 				{
 					Suggestion: "be consistent in your indentation:\n" +
 						"if you use two tabs for a single indentation, use four for a two-level indentation, ...",
@@ -62781,7 +62781,7 @@ func (c *current) onElse30() (bool, error) {
 		return false, nil
 	}
 
-	panic(&corgierr.Error{
+	panic(&fileerr.Error{
 		Message: "unexpected increase of indentation",
 		ErrorAnnotation: anno(c, annotation{
 			ContextStartDelta: -1,
@@ -62833,7 +62833,7 @@ func (p *parser) callonIfBlock34() (any, error) {
 }
 
 func (c *current) onIfBlock21(identI, endPosI any) (any, error) {
-	return file.Ident{Ident: concat(identI), Position: pos(c)}, &corgierr.Error{
+	return file.Ident{Ident: concat(identI), Position: pos(c)}, &fileerr.Error{
 		Message: "invalid identifier",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -62873,7 +62873,7 @@ func (p *parser) callonIfBlock43() (any, error) {
 func (c *current) onIfBlock40(posI any) (any, error) {
 	return file.Ident{
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "missing identifier",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      posI.(file.Position),
@@ -62903,7 +62903,7 @@ func (c *current) onIfBlock62(identI, endPosI any) (any, error) {
 	return file.Ident{
 			Ident:    concat(identI),
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "invalid identifier",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
@@ -62931,7 +62931,7 @@ func (p *parser) callonIfBlock6() (any, error) {
 }
 
 func (c *current) onIfBlock74() (any, error) {
-	return file.Ident{}, &corgierr.Error{
+	return file.Ident{}, &fileerr.Error{
 		Message: "missing block name",
 		ErrorAnnotation: anno(c, annotation{
 			Start:       pos(c),
@@ -62984,7 +62984,7 @@ func (p *parser) callonInlineIfBlock34() (any, error) {
 }
 
 func (c *current) onInlineIfBlock21(identI, endPosI any) (any, error) {
-	return file.Ident{Ident: concat(identI), Position: pos(c)}, &corgierr.Error{
+	return file.Ident{Ident: concat(identI), Position: pos(c)}, &fileerr.Error{
 		Message: "invalid identifier",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -63024,7 +63024,7 @@ func (p *parser) callonInlineIfBlock43() (any, error) {
 func (c *current) onInlineIfBlock40(posI any) (any, error) {
 	return file.Ident{
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "missing identifier",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      posI.(file.Position),
@@ -63054,7 +63054,7 @@ func (c *current) onInlineIfBlock62(identI, endPosI any) (any, error) {
 	return file.Ident{
 			Ident:    concat(identI),
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "invalid identifier",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
@@ -63082,7 +63082,7 @@ func (p *parser) callonInlineIfBlock6() (any, error) {
 }
 
 func (c *current) onInlineIfBlock74() (any, error) {
-	return file.Ident{}, &corgierr.Error{
+	return file.Ident{}, &fileerr.Error{
 		Message: "missing block name",
 		ErrorAnnotation: anno(c, annotation{
 			Start:       pos(c),
@@ -63135,37 +63135,37 @@ func (c *current) onElseIfBlock14() (bool, error) {
 	for i, ws := range c.text[1:] {
 		if byte(ws) != firstChar {
 			if firstChar == ' ' {
-				panic(&corgierr.Error{
+				panic(&fileerr.Error{
 					Message: "mix of tabs and spaces for indentation",
 					ErrorAnnotation: anno(c, annotation{
 						Start:      file.Position{Line: c.pos.line, Col: i + 2},
 						Annotation: "this is a tab",
 					}),
-					HintAnnotations: []corgierr.Annotation{
+					HintAnnotations: []fileerr.Annotation{
 						anno(c, annotation{
 							Start:      file.Position{Line: c.pos.line, Col: 1},
 							Annotation: "this is a space",
 						}),
 					},
-					Suggestions: []corgierr.Suggestion{
+					Suggestions: []fileerr.Suggestion{
 						{Suggestion: "use only tabs OR spaces for indentation, but not both"},
 					},
 				})
 			}
 
-			panic(&corgierr.Error{
+			panic(&fileerr.Error{
 				Message: "mix of tabs and spaces for indentation",
 				ErrorAnnotation: anno(c, annotation{
 					Start:      file.Position{Line: c.pos.line, Col: i + 2},
 					Annotation: "this is a space",
 				}),
-				HintAnnotations: []corgierr.Annotation{
+				HintAnnotations: []fileerr.Annotation{
 					anno(c, annotation{
 						Start:      file.Position{Line: c.pos.line, Col: 1},
 						Annotation: "this is a tab",
 					}),
 				},
-				Suggestions: []corgierr.Suggestion{
+				Suggestions: []fileerr.Suggestion{
 					{Suggestion: "use only tabs OR spaces for indentation, but not both"},
 				},
 			})
@@ -63241,14 +63241,14 @@ func (c *current) onElseIfBlock22() (bool, error) {
 	for _, space := range c.text {
 		if space != indentChar {
 			if indentChar == ' ' {
-				panic(&corgierr.Error{
+				panic(&fileerr.Error{
 					Message: "mix of tabs and spaces for indentation",
 					ErrorAnnotation: anno(c, annotation{
 						Start:      file.Position{Line: c.pos.line, Col: 1},
 						Len:        len(c.text),
 						Annotation: "but these are tabs",
 					}),
-					HintAnnotations: []corgierr.Annotation{
+					HintAnnotations: []fileerr.Annotation{
 						anno(c, annotation{
 							ContextStartDelta: -1,
 							Start:             file.Position{Line: refLine, Col: 1},
@@ -63256,20 +63256,20 @@ func (c *current) onElseIfBlock22() (bool, error) {
 							Annotation:        "these are spaces",
 						}),
 					},
-					Suggestions: []corgierr.Suggestion{
+					Suggestions: []fileerr.Suggestion{
 						{Suggestion: "use only tabs OR spaces for indentation, but not both"},
 					},
 				})
 			}
 
-			panic(&corgierr.Error{
+			panic(&fileerr.Error{
 				Message: "mix of tabs and spaces for indentation",
 				ErrorAnnotation: anno(c, annotation{
 					Start:      file.Position{Line: c.pos.line, Col: 1},
 					Len:        len(c.text),
 					Annotation: "but these are spaces",
 				}),
-				HintAnnotations: []corgierr.Annotation{
+				HintAnnotations: []fileerr.Annotation{
 					anno(c, annotation{
 						ContextStartDelta: -1,
 						Start:             file.Position{Line: refLine, Col: 1},
@@ -63277,7 +63277,7 @@ func (c *current) onElseIfBlock22() (bool, error) {
 						Annotation:        "these are tabs",
 					}),
 				},
-				Suggestions: []corgierr.Suggestion{
+				Suggestions: []fileerr.Suggestion{
 					{Suggestion: "use only tabs OR spaces for indentation, but not both"},
 				},
 			})
@@ -63323,7 +63323,7 @@ func (c *current) onElseIfBlock26() (bool, error) {
 
 	if (actualCount - totalReps) != refReps {
 		if indentChar == ' ' {
-			return true, &corgierr.Error{
+			return true, &fileerr.Error{
 				Message: "inconsistent indentation",
 				ErrorAnnotation: anno(c, annotation{
 					ContextStartDelta: -1,
@@ -63331,7 +63331,7 @@ func (c *current) onElseIfBlock26() (bool, error) {
 					Len:               actualCount - totalReps,
 					Annotation:        fmt.Sprintf("however, here you used %d spaces", actualCount-totalReps),
 				}),
-				HintAnnotations: []corgierr.Annotation{
+				HintAnnotations: []fileerr.Annotation{
 					anno(c, annotation{
 						ContextStartDelta: -1,
 						Start:             file.Position{Line: refLine, Col: 1},
@@ -63339,7 +63339,7 @@ func (c *current) onElseIfBlock26() (bool, error) {
 						Annotation:        fmt.Sprintf("this line uses %d spaces to indent a single level", refReps),
 					}),
 				},
-				Suggestions: []corgierr.Suggestion{
+				Suggestions: []fileerr.Suggestion{
 					{
 						Suggestion: "be consistent in your indentation:\n" +
 							"if you use two spaces for a single indentation, use four for a two-level indentation",
@@ -63348,7 +63348,7 @@ func (c *current) onElseIfBlock26() (bool, error) {
 			}
 		}
 
-		return true, &corgierr.Error{
+		return true, &fileerr.Error{
 			Message: "inconsistent indentation",
 			ErrorAnnotation: anno(c, annotation{
 				ContextStartDelta: -1,
@@ -63356,7 +63356,7 @@ func (c *current) onElseIfBlock26() (bool, error) {
 				Len:               actualCount - totalReps,
 				Annotation:        fmt.Sprintf("however, here you used %d tabs", actualCount-totalReps),
 			}),
-			HintAnnotations: []corgierr.Annotation{
+			HintAnnotations: []fileerr.Annotation{
 				anno(c, annotation{
 					ContextStartDelta: -1,
 					Start:             file.Position{Line: refLine, Col: 1},
@@ -63364,7 +63364,7 @@ func (c *current) onElseIfBlock26() (bool, error) {
 					Annotation:        fmt.Sprintf("this line uses %d tabs to indent a single level", refReps),
 				}),
 			},
-			Suggestions: []corgierr.Suggestion{
+			Suggestions: []fileerr.Suggestion{
 				{
 					Suggestion: "be consistent in your indentation:\n" +
 						"if you use two tabs for a single indentation, use four for a two-level indentation, ...",
@@ -63423,7 +63423,7 @@ func (c *current) onElseIfBlock30() (bool, error) {
 		return false, nil
 	}
 
-	panic(&corgierr.Error{
+	panic(&fileerr.Error{
 		Message: "unexpected increase of indentation",
 		ErrorAnnotation: anno(c, annotation{
 			ContextStartDelta: -1,
@@ -63472,7 +63472,7 @@ func (p *parser) callonElseIfBlock69() (any, error) {
 }
 
 func (c *current) onElseIfBlock56(identI, endPosI any) (any, error) {
-	return file.Ident{Ident: concat(identI), Position: pos(c)}, &corgierr.Error{
+	return file.Ident{Ident: concat(identI), Position: pos(c)}, &fileerr.Error{
 		Message: "invalid identifier",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -63512,7 +63512,7 @@ func (p *parser) callonElseIfBlock78() (any, error) {
 func (c *current) onElseIfBlock75(posI any) (any, error) {
 	return file.Ident{
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "missing identifier",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      posI.(file.Position),
@@ -63542,7 +63542,7 @@ func (c *current) onElseIfBlock97(identI, endPosI any) (any, error) {
 	return file.Ident{
 			Ident:    concat(identI),
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "invalid identifier",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
@@ -63570,7 +63570,7 @@ func (p *parser) callonElseIfBlock41() (any, error) {
 }
 
 func (c *current) onElseIfBlock109() (any, error) {
-	return file.Ident{}, &corgierr.Error{
+	return file.Ident{}, &fileerr.Error{
 		Message: "missing block name",
 		ErrorAnnotation: anno(c, annotation{
 			Start:       pos(c),
@@ -63611,7 +63611,7 @@ func (c *current) onSwitch1(comparatorI, bodyI any) (any, error) {
 	}
 
 	if len(s.Cases) == 0 {
-		return s, &corgierr.Error{
+		return s, &fileerr.Error{
 			Message: "switch must have at least one case",
 			ErrorAnnotation: anno(c, annotation{
 				ContextEndDelta: 1,
@@ -63664,7 +63664,7 @@ func (p *parser) callonswitchComparator35() (any, error) {
 
 func (c *current) onswitchComparator28(compI, startPosI any) (any, error) {
 	comp := compI.(file.Expression)
-	return &comp, &corgierr.Error{
+	return &comp, &fileerr.Error{
 		Message: "unexpected tokens",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      startPosI.(file.Position),
@@ -63713,37 +63713,37 @@ func (c *current) onswitchBody18() (bool, error) {
 	for i, ws := range c.text[1:] {
 		if byte(ws) != firstChar {
 			if firstChar == ' ' {
-				panic(&corgierr.Error{
+				panic(&fileerr.Error{
 					Message: "mix of tabs and spaces for indentation",
 					ErrorAnnotation: anno(c, annotation{
 						Start:      file.Position{Line: c.pos.line, Col: i + 2},
 						Annotation: "this is a tab",
 					}),
-					HintAnnotations: []corgierr.Annotation{
+					HintAnnotations: []fileerr.Annotation{
 						anno(c, annotation{
 							Start:      file.Position{Line: c.pos.line, Col: 1},
 							Annotation: "this is a space",
 						}),
 					},
-					Suggestions: []corgierr.Suggestion{
+					Suggestions: []fileerr.Suggestion{
 						{Suggestion: "use only tabs OR spaces for indentation, but not both"},
 					},
 				})
 			}
 
-			panic(&corgierr.Error{
+			panic(&fileerr.Error{
 				Message: "mix of tabs and spaces for indentation",
 				ErrorAnnotation: anno(c, annotation{
 					Start:      file.Position{Line: c.pos.line, Col: i + 2},
 					Annotation: "this is a space",
 				}),
-				HintAnnotations: []corgierr.Annotation{
+				HintAnnotations: []fileerr.Annotation{
 					anno(c, annotation{
 						Start:      file.Position{Line: c.pos.line, Col: 1},
 						Annotation: "this is a tab",
 					}),
 				},
-				Suggestions: []corgierr.Suggestion{
+				Suggestions: []fileerr.Suggestion{
 					{Suggestion: "use only tabs OR spaces for indentation, but not both"},
 				},
 			})
@@ -63819,14 +63819,14 @@ func (c *current) onswitchBody26() (bool, error) {
 	for _, space := range c.text {
 		if space != indentChar {
 			if indentChar == ' ' {
-				panic(&corgierr.Error{
+				panic(&fileerr.Error{
 					Message: "mix of tabs and spaces for indentation",
 					ErrorAnnotation: anno(c, annotation{
 						Start:      file.Position{Line: c.pos.line, Col: 1},
 						Len:        len(c.text),
 						Annotation: "but these are tabs",
 					}),
-					HintAnnotations: []corgierr.Annotation{
+					HintAnnotations: []fileerr.Annotation{
 						anno(c, annotation{
 							ContextStartDelta: -1,
 							Start:             file.Position{Line: refLine, Col: 1},
@@ -63834,20 +63834,20 @@ func (c *current) onswitchBody26() (bool, error) {
 							Annotation:        "these are spaces",
 						}),
 					},
-					Suggestions: []corgierr.Suggestion{
+					Suggestions: []fileerr.Suggestion{
 						{Suggestion: "use only tabs OR spaces for indentation, but not both"},
 					},
 				})
 			}
 
-			panic(&corgierr.Error{
+			panic(&fileerr.Error{
 				Message: "mix of tabs and spaces for indentation",
 				ErrorAnnotation: anno(c, annotation{
 					Start:      file.Position{Line: c.pos.line, Col: 1},
 					Len:        len(c.text),
 					Annotation: "but these are spaces",
 				}),
-				HintAnnotations: []corgierr.Annotation{
+				HintAnnotations: []fileerr.Annotation{
 					anno(c, annotation{
 						ContextStartDelta: -1,
 						Start:             file.Position{Line: refLine, Col: 1},
@@ -63855,7 +63855,7 @@ func (c *current) onswitchBody26() (bool, error) {
 						Annotation:        "these are tabs",
 					}),
 				},
-				Suggestions: []corgierr.Suggestion{
+				Suggestions: []fileerr.Suggestion{
 					{Suggestion: "use only tabs OR spaces for indentation, but not both"},
 				},
 			})
@@ -63901,7 +63901,7 @@ func (c *current) onswitchBody30() (bool, error) {
 
 	if (actualCount - totalReps) != refReps {
 		if indentChar == ' ' {
-			return true, &corgierr.Error{
+			return true, &fileerr.Error{
 				Message: "inconsistent indentation",
 				ErrorAnnotation: anno(c, annotation{
 					ContextStartDelta: -1,
@@ -63909,7 +63909,7 @@ func (c *current) onswitchBody30() (bool, error) {
 					Len:               actualCount - totalReps,
 					Annotation:        fmt.Sprintf("however, here you used %d spaces", actualCount-totalReps),
 				}),
-				HintAnnotations: []corgierr.Annotation{
+				HintAnnotations: []fileerr.Annotation{
 					anno(c, annotation{
 						ContextStartDelta: -1,
 						Start:             file.Position{Line: refLine, Col: 1},
@@ -63917,7 +63917,7 @@ func (c *current) onswitchBody30() (bool, error) {
 						Annotation:        fmt.Sprintf("this line uses %d spaces to indent a single level", refReps),
 					}),
 				},
-				Suggestions: []corgierr.Suggestion{
+				Suggestions: []fileerr.Suggestion{
 					{
 						Suggestion: "be consistent in your indentation:\n" +
 							"if you use two spaces for a single indentation, use four for a two-level indentation",
@@ -63926,7 +63926,7 @@ func (c *current) onswitchBody30() (bool, error) {
 			}
 		}
 
-		return true, &corgierr.Error{
+		return true, &fileerr.Error{
 			Message: "inconsistent indentation",
 			ErrorAnnotation: anno(c, annotation{
 				ContextStartDelta: -1,
@@ -63934,7 +63934,7 @@ func (c *current) onswitchBody30() (bool, error) {
 				Len:               actualCount - totalReps,
 				Annotation:        fmt.Sprintf("however, here you used %d tabs", actualCount-totalReps),
 			}),
-			HintAnnotations: []corgierr.Annotation{
+			HintAnnotations: []fileerr.Annotation{
 				anno(c, annotation{
 					ContextStartDelta: -1,
 					Start:             file.Position{Line: refLine, Col: 1},
@@ -63942,7 +63942,7 @@ func (c *current) onswitchBody30() (bool, error) {
 					Annotation:        fmt.Sprintf("this line uses %d tabs to indent a single level", refReps),
 				}),
 			},
-			Suggestions: []corgierr.Suggestion{
+			Suggestions: []fileerr.Suggestion{
 				{
 					Suggestion: "be consistent in your indentation:\n" +
 						"if you use two tabs for a single indentation, use four for a two-level indentation, ...",
@@ -64001,7 +64001,7 @@ func (c *current) onswitchBody34() (bool, error) {
 		return false, nil
 	}
 
-	panic(&corgierr.Error{
+	panic(&fileerr.Error{
 		Message: "unexpected increase of indentation",
 		ErrorAnnotation: anno(c, annotation{
 			ContextStartDelta: -1,
@@ -64048,14 +64048,14 @@ func (c *current) onswitchBody1(itms any) (any, error) {
 			s.Cases = append(s.Cases, switchCase)
 		} else {
 			if s.Default != nil {
-				err = &corgierr.Error{
+				err = &fileerr.Error{
 					Message: "multiple default cases in switch",
 					ErrorAnnotation: anno(c, annotation{
 						Start:      switchCase.Position,
 						Len:        len("default"),
 						Annotation: "second default case",
 					}),
-					HintAnnotations: []corgierr.Annotation{
+					HintAnnotations: []fileerr.Annotation{
 						anno(c, annotation{
 							Start:      s.Default.Position,
 							Len:        len("default"),
@@ -64154,7 +64154,7 @@ func (c *current) onBadCase1(bodyI any) (any, error) {
 	return file.Case{
 			Then:     castedOrZero[file.Scope](bodyI),
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "unrecognized directive in switch body",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
@@ -64444,7 +64444,7 @@ func (p *parser) callonDivShorthand15() (any, error) {
 }
 
 func (c *current) onDivShorthand11(posI any) (any, error) {
-	return file.ClassShorthand{Position: pos(c)}, &corgierr.Error{
+	return file.ClassShorthand{Position: pos(c)}, &fileerr.Error{
 		Message: "class shorthand: missing class name",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      posI.(file.Position),
@@ -64483,7 +64483,7 @@ func (p *parser) callonDivShorthand31() (any, error) {
 }
 
 func (c *current) onDivShorthand27(posI any) (any, error) {
-	return file.IDShorthand{Position: pos(c)}, &corgierr.Error{
+	return file.IDShorthand{Position: pos(c)}, &fileerr.Error{
 		Message: "id shorthand: missing id",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      posI.(file.Position),
@@ -64536,7 +64536,7 @@ func (p *parser) callonInlineDivShorthand15() (any, error) {
 }
 
 func (c *current) onInlineDivShorthand11(posI any) (any, error) {
-	return file.ClassShorthand{Position: pos(c)}, &corgierr.Error{
+	return file.ClassShorthand{Position: pos(c)}, &fileerr.Error{
 		Message: "class shorthand: missing class name",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      posI.(file.Position),
@@ -64575,7 +64575,7 @@ func (p *parser) callonInlineDivShorthand31() (any, error) {
 }
 
 func (c *current) onInlineDivShorthand27(posI any) (any, error) {
-	return file.IDShorthand{Position: pos(c)}, &corgierr.Error{
+	return file.IDShorthand{Position: pos(c)}, &fileerr.Error{
 		Message: "id shorthand: missing id",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      posI.(file.Position),
@@ -64630,13 +64630,13 @@ func (p *parser) callonAnd21() (any, error) {
 func (c *current) onAnd17(posI any) (any, error) {
 	return file.And{
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "`&` with no attributes",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      posI.(file.Position),
 				Annotation: "expected an attribute here",
 			}),
-			Suggestions: []corgierr.Suggestion{
+			Suggestions: []fileerr.Suggestion{
 				{Suggestion: "write a class shorthand", Example: "`&.woof`"},
 				{Suggestion: "write an id shorthand", Example: "`&#bark`"},
 				{Suggestion: "write an attribute list", Example: "`&(src=\"bark/woof\", title=\"howl\")`"},
@@ -64663,13 +64663,13 @@ func (p *parser) callonAnd43() (any, error) {
 func (c *current) onAnd36(collsI, posI any) (any, error) {
 	return file.And{
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "bad attribute syntax",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      posI.(file.Position),
 				Annotation: "this is not a valid attribute (list)",
 			}),
-			Suggestions: []corgierr.Suggestion{
+			Suggestions: []fileerr.Suggestion{
 				{
 					Suggestion: "if there is, remove any whitespace between class/id shorthands and attribute lists",
 					Example:    "`&#bark .woof (title=\"howl\")`",
@@ -64714,13 +64714,13 @@ func (p *parser) callonInlineAnd21() (any, error) {
 func (c *current) onInlineAnd17(posI any) (any, error) {
 	return file.And{
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "`&` with no attributes",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      posI.(file.Position),
 				Annotation: "expected an attribute here",
 			}),
-			Suggestions: []corgierr.Suggestion{
+			Suggestions: []fileerr.Suggestion{
 				{Suggestion: "write a class shorthand", Example: "`&.woof`"},
 				{Suggestion: "write an id shorthand", Example: "`&#bark`"},
 				{Suggestion: "write an attribute list", Example: "`&(src=\"bark/woof\", title=\"howl\")`"},
@@ -64747,13 +64747,13 @@ func (p *parser) callonInlineAnd43() (any, error) {
 func (c *current) onInlineAnd36(collsI, posI any) (any, error) {
 	return file.And{
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "bad attribute syntax",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      posI.(file.Position),
 				Annotation: "this is not a valid attribute (list)",
 			}),
-			Suggestions: []corgierr.Suggestion{
+			Suggestions: []fileerr.Suggestion{
 				{
 					Suggestion: "if there is, remove any whitespace between class/id shorthands and attribute lists",
 					Example:    "`&#bark .woof (title=\"howl\")`",
@@ -64796,7 +64796,7 @@ func (p *parser) callonAttributeCollection12() (any, error) {
 }
 
 func (c *current) onAttributeCollection8(posI any) (any, error) {
-	return file.IDShorthand{Position: pos(c)}, &corgierr.Error{
+	return file.IDShorthand{Position: pos(c)}, &fileerr.Error{
 		Message: "id shorthand: missing id",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      posI.(file.Position),
@@ -64835,7 +64835,7 @@ func (p *parser) callonAttributeCollection28() (any, error) {
 }
 
 func (c *current) onAttributeCollection24(posI any) (any, error) {
-	return file.ClassShorthand{Position: pos(c)}, &corgierr.Error{
+	return file.ClassShorthand{Position: pos(c)}, &fileerr.Error{
 		Message: "class shorthand: missing class name",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      posI.(file.Position),
@@ -64874,7 +64874,7 @@ func (p *parser) callonSingleLineAttributeCollection12() (any, error) {
 }
 
 func (c *current) onSingleLineAttributeCollection8(posI any) (any, error) {
-	return file.IDShorthand{Position: pos(c)}, &corgierr.Error{
+	return file.IDShorthand{Position: pos(c)}, &fileerr.Error{
 		Message: "id shorthand: missing id",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      posI.(file.Position),
@@ -64913,7 +64913,7 @@ func (p *parser) callonSingleLineAttributeCollection28() (any, error) {
 }
 
 func (c *current) onSingleLineAttributeCollection24(posI any) (any, error) {
-	return file.ClassShorthand{Position: pos(c)}, &corgierr.Error{
+	return file.ClassShorthand{Position: pos(c)}, &fileerr.Error{
 		Message: "class shorthand: missing class name",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      posI.(file.Position),
@@ -64966,13 +64966,13 @@ func (c *current) onAttributeList30(attributesI, posI any) (any, error) {
 	return file.AttributeList{
 			LParenPos:  pos(c),
 			Attributes: castedOrZero[[]file.Attribute](attributesI),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "attribute list: unclosed `(` or missing `,`",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      posI.(file.Position),
 				Annotation: "expected a `)` or `,`",
 			}),
-			HintAnnotations: []corgierr.Annotation{
+			HintAnnotations: []fileerr.Annotation{
 				anno(c, annotation{
 					Start:      pos(c),
 					Annotation: "for the `(` you opened here",
@@ -65042,13 +65042,13 @@ func (c *current) onSingleLineAttributeList20(attributesI, posI any) (any, error
 	return file.AttributeList{
 			LParenPos:  pos(c),
 			Attributes: castedOrZero[[]file.Attribute](attributesI),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "attribute list: unclosed `(` or missing `,`",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      posI.(file.Position),
 				Annotation: "expected a `)` or `,`",
 			}),
-			HintAnnotations: []corgierr.Annotation{
+			HintAnnotations: []fileerr.Annotation{
 				anno(c, annotation{
 					Start:      pos(c),
 					Annotation: "for the `(` you opened here",
@@ -65186,7 +65186,7 @@ func (c *current) onsimpleValueAttribute38(nameI, assignPosI, posI any) (any, er
 			Name:      concat(nameI),
 			AssignPos: ptrOrNil[file.Position](assignPosI),
 			Position:  pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "attribute: missing value expression",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      posI.(file.Position),
@@ -65251,7 +65251,7 @@ func (c *current) onsingleLineSimpleValueAttribute26(nameI, assignPosI, posI any
 			Name:      concat(nameI),
 			AssignPos: ptrOrNil[file.Position](assignPosI),
 			Position:  pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "attribute: missing value expression",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      posI.(file.Position),
@@ -65341,7 +65341,7 @@ func (p *parser) callonmixinCallAttributeCall27() (any, error) {
 }
 
 func (c *current) onmixinCallAttributeCall14(identI, endPosI any) (any, error) {
-	return file.Ident{Ident: concat(identI), Position: pos(c)}, &corgierr.Error{
+	return file.Ident{Ident: concat(identI), Position: pos(c)}, &fileerr.Error{
 		Message: "invalid identifier",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -65379,7 +65379,7 @@ func (p *parser) callonmixinCallAttributeCall58() (any, error) {
 }
 
 func (c *current) onmixinCallAttributeCall45(identI, endPosI any) (any, error) {
-	return file.Ident{Ident: concat(identI), Position: pos(c)}, &corgierr.Error{
+	return file.Ident{Ident: concat(identI), Position: pos(c)}, &fileerr.Error{
 		Message: "invalid identifier",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -65419,7 +65419,7 @@ func (p *parser) callonmixinCallAttributeCall67() (any, error) {
 func (c *current) onmixinCallAttributeCall64(posI any) (any, error) {
 	return file.Ident{
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "missing identifier",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      posI.(file.Position),
@@ -65449,7 +65449,7 @@ func (c *current) onmixinCallAttributeCall86(identI, endPosI any) (any, error) {
 	return file.Ident{
 			Ident:    concat(identI),
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "invalid identifier",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
@@ -65514,7 +65514,7 @@ func (p *parser) callonsingleLineMixinCallAttributeCall27() (any, error) {
 }
 
 func (c *current) onsingleLineMixinCallAttributeCall14(identI, endPosI any) (any, error) {
-	return file.Ident{Ident: concat(identI), Position: pos(c)}, &corgierr.Error{
+	return file.Ident{Ident: concat(identI), Position: pos(c)}, &fileerr.Error{
 		Message: "invalid identifier",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -65552,7 +65552,7 @@ func (p *parser) callonsingleLineMixinCallAttributeCall58() (any, error) {
 }
 
 func (c *current) onsingleLineMixinCallAttributeCall45(identI, endPosI any) (any, error) {
-	return file.Ident{Ident: concat(identI), Position: pos(c)}, &corgierr.Error{
+	return file.Ident{Ident: concat(identI), Position: pos(c)}, &fileerr.Error{
 		Message: "invalid identifier",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -65592,7 +65592,7 @@ func (p *parser) callonsingleLineMixinCallAttributeCall67() (any, error) {
 func (c *current) onsingleLineMixinCallAttributeCall64(posI any) (any, error) {
 	return file.Ident{
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "missing identifier",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      posI.(file.Position),
@@ -65622,7 +65622,7 @@ func (c *current) onsingleLineMixinCallAttributeCall86(identI, endPosI any) (any
 	return file.Ident{
 			Ident:    concat(identI),
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "invalid identifier",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
@@ -65714,13 +65714,13 @@ func (c *current) onmixinCallAttributeValue13(lBracketPosI, textI any) (any, err
 	return file.TextInterpolationValue{
 			LBracketPos: lBracketPosI.(file.Position),
 			Text:        concat(textI),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "unclosed text interpolation",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
 				Annotation: "`[` opened here, but never closeed",
 			}),
-			HintAnnotations: []corgierr.Annotation{
+			HintAnnotations: []fileerr.Annotation{
 				anno(c, annotation{
 					Start:       pos(c),
 					StartOffset: 1,
@@ -65728,7 +65728,7 @@ func (c *current) onmixinCallAttributeValue13(lBracketPosI, textI any) (any, err
 					Annotation:  "expected a `]` somewhere here",
 				}),
 			},
-			Suggestions: []corgierr.Suggestion{
+			Suggestions: []fileerr.Suggestion{
 				{Suggestion: "if you didn't mean to start an interpolation, escape the `#`", Code: "`##`"},
 			},
 		}
@@ -65771,24 +65771,24 @@ func (p *parser) callonGoExpression11() (any, error) {
 }
 
 func (c *current) onGoExpression27() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 6-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 6-len(c.text)) + "`",
 	})
 
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid little u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -65808,29 +65808,29 @@ func (p *parser) callonGoExpression27() (any, error) {
 }
 
 func (c *current) onGoExpression48() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a big U escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
 	if len(c.text) >= 6 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a little u escape",
 			Code:       "`\\u" + string(c.text[2:6]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 10-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 10-len(c.text)) + "`",
 	})
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid big u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -65850,7 +65850,7 @@ func (p *parser) callonGoExpression48() (any, error) {
 }
 
 func (c *current) onGoExpression80() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid hex byte escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -65858,7 +65858,7 @@ func (c *current) onGoExpression80() (any, error) {
 			Annotation: "expected `\\x`, followed by two hex digits",
 		}),
 		Example: "`\\x1f`",
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 				Code:       "`\\\\" + string(c.text[1:]) + "`",
@@ -65875,14 +65875,14 @@ func (p *parser) callonGoExpression80() (any, error) {
 }
 
 func (c *current) onGoExpression87() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -65907,14 +65907,14 @@ func (p *parser) callonGoExpression87() (any, error) {
 }
 
 func (c *current) onGoExpression98() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -65936,14 +65936,14 @@ func (p *parser) callonGoExpression98() (any, error) {
 }
 
 func (c *current) onGoExpression105() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -65962,14 +65962,14 @@ func (p *parser) callonGoExpression105() (any, error) {
 }
 
 func (c *current) onGoExpression110() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, an octal escape, `\\u`, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -65985,24 +65985,24 @@ func (p *parser) callonGoExpression110() (any, error) {
 }
 
 func (c *current) onGoExpression128() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 6-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 6-len(c.text)) + "`",
 	})
 
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid little u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -66022,29 +66022,29 @@ func (p *parser) callonGoExpression128() (any, error) {
 }
 
 func (c *current) onGoExpression149() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a big U escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
 	if len(c.text) >= 6 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a little u escape",
 			Code:       "`\\u" + string(c.text[2:6]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 10-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 10-len(c.text)) + "`",
 	})
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid big u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -66064,7 +66064,7 @@ func (p *parser) callonGoExpression149() (any, error) {
 }
 
 func (c *current) onGoExpression181() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid hex byte escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -66072,7 +66072,7 @@ func (c *current) onGoExpression181() (any, error) {
 			Annotation: "expected `\\x`, followed by two hex digits",
 		}),
 		Example: "`\\x1f`",
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 				Code:       "`\\\\" + string(c.text[1:]) + "`",
@@ -66089,14 +66089,14 @@ func (p *parser) callonGoExpression181() (any, error) {
 }
 
 func (c *current) onGoExpression188() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -66121,14 +66121,14 @@ func (p *parser) callonGoExpression188() (any, error) {
 }
 
 func (c *current) onGoExpression199() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -66150,14 +66150,14 @@ func (p *parser) callonGoExpression199() (any, error) {
 }
 
 func (c *current) onGoExpression206() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -66176,14 +66176,14 @@ func (p *parser) callonGoExpression206() (any, error) {
 }
 
 func (c *current) onGoExpression211() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, an octal escape, `\\u`, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -66210,14 +66210,14 @@ func (p *parser) callonGoExpression218() (any, error) {
 
 func (c *current) onGoExpression116(valsI, endPosI any) (any, error) {
 	valIs := islice(valsI)
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "rune literals may not contain multiple or zero characters",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			End:        endPosI.(file.Position),
 			Annotation: "should contain only a single character or escape sequence",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "use a single character or escape sequence",
 				Example: func() string {
@@ -66369,7 +66369,7 @@ func (c *current) ongoParenExpr38(parenI, startPosI, exprI any) (any, error) {
 		Position:   pos(c),
 	}}, castedOrZero[file.Expression](exprI).Expressions...)
 
-	return exprs, &corgierr.Error{
+	return exprs, &fileerr.Error{
 		Message: "unclosed `" + openParen + "` in expression",
 		ErrorAnnotation: anno(c, annotation{
 			ContextLen: 3,
@@ -66377,7 +66377,7 @@ func (c *current) ongoParenExpr38(parenI, startPosI, exprI any) (any, error) {
 			EOLDelta:   1,
 			Annotation: "expected a `" + closeParen + "` somewhere here or on a line below",
 		}),
-		HintAnnotations: []corgierr.Annotation{
+		HintAnnotations: []fileerr.Annotation{
 			anno(c, annotation{
 				Start:      pos(c),
 				Annotation: "for the `" + openParen + "` you opened here",
@@ -66403,24 +66403,24 @@ func (p *parser) callongoSubExpression11() (any, error) {
 }
 
 func (c *current) ongoSubExpression27() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 6-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 6-len(c.text)) + "`",
 	})
 
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid little u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -66440,29 +66440,29 @@ func (p *parser) callongoSubExpression27() (any, error) {
 }
 
 func (c *current) ongoSubExpression48() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a big U escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
 	if len(c.text) >= 6 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a little u escape",
 			Code:       "`\\u" + string(c.text[2:6]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 10-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 10-len(c.text)) + "`",
 	})
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid big u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -66482,7 +66482,7 @@ func (p *parser) callongoSubExpression48() (any, error) {
 }
 
 func (c *current) ongoSubExpression80() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid hex byte escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -66490,7 +66490,7 @@ func (c *current) ongoSubExpression80() (any, error) {
 			Annotation: "expected `\\x`, followed by two hex digits",
 		}),
 		Example: "`\\x1f`",
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 				Code:       "`\\\\" + string(c.text[1:]) + "`",
@@ -66507,14 +66507,14 @@ func (p *parser) callongoSubExpression80() (any, error) {
 }
 
 func (c *current) ongoSubExpression87() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -66539,14 +66539,14 @@ func (p *parser) callongoSubExpression87() (any, error) {
 }
 
 func (c *current) ongoSubExpression98() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -66568,14 +66568,14 @@ func (p *parser) callongoSubExpression98() (any, error) {
 }
 
 func (c *current) ongoSubExpression105() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -66594,14 +66594,14 @@ func (p *parser) callongoSubExpression105() (any, error) {
 }
 
 func (c *current) ongoSubExpression110() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, an octal escape, `\\u`, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -66617,24 +66617,24 @@ func (p *parser) callongoSubExpression110() (any, error) {
 }
 
 func (c *current) ongoSubExpression128() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 6-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 6-len(c.text)) + "`",
 	})
 
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid little u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -66654,29 +66654,29 @@ func (p *parser) callongoSubExpression128() (any, error) {
 }
 
 func (c *current) ongoSubExpression149() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a big U escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
 	if len(c.text) >= 6 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a little u escape",
 			Code:       "`\\u" + string(c.text[2:6]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 10-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 10-len(c.text)) + "`",
 	})
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid big u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -66696,7 +66696,7 @@ func (p *parser) callongoSubExpression149() (any, error) {
 }
 
 func (c *current) ongoSubExpression181() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid hex byte escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -66704,7 +66704,7 @@ func (c *current) ongoSubExpression181() (any, error) {
 			Annotation: "expected `\\x`, followed by two hex digits",
 		}),
 		Example: "`\\x1f`",
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 				Code:       "`\\\\" + string(c.text[1:]) + "`",
@@ -66721,14 +66721,14 @@ func (p *parser) callongoSubExpression181() (any, error) {
 }
 
 func (c *current) ongoSubExpression188() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -66753,14 +66753,14 @@ func (p *parser) callongoSubExpression188() (any, error) {
 }
 
 func (c *current) ongoSubExpression199() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -66782,14 +66782,14 @@ func (p *parser) callongoSubExpression199() (any, error) {
 }
 
 func (c *current) ongoSubExpression206() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -66808,14 +66808,14 @@ func (p *parser) callongoSubExpression206() (any, error) {
 }
 
 func (c *current) ongoSubExpression211() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, an octal escape, `\\u`, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -66842,14 +66842,14 @@ func (p *parser) callongoSubExpression218() (any, error) {
 
 func (c *current) ongoSubExpression116(valsI, endPosI any) (any, error) {
 	valIs := islice(valsI)
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "rune literals may not contain multiple or zero characters",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			End:        endPosI.(file.Position),
 			Annotation: "should contain only a single character or escape sequence",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "use a single character or escape sequence",
 				Example: func() string {
@@ -66926,24 +66926,24 @@ func (p *parser) callonmultiLineGoExpression11() (any, error) {
 }
 
 func (c *current) onmultiLineGoExpression27() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 6-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 6-len(c.text)) + "`",
 	})
 
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid little u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -66963,29 +66963,29 @@ func (p *parser) callonmultiLineGoExpression27() (any, error) {
 }
 
 func (c *current) onmultiLineGoExpression48() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a big U escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
 	if len(c.text) >= 6 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a little u escape",
 			Code:       "`\\u" + string(c.text[2:6]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 10-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 10-len(c.text)) + "`",
 	})
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid big u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -67005,7 +67005,7 @@ func (p *parser) callonmultiLineGoExpression48() (any, error) {
 }
 
 func (c *current) onmultiLineGoExpression80() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid hex byte escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -67013,7 +67013,7 @@ func (c *current) onmultiLineGoExpression80() (any, error) {
 			Annotation: "expected `\\x`, followed by two hex digits",
 		}),
 		Example: "`\\x1f`",
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 				Code:       "`\\\\" + string(c.text[1:]) + "`",
@@ -67030,14 +67030,14 @@ func (p *parser) callonmultiLineGoExpression80() (any, error) {
 }
 
 func (c *current) onmultiLineGoExpression87() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -67062,14 +67062,14 @@ func (p *parser) callonmultiLineGoExpression87() (any, error) {
 }
 
 func (c *current) onmultiLineGoExpression98() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -67091,14 +67091,14 @@ func (p *parser) callonmultiLineGoExpression98() (any, error) {
 }
 
 func (c *current) onmultiLineGoExpression105() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -67117,14 +67117,14 @@ func (p *parser) callonmultiLineGoExpression105() (any, error) {
 }
 
 func (c *current) onmultiLineGoExpression110() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, an octal escape, `\\u`, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -67140,24 +67140,24 @@ func (p *parser) callonmultiLineGoExpression110() (any, error) {
 }
 
 func (c *current) onmultiLineGoExpression128() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 6-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 6-len(c.text)) + "`",
 	})
 
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid little u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -67177,29 +67177,29 @@ func (p *parser) callonmultiLineGoExpression128() (any, error) {
 }
 
 func (c *current) onmultiLineGoExpression149() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a big U escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
 	if len(c.text) >= 6 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a little u escape",
 			Code:       "`\\u" + string(c.text[2:6]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 10-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 10-len(c.text)) + "`",
 	})
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid big u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -67219,7 +67219,7 @@ func (p *parser) callonmultiLineGoExpression149() (any, error) {
 }
 
 func (c *current) onmultiLineGoExpression181() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid hex byte escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -67227,7 +67227,7 @@ func (c *current) onmultiLineGoExpression181() (any, error) {
 			Annotation: "expected `\\x`, followed by two hex digits",
 		}),
 		Example: "`\\x1f`",
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 				Code:       "`\\\\" + string(c.text[1:]) + "`",
@@ -67244,14 +67244,14 @@ func (p *parser) callonmultiLineGoExpression181() (any, error) {
 }
 
 func (c *current) onmultiLineGoExpression188() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -67276,14 +67276,14 @@ func (p *parser) callonmultiLineGoExpression188() (any, error) {
 }
 
 func (c *current) onmultiLineGoExpression199() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -67305,14 +67305,14 @@ func (p *parser) callonmultiLineGoExpression199() (any, error) {
 }
 
 func (c *current) onmultiLineGoExpression206() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -67331,14 +67331,14 @@ func (p *parser) callonmultiLineGoExpression206() (any, error) {
 }
 
 func (c *current) onmultiLineGoExpression211() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, an octal escape, `\\u`, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -67365,14 +67365,14 @@ func (p *parser) callonmultiLineGoExpression218() (any, error) {
 
 func (c *current) onmultiLineGoExpression116(valsI, endPosI any) (any, error) {
 	valIs := islice(valsI)
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "rune literals may not contain multiple or zero characters",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			End:        endPosI.(file.Position),
 			Annotation: "should contain only a single character or escape sequence",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "use a single character or escape sequence",
 				Example: func() string {
@@ -67449,24 +67449,24 @@ func (p *parser) callonSingleLineGoExpression11() (any, error) {
 }
 
 func (c *current) onSingleLineGoExpression27() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 6-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 6-len(c.text)) + "`",
 	})
 
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid little u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -67486,29 +67486,29 @@ func (p *parser) callonSingleLineGoExpression27() (any, error) {
 }
 
 func (c *current) onSingleLineGoExpression48() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a big U escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
 	if len(c.text) >= 6 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a little u escape",
 			Code:       "`\\u" + string(c.text[2:6]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 10-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 10-len(c.text)) + "`",
 	})
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid big u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -67528,7 +67528,7 @@ func (p *parser) callonSingleLineGoExpression48() (any, error) {
 }
 
 func (c *current) onSingleLineGoExpression80() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid hex byte escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -67536,7 +67536,7 @@ func (c *current) onSingleLineGoExpression80() (any, error) {
 			Annotation: "expected `\\x`, followed by two hex digits",
 		}),
 		Example: "`\\x1f`",
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 				Code:       "`\\\\" + string(c.text[1:]) + "`",
@@ -67553,14 +67553,14 @@ func (p *parser) callonSingleLineGoExpression80() (any, error) {
 }
 
 func (c *current) onSingleLineGoExpression87() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -67585,14 +67585,14 @@ func (p *parser) callonSingleLineGoExpression87() (any, error) {
 }
 
 func (c *current) onSingleLineGoExpression98() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -67614,14 +67614,14 @@ func (p *parser) callonSingleLineGoExpression98() (any, error) {
 }
 
 func (c *current) onSingleLineGoExpression105() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -67640,14 +67640,14 @@ func (p *parser) callonSingleLineGoExpression105() (any, error) {
 }
 
 func (c *current) onSingleLineGoExpression110() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, an octal escape, `\\u`, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -67663,24 +67663,24 @@ func (p *parser) callonSingleLineGoExpression110() (any, error) {
 }
 
 func (c *current) onSingleLineGoExpression128() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 6-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 6-len(c.text)) + "`",
 	})
 
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid little u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -67700,29 +67700,29 @@ func (p *parser) callonSingleLineGoExpression128() (any, error) {
 }
 
 func (c *current) onSingleLineGoExpression149() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a big U escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
 	if len(c.text) >= 6 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a little u escape",
 			Code:       "`\\u" + string(c.text[2:6]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 10-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 10-len(c.text)) + "`",
 	})
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid big u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -67742,7 +67742,7 @@ func (p *parser) callonSingleLineGoExpression149() (any, error) {
 }
 
 func (c *current) onSingleLineGoExpression181() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid hex byte escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -67750,7 +67750,7 @@ func (c *current) onSingleLineGoExpression181() (any, error) {
 			Annotation: "expected `\\x`, followed by two hex digits",
 		}),
 		Example: "`\\x1f`",
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 				Code:       "`\\\\" + string(c.text[1:]) + "`",
@@ -67767,14 +67767,14 @@ func (p *parser) callonSingleLineGoExpression181() (any, error) {
 }
 
 func (c *current) onSingleLineGoExpression188() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -67799,14 +67799,14 @@ func (p *parser) callonSingleLineGoExpression188() (any, error) {
 }
 
 func (c *current) onSingleLineGoExpression199() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -67828,14 +67828,14 @@ func (p *parser) callonSingleLineGoExpression199() (any, error) {
 }
 
 func (c *current) onSingleLineGoExpression206() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -67854,14 +67854,14 @@ func (p *parser) callonSingleLineGoExpression206() (any, error) {
 }
 
 func (c *current) onSingleLineGoExpression211() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, an octal escape, `\\u`, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -67888,14 +67888,14 @@ func (p *parser) callonSingleLineGoExpression218() (any, error) {
 
 func (c *current) onSingleLineGoExpression116(valsI, endPosI any) (any, error) {
 	valIs := islice(valsI)
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "rune literals may not contain multiple or zero characters",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			End:        endPosI.(file.Position),
 			Annotation: "should contain only a single character or escape sequence",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "use a single character or escape sequence",
 				Example: func() string {
@@ -68047,14 +68047,14 @@ func (c *current) onsingleLineGoParenExpr38(parenI, startPosI, exprI any) (any, 
 		Position:   pos(c),
 	}}, castedOrZero[file.Expression](exprI).Expressions...)
 
-	return exprs, &corgierr.Error{
+	return exprs, &fileerr.Error{
 		Message: "unclosed `" + openParen + "` in expression",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      startPosI.(file.Position),
 			EOLDelta:   1,
 			Annotation: "expected a `" + closeParen + "` somewhere here",
 		}),
-		HintAnnotations: []corgierr.Annotation{
+		HintAnnotations: []fileerr.Annotation{
 			anno(c, annotation{
 				Start:      pos(c),
 				Annotation: "for the `" + openParen + "` you opened here",
@@ -68080,24 +68080,24 @@ func (p *parser) callonsingleLineGoSubExpression11() (any, error) {
 }
 
 func (c *current) onsingleLineGoSubExpression27() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 6-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 6-len(c.text)) + "`",
 	})
 
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid little u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -68117,29 +68117,29 @@ func (p *parser) callonsingleLineGoSubExpression27() (any, error) {
 }
 
 func (c *current) onsingleLineGoSubExpression48() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a big U escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
 	if len(c.text) >= 6 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a little u escape",
 			Code:       "`\\u" + string(c.text[2:6]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 10-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 10-len(c.text)) + "`",
 	})
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid big u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -68159,7 +68159,7 @@ func (p *parser) callonsingleLineGoSubExpression48() (any, error) {
 }
 
 func (c *current) onsingleLineGoSubExpression80() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid hex byte escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -68167,7 +68167,7 @@ func (c *current) onsingleLineGoSubExpression80() (any, error) {
 			Annotation: "expected `\\x`, followed by two hex digits",
 		}),
 		Example: "`\\x1f`",
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 				Code:       "`\\\\" + string(c.text[1:]) + "`",
@@ -68184,14 +68184,14 @@ func (p *parser) callonsingleLineGoSubExpression80() (any, error) {
 }
 
 func (c *current) onsingleLineGoSubExpression87() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -68216,14 +68216,14 @@ func (p *parser) callonsingleLineGoSubExpression87() (any, error) {
 }
 
 func (c *current) onsingleLineGoSubExpression98() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -68245,14 +68245,14 @@ func (p *parser) callonsingleLineGoSubExpression98() (any, error) {
 }
 
 func (c *current) onsingleLineGoSubExpression105() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -68271,14 +68271,14 @@ func (p *parser) callonsingleLineGoSubExpression105() (any, error) {
 }
 
 func (c *current) onsingleLineGoSubExpression110() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, an octal escape, `\\u`, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -68294,24 +68294,24 @@ func (p *parser) callonsingleLineGoSubExpression110() (any, error) {
 }
 
 func (c *current) onsingleLineGoSubExpression128() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 6-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 6-len(c.text)) + "`",
 	})
 
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid little u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -68331,29 +68331,29 @@ func (p *parser) callonsingleLineGoSubExpression128() (any, error) {
 }
 
 func (c *current) onsingleLineGoSubExpression149() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a big U escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
 	if len(c.text) >= 6 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a little u escape",
 			Code:       "`\\u" + string(c.text[2:6]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 10-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 10-len(c.text)) + "`",
 	})
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid big u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -68373,7 +68373,7 @@ func (p *parser) callonsingleLineGoSubExpression149() (any, error) {
 }
 
 func (c *current) onsingleLineGoSubExpression181() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid hex byte escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -68381,7 +68381,7 @@ func (c *current) onsingleLineGoSubExpression181() (any, error) {
 			Annotation: "expected `\\x`, followed by two hex digits",
 		}),
 		Example: "`\\x1f`",
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 				Code:       "`\\\\" + string(c.text[1:]) + "`",
@@ -68398,14 +68398,14 @@ func (p *parser) callonsingleLineGoSubExpression181() (any, error) {
 }
 
 func (c *current) onsingleLineGoSubExpression188() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -68430,14 +68430,14 @@ func (p *parser) callonsingleLineGoSubExpression188() (any, error) {
 }
 
 func (c *current) onsingleLineGoSubExpression199() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -68459,14 +68459,14 @@ func (p *parser) callonsingleLineGoSubExpression199() (any, error) {
 }
 
 func (c *current) onsingleLineGoSubExpression206() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -68485,14 +68485,14 @@ func (p *parser) callonsingleLineGoSubExpression206() (any, error) {
 }
 
 func (c *current) onsingleLineGoSubExpression211() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, an octal escape, `\\u`, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -68519,14 +68519,14 @@ func (p *parser) callonsingleLineGoSubExpression218() (any, error) {
 
 func (c *current) onsingleLineGoSubExpression116(valsI, endPosI any) (any, error) {
 	valIs := islice(valsI)
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "rune literals may not contain multiple or zero characters",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			End:        endPosI.(file.Position),
 			Annotation: "should contain only a single character or escape sequence",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "use a single character or escape sequence",
 				Example: func() string {
@@ -68596,13 +68596,13 @@ func (c *current) onIfExpression2(cExprI any) (any, error) {
 	cExpr := cExprI.(file.ChainExpression)
 	expr := file.Expression{Expressions: []file.ExpressionItem{cExpr}}
 	if cExpr.Default != nil {
-		return expr, &corgierr.Error{
+		return expr, &fileerr.Error{
 			Message: "chain expression with default as conditional",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
 				Annotation: "here", // todo: span the entire len of the expression
 			}),
-			Suggestions: []corgierr.Suggestion{
+			Suggestions: []fileerr.Suggestion{
 				{Suggestion: "remove the default"},
 			},
 		}
@@ -68628,24 +68628,24 @@ func (p *parser) callonIfExpression15() (any, error) {
 }
 
 func (c *current) onIfExpression31() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 6-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 6-len(c.text)) + "`",
 	})
 
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid little u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -68665,29 +68665,29 @@ func (p *parser) callonIfExpression31() (any, error) {
 }
 
 func (c *current) onIfExpression52() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a big U escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
 	if len(c.text) >= 6 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a little u escape",
 			Code:       "`\\u" + string(c.text[2:6]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 10-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 10-len(c.text)) + "`",
 	})
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid big u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -68707,7 +68707,7 @@ func (p *parser) callonIfExpression52() (any, error) {
 }
 
 func (c *current) onIfExpression84() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid hex byte escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -68715,7 +68715,7 @@ func (c *current) onIfExpression84() (any, error) {
 			Annotation: "expected `\\x`, followed by two hex digits",
 		}),
 		Example: "`\\x1f`",
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 				Code:       "`\\\\" + string(c.text[1:]) + "`",
@@ -68732,14 +68732,14 @@ func (p *parser) callonIfExpression84() (any, error) {
 }
 
 func (c *current) onIfExpression91() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -68764,14 +68764,14 @@ func (p *parser) callonIfExpression91() (any, error) {
 }
 
 func (c *current) onIfExpression102() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -68793,14 +68793,14 @@ func (p *parser) callonIfExpression102() (any, error) {
 }
 
 func (c *current) onIfExpression109() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -68819,14 +68819,14 @@ func (p *parser) callonIfExpression109() (any, error) {
 }
 
 func (c *current) onIfExpression114() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, an octal escape, `\\u`, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -68842,24 +68842,24 @@ func (p *parser) callonIfExpression114() (any, error) {
 }
 
 func (c *current) onIfExpression132() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 6-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 6-len(c.text)) + "`",
 	})
 
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid little u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -68879,29 +68879,29 @@ func (p *parser) callonIfExpression132() (any, error) {
 }
 
 func (c *current) onIfExpression153() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a big U escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
 	if len(c.text) >= 6 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a little u escape",
 			Code:       "`\\u" + string(c.text[2:6]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 10-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 10-len(c.text)) + "`",
 	})
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid big u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -68921,7 +68921,7 @@ func (p *parser) callonIfExpression153() (any, error) {
 }
 
 func (c *current) onIfExpression185() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid hex byte escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -68929,7 +68929,7 @@ func (c *current) onIfExpression185() (any, error) {
 			Annotation: "expected `\\x`, followed by two hex digits",
 		}),
 		Example: "`\\x1f`",
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 				Code:       "`\\\\" + string(c.text[1:]) + "`",
@@ -68946,14 +68946,14 @@ func (p *parser) callonIfExpression185() (any, error) {
 }
 
 func (c *current) onIfExpression192() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -68978,14 +68978,14 @@ func (p *parser) callonIfExpression192() (any, error) {
 }
 
 func (c *current) onIfExpression203() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -69007,14 +69007,14 @@ func (p *parser) callonIfExpression203() (any, error) {
 }
 
 func (c *current) onIfExpression210() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -69033,14 +69033,14 @@ func (p *parser) callonIfExpression210() (any, error) {
 }
 
 func (c *current) onIfExpression215() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, an octal escape, `\\u`, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -69067,14 +69067,14 @@ func (p *parser) callonIfExpression222() (any, error) {
 
 func (c *current) onIfExpression120(valsI, endPosI any) (any, error) {
 	valIs := islice(valsI)
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "rune literals may not contain multiple or zero characters",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			End:        endPosI.(file.Position),
 			Annotation: "should contain only a single character or escape sequence",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "use a single character or escape sequence",
 				Example: func() string {
@@ -69144,13 +69144,13 @@ func (c *current) onSingleLineIfExpression2(cExprI any) (any, error) {
 	cExpr := cExprI.(file.ChainExpression)
 	expr := file.Expression{Expressions: []file.ExpressionItem{cExpr}}
 	if cExpr.Default != nil {
-		return expr, &corgierr.Error{
+		return expr, &fileerr.Error{
 			Message: "chain expression with default as conditional",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
 				Annotation: "here", // todo: span the entire len of the expression
 			}),
-			Suggestions: []corgierr.Suggestion{
+			Suggestions: []fileerr.Suggestion{
 				{Suggestion: "remove the default"},
 			},
 		}
@@ -69176,24 +69176,24 @@ func (p *parser) callonSingleLineIfExpression15() (any, error) {
 }
 
 func (c *current) onSingleLineIfExpression31() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 6-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 6-len(c.text)) + "`",
 	})
 
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid little u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -69213,29 +69213,29 @@ func (p *parser) callonSingleLineIfExpression31() (any, error) {
 }
 
 func (c *current) onSingleLineIfExpression52() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a big U escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
 	if len(c.text) >= 6 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a little u escape",
 			Code:       "`\\u" + string(c.text[2:6]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 10-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 10-len(c.text)) + "`",
 	})
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid big u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -69255,7 +69255,7 @@ func (p *parser) callonSingleLineIfExpression52() (any, error) {
 }
 
 func (c *current) onSingleLineIfExpression84() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid hex byte escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -69263,7 +69263,7 @@ func (c *current) onSingleLineIfExpression84() (any, error) {
 			Annotation: "expected `\\x`, followed by two hex digits",
 		}),
 		Example: "`\\x1f`",
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 				Code:       "`\\\\" + string(c.text[1:]) + "`",
@@ -69280,14 +69280,14 @@ func (p *parser) callonSingleLineIfExpression84() (any, error) {
 }
 
 func (c *current) onSingleLineIfExpression91() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -69312,14 +69312,14 @@ func (p *parser) callonSingleLineIfExpression91() (any, error) {
 }
 
 func (c *current) onSingleLineIfExpression102() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -69341,14 +69341,14 @@ func (p *parser) callonSingleLineIfExpression102() (any, error) {
 }
 
 func (c *current) onSingleLineIfExpression109() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -69367,14 +69367,14 @@ func (p *parser) callonSingleLineIfExpression109() (any, error) {
 }
 
 func (c *current) onSingleLineIfExpression114() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, an octal escape, `\\u`, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -69390,24 +69390,24 @@ func (p *parser) callonSingleLineIfExpression114() (any, error) {
 }
 
 func (c *current) onSingleLineIfExpression132() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 6-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 6-len(c.text)) + "`",
 	})
 
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid little u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -69427,29 +69427,29 @@ func (p *parser) callonSingleLineIfExpression132() (any, error) {
 }
 
 func (c *current) onSingleLineIfExpression153() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a big U escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
 	if len(c.text) >= 6 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a little u escape",
 			Code:       "`\\u" + string(c.text[2:6]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 10-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 10-len(c.text)) + "`",
 	})
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid big u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -69469,7 +69469,7 @@ func (p *parser) callonSingleLineIfExpression153() (any, error) {
 }
 
 func (c *current) onSingleLineIfExpression185() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid hex byte escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -69477,7 +69477,7 @@ func (c *current) onSingleLineIfExpression185() (any, error) {
 			Annotation: "expected `\\x`, followed by two hex digits",
 		}),
 		Example: "`\\x1f`",
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 				Code:       "`\\\\" + string(c.text[1:]) + "`",
@@ -69494,14 +69494,14 @@ func (p *parser) callonSingleLineIfExpression185() (any, error) {
 }
 
 func (c *current) onSingleLineIfExpression192() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -69526,14 +69526,14 @@ func (p *parser) callonSingleLineIfExpression192() (any, error) {
 }
 
 func (c *current) onSingleLineIfExpression203() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -69555,14 +69555,14 @@ func (p *parser) callonSingleLineIfExpression203() (any, error) {
 }
 
 func (c *current) onSingleLineIfExpression210() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -69581,14 +69581,14 @@ func (p *parser) callonSingleLineIfExpression210() (any, error) {
 }
 
 func (c *current) onSingleLineIfExpression215() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, an octal escape, `\\u`, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -69615,14 +69615,14 @@ func (p *parser) callonSingleLineIfExpression222() (any, error) {
 
 func (c *current) onSingleLineIfExpression120(valsI, endPosI any) (any, error) {
 	valIs := islice(valsI)
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "rune literals may not contain multiple or zero characters",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			End:        endPosI.(file.Position),
 			Annotation: "should contain only a single character or escape sequence",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "use a single character or escape sequence",
 				Example: func() string {
@@ -69929,14 +69929,14 @@ func (c *current) onInterpretedStringExpression9(startPosI, contentsI any) (any,
 			Quote:    '"',
 			Contents: typedSlice[file.StringExpressionItem](contentsI),
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "unclosed string literal",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      startPosI.(file.Position),
 				ToEOL:      true,
 				Annotation: "expected a `\"` somewhere here",
 			}),
-			HintAnnotations: []corgierr.Annotation{
+			HintAnnotations: []fileerr.Annotation{
 				anno(c, annotation{
 					Start:      pos(c),
 					Annotation: "for the string literal started here",
@@ -69980,14 +69980,14 @@ func (c *current) onRawStringExpression9(startPosI, contentsI any) (any, error) 
 			Quote:    '`',
 			Contents: typedSlice[file.StringExpressionItem](contentsI),
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "unclosed string literal",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      startPosI.(file.Position),
 				ToEOL:      true,
 				Annotation: "expected a ``` somewhere here",
 			}),
-			HintAnnotations: []corgierr.Annotation{
+			HintAnnotations: []fileerr.Annotation{
 				anno(c, annotation{
 					Start:      pos(c),
 					Annotation: "for the string literal started here",
@@ -70003,24 +70003,24 @@ func (p *parser) callonRawStringExpression9() (any, error) {
 }
 
 func (c *current) onInterpretedStringExpressionItem16() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 6-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 6-len(c.text)) + "`",
 	})
 
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid little u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -70040,29 +70040,29 @@ func (p *parser) callonInterpretedStringExpressionItem16() (any, error) {
 }
 
 func (c *current) onInterpretedStringExpressionItem37() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a big U escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
 	if len(c.text) >= 6 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a little u escape",
 			Code:       "`\\u" + string(c.text[2:6]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 10-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 10-len(c.text)) + "`",
 	})
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid big u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -70082,7 +70082,7 @@ func (p *parser) callonInterpretedStringExpressionItem37() (any, error) {
 }
 
 func (c *current) onInterpretedStringExpressionItem69() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid hex byte escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -70090,7 +70090,7 @@ func (c *current) onInterpretedStringExpressionItem69() (any, error) {
 			Annotation: "expected `\\x`, followed by two hex digits",
 		}),
 		Example: "`\\x1f`",
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 				Code:       "`\\\\" + string(c.text[1:]) + "`",
@@ -70107,14 +70107,14 @@ func (p *parser) callonInterpretedStringExpressionItem69() (any, error) {
 }
 
 func (c *current) onInterpretedStringExpressionItem76() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -70139,14 +70139,14 @@ func (p *parser) callonInterpretedStringExpressionItem76() (any, error) {
 }
 
 func (c *current) onInterpretedStringExpressionItem87() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -70168,14 +70168,14 @@ func (p *parser) callonInterpretedStringExpressionItem87() (any, error) {
 }
 
 func (c *current) onInterpretedStringExpressionItem94() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -70194,14 +70194,14 @@ func (p *parser) callonInterpretedStringExpressionItem94() (any, error) {
 }
 
 func (c *current) onInterpretedStringExpressionItem99() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, an octal escape, `\\u`, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -70243,13 +70243,13 @@ func (p *parser) callonRawStringExpressionItem2() (any, error) {
 }
 
 func (c *current) onStringExpressionInterpolation25() (any, error) {
-	return []byte(nil), &corgierr.Error{
+	return []byte(nil), &fileerr.Error{
 		Message: "missing format verb",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Annotation: "expected a formatting verb here",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{Suggestion: "consult the docs of the Go built-in package `fmt` on valid formatting verbs"},
 			{Suggestion: "if you didn't mean to start an interpolation, escape the `#` before this error by writing `##`"},
 		},
@@ -70263,13 +70263,13 @@ func (p *parser) callonStringExpressionInterpolation25() (any, error) {
 }
 
 func (c *current) onStringExpressionInterpolation28() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid format verb",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Annotation: "this is not a valid verb",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{Suggestion: "consult the docs of the Go built-in package `fmt` on valid formatting verbs"},
 			{Suggestion: "if you didn't mean to start an interpolation, escape the `#` before this error by writing `##`"},
 		},
@@ -70303,14 +70303,14 @@ func (p *parser) callonStringExpressionInterpolation36() (any, error) {
 }
 
 func (c *current) onStringExpressionInterpolation30(endPosI any) (any, error) {
-	return string(c.text[1:]), &corgierr.Error{
+	return string(c.text[1:]), &fileerr.Error{
 		Message: "invalid format directive",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			End:        endPosI.(file.Position),
 			Annotation: "invalid formatter",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{Suggestion: "consult the docs of the Go built-in package `fmt` on how to write a formatting placeholder"},
 			{Suggestion: "escape the `#` by writing `##`, if you didn't mean to start an interpolation"},
 		},
@@ -70360,13 +70360,13 @@ func (p *parser) callonStringExpressionInterpolation2() (any, error) {
 }
 
 func (c *current) onStringExpressionInterpolation73() (any, error) {
-	return []byte(nil), &corgierr.Error{
+	return []byte(nil), &fileerr.Error{
 		Message: "missing format verb",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Annotation: "expected a formatting verb here",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{Suggestion: "consult the docs of the Go built-in package `fmt` on valid formatting verbs"},
 			{Suggestion: "if you didn't mean to start an interpolation, escape the `#` before this error by writing `##`"},
 		},
@@ -70380,13 +70380,13 @@ func (p *parser) callonStringExpressionInterpolation73() (any, error) {
 }
 
 func (c *current) onStringExpressionInterpolation76() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid format verb",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Annotation: "this is not a valid verb",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{Suggestion: "consult the docs of the Go built-in package `fmt` on valid formatting verbs"},
 			{Suggestion: "if you didn't mean to start an interpolation, escape the `#` before this error by writing `##`"},
 		},
@@ -70420,14 +70420,14 @@ func (p *parser) callonStringExpressionInterpolation84() (any, error) {
 }
 
 func (c *current) onStringExpressionInterpolation78(endPosI any) (any, error) {
-	return string(c.text[1:]), &corgierr.Error{
+	return string(c.text[1:]), &fileerr.Error{
 		Message: "invalid format directive",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			End:        endPosI.(file.Position),
 			Annotation: "invalid formatter",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{Suggestion: "consult the docs of the Go built-in package `fmt` on how to write a formatting placeholder"},
 			{Suggestion: "escape the `#` by writing `##`, if you didn't mean to start an interpolation"},
 		},
@@ -70454,19 +70454,19 @@ func (c *current) onStringExpressionInterpolation50(fmtDirectiveI, parenPosI any
 	return file.StringExpressionInterpolation{
 			FormatDirective: castedOrZero[string](fmtDirectiveI),
 			Position:        pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "string interpolation is missing an expression",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      parenPosI.(file.Position),
 				Annotation: "expected a `{` here",
 			}),
-			HintAnnotations: []corgierr.Annotation{
+			HintAnnotations: []fileerr.Annotation{
 				anno(c, annotation{
 					Start:      pos(c),
 					Annotation: "for the interpolation started here",
 				}),
 			},
-			Suggestions: []corgierr.Suggestion{
+			Suggestions: []fileerr.Suggestion{
 				{
 					Suggestion: "add an expression enclosed in braces",
 					Code:       "`" + string(c.text) + "{1+1}`",
@@ -70486,13 +70486,13 @@ func (p *parser) callonStringExpressionInterpolation50() (any, error) {
 }
 
 func (c *current) onStringExpressionInterpolation120() (any, error) {
-	return []byte(nil), &corgierr.Error{
+	return []byte(nil), &fileerr.Error{
 		Message: "missing format verb",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Annotation: "expected a formatting verb here",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{Suggestion: "consult the docs of the Go built-in package `fmt` on valid formatting verbs"},
 			{Suggestion: "if you didn't mean to start an interpolation, escape the `#` before this error by writing `##`"},
 		},
@@ -70506,13 +70506,13 @@ func (p *parser) callonStringExpressionInterpolation120() (any, error) {
 }
 
 func (c *current) onStringExpressionInterpolation123() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid format verb",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Annotation: "this is not a valid verb",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{Suggestion: "consult the docs of the Go built-in package `fmt` on valid formatting verbs"},
 			{Suggestion: "if you didn't mean to start an interpolation, escape the `#` before this error by writing `##`"},
 		},
@@ -70546,14 +70546,14 @@ func (p *parser) callonStringExpressionInterpolation131() (any, error) {
 }
 
 func (c *current) onStringExpressionInterpolation125(endPosI any) (any, error) {
-	return string(c.text[1:]), &corgierr.Error{
+	return string(c.text[1:]), &fileerr.Error{
 		Message: "invalid format directive",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			End:        endPosI.(file.Position),
 			Annotation: "invalid formatter",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{Suggestion: "consult the docs of the Go built-in package `fmt` on how to write a formatting placeholder"},
 			{Suggestion: "escape the `#` by writing `##`, if you didn't mean to start an interpolation"},
 		},
@@ -70602,21 +70602,21 @@ func (c *current) onStringExpressionInterpolation97(fmtDirectiveI, parenPosI, lB
 			Expression:      exprI.(file.Expression),
 			LBracePos:       lBracePosI.(file.Position),
 			Position:        pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "unclosed string interpolation",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      startPosI.(file.Position),
 				EOLDelta:   1,
 				Annotation: "expected a `}` somewhere here",
 			}),
-			HintAnnotations: []corgierr.Annotation{
+			HintAnnotations: []fileerr.Annotation{
 				anno(c, annotation{
 					Start:      pos(c),
 					End:        startPosI.(file.Position),
 					Annotation: "for the interpolation started here",
 				}),
 			},
-			Suggestions: []corgierr.Suggestion{
+			Suggestions: []fileerr.Suggestion{
 				{Suggestion: "add the missing `}`"},
 				{
 					Suggestion: "escape the `#` by writing `##`, if you didn't mean to start an interpolation",
@@ -70682,7 +70682,7 @@ func (c *current) onTernaryExpression53(startPosI, rParenPosI any) (any, error) 
 	return file.TernaryExpression{
 			RParenPos: rParenPosI.(file.Position),
 			Position:  pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "malformed ternary expression",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      startPosI.(file.Position),
@@ -70755,7 +70755,7 @@ func (c *current) onTernaryExpression73(conditionI, startPosI, rParenPosI any) (
 			Condition: conditionI.(file.Expression),
 			RParenPos: rParenPosI.(file.Position),
 			Position:  pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "malformed ternary expression",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      startPosI.(file.Position),
@@ -70829,7 +70829,7 @@ func (c *current) onTernaryExpression120(conditionI, ifTrueI, startPosI, rParenP
 			IfTrue:    ifTrueI.(file.Expression),
 			RParenPos: rParenPosI.(file.Position),
 			Position:  pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "malformed ternary expression",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      startPosI.(file.Position),
@@ -70897,7 +70897,7 @@ func (c *current) onSingleLineTernaryExpression33(startPosI, rParenPosI any) (an
 	return file.TernaryExpression{
 			RParenPos: rParenPosI.(file.Position),
 			Position:  pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "malformed ternary expression",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      startPosI.(file.Position),
@@ -70970,7 +70970,7 @@ func (c *current) onSingleLineTernaryExpression48(conditionI, startPosI, rParenP
 			Condition: conditionI.(file.Expression),
 			RParenPos: rParenPosI.(file.Position),
 			Position:  pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "malformed ternary expression",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      startPosI.(file.Position),
@@ -71044,7 +71044,7 @@ func (c *current) onSingleLineTernaryExpression90(conditionI, ifTrueI, startPosI
 			IfTrue:    ifTrueI.(file.Expression),
 			RParenPos: rParenPosI.(file.Position),
 			Position:  pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "malformed ternary expression",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      startPosI.(file.Position),
@@ -71180,21 +71180,21 @@ func (c *current) onChainExpression65(startPosI, derefsI, rootI, checkRootI, cha
 		multiline += " and the lines below"
 	}
 
-	return expr, &corgierr.Error{
+	return expr, &fileerr.Error{
 		Message: "malformed chain expression",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      malStartPosI.(file.Position),
 			End:        malEndPosI.(file.Position),
 			Annotation: "unable to parse this" + multiline + " part",
 		}),
-		HintAnnotations: []corgierr.Annotation{
+		HintAnnotations: []fileerr.Annotation{
 			anno(c, annotation{
 				Start:      startPosI.(file.Position),
 				End:        malStartPosI.(file.Position),
 				Annotation: "this is valid",
 			}),
 		},
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "did you mean to put a default here? default values start with the `~` operator",
 				Example:    "`woof?.bark[12?] ~ someDefault`",
@@ -71355,21 +71355,21 @@ func (p *parser) callonSingleLineChainExpression92() (any, error) {
 }
 
 func (c *current) onSingleLineChainExpression98(startPosI, derefsI, rootI, checkRootI, chainI, endPosI, malStartPosI, malEndPosI any) (bool, error) {
-	return false, &corgierr.Error{
+	return false, &fileerr.Error{
 		Message: "malformed chain expression",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      malStartPosI.(file.Position),
 			End:        malEndPosI.(file.Position),
 			Annotation: "unable to parse this part",
 		}),
-		HintAnnotations: []corgierr.Annotation{
+		HintAnnotations: []fileerr.Annotation{
 			anno(c, annotation{
 				Start:      startPosI.(file.Position),
 				End:        malStartPosI.(file.Position),
 				Annotation: "this is valid",
 			}),
 		},
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "did you mean to put a default here? default values start with the `~` operator",
 				Example:    "`woof?.bark[12?] ~ someDefault`",
@@ -71587,24 +71587,24 @@ func (p *parser) callonindexExpressionIndex11() (any, error) {
 }
 
 func (c *current) onindexExpressionIndex27() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 6-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 6-len(c.text)) + "`",
 	})
 
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid little u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -71624,29 +71624,29 @@ func (p *parser) callonindexExpressionIndex27() (any, error) {
 }
 
 func (c *current) onindexExpressionIndex48() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a big U escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
 	if len(c.text) >= 6 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a little u escape",
 			Code:       "`\\u" + string(c.text[2:6]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 10-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 10-len(c.text)) + "`",
 	})
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid big u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -71666,7 +71666,7 @@ func (p *parser) callonindexExpressionIndex48() (any, error) {
 }
 
 func (c *current) onindexExpressionIndex80() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid hex byte escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -71674,7 +71674,7 @@ func (c *current) onindexExpressionIndex80() (any, error) {
 			Annotation: "expected `\\x`, followed by two hex digits",
 		}),
 		Example: "`\\x1f`",
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 				Code:       "`\\\\" + string(c.text[1:]) + "`",
@@ -71691,14 +71691,14 @@ func (p *parser) callonindexExpressionIndex80() (any, error) {
 }
 
 func (c *current) onindexExpressionIndex87() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -71723,14 +71723,14 @@ func (p *parser) callonindexExpressionIndex87() (any, error) {
 }
 
 func (c *current) onindexExpressionIndex98() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -71752,14 +71752,14 @@ func (p *parser) callonindexExpressionIndex98() (any, error) {
 }
 
 func (c *current) onindexExpressionIndex105() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -71778,14 +71778,14 @@ func (p *parser) callonindexExpressionIndex105() (any, error) {
 }
 
 func (c *current) onindexExpressionIndex110() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, an octal escape, `\\u`, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -71801,24 +71801,24 @@ func (p *parser) callonindexExpressionIndex110() (any, error) {
 }
 
 func (c *current) onindexExpressionIndex128() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 6-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 6-len(c.text)) + "`",
 	})
 
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid little u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -71838,29 +71838,29 @@ func (p *parser) callonindexExpressionIndex128() (any, error) {
 }
 
 func (c *current) onindexExpressionIndex149() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a big U escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
 	if len(c.text) >= 6 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a little u escape",
 			Code:       "`\\u" + string(c.text[2:6]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 10-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 10-len(c.text)) + "`",
 	})
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid big u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -71880,7 +71880,7 @@ func (p *parser) callonindexExpressionIndex149() (any, error) {
 }
 
 func (c *current) onindexExpressionIndex181() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid hex byte escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -71888,7 +71888,7 @@ func (c *current) onindexExpressionIndex181() (any, error) {
 			Annotation: "expected `\\x`, followed by two hex digits",
 		}),
 		Example: "`\\x1f`",
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 				Code:       "`\\\\" + string(c.text[1:]) + "`",
@@ -71905,14 +71905,14 @@ func (p *parser) callonindexExpressionIndex181() (any, error) {
 }
 
 func (c *current) onindexExpressionIndex188() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -71937,14 +71937,14 @@ func (p *parser) callonindexExpressionIndex188() (any, error) {
 }
 
 func (c *current) onindexExpressionIndex199() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -71966,14 +71966,14 @@ func (p *parser) callonindexExpressionIndex199() (any, error) {
 }
 
 func (c *current) onindexExpressionIndex206() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -71992,14 +71992,14 @@ func (p *parser) callonindexExpressionIndex206() (any, error) {
 }
 
 func (c *current) onindexExpressionIndex211() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, an octal escape, `\\u`, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -72026,14 +72026,14 @@ func (p *parser) callonindexExpressionIndex218() (any, error) {
 
 func (c *current) onindexExpressionIndex116(valsI, endPosI any) (any, error) {
 	valIs := islice(valsI)
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "rune literals may not contain multiple or zero characters",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			End:        endPosI.(file.Position),
 			Annotation: "should contain only a single character or escape sequence",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "use a single character or escape sequence",
 				Example: func() string {
@@ -72146,24 +72146,24 @@ func (p *parser) callonsingleLineIndexExpressionIndex11() (any, error) {
 }
 
 func (c *current) onsingleLineIndexExpressionIndex27() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 6-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 6-len(c.text)) + "`",
 	})
 
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid little u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -72183,29 +72183,29 @@ func (p *parser) callonsingleLineIndexExpressionIndex27() (any, error) {
 }
 
 func (c *current) onsingleLineIndexExpressionIndex48() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a big U escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
 	if len(c.text) >= 6 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a little u escape",
 			Code:       "`\\u" + string(c.text[2:6]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 10-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 10-len(c.text)) + "`",
 	})
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid big u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -72225,7 +72225,7 @@ func (p *parser) callonsingleLineIndexExpressionIndex48() (any, error) {
 }
 
 func (c *current) onsingleLineIndexExpressionIndex80() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid hex byte escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -72233,7 +72233,7 @@ func (c *current) onsingleLineIndexExpressionIndex80() (any, error) {
 			Annotation: "expected `\\x`, followed by two hex digits",
 		}),
 		Example: "`\\x1f`",
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 				Code:       "`\\\\" + string(c.text[1:]) + "`",
@@ -72250,14 +72250,14 @@ func (p *parser) callonsingleLineIndexExpressionIndex80() (any, error) {
 }
 
 func (c *current) onsingleLineIndexExpressionIndex87() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -72282,14 +72282,14 @@ func (p *parser) callonsingleLineIndexExpressionIndex87() (any, error) {
 }
 
 func (c *current) onsingleLineIndexExpressionIndex98() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -72311,14 +72311,14 @@ func (p *parser) callonsingleLineIndexExpressionIndex98() (any, error) {
 }
 
 func (c *current) onsingleLineIndexExpressionIndex105() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -72337,14 +72337,14 @@ func (p *parser) callonsingleLineIndexExpressionIndex105() (any, error) {
 }
 
 func (c *current) onsingleLineIndexExpressionIndex110() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, an octal escape, `\\u`, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -72360,24 +72360,24 @@ func (p *parser) callonsingleLineIndexExpressionIndex110() (any, error) {
 }
 
 func (c *current) onsingleLineIndexExpressionIndex128() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 6-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 6-len(c.text)) + "`",
 	})
 
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid little u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -72397,29 +72397,29 @@ func (p *parser) callonsingleLineIndexExpressionIndex128() (any, error) {
 }
 
 func (c *current) onsingleLineIndexExpressionIndex149() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a big U escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
 	if len(c.text) >= 6 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a little u escape",
 			Code:       "`\\u" + string(c.text[2:6]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 10-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 10-len(c.text)) + "`",
 	})
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid big u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -72439,7 +72439,7 @@ func (p *parser) callonsingleLineIndexExpressionIndex149() (any, error) {
 }
 
 func (c *current) onsingleLineIndexExpressionIndex181() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid hex byte escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -72447,7 +72447,7 @@ func (c *current) onsingleLineIndexExpressionIndex181() (any, error) {
 			Annotation: "expected `\\x`, followed by two hex digits",
 		}),
 		Example: "`\\x1f`",
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 				Code:       "`\\\\" + string(c.text[1:]) + "`",
@@ -72464,14 +72464,14 @@ func (p *parser) callonsingleLineIndexExpressionIndex181() (any, error) {
 }
 
 func (c *current) onsingleLineIndexExpressionIndex188() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -72496,14 +72496,14 @@ func (p *parser) callonsingleLineIndexExpressionIndex188() (any, error) {
 }
 
 func (c *current) onsingleLineIndexExpressionIndex199() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -72525,14 +72525,14 @@ func (p *parser) callonsingleLineIndexExpressionIndex199() (any, error) {
 }
 
 func (c *current) onsingleLineIndexExpressionIndex206() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -72551,14 +72551,14 @@ func (p *parser) callonsingleLineIndexExpressionIndex206() (any, error) {
 }
 
 func (c *current) onsingleLineIndexExpressionIndex211() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, an octal escape, `\\u`, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -72585,14 +72585,14 @@ func (p *parser) callonsingleLineIndexExpressionIndex218() (any, error) {
 
 func (c *current) onsingleLineIndexExpressionIndex116(valsI, endPosI any) (any, error) {
 	valIs := islice(valsI)
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "rune literals may not contain multiple or zero characters",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			End:        endPosI.(file.Position),
 			Annotation: "should contain only a single character or escape sequence",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "use a single character or escape sequence",
 				Example: func() string {
@@ -72775,14 +72775,14 @@ func (p *parser) callonRawFilter10() (any, error) {
 }
 
 func (c *current) onRawFilter16() (any, error) {
-	return file.RawFilterType(string(c.text)), &corgierr.Error{
+	return file.RawFilterType(string(c.text)), &fileerr.Error{
 		Message: "invalid raw filter type",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			ToEOL:      true,
 			Annotation: "expected either `html`, `svg`, `js`, or `css`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "remove the type entirely, or replace it with one of the above",
 			},
@@ -72830,7 +72830,7 @@ func (c *current) onCommandFilter23(strI any) (any, error) {
 			Quote:    '`',
 			Contents: concat(strI),
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "unclosed string literal",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
@@ -72847,7 +72847,7 @@ func (p *parser) callonCommandFilter23() (any, error) {
 }
 
 func (c *current) onCommandFilter55() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid hex byte escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -72855,7 +72855,7 @@ func (c *current) onCommandFilter55() (any, error) {
 			Annotation: "expected `\\x`, followed by two hex digits",
 		}),
 		Example: "`\\x1f`",
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 				Code:       "`\\\\" + string(c.text[1:]) + "`",
@@ -72872,24 +72872,24 @@ func (p *parser) callonCommandFilter55() (any, error) {
 }
 
 func (c *current) onCommandFilter68() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 6-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 6-len(c.text)) + "`",
 	})
 
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid little u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -72909,29 +72909,29 @@ func (p *parser) callonCommandFilter68() (any, error) {
 }
 
 func (c *current) onCommandFilter89() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a big U escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
 	if len(c.text) >= 6 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a little u escape",
 			Code:       "`\\u" + string(c.text[2:6]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 10-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 10-len(c.text)) + "`",
 	})
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid big u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -72951,14 +72951,14 @@ func (p *parser) callonCommandFilter89() (any, error) {
 }
 
 func (c *current) onCommandFilter112() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -72983,14 +72983,14 @@ func (p *parser) callonCommandFilter112() (any, error) {
 }
 
 func (c *current) onCommandFilter123() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -73012,14 +73012,14 @@ func (p *parser) callonCommandFilter123() (any, error) {
 }
 
 func (c *current) onCommandFilter130() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -73038,14 +73038,14 @@ func (p *parser) callonCommandFilter130() (any, error) {
 }
 
 func (c *current) onCommandFilter135() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, an octal escape, `\\u`, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -73071,7 +73071,7 @@ func (p *parser) callonCommandFilter40() (any, error) {
 }
 
 func (c *current) onCommandFilter156() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid hex byte escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -73079,7 +73079,7 @@ func (c *current) onCommandFilter156() (any, error) {
 			Annotation: "expected `\\x`, followed by two hex digits",
 		}),
 		Example: "`\\x1f`",
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 				Code:       "`\\\\" + string(c.text[1:]) + "`",
@@ -73096,24 +73096,24 @@ func (p *parser) callonCommandFilter156() (any, error) {
 }
 
 func (c *current) onCommandFilter169() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 6-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 6-len(c.text)) + "`",
 	})
 
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid little u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -73133,29 +73133,29 @@ func (p *parser) callonCommandFilter169() (any, error) {
 }
 
 func (c *current) onCommandFilter190() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a big U escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
 	if len(c.text) >= 6 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a little u escape",
 			Code:       "`\\u" + string(c.text[2:6]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 10-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 10-len(c.text)) + "`",
 	})
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid big u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -73175,14 +73175,14 @@ func (p *parser) callonCommandFilter190() (any, error) {
 }
 
 func (c *current) onCommandFilter213() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -73207,14 +73207,14 @@ func (p *parser) callonCommandFilter213() (any, error) {
 }
 
 func (c *current) onCommandFilter224() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -73236,14 +73236,14 @@ func (p *parser) callonCommandFilter224() (any, error) {
 }
 
 func (c *current) onCommandFilter231() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -73262,14 +73262,14 @@ func (p *parser) callonCommandFilter231() (any, error) {
 }
 
 func (c *current) onCommandFilter236() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, an octal escape, `\\u`, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -73299,7 +73299,7 @@ func (c *current) onCommandFilter141(strI, endPosI any) (any, error) {
 			Quote:    '"',
 			Contents: concat(strI),
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "unclosed string literal",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
@@ -73328,12 +73328,12 @@ func (p *parser) callonCommandFilter267() (any, error) {
 func (c *current) onCommandFilter259(strI, endPosI any) (any, error) {
 	raw := concat(strI)
 
-	suggestion := corgierr.Suggestion{
+	suggestion := fileerr.Suggestion{
 		Suggestion: "enclose this string in double quotes or backticks, instead of single quotes",
 		Code:       "`" + strconv.Quote(raw) + "` or ``" + raw + "``",
 	}
 	if strings.Contains(raw, "`") {
-		suggestion = corgierr.Suggestion{
+		suggestion = fileerr.Suggestion{
 			Suggestion: "enclose this string in double quotes, instead of single quotes",
 			Code:       "`" + strconv.Quote(raw) + "`",
 		}
@@ -73343,14 +73343,14 @@ func (c *current) onCommandFilter259(strI, endPosI any) (any, error) {
 			Quote:    '\'',
 			Contents: concat(strI),
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "use of single-quoted string",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
 				End:        endPosI.(file.Position),
 				Annotation: "this should be a valid Go string",
 			}),
-			Suggestions: []corgierr.Suggestion{suggestion},
+			Suggestions: []fileerr.Suggestion{suggestion},
 		}
 }
 
@@ -73399,7 +73399,7 @@ func (c *current) onBadFilter1(bodyI any) (any, error) {
 	return file.CommandFilter{
 			Position: pos(c),
 			Body:     castedOrZero[[]file.FilterLine](bodyI),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "bad filter",
 			ErrorAnnotation: anno(c, annotation{
 				Start:       pos(c),
@@ -73485,7 +73485,7 @@ func (p *parser) callonGoType1() (any, error) {
 }
 
 func (c *current) ongoFieldDecl33() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "unclosed string literal",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -73502,24 +73502,24 @@ func (p *parser) callongoFieldDecl33() (any, error) {
 }
 
 func (c *current) ongoFieldDecl57() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 6-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 6-len(c.text)) + "`",
 	})
 
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid little u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -73539,29 +73539,29 @@ func (p *parser) callongoFieldDecl57() (any, error) {
 }
 
 func (c *current) ongoFieldDecl78() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a big U escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
 	if len(c.text) >= 6 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a little u escape",
 			Code:       "`\\u" + string(c.text[2:6]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 10-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 10-len(c.text)) + "`",
 	})
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid big u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -73581,7 +73581,7 @@ func (p *parser) callongoFieldDecl78() (any, error) {
 }
 
 func (c *current) ongoFieldDecl110() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid hex byte escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -73589,7 +73589,7 @@ func (c *current) ongoFieldDecl110() (any, error) {
 			Annotation: "expected `\\x`, followed by two hex digits",
 		}),
 		Example: "`\\x1f`",
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 				Code:       "`\\\\" + string(c.text[1:]) + "`",
@@ -73606,14 +73606,14 @@ func (p *parser) callongoFieldDecl110() (any, error) {
 }
 
 func (c *current) ongoFieldDecl117() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -73638,14 +73638,14 @@ func (p *parser) callongoFieldDecl117() (any, error) {
 }
 
 func (c *current) ongoFieldDecl128() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -73667,14 +73667,14 @@ func (p *parser) callongoFieldDecl128() (any, error) {
 }
 
 func (c *current) ongoFieldDecl135() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -73693,14 +73693,14 @@ func (p *parser) callongoFieldDecl135() (any, error) {
 }
 
 func (c *current) ongoFieldDecl140() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, an octal escape, `\\u`, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -73716,24 +73716,24 @@ func (p *parser) callongoFieldDecl140() (any, error) {
 }
 
 func (c *current) ongoFieldDecl157() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 6-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 6-len(c.text)) + "`",
 	})
 
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid little u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -73753,29 +73753,29 @@ func (p *parser) callongoFieldDecl157() (any, error) {
 }
 
 func (c *current) ongoFieldDecl178() (any, error) {
-	suggestions := []corgierr.Suggestion{
+	suggestions := []fileerr.Suggestion{
 		{
 			Suggestion: "if you didn't mean to write a big U escape, escape the `\\`",
 			Code:       "`\\\\" + string(c.text[1:]) + "`",
 		},
 	}
 	if len(c.text) >= 4 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a two digit hex escape",
 			Code:       "`\\x" + string(c.text[2:4]) + "`",
 		})
 	}
 	if len(c.text) >= 6 {
-		suggestions = append(suggestions, corgierr.Suggestion{
+		suggestions = append(suggestions, fileerr.Suggestion{
 			Suggestion: "make this a little u escape",
 			Code:       "`\\u" + string(c.text[2:6]) + "`",
 		})
 	}
-	suggestions = append(suggestions, corgierr.Suggestion{
+	suggestions = append(suggestions, fileerr.Suggestion{
 		Suggestion: fmt.Sprint("append the missing ", 10-len(c.text), " hex digit(s)"),
 		Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 10-len(c.text)) + "`",
 	})
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid big u escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -73795,7 +73795,7 @@ func (p *parser) callongoFieldDecl178() (any, error) {
 }
 
 func (c *current) ongoFieldDecl210() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid hex byte escape",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -73803,7 +73803,7 @@ func (c *current) ongoFieldDecl210() (any, error) {
 			Annotation: "expected `\\x`, followed by two hex digits",
 		}),
 		Example: "`\\x1f`",
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
 				Code:       "`\\\\" + string(c.text[1:]) + "`",
@@ -73820,14 +73820,14 @@ func (p *parser) callongoFieldDecl210() (any, error) {
 }
 
 func (c *current) ongoFieldDecl217() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -73852,14 +73852,14 @@ func (p *parser) callongoFieldDecl217() (any, error) {
 }
 
 func (c *current) ongoFieldDecl228() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -73881,14 +73881,14 @@ func (p *parser) callongoFieldDecl228() (any, error) {
 }
 
 func (c *current) ongoFieldDecl235() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -73907,14 +73907,14 @@ func (p *parser) callongoFieldDecl235() (any, error) {
 }
 
 func (c *current) ongoFieldDecl240() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid escape sequence",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Len:        2,
 			Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, an octal escape, `\\u`, or `\\U`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "if you didn't mean to write an escape, escape the `\\`",
 				Code:       "`\\\\`",
@@ -73930,7 +73930,7 @@ func (p *parser) callongoFieldDecl240() (any, error) {
 }
 
 func (c *current) ongoFieldDecl146() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "unclosed string literal",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -73968,7 +73968,7 @@ func (p *parser) callonMixin31() (any, error) {
 }
 
 func (c *current) onMixin18(identI, endPosI any) (any, error) {
-	return file.Ident{Ident: concat(identI), Position: pos(c)}, &corgierr.Error{
+	return file.Ident{Ident: concat(identI), Position: pos(c)}, &fileerr.Error{
 		Message: "invalid identifier",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -74008,7 +74008,7 @@ func (p *parser) callonMixin40() (any, error) {
 func (c *current) onMixin37(posI any) (any, error) {
 	return file.Ident{
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "missing identifier",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      posI.(file.Position),
@@ -74038,7 +74038,7 @@ func (c *current) onMixin59(identI, endPosI any) (any, error) {
 	return file.Ident{
 			Ident:    concat(identI),
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "invalid identifier",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
@@ -74087,7 +74087,7 @@ func (c *current) onMixin76(posI, bodyI any) (any, error) {
 	return file.Mixin{
 			Body:     bodyI.(file.Scope),
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "mixin: missing name",
 			ErrorAnnotation: anno(c, annotation{
 				Start:       posI.(file.Position),
@@ -74143,13 +74143,13 @@ func (c *current) onmixinParamList30(paramsI, posI any) (any, error) {
 	return file.Mixin{
 			LParenPos: ptr(pos(c)),
 			Params:    castedOrZero[[]file.MixinParam](paramsI),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "mixin parameters: unclosed `(`",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      posI.(file.Position),
 				Annotation: "expected a `)`",
 			}),
-			HintAnnotations: []corgierr.Annotation{
+			HintAnnotations: []fileerr.Annotation{
 				anno(c, annotation{
 					Start:      pos(c),
 					Annotation: "for the `(` you opened here",
@@ -74202,7 +74202,7 @@ func (p *parser) callonmixinParam27() (any, error) {
 }
 
 func (c *current) onmixinParam14(identI, endPosI any) (any, error) {
-	return file.Ident{Ident: concat(identI), Position: pos(c)}, &corgierr.Error{
+	return file.Ident{Ident: concat(identI), Position: pos(c)}, &fileerr.Error{
 		Message: "invalid identifier",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -74243,7 +74243,7 @@ func (c *current) onmixinParam33(identI, endPosI any) (any, error) {
 	return file.Ident{
 			Ident:    concat(identI),
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "invalid identifier",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
@@ -74291,14 +74291,14 @@ func (c *current) onmixinParam1(nameI, posI, typeI, defaultI any) (any, error) {
 		Position:  pos(c),
 	}
 	if p.Type == nil && p.Default == nil {
-		return p, &corgierr.Error{
+		return p, &fileerr.Error{
 			Message: "mixin param: need either a type or a default",
 			ErrorAnnotation: anno(c, annotation{
 				Start:       posI.(file.Position),
 				StartOffset: 1,
 				Annotation:  "expected either a type or a default here",
 			}),
-			Suggestions: []corgierr.Suggestion{
+			Suggestions: []fileerr.Suggestion{
 				{Suggestion: "give this param a type", Code: "`" + p.Name.Ident + " string`"},
 				{Suggestion: "give this param a default with an inferrable type", Code: "`" + p.Name.Ident + "=\"woof\"`"},
 			},
@@ -74340,19 +74340,19 @@ func (p *parser) callonmixinParamDefault13() (any, error) {
 func (c *current) onmixinParamDefault9(posI any) (any, error) {
 	return file.MixinParam{
 			AssignPos: ptr(pos(c)),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "mixin param: missing default",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      posI.(file.Position),
 				Annotation: "here",
 			}),
-			HintAnnotations: []corgierr.Annotation{
+			HintAnnotations: []fileerr.Annotation{
 				anno(c, annotation{
 					Start:      pos(c),
 					Annotation: "because of this `=`",
 				}),
 			},
-			Suggestions: []corgierr.Suggestion{
+			Suggestions: []fileerr.Suggestion{
 				{Suggestion: "remove the `=`, if you didn't mean to define a default"},
 			},
 		}
@@ -74365,7 +74365,7 @@ func (p *parser) callonmixinParamDefault9() (any, error) {
 }
 
 func (c *current) onReturn8() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "unexpected tokens",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -74415,7 +74415,7 @@ func (p *parser) callonMixinCall27() (any, error) {
 }
 
 func (c *current) onMixinCall14(identI, endPosI any) (any, error) {
-	return file.Ident{Ident: concat(identI), Position: pos(c)}, &corgierr.Error{
+	return file.Ident{Ident: concat(identI), Position: pos(c)}, &fileerr.Error{
 		Message: "invalid identifier",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -74453,7 +74453,7 @@ func (p *parser) callonMixinCall58() (any, error) {
 }
 
 func (c *current) onMixinCall45(identI, endPosI any) (any, error) {
-	return file.Ident{Ident: concat(identI), Position: pos(c)}, &corgierr.Error{
+	return file.Ident{Ident: concat(identI), Position: pos(c)}, &fileerr.Error{
 		Message: "invalid identifier",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -74493,7 +74493,7 @@ func (p *parser) callonMixinCall67() (any, error) {
 func (c *current) onMixinCall64(posI any) (any, error) {
 	return file.Ident{
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "missing identifier",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      posI.(file.Position),
@@ -74523,7 +74523,7 @@ func (c *current) onMixinCall86(identI, endPosI any) (any, error) {
 	return file.Ident{
 			Ident:    concat(identI),
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "invalid identifier",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
@@ -74586,7 +74586,7 @@ func (p *parser) callonInlineMixinCall27() (any, error) {
 }
 
 func (c *current) onInlineMixinCall14(identI, endPosI any) (any, error) {
-	return file.Ident{Ident: concat(identI), Position: pos(c)}, &corgierr.Error{
+	return file.Ident{Ident: concat(identI), Position: pos(c)}, &fileerr.Error{
 		Message: "invalid identifier",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -74624,7 +74624,7 @@ func (p *parser) callonInlineMixinCall58() (any, error) {
 }
 
 func (c *current) onInlineMixinCall45(identI, endPosI any) (any, error) {
-	return file.Ident{Ident: concat(identI), Position: pos(c)}, &corgierr.Error{
+	return file.Ident{Ident: concat(identI), Position: pos(c)}, &fileerr.Error{
 		Message: "invalid identifier",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -74664,7 +74664,7 @@ func (p *parser) callonInlineMixinCall67() (any, error) {
 func (c *current) onInlineMixinCall64(posI any) (any, error) {
 	return file.Ident{
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "missing identifier",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      posI.(file.Position),
@@ -74694,7 +74694,7 @@ func (c *current) onInlineMixinCall86(identI, endPosI any) (any, error) {
 	return file.Ident{
 			Ident:    concat(identI),
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "invalid identifier",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
@@ -74774,13 +74774,13 @@ func (c *current) onmixinArgList30(argsI, posI any) (any, error) {
 	return file.MixinCall{
 			LParenPos: ptr(pos(c)),
 			Args:      castedOrZero[[]file.MixinArg](argsI),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "mixin args: unclosed `(`",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      posI.(file.Position),
 				Annotation: "expected a `)`",
 			}),
-			HintAnnotations: []corgierr.Annotation{
+			HintAnnotations: []fileerr.Annotation{
 				anno(c, annotation{
 					Start:      pos(c),
 					Annotation: "for the `(` you opened here",
@@ -74833,13 +74833,13 @@ func (c *current) onsingleLineMixinArgList20(argsI, posI any) (any, error) {
 	return file.MixinCall{
 			LParenPos: ptr(pos(c)),
 			Args:      castedOrZero[[]file.MixinArg](argsI),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "mixin args: unclosed `(`",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      posI.(file.Position),
 				Annotation: "expected a `)`",
 			}),
-			HintAnnotations: []corgierr.Annotation{
+			HintAnnotations: []fileerr.Annotation{
 				anno(c, annotation{
 					Start:      pos(c),
 					Annotation: "for the `(` you opened here",
@@ -74909,7 +74909,7 @@ func (p *parser) callonmixinArg28() (any, error) {
 }
 
 func (c *current) onmixinArg15(identI, endPosI any) (any, error) {
-	return file.Ident{Ident: concat(identI), Position: pos(c)}, &corgierr.Error{
+	return file.Ident{Ident: concat(identI), Position: pos(c)}, &fileerr.Error{
 		Message: "invalid identifier",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -74950,7 +74950,7 @@ func (c *current) onmixinArg34(identI, endPosI any) (any, error) {
 	return file.Ident{
 			Ident:    concat(identI),
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "invalid identifier",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
@@ -75001,7 +75001,7 @@ func (p *parser) callonmixinArg79() (any, error) {
 }
 
 func (c *current) onmixinArg66(identI, endPosI any) (any, error) {
-	return file.Ident{Ident: concat(identI), Position: pos(c)}, &corgierr.Error{
+	return file.Ident{Ident: concat(identI), Position: pos(c)}, &fileerr.Error{
 		Message: "invalid identifier",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -75042,7 +75042,7 @@ func (c *current) onmixinArg85(identI, endPosI any) (any, error) {
 	return file.Ident{
 			Ident:    concat(identI),
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "invalid identifier",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
@@ -75072,14 +75072,14 @@ func (p *parser) callonmixinArg103() (any, error) {
 func (c *current) onmixinArg53(nameI, posI any) (any, error) {
 	return file.MixinArg{
 			Name: nameI.(file.Ident),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "missing mixin argument value",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      posI.(file.Position),
 				Annotation: "expected a value here",
 			}),
 			Example: "`argName=123`",
-			Suggestions: []corgierr.Suggestion{
+			Suggestions: []fileerr.Suggestion{
 				{Suggestion: "remember that you always need to write the name of the arg before it's value"},
 			},
 		}
@@ -75112,7 +75112,7 @@ func (p *parser) callonsingleLineMixinArg28() (any, error) {
 }
 
 func (c *current) onsingleLineMixinArg15(identI, endPosI any) (any, error) {
-	return file.Ident{Ident: concat(identI), Position: pos(c)}, &corgierr.Error{
+	return file.Ident{Ident: concat(identI), Position: pos(c)}, &fileerr.Error{
 		Message: "invalid identifier",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -75153,7 +75153,7 @@ func (c *current) onsingleLineMixinArg34(identI, endPosI any) (any, error) {
 	return file.Ident{
 			Ident:    concat(identI),
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "invalid identifier",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
@@ -75204,7 +75204,7 @@ func (p *parser) callonsingleLineMixinArg79() (any, error) {
 }
 
 func (c *current) onsingleLineMixinArg66(identI, endPosI any) (any, error) {
-	return file.Ident{Ident: concat(identI), Position: pos(c)}, &corgierr.Error{
+	return file.Ident{Ident: concat(identI), Position: pos(c)}, &fileerr.Error{
 		Message: "invalid identifier",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -75245,7 +75245,7 @@ func (c *current) onsingleLineMixinArg85(identI, endPosI any) (any, error) {
 	return file.Ident{
 			Ident:    concat(identI),
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "invalid identifier",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
@@ -75275,14 +75275,14 @@ func (p *parser) callonsingleLineMixinArg103() (any, error) {
 func (c *current) onsingleLineMixinArg53(nameI, posI any) (any, error) {
 	return file.MixinArg{
 			Name: nameI.(file.Ident),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "missing mixin argument value",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      posI.(file.Position),
 				Annotation: "expected a value here",
 			}),
 			Example: "`argName=123`",
-			Suggestions: []corgierr.Suggestion{
+			Suggestions: []fileerr.Suggestion{
 				{Suggestion: "remember that you always need to write the name of the arg before it's value"},
 			},
 		}
@@ -75305,7 +75305,7 @@ func (p *parser) callonmixinCallBody2() (any, error) {
 }
 
 func (c *current) onMixinMainBlockShorthand6() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "unexpected tokens",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -75335,7 +75335,7 @@ func (p *parser) callonMixinMainBlockShorthand2() (any, error) {
 }
 
 func (c *current) onMixinMainBlockShorthand24() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "unexpected tokens",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -75364,13 +75364,13 @@ func (p *parser) callonMixinMainBlockShorthand28() (any, error) {
 func (c *current) onMixinMainBlockShorthand20(posI any) (any, error) {
 	return file.MixinMainBlockShorthand{
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "missing body",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      posI.(file.Position),
 				Annotation: "expected an indented body",
 			}),
-			Suggestions: []corgierr.Suggestion{
+			Suggestions: []fileerr.Suggestion{
 				{
 					Suggestion: "if you want the `_` block to write nothing,\n" +
 						"use a block directive inside the body of the mixin call",
@@ -75429,7 +75429,7 @@ func (p *parser) callonFunc52() (any, error) {
 }
 
 func (c *current) onFunc47(endPosI any) (any, error) {
-	return ([]file.FuncParam)(nil), &corgierr.Error{
+	return ([]file.FuncParam)(nil), &fileerr.Error{
 		Message: "invalid parameter list",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -75472,7 +75472,7 @@ func (p *parser) callonFunc16() (any, error) {
 }
 
 func (c *current) onFunc61() (any, error) {
-	return file.Func{}, &corgierr.Error{
+	return file.Func{}, &fileerr.Error{
 		Message: "missing `(` or `)` or invalid param list",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -75517,7 +75517,7 @@ func (p *parser) callonFunc77() (any, error) {
 }
 
 func (c *current) onFunc73(posI any) (any, error) {
-	return file.Func{Position: pos(c)}, &corgierr.Error{
+	return file.Func{Position: pos(c)}, &fileerr.Error{
 		Message: "missing func name",
 		ErrorAnnotation: anno(c, annotation{
 			Start:       posI.(file.Position),
@@ -75677,7 +75677,7 @@ func (c *current) onfuncType3(typeI, endPosI any) (any, error) {
 	return file.GoType{
 			Type:     concat(typeI),
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "invalid type",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
@@ -75772,7 +75772,7 @@ func (c *current) onInlineArrowBlock7(posI, lineI any) (any, error) {
 	return file.ArrowBlock{
 			Lines:    []file.TextLine{lineI.(file.TextLine)},
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "missing space",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      posI.(file.Position),
@@ -75812,20 +75812,20 @@ func (p *parser) callonTextItem2() (any, error) {
 }
 
 func (c *current) onInterpolation5() (any, error) {
-	return nil, &corgierr.Error{
+	return nil, &fileerr.Error{
 		Message: "bad interpolation",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Annotation: "start of interpolation",
 		}),
-		HintAnnotations: []corgierr.Annotation{
+		HintAnnotations: []fileerr.Annotation{
 			anno(c, annotation{
 				Start:       pos(c),
 				StartOffset: 1,
 				Annotation:  "expected a `#`, `[`, `{`, a mixin call, or an element name here",
 			}),
 		},
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{Suggestion: "if you didn't mean to start an interpolation, escape the `#`", Code: "`##`"},
 		},
 	}
@@ -75885,13 +75885,13 @@ func (c *current) onSimpleInterpolation21(lBracketPosI, textI any) (any, error) 
 	return file.TextInterpolationValue{
 			LBracketPos: lBracketPosI.(file.Position),
 			Text:        concat(textI),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "unclosed text interpolation",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
 				Annotation: "`[` opened here, but never closeed",
 			}),
-			HintAnnotations: []corgierr.Annotation{
+			HintAnnotations: []fileerr.Annotation{
 				anno(c, annotation{
 					Start:       pos(c),
 					StartOffset: 1,
@@ -75899,7 +75899,7 @@ func (c *current) onSimpleInterpolation21(lBracketPosI, textI any) (any, error) 
 					Annotation:  "expected a `]` somewhere here",
 				}),
 			},
-			Suggestions: []corgierr.Suggestion{
+			Suggestions: []fileerr.Suggestion{
 				{Suggestion: "if you didn't mean to start an interpolation, escape the `#`", Code: "`##`"},
 			},
 		}
@@ -76015,13 +76015,13 @@ func (c *current) onelementInterpolationValue13(lBracketPosI, textI any) (any, e
 	return file.TextInterpolationValue{
 			LBracketPos: lBracketPosI.(file.Position),
 			Text:        concat(textI),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "unclosed text interpolation",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
 				Annotation: "`[` opened here, but never closeed",
 			}),
-			HintAnnotations: []corgierr.Annotation{
+			HintAnnotations: []fileerr.Annotation{
 				anno(c, annotation{
 					Start:       pos(c),
 					StartOffset: 1,
@@ -76029,7 +76029,7 @@ func (c *current) onelementInterpolationValue13(lBracketPosI, textI any) (any, e
 					Annotation:  "expected a `]` somewhere here",
 				}),
 			},
-			Suggestions: []corgierr.Suggestion{
+			Suggestions: []fileerr.Suggestion{
 				{Suggestion: "if you didn't mean to start an interpolation, escape the `#`", Code: "`##`"},
 			},
 		}
@@ -76052,7 +76052,7 @@ func (p *parser) callonelementInterpolationValue31() (any, error) {
 }
 
 func (c *current) onelementInterpolationValue33() (any, error) {
-	return nil, &corgierr.Error{
+	return nil, &fileerr.Error{
 		Message: "invalid interpolation value",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -76098,7 +76098,7 @@ func (p *parser) callonMixinCallInterpolation35() (any, error) {
 }
 
 func (c *current) onMixinCallInterpolation22(identI, endPosI any) (any, error) {
-	return file.Ident{Ident: concat(identI), Position: pos(c)}, &corgierr.Error{
+	return file.Ident{Ident: concat(identI), Position: pos(c)}, &fileerr.Error{
 		Message: "invalid identifier",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -76136,7 +76136,7 @@ func (p *parser) callonMixinCallInterpolation66() (any, error) {
 }
 
 func (c *current) onMixinCallInterpolation53(identI, endPosI any) (any, error) {
-	return file.Ident{Ident: concat(identI), Position: pos(c)}, &corgierr.Error{
+	return file.Ident{Ident: concat(identI), Position: pos(c)}, &fileerr.Error{
 		Message: "invalid identifier",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
@@ -76176,7 +76176,7 @@ func (p *parser) callonMixinCallInterpolation75() (any, error) {
 func (c *current) onMixinCallInterpolation72(posI any) (any, error) {
 	return file.Ident{
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "missing identifier",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      posI.(file.Position),
@@ -76206,7 +76206,7 @@ func (c *current) onMixinCallInterpolation94(identI, endPosI any) (any, error) {
 	return file.Ident{
 			Ident:    concat(identI),
 			Position: pos(c),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "invalid identifier",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
@@ -76299,13 +76299,13 @@ func (c *current) onmixinCallInterpolationValue13(lBracketPosI, textI any) (any,
 	return file.TextInterpolationValue{
 			LBracketPos: lBracketPosI.(file.Position),
 			Text:        concat(textI),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "unclosed text interpolation",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
 				Annotation: "`[` opened here, but never closeed",
 			}),
-			HintAnnotations: []corgierr.Annotation{
+			HintAnnotations: []fileerr.Annotation{
 				anno(c, annotation{
 					Start:       pos(c),
 					StartOffset: 1,
@@ -76313,7 +76313,7 @@ func (c *current) onmixinCallInterpolationValue13(lBracketPosI, textI any) (any,
 					Annotation:  "expected a `]` somewhere here",
 				}),
 			},
-			Suggestions: []corgierr.Suggestion{
+			Suggestions: []fileerr.Suggestion{
 				{Suggestion: "if you didn't mean to start an interpolation, escape the `#`", Code: "`##`"},
 			},
 		}
@@ -76373,13 +76373,13 @@ func (c *current) onexpressionInterpolationValue12(lBracePosI, exprI any) (any, 
 	return file.ExpressionInterpolationValue{
 			LBracePos:  lBracePosI.(file.Position),
 			Expression: exprI.(file.Expression),
-		}, &corgierr.Error{
+		}, &fileerr.Error{
 			Message: "unclosed expression interpolation",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
 				Annotation: "`{` opened here, but never closeed",
 			}),
-			HintAnnotations: []corgierr.Annotation{
+			HintAnnotations: []fileerr.Annotation{
 				anno(c, annotation{
 					Start:       pos(c),
 					StartOffset: 1,
@@ -76387,7 +76387,7 @@ func (c *current) onexpressionInterpolationValue12(lBracePosI, exprI any) (any, 
 					Annotation:  "expected a `}` somewhere here",
 				}),
 			},
-			Suggestions: []corgierr.Suggestion{
+			Suggestions: []fileerr.Suggestion{
 				{Suggestion: "if you didn't mean to start an interpolation, escape the `#`", Code: "`##`"},
 			},
 		}
@@ -76400,13 +76400,13 @@ func (p *parser) callonexpressionInterpolationValue12() (any, error) {
 }
 
 func (c *current) onfmtExpressionInterpolationValue22() (any, error) {
-	return []byte(nil), &corgierr.Error{
+	return []byte(nil), &fileerr.Error{
 		Message: "missing format verb",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Annotation: "expected a formatting verb here",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{Suggestion: "consult the docs of the Go built-in package `fmt` on valid formatting verbs"},
 			{Suggestion: "if you didn't mean to start an interpolation, escape the `#` before this error by writing `##`"},
 		},
@@ -76420,13 +76420,13 @@ func (p *parser) callonfmtExpressionInterpolationValue22() (any, error) {
 }
 
 func (c *current) onfmtExpressionInterpolationValue25() (any, error) {
-	return c.text, &corgierr.Error{
+	return c.text, &fileerr.Error{
 		Message: "invalid format verb",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			Annotation: "this is not a valid verb",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{Suggestion: "consult the docs of the Go built-in package `fmt` on valid formatting verbs"},
 			{Suggestion: "if you didn't mean to start an interpolation, escape the `#` before this error by writing `##`"},
 		},
@@ -76460,14 +76460,14 @@ func (p *parser) callonfmtExpressionInterpolationValue33() (any, error) {
 }
 
 func (c *current) onfmtExpressionInterpolationValue27(endPosI any) (any, error) {
-	return string(c.text[1:]), &corgierr.Error{
+	return string(c.text[1:]), &fileerr.Error{
 		Message: "invalid format directive",
 		ErrorAnnotation: anno(c, annotation{
 			Start:      pos(c),
 			End:        endPosI.(file.Position),
 			Annotation: "invalid formatter",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{Suggestion: "consult the docs of the Go built-in package `fmt` on how to write a formatting placeholder"},
 			{Suggestion: "escape the `#` by writing `##`, if you didn't mean to start an interpolation"},
 		},
@@ -76526,37 +76526,37 @@ func (c *current) onINDENTATION_IGNORE_ADDITIONAL7() (bool, error) {
 	for i, ws := range c.text[1:] {
 		if byte(ws) != firstChar {
 			if firstChar == ' ' {
-				panic(&corgierr.Error{
+				panic(&fileerr.Error{
 					Message: "mix of tabs and spaces for indentation",
 					ErrorAnnotation: anno(c, annotation{
 						Start:      file.Position{Line: c.pos.line, Col: i + 2},
 						Annotation: "this is a tab",
 					}),
-					HintAnnotations: []corgierr.Annotation{
+					HintAnnotations: []fileerr.Annotation{
 						anno(c, annotation{
 							Start:      file.Position{Line: c.pos.line, Col: 1},
 							Annotation: "this is a space",
 						}),
 					},
-					Suggestions: []corgierr.Suggestion{
+					Suggestions: []fileerr.Suggestion{
 						{Suggestion: "use only tabs OR spaces for indentation, but not both"},
 					},
 				})
 			}
 
-			panic(&corgierr.Error{
+			panic(&fileerr.Error{
 				Message: "mix of tabs and spaces for indentation",
 				ErrorAnnotation: anno(c, annotation{
 					Start:      file.Position{Line: c.pos.line, Col: i + 2},
 					Annotation: "this is a space",
 				}),
-				HintAnnotations: []corgierr.Annotation{
+				HintAnnotations: []fileerr.Annotation{
 					anno(c, annotation{
 						Start:      file.Position{Line: c.pos.line, Col: 1},
 						Annotation: "this is a tab",
 					}),
 				},
-				Suggestions: []corgierr.Suggestion{
+				Suggestions: []fileerr.Suggestion{
 					{Suggestion: "use only tabs OR spaces for indentation, but not both"},
 				},
 			})
@@ -76632,14 +76632,14 @@ func (c *current) onINDENTATION_IGNORE_ADDITIONAL15() (bool, error) {
 	for _, space := range c.text {
 		if space != indentChar {
 			if indentChar == ' ' {
-				panic(&corgierr.Error{
+				panic(&fileerr.Error{
 					Message: "mix of tabs and spaces for indentation",
 					ErrorAnnotation: anno(c, annotation{
 						Start:      file.Position{Line: c.pos.line, Col: 1},
 						Len:        len(c.text),
 						Annotation: "but these are tabs",
 					}),
-					HintAnnotations: []corgierr.Annotation{
+					HintAnnotations: []fileerr.Annotation{
 						anno(c, annotation{
 							ContextStartDelta: -1,
 							Start:             file.Position{Line: refLine, Col: 1},
@@ -76647,20 +76647,20 @@ func (c *current) onINDENTATION_IGNORE_ADDITIONAL15() (bool, error) {
 							Annotation:        "these are spaces",
 						}),
 					},
-					Suggestions: []corgierr.Suggestion{
+					Suggestions: []fileerr.Suggestion{
 						{Suggestion: "use only tabs OR spaces for indentation, but not both"},
 					},
 				})
 			}
 
-			panic(&corgierr.Error{
+			panic(&fileerr.Error{
 				Message: "mix of tabs and spaces for indentation",
 				ErrorAnnotation: anno(c, annotation{
 					Start:      file.Position{Line: c.pos.line, Col: 1},
 					Len:        len(c.text),
 					Annotation: "but these are spaces",
 				}),
-				HintAnnotations: []corgierr.Annotation{
+				HintAnnotations: []fileerr.Annotation{
 					anno(c, annotation{
 						ContextStartDelta: -1,
 						Start:             file.Position{Line: refLine, Col: 1},
@@ -76668,7 +76668,7 @@ func (c *current) onINDENTATION_IGNORE_ADDITIONAL15() (bool, error) {
 						Annotation:        "these are tabs",
 					}),
 				},
-				Suggestions: []corgierr.Suggestion{
+				Suggestions: []fileerr.Suggestion{
 					{Suggestion: "use only tabs OR spaces for indentation, but not both"},
 				},
 			})
@@ -76714,7 +76714,7 @@ func (c *current) onINDENTATION_IGNORE_ADDITIONAL19() (bool, error) {
 
 	if (actualCount - totalReps) != refReps {
 		if indentChar == ' ' {
-			return true, &corgierr.Error{
+			return true, &fileerr.Error{
 				Message: "inconsistent indentation",
 				ErrorAnnotation: anno(c, annotation{
 					ContextStartDelta: -1,
@@ -76722,7 +76722,7 @@ func (c *current) onINDENTATION_IGNORE_ADDITIONAL19() (bool, error) {
 					Len:               actualCount - totalReps,
 					Annotation:        fmt.Sprintf("however, here you used %d spaces", actualCount-totalReps),
 				}),
-				HintAnnotations: []corgierr.Annotation{
+				HintAnnotations: []fileerr.Annotation{
 					anno(c, annotation{
 						ContextStartDelta: -1,
 						Start:             file.Position{Line: refLine, Col: 1},
@@ -76730,7 +76730,7 @@ func (c *current) onINDENTATION_IGNORE_ADDITIONAL19() (bool, error) {
 						Annotation:        fmt.Sprintf("this line uses %d spaces to indent a single level", refReps),
 					}),
 				},
-				Suggestions: []corgierr.Suggestion{
+				Suggestions: []fileerr.Suggestion{
 					{
 						Suggestion: "be consistent in your indentation:\n" +
 							"if you use two spaces for a single indentation, use four for a two-level indentation",
@@ -76739,7 +76739,7 @@ func (c *current) onINDENTATION_IGNORE_ADDITIONAL19() (bool, error) {
 			}
 		}
 
-		return true, &corgierr.Error{
+		return true, &fileerr.Error{
 			Message: "inconsistent indentation",
 			ErrorAnnotation: anno(c, annotation{
 				ContextStartDelta: -1,
@@ -76747,7 +76747,7 @@ func (c *current) onINDENTATION_IGNORE_ADDITIONAL19() (bool, error) {
 				Len:               actualCount - totalReps,
 				Annotation:        fmt.Sprintf("however, here you used %d tabs", actualCount-totalReps),
 			}),
-			HintAnnotations: []corgierr.Annotation{
+			HintAnnotations: []fileerr.Annotation{
 				anno(c, annotation{
 					ContextStartDelta: -1,
 					Start:             file.Position{Line: refLine, Col: 1},
@@ -76755,7 +76755,7 @@ func (c *current) onINDENTATION_IGNORE_ADDITIONAL19() (bool, error) {
 					Annotation:        fmt.Sprintf("this line uses %d tabs to indent a single level", refReps),
 				}),
 			},
-			Suggestions: []corgierr.Suggestion{
+			Suggestions: []fileerr.Suggestion{
 				{
 					Suggestion: "be consistent in your indentation:\n" +
 						"if you use two tabs for a single indentation, use four for a two-level indentation, ...",
@@ -76814,7 +76814,7 @@ func (c *current) onINDENTATION_IGNORE_ADDITIONAL23() (bool, error) {
 		return false, nil
 	}
 
-	panic(&corgierr.Error{
+	panic(&fileerr.Error{
 		Message: "unexpected increase of indentation",
 		ErrorAnnotation: anno(c, annotation{
 			ContextStartDelta: -1,
@@ -76892,7 +76892,7 @@ func (c *current) on_INDENTATION_IGNORE_ADDITIONAL14() (bool, error) {
 	}
 
 	if indentChar == ' ' {
-		return true, &corgierr.Error{
+		return true, &fileerr.Error{
 			Message: "inconsistent indentation",
 			ErrorAnnotation: anno(c, annotation{
 				ContextStartDelta: -1,
@@ -76900,7 +76900,7 @@ func (c *current) on_INDENTATION_IGNORE_ADDITIONAL14() (bool, error) {
 				Len:               have - totalReps,
 				Annotation:        fmt.Sprintf("however, here you used %d spaces", have-totalReps),
 			}),
-			HintAnnotations: []corgierr.Annotation{
+			HintAnnotations: []fileerr.Annotation{
 				anno(c, annotation{
 					ContextStartDelta: -1,
 					Start:             file.Position{Line: refLine, Col: 1},
@@ -76908,7 +76908,7 @@ func (c *current) on_INDENTATION_IGNORE_ADDITIONAL14() (bool, error) {
 					Annotation:        fmt.Sprintf("this line uses %d spaces to indent a single level", refReps),
 				}),
 			},
-			Suggestions: []corgierr.Suggestion{
+			Suggestions: []fileerr.Suggestion{
 				{
 					Suggestion: "be consistent in your indentation:\n" +
 						"if you use two spaces for a single indentation, use four for a two-level indentation",
@@ -76917,7 +76917,7 @@ func (c *current) on_INDENTATION_IGNORE_ADDITIONAL14() (bool, error) {
 		}
 	}
 
-	return true, &corgierr.Error{
+	return true, &fileerr.Error{
 		Message: "inconsistent indentation",
 		ErrorAnnotation: anno(c, annotation{
 			ContextStartDelta: -1,
@@ -76925,7 +76925,7 @@ func (c *current) on_INDENTATION_IGNORE_ADDITIONAL14() (bool, error) {
 			Len:               have - totalReps,
 			Annotation:        fmt.Sprintf("however, here you used %d tabs", have-totalReps),
 		}),
-		HintAnnotations: []corgierr.Annotation{
+		HintAnnotations: []fileerr.Annotation{
 			anno(c, annotation{
 				ContextStartDelta: -1,
 				Start:             file.Position{Line: refLine, Col: 1},
@@ -76933,7 +76933,7 @@ func (c *current) on_INDENTATION_IGNORE_ADDITIONAL14() (bool, error) {
 				Annotation:        fmt.Sprintf("this line uses %d tabs to indent a single level", refReps),
 			}),
 		},
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{
 				Suggestion: "be consistent in your indentation:\n" +
 					"if you use two tabs for a single indentation, use four for a two-level indentation, ...",
@@ -77023,13 +77023,13 @@ func (c *current) on_INDENTATION_IGNORE_ADDITIONAL24(spaceI any) (bool, error) {
 		reps := c.state["Indentation.Repetitions"].(int)
 
 		if indentChar == ' ' {
-			panic(&corgierr.Error{
+			panic(&fileerr.Error{
 				Message: "mix of tabs and spaces for indentation",
 				ErrorAnnotation: anno(c, annotation{
 					Start:      pos(c),
 					Annotation: "this is a tab",
 				}),
-				HintAnnotations: []corgierr.Annotation{
+				HintAnnotations: []fileerr.Annotation{
 					anno(c, annotation{
 						ContextStartDelta: -1,
 						Start:             file.Position{Line: refLine, Col: 1},
@@ -77037,19 +77037,19 @@ func (c *current) on_INDENTATION_IGNORE_ADDITIONAL24(spaceI any) (bool, error) {
 						Annotation:        "these are spaces",
 					}),
 				},
-				Suggestions: []corgierr.Suggestion{
+				Suggestions: []fileerr.Suggestion{
 					{Suggestion: "use only tabs OR spaces for indentation, but not both"},
 				},
 			})
 		}
 
-		panic(&corgierr.Error{
+		panic(&fileerr.Error{
 			Message: "mix of tabs and spaces for indentation",
 			ErrorAnnotation: anno(c, annotation{
 				Start:      pos(c),
 				Annotation: "this is a space",
 			}),
-			HintAnnotations: []corgierr.Annotation{
+			HintAnnotations: []fileerr.Annotation{
 				anno(c, annotation{
 					ContextStartDelta: -1,
 					Start:             file.Position{Line: refLine, Col: 1},
@@ -77057,7 +77057,7 @@ func (c *current) on_INDENTATION_IGNORE_ADDITIONAL24(spaceI any) (bool, error) {
 					Annotation:        "these are tabs",
 				}),
 			},
-			Suggestions: []corgierr.Suggestion{
+			Suggestions: []fileerr.Suggestion{
 				{Suggestion: "use only tabs OR spaces for indentation, but not both"},
 			},
 		})

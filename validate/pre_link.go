@@ -3,9 +3,9 @@ package validate
 import (
 	"path"
 
-	"github.com/mavolin/corgi/corgierr"
 	"github.com/mavolin/corgi/file"
 	"github.com/mavolin/corgi/file/fileutil"
+	"github.com/mavolin/corgi/fileerr"
 	"github.com/mavolin/corgi/internal/anno"
 )
 
@@ -34,55 +34,55 @@ func useNamespaces(f *file.File) *errList {
 
 					switch {
 					case usePath == cmpUsePath:
-						errs.PushBack(&corgierr.Error{
+						errs.PushBack(&fileerr.Error{
 							Message: "duplicate use",
 							ErrorAnnotation: anno.Anno(f, anno.Annotation{
 								Start:      spec.Path.Position,
 								ToEOL:      true,
 								Annotation: "duplicate",
 							}),
-							HintAnnotations: []corgierr.Annotation{
+							HintAnnotations: []fileerr.Annotation{
 								anno.Anno(f, anno.Annotation{
 									Start:      cmpSpec.Path.Position,
 									ToEOL:      true,
 									Annotation: "first use with this path",
 								}),
 							},
-							Suggestions: []corgierr.Suggestion{{Suggestion: "remove one of these"}},
+							Suggestions: []fileerr.Suggestion{{Suggestion: "remove one of these"}},
 						})
 					case spec.Alias != nil && cmpSpec.Alias != nil && spec.Alias.Ident == cmpSpec.Alias.Ident:
-						errs.PushBack(&corgierr.Error{
+						errs.PushBack(&fileerr.Error{
 							Message: "duplicate use alias",
 							ErrorAnnotation: anno.Anno(f, anno.Annotation{
 								Start:      spec.Alias.Position,
 								Len:        len(spec.Alias.Ident),
 								Annotation: "duplicate",
 							}),
-							HintAnnotations: []corgierr.Annotation{
+							HintAnnotations: []fileerr.Annotation{
 								anno.Anno(f, anno.Annotation{
 									Start:      cmpSpec.Alias.Position,
 									Len:        len(cmpSpec.Alias.Ident),
 									Annotation: "first use with this alias",
 								}),
 							},
-							Suggestions: []corgierr.Suggestion{{Suggestion: "use a different alias for one of these"}},
+							Suggestions: []fileerr.Suggestion{{Suggestion: "use a different alias for one of these"}},
 						})
 					default:
-						errs.PushBack(&corgierr.Error{
+						errs.PushBack(&fileerr.Error{
 							Message: "use namespace collision",
 							ErrorAnnotation: anno.Anno(f, anno.Annotation{
 								Start:      spec.Alias.Position,
 								ToEOL:      true,
 								Annotation: "duplicate",
 							}),
-							HintAnnotations: []corgierr.Annotation{
+							HintAnnotations: []fileerr.Annotation{
 								anno.Anno(f, anno.Annotation{
 									Start:      cmpSpec.Alias.Position,
 									ToEOL:      true,
 									Annotation: "first use with this namespace",
 								}),
 							},
-							Suggestions: []corgierr.Suggestion{{Suggestion: "use an alias"}},
+							Suggestions: []fileerr.Suggestion{{Suggestion: "use an alias"}},
 						})
 					}
 				}

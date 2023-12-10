@@ -3,9 +3,9 @@ package link
 import (
 	"errors"
 
-	"github.com/mavolin/corgi/corgierr"
 	"github.com/mavolin/corgi/file"
 	"github.com/mavolin/corgi/file/fileutil"
+	"github.com/mavolin/corgi/fileerr"
 	"github.com/mavolin/corgi/internal/anno"
 	"github.com/mavolin/corgi/internal/list"
 )
@@ -31,16 +31,16 @@ func (l *Linker) linkIncludes(lctx *context, f *file.File) {
 func (l *Linker) linkInclude(f *file.File, incl *file.Include) *errList {
 	inclFile, err := l.loader.LoadInclude(f, fileutil.Unquote(incl.Path))
 	if err != nil {
-		var cerr *corgierr.Error
+		var cerr *fileerr.Error
 		if errors.As(err, &cerr) {
 			return list.List1(cerr)
 		}
-		var clerr corgierr.List
+		var clerr fileerr.List
 		if errors.As(err, &clerr) {
 			return list.FromSlice(clerr)
 		}
 
-		return list.List1(&corgierr.Error{
+		return list.List1(&fileerr.Error{
 			Message: "failed to load included file",
 			ErrorAnnotation: anno.Anno(f, anno.Annotation{
 				Start:      incl.Position,
@@ -52,7 +52,7 @@ func (l *Linker) linkInclude(f *file.File, incl *file.Include) *errList {
 	}
 
 	if inclFile == nil {
-		return list.List1(&corgierr.Error{
+		return list.List1(&fileerr.Error{
 			Message: "included file not found",
 			ErrorAnnotation: anno.Anno(f, anno.Annotation{
 				Start:      incl.Position,

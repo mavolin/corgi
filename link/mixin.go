@@ -1,9 +1,9 @@
 package link
 
 import (
-	"github.com/mavolin/corgi/corgierr"
 	"github.com/mavolin/corgi/file"
 	"github.com/mavolin/corgi/file/fileutil"
+	"github.com/mavolin/corgi/fileerr"
 	"github.com/mavolin/corgi/internal/anno"
 	"github.com/mavolin/corgi/internal/list"
 	"github.com/mavolin/corgi/internal/stack"
@@ -54,14 +54,14 @@ func (l *Linker) analyzeMixins(fs ...*file.File) *errList {
 
 		for mE := ms.Front(); mE != nil; mE = mE.Next() {
 			m := mE.V()
-			errs.PushBack(&corgierr.Error{
+			errs.PushBack(&fileerr.Error{
 				Message: "linker: failed to analyze mixin",
 				ErrorAnnotation: anno.Anno(m.f, anno.Annotation{
 					Start:      m.m.Name.Position,
 					Len:        len(m.m.Name.Ident),
 					Annotation: "the linker failed to analyze this mixin, most likely because of a, possibly indirect, recursion",
 				}),
-				Suggestions: []corgierr.Suggestion{
+				Suggestions: []fileerr.Suggestion{
 					{
 						Suggestion: "Corgi does not allow mixins to recursively call themselves, even indirectly,\n" +
 							"i.e. mixin `a` calls mixin `b` which calls mixin `a`.\n" +

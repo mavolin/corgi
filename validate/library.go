@@ -1,8 +1,8 @@
 package validate
 
 import (
-	"github.com/mavolin/corgi/corgierr"
 	"github.com/mavolin/corgi/file"
+	"github.com/mavolin/corgi/fileerr"
 	"github.com/mavolin/corgi/internal/anno"
 	"github.com/mavolin/corgi/internal/list"
 )
@@ -28,14 +28,14 @@ func libraryMixinNameConflicts(fs []*file.File) *errList {
 					continue
 				}
 
-				errs.PushBack(&corgierr.Error{
+				errs.PushBack(&fileerr.Error{
 					Message: "duplicate mixin in package",
 					ErrorAnnotation: anno.Anno(f, anno.Annotation{
 						Start:      m.Name.Position,
 						Len:        len(m.Name.Ident),
 						Annotation: "same mixin name used here",
 					}),
-					HintAnnotations: []corgierr.Annotation{
+					HintAnnotations: []fileerr.Annotation{
 						anno.Anno(other.File, anno.Annotation{
 							Start:      other.Mixin.Name.Position,
 							Len:        len(other.Mixin.Name.Ident),

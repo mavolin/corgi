@@ -4,13 +4,13 @@ package validate
 import (
 	"sort"
 
-	"github.com/mavolin/corgi/corgierr"
 	"github.com/mavolin/corgi/file"
 	"github.com/mavolin/corgi/file/fileutil"
+	"github.com/mavolin/corgi/fileerr"
 	"github.com/mavolin/corgi/internal/list"
 )
 
-type errList = list.List[*corgierr.Error]
+type errList = list.List[*fileerr.Error]
 
 // PreLink validates that there are no namespace collisions in the file's uses.
 //
@@ -18,7 +18,7 @@ type errList = list.List[*corgierr.Error]
 //
 // It expects the file's metadata to be set.
 //
-// If it returns an error, that error will be of type [corgierr.List].
+// If it returns an error, that error will be of type [fileerr.List].
 func PreLink(f *file.File) error {
 	var errs errList
 
@@ -29,7 +29,7 @@ func PreLink(f *file.File) error {
 		return nil
 	}
 
-	return corgierr.List(errs.ToSlice())
+	return fileerr.List(errs.ToSlice())
 }
 
 // File runs all contextual validation for the file, and all the other files
@@ -47,7 +47,7 @@ func PreLink(f *file.File) error {
 // Instead, you should fully link f and all its dependencies and then run File
 // on f.
 //
-// If File returns an error, that error will be of type [corgierr.List].
+// If File returns an error, that error will be of type [fileerr.List].
 func File(f *file.File) error {
 	valedFiles := make(map[string]struct{})
 	impNamespaces := make(map[string]importNamespace)
@@ -57,7 +57,7 @@ func File(f *file.File) error {
 		return nil
 	}
 
-	errSlice := corgierr.List(errs.ToSlice())
+	errSlice := fileerr.List(errs.ToSlice())
 	sort.Stable(errSlice)
 	return errSlice
 }
@@ -153,7 +153,7 @@ func Library(l *file.Library) error {
 			return nil
 		}
 
-		errSlice := corgierr.List(errs.ToSlice())
+		errSlice := fileerr.List(errs.ToSlice())
 		sort.Stable(errSlice)
 		return errSlice
 	}
@@ -170,7 +170,7 @@ func Library(l *file.Library) error {
 		return nil
 	}
 
-	errSlice := corgierr.List(errs.ToSlice())
+	errSlice := fileerr.List(errs.ToSlice())
 	sort.Stable(errSlice)
 	return errSlice
 }

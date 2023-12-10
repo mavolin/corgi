@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"path"
 
-	"github.com/mavolin/corgi/corgierr"
 	"github.com/mavolin/corgi/file"
 	"github.com/mavolin/corgi/file/fileutil"
+	"github.com/mavolin/corgi/fileerr"
 	"github.com/mavolin/corgi/internal/anno"
 	"github.com/mavolin/corgi/internal/list"
 )
@@ -121,7 +121,7 @@ func (l *Linker) linkMixinCall(
 			return &errList{}
 		}
 
-		return list.List1(&corgierr.Error{
+		return list.List1(&fileerr.Error{
 			Message: "call to unknown mixin",
 			ErrorAnnotation: anno.Anno(f, anno.Annotation{
 				Start: mc.Name.Position,
@@ -154,7 +154,7 @@ func (l *Linker) linkMixinCall(
 				continue
 			}
 
-			return list.List1(&corgierr.Error{
+			return list.List1(&fileerr.Error{
 				Message: "call to unknown mixin",
 				ErrorAnnotation: anno.Anno(f, anno.Annotation{
 					Start:      mc.Namespace.Position,
@@ -162,7 +162,7 @@ func (l *Linker) linkMixinCall(
 					EndOffset:  len(mc.Name.Ident),
 					Annotation: "found no mixin with this name in the above library",
 				}),
-				HintAnnotations: []corgierr.Annotation{
+				HintAnnotations: []fileerr.Annotation{
 					anno.Anno(f, anno.Annotation{
 						Start:      use.Position,
 						ToEOL:      true,
@@ -173,14 +173,14 @@ func (l *Linker) linkMixinCall(
 		}
 	}
 
-	return list.List1(&corgierr.Error{
+	return list.List1(&fileerr.Error{
 		Message: "missing use for library `" + mc.Namespace.Ident + "`",
 		ErrorAnnotation: anno.Anno(f, anno.Annotation{
 			Start:      mc.Namespace.Position,
 			Len:        len(mc.Namespace.Ident),
 			Annotation: "this file imports no library under the namespace `" + mc.Namespace.Ident + "`",
 		}),
-		Suggestions: []corgierr.Suggestion{
+		Suggestions: []fileerr.Suggestion{
 			{Suggestion: "did you forget to add a `use`?"},
 			{Suggestion: "did you forget to add a `use` alias?"},
 		},
@@ -299,21 +299,21 @@ func (l *Linker) _checkRecursion(f *file.File, m *file.Mixin, mcs ...file.MixinC
 	for i, mc := range mcs {
 		if mc.Mixin.Mixin == m {
 			if i == 0 {
-				return list.List1(&corgierr.Error{
+				return list.List1(&fileerr.Error{
 					Message: "recursion",
 					ErrorAnnotation: anno.Anno(f, anno.Annotation{
 						Start:      m.Position,
 						Len:        (m.Name.Col - m.Col) + len(m.Name.Ident),
 						Annotation: "this mixin",
 					}),
-					HintAnnotations: []corgierr.Annotation{
+					HintAnnotations: []fileerr.Annotation{
 						anno.Anno(f, anno.Annotation{
 							Start:      mcs[i].Position,
 							Len:        (mcs[i].Name.Col - mcs[i].Col) + len(mcs[i].Name.Ident),
 							Annotation: "calls itself",
 						}),
 					},
-					Suggestions: []corgierr.Suggestion{
+					Suggestions: []fileerr.Suggestion{
 						{
 							Suggestion: "Corgi (in it's current version) doesn't allow recursion.\n" +
 								"Therefore, rewrite the mixin so that it doesn't call itself.",
@@ -322,7 +322,7 @@ func (l *Linker) _checkRecursion(f *file.File, m *file.Mixin, mcs ...file.MixinC
 				})
 			}
 
-			has := make([]corgierr.Annotation, 0, 2*i+1)
+			has := make([]fileerr.Annotation, 0, 2*i+1)
 			for j, mc := range mcs[:i] {
 				has = append(has, anno.Anno(mc.Mixin.File, anno.Annotation{
 					Start:      mc.Position,
@@ -342,7 +342,7 @@ func (l *Linker) _checkRecursion(f *file.File, m *file.Mixin, mcs ...file.MixinC
 				Annotation: fmt.Sprint(2*i+2, ": calls the first mixin"),
 			}))
 
-			return list.List1(&corgierr.Error{
+			return list.List1(&fileerr.Error{
 				Message: "recursion",
 				ErrorAnnotation: anno.Anno(f, anno.Annotation{
 					Start:      m.Position,
@@ -350,7 +350,7 @@ func (l *Linker) _checkRecursion(f *file.File, m *file.Mixin, mcs ...file.MixinC
 					Annotation: "1: this mixin",
 				}),
 				HintAnnotations: has,
-				Suggestions: []corgierr.Suggestion{
+				Suggestions: []fileerr.Suggestion{
 					{
 						Suggestion: "Corgi doesn't allow recursion. Therefore, rewrite the mixin so that it doesn't call itself.\n" +
 							"A future version might support recursion.",

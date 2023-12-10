@@ -3,9 +3,9 @@ package link
 import (
 	"errors"
 
-	"github.com/mavolin/corgi/corgierr"
 	"github.com/mavolin/corgi/file"
 	"github.com/mavolin/corgi/file/fileutil"
+	"github.com/mavolin/corgi/fileerr"
 	"github.com/mavolin/corgi/internal/anno"
 	"github.com/mavolin/corgi/internal/list"
 )
@@ -20,18 +20,18 @@ func (l *Linker) linkExtend(ctx *context, f *file.File) {
 	go func() {
 		template, err := l.loader.LoadTemplate(f, fileutil.Unquote(f.Extend.Path))
 		if err != nil {
-			var cerr *corgierr.Error
+			var cerr *fileerr.Error
 			if errors.As(err, &cerr) {
 				ctx.errs <- list.List1(cerr)
 				return
 			}
-			var clerr corgierr.List
+			var clerr fileerr.List
 			if errors.As(err, &clerr) {
 				ctx.errs <- list.FromSlice(clerr)
 				return
 			}
 
-			ctx.errs <- list.List1(&corgierr.Error{
+			ctx.errs <- list.List1(&fileerr.Error{
 				Message: "failed to load template",
 				ErrorAnnotation: anno.Anno(f, anno.Annotation{
 					Start:      f.Extend.Position,
@@ -44,7 +44,7 @@ func (l *Linker) linkExtend(ctx *context, f *file.File) {
 		}
 
 		if template == nil {
-			ctx.errs <- list.List1(&corgierr.Error{
+			ctx.errs <- list.List1(&fileerr.Error{
 				Message: "template not found",
 				ErrorAnnotation: anno.Anno(f, anno.Annotation{
 					Start:      f.Extend.Position,

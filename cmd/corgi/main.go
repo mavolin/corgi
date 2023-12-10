@@ -18,8 +18,8 @@ import (
 	"golang.org/x/exp/slog"
 
 	"github.com/mavolin/corgi"
-	"github.com/mavolin/corgi/corgierr"
 	"github.com/mavolin/corgi/file"
+	"github.com/mavolin/corgi/file/fileerr"
 	"github.com/mavolin/corgi/load"
 	"github.com/mavolin/corgi/write"
 )
@@ -223,7 +223,7 @@ func writeLibrary(path, outPath string, loadOpts corgi.LoadOptions, ignoreNotExi
 }
 
 func writeErrs(err error, mainMod string) {
-	if lerr := corgierr.As(err); lerr != nil {
+	if lerr := fileerr.As(err); lerr != nil {
 		fmt.Println(lerr.Pretty(prettyOptions(mainMod)))
 		os.Exit(1)
 	}
@@ -232,8 +232,8 @@ func writeErrs(err error, mainMod string) {
 	os.Exit(1)
 }
 
-func prettyOptions(mainMod string) corgierr.PrettyOptions {
-	var prettyOpts corgierr.PrettyOptions
+func prettyOptions(mainMod string) fileerr.PrettyOptions {
+	var prettyOpts fileerr.PrettyOptions
 
 	color.Set()
 

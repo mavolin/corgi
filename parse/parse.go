@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/mavolin/corgi/corgierr"
 	"github.com/mavolin/corgi/file"
+	"github.com/mavolin/corgi/fileerr"
 	"github.com/mavolin/corgi/parse/internal"
 )
 
@@ -18,7 +18,7 @@ import (
 // Therefore, Parse may return both a non-nil file and an error, indicating
 // that the passed input is erroneous, but could be recovered from.
 //
-// If Parse returns an error, it will always be of type [corgierr.List].
+// If Parse returns an error, it will always be of type [fileerr.List].
 //
 // Callers are expected to set the Name, Module, PathInModule, and AbsolutePath
 // of the returned file themselves.
@@ -53,14 +53,14 @@ func Parse(input []byte) (*file.File, error) {
 		return f, err
 	}
 
-	corgierrList := make(corgierr.List, len(errList))
+	corgierrList := make(fileerr.List, len(errList))
 
 	for i, err := range errList {
 		parserErr, ok := err.(*internal.ParserError) //nolint: errorlint
 		if !ok {
-			corgierrList[i] = &corgierr.Error{
+			corgierrList[i] = &fileerr.Error{
 				Message: err.Error(),
-				ErrorAnnotation: corgierr.Annotation{
+				ErrorAnnotation: fileerr.Annotation{
 					ContextStart: 1,
 					ContextEnd:   2,
 					Start:        1,
@@ -71,7 +71,7 @@ func Parse(input []byte) (*file.File, error) {
 			}
 		}
 
-		cerr, ok := parserErr.Inner.(*corgierr.Error) //nolint: errorlint
+		cerr, ok := parserErr.Inner.(*fileerr.Error) //nolint: errorlint
 		if !ok {
 			cerr = parserErrorToCorgiError(lines, parserErr)
 		}
@@ -90,7 +90,7 @@ func Parse(input []byte) (*file.File, error) {
 
 var parserErrorRegexp = regexp.MustCompile(`(\d+):(\d+)( \(\d+\))?: (.+)`)
 
-func parserErrorToCorgiError(lines []string, perr *internal.ParserError) *corgierr.Error {
+func parserErrorToCorgiError(lines []string, perr *internal.ParserError) *fileerr.Error {
 	matches := parserErrorRegexp.FindStringSubmatch(perr.Error())
 	const ( // indexes of groups
 		_ = iota // all text
@@ -101,9 +101,9 @@ func parserErrorToCorgiError(lines []string, perr *internal.ParserError) *corgie
 	)
 
 	if len(matches) != 5 {
-		return &corgierr.Error{
+		return &fileerr.Error{
 			Message: perr.Error(),
-			ErrorAnnotation: corgierr.Annotation{
+			ErrorAnnotation: fileerr.Annotation{
 				ContextStart: 1,
 				ContextEnd:   2,
 				Start:        1,
@@ -117,9 +117,9 @@ func parserErrorToCorgiError(lines []string, perr *internal.ParserError) *corgie
 	colNum, colErr := strconv.Atoi(matches[col])
 	lineNum, lineErr := strconv.Atoi(matches[line])
 	if colErr != nil || lineErr != nil {
-		return &corgierr.Error{
+		return &fileerr.Error{
 			Message: perr.Error(),
-			ErrorAnnotation: corgierr.Annotation{
+			ErrorAnnotation: fileerr.Annotation{
 				ContextStart: 1,
 				ContextEnd:   2,
 				Start:        1,
@@ -135,9 +135,9 @@ func parserErrorToCorgiError(lines []string, perr *internal.ParserError) *corgie
 		colNum = len(lines[lineNum-1]) + 1
 	}
 
-	return &corgierr.Error{
+	return &fileerr.Error{
 		Message: matches[msg],
-		ErrorAnnotation: corgierr.Annotation{
+		ErrorAnnotation: fileerr.Annotation{
 			File:         nil,
 			ContextStart: lineNum,
 			ContextEnd:   lineNum + 1,

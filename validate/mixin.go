@@ -1,9 +1,9 @@
 package validate
 
 import (
-	"github.com/mavolin/corgi/corgierr"
 	"github.com/mavolin/corgi/file"
 	"github.com/mavolin/corgi/file/fileutil"
+	"github.com/mavolin/corgi/fileerr"
 	"github.com/mavolin/corgi/internal/anno"
 	"github.com/mavolin/corgi/internal/list"
 	"github.com/mavolin/corgi/internal/stack"
@@ -51,21 +51,21 @@ func mixinsInMixins(f *file.File) *errList {
 				continue
 			}
 
-			errs.PushBack(&corgierr.Error{
+			errs.PushBack(&fileerr.Error{
 				Message: "mixin declared inside other mixin",
 				ErrorAnnotation: anno.Anno(f, anno.Annotation{
 					Start:      inner.Position,
 					Len:        (inner.Name.Col - inner.Col) + len(inner.Name.Ident),
 					Annotation: "cannot declare mixin here",
 				}),
-				HintAnnotations: []corgierr.Annotation{
+				HintAnnotations: []fileerr.Annotation{
 					anno.Anno(f, anno.Annotation{
 						Start:      outer.Position,
 						Len:        (outer.Name.Col - outer.Col) + len(outer.Name.Ident),
 						Annotation: "outer mixin",
 					}),
 				},
-				Suggestions: []corgierr.Suggestion{
+				Suggestions: []fileerr.Suggestion{
 					{Suggestion: "declare `" + inner.Name.Ident + "` outside of `" + outer.Name.Ident + "`"},
 				},
 			})
@@ -102,21 +102,21 @@ func duplicateMixinNames(f *file.File) *errList {
 		scopeMixins := s.Peek()
 		for otherE := scopeMixins.Front(); otherE != nil; otherE = otherE.Next() {
 			if otherE.V().Name.Ident == m.Name.Ident {
-				errs.PushBack(&corgierr.Error{
+				errs.PushBack(&fileerr.Error{
 					Message: "duplicate mixin name within same scope",
 					ErrorAnnotation: anno.Anno(f, anno.Annotation{
 						Start:      m.Name.Position,
 						Len:        len(m.Name.Ident),
 						Annotation: "and then here again",
 					}),
-					HintAnnotations: []corgierr.Annotation{
+					HintAnnotations: []fileerr.Annotation{
 						anno.Anno(f, anno.Annotation{
 							Start:      otherE.V().Name.Position,
 							Len:        len(otherE.V().Name.Ident),
 							Annotation: "you first used the name here",
 						}),
 					},
-					Suggestions: []corgierr.Suggestion{
+					Suggestions: []fileerr.Suggestion{
 						{Suggestion: "rename either of these mixins or delete one of them"},
 					},
 				})
@@ -139,14 +139,14 @@ func _mixinParamsHaveType(f *file.File, m file.Mixin) *errList {
 			continue
 		}
 
-		errs.PushBack(&corgierr.Error{
+		errs.PushBack(&fileerr.Error{
 			Message: "unable to infer type of mixin param",
 			ErrorAnnotation: anno.Anno(f, anno.Annotation{
 				Start:      param.Name.Position,
 				Len:        len(param.Name.Ident),
 				Annotation: "this param has no explicit type,\nand no type could be inferred from the default",
 			}),
-			Suggestions: []corgierr.Suggestion{
+			Suggestions: []fileerr.Suggestion{
 				{
 					Suggestion: "give this param an explicit type",
 					Example:    "`" + param.Name.Ident + " string = ...`",
@@ -187,7 +187,7 @@ func _duplicateMixinParams(f *file.File, m file.Mixin) *errList {
 			continue
 		}
 
-		has := make([]corgierr.Annotation, len(dupls))
+		has := make([]fileerr.Annotation, len(dupls))
 		for i, dupl := range dupls {
 			has[i] = anno.Anno(f, anno.Annotation{
 				Start:      dupl.Name.Position,
@@ -196,7 +196,7 @@ func _duplicateMixinParams(f *file.File, m file.Mixin) *errList {
 			})
 		}
 
-		errs.PushBack(&corgierr.Error{
+		errs.PushBack(&fileerr.Error{
 			Message: "duplicate mixin parameter",
 			ErrorAnnotation: anno.Anno(f, anno.Annotation{
 				Start:      a.Name.Position,

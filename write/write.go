@@ -8,10 +8,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/mavolin/corgi/corgierr"
 	"github.com/mavolin/corgi/file"
 	"github.com/mavolin/corgi/file/fileutil"
 	"github.com/mavolin/corgi/file/precomp"
+	"github.com/mavolin/corgi/fileerr"
 	"github.com/mavolin/corgi/internal/list"
 )
 
@@ -27,11 +27,11 @@ type Options struct {
 	// CLI indicates that this writer is run by the corgi CLI and may reference
 	// CLI options in error messages, and print to stderr on its own.
 	CLI bool
-	// CorgierrPretty are the [corgierr.PrettyOptions] used to print pretty
+	// CorgierrPretty are the [fileerr.PrettyOptions] used to print pretty
 	// errors.
 	//
 	// Only used if CLI is true.
-	CorgierrPretty corgierr.PrettyOptions
+	CorgierrPretty fileerr.PrettyOptions
 
 	// Debug, if set to true, attaches file and position information of scope
 	// items to the generated file.

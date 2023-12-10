@@ -12,7 +12,7 @@ import (
 	"testing"
 
 	"github.com/mavolin/corgi"
-	"github.com/mavolin/corgi/corgierr"
+	"github.com/mavolin/corgi/fileerr"
 	"github.com/mavolin/corgi/test/internal/voidwriter"
 	"github.com/mavolin/corgi/write"
 )
@@ -48,8 +48,8 @@ func Compile(t *testing.T, name string, o Options) {
 
 	f, err := corgi.LoadMain(name, corgi.LoadOptions{})
 	if err != nil {
-		if lerr := corgierr.As(err); lerr != nil {
-			t.Fatalf(lerr.Pretty(corgierr.PrettyOptions{Colored: true}))
+		if lerr := fileerr.As(err); lerr != nil {
+			t.Fatalf(lerr.Pretty(fileerr.PrettyOptions{Colored: true}))
 			return
 		}
 

@@ -1,9 +1,9 @@
 package validate
 
 import (
-	"github.com/mavolin/corgi/corgierr"
 	"github.com/mavolin/corgi/file"
 	"github.com/mavolin/corgi/file/fileutil"
+	"github.com/mavolin/corgi/fileerr"
 	"github.com/mavolin/corgi/internal/anno"
 	"github.com/mavolin/corgi/internal/list"
 )
@@ -42,14 +42,14 @@ func interpolatedMixinCallChecks(f *file.File) *errList {
 
 func _topLevelAndInInterpolatedMixinCall(f *file.File, mci file.MixinCallInterpolation) *errList {
 	if mci.MixinCall.Mixin.Mixin.WritesTopLevelAttributes {
-		return list.List1(&corgierr.Error{
+		return list.List1(&fileerr.Error{
 			Message: "interpolated mixin writes attributes",
 			ErrorAnnotation: anno.Anno(f, anno.Annotation{
 				Start:      mci.Position,
 				End:        interpolationEnd(mci.Value),
 				Annotation: "here",
 			}),
-			Suggestions: []corgierr.Suggestion{
+			Suggestions: []fileerr.Suggestion{
 				{
 					Suggestion: "you can only interpolate mixins that don't have any top-level attributes,\n" +
 						"i.e. don't write any attribute to the element they are called in",
@@ -108,7 +108,7 @@ params:
 					}
 				}
 
-				errs.PushBack(&corgierr.Error{
+				errs.PushBack(&fileerr.Error{
 					Message: "required mixin call arg set with chain expression without default",
 					ErrorAnnotation: anno.Anno(f, anno.Annotation{
 						Start:      ce.Position,
@@ -120,7 +120,7 @@ params:
 			}
 		}
 
-		errs.PushBack(&corgierr.Error{
+		errs.PushBack(&fileerr.Error{
 			Message: "required mixin call arg not set",
 			ErrorAnnotation: anno.Anno(f, anno.Annotation{
 				Start:      mci.MixinCall.Position,
@@ -146,7 +146,7 @@ func _interpolatedMixinCallBlockExists(f *file.File, mci file.MixinCallInterpola
 
 	start, end := interpolationBounds(mci.Value)
 
-	return list.List1(&corgierr.Error{
+	return list.List1(&fileerr.Error{
 		Message: "interpolated mixin call has value, but called mixin has no `_` block",
 		ErrorAnnotation: anno.Anno(f, anno.Annotation{
 			Start:      start,

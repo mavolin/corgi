@@ -1,9 +1,9 @@
 package validate
 
 import (
-	"github.com/mavolin/corgi/corgierr"
 	"github.com/mavolin/corgi/file"
 	"github.com/mavolin/corgi/file/fileutil"
+	"github.com/mavolin/corgi/fileerr"
 	"github.com/mavolin/corgi/internal/anno"
 )
 
@@ -125,7 +125,7 @@ func interpolationEnd(v file.InterpolationValue) file.Position {
 	}
 }
 
-func inThisMixinCall(f *file.File, mc file.MixinCall) corgierr.Annotation {
+func inThisMixinCall(f *file.File, mc file.MixinCall) fileerr.Annotation {
 	return anno.Anno(f, anno.Annotation{
 		Start:      mc.Position,
 		Len:        (mc.Name.Col - mc.Col) + len(mc.Name.Ident),

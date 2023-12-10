@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/mavolin/corgi/corgierr"
 	"github.com/mavolin/corgi/file"
+	"github.com/mavolin/corgi/fileerr"
 	"github.com/mavolin/corgi/internal/list"
 	"github.com/mavolin/corgi/internal/stack"
 	"github.com/mavolin/corgi/internal/voidelem"
@@ -59,7 +59,7 @@ type ctx struct {
 	allowAllFilters bool
 
 	cli            bool
-	corgierrPretty corgierr.PrettyOptions
+	corgierrPretty fileerr.PrettyOptions
 
 	debugEnabled bool
 

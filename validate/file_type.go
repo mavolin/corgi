@@ -3,9 +3,9 @@ package validate
 import (
 	"fmt"
 
-	"github.com/mavolin/corgi/corgierr"
 	"github.com/mavolin/corgi/file"
 	"github.com/mavolin/corgi/file/fileutil"
+	"github.com/mavolin/corgi/fileerr"
 	"github.com/mavolin/corgi/internal/anno"
 )
 
@@ -24,7 +24,7 @@ func mainFile(f *file.File) *errList {
 			expectPos.Line = f.Imports[len(f.Imports)-1].Imports[len(f.Imports[len(f.Uses)-1].Imports)-1].Line + 1
 		}
 
-		errs.PushBack(&corgierr.Error{
+		errs.PushBack(&fileerr.Error{
 			Message: "missing func header",
 			ErrorAnnotation: anno.Anno(f, anno.Annotation{
 				Start:      expectPos,
@@ -47,26 +47,26 @@ func mainFile(f *file.File) *errList {
 				return true, nil
 			}
 
-			errs.PushBack(&corgierr.Error{
+			errs.PushBack(&fileerr.Error{
 				Message: "template block placeholder in main file",
 				ErrorAnnotation: anno.Anno(f, anno.Annotation{
 					Start:      itm.Position,
 					ToEOL:      true,
 					Annotation: "cannot use template block placeholder in a main file",
 				}),
-				Suggestions: []corgierr.Suggestion{
+				Suggestions: []fileerr.Suggestion{
 					{Suggestion: "did you accidentally try to compile a template file?"},
 				},
 			})
 		case file.IfBlock:
-			errs.PushBack(&corgierr.Error{
+			errs.PushBack(&fileerr.Error{
 				Message: "`if block` in main file",
 				ErrorAnnotation: anno.Anno(f, anno.Annotation{
 					Start:      itm.Position,
 					ToEOL:      true,
 					Annotation: "cannot use `if block` in a main file",
 				}),
-				Suggestions: []corgierr.Suggestion{
+				Suggestions: []fileerr.Suggestion{
 					{Suggestion: "did you accidentally try to compile a template file?"},
 				},
 			})
@@ -86,7 +86,7 @@ func templateFile(f *file.File) *errList {
 	var errs errList
 
 	if f.Func != nil {
-		errs.PushBack(&corgierr.Error{
+		errs.PushBack(&fileerr.Error{
 			Message: "template file with `func` header",
 			ErrorAnnotation: anno.Anno(f, anno.Annotation{
 				Start:      f.Func.Position,
@@ -113,7 +113,7 @@ func extendingFile(f *file.File) *errList {
 		case file.Mixin:
 		case file.CorgiComment:
 		default:
-			errs.PushBack(&corgierr.Error{
+			errs.PushBack(&fileerr.Error{
 				Message: fmt.Sprintf("unexpected top-level item %T", itm),
 				ErrorAnnotation: anno.Anno(f, anno.Annotation{
 					Start: itm.Pos(),
@@ -136,7 +136,7 @@ func libraryFile(f *file.File) *errList {
 	var errs errList
 
 	if f.Func != nil {
-		errs.PushBack(&corgierr.Error{
+		errs.PushBack(&fileerr.Error{
 			Message: "func header in use file",
 			ErrorAnnotation: anno.Anno(f, anno.Annotation{
 				Start:      f.Func.Position,
@@ -152,7 +152,7 @@ func libraryFile(f *file.File) *errList {
 		case file.Mixin:
 		case file.CorgiComment:
 		default:
-			errs.PushBack(&corgierr.Error{
+			errs.PushBack(&fileerr.Error{
 				Message: fmt.Sprintf("unexpected top-level item %T", itm),
 				ErrorAnnotation: anno.Anno(f, anno.Annotation{
 					Start:      itm.Pos(),

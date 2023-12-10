@@ -3,9 +3,9 @@ package validate
 import (
 	"fmt"
 
-	"github.com/mavolin/corgi/corgierr"
 	"github.com/mavolin/corgi/file"
 	"github.com/mavolin/corgi/file/fileutil"
+	"github.com/mavolin/corgi/fileerr"
 	"github.com/mavolin/corgi/internal/anno"
 )
 
@@ -25,13 +25,13 @@ func _topLevelAttributes(f *file.File, s file.Scope) *errList {
 		case file.Include:
 			return false, nil
 		case file.And:
-			errs.PushBack(&corgierr.Error{
+			errs.PushBack(&fileerr.Error{
 				Message: "top-level attribute",
 				ErrorAnnotation: anno.Anno(f, anno.Annotation{
 					Start:      itm.Position,
 					Annotation: "attributes cannot be placed outside of elements",
 				}),
-				Suggestions: []corgierr.Suggestion{
+				Suggestions: []fileerr.Suggestion{
 					{Suggestion: "place this `&` inside an element or remove it"},
 				},
 			})
@@ -44,13 +44,13 @@ func _topLevelAttributes(f *file.File, s file.Scope) *errList {
 			return true, nil
 		case file.MixinCall:
 			if fileutil.IsAttrMixin(*itm.Mixin) {
-				errs.PushBack(&corgierr.Error{
+				errs.PushBack(&fileerr.Error{
 					Message: "top-level attribute",
 					ErrorAnnotation: anno.Anno(f, anno.Annotation{
 						Start:      itm.Position,
 						Annotation: "attributes cannot be placed outside of elements",
 					}),
-					Suggestions: []corgierr.Suggestion{
+					Suggestions: []fileerr.Suggestion{
 						{Suggestion: "place this `html.Attribute` call inside an element or remove it"},
 					},
 				})
@@ -64,7 +64,7 @@ func _topLevelAttributes(f *file.File, s file.Scope) *errList {
 			annoLen += len(itm.Name.Ident)
 
 			if itm.Mixin.Mixin.WritesTopLevelAttributes {
-				errs.PushBack(&corgierr.Error{
+				errs.PushBack(&fileerr.Error{
 					Message: "top-level `&`",
 					ErrorAnnotation: anno.Anno(f, anno.Annotation{
 						Start: itm.Position,
@@ -72,7 +72,7 @@ func _topLevelAttributes(f *file.File, s file.Scope) *errList {
 						Annotation: "the mixin being called has top-level attributes,\n" +
 							"and must therefore be placed inside an element",
 					}),
-					Suggestions: []corgierr.Suggestion{
+					Suggestions: []fileerr.Suggestion{
 						{Suggestion: "place this mixin call inside an element or remove it"},
 					},
 				})
@@ -82,20 +82,20 @@ func _topLevelAttributes(f *file.File, s file.Scope) *errList {
 			andPos := mixinCallAttrPos(itm)
 
 			if andPos != file.InvalidPosition && itm.Mixin.Mixin.TopLevelAndPlaceholder {
-				errs.PushBack(&corgierr.Error{
+				errs.PushBack(&fileerr.Error{
 					Message: "top-level `&`",
 					ErrorAnnotation: anno.Anno(f, anno.Annotation{
 						Start:      itm.Position,
 						Len:        annoLen,
 						Annotation: "the mixin being called has a top-level &-placeholder (`&(&&)`)",
 					}),
-					HintAnnotations: []corgierr.Annotation{
+					HintAnnotations: []fileerr.Annotation{
 						anno.Anno(f, anno.Annotation{
 							Start:      andPos,
 							Annotation: "and you are providing attributes for it here",
 						}),
 					},
-					Suggestions: []corgierr.Suggestion{
+					Suggestions: []fileerr.Suggestion{
 						{Suggestion: "place this mixin call inside an element or remove it"},
 					},
 				})
@@ -154,7 +154,7 @@ func _topLevelAttributes(f *file.File, s file.Scope) *errList {
 		handleUnfilledBlocks:
 			for _, ublock := range unfilledBlocks {
 				if andPos != file.InvalidPosition && ublock.DefaultTopLevelAndPlaceholder {
-					errs.PushBack(&corgierr.Error{
+					errs.PushBack(&fileerr.Error{
 						Message: "top-level `&`",
 						ErrorAnnotation: anno.Anno(f, anno.Annotation{
 							Start: itm.Position,
@@ -162,13 +162,13 @@ func _topLevelAttributes(f *file.File, s file.Scope) *errList {
 							Annotation: "The mixin you are calling has a top-level block named `" + ublock.Name + "`\n" +
 								"which you didn't fill and whose default has a top-level &-placeholder (`&(&&)`).",
 						}),
-						HintAnnotations: []corgierr.Annotation{
+						HintAnnotations: []fileerr.Annotation{
 							anno.Anno(f, anno.Annotation{
 								Start:      andPos,
 								Annotation: "and you are providing attributes for it here",
 							}),
 						},
-						Suggestions: []corgierr.Suggestion{
+						Suggestions: []fileerr.Suggestion{
 							{
 								Suggestion: "you are not allowed to place attributes outside of elements, therefore,\n" +
 									"place this mixin call inside an element,\n" +
@@ -178,7 +178,7 @@ func _topLevelAttributes(f *file.File, s file.Scope) *errList {
 					})
 					return false, nil // only report one err per mixin
 				} else if ublock.DefaultWritesTopLevelAttributes {
-					errs.PushBack(&corgierr.Error{
+					errs.PushBack(&fileerr.Error{
 						Message: "top-level attributes in top-level block default",
 						ErrorAnnotation: anno.Anno(f, anno.Annotation{
 							Start: itm.Position,
@@ -187,7 +187,7 @@ func _topLevelAttributes(f *file.File, s file.Scope) *errList {
 								"which you didn't fill and whose default has one or more top-level attributes.\n" +
 								"Since this mixin call is not placed inside an element, you cannot use top-level attributes.",
 						}),
-						Suggestions: []corgierr.Suggestion{
+						Suggestions: []fileerr.Suggestion{
 							{
 								Suggestion: "place this mixin call inside an element,\n" +
 									"manually set `" + ublock.Name + "` without using top-level attributes, or remove this mixin call",
@@ -235,7 +235,7 @@ func _topLevelTemplateBlockAnds(f *file.File, s file.Scope) *errList {
 		case file.Include:
 			return false, nil
 		case file.And:
-			errs.PushBack(&corgierr.Error{
+			errs.PushBack(&fileerr.Error{
 				Message: "top-level `&` in block",
 				ErrorAnnotation: anno.Anno(f, anno.Annotation{
 					Start:      itm.Position,
@@ -251,13 +251,13 @@ func _topLevelTemplateBlockAnds(f *file.File, s file.Scope) *errList {
 			return true, nil
 		case file.MixinCall:
 			if fileutil.IsAttrMixin(*itm.Mixin) {
-				errs.PushBack(&corgierr.Error{
+				errs.PushBack(&fileerr.Error{
 					Message: "top-level attribute",
 					ErrorAnnotation: anno.Anno(f, anno.Annotation{
 						Start:      itm.Position,
 						Annotation: "attributes cannot be placed outside of elements",
 					}),
-					Suggestions: []corgierr.Suggestion{
+					Suggestions: []fileerr.Suggestion{
 						{Suggestion: "place this `html.Attribute` call inside an element or remove it"},
 					},
 				})
@@ -271,7 +271,7 @@ func _topLevelTemplateBlockAnds(f *file.File, s file.Scope) *errList {
 			annoLen += len(itm.Name.Ident)
 
 			if itm.Mixin.Mixin.WritesTopLevelAttributes {
-				errs.PushBack(&corgierr.Error{
+				errs.PushBack(&fileerr.Error{
 					Message: "top-level `&`",
 					ErrorAnnotation: anno.Anno(f, anno.Annotation{
 						Start: itm.Position,
@@ -279,7 +279,7 @@ func _topLevelTemplateBlockAnds(f *file.File, s file.Scope) *errList {
 						Annotation: "the mixin being called has top-level attributes,\n" +
 							"and must therefore be placed inside an element",
 					}),
-					Suggestions: []corgierr.Suggestion{
+					Suggestions: []fileerr.Suggestion{
 						{Suggestion: "place this mixin call inside an element or remove it"},
 					},
 				})
@@ -289,20 +289,20 @@ func _topLevelTemplateBlockAnds(f *file.File, s file.Scope) *errList {
 			andPos := mixinCallAttrPos(itm)
 
 			if andPos != file.InvalidPosition && itm.Mixin.Mixin.TopLevelAndPlaceholder {
-				errs.PushBack(&corgierr.Error{
+				errs.PushBack(&fileerr.Error{
 					Message: "top-level `&`",
 					ErrorAnnotation: anno.Anno(f, anno.Annotation{
 						Start:      itm.Position,
 						Len:        annoLen,
 						Annotation: "the mixin being called has a top-level &-placeholder (`&(&&)`)",
 					}),
-					HintAnnotations: []corgierr.Annotation{
+					HintAnnotations: []fileerr.Annotation{
 						anno.Anno(f, anno.Annotation{
 							Start:      andPos,
 							Annotation: "and you are providing attributes for it here",
 						}),
 					},
-					Suggestions: []corgierr.Suggestion{
+					Suggestions: []fileerr.Suggestion{
 						{Suggestion: "place this mixin call inside an element or remove it"},
 					},
 				})
@@ -361,7 +361,7 @@ func _topLevelTemplateBlockAnds(f *file.File, s file.Scope) *errList {
 		handleUnfilledBlocks:
 			for _, ublock := range unfilledBlocks {
 				if andPos != file.InvalidPosition && ublock.DefaultTopLevelAndPlaceholder {
-					errs.PushBack(&corgierr.Error{
+					errs.PushBack(&fileerr.Error{
 						Message: "top-level `&`",
 						ErrorAnnotation: anno.Anno(f, anno.Annotation{
 							Start: itm.Position,
@@ -369,13 +369,13 @@ func _topLevelTemplateBlockAnds(f *file.File, s file.Scope) *errList {
 							Annotation: "The mixin you are calling has a top-level block named `" + ublock.Name + "`\n" +
 								"which you didn't fill and whose default has a top-level &-placeholder (`&(&&)`).",
 						}),
-						HintAnnotations: []corgierr.Annotation{
+						HintAnnotations: []fileerr.Annotation{
 							anno.Anno(f, anno.Annotation{
 								Start:      andPos,
 								Annotation: "and you are providing attributes for it here",
 							}),
 						},
-						Suggestions: []corgierr.Suggestion{
+						Suggestions: []fileerr.Suggestion{
 							{
 								Suggestion: "you are not allowed to place attributes outside of elements, therefore,\n" +
 									"place this mixin call inside an element,\n" +
@@ -385,7 +385,7 @@ func _topLevelTemplateBlockAnds(f *file.File, s file.Scope) *errList {
 					})
 					return false, nil // only report one err per mixin
 				} else if ublock.DefaultWritesTopLevelAttributes {
-					errs.PushBack(&corgierr.Error{
+					errs.PushBack(&fileerr.Error{
 						Message: "top-level `&` in top-level block default",
 						ErrorAnnotation: anno.Anno(f, anno.Annotation{
 							Start: itm.Position,
@@ -394,7 +394,7 @@ func _topLevelTemplateBlockAnds(f *file.File, s file.Scope) *errList {
 								"which you didn't fill and whose default has one or more top-level attributes.\n" +
 								"Since this mixin call is not placed inside an element, you cannot use top-level attributes.",
 						}),
-						Suggestions: []corgierr.Suggestion{
+						Suggestions: []fileerr.Suggestion{
 							{
 								Suggestion: "place this mixin call inside an element,\n" +
 									"manually set `" + ublock.Name + "` without using top-level ands, or remove this mixin call",
@@ -471,8 +471,8 @@ func attributePlacement(f *file.File) *errList {
 }
 
 func _attributePlacement(
-	f *file.File, elAnno corgierr.Annotation, firstText *corgierr.Annotation, scope file.Scope,
-) (*corgierr.Annotation, errList) {
+	f *file.File, elAnno fileerr.Annotation, firstText *fileerr.Annotation, scope file.Scope,
+) (*fileerr.Annotation, errList) {
 	var errs errList
 
 	fileutil.Walk(scope, func(parents []fileutil.WalkContext, ctx fileutil.WalkContext) (dive bool, err error) {
@@ -482,14 +482,14 @@ func _attributePlacement(
 				return false, nil
 			}
 
-			errs.PushBack(&corgierr.Error{
+			errs.PushBack(&fileerr.Error{
 				Message: "use of `&` after writing to element's body",
 				ErrorAnnotation: anno.Anno(f, anno.Annotation{
 					Start:      itm.Position,
 					Annotation: "so you cannot place an `&` here",
 				}),
-				HintAnnotations: []corgierr.Annotation{elAnno, *firstText},
-				Suggestions: []corgierr.Suggestion{
+				HintAnnotations: []fileerr.Annotation{elAnno, *firstText},
+				Suggestions: []fileerr.Suggestion{
 					{
 						Suggestion: "you can only use the `&` operator before you write to the body of an element.",
 					},
@@ -543,7 +543,7 @@ func _attributePlacement(
 				firstText = firstTextAfterIf
 			}
 		case file.Switch:
-			var firstTextAfterSwitch *corgierr.Annotation
+			var firstTextAfterSwitch *fileerr.Annotation
 
 			for _, c := range itm.Cases {
 				firstCaseText, caseErrs := _attributePlacement(f, elAnno, firstText, c.Then)
@@ -571,14 +571,14 @@ func _attributePlacement(
 			if firstText == nil && firstTextAfterFor != nil {
 				if nonCtrl, ok := fileutil.IsFirstNonControlAttr(itm.Body); ok {
 					if and, ok := nonCtrl.(file.And); ok {
-						errs.PushBack(&corgierr.Error{
+						errs.PushBack(&fileerr.Error{
 							Message: "use of `&` in for-loop that also writes to element's body",
 							ErrorAnnotation: anno.Anno(f, anno.Annotation{
 								Start:      and.Position,
 								Annotation: "you placed an `&` here",
 							}),
-							HintAnnotations: []corgierr.Annotation{elAnno, *firstTextAfterFor},
-							Suggestions: []corgierr.Suggestion{
+							HintAnnotations: []fileerr.Annotation{elAnno, *firstTextAfterFor},
+							Suggestions: []fileerr.Suggestion{
 								{
 									Suggestion: "you can only use an `&` in a loop, if you don't also write to the body of the element;\n" +
 										"consider writing two loops, one for the `&` and one for the rest",
@@ -586,13 +586,13 @@ func _attributePlacement(
 							},
 						})
 					} else if mixin, ok := nonCtrl.(file.MixinCall); ok {
-						errs.PushBack(&corgierr.Error{
+						errs.PushBack(&fileerr.Error{
 							Message: "use of `&` in for-loop that also writes to element's body",
 							ErrorAnnotation: anno.Anno(f, anno.Annotation{
 								Start:      mixin.Position,
 								Annotation: "you placed a mixin writing an attribute (and possibly also text) here",
 							}),
-							HintAnnotations: []corgierr.Annotation{elAnno, *firstTextAfterFor},
+							HintAnnotations: []fileerr.Annotation{elAnno, *firstTextAfterFor},
 						})
 					}
 				}
@@ -673,15 +673,15 @@ func _attributePlacement(
 					return false, nil
 				}
 
-				errs.PushBack(&corgierr.Error{
+				errs.PushBack(&fileerr.Error{
 					Message: "attribute placed after writing to element's body",
 					ErrorAnnotation: anno.Anno(f, anno.Annotation{
 						Start:      itm.Position,
 						End:        end,
 						Annotation: "so you cannot place a mixin writing an attribute here",
 					}),
-					HintAnnotations: []corgierr.Annotation{elAnno, *firstText},
-					Suggestions: []corgierr.Suggestion{
+					HintAnnotations: []fileerr.Annotation{elAnno, *firstText},
+					Suggestions: []fileerr.Suggestion{
 						{
 							Suggestion: "you can only place attributes before you write to the body of an element",
 						},
@@ -723,7 +723,7 @@ func _attributePlacement(
 // attempts to write attributes to the element containing it, even though the
 // elements body has already been written.
 func _mixinCallAndPlacement(
-	f *file.File, mc file.MixinCall, elAnno corgierr.Annotation, firstText *corgierr.Annotation,
+	f *file.File, mc file.MixinCall, elAnno fileerr.Annotation, firstText *fileerr.Annotation,
 ) *errList {
 	var errs errList
 
@@ -738,15 +738,15 @@ func _mixinCallAndPlacement(
 	annoLen += len(mc.Name.Ident)
 
 	if mc.Mixin.Mixin.WritesTopLevelAttributes {
-		errs.PushBack(&corgierr.Error{
+		errs.PushBack(&fileerr.Error{
 			Message: "use of `&` after writing to element's body",
 			ErrorAnnotation: anno.Anno(f, anno.Annotation{
 				Start:      mc.Position,
 				Len:        annoLen,
 				Annotation: "this mixin writes attributes to the element it is called in",
 			}),
-			HintAnnotations: []corgierr.Annotation{elAnno, *firstText},
-			Suggestions: []corgierr.Suggestion{
+			HintAnnotations: []fileerr.Annotation{elAnno, *firstText},
+			Suggestions: []fileerr.Suggestion{
 				{
 					Suggestion: "you can only use the `&` operator before you write to the body of an element.",
 				},
@@ -757,21 +757,21 @@ func _mixinCallAndPlacement(
 
 	andPos := mixinCallAttrPos(mc)
 	if andPos != file.InvalidPosition && mc.Mixin.Mixin.TopLevelAndPlaceholder {
-		errs.PushBack(&corgierr.Error{
+		errs.PushBack(&fileerr.Error{
 			Message: "use of `&` after writing to element's body",
 			ErrorAnnotation: anno.Anno(f, anno.Annotation{
 				Start:      mc.Position,
 				Len:        annoLen,
 				Annotation: "the mixin being called has a top-level &-placeholder (`&(&&)`)",
 			}),
-			HintAnnotations: []corgierr.Annotation{
+			HintAnnotations: []fileerr.Annotation{
 				elAnno,
 				anno.Anno(f, anno.Annotation{
 					Start:      andPos,
 					Annotation: "and you are providing attributes for it here",
 				}),
 			},
-			Suggestions: []corgierr.Suggestion{
+			Suggestions: []fileerr.Suggestion{
 				{
 					Suggestion: "you can only use the `&` operator before you write to the body of an element",
 				},
@@ -832,7 +832,7 @@ body:
 handleUnfilledBlocks:
 	for _, ublock := range unfilledBlocks {
 		if andPos != file.InvalidPosition && ublock.DefaultTopLevelAndPlaceholder {
-			errs.PushBack(&corgierr.Error{
+			errs.PushBack(&fileerr.Error{
 				Message: "use of `&` after writing to element's body",
 				ErrorAnnotation: anno.Anno(f, anno.Annotation{
 					Start: mc.Position,
@@ -840,7 +840,7 @@ handleUnfilledBlocks:
 					Annotation: "The mixin you are calling has a top-level block named `" + ublock.Name + "`\n" +
 						"which you didn't fill and whose default has a top-level &-placeholder (`&(&&)`).",
 				}),
-				HintAnnotations: []corgierr.Annotation{
+				HintAnnotations: []fileerr.Annotation{
 					elAnno,
 					anno.Anno(f, anno.Annotation{
 						Start: andPos,
@@ -848,7 +848,7 @@ handleUnfilledBlocks:
 							"even though you already wrote to the body of the element",
 					}),
 				},
-				Suggestions: []corgierr.Suggestion{
+				Suggestions: []fileerr.Suggestion{
 					{
 						Suggestion: fmt.Sprintf("you can only use the `&` operator before you write to the body of an element,\n"+
 							"therefore, place this mixin call before line %d, remove all attributes from the mixin call,\n"+
@@ -858,7 +858,7 @@ handleUnfilledBlocks:
 			})
 			return &errs // only one attr err per mixin call
 		} else if ublock.DefaultWritesTopLevelAttributes {
-			errs.PushBack(&corgierr.Error{
+			errs.PushBack(&fileerr.Error{
 				Message: "top-level `&` in top-level block default",
 				ErrorAnnotation: anno.Anno(f, anno.Annotation{
 					Start: mc.Position,
@@ -867,8 +867,8 @@ handleUnfilledBlocks:
 						"which you didn't fill and whose default has one or more top-level `&`s.\n" +
 						"Since this mixin call is not placed inside an element, you cannot use top-level `&`.",
 				}),
-				HintAnnotations: []corgierr.Annotation{elAnno},
-				Suggestions: []corgierr.Suggestion{
+				HintAnnotations: []fileerr.Annotation{elAnno},
+				Suggestions: []fileerr.Suggestion{
 					{
 						Suggestion: "place this mixin call inside an element,\n" +
 							"manually set `" + ublock.Name + "` without using top-level ands, or remove this mixin call",
@@ -884,7 +884,7 @@ handleUnfilledBlocks:
 
 // _mixinCallFirstTextAnno returns the first text annotation for the passed
 // mixin call.
-func _mixinCallFirstTextAnno(f *file.File, mc file.MixinCall) *corgierr.Annotation {
+func _mixinCallFirstTextAnno(f *file.File, mc file.MixinCall) *fileerr.Annotation {
 	if mc.Mixin.Mixin.WritesBody {
 		annoLen := len("+")
 		if mc.Namespace != nil {
@@ -944,8 +944,8 @@ func _mixinCallFirstTextAnno(f *file.File, mc file.MixinCall) *corgierr.Annotati
 	return nil
 }
 
-func _firstTextAnno(f *file.File, s file.Scope) *corgierr.Annotation {
-	var firstText *corgierr.Annotation
+func _firstTextAnno(f *file.File, s file.Scope) *fileerr.Annotation {
+	var firstText *fileerr.Annotation
 	fileutil.Walk(s, func(parents []fileutil.WalkContext, ctx fileutil.WalkContext) (dive bool, err error) {
 		switch itm := (*ctx.Item).(type) {
 		case file.Element:

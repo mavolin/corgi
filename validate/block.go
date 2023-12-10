@@ -1,9 +1,9 @@
 package validate
 
 import (
-	"github.com/mavolin/corgi/corgierr"
 	"github.com/mavolin/corgi/file"
 	"github.com/mavolin/corgi/file/fileutil"
+	"github.com/mavolin/corgi/fileerr"
 	"github.com/mavolin/corgi/internal/anno"
 	"github.com/mavolin/corgi/internal/list"
 )
@@ -28,14 +28,14 @@ func onlyTemplateFilesContainBlockPlaceholders(f *file.File) *errList {
 					return false, nil
 				}
 
-				errs.PushBack(&corgierr.Error{
+				errs.PushBack(&fileerr.Error{
 					Message: "use of template block without extending a template",
 					ErrorAnnotation: anno.Anno(f, anno.Annotation{
 						Start:      itm.Position,
 						Len:        (itm.Name.Col - itm.Col) + len(itm.Name.Ident),
 						Annotation: "you can't fill a template block if you aren't extending a template",
 					}),
-					Suggestions: []corgierr.Suggestion{
+					Suggestions: []fileerr.Suggestion{
 						{
 							Suggestion: "Template blocks are used to fill placeholders in a template file.\n" +
 								"To fill such a placeholder, you must place an `extend` directive at the start of the file.",
@@ -62,14 +62,14 @@ func onlyTemplateFilesContainBlockPlaceholders(f *file.File) *errList {
 				return true, nil
 			}
 
-			errs.PushBack(&corgierr.Error{
+			errs.PushBack(&fileerr.Error{
 				Message: "use of template block outside of template file",
 				ErrorAnnotation: anno.Anno(f, anno.Annotation{
 					Start:      itm.Position,
 					Len:        (itm.Name.Col - itm.Col) + len(itm.Name.Ident),
 					Annotation: "cannot place a template block in a main or include file",
 				}),
-				Suggestions: []corgierr.Suggestion{
+				Suggestions: []fileerr.Suggestion{
 					{
 						Suggestion: "This block belongs neither to a mixin nor to a mixin call.\n" +
 							"Since this isn't a template file, you cannot place this block here.",
@@ -106,7 +106,7 @@ func duplicateTemplateBlocks(f *file.File) *errList {
 
 		for cmpBlockE := cmpBlocks.Front(); cmpBlockE != nil; cmpBlockE = cmpBlockE.Next() {
 			if block.Name.Ident == cmpBlockE.V().Name.Ident {
-				errs.PushBack(&corgierr.Error{
+				errs.PushBack(&fileerr.Error{
 					Message: "template block filled twice",
 					ErrorAnnotation: anno.Anno(f, anno.Annotation{
 						ContextLen: 2,
@@ -114,7 +114,7 @@ func duplicateTemplateBlocks(f *file.File) *errList {
 						ToEOL:      true,
 						Annotation: "then here",
 					}),
-					HintAnnotations: []corgierr.Annotation{
+					HintAnnotations: []fileerr.Annotation{
 						anno.Anno(f, anno.Annotation{
 							ContextLen: 2,
 							Start:      cmpBlockE.V().Name.Position,
@@ -122,7 +122,7 @@ func duplicateTemplateBlocks(f *file.File) *errList {
 							Annotation: "first filled here",
 						}),
 					},
-					Suggestions: []corgierr.Suggestion{
+					Suggestions: []fileerr.Suggestion{
 						{Suggestion: "merge these, or remove one of these blocks"},
 					},
 				})
@@ -187,7 +187,7 @@ scope:
 			extend = extend.File.Extend
 		}
 
-		errs.PushBack(&corgierr.Error{
+		errs.PushBack(&fileerr.Error{
 			Message: "unknown template block",
 			ErrorAnnotation: anno.Anno(f, anno.Annotation{
 				Start:      block.Position,
