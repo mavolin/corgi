@@ -12,7 +12,7 @@ import (
 	"github.com/mavolin/corgi/file/precomp"
 )
 
-//go:generate corgi -lib ./...
+//go:generate go run github.com/mavolin/corgi/cmd/corgi -lib ./...
 
 // html/lib.precorgi strings/lib.precorgi
 //

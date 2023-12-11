@@ -35,13 +35,13 @@ mixin Breaked(val any, maxAdjacent=-1)
 
   - var adjacent int
   for _, ln := range strings.Split(s, "\n")
-    if len(ln) == 0
+    if ln == ""
       - adjacent++
       if maxAdjacent < 0 || adjacent <= maxAdjacent
-        > #![<br>]
-        - continue
+        br
+      - continue
 
     > #{ln}
     if adjacent > 0
-      > #![<br>]
+      br
     - adjacent = 1
