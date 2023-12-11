@@ -42,6 +42,6 @@ mixin Breaked(val any, maxAdjacent=-1)
       - continue
 
     > #{ln}
-    if maxAdjacent > 0
+    if maxAdjacent != 0
       br
     - adjacent = 1

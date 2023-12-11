@@ -55,6 +55,8 @@
         ]) ++ (with self.packages.${system}; [
           msgp pigeon
         ]);
+
+        hardeningDisable = [ "fortify" ];
       };
     }
   );

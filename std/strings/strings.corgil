@@ -245,7 +245,7 @@ mixin Initials(val any, max=0, upper=false, lower=false)
           else:> #{string(b)}
           - n++
           if n >= max
-            - return
+            return
         - prev = true
 
 // Wrap wraps the stringified version of val by printing with unescaped every
