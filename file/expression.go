@@ -1,4 +1,3 @@
-// Package file provides structs that represent the structure of a corgi file.
 package file
 
 // Expression represents a chain of [ExpressionItem] elements.
@@ -14,7 +13,7 @@ func (e Expression) Pos() Position {
 }
 
 type ExpressionItem interface {
-	_typeExpressionItem()
+	_expressionItem()
 	Poser
 }
 
@@ -28,7 +27,7 @@ type GoExpression struct {
 	Position
 }
 
-func (GoExpression) _typeExpressionItem() {}
+func (GoExpression) _expressionItem() {}
 
 // ============================================================================
 // RangeExpression
@@ -40,9 +39,9 @@ func (GoExpression) _typeExpressionItem() {}
 type RangeExpression struct {
 	Var1, Var2 *GoIdent
 
-	EqPos    Position // Position of the '=' or ':='
-	Declares bool     // true if the range expression declares new variables (':=')
-	Ordered  bool     // true if the range expression is ordered ('= ordered range')
+	EqualSign Position // Position of the '=' or ':='
+	Declares  bool     // true if the range expression declares new variables (':=')
+	Ordered   bool     // true if the range expression is ordered ('= ordered range')
 
 	// RangeExpression is the expression that is being iterated over.
 	RangeExpression Expression
@@ -50,7 +49,7 @@ type RangeExpression struct {
 	Position
 }
 
-func (RangeExpression) _typeExpressionItem() {}
+func (RangeExpression) _expressionItem() {}
 
 // ============================================================================
 // String Expression
@@ -59,21 +58,19 @@ func (RangeExpression) _typeExpressionItem() {}
 // StringExpression represents a sequence of characters enclosed in double
 // quotes or backticks.
 type StringExpression struct {
-	Quote    byte // either " or `
+	Quote    byte // either '"' or '`'
 	Contents []StringExpressionItem
 
 	// Position is the position of the quote.
 	Position
 }
 
-var _ ExpressionItem = StringExpression{}
-
-func (StringExpression) _typeExpressionItem() {}
+func (StringExpression) _expressionItem() {}
 
 // ============================== String Expression Items ===============================
 
 type StringExpressionItem interface {
-	_typeStringExpressionItem()
+	_stringExpressionItem()
 }
 
 type StringExpressionText struct {
@@ -81,44 +78,34 @@ type StringExpressionText struct {
 	Position
 }
 
-var _ StringExpressionItem = StringExpressionText{}
-
-func (StringExpressionText) _typeStringExpressionItem() {}
+func (StringExpressionText) _stringExpressionItem() {}
 
 type StringExpressionInterpolation struct {
-	FormatDirective      string // a Sprintf formatting placeholder, w/o preceding '%'
-	Expression           Expression
-	LBracePos, RBracePos Position
+	FormatDirective string // a Sprintf formatting placeholder, w/o preceding '%'
+	Expression      Expression
+	LBrace, RBrace  Position
 	Position
 }
 
-var _ StringExpressionItem = StringExpressionInterpolation{}
-
-func (StringExpressionInterpolation) _typeStringExpressionItem() {}
+func (StringExpressionInterpolation) _stringExpressionItem() {}
 
 // ============================================================================
 // Ternary Expression
 // ======================================================================================
 
-// TernaryExpression represents a ternary expression.
-type TernaryExpression struct {
-	// Condition is the Expression yielding the condition that is being
-	// evaluated.
+// TernaryFunction represents a ternary expression.
+type TernaryFunction struct {
 	Condition Expression // not a ChainExpression
 
-	// IfTrue is the Expression used if the condition is true.
-	IfTrue Expression // not a ChainExpression
-	// IfFalse is the Expression used if the condition is false.
+	IfTrue  Expression // not a ChainExpression
 	IfFalse Expression // not a ChainExpression
 
-	RParenPos Position
-	// LParenPos is Position.Col+1
+	LParen Position
+	RParen Position
 	Position
 }
 
-var _ ExpressionItem = TernaryExpression{}
-
-func (TernaryExpression) _typeExpressionItem() {}
+func (TernaryFunction) _expressionItem() {}
 
 // ============================================================================
 // Chain Expression
@@ -138,10 +125,10 @@ type ChainExpression struct {
 	// expression value
 	DerefCount int
 
-	// DefaultOpPos is the position of the '?!' operator.
+	// DefaultOperator is the position of the '~' operator.
 	//
 	// Only set, if Default is.
-	DefaultOpPos *Position
+	DefaultOperator *Position
 
 	// Default represents the optional default value.
 	Default *Expression // not a ChainExpression
@@ -149,9 +136,7 @@ type ChainExpression struct {
 	Position
 }
 
-var _ ExpressionItem = ChainExpression{}
-
-func (ChainExpression) _typeExpressionItem() {}
+func (ChainExpression) _expressionItem() {}
 
 // =============================== Chain Expression Item ================================
 
@@ -175,8 +160,6 @@ type IndexExpression struct {
 
 func (e IndexExpression) Pos() Position { return e.LBracePos }
 
-var _ ChainExpressionItem = IndexExpression{}
-
 func (IndexExpression) _typeChainExpressionItem() {}
 
 // DotIdentExpression represents a dot followed by a Go identifier.
@@ -186,8 +169,6 @@ type DotIdentExpression struct {
 
 	Position // of the dot
 }
-
-var _ ChainExpressionItem = DotIdentExpression{}
 
 func (DotIdentExpression) _typeChainExpressionItem() {}
 
@@ -203,8 +184,6 @@ type ParenExpression struct {
 
 func (e ParenExpression) Pos() Position { return e.LParenPos }
 
-var _ ChainExpressionItem = ParenExpression{}
-
 func (ParenExpression) _typeChainExpressionItem() {}
 
 // TypeAssertionExpression represents a type assertion.
@@ -219,7 +198,5 @@ type TypeAssertionExpression struct {
 
 	Position // of the dot
 }
-
-var _ ChainExpressionItem = TypeAssertionExpression{}
 
 func (TypeAssertionExpression) _typeChainExpressionItem() {}

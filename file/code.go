@@ -3,16 +3,15 @@ package file
 // Code represents a line or block of code.
 type Code struct {
 	Lines []CodeLine
+	// Implicit indicates whether this code was implicitly detected as such,
+	// i.e. it didn't use the '-' operator.
+	Implicit bool
 	Position
 }
 
-var _ ScopeItem = Code{}
-
-func (Code) _typeScopeItem() {}
+func (Code) _scopeItem() {}
 
 type CodeLine struct {
-	// Code is the code in the line.
 	Code string
-
 	Position
 }

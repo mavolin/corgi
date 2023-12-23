@@ -4,20 +4,18 @@ package file
 // Doctype
 // ======================================================================================
 
-// Doctype represents a doctype directive (`doctype html`).
+// Doctype represents a doctype directive (`doctype(html)`).
 type Doctype struct {
 	Position
 }
 
-var _ ScopeItem = Doctype{}
-
-func (Doctype) _typeScopeItem() {}
+func (Doctype) _scopeItem() {}
 
 // ============================================================================
 // CorgiComment
 // ======================================================================================
 
-// HTMLComment represents a comment.
+// HTMLComment represents a comment that is printed.
 type HTMLComment struct {
 	Lines []HTMLCommentLine
 	Position
@@ -28,9 +26,7 @@ type HTMLCommentLine struct {
 	Position
 }
 
-var _ ScopeItem = HTMLComment{}
-
-func (HTMLComment) _typeScopeItem() {}
+func (HTMLComment) _scopeItem() {}
 
 // ============================================================================
 // Element
@@ -40,146 +36,26 @@ func (HTMLComment) _typeScopeItem() {}
 type Element struct {
 	Name       string
 	Attributes []AttributeCollection
-	Void       bool
+	// Void is true, if the element was manually marked as void.
+	Void bool
 
-	Body Scope
-
-	Position
-}
-
-var _ ScopeItem = Element{}
-
-func (Element) _typeScopeItem() {}
-
-type DivShorthand struct {
-	// Attributes are the attributes of the element.
-	//
-	// It contains at least one item.
-	//
-	// Attributes[0] will be either of type ClassShorthand or IDShorthand.
-	Attributes []AttributeCollection
-
-	Body Scope
+	Body Body
 
 	Position
 }
 
-var _ ScopeItem = DivShorthand{}
-
-func (DivShorthand) _typeScopeItem() {}
+func (Element) _scopeItem() {}
 
 // ============================================================================
-// And
+// Raw Element
 // ======================================================================================
 
-// And represents an '&' expression.
-type And struct {
-	Attributes []AttributeCollection
+// RawElement represents the special raw element, which includes all of its
+// contents verbatim into the generated HTML.
+type RawElement struct {
+	Body BracketText
 
 	Position
 }
 
-func (And) _typeScopeItem() {}
-
-// ============================================================================
-// AttributeCollection
-// ======================================================================================
-
-type AttributeCollection interface {
-	_typeAttributeCollection()
-	Poser
-}
-
-// ==================================== IDShorthand =====================================
-
-type IDShorthand struct {
-	ID string
-	Position
-}
-
-var _ AttributeCollection = IDShorthand{}
-
-func (IDShorthand) _typeAttributeCollection() {}
-
-// =================================== ClassShorthand ===================================
-
-type ClassShorthand struct {
-	Name string
-	Position
-}
-
-var _ AttributeCollection = ClassShorthand{}
-
-func (ClassShorthand) _typeAttributeCollection() {}
-
-// =================================== AttributeList ====================================
-
-type AttributeList struct {
-	LParenPos  Position
-	Attributes []Attribute
-	RParenPos  Position
-}
-
-var _ AttributeCollection = AttributeList{}
-
-func (AttributeList) _typeAttributeCollection() {}
-func (l AttributeList) Pos() Position           { return l.LParenPos.Pos() }
-
-// ============================================================================
-// Attribute
-// ======================================================================================
-
-type Attribute interface {
-	_typeAttribute()
-	Poser
-}
-
-// ================================== SimpleAttribute ===================================
-
-type SimpleAttribute struct {
-	Name string
-
-	AssignPos *Position // pos of '=' or '!='; nil for boolean attributes
-
-	Value *Expression // nil for boolean attributes
-
-	Position
-}
-
-var _ Attribute = SimpleAttribute{}
-
-func (SimpleAttribute) _typeAttribute() {}
-
-// =================================== AndPlaceholder ===================================
-
-// AndPlaceholder is an attribute 'named' `&` that is used as a placeholder for
-// the attributes attached to a mixin call.
-//
-//	mixin foo()
-//		div: span(&) foo
-//
-// It may only be used inside a mixin definition.
-type AndPlaceholder struct {
-	Position
-}
-
-var _ Attribute = AndPlaceholder{}
-
-func (AndPlaceholder) _typeAttribute() {}
-
-// ================================ Mixin Call Attribute ================================
-
-type MixinCallAttribute struct {
-	Name string
-
-	AssignPos Position
-
-	MixinCall MixinCall
-	Value     InterpolationValue
-
-	Position
-}
-
-var _ Attribute = MixinCallAttribute{}
-
-func (MixinCallAttribute) _typeAttribute() {}
+func (RawElement) _scopeItem() {}

@@ -4,16 +4,14 @@ package file
 // If
 // ======================================================================================
 
-// ===================================== Regular If =====================================
-
 // If represents an 'if' statement.
 type If struct {
 	// Condition is the condition of the if statement.
-	Condition Expression
+	Condition IfCondition
 
 	// Then is scope of the code that is executed if the condition evaluates
 	// to true.
-	Then Scope
+	Then Body
 
 	// ElseIfs are the else if statements, if this If has any.
 	ElseIfs []ElseIf
@@ -23,9 +21,7 @@ type If struct {
 	Position
 }
 
-var _ ScopeItem = If{}
-
-func (If) _typeScopeItem() {}
+func (If) _scopeItem() {}
 
 // ElseIf represents an 'else if' statement.
 type ElseIf struct {
@@ -34,48 +30,36 @@ type ElseIf struct {
 
 	// Then is scope of the code that is executed if the condition evaluates
 	// to true.
-	Then Scope
+	Then Body
 
 	Position
 }
-
-// ====================================== If Block ======================================
-
-// IfBlock represents an 'if block' directive.
-type IfBlock struct {
-	// Name is the name of the block, whose existence is checked.
-	Name Ident
-
-	// Then is the scope of the code that is executed if the block exists.
-	Then Scope
-	// ElseIfs are the else if statements, if this IfBlock has any.
-	ElseIfs []ElseIfBlock
-	// Else is the scope of the code that is executed if the block does not
-	// exist.
-	Else *Else
-
-	Position
-}
-
-var _ ScopeItem = IfBlock{}
-
-func (IfBlock) _typeScopeItem() {}
-
-type ElseIfBlock struct {
-	// Name is the name of the block, whose existence is checked.
-	Name Ident
-	// Then is the scope of the code that is executed if the block exists.
-	Then Scope
-
-	Position
-}
-
-// ======================================== Else ========================================
 
 type Else struct {
 	Then Scope
+
 	Position
 }
+
+// ============================================================================
+// IfCondition
+// ======================================================================================
+
+// IfCondition is either an [Expression] or a [BlockCondition].
+type IfCondition interface {
+	_ifCondition()
+	Poser
+}
+
+// BlockCondition represents the special block existence check function.
+type BlockCondition struct {
+	// Block is the name of the block.
+	Block Ident
+
+	Position
+}
+
+func (BlockCondition) _ifCondition() {}
 
 // ============================================================================
 // Switch
@@ -97,9 +81,7 @@ type Switch struct {
 	Position
 }
 
-var _ ScopeItem = Switch{}
-
-func (Switch) _typeScopeItem() {}
+func (Switch) _scopeItem() {}
 
 // ======================================== Case ========================================
 
@@ -107,7 +89,7 @@ type Case struct {
 	// Expression is the expression written behind 'case'.
 	//
 	// Nil for the default case.
-	Expression *Expression
+	Expression IfCondition
 	// Then is the scope of the code that is executed if the condition
 	// evaluates to true.
 	Then Scope
@@ -124,9 +106,40 @@ type For struct {
 	// Expression is the expression written in the head of the for, or nil if
 	// this is an infinite loop.
 	Expression *Expression
-	Body       Scope
+	Body       Body
 
 	Position
 }
 
-func (For) _typeScopeItem() {}
+func (For) _scopeItem() {}
+
+// ============================================================================
+// Return
+// ======================================================================================
+
+type Return struct {
+	Err *Expression
+	Position
+}
+
+func (Return) _scopeItem() {}
+
+// ============================================================================
+// Break
+// ======================================================================================
+
+type Break struct {
+	Position
+}
+
+func (Break) _scopeItem() {}
+
+// ============================================================================
+// Continue
+// ======================================================================================
+
+type Continue struct {
+	Position
+}
+
+func (Continue) _scopeItem() {}

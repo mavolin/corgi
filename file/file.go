@@ -1,97 +1,98 @@
 // Package file provides an AST for corgi files.
 package file
 
-// File represents a parsed corgi file.
-type File struct {
-	// METADATA
-	//
+type (
+	Package struct {
+		// METADATA
+		//
 
-	Type Type
+		// Module is the path/name of the Go module providing this directory.
+		Module string
+		// PathInModule is the path to the directory in the Go module, relative
+		// to the module root.
+		//
+		// It is always specified as a forward slash separated path.
+		PathInModule string
+		// AbsolutePath is the resolved absolute path to the directory.
+		//
+		// It is specified using the system's separator.
+		AbsolutePath string
 
-	// Name is the name of the file.
-	//
-	// If this is the main file, it will be just the file's name.
-	//
-	// If this is an extended, included, or used file, this will be the path
-	// of the specified file in its source.
-	Name string
+		//
+		// FILES
+		//
 
-	// Module is the path/name of the Go module providing this file.
-	//
-	// This won't be set for main and include files.
-	Module string
-	// PathInModule is the path to the file in the Go module, relative to the
-	// module root.
-	//
-	// It is always specified as a forward slash separated path.
-	//
-	// This won't be set for main and include files.
-	PathInModule string
-	// AbsolutePath is the resolved absolute path to the file.
-	//
-	// It is specified using the system's separator.
-	AbsolutePath string
+		// Files are the corgi files this directory consists of.
+		Files []*File
+	}
 
-	// Library is the library this file belongs to, if any.
-	Library *Library
-	// DirLibrary provides the library files located in the same directory as
-	// this main, include, or template file.
-	//
-	// Not filled for library files.
-	DirLibrary *Library
+	PackageInfo struct {
+		// CorgiVersion is the version of the corgi compiler used to compile
+		// the files in this package.
+		CorgiVersion string
+		// HasState indicates whether this package contains state variables.
+		HasState bool
 
-	//
-	// FILE CONTENTS
-	//
+		Components []PackageComponentInfo
+	}
+	PackageComponentInfo struct {
+		Name   string
+		Params []PackageComponentParamInfo
+		ComponentInfo
+	}
+	PackageComponentParamInfo struct {
+		Name       string
+		Type       string
+		IsSafeType bool
+		HasDefault bool
+	}
 
-	// Raw contains the raw input file, as it was parsed.
-	Raw string
-	// Lines are the lines of Raw, stripped of their CRLF/LF line endings.
-	Lines []string
+	// File represents a parsed corgi file.
+	File struct {
+		// METADATA
+		//
 
-	// TopLevelComments contains all comments made before the first scope item.
-	TopLevelComments []CorgiComment
+		// Name is the name of the file.
+		// of the specified file in its source.
+		Name string
 
-	// Extend is the file that this file extends, if any.
-	Extend *Extend
+		// Module is the path/name of the Go module providing this file.
+		Module string
+		// PathInModule is the path to the file in the Go module, relative to the
+		// module root.
+		//
+		// It is always specified as a forward slash separated path.
+		PathInModule string
+		// AbsolutePath is the resolved absolute path to the file.
+		//
+		// It is specified using the system's separator.
+		AbsolutePath string
 
-	// Imports is a list of imports made by this file, in the order they
-	// appear.
-	Imports []Import
+		// Package is the directory containing this file.
+		Package *Package
 
-	// Uses is a list of used libraries, in the order they appear.
-	Uses []Use
+		//
+		// FILE CONTENTS
+		//
 
-	// GlobalCode is the code that is written above the output function.
-	GlobalCode []Code
+		// Raw contains the raw input file, as it was parsed.
+		Raw string
+		// Lines are the lines of Raw, stripped of their CRLF/LF line endings.
+		Lines []string
 
-	// Func is the function header.
-	// It is always present for main files, i.e. those files that are given
-	// to the corgi command.
-	Func *Func
+		PackageDoc       []CorgiComment
+		PackageDirective PackageDirective
 
-	// Scope is the global scope.
-	Scope Scope
-}
+		ImportComments []CorgiComment
 
-type Type uint8
+		// Imports is a list of imports made by this file, in the order they
+		// appear.
+		Imports []Import
 
-const (
-	TypeMain Type = iota + 1
-	TypeTemplate
-	TypeLibraryFile
-	TypeInclude
+		// Scope is the global scope.
+		Scope Scope
+	}
 )
-
-// A Scope represents a level of indentation.
-// Every mixin available inside a scope is also available in its child scopes.
-type Scope []ScopeItem
-
-// ScopeItem represents an item in a scope.
-type ScopeItem interface {
-	_typeScopeItem()
-	Poser
-}
 
 // Position indicates the position where a token was encountered.
 type Position struct {

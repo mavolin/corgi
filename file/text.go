@@ -1,19 +1,6 @@
 package file
 
 // ============================================================================
-// Inline Text
-// ======================================================================================
-
-type InlineText struct {
-	Text TextLine
-	Position
-}
-
-var _ ScopeItem = InlineText{}
-
-func (InlineText) _typeScopeItem() {}
-
-// ============================================================================
 // ArrowBlock
 // ======================================================================================
 
@@ -24,18 +11,39 @@ type ArrowBlock struct {
 
 var _ ScopeItem = ArrowBlock{}
 
-func (ArrowBlock) _typeScopeItem() {}
+func (ArrowBlock) _scopeItem() {}
+
+// ============================================================================
+// BracketText
+// ======================================================================================
+
+type BracketText struct {
+	LBracket Position
+	Lines    []TextLine
+	RBracket Position
+}
+
+var _ Body = BracketText{}
+
+func (t BracketText) Pos() Position {
+	return t.LBracket
+}
+
+func (BracketText) _body() {}
 
 // ============================================================================
 // TextItem
 // ======================================================================================
 
-type TextItem interface {
-	_typeTextItem()
-	Poser
-}
+type (
+	TextLine []TextItem
 
-type TextLine []TextItem
+	// TextItem is either [Text] or [Interpolation].
+	TextItem interface {
+		_textItem()
+		Poser
+	}
+)
 
 func (l TextLine) Pos() Position {
 	if len(l) == 0 {
@@ -56,105 +64,80 @@ type Text struct {
 	Position
 }
 
-var _ TextItem = Text{}
-
-func (Text) _typeTextItem() {}
+func (Text) _textItem() {}
 
 // ============================================================================
 // Interpolation
 // ======================================================================================
 
 type Interpolation interface {
-	_typeInterpolation()
-	_typeTextItem()
+	_interpolation()
+	_textItem()
 	Poser
 }
 
-// ================================ SimpleInterpolation =================================
+// ============================== ExpressionInterpolation ===============================
 
-type SimpleInterpolation struct {
+type ExpressionInterpolation struct {
+	LBrace Position
+	// a sprintf placeholder, excluding the leading %
+	FormatDirective string
+	Expression      Expression
+	RBrace          Position
+
+	Position
+}
+
+var _ TextItem = ExpressionInterpolation{}
+var _ Interpolation = ExpressionInterpolation{}
+
+func (ExpressionInterpolation) _textItem()      {}
+func (ExpressionInterpolation) _interpolation() {}
+
+// ================================ TextInterpolation =================================
+
+type TextInterpolation struct {
 	NoEscape bool
 	Value    InterpolationValue
 
 	Position
 }
 
-var (
-	_ TextItem      = SimpleInterpolation{}
-	_ Interpolation = SimpleInterpolation{}
-)
-
-func (SimpleInterpolation) _typeInterpolation() {}
-func (SimpleInterpolation) _typeTextItem()      {}
+func (TextInterpolation) _interpolation() {}
+func (TextInterpolation) _textItem()      {}
 
 // ================================ ElementInterpolation ================================
 
 type ElementInterpolation struct {
-	Element Element
+	Element Element            // has no body
 	Value   InterpolationValue // nil for void elems
 
 	Position
 }
 
-var (
-	_ TextItem      = ElementInterpolation{}
-	_ Interpolation = ElementInterpolation{}
-)
+func (ElementInterpolation) _textItem()      {}
+func (ElementInterpolation) _interpolation() {}
 
-func (ElementInterpolation) _typeTextItem()      {}
-func (ElementInterpolation) _typeInterpolation() {}
+// ================================= ComponentCallInterpolation =================================
 
-// ================================= MixinCallInterpolation =================================
-
-type MixinCallInterpolation struct {
-	MixinCall MixinCall
-	Value     InterpolationValue // may be nil
+type ComponentCallInterpolation struct {
+	ComponentCall ComponentCall
+	Value         InterpolationValue // may be nil
 
 	Position
 }
 
-var (
-	_ TextItem      = MixinCallInterpolation{}
-	_ Interpolation = MixinCallInterpolation{}
-)
-
-func (MixinCallInterpolation) _typeTextItem()      {}
-func (MixinCallInterpolation) _typeInterpolation() {}
+func (ComponentCallInterpolation) _textItem()      {}
+func (ComponentCallInterpolation) _interpolation() {}
 
 // ============================================================================
 // InterpolationValue
 // ======================================================================================
 
-type InterpolationValue interface {
-	_typeInterpolationValue()
-	Poser
-}
-
-// =============================== TextInterpolationValue ===============================
-
-type TextInterpolationValue struct {
+type InterpolationValue struct {
 	LBracketPos Position
-	Text        string
+	Text        TextLine
 	RBracketPos Position
 }
 
-var _ InterpolationValue = TextInterpolationValue{}
-
-func (TextInterpolationValue) _typeInterpolationValue() {}
-
-func (interp TextInterpolationValue) Pos() Position { return interp.LBracketPos }
-
-// ============================ ExpressionInterpolationValue ============================
-
-type ExpressionInterpolationValue struct {
-	LBracePos       Position
-	FormatDirective string // a Sprintf formatting placeholder, w/o preceding '%'
-	Expression      Expression
-	RBracePos       Position
-}
-
-var _ InterpolationValue = ExpressionInterpolationValue{}
-
-func (ExpressionInterpolationValue) _typeInterpolationValue() {}
-
-func (interp ExpressionInterpolationValue) Pos() Position { return interp.LBracePos }
+func (v InterpolationValue) Pos() Position { return v.LBracketPos }

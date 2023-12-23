@@ -1,13 +1,12 @@
 package file
 
 // ============================================================================
-// Extend
+// PackageDirective
 // ======================================================================================
 
-type Extend struct {
-	// Path to the file.
-	Path String
-	File *File
+type PackageDirective struct {
+	// Name is the name of the package.
+	Name GoIdent
 
 	Position
 }
@@ -18,12 +17,16 @@ type Extend struct {
 
 // Import represents a single import.
 type Import struct {
-	Imports []ImportSpec
+	LParen  *Position // nil if this is a single-line import
+	Imports []ImportScopeItem
+	RParen  *Position // nil if this is a single-line import
 
-	// Position is the position of the import keyword.
-	// Hence, multiple imports may share the same position, if they are
-	// grouped in a block.
 	Position
+}
+
+// ImportScopeItem is either an [ImportSpec], a [CorgiComment], or a [BadItem].
+type ImportScopeItem interface {
+	_importScopeItem()
 }
 
 type ImportSpec struct {
@@ -34,59 +37,29 @@ type ImportSpec struct {
 	Position
 }
 
+func (ImportSpec) _importScopeItem() {}
+
 // ============================================================================
-// Use
+// State
 // ======================================================================================
 
-type Use struct {
-	Uses []UseSpec
+// State represents a state variable declaration.
 
-	// Position is the position of the use keyword.
-	// Hence, multiple uses may share the same position, if they are
-	// grouped in a block.
+type State struct {
+	LParen *Position // nil if this is a single-line state
+	Vars   []StateVar
+	RParen *Position // nil if this is a single-line state
+
 	Position
 }
 
-type UseSpec struct {
-	// Alias is the alias of the used files, if any.
-	Alias *Ident
-	// Path is the path to the directory or file.
-	Path String
+func (State) _scopeItem() {}
 
-	Position
-
-	// Library is the used library.
-	//
-	// It is filled by the linker.
-	Library *Library
-}
-
-// ============================================================================
-// Func
-// ======================================================================================
-
-// Func is the function header for the generated function.
-type Func struct {
-	// Name is the name of the function.
+type StateVar struct {
+	// Name is the name of the state variable.
 	Name GoIdent
+	Type GoType
 
-	LParenPos Position
-	Params    []FuncParam
-	RParenPos Position
-
-	Position
-}
-
-type FuncParam struct {
-	Names    []GoIdent
-	Variadic bool
-	Type     GoType
-}
-
-func (p FuncParam) Pos() Position {
-	if len(p.Names) == 0 {
-		return InvalidPosition
-	}
-
-	return p.Names[0].Pos()
+	Assign *Position  // nil if this has no default value
+	Value  Expression // GoExpression or StringExpression
 }

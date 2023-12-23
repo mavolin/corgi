@@ -22,23 +22,21 @@ type Ident struct {
 }
 
 // ============================================================================
-// CorgiComment
+// GoIdent
 // ======================================================================================
 
-// CorgiComment represents a corgi comment, i.e. a comment that is not printed.
-type CorgiComment struct {
-	// Lines are the lines of the comment.
-	//
-	// Empty lines may be excluded.
-	Lines []CorgiCommentLine
+// GoIdent represents a Go identifier.
+type GoIdent struct {
+	Ident string
 	Position
 }
 
-type CorgiCommentLine struct {
-	Comment string
+// ============================================================================
+// GoType
+// ======================================================================================
+
+// GoType represents the name or definition of a Go type.
+type GoType struct {
+	Type string
 	Position
 }
-
-var _ ScopeItem = CorgiComment{}
-
-func (CorgiComment) _typeScopeItem() {}
