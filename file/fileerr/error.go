@@ -45,8 +45,8 @@ type Annotation struct {
 	//
 	// Usually that is the line on which the error occurred, however, the
 	// context may be larger if there is more relevant information to show.
-	// For example a mixin argument error may choose to include the point when
-	// the mixin was called.
+	// For example a component argument error may choose to include the point when
+	// the component was called.
 	//
 	// ContextStart is inclusive and ContextEnd is exclusive.
 	ContextStart, ContextEnd int
