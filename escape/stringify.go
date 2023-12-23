@@ -1,45 +1,9 @@
-package woof
-
-/*
-This file contains excerpts from the Go standard library package html/template,
-licensed under the below license:
-
-Copyright (c) 2009 The Go Authors. All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are
-met:
-
-   * Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-   * Redistributions in binary form must reproduce the above
-copyright notice, this list of conditions and the following disclaimer
-in the documentation and/or other materials provided with the
-distribution.
-   * Neither the name of Google Inc. nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
+package escape
 
 import (
-	"encoding/json"
 	"fmt"
 	"reflect"
 	"strconv"
-	"strings"
-	"unicode/utf8"
 )
 
 var stringerType = reflect.TypeOf((*fmt.Stringer)(nil)).Elem()
@@ -55,6 +19,8 @@ var stringerType = reflect.TypeOf((*fmt.Stringer)(nil)).Elem()
 //
 // If Stringify can't print a value, i.e. val is of an unsupported type,
 // Stringify returns a pointer to an [UnprintableValueError].
+//
+// Stringify does not escape the passed-in value in any way.
 func Stringify(val any) (string, error) {
 	return stringify(val, nil)
 }
@@ -188,67 +154,5 @@ type UnprintableValueError struct {
 }
 
 func (err *UnprintableValueError) Error() string {
-	return fmt.Sprintf("woof.Stringify: type %T is not printable, consider using a format verb if you really want to print %[1]T", err.Val)
-}
-
-// JSify converts the passed value to a JavaScript value.
-//
-// It is safe to embed into HTML without further escaping.
-func JSify(val any) (JS, error) {
-	switch t := val.(type) {
-	case JS:
-		return t, nil
-	case JSStr:
-		return `"` + JS(t) + `"`, nil
-	case json.Marshaler:
-		// Do not treat as a Stringer.
-	case fmt.Stringer:
-		val = t.String()
-	}
-
-	jsonVal, err := json.Marshal(val)
-	if err != nil {
-		return "", err
-	}
-
-	if len(jsonVal) == 0 {
-		// In, `x=y/{{.}}*z` a json.Marshaler that produces "" should
-		// not cause the output `x=y/*z`.
-		return " null ", nil
-	}
-	first, _ := utf8.DecodeRune(jsonVal)
-	last, _ := utf8.DecodeLastRune(jsonVal)
-	var buf strings.Builder
-	// Prevent IdentifierNames and NumericLiterals from running into
-	// keywords: in, instanceof, typeof, void
-	pad := isJSIdentPart(first) || isJSIdentPart(last)
-	if pad {
-		buf.WriteByte(' ')
-	}
-	written := 0
-	// Make sure that json.Marshal escapes codepoints U+2028 & U+2029
-	// so it falls within the subset of JSON which is valid JS.
-	for i := 0; i < len(jsonVal); {
-		r, n := utf8.DecodeRune(jsonVal[i:])
-		repl := ""
-		if r == 0x2028 {
-			repl = `\u2028`
-		} else if r == 0x2029 {
-			repl = `\u2029`
-		}
-		if repl != "" {
-			buf.Write(jsonVal[written:i])
-			buf.WriteString(repl)
-			written = i + n
-		}
-		i += n
-	}
-	if buf.Len() != 0 {
-		buf.Write(jsonVal[written:])
-		if pad {
-			buf.WriteByte(' ')
-		}
-		return JS(buf.String()), nil
-	}
-	return JS(jsonVal), nil
+	return fmt.Sprintf("template: %T is not printable or, if this is a safe.Fragment, not trusted in the current context", err.Val)
 }

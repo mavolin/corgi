@@ -1,8 +1,11 @@
-package woof
+package template
 
 import (
 	"bytes"
 	"io"
+
+	"github.com/mavolin/corgi/escape"
+	"github.com/mavolin/corgi/escape/safe"
 )
 
 type Context struct {
@@ -11,7 +14,6 @@ type Context struct {
 	nonce    string
 	classBuf bytes.Buffer
 	closed   bool
-	inAttr   bool
 }
 
 func NewContext(w io.Writer) *Context {
@@ -19,11 +21,11 @@ func NewContext(w io.Writer) *Context {
 }
 
 func (ctx *Context) SetScriptNonce(nonce any) {
-	s, err := Stringify(nonce)
+	s, err := escape.PlainAttr(nonce)
 	if err != nil {
 		ctx.Panic(err)
 	}
-	ctx.nonce = htmlAttrValEscaper.Replace(s)
+	ctx.nonce = s.Escaped()
 }
 
 func (ctx *Context) InjectNonce() {
@@ -60,64 +62,66 @@ func (ctx *Context) WriteBytes(data []byte) {
 }
 
 func (ctx *Context) BufferClass(class any) {
-	classStr, err := EscapeHTMLAttrVal(class)
+	safeClass, err := escape.PlainAttr(class)
 	if err != nil {
 		ctx.Panic(err)
 	}
 
-	ctx.BufferClassAttr(classStr)
+	ctx.BufferClassAttr(safeClass)
 }
 
-func (ctx *Context) BufferClassAttr(class HTMLAttrVal) {
+// BufferClassAttr buffers the passed class(es), to be written to the class
+// attribute when the start tag is closed.
+//
+// If this is the first call to BufferClassAttr after the start tag has been
+// opened, BufferClassAttr implicitly calls [Context.Unclosed].
+func (ctx *Context) BufferClassAttr(class safe.PlainAttr) {
+	esc := class.Escaped()
+
 	if ctx.classBuf.Len() > 0 {
-		ctx.classBuf.WriteString(string(" " + class))
+		ctx.classBuf.Grow(len(esc) + 1)
+		ctx.classBuf.WriteByte(' ')
+		ctx.classBuf.WriteString(esc)
 		return
 	}
 
-	ctx.classBuf.WriteString(string(class))
-}
-
-// StartAttribute is a helper signalling that a mixin is about to be called that
-// is being used as an attribute value.
-//
-// It causes calls to [Context.Unclosed], [Context.Closed], and
-// [Context.CloseStartTag] made by the mixin to be ignored.
-func (ctx *Context) StartAttribute() {
-	ctx.inAttr = true
-}
-
-// EndAttribute reverts the effects of [Context.StartAttribute].
-func (ctx *Context) EndAttribute() {
-	ctx.inAttr = false
+	ctx.classBuf.WriteString(esc)
+	ctx.closed = false
 }
 
 // Unclosed signals that an element tag has been opened but not yet closed.
+//
+// Unclosed only needs to be called, if a call to CloseStartTag is expected.
 func (ctx *Context) Unclosed() {
-	if !ctx.inAttr {
-		ctx.closed = false
-	}
+	ctx.closed = false
 }
 
 // Closed signals that an element tag has been closed.
+//
+// Closed only needs to be called, if a call to CloseStartTag is expected.
 func (ctx *Context) Closed() {
-	if !ctx.inAttr {
-		ctx.closed = true
-	}
+	ctx.closed = true
 }
 
 // CloseStartTag writes the buffered classes, if any, plus, optionally, the
 // passed pre-escaped extra classes and closes the start tag.
 //
 // If the tag has already been closed, CloseStartTag is a no-op.
-func (ctx *Context) CloseStartTag(extraClasses HTMLAttrVal, void bool) {
-	if ctx.closed || ctx.inAttr {
+//
+// CloseStartTag needn't always be called to close a tag.
+// If the tag is known to not have any buffered classes and the close state is
+// definite, callers may choose to directly write the closing tag.
+func (ctx *Context) CloseStartTag(extraClasses safe.PlainAttr, void bool) {
+	if ctx.closed {
 		return
 	}
 	ctx.closed = true
 
+	extraClassesStr := extraClasses.Escaped()
+
 	if ctx.classBuf.Len() > 0 {
-		if len(extraClasses) > 0 {
-			ctx.Write(` class="` + string(extraClasses) + ` `)
+		if len(extraClassesStr) > 0 {
+			ctx.Write(` class="` + extraClassesStr + ` `)
 			ctx.WriteBytes(ctx.classBuf.Bytes())
 		} else {
 			ctx.Write(` class="`)
@@ -133,12 +137,12 @@ func (ctx *Context) CloseStartTag(extraClasses HTMLAttrVal, void bool) {
 		return
 	}
 
-	if len(extraClasses) > 0 {
+	if len(extraClassesStr) > 0 {
 		if void {
-			ctx.Write(` class="` + string(extraClasses) + `"/>`)
+			ctx.Write(` class="` + extraClassesStr + `"/>`)
 			return
 		}
-		ctx.Write(` class="` + string(extraClasses) + `">`)
+		ctx.Write(` class="` + extraClassesStr + `">`)
 		return
 	}
 
@@ -149,17 +153,17 @@ func (ctx *Context) CloseStartTag(extraClasses HTMLAttrVal, void bool) {
 	ctx.Write(">")
 }
 
-func WriteAny[T ~string](ctx *Context, escaper func(val any) (T, error), val any) {
+func WriteAny[T safe.BodyFragment](ctx *Context, escaper escape.Func[T], val any) {
 	if escaper != nil {
 		s, err := escaper(val)
 		if err != nil {
 			ctx.Panic(err)
 		}
-		ctx.Write(string(s))
+		ctx.Write(s.Escaped())
 		return
 	}
 
-	s, err := Stringify(val)
+	s, err := escape.Stringify(val)
 	if err != nil {
 		ctx.Panic(err)
 	}
@@ -167,12 +171,12 @@ func WriteAny[T ~string](ctx *Context, escaper func(val any) (T, error), val any
 	ctx.Write(s)
 }
 
-func WriteAnys[T ~string](ctx *Context, escaper func(vals ...any) (T, error), vals ...any) {
+func WriteAnys[T safe.BodyFragment](ctx *Context, escaper escape.ContextFunc[T], vals ...any) {
 	s, err := escaper(vals...)
 	if err != nil {
 		ctx.Panic(err)
 	}
-	ctx.Write(string(s))
+	ctx.Write(s.Escaped())
 }
 
 // WriteAttr is a utility for writing attributes, that correctly handles bool
@@ -184,7 +188,7 @@ func WriteAnys[T ~string](ctx *Context, escaper func(vals ...any) (T, error), va
 //
 // In any other case, WriteAttr writes a space, followed by the name, '="', and
 // then the escaped attributes.
-func WriteAttr[T ~string](ctx *Context, name string, val any, escaper func(val any) (T, error)) {
+func WriteAttr[T safe.AttrFragment](ctx *Context, name string, val any, escaper escape.Func[T]) {
 	if b, ok := val.(bool); ok {
 		if !b {
 			return
@@ -200,11 +204,11 @@ func WriteAttr[T ~string](ctx *Context, name string, val any, escaper func(val a
 			ctx.Panic(err)
 		}
 
-		ctx.Write(` ` + name + `="` + string(s) + `"`)
+		ctx.Write(` ` + name + `="` + s.Escaped() + `"`)
 		return
 	}
 
-	s, err := Stringify(val)
+	s, err := escape.Stringify(val)
 	if err != nil {
 		ctx.Panic(err)
 	}
@@ -212,7 +216,7 @@ func WriteAttr[T ~string](ctx *Context, name string, val any, escaper func(val a
 	ctx.Write(` ` + name + `="` + s + `"`)
 }
 
-func Must[T ~string](ctx *Context, f func(val any) (T, error), val any) T {
+func Must[T safe.Fragment](ctx *Context, f escape.Func[T], val any) T {
 	t, err := f(val)
 	if err != nil {
 		ctx.Panic(err)
@@ -221,7 +225,7 @@ func Must[T ~string](ctx *Context, f func(val any) (T, error), val any) T {
 	return t
 }
 
-func MustContext[T ~string](ctx *Context, f func(vals ...any) (T, error), vals ...any) T {
+func MustContext[T safe.Fragment](ctx *Context, f escape.ContextFunc[T], vals ...any) T {
 	t, err := f(vals...)
 	if err != nil {
 		ctx.Panic(err)

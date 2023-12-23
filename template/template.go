@@ -1,39 +1,26 @@
-// Package woof provides serialization of Go values to be used in HTML
-// documents.
+// Package template provides utilities used by the generated code from corgi
+// compiler.
 //
-// As such, it also provides escaping and filter mechanisms closely related to
-// the filters and escapers of Go's stdlib package html/template.
-//
-// # Terminology
-//
-// A FILTER is a function that is given untrusted data for a specific content
-// type.
-//
-// If the function deems the data safe, it returns it as is.
-//
-// If the data is deemed unsafe, the filter will replace the data or some of
-// its parts with a safe replacement or delete unsafe parts, CHANGING OR FULLY
-// REPLACING THE DATA to ensure safety.
-//
-// An ESCAPER is a function that is given untrusted data for a specific content
-// type and replaces unsafe parts with escape sequences, so that the data can
-// be used in its content domain without unintended side effects.
-package woof
+// Normally, there is no reason for a human to use any of the types in this
+// package.
+// This is especially true for the [Context] type, which should only be called
+// by generated code, as otherwise corgi's security guarantees might be
+// undermined.
+package template
 
 import (
 	"reflect"
 	"sort"
 )
 
-func Ptr[T any](t T) *T {
-	return &t
+type OptionalArg[T any] struct {
+	Val T
+	Set bool
 }
 
-func ResolveDefault[T any](val *T, defaultVal T) T {
-	if val != nil {
-		return *val
-	}
-	return defaultVal
+// SetArg returns an OptionalArg with the given value set.
+func SetArg[T any](t T) OptionalArg[T] {
+	return OptionalArg[T]{t, true}
 }
 
 func Ternary[T any](cond bool, ifTrue, ifFalse T) T {
