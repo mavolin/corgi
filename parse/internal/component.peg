@@ -1,0 +1,226 @@
+// ============================================================================
+// Component
+// ======================================================================================
+
+Component <- "comp" nameI:componentName _* paramsI:componentParamList bodyI:Body {
+    params := optCast[file.Component](paramsI)
+    return file.Component{
+        Name:     nameI.(file.Ident),
+        LParen:   params.LParen,
+        Params:   params.Params,
+        RParen:   params.RParen,
+        Body:     optCast[file.Body](bodyI),
+        Position: pos(c),
+    }, nil
+}
+
+componentName <- _+ identI:Ident {
+    return identI, nil
+} / _+ startI:POS identI:(!(_* [(};]) [^\r\n(])+ &'(' {
+    return invalidIdent(c, "component", startI.(file.Position), concat(identI))
+} / POS {
+    return missingIdent(c, "component", "`comp foo()`", 1)
+}
+
+componentParamList <- listStart paramsI:componentParams? rParenI:componentParamListEnd {
+    return file.Component{
+        LParen: pos(c),
+        Params: optCast[[]file.ComponentParam](paramsI),
+        RParen: rParenI.(file.Position),
+    }, nil
+} / POS {
+    return file.Component{}, &fileerr.Error{
+        Message: "component: missing parameters",
+        ErrorAnnotation: anno(c, annotation{
+            Start: pos(c),
+            Annotation: "expected a parameter list",
+        }),
+        Example: "`comp foo(bar string, baz: 123)`",
+    }
+}
+
+componentParamListEnd <- listEnd / POS {
+    return unclosedList(c, "component parameters")
+}
+
+componentParams <- firstI:componentParam restI:(_* ',' WS* componentParam)* {
+    return collectList[file.ComponentParam](firstI, restI, -1), nil
+}
+
+componentParam <- nameI:componentParamName posI:POS typeI:componentParamType? defaultI:componentParamDefault? {
+    paramDefault := optCast[file.ComponentParam](defaultI)
+
+    p := file.ComponentParam{
+        Name:     nameI.(file.Ident),
+        Type:     optCastPtr[file.Type](typeI),
+        Colon:    paramDefault.Colon,
+        Default:  paramDefault.Default,
+        Position: pos(c),
+    }
+    if p.Type == nil && p.Default == nil {
+        return p, &fileerr.Error{
+            Message: "component parameter: need either a type or a default",
+            ErrorAnnotation: anno(c, annotation{
+                Start:       posI.(file.Position),
+                StartOffset: 1,
+                Annotation: "expected either a type or a default",
+            }),
+            Suggestions: []fileerr.Suggestion{
+                {Suggestion: "give this parameter a type", Code: "`"+ p.Name.Ident + " string`"},
+                {Suggestion: "give this parameter a default with an inferrable type", Code: "`"+ p.Name.Ident + ": \"woof\"`"},
+            },
+        }
+    }
+
+    return p, nil
+}
+
+componentParamName <- Ident / [^\r\n :,)]+ &[:,)] {
+    return invalidIdent(c, "component parameter", pos(c), string(c.text))
+}
+
+componentParamType <- _+ tI:Type {
+    return tI, nil
+}
+
+componentParamDefault <- _* ':' _* exprI:componentParamDefaultValue {
+    return file.ComponentParam{
+        Colon:   ptr(pos(c)),
+        Default: exprI.(*file.GoCode),
+    }, nil
+}
+
+componentParamDefaultValue <- exprI:GoExpression {
+    return ptr(exprI.(file.GoCode)), nil
+} / POS {
+    return (*file.GoCode)(nil), &fileerr.Error{
+        Message: "component param: missing default",
+        ErrorAnnotation: anno(c, annotation{
+            Start: pos(c),
+            Annotation: "here",
+        }),
+        HintAnnotations: []fileerr.Annotation{
+            anno(c, annotation{
+                Start: pos(c),
+                Annotation: "expected a default because of this `:`",
+            }),
+        },
+        Suggestions: []fileerr.Suggestion{
+            {Suggestion: "remove the `:`, if you didn't mean to define a default"},
+        },
+    }
+}
+
+// ============================================================================
+// Component Call
+// ======================================================================================
+
+ComponentCall <- '+' headerI:ComponentCallHeader bodyI:componentCallBody {
+    cc := headerI.(file.ComponentCall)
+    cc.Body = optCast[file.Body](bodyI)
+    cc.Position = pos(c)
+    return cc, nil
+}
+
+ComponentCallHeader <- namespaceI:Namespace? nameI:componentCallName argsI:componentArgList {
+    cc := argsI.(file.ComponentCall)
+    cc.Namespace = optCastPtr[file.Ident](namespaceI)
+    cc.Name = nameI.(file.Ident)
+    return cc, nil
+}
+
+componentCallName <- Ident / identI:(!(_* [(};]) [^\r\n(])+ &'(' {
+    return invalidIdent(c, "component call", pos(c), concat(identI))
+} / POS {
+    return missingIdent(c, "component call", "`+foo()`", 1)
+}
+
+componentArgList <- listStart argsI:componentArgs? rParenI:componentArgListEnd {
+    return file.ComponentCall{
+        LParen: pos(c),
+        Args:   optCast[[]file.ComponentArg](argsI),
+        RParen: rParenI.(file.Position),
+    }, nil
+} / POS {
+    return file.ComponentCall{}, &fileerr.Error{
+        Message: "component call: missing arguments",
+        ErrorAnnotation: anno(c, annotation{
+            Start: pos(c),
+            Annotation: "expected an argument list",
+        }),
+        Example: "`+foo(bar: \"foo\", baz: 123)`",
+    }
+}
+
+componentArgListEnd <- listEnd / POS {
+    return unclosedList(c, "component arguments")
+}
+
+componentArgs <- firstI:componentArg restI:(_* ',' WS* componentArg)* {
+    return collectList[file.ComponentArg](firstI, restI, -1), nil
+}
+
+componentArg <- nameI:componentArgName _* valI:componentArgValue {
+    return file.ComponentArg{
+        Name: nameI.(file.Ident),
+        Value: optCast[file.Expression](valI),
+    }, nil
+}
+
+componentArgName <- Ident / [^\r\n :,)]+ &[:,)] {
+    return invalidIdent(c, "component argument", pos(c), string(c.text))
+}
+
+componentArgValue <- ':' WS* exprI:Expression {
+    return exprI, nil
+} / ':'? _* posI:POS {
+    return nil, &fileerr.Error{
+        Message: "missing component argument value",
+        ErrorAnnotation: anno(c, annotation{
+            Start:      posI.(file.Position),
+            Annotation: "expected a value",
+        }),
+        Example: "`argName: 123`",
+        Suggestions: []fileerr.Suggestion{
+            {Suggestion: "remember to always write the name of the argument before it's value"},
+        },
+    }
+}
+
+componentCallBody <- UnderscoreBlockShorthand / Scope / POS { return nil, nil }
+
+// ============================================================================
+// Component Underscore Block Shorthand
+// ======================================================================================
+
+UnderscoreBlockShorthand <- '_' bodyI:Body {
+    return file.UnderscoreBlockShorthand{
+        Body:     optCast[file.Body](bodyI),
+        Position: pos(c),
+    }, nil
+}
+
+// ============================================================================
+// Block
+// ======================================================================================
+
+Block <- blockI:blockDirective bodyI:Body {
+    block := blockI.(file.Block)
+    block.Body = bodyI.(file.Scope)
+    return block, nil
+}
+
+blockDirective <- "block" nameI:blockName {
+    return file.Block{
+        Name:     nameI.(file.Ident),
+        Position: pos(c),
+    }, nil
+}
+
+blockName <- _+ identI:Ident{
+    return identI, nil
+} / _+ startI:POS identI:(!(_* [[{};]) [^\r\n[{};])+ &[[{};] {
+    return invalidIdent(c, "block", startI.(file.Position), concat(identI))
+} / POS {
+    return missingIdent(c, "block", "`block bark [ woof ]`", 1)
+}

@@ -1,0 +1,80 @@
+// ============================================================================
+// Special Tokens
+// ======================================================================================
+
+EOF "end of file"  <- !.
+EOL "end of line"  <- _* ('\r'? '\n' / EOF) {
+    return pos(c), nil
+}
+EMPTY_LINE "empty line" <- _* VERT_WS
+
+EOC "end of command"  <- (EOL / ';' / &(_* '}')) {
+    return pos(c), nil
+}
+
+// UNEXPECTED consumes all tokens, but at least one, until EOC would match.
+UNEXPECTED "unexpected tokens" <- _* unexpectedI:(!EOC ([^\r\n;{}]+ / '{' [^}]* '}'))+ {
+    return concat(unexpectedI), nil
+}
+
+// cannot be used as element names
+RESERVED <- ("if" / "else" / "switch" / "case" / "default" / "for" / "return" / "break" / "continue" / "fallthrough")
+
+POS <- (&. / !.) {
+    return pos(c), nil
+}
+
+// ============================================================================
+// Whitespace
+// ======================================================================================
+
+_        "horizontal whitespace" <- HORIZ_WS
+HORIZ_WS "horizontal whitespace" <- [ \t]
+VERT_WS  "vertical whitespace"   <- '\r'? '\n'
+
+WS "whitespace" <- HORIZ_WS / &{ return !state(c).Inline, nil } VERT_WS
+
+// ============================================================================
+// Parens, Braces, Brackets
+// ======================================================================================
+
+L_PAREN <- '(' { return pos(c), nil }
+R_PAREN <- ')' { return pos(c), nil }
+
+L_BRACE <- '{' { return pos(c), nil }
+R_BRACE <- '}' { return pos(c), nil }
+
+L_BRACKET <- '[' { return pos(c), nil }
+R_BRACKET <- ']' { return pos(c), nil }
+
+// ============================================================================
+// Indentation 2 (Used for Code and Arrow Blocks)
+// ======================================================================================
+
+INDENTATION_REF <- POS #{
+    editState(c, func(s *State) {
+        s.Indentation.Target = c.pos.col-1 // col is 1-indexed
+    })
+    return nil
+}
+
+// To make this as simple as possible, we're using a few tricks, that hopefully no one
+// will ever become aware of:
+//
+// Instead of checking which chars are used for indentation, we just check that we have
+// the same quantity of horizontal whitespace as the reference line, plus two spaces.
+INDENTATION2 <- &{
+    return state(c).Indentation.Current < state(c).Indentation.Target, nil
+} _ #{
+    editState(c, func(s *State) {
+        s.Indentation.Current++
+    })
+    return nil
+} INDENTATION2 / &{
+    return state(c).Indentation.Current == state(c).Indentation.Target, nil
+} "  " #{
+    editState(c, func(s *State) {
+        s.Indentation.Current = 0
+    })
+    return nil
+}

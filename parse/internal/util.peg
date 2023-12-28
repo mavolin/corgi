@@ -1,0 +1,88 @@
+// ============================================================================
+// Start
+// ======================================================================================
+// Record a start position on the state's Start stack.
+
+// DO NOT REMOVE POS!!! Without it, the position of *current won't be updated
+// and the wrong position will be pushed onto the stack.
+pushStart <- POS #{
+    pushStart(c)
+    return nil
+}
+
+// Important: Don't call this rule twice or call this rule AND popStart(*current).
+popStart <- #{
+    popStart(c)
+    return nil
+}
+
+// ============================================================================
+// List
+// ======================================================================================
+// Little Helper to avoid the unnecessary repetition of having a `L_PAREN WS*`
+// to start a list, and then the list closure with R_PAREN, with the optional
+// preceding comma and error handling if the closing R_PAREN is missing.
+//
+// To use, use `listStart` instead of `L_PAREN WS*` and then make your own
+// `fooListEnd` rule, which should look like:
+//   fooListEnd <- listEnd / POS {
+//       return unclosedList(c, "foo list")
+//   }
+// Then use your `fooListEnd` rule instead of `_* (',' WS*)? R_PAREN` to end
+// your list.
+
+listStart <- pushStart L_PAREN WS* {
+    return pos(c), nil
+}
+
+listEnd <- _* (',' WS*)? endI:R_PAREN popStart {
+    return endI, nil
+}
+
+indexStart <- pushStart L_BRACKET WS* {
+    return pos(c), nil
+}
+
+indexEnd <- _* (',' WS*)? endI:R_BRACKET popStart {
+    return endI, nil
+}
+
+scopeStart <- pushStart L_BRACE WS* {
+    return pos(c), nil
+}
+
+scopeEnd <- WS* endI:R_BRACE popStart {
+    return endI, nil
+} / POS {
+    return pos(c), &fileerr.Error{
+        Message: "unclosed `{`",
+        ErrorAnnotation: anno(c, annotation{
+            Start:      popStart(c),
+            Annotation: "expected a closing `}` for this `{`",
+        }),
+    }
+}
+
+// ============================================================================
+// Inline
+// ======================================================================================
+// This rule is the best invention since breathing.
+// Basically, when you put `inlineStart` `WS` will only match horizontal
+// whitespace and not vertical whitespace until `inlineEnd` is called.
+// No need for separate rules for everything that can be used inline.
+
+inlineStart <- #{
+    editState(c, func(s *State) {
+        s.Inline = true
+    })
+    return nil
+}
+
+inlineEnd <- #{
+    editState(c, func(s *State) {
+        s.Inline = true
+    })
+    return nil
+}
+
+ensureInline <- &{ return state(c).Inline, nil } ![\r\n] / &{ return !state(c).Inline, nil }

@@ -1,5 +1,7 @@
 package file
 
+import "github.com/mavolin/corgi/escape/attrtype"
+
 // ============================================================================
 // And
 // ======================================================================================
@@ -22,7 +24,9 @@ type AttributeCollection interface {
 	Poser
 }
 
-// ==================================== IDShorthand =====================================
+// ============================================================================
+// ID Shorthand
+// ======================================================================================
 
 type IDShorthand struct {
 	ID string
@@ -31,7 +35,9 @@ type IDShorthand struct {
 
 func (IDShorthand) _attributeCollection() {}
 
-// =================================== ClassShorthand ===================================
+// ============================================================================
+// Class Shorthand
+// ======================================================================================
 
 type ClassShorthand struct {
 	Name string
@@ -42,39 +48,29 @@ var _ AttributeCollection = ClassShorthand{}
 
 func (ClassShorthand) _attributeCollection() {}
 
-// =================================== AttributeList ====================================
-
-type AttributeList struct {
-	LParenPos  Position
-	Attributes []Attribute
-	RParenPos  Position
-}
-
-func (AttributeList) _attributeCollection() {}
-func (l AttributeList) Pos() Position       { return l.LParenPos.Pos() }
-
 // ============================================================================
-// Attribute
+// Attribute List
 // ======================================================================================
 
-type Attribute interface {
-	_attribute()
-	Poser
-}
+type (
+	AttributeList struct {
+		LParen     Position
+		Attributes []Attribute
+		RParen     Position
+	}
 
-// ================================== SimpleAttribute ===================================
+	Attribute interface {
+		_attribute()
+		Poser
+	}
+)
 
-type SimpleAttribute struct {
-	Name   string
-	Assign *Position   // nil for boolean attributes
-	Value  *Expression // nil for boolean attributes
+func (AttributeList) _attributeCollection() {}
+func (l AttributeList) Pos() Position       { return l.LParen.Pos() }
 
-	Position
-}
-
-func (SimpleAttribute) _attribute() {}
-
-// =================================== AndPlaceholder ===================================
+// ============================================================================
+// And Placeholder
+// ======================================================================================
 
 // AndPlaceholder is an attribute 'named' `&` that is used as a placeholder for
 // the attributes attached to a Component call.
@@ -90,17 +86,53 @@ type AndPlaceholder struct {
 
 func (AndPlaceholder) _attribute() {}
 
-// ================================ Component Attribute =================================
+// ============================================================================
+// Simple Attribute
+// ======================================================================================
 
-type ComponentAttribute struct {
-	Name string
+type (
+	SimpleAttribute struct {
+		Name   string
+		Assign *Position // nil for boolean attributes
+		Value  AttributeValue
 
-	AssignPos Position
+		Position
+	}
 
+	// AttributeValue is either an [Expression], a
+	// [ComponentCallAttributeValue], or a [TypedAttributeValue].
+	AttributeValue interface {
+		_attributeValue()
+		Poser
+	}
+)
+
+func (SimpleAttribute) _attribute() {}
+
+// ============================================================================
+// Typed Attribute Value
+// ======================================================================================
+
+type TypedAttributeValue struct {
+	Type   attrtype.Type
+	LParen Position
+	Value  AttributeValue
+	RParen Position
+
+	Position
+}
+
+func (TypedAttributeValue) _attributeValue() {}
+
+// ============================================================================
+// Component Call Attribute Value
+// ======================================================================================
+
+type ComponentCallAttribute struct {
 	ComponentCall ComponentCall
 	Value         InterpolationValue
 
 	Position
 }
 
-func (ComponentAttribute) _attribute() {}
+func (ComponentCallAttribute) _attributeValue() {}

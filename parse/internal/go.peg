@@ -1,20 +1,4 @@
 // ============================================================================
-// GoIdent
-// ======================================================================================
-
-GoIdent <- ident:goIdentifier {
-    return file.GoIdent{Ident: concat(ident), Position: pos(c)}, nil
-}
-
-// ============================================================================
-// GoType
-// ======================================================================================
-
-GoType <- goTypeI:goType {
-    return file.GoType{Type: concat(goTypeI), Position: pos(c)}, nil
-}
-
-// ============================================================================
 // Tokens Taken From the Language Specification
 // ======================================================================================
 
@@ -58,7 +42,7 @@ goBinaryDigits  <- goBinaryDigit ('_'? goBinaryDigit)*
 goOctalDigits   <- goOctalDigit ('_'? goOctalDigit)*
 goHexDigits     <- goHexDigit ('_'? goHexDigit)*
 
-goQualifiedIdent <- goPackageName ' '* '.' ' '* goIdentifier
+goQualifiedIdent <- goPackageName _* '.' _* goIdentifier
 goPackageName    <- goIdentifier
 
 //
@@ -90,15 +74,15 @@ goImaginaryLit <- (goDecimalDigits / goIntLit / goFloatLit) 'i'
 
 goRuneLit <- '\'' (goRuneUnicodeValue / goByteValue / goRecoverRuneEscape) '\'' /
     '\'' valsI:(goRuneUnicodeValue / goByteValue / goRecoverRuneEscape)* '\'' endPosI:POS {
-        valIs := islice(valsI)
-        return c.text, &corgierr.Error{
+        valIs := slice(valsI)
+        return c.text, &fileerr.Error{
             Message: "rune literals may not contain multiple or zero characters",
             ErrorAnnotation: anno(c, annotation{
                 Start: pos(c),
                 End: endPosI.(file.Position),
                 Annotation: "should contain only a single character or escape sequence",
             }),
-            Suggestions: []corgierr.Suggestion{
+            Suggestions: []fileerr.Suggestion{
                 {
                     Suggestion: "use a single character or escape sequence",
                     Example: func() string {
@@ -120,7 +104,7 @@ goByteValue         <- goOctalByteValue / goHexByteValue
 goOctalByteValue    <- '\\' goOctalDigit goOctalDigit goOctalDigit
 goHexByteValue      <- '\\' 'x' goHexDigit goHexDigit /
     '\\' 'x' goHexDigit? goHexDigit? {
-        return c.text, &corgierr.Error{
+        return c.text, &fileerr.Error{
             Message: "invalid hex byte escape",
             ErrorAnnotation: anno(c, annotation{
                 Start: pos(c),
@@ -128,7 +112,7 @@ goHexByteValue      <- '\\' 'x' goHexDigit goHexDigit /
                 Annotation: "expected `\\x`, followed by two hex digits",
             }),
             Example: "`\\x1f`",
-            Suggestions: []corgierr.Suggestion{
+            Suggestions: []fileerr.Suggestion{
                 {
                     Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
                     Code: "`\\\\" + string(c.text[1:]) + "`",
@@ -138,24 +122,24 @@ goHexByteValue      <- '\\' 'x' goHexDigit goHexDigit /
     }
 goLittleUValue <- '\\' 'u' goHexDigit goHexDigit goHexDigit goHexDigit /
     '\\' 'u' goHexDigit? goHexDigit? goHexDigit? goHexDigit? {
-        suggestions := []corgierr.Suggestion{
+        suggestions := []fileerr.Suggestion{
             {
                 Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
                 Code: "`\\\\" + string(c.text[1:]) + "`",
             },
         }
         if len(c.text) >= 4 {
-            suggestions = append(suggestions, corgierr.Suggestion{
+            suggestions = append(suggestions, fileerr.Suggestion{
                 Suggestion: "make this a two digit hex escape",
                 Code: "`\\x" + string(c.text[2:4]) + "`",
             })
         }
-        suggestions = append(suggestions, corgierr.Suggestion{
+        suggestions = append(suggestions, fileerr.Suggestion{
             Suggestion: fmt.Sprint("append the missing ", 6-len(c.text), " hex digit(s)"),
             Example: "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 6-len(c.text)) + "`",
         })
 
-        return c.text, &corgierr.Error{
+        return c.text, &fileerr.Error{
             Message: "invalid little u escape",
             ErrorAnnotation: anno(c, annotation{
                 Start: pos(c),
@@ -168,29 +152,29 @@ goLittleUValue <- '\\' 'u' goHexDigit goHexDigit goHexDigit goHexDigit /
     }
 goBigUValue <- '\\' 'U' goHexDigit goHexDigit goHexDigit goHexDigit goHexDigit goHexDigit goHexDigit goHexDigit /
     '\\' 'U' goHexDigit? goHexDigit? goHexDigit? goHexDigit? goHexDigit? goHexDigit? goHexDigit? goHexDigit? {
-        suggestions := []corgierr.Suggestion{
+        suggestions := []fileerr.Suggestion{
             {
                 Suggestion: "if you didn't mean to write a big U escape, escape the `\\`",
                 Code: "`\\\\" + string(c.text[1:]) + "`",
             },
         }
         if len(c.text) >= 4 {
-            suggestions = append(suggestions, corgierr.Suggestion{
+            suggestions = append(suggestions, fileerr.Suggestion{
                 Suggestion: "make this a two digit hex escape",
                 Code: "`\\x" + string(c.text[2:4]) + "`",
             })
         }
         if len(c.text) >= 6 {
-            suggestions = append(suggestions, corgierr.Suggestion{
+            suggestions = append(suggestions, fileerr.Suggestion{
                 Suggestion: "make this a little u escape",
                 Code: "`\\u" + string(c.text[2:6]) + "`",
             })
         }
-        suggestions = append(suggestions, corgierr.Suggestion{
+        suggestions = append(suggestions, fileerr.Suggestion{
             Suggestion: fmt.Sprint("append the missing ", 10-len(c.text), " hex digit(s)"),
             Example: "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 10-len(c.text)) + "`",
         })
-        return c.text, &corgierr.Error{
+        return c.text, &fileerr.Error{
             Message: "invalid big u escape",
             ErrorAnnotation: anno(c, annotation{
                 Start: pos(c),
@@ -203,14 +187,14 @@ goBigUValue <- '\\' 'U' goHexDigit goHexDigit goHexDigit goHexDigit goHexDigit g
     }
 goRuneEscapedChar   <- '\\' [abfnrtv\\'] // altered from escaped_char to exclude "
 goRecoverRuneEscape <- '\\' goHexDigit goHexDigit goHexDigit goHexDigit goHexDigit goHexDigit goHexDigit goHexDigit {
-    return c.text, &corgierr.Error{
+    return c.text, &fileerr.Error{
         Message: "invalid escape sequence",
         ErrorAnnotation: anno(c, annotation{
             Start: pos(c),
             Len: 2,
             Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
         }),
-        Suggestions: []corgierr.Suggestion{
+        Suggestions: []fileerr.Suggestion{
             {
                 Suggestion: "if you didn't mean to write an escape, escape the `\\`",
                 Code: "`\\\\`",
@@ -227,14 +211,14 @@ goRecoverRuneEscape <- '\\' goHexDigit goHexDigit goHexDigit goHexDigit goHexDig
         },
     }
 } / '\\' goHexDigit goHexDigit goHexDigit goHexDigit {
-    return c.text, &corgierr.Error{
+    return c.text, &fileerr.Error{
         Message: "invalid escape sequence",
         ErrorAnnotation: anno(c, annotation{
             Start: pos(c),
             Len: 2,
             Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
         }),
-        Suggestions: []corgierr.Suggestion{
+        Suggestions: []fileerr.Suggestion{
             {
                 Suggestion: "if you didn't mean to write an escape, escape the `\\`",
                 Code: "`\\\\`",
@@ -248,14 +232,14 @@ goRecoverRuneEscape <- '\\' goHexDigit goHexDigit goHexDigit goHexDigit goHexDig
         },
     }
 } / '\\' goHexDigit goHexDigit {
-    return c.text, &corgierr.Error{
+    return c.text, &fileerr.Error{
         Message: "invalid escape sequence",
         ErrorAnnotation: anno(c, annotation{
             Start: pos(c),
             Len: 2,
             Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
         }),
-        Suggestions: []corgierr.Suggestion{
+        Suggestions: []fileerr.Suggestion{
             {
                 Suggestion: "if you didn't mean to write an escape, escape the `\\`",
                 Code: "`\\\\`",
@@ -265,15 +249,15 @@ goRecoverRuneEscape <- '\\' goHexDigit goHexDigit goHexDigit goHexDigit goHexDig
             },
         },
     }
-} / '\\' NOT_EOL? {
-    return c.text, &corgierr.Error{
+} / '\\' {
+    return c.text, &fileerr.Error{
         Message: "invalid escape sequence",
         ErrorAnnotation: anno(c, annotation{
             Start: pos(c),
             Len: 2,
             Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, an octal escape, `\\u`, or `\\U`",
         }),
-        Suggestions: []corgierr.Suggestion{
+        Suggestions: []fileerr.Suggestion{
             {
                 Suggestion: "if you didn't mean to write an escape, escape the `\\`",
                 Code: "`\\\\`",
@@ -282,14 +266,14 @@ goRecoverRuneEscape <- '\\' goHexDigit goHexDigit goHexDigit goHexDigit goHexDig
     }
 }
 goRecoverInterpretedStringEscape <- '\\' goHexDigit goHexDigit goHexDigit goHexDigit goHexDigit goHexDigit goHexDigit goHexDigit {
-    return c.text, &corgierr.Error{
+    return c.text, &fileerr.Error{
         Message: "invalid escape sequence",
         ErrorAnnotation: anno(c, annotation{
             Start: pos(c),
             Len: 2,
             Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
         }),
-        Suggestions: []corgierr.Suggestion{
+        Suggestions: []fileerr.Suggestion{
             {
                 Suggestion: "if you didn't mean to write an escape, escape the `\\`",
                 Code: "`\\\\`",
@@ -306,14 +290,14 @@ goRecoverInterpretedStringEscape <- '\\' goHexDigit goHexDigit goHexDigit goHexD
         },
     }
 } / '\\' goHexDigit goHexDigit goHexDigit goHexDigit {
-    return c.text, &corgierr.Error{
+    return c.text, &fileerr.Error{
         Message: "invalid escape sequence",
         ErrorAnnotation: anno(c, annotation{
             Start: pos(c),
             Len: 2,
             Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
         }),
-        Suggestions: []corgierr.Suggestion{
+        Suggestions: []fileerr.Suggestion{
             {
                 Suggestion: "if you didn't mean to write an escape, escape the `\\`",
                 Code: "`\\\\`",
@@ -327,14 +311,14 @@ goRecoverInterpretedStringEscape <- '\\' goHexDigit goHexDigit goHexDigit goHexD
         },
     }
 } / '\\' goHexDigit goHexDigit {
-    return c.text, &corgierr.Error{
+    return c.text, &fileerr.Error{
         Message: "invalid escape sequence",
         ErrorAnnotation: anno(c, annotation{
             Start: pos(c),
             Len: 2,
             Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
         }),
-        Suggestions: []corgierr.Suggestion{
+        Suggestions: []fileerr.Suggestion{
             {
                 Suggestion: "if you didn't mean to write an escape, escape the `\\`",
                 Code: "`\\\\`",
@@ -344,15 +328,15 @@ goRecoverInterpretedStringEscape <- '\\' goHexDigit goHexDigit goHexDigit goHexD
             },
         },
     }
-} / '\\' NOT_EOL? {
-    return c.text, &corgierr.Error{
+} / '\\' {
+    return c.text, &fileerr.Error{
         Message: "invalid escape sequence",
         ErrorAnnotation: anno(c, annotation{
             Start: pos(c),
             Len: 2,
             Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, an octal escape, `\\u`, or `\\U`",
         }),
-        Suggestions: []corgierr.Suggestion{
+        Suggestions: []fileerr.Suggestion{
             {
                 Suggestion: "if you didn't mean to write an escape, escape the `\\`",
                 Code: "`\\\\`",
@@ -369,7 +353,7 @@ goStringLit <- goRawStringLit / goInterpretedStringLit
 
 goRawStringLit <- '`' goRawStringUnicodeChar* '`' /
     '`' goRawStringUnicodeChar* EOL {
-        return c.text, &corgierr.Error{
+        return c.text, &fileerr.Error{
             Message: "unclosed string literal",
             ErrorAnnotation: anno(c, annotation{
                 Start: pos(c),
@@ -378,11 +362,11 @@ goRawStringLit <- '`' goRawStringUnicodeChar* '`' /
             }),
         }
 }
-goRawStringUnicodeChar <- [^\n`] // modified version of goUnicodeChar to exclude `
+goRawStringUnicodeChar <- [^`]
 
 goInterpretedStringLit <- '"' (goInterpretedStringUnicodeValue / goByteValue / goRecoverInterpretedStringEscape)* '"' /
     '"' (goInterpretedStringUnicodeValue / goByteValue / goRecoverInterpretedStringEscape)* EOF {
-        return c.text, &corgierr.Error{
+        return c.text, &fileerr.Error{
             Message: "unclosed string literal",
             ErrorAnnotation: anno(c, annotation{
                 Start: pos(c),
@@ -400,62 +384,62 @@ goInterpretedStringEscapedChar  <- '\\' [abfnrtv\\"] // altered from escaped_cha
 // Types
 //
 
-goType     <- (goTypeName (' '* goTypeArgs)?) / goTypeLit / '(' ' '* goType ' '* ')'
+goType     <- (goTypeName (_* goTypeArgs)?) / goTypeLit / '(' _* goType _* ')'
 goTypeName <- goQualifiedIdent / goIdentifier
-goTypeArgs <- '[' ' '* goTypeList ' '* (',' ' '*)? ']'
-goTypeList <- goType ' '* (',' ' '* goType)*
+goTypeArgs <- '[' _* goTypeList _* (',' _*)? ']'
+goTypeList <- goType _* (',' _* goType)*
 goTypeLit  <- (goArrayType / goStructType / goPointerType / goFunctionType / goInterfaceType / goSliceType / goMapType / goChannelType)
 
 //
 // Array types
 //
 
-goArrayType   <- '[' ' '* goArrayLength ' '* ']' ' '* goElementType
-goArrayLength <- [0-9]+ (' '* ("<<" / ">>" / '+' / '-' / '*' / '/') ' '* goArrayLength)? // heavily simplified, because i don't want to put the entire go grammar in here
+goArrayType   <- '[' _* goArrayLength _* ']' _* goElementType
+goArrayLength <- [0-9]+ (_* ("<<" / ">>" / '+' / '-' / '*' / '/') _* goArrayLength)? // heavily simplified, because i don't want to put the entire go grammar in here
 goElementType <- goType
 
 //
 // Slice types
 //
 
-goSliceType <- "[]" ' '* goElementType
+goSliceType <- "[]" _* goElementType
 
 //
 // Struct types
 //
 
-goStructType    <- "struct" ' '* '{' (WS* goFieldDecl* (';' / V_WS))* WS* '}'
-goFieldDecl     <- (goIdentifierList ' '* goType / goEmbeddedField) goTag?
-goEmbeddedField <- '*'? ' '* goTypeName ' '* goTypeArgs?
+goStructType    <- "struct" _* '{' (WS* goFieldDecl* (';' / VERT_WS))* WS* '}'
+goFieldDecl     <- (goIdentifierList _* goType / goEmbeddedField) goTag?
+goEmbeddedField <- '*'? _* goTypeName _* goTypeArgs?
 goTag           <- goStringLit
 
 //
 // Pointer types
 //
 
-goPointerType <- '*' ' '* goBaseType
+goPointerType <- '*' _* goBaseType
 goBaseType    <- goType
 
 //
 // Function types
 //
 
-goFunctionType  <- "func" ' '* goSignature
-goSignature     <- goParameters ' '* goResult?
+goFunctionType  <- "func" _* goSignature
+goSignature     <- goParameters _* goResult?
 goResult        <- goParameters / goType
-goParameters    <- '(' WS* (goParameterList ' '* (',' WS*)?)? ')'
-goParameterList <- goParameterDecl ' '* (',' WS* goParameterDecl)*
-goParameterDecl <- goIdentifierList? ' '* "..."? ' '* goType
+goParameters    <- '(' WS* (goParameterList _* (',' WS*)?)? ')'
+goParameterList <- goParameterDecl _* (',' WS* goParameterDecl)*
+goParameterDecl <- goIdentifierList? _* "..."? _* goType
 
 //
 // Interface types
 //
 
-goInterfaceType  <- "interface" ' '* '{' (WS* goInterfaceElem ' '* (';' / NEW_LNS))* WS* '}'
+goInterfaceType  <- "interface" _* '{' (WS* goInterfaceElem _* (';' / EMPTY_LINE*))* WS* '}'
 goInterfaceElem  <- goMethodElem / goTypeElem
 goMethodElem     <- goMethodName goSignature
 goMethodName     <- goIdentifier
-goTypeElem       <- goTypeTerm (' '* '|' WS* goTypeTerm)*
+goTypeElem       <- goTypeTerm (_* '|' WS* goTypeTerm)*
 goTypeTerm       <- goType / goUnderlyingType
 goUnderlyingType <- '~' goType
 
@@ -463,17 +447,17 @@ goUnderlyingType <- '~' goType
 // Map types
 //
 
-goMapType <- "map" ' '* '[' ' '* goKeyType ' '* ']' ' '* goElementType
+goMapType <- "map" _* '[' _* goKeyType _* ']' _* goElementType
 goKeyType <- goType
 
 //
 // Channel types
 //
 
-goChannelType <- ("<-" ' '*)? "chan" ' '* ("<-" ' '*)? goElementType
+goChannelType <- ("<-" _*)? "chan" _* ("<-" _*)? goElementType
 
 //
 // Constant declarations
 //
 
-goIdentifierList <- goIdentifier ' '* (',' WS* goIdentifier)*
+goIdentifierList <- goIdentifier _* (',' WS* goIdentifier)*

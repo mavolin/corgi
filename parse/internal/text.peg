@@ -1,59 +1,52 @@
 // ============================================================================
-// Inline Text
-// ======================================================================================
-
-InlineText <- ' ' lineI:TextLine {
-    return file.InlineText{
-        Text: lineI.(file.TextLine),
-        Position: pos(c),
-    }, nil
-}
-
-// ============================================================================
 // Arrow Block
 // ======================================================================================
 
-ArrowBlock <- "> " firstLineI:(TextLine / EOL) additionalLinesI:(NEW_LNS? INDENTATION2 TextLine)* {
-    firstLine, firstLineOk := firstLineI.(file.TextLine)
-    additionalLineTuples := islice(additionalLinesI)
+ArrowBlock <- INDENTATION_REF "> " firstI:(ArrowBlockLine / EOL) restI:(EMPTY_LINE* INDENTATION2 ArrowBlockLine)* {
+    first, firstOk := firstI.(file.TextLine)
+    restTuples := slice(restI)
 
-    n := len(additionalLineTuples)
-    if firstLineOk {
+    n := len(restTuples)
+    if firstOk {
         n++
     }
 
     lines := make([]file.TextLine, 0, n)
-    if firstLineOk {
-        lines = append(lines, firstLine)
+    if firstOk {
+        lines = append(lines, first)
     }
-    for _, lt := range additionalLineTuples {
+    for _, lt := range restTuples {
         lines = append(lines, getTuple[file.TextLine](lt, -1))
     }
 
     return file.ArrowBlock{
-        Lines: lines,
+        Lines:    lines,
         Position: pos(c),
     }, nil
 } / ">" EOL {
     return file.ArrowBlock{Position: pos(c)}, nil
 }
 
-InlineArrowBlock <- "> " lineI:TextLine {
-    return file.ArrowBlock{
-        Lines: []file.TextLine{lineI.(file.TextLine)},
-        Position: pos(c),
+// ============================================================================
+// Bracket Text
+// ======================================================================================
+
+BracketText <- L_BRACKET WS* btI:BracketTextLine* WS* rBracketI:R_BRACKET EOC {
+    return file.BracketText{
+        LBracket: pos(c),
+        Lines:    sliceOf[file.TextLine](btI),
+        RBracket: rBracketI.(file.Position),
     }, nil
-} / '>' posI:POS lineI:TextLine {
-    return file.ArrowBlock{
-        Lines: []file.TextLine{lineI.(file.TextLine)},
-        Position: pos(c),
-    }, &corgierr.Error{
-        Message: "missing space",
+} / L_BRACKET btI:BracketTextLine* .* EOF {
+    return file.BracketText{
+        LBracket: pos(c),
+        Lines:    sliceOf[file.TextLine](btI),
+    }, &fileerr.Error{
+        Message: "unclosed bracket text",
         ErrorAnnotation: anno(c, annotation{
-            Start: posI.(file.Position),
-            Annotation: "expected a space here, separating the `>` from the text",
+            Start: pos(c),
+            Annotation: "`[` opened, but never closed",
         }),
-        Example: "`> woof`",
     }
 }
 
@@ -61,23 +54,45 @@ InlineArrowBlock <- "> " lineI:TextLine {
 // TextLine
 // ======================================================================================
 
-TextLine <- itemsI:TextItem+ EOL {
-    return file.TextLine(typedSlice[file.TextItem](itemsI)), nil
+ArrowBlockLine <- itemsI:ArrowBlockTextItem+ EOL {
+    return file.TextLine(sliceOf[file.TextItem](itemsI)), nil
+}
+BracketTextLine <- WS* itemsI:BracketTextTextItem+ EOL? {
+    return file.TextLine(sliceOf[file.TextItem](itemsI)), nil
+}
+InterpolationValueLine <- itemsI:InterpolationValueTextItem* {
+    return file.TextLine(sliceOf[file.TextItem](itemsI)), nil
 }
 
 // ============================================================================
 // TextItem
 // ======================================================================================
 
-TextItem <- Text / Interpolation
+ArrowBlockTextItem         <- ArrowBlockText / Interpolation
+BracketTextTextItem        <- BracketTextText / Interpolation
+InterpolationValueTextItem <- InterpolationValueText / Interpolation
 
 // ============================================================================
 // Text
 // ======================================================================================
 
-Text <- textI:((!EOL [^#])+ / "##")+ {
+ArrowBlockText <- textI:((!EOL [^#])+ / "##")+ {
     return file.Text{
-        Text: concat(textI),
+        Text:     string(c.text),
+        Position: pos(c),
+    }, nil
+}
+
+BracketTextText <- textI:((!(EOL / _* R_BRACKET EOC) [^#\]])+ / "##" / R_BRACKET !EOC)+ {
+    return file.Text{
+        Text:     string(c.text),
+        Position: pos(c),
+    }, nil
+}
+
+InterpolationValueText <- textI:((!EOL [^#\]])+ / "##")+ {
+    return file.Text{
+        Text:     string(c.text),
         Position: pos(c),
     }, nil
 }
@@ -86,42 +101,93 @@ Text <- textI:((!EOL [^#])+ / "##")+ {
 // Interpolation
 // ======================================================================================
 
-Interpolation <- SimpleInterpolation / ElementInterpolation / MixinCallInterpolation / BadInterpolation
+Interpolation <- interpolationStart interpI:(ExpressionInterpolation / ElementInterpolation / ComponentCallInterpolation / BadInterpolation) {
+    return interpI, nil
+}
 
-BadInterpolation <- '#' {
-    return nil, &corgierr.Error{
-        Message: "bad interpolation",
+interpolationStart <- pushStart '#'
+
+interpolationExpressionStart <- pushStart L_BRACE { return pos(c), nil }
+expressionInterpolationEnd <- R_BRACE popStart popStart {
+    return pos(c), nil
+} / POS {
+    braceStart := popStart(c)
+    hashStart := popStart(c)
+    return pos(c), &fileerr.Error{
+        Message: "unclosed interpolation",
         ErrorAnnotation: anno(c, annotation{
-            Start: pos(c),
-            Annotation: "start of interpolation",
+            Start:       braceStart,
+            StartOffset: 1,
+            EOLDelta:    1,
+            Annotation:  "expected a `}` somewhere here",
         }),
-        HintAnnotations: []corgierr.Annotation{
+        HintAnnotations: []fileerr.Annotation{
             anno(c, annotation{
-                Start: pos(c),
-                StartOffset: 1,
-                Annotation: "expected a `#`, `[`, `{`, a mixin call, or an element name here",
+                Start:      hashStart,
+                End:        braceStart,
+                EndOffset:  1,
+                Annotation: "for the interpolation started here",
             }),
         },
-        Suggestions: []corgierr.Suggestion{
-            {Suggestion: "if you didn't mean to start an interpolation, escape the `#`", Code: "`##`"},
+        Suggestions: []fileerr.Suggestion{
+            {Suggestion: "add the missing `}`"},
+            {Suggestion: "if you didn't mean to start an interpolation, escape the `#` by writing `##`"},
+        },
+    }
+}
+
+interpolationTextStart <- pushStart L_BRACKET { return pos(c), nil }
+textInterpolationEnd <- R_BRACKET popStart popStart {
+    return pos(c), nil
+} / POS {
+    bracketStart := popStart(c)
+    hashStart := popStart(c)
+    return pos(c), &fileerr.Error{
+        Message: "unclosed interpolation",
+        ErrorAnnotation: anno(c, annotation{
+            Start:       bracketStart,
+            StartOffset: 1,
+            EOLDelta:    1,
+            Annotation:  "expected a `]` somewhere here",
+        }),
+        HintAnnotations: []fileerr.Annotation{
+            anno(c, annotation{
+                Start:      hashStart,
+                End:        bracketStart,
+                EndOffset:  1,
+                Annotation: "for the interpolation started here",
+            }),
+        },
+        Suggestions: []fileerr.Suggestion{
+            {Suggestion: "add the missing `]`"},
+            {Suggestion: "if you didn't mean to start an interpolation, escape the `#` by writing `##`"},
         },
     }
 }
 
 // ============================================================================
-// SimpleInterpolation
+// Expression Interpolation
 // ======================================================================================
 
-SimpleInterpolation <- '#' noEscapeI:'!'? valueI:textInterpolationValue {
-    return file.SimpleInterpolation{
-        NoEscape: noEscapeI != nil,
-        Value: valueI.(file.InterpolationValue),
-        Position: pos(c),
+ExpressionInterpolation <- fmtDirectiveI:fmtDirective? lBraceI:interpolationExpressionStart inlineStart exprI:Expression inlineEnd rBraceI:expressionInterpolationEnd {
+    return file.ExpressionInterpolation{
+        FormatDirective: optCast[string](fmtDirectiveI),
+        LBrace:          lBraceI.(file.Position),
+        Expression:      optCast[file.Expression](exprI),
+        RBrace:          rBraceI.(file.Position),
+        Position:        peekStart(c, 1),
     }, nil
-} / '#' valueI:(expressionInterpolationValue / fmtExpressionInterpolationValue) {
-    return file.SimpleInterpolation{
-        Value: valueI.(file.InterpolationValue),
-        Position: pos(c),
+}
+
+// ============================================================================
+// Text Interpolation
+// ======================================================================================
+
+TextInterpolation <- noEscape:'!'? valI:InterpolationValue {
+    return file.TextInterpolation{
+        NoEscape: noEscape != nil,
+        Value:    valI.(file.InterpolationValue),
+        Position: peekStart(c, 1),
     }, nil
 }
 
@@ -129,132 +195,80 @@ SimpleInterpolation <- '#' noEscapeI:'!'? valueI:textInterpolationValue {
 // ElementInterpolation
 // ======================================================================================
 
-ElementInterpolation <- '#' elPosI:POS nameI:htmlTagName attrsI:SingleLineAttributeCollection* valueI:elementInterpolationValue {
+ElementInterpolation <- elementInterpolation / voidElementInterpolation
+
+elementInterpolation <- nameI:htmlTagName inlineStart attrsI:AttributeCollection* inlineEnd valI:(InterpolationValue / popStart) {
     return file.ElementInterpolation{
         Element: file.Element{
-            Name: concat(nameI),
-            Attributes: typedSlice[file.AttributeCollection](attrsI),
-            Void: castedOrZero[bool](valueI),
-            Position: elPosI.(file.Position),
+            Name:       concat(nameI),
+            Attributes: sliceOf[file.AttributeCollection](attrsI),
+            Position:   pos(c),
         },
-        Value: castedOrZero[file.InterpolationValue](valueI),
-        Position: pos(c),
+        Value:    optCast[file.InterpolationValue](valI),
+        Position: peekStart(c, 1),
     }, nil
 }
 
-elementInterpolationValue <- textInterpolationValue / expressionInterpolationValue / '/' {
-    return true, nil // hacky, but whatev
-} / &(. / !.) {
-    return nil, &corgierr.Error{
-        Message: "invalid interpolation value",
-        ErrorAnnotation: anno(c, annotation{
-            Start: pos(c),
-            Annotation: "expected either an `{` expression `}`, `[` text `]`, or a `/` void indicator",
-        }),
-    }
+voidElementInterpolation <- nameI:htmlTagName '/' inlineStart attrsI:AttributeCollection* inlineEnd popStart {
+    return file.ElementInterpolation{
+        Element: file.Element{
+            Name:       concat(nameI),
+            Attributes: sliceOf[file.AttributeCollection](attrsI),
+            Void:       true,
+            Position:   pos(c),
+        },
+        Position: peekStart(c, 1),
+    }, nil
 }
 
 // ============================================================================
-// MixinCallInterpolation
+// ComponentCallInterpolation
 // ======================================================================================
 
-MixinCallInterpolation <- '#' mcPosI:POS '+' namespaceI:(Ident '.')? nameI:MustIdent argsI:singleLineMixinArgList? valueI:mixinCallInterpolationValue? {
-    args := castedOrZero[file.MixinCall](argsI)
+ComponentCallInterpolation <- '+' inlineStart callI:ComponentCallHeader inlineEnd valI:(InterpolationValue / popStart) {
+    call := callI.(file.ComponentCall)
+    call.Position = pos(c)
 
-    var namespace *file.Ident
-    if namespaceI != nil {
-        namespace = ptr(getTuple[file.Ident](namespaceI, 0))
-    }
-
-    return file.MixinCallInterpolation{
-        MixinCall: file.MixinCall{
-            Namespace: namespace,
-            Name: nameI.(file.Ident),
-            LParenPos: args.LParenPos,
-            Args: args.Args,
-            RParenPos: args.RParenPos,
-            Position: mcPosI.(file.Position),
-        },
-        Value: castedOrZero[file.InterpolationValue](valueI),
-        Position: pos(c),
+    return file.ComponentCallInterpolation{
+        ComponentCall: call,
+        Value:         optCast[file.InterpolationValue](valI),
+        Position:      pos(c),
     }, nil
 }
-
-mixinCallInterpolationValue <- textInterpolationValue / expressionInterpolationValue
 
 // ============================================================================
 // InterpolationValue
 // ======================================================================================
 
-// TextInterpolationValue
-//
-
-textInterpolationValue <- lBracketPosI:L_BRACKET textI:[^\]\r\n]* rBracketPosI:R_BRACKET {
-    return file.TextInterpolationValue{
-        LBracketPos: lBracketPosI.(file.Position),
-        Text: concat(textI),
-        RBracketPos: rBracketPosI.(file.Position),
+InterpolationValue <- interpolationTextStart valI:InterpolationValueLine rBracketI:textInterpolationEnd {
+    return file.InterpolationValue{
+        LBracket: pos(c),
+        Text:     valI.(file.TextLine),
+        RBracket: rBracketI.(file.Position),
     }, nil
-} / lBracketPosI:L_BRACKET textI:[^\]\r\n]* EOL {
-    return file.TextInterpolationValue{
-        LBracketPos: lBracketPosI.(file.Position),
-        Text: concat(textI),
-    }, &corgierr.Error{
-        Message: "unclosed text interpolation",
+}
+
+// ============================================================================
+// Bad Interpolation
+// ======================================================================================
+
+BadInterpolation <- '#' {
+    return file.BadInterpolation{Position: pos(c)}, &fileerr.Error{
+        Message: "bad interpolation",
         ErrorAnnotation: anno(c, annotation{
-            Start: pos(c),
-            Annotation: "`[` opened here, but never closeed",
+            Start:      pos(c),
+            Annotation: "start of interpolation",
         }),
-        HintAnnotations: []corgierr.Annotation{
+        HintAnnotations: []fileerr.Annotation{
             anno(c, annotation{
                 Start: pos(c),
                 StartOffset: 1,
-                EOLDelta: 1,
-                Annotation: "expected a `]` somewhere here",
+                Annotation: "expected an expression interpolation, text interpolation, a component call,\n" +
+                    "or an element interpolation",
             }),
         },
-        Suggestions: []corgierr.Suggestion{
+        Suggestions: []fileerr.Suggestion{
             {Suggestion: "if you didn't mean to start an interpolation, escape the `#`", Code: "`##`"},
         },
     }
-}
-
-//
-// ExpressionInterpolationValue
-//
-
-expressionInterpolationValue <- lBracePosI:L_BRACE exprI:SingleLineExpression rBracePosI:R_BRACE {
-    return file.ExpressionInterpolationValue{
-        LBracePos: lBracePosI.(file.Position),
-        Expression: exprI.(file.Expression),
-        RBracePos: rBracePosI.(file.Position),
-    }, nil
-} / lBracePosI:L_BRACE exprI:SingleLineExpression EOL {
-    return file.ExpressionInterpolationValue{
-        LBracePos: lBracePosI.(file.Position),
-        Expression: exprI.(file.Expression),
-    }, &corgierr.Error{
-        Message: "unclosed expression interpolation",
-        ErrorAnnotation: anno(c, annotation{
-            Start: pos(c),
-            Annotation: "`{` opened here, but never closeed",
-        }),
-        HintAnnotations: []corgierr.Annotation{
-            anno(c, annotation{
-                Start: pos(c),
-                StartOffset: 1,
-                EOLDelta: 1,
-                Annotation: "expected a `}` somewhere here",
-            }),
-        },
-        Suggestions: []corgierr.Suggestion{
-            {Suggestion: "if you didn't mean to start an interpolation, escape the `#`", Code: "`##`"},
-        },
-    }
-}
-
-fmtExpressionInterpolationValue <- fmtDirectiveI:fmtDirective eivI:expressionInterpolationValue {
-    eiv := eivI.(file.ExpressionInterpolationValue)
-    eiv.FormatDirective = fmtDirectiveI.(string)
-    return eiv, nil
 }

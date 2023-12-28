@@ -1,6 +1,12 @@
 // Package file provides an AST for corgi files.
 package file
 
+import (
+	"fmt"
+
+	"github.com/mavolin/corgi/file/packageinfo"
+)
+
 type (
 	Package struct {
 		// METADATA
@@ -18,33 +24,14 @@ type (
 		// It is specified using the system's separator.
 		AbsolutePath string
 
+		Info *packageinfo.Package // set by linker
+
 		//
 		// FILES
 		//
 
 		// Files are the corgi files this directory consists of.
 		Files []*File
-	}
-
-	PackageInfo struct {
-		// CorgiVersion is the version of the corgi compiler used to compile
-		// the files in this package.
-		CorgiVersion string
-		// HasState indicates whether this package contains state variables.
-		HasState bool
-
-		Components []PackageComponentInfo
-	}
-	PackageComponentInfo struct {
-		Name   string
-		Params []PackageComponentParamInfo
-		ComponentInfo
-	}
-	PackageComponentParamInfo struct {
-		Name       string
-		Type       string
-		IsSafeType bool
-		HasDefault bool
 	}
 
 	// File represents a parsed corgi file.
@@ -83,16 +70,31 @@ type (
 		PackageDoc       []CorgiComment
 		PackageDirective PackageDirective
 
-		ImportComments []CorgiComment
-
-		// Imports is a list of imports made by this file, in the order they
-		// appear.
-		Imports []Import
+		// ResolvedImports contains a subset of the imports of the file that
+		// are relevant for linking component calls.
+		ResolvedImports []ResolvedImport // set by linker
 
 		// Scope is the global scope.
 		Scope Scope
 	}
+
+	ResolvedImport struct {
+		Alias string
+		Path  string
+
+		Info *packageinfo.Package
+		// Package is the package this import resolves to.
+		// Users should not rely on this field being set, as it's usually only
+		// set when a package is recompiled, or is compiled for the first time.
+		//
+		// All necessary information should be available in Info.
+		Package *Package
+	}
 )
+
+type Poser interface {
+	Pos() Position
+}
 
 // Position indicates the position where a token was encountered.
 type Position struct {
@@ -102,10 +104,10 @@ type Position struct {
 
 var InvalidPosition = Position{0, 0}
 
-type Poser interface {
-	Pos() Position
-}
-
 func (p Position) Pos() Position {
 	return p
+}
+
+func (p Position) String() string {
+	return fmt.Sprintf("%d:%d", p.Line, p.Col)
 }

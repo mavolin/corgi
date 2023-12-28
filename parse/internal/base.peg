@@ -1,0 +1,51 @@
+// ============================================================================
+// Ident
+// ======================================================================================
+
+Ident <- identI:goIdentifier {
+    return file.Ident{Ident: string(c.text), Position: pos(c)}, nil
+}
+
+Namespace <- '.' identI:Ident {
+    return identI, nil
+}
+
+// ============================================================================
+// Type
+// ======================================================================================
+
+Type <- typeI:goType {
+    return file.Type{Type: string(c.text), Position: pos(c)}, nil
+}
+
+// ============================================================================
+// Static String
+// ======================================================================================
+
+StaticString <- staticRawString / staticInterpretedString
+
+//
+// `Raw String`
+//
+
+staticRawString <- rawStringStart contentsI:RawStringText? endI:rawStringEnd {
+    return file.StaticString{
+        Start:    pos(c),
+        Quote:    '`',
+        Contents: optCast[file.StringText](contentsI).Text,
+        End:      endI.(file.Position),
+    }, nil
+}
+
+//
+// "Interpreted String"
+//
+
+staticInterpretedString <- interpretedStringStart contentsI:InterpretedStringText? endI:interpretedStringEnd {
+    return file.StaticString{
+        Start:    pos(c),
+        Quote:    '"',
+        Contents: optCast[file.StringText](contentsI).Text,
+        End:      endI.(file.Position),
+    }, nil
+}

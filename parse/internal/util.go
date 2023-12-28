@@ -6,7 +6,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/mavolin/corgi/file"
-	"github.com/mavolin/corgi/fileerr"
+	"github.com/mavolin/corgi/file/fileerr"
 	anno2 "github.com/mavolin/corgi/internal/anno"
 )
 
@@ -18,7 +18,7 @@ func pos(c *current) file.Position {
 	}
 }
 
-func islice(iface any) []any {
+func slice(iface any) []any {
 	if iface == nil {
 		return nil
 	}
@@ -26,8 +26,8 @@ func islice(iface any) []any {
 	return iface.([]any)
 }
 
-func typedSlice[T any](ifacesI any) []T {
-	ifaces := islice(ifacesI)
+func sliceOf[T any](ifacesI any) []T {
+	ifaces := slice(ifacesI)
 	if len(ifaces) == 0 {
 		return nil
 	}
@@ -42,15 +42,61 @@ func typedSlice[T any](ifacesI any) []T {
 	return slice
 }
 
-func typedSliceFromTuples[T any](tuplesI any, index int) []T {
-	tuples := islice(tuplesI)
+func getTuple[T any](iface any, index int) T {
+	s := iface.([]any)
+	if index < 0 {
+		index = len(s) + index
+	}
+
+	return s[index].(T)
+}
+
+func optGetTuple[T any](iface any, index int) T {
+	s, ok := iface.([]any)
+	if !ok {
+		var zero T
+		return zero
+	}
+
+	if index < 0 {
+		index = len(s) + index
+	}
+
+	if index < len(s) {
+		return s[index].(T)
+	}
+
+	var zero T
+	return zero
+}
+
+func optGetTuplePtr[T any](iface any, index int) *T {
+	s, ok := iface.([]any)
+	if !ok {
+		return nil
+	}
+
+	if index < 0 {
+		index = len(s) + index
+	}
+
+	if index < len(s) {
+		t := s[index].(T)
+		return &t
+	}
+
+	return nil
+}
+
+func getTuples[T any](tuplesI any, index int) []T {
+	tuples := slice(tuplesI)
 	if len(tuples) == 0 {
 		return nil
 	}
 
-	slice := make([]T, 0, len(tuples))
+	s := make([]T, 0, len(tuples))
 	for _, tuple := range tuples {
-		tupleSlice := islice(tuple)
+		tupleSlice := slice(tuple)
 		if len(tupleSlice) == 0 {
 			continue
 		}
@@ -61,23 +107,26 @@ func typedSliceFromTuples[T any](tuplesI any, index int) []T {
 		}
 
 		if t, ok := tupleSlice[index].(T); ok {
-			slice = append(slice, t)
+			s = append(s, t)
 		}
 	}
 
-	return slice
+	return s
 }
 
-func getTuple[T any](iface any, index int) T {
-	slice := iface.([]any)
-	if index < 0 {
-		index = len(slice) + index
+func collectList[T any](firstI any, restI any, restTuplePos int) []T {
+	restIs := slice(restI)
+
+	list := make([]T, len(restIs)+1)
+	list[0] = firstI.(T)
+	for i, el := range restIs {
+		list[i+1] = getTuple[T](el, restTuplePos)
 	}
 
-	return slice[index].(T)
+	return list
 }
 
-func castedOrZero[T any](iface any) T {
+func optCast[T any](iface any) T {
 	if casted, ok := iface.(T); ok {
 		return casted
 	}
@@ -86,7 +135,11 @@ func castedOrZero[T any](iface any) T {
 	return zero
 }
 
-func ptrOrNil[T any](iface any) *T {
+func ptr[T any](t T) *T {
+	return &t
+}
+
+func optCastPtr[T any](iface any) *T {
 	if casted, ok := iface.(T); ok {
 		return &casted
 	}
@@ -94,11 +147,7 @@ func ptrOrNil[T any](iface any) *T {
 	return (*T)(nil)
 }
 
-func ptr[T any](t T) *T {
-	return &t
-}
-
-func char(iface any) rune {
+func firstRune(iface any) rune {
 	c, _ := utf8.DecodeRune(iface.([]byte))
 	return c
 }
@@ -149,61 +198,76 @@ func anno(c *current, aw annotation) fileerr.Annotation {
 // ======================================================================================
 
 //nolint:unparam
-func combineExpressions(exprsI any) (file.Expression, error) {
-	exprIs := islice(exprsI)
-	var exprs []file.ExpressionItem
+func combineGoCode(exprsI any) file.GoCode {
+	exprIs := slice(exprsI)
+	exprs := combineGoCodeSlice(exprIs)
+	exprs = exprs[:len(exprs):len(exprs)]
+	return file.GoCode{Expressions: exprs}
+}
 
-	var prevGoExpr *file.GoExpression
+func combineGoCodeSlice(exprIs []any) []file.GoCodeItem {
+	exprs := make([]file.GoCodeItem, 0, 16)
+	var prevGoCode *file.RawGoCode
 
-	for _, ei := range exprIs {
-		switch expr := ei.(type) {
-		case []file.ExpressionItem:
-			for _, e := range expr {
-				switch expr := e.(type) {
-				case file.GoExpression:
-					if prevGoExpr == nil {
-						prevGoExpr = &expr
-					} else {
-						prevGoExpr.Expression += expr.Expression
+	for _, eI := range exprIs {
+		if eI == nil {
+			continue
+		}
+
+		switch expr := eI.(type) {
+		case []any:
+			subExprs := combineGoCodeSlice(expr)
+			if prevGoCode != nil {
+				if len(subExprs) > 0 {
+					if c, ok := subExprs[0].(file.RawGoCode); ok {
+						prevGoCode.Code += c.Code
+						subExprs = subExprs[1:]
 					}
-				default:
-					if prevGoExpr != nil {
-						exprs = append(exprs, *prevGoExpr)
-						prevGoExpr = nil
-					}
-					exprs = append(exprs, expr)
+				}
+				if len(subExprs) > 0 { // if there are still subExprs left
+					exprs = append(exprs, *prevGoCode)
+					prevGoCode = nil
 				}
 			}
-		case file.StringExpression:
-			if prevGoExpr != nil {
-				exprs = append(exprs, *prevGoExpr)
-				prevGoExpr = nil
+
+			if len(subExprs) > 0 {
+				if c, ok := subExprs[len(subExprs)-1].(file.RawGoCode); ok {
+					prevGoCode = &c
+					subExprs = subExprs[:len(subExprs)-1]
+				}
 			}
 
-			exprs = append(exprs, expr)
-		case file.TernaryExpression:
-			if prevGoExpr != nil {
-				exprs = append(exprs, *prevGoExpr)
-				prevGoExpr = nil
-			}
-
-			exprs = append(exprs, expr)
-		case file.GoExpression:
-			if prevGoExpr == nil {
-				prevGoExpr = &expr
+			exprs = append(exprs, subExprs...)
+		case file.RawGoCode:
+			if prevGoCode == nil {
+				prevGoCode = &expr
 			} else {
-				prevGoExpr.Expression += expr.Expression
+				prevGoCode.Code += expr.Code
 			}
+		case file.String:
+			if prevGoCode != nil {
+				exprs = append(exprs, *prevGoCode)
+				prevGoCode = nil
+			}
+
+			exprs = append(exprs, expr)
+		case file.BlockFunction:
+			if prevGoCode != nil {
+				exprs = append(exprs, *prevGoCode)
+				prevGoCode = nil
+			}
+
+			exprs = append(exprs, expr)
 		default:
-			panic(fmt.Sprintf("parser: GoExpression: invalid expression item %T:\n%#v\n\n(you shouldn't see this error, please open an issue)", expr, expr))
+			panic(fmt.Sprintf("parser: GoCode: invalid expression item %T (you shouldn't see this error, please open an issue)", expr))
 		}
 	}
 
-	if prevGoExpr != nil {
-		exprs = append(exprs, *prevGoExpr)
+	if prevGoCode != nil {
+		exprs = append(exprs, *prevGoCode)
 	}
 
-	return file.Expression{Expressions: exprs}, nil
+	return exprs
 }
 
 func chainExprItmsCheck(itms []file.ChainExpressionItem) bool {

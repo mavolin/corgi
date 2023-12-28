@@ -1,42 +1,34 @@
 package file
 
 // ============================================================================
-// String
-// ======================================================================================
-
-type String struct {
-	Quote    byte
-	Contents string
-
-	Position
-}
-
-// ============================================================================
 // Ident
 // ======================================================================================
 
-// Ident represents a corgi identifier.
+// Ident represents a Go identifier.
 type Ident struct {
 	Ident string
 	Position
 }
 
 // ============================================================================
-// GoIdent
+// Type
 // ======================================================================================
 
-// GoIdent represents a Go identifier.
-type GoIdent struct {
-	Ident string
+// Type represents the name or definition of a Go type.
+type Type struct {
+	Type string
 	Position
 }
 
 // ============================================================================
-// GoType
+// Static String
 // ======================================================================================
 
-// GoType represents the name or definition of a Go type.
-type GoType struct {
-	Type string
-	Position
+type StaticString struct {
+	Start    Position
+	Quote    rune
+	Contents string
+	End      Position
 }
+
+func (s StaticString) Pos() Position { return s.Start }

@@ -72,16 +72,25 @@ func (Text) _textItem() {}
 
 type Interpolation interface {
 	_interpolation()
-	_textItem()
+	TextItem
 	Poser
 }
+
+// ================================= Bad Interpolation ==================================
+
+type BadInterpolation struct {
+	Position
+}
+
+func (BadInterpolation) _interpolation() {}
+func (BadInterpolation) _textItem()      {}
 
 // ============================== ExpressionInterpolation ===============================
 
 type ExpressionInterpolation struct {
-	LBrace Position
 	// a sprintf placeholder, excluding the leading %
 	FormatDirective string
+	LBrace          Position
 	Expression      Expression
 	RBrace          Position
 
@@ -110,7 +119,7 @@ func (TextInterpolation) _textItem()      {}
 
 type ElementInterpolation struct {
 	Element Element            // has no body
-	Value   InterpolationValue // nil for void elems
+	Value   InterpolationValue // may be nil, always nil for void elems
 
 	Position
 }
@@ -135,9 +144,9 @@ func (ComponentCallInterpolation) _interpolation() {}
 // ======================================================================================
 
 type InterpolationValue struct {
-	LBracketPos Position
-	Text        TextLine
-	RBracketPos Position
+	LBracket Position
+	Text     TextLine
+	RBracket Position
 }
 
-func (v InterpolationValue) Pos() Position { return v.LBracketPos }
+func (v InterpolationValue) Pos() Position { return v.LBracket }

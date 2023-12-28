@@ -17,16 +17,9 @@ func (Doctype) _scopeItem() {}
 
 // HTMLComment represents a comment that is printed.
 type HTMLComment struct {
-	Lines []HTMLCommentLine
-	Position
-}
-
-type HTMLCommentLine struct {
 	Comment string
 	Position
 }
-
-func (HTMLComment) _scopeItem() {}
 
 // ============================================================================
 // Element
@@ -50,11 +43,10 @@ func (Element) _scopeItem() {}
 // Raw Element
 // ======================================================================================
 
-// RawElement represents the special raw element, which includes all of its
+// RawElement represents the special !raw element, which includes all of its
 // contents verbatim into the generated HTML.
 type RawElement struct {
 	Body BracketText
-
 	Position
 }
 

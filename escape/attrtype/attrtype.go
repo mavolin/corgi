@@ -35,7 +35,7 @@ const (
 	ResourceURL
 	Srcset
 	// Unsafe is used  for values that affect how embedded content and network
-	//messages are formed, vetted, or interpreted; or which credentials network
+	// messages are formed, vetted, or interpreted; or which credentials network
 	// messages carry.
 	Unsafe
 	_invalid

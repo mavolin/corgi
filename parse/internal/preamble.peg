@@ -1,306 +1,301 @@
-spacedDirPath <- ' '+ sI:String {
-    return sI, nil
-} / ' '* pathI:NOT_EOL* {
-    return file.String{Position: pos(c)}, &corgierr.Error{
-        Message: "invalid path",
-        ErrorAnnotation: anno(c, annotation{
-            Start: pos(c),
-            StartOffset: 1,
-            ToEOL: true,
-            Annotation: "expected a path wrapped in quotes",
-        }),
-        Example: "`\"github.com/mavolin/woof/bark\"`",
-    }
-}
-dirPath <- String / pathI:NOT_EOL* {
-    return file.String{Position: pos(c)}, &corgierr.Error{
-        Message: "invalid path",
-        ErrorAnnotation: anno(c, annotation{
-            Start: pos(c),
-            ToEOL: true,
-            Annotation: "expected a path wrapped in quotes",
-        }),
-        Example: "`\"github.com/mavolin/woof/bark\"`",
-    }
-}
-
 // ============================================================================
-// Extend
+// Package Directive
 // ======================================================================================
 
-Extend <- "extend" extendI:spacedDirPath EOL {
-    return file.Extend{Path: extendI.(file.String), Position: pos(c)}, nil
+PackageDoc <- commentsI:(EMPTY_LINE+ / CorgiComment)* {
+    commentIs := slice(commentsI)
+    comments := make([]file.CorgiComment, 0, len(commentIs))
+    for _, cI := range commentIs {
+        if c, ok := cI.(file.CorgiComment); ok {
+            comments = append(comments, c)
+        }
+    }
+    comments = comments[:len(comments):len(comments)]
+    return comments, nil
+}
+
+Package <- PackageDirective / MissingPackageDirective
+
+PackageDirective <- "package" _+ nameI:packageName {
+    return file.PackageDirective{
+        Name:     nameI.(file.Ident),
+        Position: pos(c),
+    }, nil
+}
+
+packageName <- identI:Ident EOL {
+    return identI, nil
+} / EOL {
+    return file.Ident{}, &fileerr.Error{
+        Message: "missing package name",
+        ErrorAnnotation: anno(c, annotation{
+            Start:       pos(c),
+            StartOffset: 1,
+            Annotation:  "expected a package name",
+        }),
+        Example: "`package woof`",
+    }
+} / startI:POS identI:UNEXPECTED EOL {
+    return invalidIdent(c, "package", startI.(file.Position), identI.(string))
+}
+
+MissingPackageDirective <- POS {
+    return file.PackageDirective{}, &fileerr.Error{
+        Message: "missing package directive",
+        ErrorAnnotation: anno(c, annotation{
+            Start:       pos(c),
+            ToEOL:       true,
+            Annotation:  "expected `package` directive as first non-comment, found this instead",
+        }),
+        Example: "`package woof`",
+    }
 }
 
 // ============================================================================
 // Import
 // ======================================================================================
 
-Imports <- importsI:(NEW_LNS? Import)+ {
-    impTuples := islice(importsI)
-    if impTuples == nil {
-        return []file.Import(nil), nil
-    }
+Import <- SingleImport / GroupImport / BadImport
 
-    var imps []file.Import
-    for _, impTuple := range impTuples {
-        imps = append(imps, getTuple[file.Import](impTuple, 1))
-    }
-
-    return imps, nil
-}
-
-Import <- "import" EOL specsI:importBlock {
+SingleImport <- "import" _+ specI:ImportSpec EOC {
     return file.Import{
-        Imports: specsI.([]file.ImportSpec),
+        Imports:  []file.ImportScopeItem{specI.(file.ImportSpec)},
         Position: pos(c),
     }, nil
-} / "import" ' '+ specI:importSpec {
+}
+
+GroupImport <- "import" _* startI:listStart itmsI:importScopeItem* rParenI:groupImportEnd {
     return file.Import{
-        Imports: []file.ImportSpec{specI.(file.ImportSpec)},
+        LParen:   ptr(startI.(file.Position)),
+        Imports:  sliceOf[file.ImportScopeItem](itmsI),
+        RParen:   ptr(rParenI.(file.Position)),
         Position: pos(c),
     }, nil
-} / "import" posI:POS EOL {
-    return file.Import{Position: pos(c)}, &corgierr.Error{
-        Message: "missing import path",
+}
+
+groupImportEnd <- WS* rParenI:R_PAREN {
+    return rParenI, nil
+} / POS {
+    return nil, &fileerr.Error{
+        Message: "missing `)`",
         ErrorAnnotation: anno(c, annotation{
-            Start: posI.(file.Position),
-            StartOffset: 1,
-            Annotation: "expected an import path, optionally preceded by an import alias",
+            Start:       pos(c),
+            Annotation:  "expected `)` to close the import group",
         }),
     }
 }
 
-importBlock <- INDENT importsI:(NEW_LNS? INDENTATION importSpec)+ DEDENT {
-    return typedSliceFromTuples[file.ImportSpec](importsI, -1), nil
-}
-
-importSpec <- aliasI:(importAlias ' '+)? pathI:dirPath EOL {
-    var spec file.ImportSpec
-    spec.Position = pos(c)
-
-    if aliasI != nil {
-        alias := getTuple[file.GoIdent](aliasI, 0)
-        spec.Alias = &alias
-    }
-
-    spec.Path = pathI.(file.String)
-    return spec, nil
-}
-
-importAlias <- '.' {
-    return file.GoIdent{Ident: ".", Position: pos(c)}, nil
-} / GoIdent / [^"`' ]+ endPosI:POS {
-    return file.GoIdent{
-        Ident: string(c.text),
+BadImport <- "import" _* startI:POS badI:UNEXPECTED endI:EOC {
+    return file.Import{
+        Imports: []file.ImportScopeItem{
+            file.BadImportSpec{
+                Line:     badI.(string),
+                Position: startI.(file.Position),
+            },
+        },
         Position: pos(c),
-    }, &corgierr.Error{
-        Message: "invalid import alias",
+    }, &fileerr.Error{
+        Message: "invalid import",
         ErrorAnnotation: anno(c, annotation{
-            Start: pos(c),
-            End: endPosI.(file.Position),
-            Annotation: "expected a letter, or `_`, optionally followed by `_`s, letters, and numbers",
+            Start:       startI.(file.Position),
+            End:         endI.(file.Position),
+            Annotation:  "expected an import path, optionally preceded by an import alias\n" +
+                "or a group of imports",
         }),
+        Example: "`import \"fmt\"`",
     }
 }
 
-// ============================================================================
-// Use
-// ======================================================================================
-
-Uses <- usesI:(NEW_LNS? Use)+ {
-    useTuples := islice(usesI)
-    if useTuples == nil {
-        return []file.Use(nil), nil
-    }
-
-    var uses []file.Use
-    for _, useTuple := range useTuples {
-        uses = append(uses, getTuple[file.Use](useTuple, 1))
-    }
-
-    return uses, nil
+importScopeItem <- WS* itmI:(CorgiComment / ImportSpec / BadImportSpec) {
+    return itmI, nil
 }
 
-Use <- "use" EOL specsI:useBlock {
-    return file.Use{
-        Uses: specsI.([]file.UseSpec),
+ImportSpec <- aliasI:importAlias? pathI:StaticString EOC {
+    return file.ImportSpec{
+        Alias:    optCastPtr[file.Ident](aliasI),
+        Path:     pathI.(file.StaticString),
         Position: pos(c),
     }, nil
-} / "use" ' '+ specI:useSpec {
-    return file.Use{
-        Uses: []file.UseSpec{specI.(file.UseSpec)},
-        Position: pos(c),
-    }, nil
-} / "use" posI:POS EOL {
-    return file.Use{Position: pos(c)}, &corgierr.Error{
-        Message: "missing use path",
-        ErrorAnnotation: anno(c, annotation{
-            Start: posI.(file.Position),
-            StartOffset: 1,
-            Annotation: "expected an use path, optionally preceded by an use alias",
-        }),
-    }
 }
 
-useBlock <- INDENT usesI:(NEW_LNS? INDENTATION useSpec)+ DEDENT {
-    return typedSliceFromTuples[file.UseSpec](usesI, -1), nil
-}
-
-useSpec <- aliasI:(useAlias ' '+)? pathI:dirPath EOL {
-    var spec file.UseSpec
-    spec.Position = pos(c)
-
-    if aliasI != nil {
-        alias := getTuple[file.Ident](aliasI, 0)
-        spec.Alias = &alias
-    }
-
-    spec.Path = pathI.(file.String)
-    return spec, nil
-}
-
-useAlias <- '.' {
+importAlias <- '.' _* {
     return file.Ident{Ident: ".", Position: pos(c)}, nil
-} / Ident / [^"`' ]+ endPosI:POS {
-    return file.Ident{
-        Ident: string(c.text),
+} / identI:Ident _* {
+    return identI, nil
+} / (!(_* [`"]) .)+ {
+    return invalidIdent(c, "import alias", pos(c), string(c.text))
+}
+
+BadImportSpec <- lineI:UNEXPECTED EOC {
+    line := lineI.(string)
+    return file.BadImportSpec{
+        Line:     line,
         Position: pos(c),
-    }, &corgierr.Error{
-        Message: "invalid import alias",
+    }, &fileerr.Error{
+        Message: "invalid import spec",
         ErrorAnnotation: anno(c, annotation{
-            Start: pos(c),
-            End: endPosI.(file.Position),
-            Annotation: "expected a letter, or `_`, optionally followed by `_`s, letters, and numbers",
+            Start:       pos(c),
+            Len:         len(line),
+            Annotation:  "expected an import path, optionally preceded by an import alias",
         }),
     }
 }
 
 // ============================================================================
-// Func
+// State
 // ======================================================================================
 
-Func <- "func" ' '+ nameI:GoIdent paramsI:(
-    lParenPosI:L_PAREN paramsI:(
-        WS* paramsI:funcParamList? ' '* (',' WS*)? {
-            return castedOrZero[[]file.FuncParam](paramsI), nil
-        } / [^)]* endPosI:POS {
-            return ([]file.FuncParam)(nil), &corgierr.Error{
-                Message: "invalid parameter list",
-                ErrorAnnotation: anno(c, annotation{
-                    Start: pos(c),
-                    End: endPosI.(file.Position),
-                    Annotation: "this is not correct, maybe a missing comma?",
-                }),
-            }
-        }
-    ) rParenPosI:R_PAREN {
-        return file.Func{
-            LParenPos: lParenPosI.(file.Position),
-            Params: paramsI.([]file.FuncParam),
-            RParenPos: rParenPosI.(file.Position),
-        }, nil
-    } / NOT_EOL* {
-        return file.Func{}, &corgierr.Error{
-            Message: "missing `(` or `)` or invalid param list",
-            ErrorAnnotation: anno(c, annotation{
-                Start: pos(c),
-                ToEOL: true,
-                Annotation: "here",
-            }),
-        }
-    }
-) EOL {
-    params := paramsI.(file.Func)
-    return file.Func{
-        Name: nameI.(file.GoIdent),
-        LParenPos: params.LParenPos,
-        Params: params.Params,
-        RParenPos: params.RParenPos,
+State <- SingleState / GroupState / BadState
+
+SingleState <- "state" _+ varI:StateVar EOC {
+    return file.State{
+        Vars:     []file.StateScopeItem{varI.(file.StateVar)},
         Position: pos(c),
     }, nil
-} / "func" posI:POS EOL {
-    return file.Func{Position: pos(c)}, &corgierr.Error{
-        Message: "missing func name",
+}
+
+GroupState <- "state" _* startI:listStart itmsI:stateScopeItem* rParenI:groupStateEnd {
+    return file.State{
+        LParen:   ptr(startI.(file.Position)),
+        Vars:     sliceOf[file.StateScopeItem](itmsI),
+        RParen:   ptr(rParenI.(file.Position)),
+        Position: pos(c),
+    }, nil
+}
+
+groupStateEnd <- WS* rParenI:R_PAREN {
+    return rParenI, nil
+} / POS {
+    return nil, &fileerr.Error{
+        Message: "missing `)`",
         ErrorAnnotation: anno(c, annotation{
-            Start: posI.(file.Position),
-            StartOffset: 1,
-            ToEOL: true,
-            Annotation: "expected an identifier followed by a parameter list",
+            Start:       pos(c),
+            Annotation:  "expected `)` to close the state group",
         }),
     }
 }
 
-funcParamList <- funcOtherParamList / funcOnlyVariadicParamList
-funcOnlyVariadicParamList <- variadicI:funcVariadicParam {
-    return []file.FuncParam{variadicI.(file.FuncParam)}, nil
-}
-funcOtherParamList <- firstI:funcParam ' '* restI:(',' WS* funcParam)* variadicI:(',' WS* funcVariadicParam)? {
-    restTuples := islice(restI)
-
-    n := 1 + len(restTuples)
-    if variadicI != nil {
-        n++
-    }
-    params := make([]file.FuncParam, 1, n)
-    params[0] = firstI.(file.FuncParam)
-
-    for _, t := range restTuples {
-        params = append(params, getTuple[file.FuncParam](t, -1))
-    }
-
-    if variadicI != nil {
-        params = append(params, getTuple[file.FuncParam](variadicI, -1))
-    }
-
-    return params, nil
-}
-
-funcParam <- namesI:funcIdentList ' '+ typeI:funcType {
-    return file.FuncParam{
-        Names: namesI.([]file.GoIdent),
-        Type: typeI.(file.GoType),
-    }, nil
-} / typeI:funcType {
-    return file.FuncParam{
-        Type: typeI.(file.GoType),
-    }, nil
-}
-funcVariadicParam <- nameI:(GoIdent ' '+)? "..." typeI:funcType {
-    var names []file.GoIdent
-    if nameI != nil {
-        names = []file.GoIdent{getTuple[file.GoIdent](nameI, 0)}
-    }
-
-    return file.FuncParam{
-        Names: names,
-        Variadic: true,
-        Type: typeI.(file.GoType),
-    }, nil
-}
-
-funcIdentList <- firstI:GoIdent restI:(' '* ',' WS* GoIdent)* {
-    restTuples := islice(restI)
-    idents := make([]file.GoIdent, 1, 1+len(restTuples))
-    idents[0] = firstI.(file.GoIdent)
-
-    for _, t := range restTuples {
-        idents = append(idents, getTuple[file.GoIdent](t, -1))
-    }
-
-    return idents, nil
-}
-
-funcType <- GoType / typeI:[^,)]+ endPosI:POS {
-    return file.GoType{
-        Type: concat(typeI),
+BadState <- "state" _* startI:POS badI:UNEXPECTED endI:EOC {
+    return file.State{
+        Vars: []file.StateScopeItem{
+            file.BadStateVar{
+                Line:     badI.(string),
+                Position: startI.(file.Position),
+            },
+        },
         Position: pos(c),
-    }, &corgierr.Error{
+    }, &fileerr.Error{
+        Message: "invalid state",
+        ErrorAnnotation: anno(c, annotation{
+            Start:      startI.(file.Position),
+            End:        endI.(file.Position),
+            Annotation: "expected a state variable declaration or a group of state variables",
+        }),
+        Example: "`state bark = \"woof\"`",
+    }
+}
+
+stateScopeItem <- WS* itmI:(CorgiComment / StateVar / BadStateVar) {
+    return itmI, nil
+}
+
+StateVar <- namesI:stateVarNames _* typI:stateVarType? _* assignI:POS valsI:stateVarValues {
+    names := namesI.([]file.Ident)
+    vals := valsI.([]file.GoCode)
+
+    if len(names) != len(vals) && len(vals) > 0 {
+        return file.StateVar{}, &fileerr.Error{
+            Message: "state variable: unequal variable declarations and initializations",
+            ErrorAnnotation: anno(c, annotation{
+                Start:      pos(c),
+                Annotation: fmt.Sprintf("have %d declarations and %d initializations", len(names), len(vals)),
+            }),
+            Example: "`state bark, howl = \"woof\", \"awoooo\"`",
+            Suggestions: []fileerr.Suggestion{
+                {Suggestion: "the number of variable names must always match the number of expressions"},
+            },
+        }
+    }
+
+    var assign *file.Position
+    if len(vals) > 0 {
+        assign = ptr(assignI.(file.Position))
+    }
+
+    return file.StateVar{
+        Names:    names,
+        Type:     optCastPtr[file.Type](typI),
+        Assign:   assign,
+        Values:   vals,
+    }, nil
+}
+
+stateVarNames <- firstI:stateVarIdent restI:(_* ',' _* stateVarIdent)* {
+    rest := getTuples[file.Ident](restI, -1)
+    names := make([]file.Ident, 1, 1+len(rest))
+    names[0] = firstI.(file.Ident)
+    names = append(names, rest...)
+    return names, nil
+}
+
+stateVarIdent <- Ident / [^\r\n\t ,=]+ {
+    return invalidIdent(c, "state variable", pos(c), string(c.text))
+}
+
+stateVarType <- typI:Type _* {
+    return typI, nil
+} / (!(_* '=') [^\r\n])+ _* {
+    return file.Type{
+        Type:     string(c.text),
+        Position: pos(c),
+    }, &fileerr.Error{
         Message: "invalid type",
         ErrorAnnotation: anno(c, annotation{
-            Start: pos(c),
-            End: endPosI.(file.Position),
-            Annotation: "not a valid Go type",
+            Start:       pos(c),
+            Len:         len(c.text),
+            Annotation:  "this is not a valid Go type",
+        }),
+    }
+}
+
+stateVarValues <- '=' WS* valsI:stateVarValueList EOC {
+    return valsI, nil
+} / '=' WS* valsI:stateVarValueList? startI:POS badI:UNEXPECTED endI:EOC {
+    return optCast[[]file.GoCode](valsI),
+        newUnexpectedTokensErr(c, startI.(file.Position), endI.(file.Position), "unexpected tokens")
+} / '=' WS* startI:POS UNEXPECTED endI:EOC {
+    return ([]file.GoCode)(nil), &fileerr.Error{
+        Message: "invalid state variable values",
+        ErrorAnnotation: anno(c, annotation{
+            Start:       startI.(file.Position),
+            End:         endI.(file.Position),
+            Annotation:  "expected one or more Go expressions",
+        }),
+        Example: "`state bark = \"woof\"`",
+    }
+} / EOC {
+    return ([]file.GoCode)(nil), nil
+}
+
+stateVarValueList <- firstI:GoExpression restI:(_* ',' _* GoExpression)* {
+    rest := getTuples[file.GoCode](restI, -1)
+    values := make([]file.GoCode, 1, 1+len(rest))
+    values[0] = firstI.(file.GoCode)
+    values = append(values, rest...)
+    return values, nil
+}
+
+BadStateVar <- lineI:UNEXPECTED EOC {
+    line := lineI.(string)
+    return file.BadStateVar{
+        Line:     line,
+        Position: pos(c),
+    }, &fileerr.Error{
+        Message: "invalid state variable",
+        ErrorAnnotation: anno(c, annotation{
+            Start:       pos(c),
+            Len:         len(line),
+            Annotation:  "expected a state variable declaration",
         }),
     }
 }

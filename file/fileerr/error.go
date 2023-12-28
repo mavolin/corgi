@@ -109,7 +109,12 @@ type PrettyOptions struct {
 
 func (o *PrettyOptions) setDefaults() {
 	if o.FileNamePrinter == nil {
-		o.FileNamePrinter = func(f *file.File) string { return f.Name }
+		o.FileNamePrinter = func(f *file.File) string {
+			if f == nil {
+				return "nil file"
+			}
+			return f.Name
+		}
 	}
 }
 

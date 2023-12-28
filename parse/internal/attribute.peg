@@ -1,0 +1,238 @@
+// ============================================================================
+// And
+// ======================================================================================
+
+And <- '&' collsI:andAttributes EOC {
+    return file.And{
+        Attributes: optCast[[]file.AttributeCollection](collsI),
+        Position:   pos(c),
+    }, nil
+}
+
+andAttributes <- AttributeCollection / &EOC {
+    return ([]file.AttributeCollection)(nil), &fileerr.Error{
+        Message: "`&` with no attributes",
+        ErrorAnnotation: anno(c, annotation{
+            Start:      pos(c),
+            Annotation: "expected attributes",
+        }),
+        Suggestions: []fileerr.Suggestion{
+            {Suggestion: "write a class shorthand", Example: "`&.woof`"},
+            {Suggestion: "write an id shorthand", Example: "`&#bark`"},
+            {Suggestion: "write an attribute list", Example: "`&(src=\"bark/woof\", title=\"howl\")`"},
+        },
+    }
+} / attrsI:AttributeCollection startI:POS UNEXPECTED endI:EOC {
+    return attrsI, &fileerr.Error{
+        Message: "bad attribute syntax",
+        ErrorAnnotation: anno(c, annotation{
+            Start:      startI.(file.Position),
+            End:        endI.(file.Position),
+            Annotation: "this is not a valid attribute list",
+        }),
+        Suggestions: []fileerr.Suggestion{
+            {
+                Suggestion: "if there is, remove any whitespace between class/id shorthands and attribute lists",
+                Example:    "`&#bark .woof (title=\"howl\")`",
+                ShouldBe:   "`&#bark.woof(title=\"howl\")`",
+            },
+            {Suggestion: "write a class shorthand", Example: "`&.woof`"},
+            {Suggestion: "write an id shorthand", Example: "`&#bark`"},
+            {Suggestion: "write an attribute list", Example: "`&(src=\"bark/woof\", title=\"howl\")`"},
+        },
+    }
+}
+
+// ============================================================================
+// AttributeCollection
+// ======================================================================================
+
+AttributeCollection <- attributeCollectionSpaces? attrsI:(IDShorthand / ClassShorthand / AttributeList)+ {
+    return sliceOf[file.AttributeCollection](attrsI), nil
+}
+attributeCollectionSpaces <- _+ endI:POS {
+    return nil, newUnexpectedTokensErr(c, pos(c), endI.(file.Position), "can't place spaces here")
+}
+
+shorthandName <- [^ \t\r\n.#()[\]{};]+ {
+    return string(c.text), nil
+}
+
+// IDShorthand
+//
+
+IDShorthand <- '#' idI:idShorthandName {
+    return file.IDShorthand{
+        ID:       idI.(string),
+        Position: pos(c),
+    }, nil
+}
+
+idShorthandName <- shorthandName / POS {
+    return "", &fileerr.Error{
+        Message: "id shorthand: missing id",
+        ErrorAnnotation: anno(c, annotation{
+            Start:      pos(c),
+            Annotation: "expected an id",
+        }),
+    }
+}
+
+//
+// ClassShorthand
+//
+
+ClassShorthand <- '.' nameI:classShorthandName {
+    return file.ClassShorthand{
+        Name:     nameI.(string),
+        Position: pos(c),
+    }, nil
+}
+
+classShorthandName <- shorthandName / POS {
+    return "", &fileerr.Error{
+        Message: "class shorthand: missing class name",
+        ErrorAnnotation: anno(c, annotation{
+            Start:      pos(c),
+            Annotation: "expected a class name",
+        }),
+    }
+}
+
+
+//
+// AttributeList
+//
+
+AttributeList <- listStart attributesI:attributes? rParenI:attributeListEnd {
+    return file.AttributeList{
+        LParen:     pos(c),
+        Attributes: optCast[[]file.Attribute](attributesI),
+        RParen:     rParenI.(file.Position),
+    }, nil
+}
+
+attributeListEnd <- listEnd / POS {
+    return unclosedList(c, "attribute list")
+}
+
+attributes <- firstI:Attribute restI:(_* ',' WS* Attribute)* {
+    return collectList[file.Attribute](firstI, restI, -1), nil
+}
+
+// ============================================================================
+// Attribute
+// ======================================================================================
+
+Attribute <- AndPlaceholder / SimpleAttribute
+
+AttributeName <- (![(),=] htmlAttributeNameChar)+ &(_* [\r\n=,)]) {
+    return string(c.text), nil
+} / (!(_* [,=)]) [^\r\t(),=])+ {
+    return string(c.text), &fileerr.Error{
+        Message: "attribute: invalid name",
+        ErrorAnnotation: anno(c, annotation{
+            Start:      pos(c),
+            Len:        len(c.text),
+            Annotation: "contains characters not allowed by the HTML5 spec",
+        }),
+    }
+}
+
+//
+// And Placeholder
+//
+
+AndPlaceholder <- "&&" &(_* ',') {
+    return file.AndPlaceholder{Position: pos(c)}, nil
+}
+
+//
+// Simple Attribute
+//
+
+SimpleAttribute <- nameI:AttributeName _* valI:simpleAttributeValue {
+    a := valI.(file.SimpleAttribute)
+    a.Name = nameI.(string)
+    a.Position = pos(c)
+    return a, nil
+}
+
+simpleAttributeValue <- &[,)] {
+    return file.SimpleAttribute{}, nil
+} / assignI:POS '=' WS* valI:AttributeValue {
+    return file.SimpleAttribute{
+        Assign:   ptr(assignI.(file.Position)),
+        Value:    optCast[file.AttributeValue](valI),
+    }, nil
+}
+
+
+// ============================================================================
+// Attribute Value
+// ======================================================================================
+
+AttributeValue <- TypedAttributeValue / ComponentCallAttributeValue / Expression / POS {
+    return nil, &fileerr.Error{
+        Message: "attribute: missing value",
+        ErrorAnnotation: anno(c, annotation{
+            Start:      pos(c),
+            Annotation: "expected an expression or component call",
+        }),
+        Suggestions: []fileerr.Suggestion{
+            {
+                Suggestion: "if you want to write a static boolean attribute, remove the equal sign",
+                Example:    "`input(disabled)`",
+            },
+        },
+    }
+}
+
+//
+// Typed Attribute Value
+//
+
+TypedAttributeValue <- typeI:attributeType _* lParenI:listStart valI:typedAttributeValueValue rParenI:typedAttributeValueEnd {
+    return file.TypedAttributeValue{
+        Type:     typeI.(attrtype.Type),
+        LParen:   lParenI.(file.Position),
+        Value:    valI.(file.Expression),
+        RParen:   rParenI.(file.Position),
+        Position: pos(c),
+    }, nil
+}
+
+typedAttributeValueEnd <- listEnd / POS {
+    return unclosedList(c, "attribute value")
+}
+
+attributeType <- "plain" {
+    return attrtype.Plain, nil
+} / "css" {
+    return attrtype.CSS, nil
+} / "js" {
+    return attrtype.JS, nil
+} / "url" {
+    return attrtype.URL, nil
+} / "urlList" {
+    return attrtype.URLList, nil
+} / "resourceURL" {
+    return attrtype.ResourceURL, nil
+} / "srcset" {
+    return attrtype.Srcset, nil
+} / "unsafe" {
+    return attrtype.Unsafe, nil
+}
+
+typedAttributeValueValue <- ComponentCallAttributeValue / Expression
+
+//
+// Component Call Attribute Value
+//
+
+ComponentCallAttributeValue <- '+' inlineStart headerI:ComponentCallHeader inlineEnd valueI:InterpolationValue? {
+    return file.ComponentCallAttribute{
+        ComponentCall: headerI.(file.ComponentCall),
+        Value:         optCast[file.InterpolationValue](valueI),
+    }, nil
+}

@@ -33,12 +33,16 @@ type (
 )
 
 func newPrettyPrinter(err *Error, o PrettyOptions) *prettyPrinter {
+	o.setDefaults()
+
 	fileAnnotations := [][]annotation{{{Annotation: err.ErrorAnnotation, isError: true}}}
 
+hintAnnotations:
 	for _, ha := range err.HintAnnotations {
 		for j, fas := range fileAnnotations {
 			if equalFile(ha.File, fas[0].File) {
 				fileAnnotations[j] = append(fas, annotation{Annotation: ha})
+				continue hintAnnotations
 			}
 		}
 		fileAnnotations = append(fileAnnotations, []annotation{{Annotation: ha}})
@@ -131,7 +135,7 @@ func (p *prettyPrinter) printFile(annotations []annotation) {
 	lineRanges := lineRanges(annotations)
 
 	// digits in the biggest line number
-	p.maxLineDigits = numDigits(lineRanges[len(lineRanges)-1].end)
+	p.maxLineDigits = numDigits(lineRanges[len(lineRanges)-1].end - 1)
 
 	// if the file being printed contains the error annotation
 	var errFile bool
@@ -140,6 +144,11 @@ func (p *prettyPrinter) printFile(annotations []annotation) {
 			errFile = true
 			break
 		}
+	}
+
+	if !errFile {
+		p.sb.WriteString(strings.Repeat(" ", p.maxLineDigits+1))
+		p.colored("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n", color.Faint)
 	}
 
 	p.sb.WriteString(strings.Repeat(" ", p.maxLineDigits))
@@ -152,8 +161,8 @@ func (p *prettyPrinter) printFile(annotations []annotation) {
 			p.sb.WriteString(strconv.Itoa(p.err.ErrorAnnotation.Line))
 			p.sb.WriteByte(':')
 			p.sb.WriteString(strconv.Itoa(p.err.ErrorAnnotation.Start))
-			p.sb.WriteByte('\n')
 		}
+		p.sb.WriteByte('\n')
 	}, color.Bold, color.Faint)
 
 	for i, lr := range lineRanges {

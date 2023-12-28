@@ -1,13 +1,13 @@
 package parse
 
 import (
+	"errors"
 	"regexp"
-	"sort"
 	"strconv"
 	"strings"
 
 	"github.com/mavolin/corgi/file"
-	"github.com/mavolin/corgi/fileerr"
+	"github.com/mavolin/corgi/file/fileerr"
 	"github.com/mavolin/corgi/parse/internal"
 )
 
@@ -23,41 +23,37 @@ import (
 // Callers are expected to set the Name, Module, PathInModule, and AbsolutePath
 // of the returned file themselves.
 //
-// By default, Name is set to "parse", so if you print any errors without
+// By default, Name is set to "bytedata", so if you print any errors without
 // updating Name, this will be used as filename in the error message.
 func Parse(input []byte) (*file.File, error) {
 	lines := strings.Split(string(input), "\n")
 	for i, line := range lines {
-		if len(line) > 0 && line[len(line)-1] == '\r' {
-			lines[i] = line[:len(line)-1]
+		last := len(line) - 1
+		if len(line) > 0 && line[last] == '\r' {
+			lines[i] = line[:last]
 		}
 	}
 
 	fi, err := internal.Parse("bytedata", input, internal.GlobalStore("lines", lines))
 
-	f, ok := fi.(*file.File)
-	if ok {
-		f.Name = "parse"
-		f.Raw = string(input)
-		f.Lines = lines
-	} else {
-		f = &file.File{
-			Name:  "parse",
-			Raw:   string(input),
-			Lines: lines,
-		}
+	f, _ := fi.(*file.File)
+	if f == nil {
+		f = new(file.File)
 	}
+	f.Name = "parse"
+	f.Raw = string(input)
+	f.Lines = lines
 
-	errList, ok := err.(internal.ErrList) //nolint: errorlint
-	if !ok {
+	var errList internal.ErrList
+	if !errors.As(err, &errList) {
 		return f, err
 	}
 
 	corgierrList := make(fileerr.List, len(errList))
 
 	for i, err := range errList {
-		parserErr, ok := err.(*internal.ParserError) //nolint: errorlint
-		if !ok {
+		var parserErr *internal.ParserError
+		if !errors.As(err, &parserErr) {
 			corgierrList[i] = &fileerr.Error{
 				Message: err.Error(),
 				ErrorAnnotation: fileerr.Annotation{
@@ -69,10 +65,11 @@ func Parse(input []byte) (*file.File, error) {
 					Lines:        []string{""},
 				},
 			}
+			continue
 		}
 
-		cerr, ok := parserErr.Inner.(*fileerr.Error) //nolint: errorlint
-		if !ok {
+		var cerr *fileerr.Error
+		if !errors.As(parserErr.Inner, &cerr) {
 			cerr = parserErrorToCorgiError(lines, parserErr)
 		}
 
@@ -84,7 +81,6 @@ func Parse(input []byte) (*file.File, error) {
 		corgierrList[i] = cerr
 	}
 
-	sort.Sort(corgierrList)
 	return f, corgierrList
 }
 
@@ -138,7 +134,6 @@ func parserErrorToCorgiError(lines []string, perr *internal.ParserError) *fileer
 	return &fileerr.Error{
 		Message: matches[msg],
 		ErrorAnnotation: fileerr.Annotation{
-			File:         nil,
 			ContextStart: lineNum,
 			ContextEnd:   lineNum + 1,
 			Line:         lineNum,

@@ -14,12 +14,10 @@ type Body interface {
 // Scope
 // ======================================================================================
 
-// A Scope represents a level of indentation.
-// Every Component available inside a scope is also available in its child scopes.
 type Scope struct {
-	// Items contains the items in this scope.
-	Items          []ScopeItem
-	LBrace, RBrace Position
+	LBrace Position
+	Items  []ScopeItem
+	RBrace Position
 }
 
 func (s Scope) Pos() Position { return s.LBrace }
@@ -42,13 +40,11 @@ type ScopeItem interface {
 type BadItem struct {
 	// Line contains the entire bad line, excluding leading whitespace.
 	Line string
-	// Body contains the body of the item, if it has any.
-	Body Body
+	Body Body // may be nil
 	Position
 }
 
-func (BadItem) _scopeItem()       {}
-func (BadItem) _importScopeItem() {}
+func (BadItem) _scopeItem() {}
 
 // ============================================================================
 // CorgiComment
@@ -56,7 +52,7 @@ func (BadItem) _importScopeItem() {}
 
 // CorgiComment represents a comment that is not printed.
 type CorgiComment struct {
-	Text string
+	Comment string
 	Position
 }
 
