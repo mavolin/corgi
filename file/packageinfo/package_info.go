@@ -10,7 +10,7 @@ import (
 )
 
 // Filename is the conventional filename for the package info file.
-const Filename = "package.corgi"
+const Filename = "corgi.pkg"
 
 // Read reads a [Package] file from the given reader.
 //
@@ -26,7 +26,7 @@ func Read(r io.Reader) (*Package, error) {
 	return &p, nil
 }
 
-func ReadBytes(b []byte) (*Package, error) {
+func Unmarshal(b []byte) (*Package, error) {
 	return Read(bytes.NewReader(b))
 }
 
@@ -36,7 +36,7 @@ func Write(w io.Writer, p Package) error {
 	return enc.Encode(p)
 }
 
-func WriteBytes(p Package) ([]byte, error) {
+func Marshal(p Package) ([]byte, error) {
 	var buf bytes.Buffer
 	err := Write(&buf, p)
 	if err != nil {

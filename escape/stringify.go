@@ -15,6 +15,8 @@ var stringerType = reflect.TypeOf((*fmt.Stringer)(nil)).Elem()
 // val may also be a pointer to any of the above types, or a type approximation,
 // i.e. satisfy interface{ ~string }, interface{ ~int }, etc.
 //
+// Booleans are printed as the empty string.
+//
 // If val is nil or dereferences to nil, Stringify returns "".
 //
 // If Stringify can't print a value, i.e. val is of an unsupported type,
@@ -26,7 +28,7 @@ func Stringify(val any) (string, error) {
 }
 
 func stringify(val any, escaper func(string) string) (string, error) {
-	// for the types in the switch, this is faster than using reflect directly:
+	// although negligible small, the switch is a bit faster than using reflect
 	// string: 2ns vs 13ns
 	// uint64: 12ns vs 15ns
 	// *string: 7ns vs 24ns

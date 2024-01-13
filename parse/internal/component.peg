@@ -2,16 +2,18 @@
 // Component
 // ======================================================================================
 
-Component <- "comp" nameI:componentName _* paramsI:componentParamList bodyI:Body {
-    params := optCast[file.Component](paramsI)
-    return file.Component{
-        Name:     nameI.(file.Ident),
-        LParen:   params.LParen,
-        Params:   params.Params,
-        RParen:   params.RParen,
-        Body:     optCast[file.Body](bodyI),
-        Position: pos(c),
-    }, nil
+Component <- "comp" nameI:componentName _* typeParamsI:componentTypeParamList? _* paramsI:componentParamList bodyI:Body {
+    comp := paramsI.(file.Component)
+    comp.Name = nameI.(file.Ident)
+
+    typeParams := optCast[file.Component](typeParamsI)
+    comp.LBracket = typeParams.LBracket
+    comp.TypeParams = typeParams.TypeParams
+    comp.RBracket = typeParams.RBracket
+
+    comp.Body = optCast[file.Body](bodyI)
+    comp.Position = pos(c)
+    return comp, nil
 }
 
 componentName <- _+ identI:Ident {
@@ -20,6 +22,49 @@ componentName <- _+ identI:Ident {
     return invalidIdent(c, "component", startI.(file.Position), concat(identI))
 } / POS {
     return missingIdent(c, "component", "`comp foo()`", 1)
+}
+
+componentTypeParamList <- indexStart paramsI:typeParams? rBracketI:componentTypeParamListEnd {
+    return file.Component{
+        LBracket:   ptr(pos(c)),
+        TypeParams: optCast[[]file.TypeParam](paramsI),
+        RBracket:   ptr(rBracketI.(file.Position)),
+    }, nil
+}
+
+componentTypeParamListEnd <- indexEnd / POS {
+    return unclosedList(c, "component type parameters")
+}
+
+typeParams <- firstI:typeParam restI:(_* ',' WS* typeParam)* {
+    return collectList[file.TypeParam](firstI, restI, -1), nil
+}
+
+typeParam <- namesI:typeParamNames posI:POS typeI:typeParamType {
+    return file.TypeParam{
+        Names: namesI.([]file.Ident),
+        Type:  typeI.(file.Type),
+    }, nil
+}
+
+typeParamNames <- firstI:typeParamName restI:(_* ',' WS* typeParamName)* {
+    return collectList[file.Ident](firstI, restI, -1), nil
+}
+
+typeParamName <- Ident / [^\r\n :,)]+ &[:,)] {
+    return invalidIdent(c, "type parameter", pos(c), string(c.text))
+}
+
+typeParamType <- _+ tI:Type {
+    return tI, nil
+} / POS {
+    return file.Type{Position: pos(c)}, &fileerr.Error{
+        Message: "type param: missing type",
+        ErrorAnnotation: anno(c, annotation{
+            Start: pos(c),
+            Annotation: "expected a space and a type",
+        }),
+    }
 }
 
 componentParamList <- listStart paramsI:componentParams? rParenI:componentParamListEnd {
@@ -61,9 +106,9 @@ componentParam <- nameI:componentParamName posI:POS typeI:componentParamType? de
         return p, &fileerr.Error{
             Message: "component parameter: need either a type or a default",
             ErrorAnnotation: anno(c, annotation{
-                Start:       posI.(file.Position),
-                StartOffset: 1,
-                Annotation: "expected either a type or a default",
+                Start:       p.Position,
+                Len:         len(p.Name.Ident),
+                Annotation: "param needs either a type or a default",
             }),
             Suggestions: []fileerr.Suggestion{
                 {Suggestion: "give this parameter a type", Code: "`"+ p.Name.Ident + " string`"},
@@ -187,7 +232,18 @@ componentArgValue <- ':' WS* exprI:Expression {
     }
 }
 
-componentCallBody <- UnderscoreBlockShorthand / Scope / POS { return nil, nil }
+componentCallBody <- _* bI:_componentCallBody { return bI, nil }
+_componentCallBody <- UnderscoreBlockShorthand / Scope / EOC { return nil, nil } / uI:UNEXPECTED endI:EOC {
+    return nil, &fileerr.Error{
+        Message: "unexpected tokens",
+        ErrorAnnotation: anno(c, annotation{
+            Start: pos(c),
+            End:   endI.(file.Position),
+            Annotation: "expected a body or the end of command",
+        }),
+        Example: "`+foo()`\n`+foo() { ... }`\n`+foo() _[ ... ]`\n`+foo() _{ ... }`",
+    }
+}
 
 // ============================================================================
 // Component Underscore Block Shorthand

@@ -6,7 +6,7 @@ Doctype <- "!doctype" behindDoctype {
     return file.Doctype{Position: pos(c)}, nil
 }
 
-behindDoctype <- _* listStart "html" attributeListEnd EOC / startI:POS UNEXPECTED endI:EOC {
+behindDoctype <- _* listStart "html" attributeListEnd EOC / _* startI:POS UNEXPECTED endI:EOC {
     return nil, &fileerr.Error{
         Message: "corgi only permits the HTML5 doctype",
         ErrorAnnotation: anno(c, annotation{

@@ -47,11 +47,11 @@ andAttributes <- AttributeCollection / &EOC {
 // AttributeCollection
 // ======================================================================================
 
-AttributeCollection <- attributeCollectionSpaces? attrsI:(IDShorthand / ClassShorthand / AttributeList)+ {
+AttributeCollection <- attrsI:attributeCollectionItem+ {
     return sliceOf[file.AttributeCollection](attrsI), nil
 }
-attributeCollectionSpaces <- _+ endI:POS {
-    return nil, newUnexpectedTokensErr(c, pos(c), endI.(file.Position), "can't place spaces here")
+attributeCollectionItem <- _* itmI:(IDShorthand / ClassShorthand / AttributeList)  {
+    return itmI, nil
 }
 
 shorthandName <- [^ \t\r\n.#()[\]{};]+ {

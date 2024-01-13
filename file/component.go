@@ -9,6 +9,10 @@ import "github.com/mavolin/corgi/file/packageinfo"
 type Component struct {
 	Name Ident
 
+	LBracket   *Position // nil if no type params
+	TypeParams []TypeParam
+	RBracket   *Position // nil if no type params
+
 	LParen Position
 	Params []ComponentParam
 	RParen Position
@@ -21,6 +25,20 @@ type Component struct {
 }
 
 func (Component) _scopeItem() {}
+
+// ==================================== Type Param =====================================
+
+type TypeParam struct {
+	Names []Ident
+	Type  Type
+}
+
+func (p TypeParam) Pos() Position {
+	if len(p.Names) > 0 {
+		return p.Names[0].Pos()
+	}
+	return InvalidPosition
+}
 
 // ==================================== Component Param =====================================
 
@@ -119,4 +137,4 @@ type UnderscoreBlockShorthand struct {
 	Position
 }
 
-func (UnderscoreBlockShorthand) _scopeItem() {}
+func (UnderscoreBlockShorthand) _body() {}
