@@ -7,7 +7,6 @@ import (
 	"sync"
 
 	"github.com/mavolin/corgi/file"
-	"github.com/mavolin/corgi/file/packageinfo"
 	"github.com/mavolin/corgi/link"
 	"github.com/mavolin/corgi/parse"
 	"github.com/mavolin/corgi/validate"
@@ -144,7 +143,7 @@ func (l *BasicLoader) loadPackage(rawPkg *Package) (*file.Package, error) {
 		}
 	}
 
-	p.Info = packageinfo.Analyze(p)
+	p.Info = file.AnalyzePackage(p)
 
 	linkErr := l.link(p)
 	valErr := validate.Package(p)

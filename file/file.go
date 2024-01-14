@@ -3,8 +3,6 @@ package file
 
 import (
 	"fmt"
-
-	"github.com/mavolin/corgi/file/packageinfo"
 )
 
 type (
@@ -24,7 +22,7 @@ type (
 		// It is specified using the system's separator.
 		AbsolutePath string
 
-		Info *packageinfo.Package // set by linker
+		Info *PackageInfo // set by loader after parsing
 
 		//
 		// FILES
@@ -82,7 +80,7 @@ type (
 		Alias string
 		Path  string
 
-		Info *packageinfo.Package
+		Info *PackageInfo
 		// Package is the package this import resolves to.
 		// Users should not rely on this field being set, as it's usually only
 		// set when a package is recompiled, or is compiled for the first time.

@@ -1,9 +1,7 @@
 package file
 
-import "github.com/mavolin/corgi/file/packageinfo"
-
 // ============================================================================
-// Component
+// ComponentInfo
 // ======================================================================================
 
 type Component struct {
@@ -19,7 +17,7 @@ type Component struct {
 
 	Body Body
 
-	Info *packageinfo.Component // set by linker
+	Info *ComponentInfo // set by linker
 
 	Position
 }
@@ -40,7 +38,7 @@ func (p TypeParam) Pos() Position {
 	return InvalidPosition
 }
 
-// ==================================== Component Param =====================================
+// ==================================== ComponentInfo Param =====================================
 
 // ComponentParam represents a parameter of a Component.
 type ComponentParam struct {
@@ -64,7 +62,7 @@ type ComponentParam struct {
 }
 
 // ============================================================================
-// Component Call
+// ComponentInfo Call
 // ======================================================================================
 
 type ComponentCall struct {
@@ -88,8 +86,8 @@ type ComponentCall struct {
 func (ComponentCall) _scopeItem() {}
 
 type LinkedComponent struct {
-	Package *packageinfo.Package
-	Info    *packageinfo.Component
+	Package *PackageInfo
+	Info    *ComponentInfo
 
 	// File is the file the Component is defined in.
 	//
@@ -105,7 +103,7 @@ type LinkedComponent struct {
 	Component *Component
 }
 
-// =================================== Component Call Arg ===================================
+// =================================== ComponentInfo Call Arg ===================================
 
 type ComponentArg struct {
 	Name  Ident
