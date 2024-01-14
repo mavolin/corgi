@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/mavolin/corgi/file"
+	"github.com/mavolin/corgi/file/typeinfer"
 	"github.com/mavolin/corgi/link"
 	"github.com/mavolin/corgi/parse"
 	"github.com/mavolin/corgi/validate"
@@ -122,25 +123,28 @@ func (l *BasicLoader) loadPackage(rawPkg *Package) (*file.Package, error) {
 		Files:        make([]*file.File, len(rawPkg.Files)),
 	}
 
-	parseErrs := make([]error, 0, len(rawPkg.Files))
+	parseErrs := make([]error, 0, 2*len(rawPkg.Files)+1)
 
 	for i, rawFile := range rawPkg.Files {
 		f, err := parse.Parse(rawFile.Raw)
+		if err != nil {
+			parseErrs = append(parseErrs, err)
+		}
 
 		if f == nil {
 			f = new(file.File)
 		}
+
+		if err = typeinfer.Scope(f, f.Scope); err != nil {
+			parseErrs = append(parseErrs, err)
+		}
+
 		f.Name = rawFile.Name
 		f.Module = rawFile.Module
 		f.PathInModule = rawFile.PathInModule
 		f.AbsolutePath = rawFile.AbsolutePath
 		f.Package = p
 		p.Files[i] = f
-
-		if err != nil {
-			parseErrs = append(parseErrs, err)
-			continue
-		}
 	}
 
 	p.Info = file.AnalyzePackage(p)

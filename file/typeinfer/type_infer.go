@@ -12,24 +12,59 @@ import (
 // Infer can detect int, float, bool, rune, string, and composite literals, as
 // well as the above wrapped in ternary expressions
 //
-// If Infer returns an empty string, it could not identify the type.
+// If Infer returns the empty string, it could not identify the type.
 func Infer(expr file.Expression) string {
-	if len(expr.Expressions) == 0 {
+	if expr == nil {
 		return ""
 	}
 
+	switch expr := expr.(type) {
+	case file.GoCode:
+		return inferGoCode(expr)
+	case file.ChainExpression:
+		return inferChainExpression(expr)
+	}
+
+	return ""
+}
+
+func inferChainExpression(expr file.ChainExpression) string {
+	if t := inferChainExpressionChain(expr); t != "" {
+		return t
+	}
+
+	if expr.Default == nil {
+		return ""
+	}
+
+	return inferGoCode(*expr.Default)
+}
+
+func inferChainExpressionChain(expr file.ChainExpression) string {
+	if len(expr.Chain) == 0 {
+		return ""
+	}
+
+	last := expr.Chain[len(expr.Chain)-1]
+	ta, ok := last.(file.TypeAssertionExpression)
+	if !ok {
+		return ""
+	}
+
+	return ta.Type.String()
+}
+
+func inferGoCode(expr file.GoCode) string {
 	if t := inferLit(expr); t != "" {
 		return t
 	} else if t := inferTypeAssertion(expr); t != "" {
-		return t
-	} else if t := inferTernaryExpression(expr); t != "" {
 		return t
 	}
 
 	return ""
 }
 
-func inferLit(expr file.Expression) string {
+func inferLit(expr file.GoCode) string {
 	if t := inferPrimitiveLit(expr); t != "" {
 		return t
 	} else if t := inferCompositeLit(expr); t != "" {
@@ -51,33 +86,33 @@ var (
 		`)`)
 )
 
-func inferPrimitiveLit(expr file.Expression) string {
-	if _, ok := expr.Expressions[0].(file.StringExpression); ok {
+func inferPrimitiveLit(expr file.GoCode) string {
+	if _, ok := expr.Expressions[0].(file.String); ok {
 		return "string"
 	}
 
-	gexpr, ok := expr.Expressions[0].(file.GoExpression)
+	gexpr, ok := expr.Expressions[0].(file.RawGoCode)
 	if !ok {
 		return ""
 	}
 
-	e := gexpr.Expression
-	if len(e) == 0 {
+	c := gexpr.Code
+	if len(c) == 0 {
 		return ""
 	}
 
 	// using the first rune, we can narrow down the possible types, so we don't
 	// need to run all regexps
-	switch e[0] {
+	switch c[0] {
 	case '+', '-', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.':
-		if numLitRegexp.MatchString(e) {
+		if numLitRegexp.MatchString(c) {
 			return "int"
-		} else if floatLitRegexp.MatchString(e) {
+		} else if floatLitRegexp.MatchString(c) {
 			return "float64"
 		}
 		return ""
 	case 't', 'f':
-		if strings.HasPrefix(e, "true") || strings.HasPrefix(e, "false") {
+		if strings.HasPrefix(c, "true") || strings.HasPrefix(c, "false") {
 			return "bool"
 		}
 		return ""
@@ -94,17 +129,17 @@ var compositeLitRegexp = regexp.MustCompile(`(?i)^(?:` +
 	`[a-z0-9_]+(?: *\. *[a-z0-9_]+)?` + // struct/named array/named map
 	`)`)
 
-func inferCompositeLit(expr file.Expression) string {
-	gexpr, ok := expr.Expressions[0].(file.GoExpression)
+func inferCompositeLit(expr file.GoCode) string {
+	rgc, ok := expr.Expressions[0].(file.RawGoCode)
 	if !ok {
 		return ""
 	}
 
-	e := gexpr.Expression
-	t := compositeLitRegexp.FindString(e)
+	c := rgc.Code
+	t := compositeLitRegexp.FindString(c)
 
-	e = strings.TrimLeft(e[len(t):], " \t")
-	if len(e) == 0 || e[0] != '{' {
+	c = strings.TrimLeft(c[len(t):], " \t")
+	if len(c) == 0 || c[0] != '{' {
 		return ""
 	}
 
@@ -113,31 +148,18 @@ func inferCompositeLit(expr file.Expression) string {
 
 var typeAssertionRegexp = regexp.MustCompile(`(?i)\. *\(([^)]+)\)$`)
 
-func inferTypeAssertion(expr file.Expression) string {
-	gexpr, ok := expr.Expressions[len(expr.Expressions)-1].(file.GoExpression)
+func inferTypeAssertion(expr file.GoCode) string {
+	rgc, ok := expr.Expressions[len(expr.Expressions)-1].(file.RawGoCode)
 	if !ok {
 		return ""
 	}
 
-	e := gexpr.Expression
-	t := typeAssertionRegexp.FindStringSubmatch(e)
+	c := rgc.Code
+	t := typeAssertionRegexp.FindStringSubmatch(c)
 
 	if len(t) != 2 {
 		return ""
 	}
 
 	return t[1]
-}
-
-func inferTernaryExpression(expr file.Expression) string {
-	tern, ok := expr.Expressions[0].(file.TernaryExpression)
-	if !ok {
-		return ""
-	}
-
-	if t := Infer(tern.IfTrue); t != "" {
-		return t
-	}
-
-	return Infer(tern.IfFalse)
 }
