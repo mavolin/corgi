@@ -20,6 +20,7 @@ type (
 )
 
 func (GoCode) _expression()     {}
+func (GoCode) _forExpression()  {}
 func (GoCode) _attributeValue() {}
 
 func (e GoCode) Pos() Position {

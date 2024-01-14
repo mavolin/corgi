@@ -1,5 +1,7 @@
 package file
 
+import "strings"
+
 // ============================================================================
 // Body
 // ======================================================================================
@@ -58,3 +60,26 @@ type CorgiComment struct {
 
 func (CorgiComment) _scopeItem()       {}
 func (CorgiComment) _importScopeItem() {}
+
+func (c CorgiComment) Text() string {
+	return strings.TrimLeft(c.Comment, " \t")
+}
+
+func (c CorgiComment) IsMachineComment() bool {
+	return c.Comment != "" && c.Comment[0] != ' ' && c.Comment[0] != '\t'
+}
+
+func (c CorgiComment) MachineComment() (namespace, directive, args string) {
+	if !c.IsMachineComment() {
+		return "", "", ""
+	}
+
+	namespaceAndDirective, args, _ := strings.Cut(c.Comment, " ")
+
+	var ok bool
+	namespace, directive, ok = strings.Cut(namespaceAndDirective, ":")
+	if !ok {
+		directive, namespace = namespace, ""
+	}
+	return namespace, directive, args
+}

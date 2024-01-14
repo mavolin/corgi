@@ -1,6 +1,7 @@
 package file
 
 type (
+	// Expression is either a [ChainExpression] or [GoCode].
 	Expression interface {
 		_expression()
 		AttributeValue

@@ -1,5 +1,7 @@
 package file
 
+import "strconv"
+
 // ============================================================================
 // Ident
 // ======================================================================================
@@ -32,3 +34,20 @@ type StaticString struct {
 }
 
 func (s StaticString) Pos() Position { return s.Start }
+
+func (s StaticString) Quoted() string {
+	return string(s.Quote) + s.Contents + string(s.Quote)
+}
+
+func (s StaticString) Unquote() string {
+	if s.Quote == '`' {
+		return s.Contents
+	}
+
+	unq, err := strconv.Unquote(`"` + s.Contents + `"`)
+	if err != nil {
+		return ""
+	}
+
+	return unq
+}

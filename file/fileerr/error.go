@@ -1,28 +1,11 @@
 package fileerr
 
 import (
-	"errors"
 	"strconv"
 	"strings"
 
 	"github.com/mavolin/corgi/file"
 )
-
-// As returns a [List] of errors if [errors.As] yields either a List or an
-// [Error].
-func As(err error) List {
-	var eerr *Error
-	if errors.As(err, &eerr) {
-		return List{eerr}
-	}
-
-	var lerr List
-	if errors.As(err, &lerr) {
-		return lerr
-	}
-
-	return nil
-}
 
 type Error struct {
 	Message string

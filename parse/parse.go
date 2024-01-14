@@ -18,8 +18,6 @@ import (
 // Therefore, Parse may return both a non-nil file and an error, indicating
 // that the passed input is erroneous, but could be recovered from.
 //
-// If Parse returns an error, it will always be of type [fileerr.List].
-//
 // Callers are expected to set the Name, Module, PathInModule, and AbsolutePath
 // of the returned file themselves.
 //
@@ -44,44 +42,30 @@ func Parse(input []byte) (*file.File, error) {
 	f.Raw = string(input)
 	f.Lines = lines
 
-	var errList internal.ErrList
-	if !errors.As(err, &errList) {
+	var errs internal.ErrList
+	if !errors.As(err, &errs) {
 		return f, err
 	}
 
-	corgierrList := make(fileerr.List, len(errList))
-
-	for i, err := range errList {
+	for i, err := range errs {
 		var parserErr *internal.ParserError
-		if !errors.As(err, &parserErr) {
-			corgierrList[i] = &fileerr.Error{
-				Message: err.Error(),
-				ErrorAnnotation: fileerr.Annotation{
-					ContextStart: 1,
-					ContextEnd:   2,
-					Start:        1,
-					End:          2,
-					Annotation:   "position unknown",
-					Lines:        []string{""},
-				},
-			}
+		if errors.As(err, &parserErr) {
+			errs[i] = parserErrorToCorgiError(lines, parserErr)
 			continue
 		}
 
 		var cerr *fileerr.Error
 		if !errors.As(parserErr.Inner, &cerr) {
-			cerr = parserErrorToCorgiError(lines, parserErr)
+			continue
 		}
 
 		cerr.ErrorAnnotation.File = f
 		for j := range cerr.HintAnnotations {
 			cerr.HintAnnotations[j].File = f
 		}
-
-		corgierrList[i] = cerr
 	}
 
-	return f, corgierrList
+	return f, errors.Join(errs)
 }
 
 var parserErrorRegexp = regexp.MustCompile(`(\d+):(\d+)( \(\d+\))?: (.+)`)

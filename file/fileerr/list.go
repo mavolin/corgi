@@ -5,45 +5,102 @@ import (
 	"strings"
 )
 
-// List represents a collection of [Error] objects.
-type List []*Error //nolint:errname
+// As collects all [Error] objects represented by err into a slice.
+// All remaining errors are returned as a slice of errors
+func As(err error) ([]*Error, []error) {
+	if err == nil {
+		return nil, nil
+	}
 
-var _ sort.Interface = List(nil)
+	orig := err
 
-// Error calls [Error.Error] for each item in the list, separating them by
-// newlines.
-func (l List) Error() string {
+	for {
+		as, ok := err.(interface{ As(any) bool })
+		var e *Error
+		if ok && as.As(&e) {
+			return []*Error{e}, nil
+		}
+
+		switch x := err.(type) {
+		case interface{ Unwrap() error }:
+			err = x.Unwrap()
+			if err == nil {
+				return nil, nil
+			}
+		case interface{ Unwrap() []error }:
+			var ferrs []*Error
+			var errs []error
+
+			for _, err := range x.Unwrap() {
+				e, e2 := As(err)
+				ferrs = append(ferrs, e...)
+				errs = append(errs, e2...)
+			}
+
+			return ferrs, errs
+		default:
+			return nil, []error{orig}
+		}
+	}
+}
+
+// Pretty calls [Error.Pretty] on each non-nil [Error] in the list, separating each error
+// by two newlines (effectively leaving a single blank line in-between errors).
+//
+// Errors are sorted before being printed.
+//
+// Non [Error] errors are printed last using their Error method.
+func Pretty(err error, o PrettyOptions) string {
+	ferrs, errs := As(err)
+	Sort(ferrs)
+
 	var sb strings.Builder
-	for i, err := range l {
-		if i > 0 {
-			sb.WriteByte('\n')
+	for _, err := range ferrs {
+		if err == nil {
+			continue
+		}
+		sb.WriteString(err.Pretty(o))
+		sb.WriteString("\n\n")
+	}
+
+	for _, err := range errs {
+		if err == nil {
+			continue
 		}
 		sb.WriteString(err.Error())
+		sb.WriteString("\n\n")
 	}
 
-	return sb.String()
+	s := sb.String()
+	if len(s) > 0 {
+		s = s[:len(s)-2]
+	}
+	return s
 }
 
-// Pretty calls [Error.Pretty] on each item in the list, separating each error
-// by two newlines (effectively leaving a single blank line in-between errors).
-func (l List) Pretty(o PrettyOptions) string {
-	var sb strings.Builder
-	for i, err := range l {
-		if i > 0 {
-			sb.WriteString("\n\n")
-		}
+// Sort sorts the list of errors by file name, line number, and column number.
+func Sort(errs []*Error) {
+	sort.Sort(list(errs))
+}
 
-		sb.WriteString(err.Pretty(o))
+type list []*Error
+
+var _ sort.Interface = list(nil)
+
+func (l list) Len() int { return len(l) }
+
+func (l list) Less(i, j int) bool {
+	a, b := l[i].ErrorAnnotation, l[j].ErrorAnnotation
+
+	aMod := a.File.Module + "/" + a.File.PathInModule
+	bMod := b.File.Module + "/" + b.File.PathInModule
+	if aMod != bMod {
+		return aMod < bMod
+	} else if a.Line != b.Line {
+		return a.Line < b.Line
 	}
 
-	return sb.String()
+	return a.Start < b.Start
 }
 
-func (l List) Len() int { return len(l) }
-
-func (l List) Less(i, j int) bool {
-	return l[i].ErrorAnnotation.Line < l[j].ErrorAnnotation.Line ||
-		(l[i].ErrorAnnotation.Line == l[j].ErrorAnnotation.Line && l[i].ErrorAnnotation.Start < l[j].ErrorAnnotation.Start)
-}
-
-func (l List) Swap(i, j int) { l[i], l[j] = l[j], l[i] }
+func (l list) Swap(i, j int) { l[i], l[j] = l[j], l[i] }
