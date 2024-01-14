@@ -109,5 +109,5 @@ var (
 	}
 
 	// https://htmx.org/extensions/response-targets/
-	htmxResponseTargetsRegexp = regexp.MustCompile(`^hx-target-(?:error|\*|[1-5]\d?(?:\*|\d))$`)
+	htmxResponseTargetsRegexp = regexp.MustCompile(`^hx-target-(?:error|\*|[1-5](?:\d\d|\d?\*))$`)
 )

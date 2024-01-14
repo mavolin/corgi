@@ -4,14 +4,16 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+
+	"github.com/mavolin/corgi/escape/safe"
 )
 
 var stringerType = reflect.TypeOf((*fmt.Stringer)(nil)).Elem()
 
 // Stringify converts the passed value to a string.
 //
-// It accepts values of type string, all ints, uints and floats, and
-// [fmt.Stringer].
+// It accepts values of type string, all ints, uints and floats,
+// [fmt.Stringer], and [safe.Fragment].
 // val may also be a pointer to any of the above types, or a type approximation,
 // i.e. satisfy interface{ ~string }, interface{ ~int }, etc.
 //
@@ -77,6 +79,12 @@ func stringify(val any, escaper func(string) string) (string, error) {
 		return strconv.FormatUint(val, 10), nil
 	case uint:
 		return strconv.FormatUint(uint64(val), 10), nil
+	case safe.Escaped:
+		// this is a safe.Fragment that isn't trusted in the current context
+		if escaper != nil {
+			return escaper(val.Escaped()), nil
+		}
+		return val.Escaped(), nil
 
 	// most common elem types as ptrs (excl. fmt.Stringer)
 	case *string:

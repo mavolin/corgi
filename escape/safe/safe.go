@@ -73,6 +73,10 @@ import "strings"
 const UnsafeReplacement = "ZcorgiZ"
 
 type (
+	Escaped interface {
+		Escaped() string
+	}
+
 	// Fragment is an interface fulfilled by all safe types.
 	Fragment interface {
 		bodyFragment | attrFragment
