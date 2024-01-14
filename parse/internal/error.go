@@ -67,7 +67,7 @@ func unclosedIndex(c *current, listName string) (file.Position, error) {
 func unclosedParen(c *current, open, close string) (file.GoCodeItem, error) {
 	start := popStart(c)
 	return nil, &fileerr.Error{
-		Message: "expression: unclosed `" + open + "`",
+		Message: "go code: unclosed `" + open + "`",
 		ErrorAnnotation: anno(c, annotation{
 			ContextLen: 3,
 			Start:      start,

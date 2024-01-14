@@ -49,13 +49,13 @@ func Parse(input []byte) (*file.File, error) {
 
 	for i, err := range errs {
 		var parserErr *internal.ParserError
-		if errors.As(err, &parserErr) {
-			errs[i] = parserErrorToCorgiError(lines, parserErr)
+		if !errors.As(err, &parserErr) {
 			continue
 		}
 
 		var cerr *fileerr.Error
 		if !errors.As(parserErr.Inner, &cerr) {
+			errs[i] = parserErrorToCorgiError(lines, parserErr)
 			continue
 		}
 
@@ -63,9 +63,11 @@ func Parse(input []byte) (*file.File, error) {
 		for j := range cerr.HintAnnotations {
 			cerr.HintAnnotations[j].File = f
 		}
+
+		errs[i] = cerr
 	}
 
-	return f, errors.Join(errs)
+	return f, errors.Join(errs...)
 }
 
 var parserErrorRegexp = regexp.MustCompile(`(\d+):(\d+)( \(\d+\))?: (.+)`)

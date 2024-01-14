@@ -15,6 +15,11 @@ func As(err error) ([]*Error, []error) {
 	orig := err
 
 	for {
+		ferr, ok := err.(*Error) //nolint:errorlint
+		if ok {
+			return []*Error{ferr}, nil
+		}
+
 		as, ok := err.(interface{ As(any) bool })
 		var e *Error
 		if ok && as.As(&e) {
@@ -32,9 +37,13 @@ func As(err error) ([]*Error, []error) {
 			var errs []error
 
 			for _, err := range x.Unwrap() {
-				e, e2 := As(err)
-				ferrs = append(ferrs, e...)
-				errs = append(errs, e2...)
+				ferr, stErr := As(err)
+				ferrs = append(ferrs, ferr...)
+				errs = append(errs, stErr...)
+			}
+
+			if len(ferrs) == 0 {
+				return nil, []error{orig}
 			}
 
 			return ferrs, errs
