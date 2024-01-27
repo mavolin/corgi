@@ -73,13 +73,13 @@ goImaginaryLit <- (goDecimalDigits / goIntLit / goFloatLit) 'i'
 //
 
 goRuneLit <- '\'' (goRuneUnicodeValue / goByteValue / goRecoverRuneEscape) '\'' /
-    '\'' valsI:(goRuneUnicodeValue / goByteValue / goRecoverRuneEscape)* '\'' endPosI:POS {
+    '\'' valsI:(goRuneUnicodeValue / goByteValue / goRecoverRuneEscape)* '\'' endI:POS {
         valIs := slice(valsI)
         return c.text, &fileerr.Error{
             Message: "rune literals may not contain multiple or zero characters",
             ErrorAnnotation: anno(c, annotation{
                 Start: pos(c),
-                End: endPosI.(file.Position),
+                End: *endI.(*ast.Position),
                 Annotation: "should contain only a single character or escape sequence",
             }),
             Suggestions: []fileerr.Suggestion{

@@ -1,4 +1,4 @@
-package file
+package ast
 
 import "strconv"
 
@@ -8,9 +8,13 @@ import "strconv"
 
 // Ident represents a Go identifier.
 type Ident struct {
-	Ident string
-	Position
+	Ident    string
+	Position Position
 }
+
+var _ Poser = (*Ident)(nil)
+
+func (ident *Ident) Pos() Position { return ident.Position }
 
 // ============================================================================
 // Type
@@ -18,28 +22,35 @@ type Ident struct {
 
 // Type represents the name or definition of a Go type.
 type Type struct {
-	Type string
-	Position
+	Type     string
+	Position Position
 }
+
+var _ Poser = (*Type)(nil)
+
+func (t *Type) Pos() Position { return t.Position }
 
 // ============================================================================
 // Static String
 // ======================================================================================
 
+// StaticString represents a string literal without any interpolation.
 type StaticString struct {
 	Start    Position
 	Quote    rune
 	Contents string
-	End      Position
+	End      *Position
 }
 
-func (s StaticString) Pos() Position { return s.Start }
+var _ Poser = (*StaticString)(nil)
 
-func (s StaticString) Quoted() string {
+func (s *StaticString) Pos() Position { return s.Start }
+
+func (s *StaticString) Quoted() string {
 	return string(s.Quote) + s.Contents + string(s.Quote)
 }
 
-func (s StaticString) Unquote() string {
+func (s *StaticString) Unquote() string {
 	if s.Quote == '`' {
 		return s.Contents
 	}

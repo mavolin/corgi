@@ -17,17 +17,19 @@ Body <- _* bodyI:body {
         },
     }
 } / _* startI:POS [^\r\n;[{}]* endI:POS &[[{] bodyI:body {
-    return bodyI, newUnexpectedTokensErr(c, startI.(file.Position), endI.(file.Position), "unexpected tokens")
+    return bodyI, newUnexpectedTokensErr(c, *startI.(*ast.Position), *endI.(*ast.Position), "unexpected tokens")
 } / _* startI:POS UNEXPECTED endI:EOC {
-    return nil, newUnexpectedTokensErr(c, startI.(file.Position), endI.(file.Position), "expected a body")
+    return nil, newUnexpectedTokensErr(c, *startI.(*ast.Position), *endI.(*ast.Position), "expected a body")
 }
 
-OptionalBody <- _* body / EOC {
+OptionalBody <- _* bodyI:body {
+    return bodyI, nil
+} / EOC {
     return nil, nil
 } / _* startI:POS [^\r\n;[{}]+ endI:POS &[[{] bodyI:body {
-    return bodyI, newUnexpectedTokensErr(c, startI.(file.Position), endI.(file.Position), "unexpected tokens")
+    return bodyI, newUnexpectedTokensErr(c, *startI.(*ast.Position), *endI.(*ast.Position), "unexpected tokens")
 } / _* startI:POS UNEXPECTED endI:EOC {
-    return nil, newUnexpectedTokensErr(c, startI.(file.Position), endI.(file.Position), "expected a body, or nothing")
+    return nil, newUnexpectedTokensErr(c, *startI.(*ast.Position), *endI.(*ast.Position), "expected a body, or nothing")
 }
 
 body <- Scope / BracketText
@@ -36,43 +38,48 @@ body <- Scope / BracketText
 // Scope
 // ======================================================================================
 
-GlobalScope <- itmsI:globalScopeItem* {
-    return file.Scope{Items: sliceOf[file.ScopeItem](itmsI)}, nil
+GlobalScope <- scopeStart itmsI:globalScopeItem* rBraceI:scopeEnd {
+    return &ast.Scope{
+        LBrace: pos(c),
+        Items:  sliceOf[ast.ScopeItem](itemsI),
+        RBrace: rBraceI.(*ast.Position),
+    }, nil
 }
 
 globalScopeItem <- WS* itmI:(LoneBrace / Import / State / Component / GlobalCode) {
     return itmI, nil
 }
 
-Scope <- scopeStart itemsI:scopeItem* rBraceI:scopeEnd {
-    return file.Scope{
+Scope <- scopeStart itemsI:ScopeItem* rBraceI:scopeEnd {
+    return &ast.Scope{
         LBrace: pos(c),
-        Items:  sliceOf[file.ScopeItem](itemsI),
-        RBrace: rBraceI.(file.Position),
+        Items:  sliceOf[ast.ScopeItem](itemsI),
+        RBrace: rBraceI.(*ast.Position),
     }, nil
 }
 
-scopeItem <- WS* !'}' itmI:(
-    And /                                         // attribute.peg
-    CorgiComment /                                // body.peg
-    Code / Return / Continue / Break /            // code.peg
-    ComponentCall / Block /                       // component.peg
-    If / Switch / For /                           // control_structures.peg
-    HTMLComment / And / RawElement / Doctype /    // element.peg, excl. Element, which is last
-    ArrowBlock /                                  // text.peg
-
-    Element /  // needs to come last
-    BadItem
-) {
+ScopeItem <- WS* !'}' itmI:(ValidScopeItem / BadItem) {
     return itmI, nil
 }
+
+ValidScopeItem <- WS* itmI:validScopeItem {
+    return itmI, nil
+}
+validScopeItem <- And /                                         // attribute.peg
+                  DevComment /                                // body.peg
+                  Code / Return / Continue / Break /            // code.peg
+                  ComponentCall / Block /                       // component.peg
+                  If / Switch / For /                           // control_structures.peg
+                  HTMLComment / And / RawElement / Doctype /    // element.peg, excl. Element, which is last
+                  ArrowBlock /                                  // text.peg
+                  Element                                       // needs to come last
 
 // ============================================================================
 // Lone Brace
 // ======================================================================================
 
 LoneBrace <- R_BRACE {
-    return file.BadItem{
+    return &ast.BadItem{
         Line:     "}",
         Position: pos(c),
     }, &fileerr.Error{
@@ -97,30 +104,32 @@ BadItem <- reservedBadItem / lineI:(!(_* [\r\n;{}]) [^\r\n;{}])+ bodyI:OptionalB
         firstWordLen = len([]rune(line))
     }
 
-    return file.BadItem{
+    return &ast.BadItem{
         Line:     line,
-        Body:     optCast[file.Scope](bodyI),
+        Body:     optCast[ast.Body](bodyI),
         Position: pos(c),
     }, &fileerr.Error{
         Message: "unrecognized directive or invalid element name",
         ErrorAnnotation: anno(c, annotation{
             Start:      pos(c),
             Len:        firstWordLen,
-            Annotation: "expected a valid corgi directive or an element name",
+            Annotation: "expected a valid directive or an element name",
         }),
         Suggestions: []fileerr.Suggestion{
             {Suggestion: "if this is supposed to be an element name, make sure it conforms to the HTML spec"},
             {Suggestion: "if this is Go code and you didn't misspell, it needs the `-` code prefix"},
             {
-                Suggestion: "use a valid corgi directive",
+                Suggestion: "use a valid directive",
                 ShouldBe: "a block (`block`), code (`-`), a conditional (`if`, `else if`, `else`, `switch`),\n" +
                     "a loop (`for`), & attributes (`&`), a component call (`+`), an arrow block (`>`)",
             },
         },
     }
-} / _* &[[{] bodyI:Body {
-    return file.BadItem{
-        Body:     optCast[file.Scope](bodyI),
+} / LoneBody
+
+LoneBody <- _* &[[{] bodyI:Body {
+    return &ast.BadItem{
+        Body:     optCast[ast.Body](bodyI),
         Position: pos(c),
     }, &fileerr.Error{
         Message: "lone body",
@@ -132,7 +141,7 @@ BadItem <- reservedBadItem / lineI:(!(_* [\r\n;{}]) [^\r\n;{}])+ bodyI:OptionalB
             {Suggestion: "if this belongs to a directive, make sure it starts on the same line"},
             {Suggestion: "if this is Go code and you didn't misspell, it needs the `-` code prefix"},
             {
-                Suggestion: "place a corgi directive requiring a body in front",
+                Suggestion: "place a directive requiring a body in front",
                 ShouldBe: "a block (`block`), a conditional (`if`, `else if`, `else`),\n" +
                     "a loop (`for`), a component call (`+`)",
             },
@@ -140,21 +149,21 @@ BadItem <- reservedBadItem / lineI:(!(_* [\r\n;{}]) [^\r\n;{}])+ bodyI:OptionalB
     }
 }
 
-reservedBadItem <- RESERVED reservedEndI:POS _* UNEXPECTED? endI:POS bodyI:OptionalBody {
-    return file.BadItem{
+reservedBadItem <- RESERVED endI:POS _* UNEXPECTED? EOC {
+    return &ast.BadItem{
         Line:     string(c.globalStore["lines"].([]string)[pos(c).Line-1]),
-        Body:     optCast[file.Scope](bodyI),
+        Body:     optCast[ast.Body](bodyI),
         Position: pos(c),
     }, &fileerr.Error{
         Message: "potential use of reserved word",
         ErrorAnnotation: anno(c, annotation{
             Start:      pos(c),
-            End:        reservedEndI.(file.Position),
+            End:        *endI.(*ast.Position),
             EndOffset:  -1,
             Annotation: "cannot use reserved word",
         }),
         Suggestions: []fileerr.Suggestion{
-            {Suggestion: "if this is supposed to be an element, you need to use a different name"},
+            {Suggestion: "if this is supposed to be an element, uppercase the first letter"},
             {Suggestion: "if this is Go code, you are seeing this error because you have a syntax error"},
         },
     }
@@ -164,8 +173,8 @@ reservedBadItem <- RESERVED reservedEndI:POS _* UNEXPECTED? endI:POS bodyI:Optio
 // Comment
 // ======================================================================================
 
-CorgiComment <- "//" !'-' textI:(!EOL .) EOL {
-    return file.CorgiComment{
+DevComment <- "//" !'-' textI:(!EOL .) EOL {
+    return &ast.DevComment{
         Comment:  concat(textI),
         Position: pos(c),
     }, nil

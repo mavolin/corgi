@@ -7,22 +7,21 @@ import (
 	"strings"
 
 	"github.com/mavolin/corgi/file"
+	"github.com/mavolin/corgi/file/ast"
 	"github.com/mavolin/corgi/file/fileerr"
 	"github.com/mavolin/corgi/parse/internal"
 )
 
-// Parse parses the given input file and returns the generated [file.File].
+// Parse parses the given input file and returns a [file.File] with its AST set.
+// The remaining fields of the returned file are left empty and are expected to
+// be set by the caller.
 //
-// If it encounters any syntax errors, it attempts to recover from them and
-// resume parsing.
+// Parse can recover from errors and will continue parsing if it encounters any
+// syntax errors.
 // Therefore, Parse may return both a non-nil file and an error, indicating
 // that the passed input is erroneous, but could be recovered from.
 //
-// Callers are expected to set the Name, Module, PathInModule, and AbsolutePath
-// of the returned file themselves.
-//
-// By default, Name is set to "bytedata", so if you print any errors without
-// updating Name, this will be used as filename in the error message.
+// Parse guarantees that the returned error is either nil or [fileerr.List].
 func Parse(input []byte) (*file.File, error) {
 	lines := strings.Split(string(input), "\n")
 	for i, line := range lines {
@@ -32,20 +31,19 @@ func Parse(input []byte) (*file.File, error) {
 		}
 	}
 
-	fi, err := internal.Parse("bytedata", input, internal.GlobalStore("lines", lines))
+	aI, err := internal.Parse("bytedata", input, internal.GlobalStore("lines", lines))
 
-	f, _ := fi.(*file.File)
-	if f == nil {
-		f = new(file.File)
+	a, _ := aI.(*ast.AST)
+	if a == nil {
+		a = new(ast.AST)
 	}
-	f.Name = "parse"
-	f.Raw = string(input)
-	f.Lines = lines
+	a.Raw = string(input)
+	a.Lines = lines
+
+	f := &file.File{AST: a}
 
 	var errs internal.ErrList
-	if !errors.As(err, &errs) {
-		return f, err
-	}
+	errors.As(err, &errs)
 
 	for i, err := range errs {
 		var parserErr *internal.ParserError
@@ -55,8 +53,7 @@ func Parse(input []byte) (*file.File, error) {
 
 		var cerr *fileerr.Error
 		if !errors.As(parserErr.Inner, &cerr) {
-			errs[i] = parserErrorToCorgiError(lines, parserErr)
-			continue
+			cerr = parserErrorToCorgiError(lines, parserErr)
 		}
 
 		cerr.ErrorAnnotation.File = f

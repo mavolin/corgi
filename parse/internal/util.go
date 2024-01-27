@@ -3,16 +3,15 @@ package internal
 import (
 	"fmt"
 	"strings"
-	"unicode/utf8"
 
-	"github.com/mavolin/corgi/file"
+	"github.com/mavolin/corgi/file/ast"
 	"github.com/mavolin/corgi/file/fileerr"
 	anno2 "github.com/mavolin/corgi/internal/anno"
 )
 
-// pos returns the position of the current state as a [file.Position].
-func pos(c *current) file.Position {
-	return file.Position{
+// pos returns the position of the current state as a [ast.Position].
+func pos(c *current) ast.Position {
+	return ast.Position{
 		Line: c.pos.line,
 		Col:  c.pos.col,
 	}
@@ -49,43 +48,6 @@ func getTuple[T any](iface any, index int) T {
 	}
 
 	return s[index].(T)
-}
-
-func optGetTuple[T any](iface any, index int) T {
-	s, ok := iface.([]any)
-	if !ok {
-		var zero T
-		return zero
-	}
-
-	if index < 0 {
-		index = len(s) + index
-	}
-
-	if index < len(s) {
-		return s[index].(T)
-	}
-
-	var zero T
-	return zero
-}
-
-func optGetTuplePtr[T any](iface any, index int) *T {
-	s, ok := iface.([]any)
-	if !ok {
-		return nil
-	}
-
-	if index < 0 {
-		index = len(s) + index
-	}
-
-	if index < len(s) {
-		t := s[index].(T)
-		return &t
-	}
-
-	return nil
 }
 
 func getTuples[T any](tuplesI any, index int) []T {
@@ -135,23 +97,6 @@ func optCast[T any](iface any) T {
 	return zero
 }
 
-func ptr[T any](t T) *T {
-	return &t
-}
-
-func optCastPtr[T any](iface any) *T {
-	if casted, ok := iface.(T); ok {
-		return &casted
-	}
-
-	return (*T)(nil)
-}
-
-func firstRune(iface any) rune {
-	c, _ := utf8.DecodeRune(iface.([]byte))
-	return c
-}
-
 // concat concatenates all elements captured by an expression.
 //
 // It assumes iface is either a []byte or a []any that, recursively,
@@ -198,16 +143,16 @@ func anno(c *current, aw annotation) fileerr.Annotation {
 // ======================================================================================
 
 //nolint:unparam
-func combineGoCode(exprsI any) file.GoCode {
+func combineGoCode(exprsI any) *ast.GoCode {
 	exprIs := slice(exprsI)
 	exprs := combineGoCodeSlice(exprIs)
 	exprs = exprs[:len(exprs):len(exprs)]
-	return file.GoCode{Expressions: exprs}
+	return &ast.GoCode{Expressions: exprs}
 }
 
-func combineGoCodeSlice(exprIs []any) []file.GoCodeItem {
-	exprs := make([]file.GoCodeItem, 0, 16)
-	var prevGoCode *file.RawGoCode
+func combineGoCodeSlice(exprIs []any) []ast.GoCodeItem {
+	exprs := make([]ast.GoCodeItem, 0, 16)
+	var prevGoCode *ast.RawGoCode
 
 	for _, eI := range exprIs {
 		if eI == nil {
@@ -219,41 +164,41 @@ func combineGoCodeSlice(exprIs []any) []file.GoCodeItem {
 			subExprs := combineGoCodeSlice(expr)
 			if prevGoCode != nil {
 				if len(subExprs) > 0 {
-					if c, ok := subExprs[0].(file.RawGoCode); ok {
+					if c, ok := subExprs[0].(*ast.RawGoCode); ok {
 						prevGoCode.Code += c.Code
 						subExprs = subExprs[1:]
 					}
 				}
 				if len(subExprs) > 0 { // if there are still subExprs left
-					exprs = append(exprs, *prevGoCode)
+					exprs = append(exprs, prevGoCode)
 					prevGoCode = nil
 				}
 			}
 
 			if len(subExprs) > 0 {
-				if c, ok := subExprs[len(subExprs)-1].(file.RawGoCode); ok {
-					prevGoCode = &c
+				if c, ok := subExprs[len(subExprs)-1].(*ast.RawGoCode); ok {
+					prevGoCode = c
 					subExprs = subExprs[:len(subExprs)-1]
 				}
 			}
 
 			exprs = append(exprs, subExprs...)
-		case file.RawGoCode:
+		case *ast.RawGoCode:
 			if prevGoCode == nil {
-				prevGoCode = &expr
+				prevGoCode = expr
 			} else {
 				prevGoCode.Code += expr.Code
 			}
-		case file.String:
+		case *ast.String:
 			if prevGoCode != nil {
-				exprs = append(exprs, *prevGoCode)
+				exprs = append(exprs, prevGoCode)
 				prevGoCode = nil
 			}
 
 			exprs = append(exprs, expr)
-		case file.BlockFunction:
+		case *ast.BlockFunction:
 			if prevGoCode != nil {
-				exprs = append(exprs, *prevGoCode)
+				exprs = append(exprs, prevGoCode)
 				prevGoCode = nil
 			}
 
@@ -264,28 +209,28 @@ func combineGoCodeSlice(exprIs []any) []file.GoCodeItem {
 	}
 
 	if prevGoCode != nil {
-		exprs = append(exprs, *prevGoCode)
+		exprs = append(exprs, prevGoCode)
 	}
 
 	return exprs
 }
 
-func chainExprItmsCheck(itms []file.ChainExpressionItem) bool {
+func chainExprItmsCheck(itms []ast.ChainExpressionItem) bool {
 	for _, itm := range itms {
 		switch itm := itm.(type) {
-		case file.IndexExpression:
+		case *ast.IndexExpression:
 			if itm.CheckValue || itm.CheckIndex {
 				return true
 			}
-		case file.DotIdentExpression:
+		case *ast.DotIdentExpression:
 			if itm.Check {
 				return true
 			}
-		case file.ParenExpression:
+		case *ast.ParenExpression:
 			if itm.Check {
 				return true
 			}
-		case file.TypeAssertionExpression:
+		case *ast.TypeAssertionExpression:
 			if itm.Check {
 				return true
 			}

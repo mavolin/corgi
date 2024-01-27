@@ -1,12 +1,12 @@
 package internal
 
 import (
-	"github.com/mavolin/corgi/file"
+	"github.com/mavolin/corgi/file/ast"
 	"github.com/mavolin/corgi/file/fileerr"
 )
 
-func invalidIdent(c *current, name string, start file.Position, ident string) (file.Ident, error) {
-	return file.Ident{
+func invalidIdent(c *current, name string, start ast.Position, ident string) (*ast.Ident, error) {
+	return &ast.Ident{
 			Ident:    ident,
 			Position: start,
 		}, &fileerr.Error{
@@ -20,8 +20,8 @@ func invalidIdent(c *current, name string, start file.Position, ident string) (f
 		}
 }
 
-func missingIdent(c *current, name, example string, startOffset int) (file.Ident, error) {
-	return file.Ident{Position: pos(c)}, &fileerr.Error{
+func missingIdent(c *current, name, example string, startOffset int) (*ast.Ident, error) {
+	return &ast.Ident{Position: pos(c)}, &fileerr.Error{
 		Message: name + ": missing name",
 		ErrorAnnotation: anno(c, annotation{
 			Start:       pos(c),
@@ -32,7 +32,7 @@ func missingIdent(c *current, name, example string, startOffset int) (file.Ident
 	}
 }
 
-func unclosedList(c *current, listName string) (file.Position, error) {
+func unclosedList(c *current, listName string) (ast.Position, error) {
 	return pos(c), &fileerr.Error{
 		Message: listName + ": unclosed `(` or missing `,`",
 		ErrorAnnotation: anno(c, annotation{
@@ -48,7 +48,7 @@ func unclosedList(c *current, listName string) (file.Position, error) {
 	}
 }
 
-func unclosedIndex(c *current, listName string) (file.Position, error) {
+func unclosedIndex(c *current, listName string) (ast.Position, error) {
 	return pos(c), &fileerr.Error{
 		Message: listName + ": unclosed `[` or missing `,`",
 		ErrorAnnotation: anno(c, annotation{
@@ -64,7 +64,7 @@ func unclosedIndex(c *current, listName string) (file.Position, error) {
 	}
 }
 
-func unclosedParen(c *current, open, close string) (file.GoCodeItem, error) {
+func unclosedParen(c *current, open, close string) (*ast.GoCodeItem, error) {
 	start := popStart(c)
 	return nil, &fileerr.Error{
 		Message: "go code: unclosed `" + open + "`",
@@ -76,7 +76,7 @@ func unclosedParen(c *current, open, close string) (file.GoCodeItem, error) {
 	}
 }
 
-func newUnexpectedTokensErr(c *current, start, end file.Position, errAnno string) *fileerr.Error {
+func newUnexpectedTokensErr(c *current, start, end ast.Position, errAnno string) *fileerr.Error {
 	return &fileerr.Error{
 		Message: "unexpected tokens",
 		ErrorAnnotation: anno(c, annotation{

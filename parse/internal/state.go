@@ -40,8 +40,8 @@ func pushStart(c *current) {
 	editState(c, func(s *State) { s.Start = append(s.Start, pos(c)) })
 }
 
-func peekStart(c *current, i int) file.Position {
-	return state(c).Start[len(state(c).Start)-1-i]
+func peekStart(c *current) file.Position {
+	return state(c).Start[len(state(c).Start)-1]
 }
 
 func popStart(c *current) file.Position {

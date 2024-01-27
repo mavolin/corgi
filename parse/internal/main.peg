@@ -5,11 +5,11 @@
     type ParserError = parserError
 }
 
-File <- init docI:PackageDoc EMPTY_LINE* pkgI:Package EMPTY_LINE* scopeI:GlobalScope EMPTY_LINE* EOF {
-    return &file.File{
-        PackageDoc:       docI.([]file.CorgiComment),
-        PackageDirective: pkgI.(file.PackageDirective),
-        Scope:            scopeI.(file.Scope),
+AST <- init docI:PackageDoc EMPTY_LINE* pkgI:Package EMPTY_LINE* scopeI:GlobalScope EMPTY_LINE* EOF {
+    return &ast.AST{
+        PackageDoc:       optCast[[]*ast.DevComment](docI),
+        PackageDirective: optCast[*ast.PackageDirective](pkgI),
+        Scope:            scopeI.(*ast.Scope),
     }, nil
 }
 

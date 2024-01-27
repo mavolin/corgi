@@ -3,14 +3,9 @@
 // ======================================================================================
 
 EOF "end of file"  <- !.
-EOL "end of line"  <- _* ('\r'? '\n' / EOF) {
-    return pos(c), nil
-}
+EOL "end of line"  <- _* ('\r'? '\n' / EOF)
 EMPTY_LINE "empty line" <- _* VERT_WS
-
-EOC "end of command"  <- (EOL / ';' / &(_* '}')) {
-    return pos(c), nil
-}
+EOC "end of command"  <- (EOL / ';' / &(_* '}'))
 
 // UNEXPECTED consumes all tokens, but at least one, until EOC would match.
 UNEXPECTED "unexpected tokens" <- _* unexpectedI:(!EOC ([^\r\n;{}]+ / '{' [^}]* '}'))+ {
@@ -21,7 +16,8 @@ UNEXPECTED "unexpected tokens" <- _* unexpectedI:(!EOC ([^\r\n;{}]+ / '{' [^}]* 
 RESERVED <- ("if" / "else" / "switch" / "case" / "default" / "for" / "return" / "break" / "continue" / "fallthrough")
 
 POS <- (&. / !.) {
-    return pos(c), nil
+    p := pos(c)
+    return &p, nil
 }
 
 // ============================================================================
@@ -38,14 +34,14 @@ WS "whitespace" <- HORIZ_WS / &{ return !state(c).Inline, nil } VERT_WS
 // Parens, Braces, Brackets
 // ======================================================================================
 
-L_PAREN <- '(' { return pos(c), nil }
-R_PAREN <- ')' { return pos(c), nil }
+L_PAREN <- posI:POS '(' { return posI.(*ast.Position), nil }
+R_PAREN <- posI:POS ')' { return posI.(*ast.Position), nil }
 
-L_BRACE <- '{' { return pos(c), nil }
-R_BRACE <- '}' { return pos(c), nil }
+L_BRACE <- posI:POS '{' { return posI.(*ast.Position), nil }
+R_BRACE <- posI:POS '}' { return posI.(*ast.Position), nil }
 
-L_BRACKET <- '[' { return pos(c), nil }
-R_BRACKET <- ']' { return pos(c), nil }
+L_BRACKET <- posI:POS '[' { return posI.(*ast.Position), nil }
+R_BRACKET <- posI:POS ']' { return posI.(*ast.Position), nil }
 
 // ============================================================================
 // Indentation 2 (Used for Code and Arrow Blocks)

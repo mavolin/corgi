@@ -1,25 +1,33 @@
-package file
+package ast
 
 // ============================================================================
 // Doctype
 // ======================================================================================
 
-// Doctype represents a doctype directive (`doctype(html)`).
+// Doctype represents a doctype directive (`!doctype(html)`).
 type Doctype struct {
-	Position
+	Position Position
 }
 
-func (Doctype) _scopeItem() {}
+var _ ScopeItem = (*Doctype)(nil)
+
+func (d *Doctype) Pos() Position { return d.Position }
+func (*Doctype) _scopeItem()     {}
 
 // ============================================================================
-// CorgiComment
+// DevComment
 // ======================================================================================
 
 // HTMLComment represents a comment that is printed.
 type HTMLComment struct {
-	Comment string
-	Position
+	Comment  string
+	Position Position
 }
+
+var _ ScopeItem = (*HTMLComment)(nil)
+
+func (c *HTMLComment) Pos() Position { return c.Position }
+func (*HTMLComment) _scopeItem()     {}
 
 // ============================================================================
 // Element
@@ -31,13 +39,15 @@ type Element struct {
 	Attributes []AttributeCollection
 	// Void is true, if the element was manually marked as void.
 	Void bool
-
 	Body Body
 
-	Position
+	Position Position
 }
 
-func (Element) _scopeItem() {}
+var _ ScopeItem = (*Element)(nil)
+
+func (e *Element) Pos() Position { return e.Position }
+func (*Element) _scopeItem()     {}
 
 // ============================================================================
 // Raw Element
@@ -46,8 +56,11 @@ func (Element) _scopeItem() {}
 // RawElement represents the special !raw element, which includes all of its
 // contents verbatim into the generated HTML.
 type RawElement struct {
-	Body BracketText
-	Position
+	Body     *BracketText // not nil
+	Position Position
 }
 
-func (RawElement) _scopeItem() {}
+var _ ScopeItem = (*RawElement)(nil)
+
+func (e *RawElement) Pos() Position { return e.Position }
+func (*RawElement) _scopeItem()     {}

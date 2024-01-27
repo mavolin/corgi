@@ -31,30 +31,30 @@ popStart <- #{
 // Then use your `fooListEnd` rule instead of `_* (',' WS*)? R_PAREN` to end
 // your list.
 
-listStart <- pushStart L_PAREN WS* {
-    return pos(c), nil
+listStart <- pushStart lParenI:L_PAREN WS* {
+    return lParenI.(*ast.Position), nil
 }
 
-listEnd <- _* (',' WS*)? endI:R_PAREN popStart {
-    return endI, nil
+listEnd <- _* (',' WS*)? rParenI:R_PAREN popStart {
+    return rParenI.(*ast.Position), nil
 }
 
-indexStart <- pushStart L_BRACKET WS* {
-    return pos(c), nil
+indexStart <- pushStart lBracketI:L_BRACKET WS* {
+    return lBracketI.(*ast.Position), nil
 }
 
-indexEnd <- _* (',' WS*)? endI:R_BRACKET popStart {
-    return endI, nil
+indexEnd <- _* (',' WS*)? rBracketI:R_BRACKET popStart {
+    return rBracketI.(*ast.Position), nil
 }
 
-scopeStart <- pushStart L_BRACE WS* {
-    return pos(c), nil
+scopeStart <- pushStart lBraceI:L_BRACE WS* {
+    return lBraceI.(*ast.Position), nil
 }
 
-scopeEnd <- WS* endI:R_BRACE popStart {
-    return endI, nil
-} / POS {
-    return pos(c), &fileerr.Error{
+scopeEnd <- WS* rBraceI:R_BRACE popStart {
+    return rBraceI.(*ast.Position), nil
+} / posI:POS {
+    return posI.(*ast.Position), &fileerr.Error{
         Message: "unclosed `{`",
         ErrorAnnotation: anno(c, annotation{
             Start:      popStart(c),

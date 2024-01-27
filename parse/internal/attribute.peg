@@ -3,14 +3,14 @@
 // ======================================================================================
 
 And <- '&' collsI:andAttributes EOC {
-    return file.And{
-        Attributes: optCast[[]file.AttributeCollection](collsI),
+    return &ast.And{
+        Attributes: collsI.([]*ast.AttributeCollection),
         Position:   pos(c),
     }, nil
 }
 
-andAttributes <- AttributeCollection / &EOC {
-    return ([]file.AttributeCollection)(nil), &fileerr.Error{
+andAttributes <- AttributeCollection unexpectedAndAttributes / UNEXPECTED {
+    return ([]*ast.AttributeCollection)(nil), &fileerr.Error{
         Message: "`&` with no attributes",
         ErrorAnnotation: anno(c, annotation{
             Start:      pos(c),
@@ -22,12 +22,14 @@ andAttributes <- AttributeCollection / &EOC {
             {Suggestion: "write an attribute list", Example: "`&(src=\"bark/woof\", title=\"howl\")`"},
         },
     }
-} / attrsI:AttributeCollection startI:POS UNEXPECTED endI:EOC {
-    return attrsI, &fileerr.Error{
+}
+
+unexpectedAndAttributes <- UNEXPECTED endI:POS {
+    return nil, &fileerr.Error{
         Message: "bad attribute syntax",
         ErrorAnnotation: anno(c, annotation{
-            Start:      startI.(file.Position),
-            End:        endI.(file.Position),
+            Start:      pos(c),
+            End:        *endI.(*ast.Position),
             Annotation: "this is not a valid attribute list",
         }),
         Suggestions: []fileerr.Suggestion{
@@ -48,7 +50,7 @@ andAttributes <- AttributeCollection / &EOC {
 // ======================================================================================
 
 AttributeCollection <- attrsI:attributeCollectionItem+ {
-    return sliceOf[file.AttributeCollection](attrsI), nil
+    return sliceOf[*ast.AttributeCollection](attrsI), nil
 }
 attributeCollectionItem <- _* itmI:(IDShorthand / ClassShorthand / AttributeList)  {
     return itmI, nil
@@ -62,7 +64,7 @@ shorthandName <- [^ \t\r\n.#()[\]{};]+ {
 //
 
 IDShorthand <- '#' idI:idShorthandName {
-    return file.IDShorthand{
+    return &ast.IDShorthand{
         ID:       idI.(string),
         Position: pos(c),
     }, nil
@@ -83,7 +85,7 @@ idShorthandName <- shorthandName / POS {
 //
 
 ClassShorthand <- '.' nameI:classShorthandName {
-    return file.ClassShorthand{
+    return &ast.ClassShorthand{
         Name:     nameI.(string),
         Position: pos(c),
     }, nil
@@ -105,10 +107,10 @@ classShorthandName <- shorthandName / POS {
 //
 
 AttributeList <- listStart attributesI:attributes? rParenI:attributeListEnd {
-    return file.AttributeList{
+    return &ast.AttributeList{
         LParen:     pos(c),
-        Attributes: optCast[[]file.Attribute](attributesI),
-        RParen:     rParenI.(file.Position),
+        Attributes: optCast[[]*ast.Attribute](attributesI),
+        RParen:     rParenI.(*ast.Position),
     }, nil
 }
 
@@ -117,7 +119,7 @@ attributeListEnd <- listEnd / POS {
 }
 
 attributes <- firstI:Attribute restI:(_* ',' WS* Attribute)* {
-    return collectList[file.Attribute](firstI, restI, -1), nil
+    return collectList[ast.Attribute](firstI, restI, -1), nil
 }
 
 // ============================================================================
@@ -144,7 +146,7 @@ AttributeName <- (![(),=] htmlAttributeNameChar)+ &(_* [\r\n=,)]) {
 //
 
 AndPlaceholder <- "&&" &(_* ',') {
-    return file.AndPlaceholder{Position: pos(c)}, nil
+    return &ast.AndPlaceholder{Position: pos(c)}, nil
 }
 
 //
@@ -152,18 +154,18 @@ AndPlaceholder <- "&&" &(_* ',') {
 //
 
 SimpleAttribute <- nameI:AttributeName _* valI:simpleAttributeValue {
-    a := valI.(file.SimpleAttribute)
+    a := valI.(ast.SimpleAttribute)
     a.Name = nameI.(string)
     a.Position = pos(c)
-    return a, nil
+    return &a, nil
 }
 
 simpleAttributeValue <- &[,)] {
-    return file.SimpleAttribute{}, nil
+    return ast.SimpleAttribute{}, nil
 } / assignI:POS '=' WS* valI:AttributeValue {
-    return file.SimpleAttribute{
-        Assign:   ptr(assignI.(file.Position)),
-        Value:    optCast[file.AttributeValue](valI),
+    return ast.SimpleAttribute{
+        Assign:   assignI.(*ast.Position),
+        Value:    optCast[ast.AttributeValue](valI),
     }, nil
 }
 
@@ -193,11 +195,11 @@ AttributeValue <- TypedAttributeValue / ComponentCallAttributeValue / Expression
 //
 
 TypedAttributeValue <- typeI:attributeType _* lParenI:listStart valI:typedAttributeValueValue rParenI:typedAttributeValueEnd {
-    return file.TypedAttributeValue{
+    return &ast.TypedAttributeValue{
         Type:     typeI.(attrtype.Type),
-        LParen:   lParenI.(file.Position),
-        Value:    valI.(file.Expression),
-        RParen:   rParenI.(file.Position),
+        LParen:   lParenI.(*ast.Position),
+        Value:    optCast[ast.Expression](valI),
+        RParen:   rParenI.(*ast.Position),
         Position: pos(c),
     }, nil
 }
@@ -224,15 +226,15 @@ attributeType <- "plain" {
     return attrtype.Unsafe, nil
 }
 
-typedAttributeValueValue <- ComponentCallAttributeValue / Expression
+typedAttributeValueValue <- Expression
 
 //
 // Component Call Attribute Value
 //
 
 ComponentCallAttributeValue <- '+' inlineStart headerI:ComponentCallHeader inlineEnd valueI:InterpolationValue? {
-    return file.ComponentCallAttribute{
-        ComponentCall: headerI.(file.ComponentCall),
-        Value:         optCast[file.InterpolationValue](valueI),
+    return &ast.ComponentCallAttribute{
+        ComponentCall: headerI.(*ast.ComponentCall),
+        Value:         optCast[*ast.InterpolationValue](valueI),
     }, nil
 }

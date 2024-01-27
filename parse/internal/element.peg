@@ -3,15 +3,15 @@
 // ======================================================================================
 
 Doctype <- "!doctype" behindDoctype {
-    return file.Doctype{Position: pos(c)}, nil
+    return &ast.Doctype{Position: pos(c)}, nil
 }
 
 behindDoctype <- _* listStart "html" attributeListEnd EOC / _* startI:POS UNEXPECTED endI:EOC {
     return nil, &fileerr.Error{
-        Message: "corgi only permits the HTML5 doctype",
+        Message: "use of non-HTML5 doctype",
         ErrorAnnotation: anno(c, annotation{
-            Start:      startI.(file.Position),
-            End:        endI.(file.Position),
+            Start:      *startI.(*ast.Position),
+            End:        *endI.(*ast.Position),
             EndOffset:  -1,
             Annotation: "this is not part of the HTML5 doctype",
         }),
@@ -24,7 +24,7 @@ behindDoctype <- _* listStart "html" attributeListEnd EOC / _* startI:POS UNEXPE
 // ======================================================================================
 
 HTMLComment <- "//-" _? commentI:htmlComment EOL {
-    return file.HTMLComment{
+    return &ast.HTMLComment{
         Comment:  commentI.(string),
         Position: pos(c),
     }, nil
@@ -39,10 +39,10 @@ htmlComment <- (!EOL .)* {
 // ======================================================================================
 
 Element <- !RESERVED nameI:htmlTagName voidI:'/'? _* attrsI:AttributeCollection? bodyI:OptionalBody {
-    return file.Element{
+    return ast.Element{
         Name:       concat(nameI),
-        Attributes: optCast[[]file.AttributeCollection](attrsI),
-        Body:       optCast[file.Body](bodyI),
+        Attributes: optCast[[]ast.AttributeCollection](attrsI),
+        Body:       optCast[ast.Body](bodyI),
         Void:       voidI != nil,
         Position:   pos(c),
     }, nil
@@ -52,9 +52,9 @@ Element <- !RESERVED nameI:htmlTagName voidI:'/'? _* attrsI:AttributeCollection?
 // Raw Element
 // ======================================================================================
 
-RawElement <- "!raw" _+ body:rawElementBody {
-    return file.RawElement{
-        Body:     body.(file.BracketText),
+RawElement <- "!raw" _+ bodyI:rawElementBody {
+    return &ast.RawElement{
+        Body:     bodyI.(*ast.BracketText),
         Position: pos(c),
     }, nil
 }
@@ -62,16 +62,16 @@ RawElement <- "!raw" _+ body:rawElementBody {
 rawElementBody <- _+ btI:BracketText EOC {
     return btI, nil
 } / _+ posI:POS Scope {
-    return file.BracketText{}, &fileerr.Error{
+    return (*ast.BracketText)(nil), &fileerr.Error{
         Message: "`!raw` with scope",
         ErrorAnnotation: anno(c, annotation{
-            Start:      posI.(file.Position),
+            Start:      *posI.(*ast.Position),
             Annotation: "the `!raw` element must have bracketed text as body",
         }),
         ShouldBe: "`!raw [ ... ]`",
     }
 } / EOC {
-    return file.BracketText{}, &fileerr.Error{
+    return (*ast.BracketText)(nil), &fileerr.Error{
         Message: "empty `!raw` element",
         ErrorAnnotation: anno(c, annotation{
             Start:       pos(c),
@@ -81,6 +81,6 @@ rawElementBody <- _+ btI:BracketText EOC {
         ShouldBe: "`!raw [ ... ]`",
     }
 } / _+ startI:POS UNEXPECTED endI:EOC {
-    return file.BracketText{},
-        newUnexpectedTokensErr(c, startI.(file.Position), endI.(file.Position), "expected the body of the `!raw` element")
+    return (*ast.BracketText)(nil),
+        newUnexpectedTokensErr(c, *startI.(*ast.Position), *endI.(*ast.Position), "expected the body of the `!raw` element")
 }

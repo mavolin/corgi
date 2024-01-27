@@ -1,16 +1,22 @@
-package file
-
-import "strings"
+package ast
 
 // ============================================================================
 // Body
 // ======================================================================================
 
-// Body is either [Scope] or [BracketText].
+// Body is a pointer to either a [Scope], [BracketText], or a
+// [UnderscoreBlockShorthand].
 type Body interface {
 	_body()
 	Poser
 }
+
+// if this is changed, change the comment above
+var (
+	_ Body = (*Scope)(nil)
+	_ Body = (*BracketText)(nil)
+	_ Body = (*UnderscoreBlockShorthand)(nil)
+)
 
 // ============================================================================
 // Scope
@@ -19,11 +25,13 @@ type Body interface {
 type Scope struct {
 	LBrace Position
 	Items  []ScopeItem
-	RBrace Position
+	RBrace *Position
 }
 
-func (s Scope) Pos() Position { return s.LBrace }
-func (Scope) _body()          {}
+var _ Body = (*Scope)(nil)
+
+func (s *Scope) Pos() Position { return s.LBrace }
+func (*Scope) _body()          {}
 
 // ============================================================================
 // ScopeItem
@@ -41,45 +49,33 @@ type ScopeItem interface {
 
 type BadItem struct {
 	// Line contains the entire bad line, excluding leading whitespace.
-	Line string
-	Body Body // may be nil
-	Position
+	Line     string
+	Body     Body // may be nil
+	Position Position
 }
 
-func (BadItem) _scopeItem() {}
+var _ ScopeItem = (*BadItem)(nil)
+
+func (itm *BadItem) Pos() Position { return itm.Position }
+func (*BadItem) _scopeItem()       {}
 
 // ============================================================================
-// CorgiComment
+// DevComment
 // ======================================================================================
 
-// CorgiComment represents a comment that is not printed.
-type CorgiComment struct {
-	Comment string
-	Position
+// DevComment represents a comment that is not printed.
+type DevComment struct {
+	Comment  string
+	Position Position
 }
 
-func (CorgiComment) _scopeItem()       {}
-func (CorgiComment) _importScopeItem() {}
+var (
+	_ ScopeItem       = (*DevComment)(nil)
+	_ ImportScopeItem = (*DevComment)(nil)
+	_ StateScopeItem  = (*DevComment)(nil)
+)
 
-func (c CorgiComment) Text() string {
-	return strings.TrimLeft(c.Comment, " \t")
-}
-
-func (c CorgiComment) IsMachineComment() bool {
-	return c.Comment != "" && c.Comment[0] != ' ' && c.Comment[0] != '\t'
-}
-
-func (c CorgiComment) MachineComment() (namespace, directive, args string) {
-	if !c.IsMachineComment() {
-		return "", "", ""
-	}
-
-	namespaceAndDirective, args, _ := strings.Cut(c.Comment, " ")
-
-	var ok bool
-	namespace, directive, ok = strings.Cut(namespaceAndDirective, ":")
-	if !ok {
-		directive, namespace = namespace, ""
-	}
-	return namespace, directive, args
-}
+func (c *DevComment) Pos() Position   { return c.Position }
+func (*DevComment) _scopeItem()       {}
+func (*DevComment) _importScopeItem() {}
+func (*DevComment) _stateScopeItem()  {}

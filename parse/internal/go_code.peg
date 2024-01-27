@@ -20,26 +20,26 @@ goParenExpr <- openI:goParenExprStart codeI:nestedGoCode? closeI:goParenExprEnd 
 }
 
 goParenExprStart <- _* &'(' pushStart '(' {
-    return file.RawGoCode{Code: "(", Position: pos(c)}, nil
+    return &ast.RawGoCode{Code: "(", Position: pos(c)}, nil
 }
 goBraceExprStart <- _* &'{' pushStart '{'  {
-    return file.RawGoCode{Code: "{", Position: pos(c)}, nil
+    return &ast.RawGoCode{Code: "{", Position: pos(c)}, nil
 }
 goBracketExprStart <- _* &'[' pushStart '[' {
-    return file.RawGoCode{Code: "[", Position: pos(c)}, nil
+    return &ast.RawGoCode{Code: "[", Position: pos(c)}, nil
 }
 goParenExprEnd <- ')' popStart {
-    return file.RawGoCode{Code: ")", Position: pos(c)}, nil
+    return &ast.RawGoCode{Code: ")", Position: pos(c)}, nil
 } / POS {
     return unclosedParen(c, "(", ")")
 }
 goBraceExprEnd <- '}' popStart {
-    return file.RawGoCode{Code: "}", Position: pos(c)}, nil
+    return &ast.RawGoCode{Code: "}", Position: pos(c)}, nil
 } / POS {
     return unclosedParen(c, "{", "}")
 }
 goBracketExprEnd <- ']' popStart {
-    return file.RawGoCode{Code: "]", Position: pos(c)}, nil
+    return &ast.RawGoCode{Code: "]", Position: pos(c)}, nil
 } / POS {
     return unclosedParen(c, "[", "]")
 }
@@ -74,14 +74,14 @@ GoStatement <- codesI:(goParenExpr / String / statementBlockFunction / rawGoStat
 // ======================================================================================
 
 rawGoExpression <- rawGoExpressionChar+ {
-    return file.RawGoCode{Code: string(c.text), Position: pos(c)}, nil
+    return &ast.RawGoCode{Code: string(c.text), Position: pos(c)}, nil
 }
 rawGoStatement <- rawGoStatementChar+ {
-    return file.RawGoCode{Code: string(c.text), Position: pos(c)}, nil
+    return &ast.RawGoCode{Code: string(c.text), Position: pos(c)}, nil
 }
 
 nestedRawGoCode <- nestedRawGoCodeChar+ {
-    return file.RawGoCode{Code: string(c.text), Position: pos(c)}, nil
+    return &ast.RawGoCode{Code: string(c.text), Position: pos(c)}, nil
 }
 
 rawGoExpressionAllowedNewline <- [=&|^+/*%<>!-] WS*
@@ -104,7 +104,7 @@ expressionBlockFunction <- prefixI:(_+ / rawGoExpressionAllowedNewline)? bfI:Blo
         return bfI, nil
     }
 
-    return []any{file.RawGoCode{Code: concat(prefixI), Position: pos(c)}, bfI}, nil
+    return []any{&ast.RawGoCode{Code: concat(prefixI), Position: pos(c)}, bfI}, nil
 }
 
 statementBlockFunction <- prefixI:(_+ / rawGoExpressionAllowedNewline)? bfI:BlockFunction {
@@ -112,14 +112,14 @@ statementBlockFunction <- prefixI:(_+ / rawGoExpressionAllowedNewline)? bfI:Bloc
         return bfI, nil
     }
 
-    return []any{file.RawGoCode{Code: concat(prefixI), Position: pos(c)}, bfI}, nil
+    return []any{&ast.RawGoCode{Code: concat(prefixI), Position: pos(c)}, bfI}, nil
 }
 
 BlockFunction <- "block" _* lParenI:listStart identI:Ident rParenI:blockFunctionEnd {
-    return file.BlockFunction{
-        LParen: lParenI.(file.Position),
-        Block: identI.(file.Ident),
-        RParen: rParenI.(file.Position),
+    return &ast.BlockFunction{
+        LParen:   lParenI.(*ast.Position),
+        Block:    identI.(*ast.Ident),
+        RParen:   rParenI.(*ast.Position),
         Position: pos(c),
     }, nil
 }
@@ -135,20 +135,20 @@ blockFunctionEnd <- listEnd / POS {
 String <- InterpretedString / RawString
 
 InterpretedString <- interpretedStringStart contentsI:InterpretedStringItem* endI:interpretedStringEnd {
-    return file.String{
+    return &ast.String{
         Start:    pos(c),
         Quote:    '"',
-        Contents: sliceOf[file.StringItem](contentsI),
-        End:      endI.(file.Position),
+        Contents: sliceOf[ast.StringItem](contentsI),
+        End:      endI.(*ast.Position),
     }, nil
 }
 
-interpretedStringStart <- pushStart '"'
-interpretedStringEnd <- '"' popStart {
-    return pos(c), nil
-} / POS {
+interpretedStringStart <- pushStart startI:POS '"' { return startI.(*ast.Position), nil }
+interpretedStringEnd <- '"' endI:POS popStart {
+    return endI.(*ast.Position), nil
+} / endI:POS {
     start := popStart(c)
-    return pos(c), &fileerr.Error{
+    return endI.(*ast.Position), &fileerr.Error{
         Message: "unclosed string literal",
         ErrorAnnotation: anno(c, annotation{
             Start:       start,
@@ -166,19 +166,19 @@ interpretedStringEnd <- '"' popStart {
 }
 
 RawString <- rawStringStart contentsI:RawStringItem* endI:rawStringEnd {
-    return file.String{
+    return &ast.String{
         Start:    pos(c),
         Quote:    '`',
-        Contents: sliceOf[file.StringItem](contentsI),
-        End:      endI.(file.Position),
+        Contents: sliceOf[ast.StringItem](contentsI),
+        End:      endI.(*ast.Position),
     }, nil
 }
 
-rawStringStart <- pushStart '`'
-rawStringEnd <- '`' popStart {
-    return pos(c), nil
-} / POS {
-    return pos(c), &fileerr.Error{
+rawStringStart <- pushStart startI:POS '`' { return startI.(*ast.Position), nil }
+rawStringEnd <- posI:POS '`' popStart {
+    return posI.(*ast.Position), nil
+} / posI:POS {
+    return posI.(*ast.Position), &fileerr.Error{
         Message: "unclosed string literal",
         ErrorAnnotation: anno(c, annotation{
             Start:      popStart(c),
@@ -191,34 +191,34 @@ InterpretedStringItem <- InterpretedStringText / StringInterpolation
 RawStringItem         <- RawStringText / StringInterpolation
 
 InterpretedStringText <- ("##" / !definiteStringInterpolationStart (goInterpretedStringUnicodeValue / goByteValue / goRecoverInterpretedStringEscape))+ {
-    return file.StringText{
+    return &ast.StringText{
         Text:     string(c.text),
         Position: pos(c),
     }, nil
 }
 RawStringText <- ("##" / !definiteStringInterpolationStart ensureInline goRawStringUnicodeChar)+ {
-    return file.StringText{
+    return &ast.StringText{
         Text:     string(c.text),
         Position: pos(c),
     }, nil
 }
 
 StringInterpolation <- interpolationStart fmtDirectiveI:fmtDirective? exprI:stringInterpolationExpression {
-    interp := exprI.(file.StringInterpolation)
+    interp := exprI.(ast.StringInterpolation)
     interp.FormatDirective = optCast[string](fmtDirectiveI)
     interp.Position = pos(c)
     return interp, nil
 }
 
-stringInterpolationExpression <- interpolationExpressionStart inlineStart exprI:Expression inlineEnd rBraceI:expressionInterpolationEnd {
-    return file.StringInterpolation{
-        LBrace:     pos(c),
-        Expression: optCast[file.Expression](exprI),
-        RBrace:     rBraceI.(file.Position),
+stringInterpolationExpression <- lBraceI:interpolationExpressionStart inlineStart exprI:Expression inlineEnd rBraceI:interpolationExpressionEnd {
+    return ast.StringInterpolation{
+        LBrace:     lBraceI.(*ast.Position),
+        Expression: optCast[ast.Expression](exprI),
+        RBrace:     rBraceI.(*ast.Position),
     }, nil
 } / POS {
     start := popStart(c)
-    return file.StringInterpolation{}, &fileerr.Error{
+    return (*ast.StringInterpolation)(nil), &fileerr.Error{
         Message: "string interpolation: missing expression",
         ErrorAnnotation: anno(c, annotation{
             Start:      pos(c),
@@ -247,7 +247,7 @@ fmtDirective <- '%' fmtFlag* ([1-9][0-9]*)? ('.' [0-9]*)? fmtVerb {
         Message: "invalid format directive",
         ErrorAnnotation: anno(c, annotation{
             Start:      pos(c),
-            End:        endI.(file.Position),
+            End:        *endI.(*ast.Position),
             Annotation: "invalid formatter",
         }),
         Suggestions: []fileerr.Suggestion{
@@ -283,4 +283,4 @@ fmtVerb <- [bcdeEfFgGoOpqstTUvX] / &('{' / '"' / '`') {
     }
 }
 
-definiteStringInterpolationStart <- "#%" / "#{"
+definiteStringInterpolationStart <- posI:POS ("#%" / "#{") { return posI.(*ast.Position), nil }

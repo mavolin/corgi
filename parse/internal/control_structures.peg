@@ -2,9 +2,9 @@ missingCondition <- posI:POS {
     return nil, &fileerr.Error{
         Message: "missing condition",
         ErrorAnnotation: anno(c, annotation{
-            Start: posI.(file.Position),
+            Start:       *posI.(*ast.Position),
             StartOffset: 1,
-            Annotation: "expected an expression",
+            Annotation:  "expected an expression",
         }),
     }
 }
@@ -14,26 +14,26 @@ missingCondition <- posI:POS {
 // ======================================================================================
 
 If <- "if" condI:ifCondition thenI:Body elseIfsI:ElseIf* elseI:Else? {
-    return file.If{
-        Condition: condI.(file.IfExpression),
-        Then:      optCast[file.Body](thenI),
-        ElseIfs:   sliceOf[file.ElseIf](elseIfsI),
-        Else:      optCastPtr[file.Else](elseI),
+    return &ast.If{
+        Condition: condI.(*ast.IfExpression),
+        Then:      optCast[ast.Body](thenI),
+        ElseIfs:   sliceOf[*ast.ElseIf](elseIfsI),
+        Else:      optCast[*ast.Else](elseI),
         Position:  pos(c),
     }, nil
 }
 
 ElseIf <- WS* "else" _* "if" condI:ifCondition _* thenI:Body {
-    return file.ElseIf{
-        Condition: condI.(file.IfExpression),
-        Then:      optCast[file.Body](thenI),
+    return &ast.ElseIf{
+        Condition: condI.(*ast.IfExpression),
+        Then:      optCast[ast.Body](thenI),
         Position:  pos(c),
     }, nil
 }
 
 Else <- WS* "else" _* thenI:Body {
-    return file.Else{
-        Then:     optCast[file.Body](thenI),
+    return &ast.Else{
+        Then:     optCast[ast.Body](thenI),
         Position: pos(c),
     }, nil
 }
@@ -41,7 +41,7 @@ Else <- WS* "else" _* thenI:Body {
 ifCondition <- _+ condI:IfExpression {
     return condI, nil
 } / missingCondition {
-    return file.IfExpression{}, nil
+    return (*ast.IfExpression)(nil), nil
 }
 
 // ============================================================================
@@ -49,9 +49,9 @@ ifCondition <- _+ condI:IfExpression {
 // ======================================================================================
 
 Switch <- "switch" comparatorI:switchComparator endI:POS casesI:switchCases {
-    s := file.Switch{
-        Comparator: comparatorI.(*file.GoCode),
-        Cases:      casesI.([]file.Case),
+    s := ast.Switch{
+        Comparator: comparatorI.(*ast.GoCode),
+        Cases:      casesI.([]*ast.Case),
         Position:   pos(c),
     }
 
@@ -66,31 +66,31 @@ Switch <- "switch" comparatorI:switchComparator endI:POS casesI:switchCases {
         ErrorAnnotation: anno(c, annotation{
             ContextEndDelta: 1,
             Start:           pos(c),
-            End:             endI.(file.Position),
+            End:             *endI.(*ast.Position),
             Annotation:      "expected switch to have at least one non-default case",
         }),
     }
 }
 
 switchComparator <- _* &'{' {
-    return (*file.GoCode)(nil), nil
+    return (*ast.GoCode)(nil), nil
 } / _+ compI:ConditionalGoExpression _* &'{' {
-    return ptr(compI.(file.GoCode)), nil
+    return compI.(*ast.GoCode), nil
 } / _+ compI:ConditionalGoExpression startI:POS [^\r\n{]+ endI:POS {
-    return ptr(compI.(file.GoCode)),
-        newUnexpectedTokensErr(c, startI.(file.Position), endI.(file.Position), "switch comparator terminated early")
+    return compI.(*ast.GoCode),
+        newUnexpectedTokensErr(c, *startI.(*ast.Position), *endI.(*ast.Position), "switch comparator terminated early")
 }
 
 switchCases <- scopeStart WS* preFirstCase? itms:switchCase* WS* endI:scopeEnd {
-    cases := sliceOf[file.Case](itms)
+    cases := sliceOf[*ast.Case](itms)
 
-    var firstDefault *file.Case
+    var firstDefault *ast.Case
     for _, ca := range cases {
         if ca.Expression != nil {
             continue
         }
         if firstDefault == nil {
-            firstDefault = &ca
+            firstDefault = ca
             continue
         }
 
@@ -129,18 +129,18 @@ switchCase <- WS* caseI:(Case / Default) {
 }
 
 Case <- "case" _+ condI:caseCondition _* colonI:switchColon thenI:switchThen? {
-    return file.Case{
-        Expression: condI.(file.Expression),
-        Colon:      colonI.(file.Position),
-        Then:       optCast[file.Scope](thenI),
+    return &ast.Case{
+        Expression: optCast[ast.Expression](condI),
+        Colon:      colonI.(*ast.Position),
+        Then:       optCast[ast.Body](thenI),
         Position:   pos(c),
     }, nil
 }
 
 Default <- "default" _* colonI:switchColon thenI:switchThen? {
-    return file.Case{
-        Colon:    colonI.(file.Position),
-        Then:     optCast[file.Scope](thenI),
+    return &ast.Case{
+        Colon:    colonI.(*ast.Position),
+        Then:     optCast[ast.Body](thenI),
         Position: pos(c),
     }, nil
 }
@@ -164,10 +164,10 @@ caseCondition <- _+ condI:Expression {
 }
 
 switchThen <- itmsI:switchScopeItem+ {
-    return file.Scope{Items: sliceOf[file.ScopeItem](itmsI)}, nil
+    return &ast.Scope{Items: sliceOf[ast.ScopeItem](itmsI)}, nil
 }
 
-switchScopeItem <- !('}' / "case" _+ / "default" _* ':') itmI:scopeItem {
+switchScopeItem <- !('}' / "case" _+ / "default" _* ':') itmI:ScopeItem {
     return itmI, nil
 }
 
@@ -176,9 +176,9 @@ switchScopeItem <- !('}' / "case" _+ / "default" _* ':') itmI:scopeItem {
 // ======================================================================================
 
 For <- "for" exprI:forExpression? _* bodyI:Body {
-    return file.For{
-        Expression: optCast[file.ForExpression](exprI),
-        Body:       optCast[file.Body](bodyI),
+    return &ast.For{
+        Expression: optCast[ast.ForExpression](exprI),
+        Body:       optCast[ast.Body](bodyI),
         Position:   pos(c),
     }, nil
 }

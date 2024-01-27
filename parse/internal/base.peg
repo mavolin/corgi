@@ -3,7 +3,7 @@
 // ======================================================================================
 
 Ident <- identI:goIdentifier {
-    return file.Ident{Ident: string(c.text), Position: pos(c)}, nil
+    return &ast.Ident{Ident: string(c.text), Position: pos(c)}, nil
 }
 
 Namespace <- '.' identI:Ident {
@@ -15,7 +15,7 @@ Namespace <- '.' identI:Ident {
 // ======================================================================================
 
 Type <- typeI:goType {
-    return file.Type{Type: string(c.text), Position: pos(c)}, nil
+    return &ast.Type{Type: string(c.text), Position: pos(c)}, nil
 }
 
 // ============================================================================
@@ -28,12 +28,12 @@ StaticString <- staticRawString / staticInterpretedString
 // `Raw String`
 //
 
-staticRawString <- rawStringStart contentsI:RawStringText? endI:rawStringEnd {
-    return file.StaticString{
+staticRawString <- rawStringStart contentsI:[^`]* endI:rawStringEnd {
+    return &ast.StaticString{
         Start:    pos(c),
         Quote:    '`',
-        Contents: optCast[file.StringText](contentsI).Text,
-        End:      endI.(file.Position),
+        Contents: concat(contentsI),
+        End:      endI.(*ast.Position),
     }, nil
 }
 
@@ -41,11 +41,15 @@ staticRawString <- rawStringStart contentsI:RawStringText? endI:rawStringEnd {
 // "Interpreted String"
 //
 
-staticInterpretedString <- interpretedStringStart contentsI:InterpretedStringText? endI:interpretedStringEnd {
-    return file.StaticString{
+staticInterpretedString <- interpretedStringStart contentsI:staticInterpretedStringContents? endI:interpretedStringEnd {
+    return &ast.StaticString{
         Start:    pos(c),
         Quote:    '"',
-        Contents: optCast[file.StringText](contentsI).Text,
-        End:      endI.(file.Position),
+        Contents: optCast[string](contentsI),
+        End:      endI.(*ast.Position),
     }, nil
+}
+
+staticInterpretedStringContents <- (`\"` / `\\` / [^"])+ {
+    return string(c.text), nil
 }

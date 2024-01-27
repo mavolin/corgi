@@ -1,31 +1,33 @@
-package file
+package ast
 
 // ============================================================================
 // If
 // ======================================================================================
 
 type If struct {
-	Condition IfExpression
+	Condition *IfExpression
 	Then      Body
 
-	ElseIfs []ElseIf
-	Else    *Else
+	ElseIfs []*ElseIf
+	Else    *Else // may be nil
 
-	Position
+	Position Position
 }
 
-func (If) _scopeItem() {}
+var _ ScopeItem = (*If)(nil)
+
+func (i *If) Pos() Position { return i.Position }
+func (*If) _scopeItem()     {}
 
 type ElseIf struct {
-	Condition IfExpression
+	Condition *IfExpression
 	Then      Body
-
-	Position
+	Position  Position
 }
 
 type Else struct {
-	Then Body
-	Position
+	Then     Body
+	Position Position
 }
 
 // ============================================================================
@@ -34,21 +36,23 @@ type Else struct {
 
 type Switch struct {
 	Comparator *GoCode // nil for case conditions
-	Cases      []Case
-
-	Position
+	Cases      []*Case
+	Position   Position
 }
 
-func (Switch) _scopeItem() {}
+var _ ScopeItem = (*Switch)(nil)
+
+func (s *Switch) Pos() Position { return s.Position }
+func (*Switch) _scopeItem()     {}
 
 // ======================================== Case ========================================
 
 type Case struct {
 	Expression Expression // nil for default case
-	Colon      Position
-	Then       Scope // has no [LR]Brace set
+	Colon      *Position
+	Then       *Scope // has no L-/RBrace set
 
-	Position
+	Position Position
 }
 
 // ============================================================================
@@ -58,8 +62,10 @@ type Case struct {
 type For struct {
 	Expression ForExpression // nil for infinite loop
 	Body       Body
-
-	Position
+	Position   Position
 }
 
-func (For) _scopeItem() {}
+var _ ScopeItem = (*For)(nil)
+
+func (f *For) Pos() Position { return f.Position }
+func (*For) _scopeItem()     {}

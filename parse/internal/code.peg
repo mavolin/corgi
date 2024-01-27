@@ -3,7 +3,7 @@
 // ======================================================================================
 
 GlobalCode <- !("import" / "comp" / "state") stmtI:GoStatement EOC {
-    return file.Code{Statements: []file.GoCode{stmtI.(file.GoCode)}, Position: pos(c)}, nil
+    return &ast.Code{Statements: []*ast.GoCode{stmtI.(*ast.GoCode)}, Position: pos(c)}, nil
 }
 
 // ============================================================================
@@ -13,20 +13,22 @@ GlobalCode <- !("import" / "comp" / "state") stmtI:GoStatement EOC {
 Code <- implicitCode / explicitCode
 
 explicitCode <- INDENTATION_REF "- " codeStatementsI:codeStatements {
-    return file.Code{
-        Statements: codeStatementsI.([]file.GoCode),
+    return &ast.Code{
+        Statements: codeStatementsI.([]*ast.GoCode),
         Position:   pos(c),
     }, nil
 }
 
 codeStatements <- firstLineI:GoExpression restI:codeStatement* {
-    rest := optCast[[]file.GoCode](restI)
-    stmts := make([]file.GoCode, 1, 1+len(rest))
-    stmts[0] = firstLineI.(file.GoCode)
-    stmts = append(stmts, rest...)
+    restIs := slice(restI)
+    stmts := make([]*ast.GoCode, 1+len(restIs))
+    stmts[0] = firstLineI.(*ast.GoCode)
+    for i, restI := range restIs {
+        stmts[i+1] = restI.(*ast.GoCode)
+    }
     return stmts, nil
 } / EOL {
-    return ([]file.GoCode)(nil), &fileerr.Error{
+    return ([]*ast.GoCode)(nil), &fileerr.Error{
         Message: "empty code block",
         ErrorAnnotation: anno(c, annotation{
             Start:      pos(c),
@@ -45,9 +47,9 @@ codeStatement <- !(_* ';' EOL) EOC stmtI:GoExpression {
 }
 
 implicitCode <- implicitAhead stmtI:GoStatement EOC {
-    return file.Code{
-        Statements: []file.GoCode{stmtI.(file.GoCode)},
-        Position: pos(c),
+    return &ast.Code{
+        Statements: []ast.GoCode{deref[ast.GoCode](stmtI)},
+        Position:   pos(c),
     }, nil
 }
 
@@ -75,20 +77,20 @@ goRestOfCommand <- ('{' [^}]* '}' / '[' [^\]]* ']' / '(' [^)]* ')' / !EOC .)*
 // ======================================================================================
 
 Return <- "return" errI:returnErr {
-    return file.Return{
-        Err:      errI.(*file.GoCode),
+    return &ast.Return{
+        Err:      errI.(*ast.GoCode),
         Position: pos(c),
     }, nil
 }
 
 returnErr <- EOC {
-    return (*file.GoCode)(nil), nil
+    return (*ast.GoCode)(nil), nil
 } / _* errI:GoExpression EOC {
-    return ptr(errI.(file.GoCode)), nil
+    return errI.(*ast.GoCode), nil
 } / _* errI:GoExpression startI:POS UNEXPECTED endI:EOC {
-    return ptr(errI.(file.GoCode)), newUnexpectedTokensErr(c, startI.(file.Position), endI.(file.Position), "unexpected tokens after return value")
+    return errI.(*ast.GoCode), newUnexpectedTokensErr(c, *startI.(*ast.Position), *endI.(*ast.Position), "unexpected tokens after return value")
 } / _* startI:POS UNEXPECTED endI:EOC {
-    return (*file.GoCode)(nil), newUnexpectedTokensErr(c, startI.(file.Position), endI.(file.Position), "expected nothing, or an error to be returned")
+    return (*ast.GoCode)(nil), newUnexpectedTokensErr(c, *startI.(*ast.Position), *endI.(*ast.Position), "expected nothing, or an error to be returned")
 }
 
 // ============================================================================
@@ -96,25 +98,25 @@ returnErr <- EOC {
 // ======================================================================================
 
 Continue <- "continue" labelI:breakContinueLabel {
-    return file.Continue{
-        Label:    labelI.(*file.Ident),
+    return &ast.Continue{
+        Label:    labelI.(*ast.Ident),
         Position: pos(c),
     }, nil
 }
 
 Break <- "break" labelI:breakContinueLabel {
-    return file.Break{
-        Label:    labelI.(*file.Ident),
+    return &ast.Break{
+        Label:    labelI.(*ast.Ident),
         Position: pos(c),
     }, nil
 }
 
 breakContinueLabel <- EOC {
-    return (*file.Ident)(nil), nil
+    return (*ast.Ident)(nil), nil
 } /_+ identI:Ident EOC {
     return identI, nil
 } / _+ identI:Ident startI:POS UNEXPECTED endI:EOC {
-    return identI, newUnexpectedTokensErr(c, startI.(file.Position), endI.(file.Position), "unexpected tokens after break/continue label")
+    return identI, newUnexpectedTokensErr(c, *startI.(*ast.Position), *endI.(*ast.Position), "unexpected tokens after break/continue label")
 } / _* startI:POS UNEXPECTED endI:EOC {
-    return (*file.Ident)(nil), newUnexpectedTokensErr(c, startI.(file.Position), endI.(file.Position), "expected nothing, or a label")
+    return (*ast.Ident)(nil), newUnexpectedTokensErr(c, *startI.(*ast.Position), *endI.(*ast.Position), "expected nothing, or a label")
 }
