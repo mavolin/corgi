@@ -94,7 +94,7 @@ func (o *PrettyOptions) setDefaults() {
 	if o.FileNamePrinter == nil {
 		o.FileNamePrinter = func(f *file.File) string {
 			if f == nil {
-				return "nil file"
+				return "bytedata"
 			}
 			return f.Name
 		}
