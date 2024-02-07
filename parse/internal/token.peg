@@ -5,7 +5,7 @@
 EOF "end of file"  <- !.
 EOL "end of line"  <- _* ('\r'? '\n' / EOF)
 EMPTY_LINE "empty line" <- _* VERT_WS
-EOC "end of command"  <- (EOL / ';' / &(_* '}'))
+EOC "end of command"  <- (EOL / ';' / &(_* ('}' / "//")))
 
 // UNEXPECTED consumes all tokens, but at least one, until EOC would match.
 UNEXPECTED "unexpected tokens" <- _* unexpectedI:(!EOC ([^\r\n;{}]+ / '{' [^}]* '}'))+ {
