@@ -1,31 +1,29 @@
 // Package stack implements a stack built using a linked list.
 package stack
 
-import "github.com/mavolin/corgi/internal/list"
-
-// Stack is a stack that uses a linked list to store its elements.
+// Stack is a slice-backed stack implementation.
 //
 // The zero value for a Stack is an empty stack ready to use.
 type Stack[T any] struct {
-	l list.List[T]
+	s []T
 }
 
-func New1[T any](t T) *Stack[T] {
-	var s Stack[T]
-	s.Push(t)
-	return &s
+func New[T any](capacity int) *Stack[T] {
+	return &Stack[T]{s: make([]T, 0, capacity)}
 }
 
 // Push puts elem on top of the stack.
 func (s *Stack[T]) Push(elem T) {
-	s.l.PushBack(elem)
+	s.s = append(s.s, elem)
 }
 
 // Pop takes the top-most element from the stack and removes it.
 //
 // If the stack is of length 0, Pop will panic.
 func (s *Stack[T]) Pop() T {
-	return s.l.Remove(s.l.Back())
+	elem := s.s[len(s.s)-1]
+	s.s = s.s[:len(s.s)-1]
+	return elem
 }
 
 // Swap swaps the top-most element for elem, returning the element previously
@@ -33,8 +31,8 @@ func (s *Stack[T]) Pop() T {
 //
 // If the stack is of length 0, Swap will panic.
 func (s *Stack[T]) Swap(elem T) T {
-	old := s.Pop()
-	s.Push(elem)
+	old := s.s[len(s.s)-1]
+	s.s[len(s.s)-1] = elem
 	return old
 }
 
@@ -42,10 +40,10 @@ func (s *Stack[T]) Swap(elem T) T {
 //
 // If the stack is of length 0, Peek will panic.
 func (s *Stack[T]) Peek() T {
-	return s.l.Back().V()
+	return s.s[len(s.s)-1]
 }
 
 // Len returns the length of the stack.
 func (s *Stack[T]) Len() int {
-	return s.l.Len()
+	return len(s.s)
 }
