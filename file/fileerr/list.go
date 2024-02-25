@@ -1,16 +1,58 @@
 package fileerr
 
 import (
+	"errors"
 	"sort"
 	"strings"
 )
+
+// Interface is a sum type for all error types in the fileerr package.
+//
+// Although, Interface(nil) == error(nil), Interface is not meant as a return
+// type for exported functions.
+type Interface interface {
+	_fileerr()
+	error
+}
+
+// As attempts to cast the given error to a [List] or a pointer to an [Error].
+//
+// If the error is a [List] and is nil, As returns an empty, non-nil [List].
+//
+// If the error is a pointer to an [Error] and is nil, As returns an empty,
+// non-nil [List].
+//
+// If the error is a pointer to an [Error] and isn't nil, As returns a [List]
+// with a single element, the error.
+//
+// For any other type, and only then, As returns nil.
+func As(err error) List {
+	if err == nil {
+		return nil
+	}
+
+	var ferr *Error
+	if errors.As(err, &ferr) {
+		return List{ferr}
+	}
+
+	var flist List
+	if errors.As(err, &flist) {
+		if flist == nil {
+			return List{}
+		}
+		return flist
+	}
+
+	return nil
+}
 
 // Join joins the given errors into a single error.
 // All errors must be either a pointer to an [Error] or a [List].
 // Other errors are ignored.
 //
 // Returns either a [List] or nil.
-func Join(errs ...error) error {
+func Join(errs ...Interface) Interface {
 	var n int
 	for _, err := range errs {
 		//goland:noinspection GoTypeAssertionOnErrors
@@ -43,7 +85,12 @@ func Join(errs ...error) error {
 // List is a list of [Error] objects.
 type List []*Error
 
-var _ error = List(nil)
+var (
+	_ Interface = List(nil)
+	_ error     = List(nil)
+)
+
+func (l List) _fileerr() {}
 
 func (l List) Error() string {
 	var sb strings.Builder
@@ -91,6 +138,13 @@ func (l List) Pretty(o PrettyOptions) string {
 		s = s[:len(s)-2]
 	}
 	return s
+}
+
+func (l List) AsError() error {
+	if len(l) == 0 {
+		return nil
+	}
+	return l[:len(l):len(l)]
 }
 
 var _ sort.Interface = List(nil)
