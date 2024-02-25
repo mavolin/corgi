@@ -10,31 +10,38 @@ type (
 	// GoCode represents a sequence of actual Go code and corgi extensions to
 	// the Go language.
 	GoCode struct {
-		Expressions []GoCodeItem
+		Expressions []GoCodeNode
 	}
 
-	// GoCodeItem is a pointer to either [RawGoCode], [String], or [BlockFunction].
-	GoCodeItem interface {
-		_goCodeItem()
-		Poser
+	// GoCodeNode is a pointer to either [RawGoCode], [String], or [BlockFunction].
+	GoCodeNode interface {
+		Node
+		_goCodeNode()
 	}
 )
 
 var (
 	_ Expression     = (*GoCode)(nil)
-	_ ForExpression  = (*GoCode)(nil)
+	_ ForHeader      = (*GoCode)(nil)
 	_ AttributeValue = (*GoCode)(nil)
 )
 
-func (e *GoCode) Pos() Position {
-	if len(e.Expressions) > 0 {
-		return e.Expressions[0].Pos()
+func (c *GoCode) Pos() Position {
+	if len(c.Expressions) > 0 {
+		return c.Expressions[0].Pos()
+	}
+	return InvalidPosition
+}
+func (c *GoCode) End() Position {
+	if len(c.Expressions) > 0 {
+		return c.Expressions[len(c.Expressions)-1].End()
 	}
 	return InvalidPosition
 }
 
+func (*GoCode) _node()           {}
 func (*GoCode) _expression()     {}
-func (*GoCode) _forExpression()  {}
+func (*GoCode) _forHeader()      {}
 func (*GoCode) _attributeValue() {}
 
 // ============================================================================
@@ -47,10 +54,13 @@ type RawGoCode struct {
 	Position Position
 }
 
-var _ GoCodeItem = (*RawGoCode)(nil)
+var _ GoCodeNode = (*RawGoCode)(nil)
 
 func (c *RawGoCode) Pos() Position { return c.Position }
-func (*RawGoCode) _goCodeItem()    {}
+func (c *RawGoCode) End() Position { return deltaPos(c.Position, len(c.Code)) }
+
+func (*RawGoCode) _node()       {}
+func (*RawGoCode) _goCodeNode() {}
 
 // ============================================================================
 // Block Function
@@ -65,71 +75,92 @@ type BlockFunction struct {
 	Position Position
 }
 
-var _ GoCodeItem = (*BlockFunction)(nil)
+var _ GoCodeNode = (*BlockFunction)(nil)
 
 func (f *BlockFunction) Pos() Position { return f.Position }
-func (*BlockFunction) _goCodeItem()    {}
+func (f *BlockFunction) End() Position {
+	if f.RParen != nil {
+		return *f.RParen
+	} else if f.Block != nil {
+		return f.Block.End()
+	} else if f.LParen != nil {
+		return *f.LParen
+	}
+	return deltaPos(f.Position, len("block"))
+}
+
+func (*BlockFunction) _node()       {}
+func (*BlockFunction) _goCodeNode() {}
 
 // ============================================================================
 // String
 // ======================================================================================
 
-// String represents a Go string literal extended to allow interpolation.
+// String represents a Go string literal extended to allow Character References, and
+// Interpolation.
 type String struct {
-	Start    Position
+	Open     Position
 	Quote    byte // either '"' or '`'
-	Contents []StringItem
-	End      *Position
+	Contents []StringContent
+	Close    *Position
+}
+
+var _ GoCodeNode = (*String)(nil)
+
+func (s *String) Pos() Position { return s.Open }
+func (s *String) End() Position {
+	if s.Close != nil {
+		return *s.Close
+	} else if len(s.Contents) > 0 {
+		return s.Contents[len(s.Contents)-1].End()
+	}
+	return deltaPos(s.Open, len(`"`))
+}
+
+func (*String) _node()       {}
+func (*String) _goCodeNode() {}
+
+// ============================================================================
+// String Node
+// ======================================================================================
+
+// StringContent is a pointer to either [StringText] or [StringInterpolation].
+type StringContent interface {
+	Node
+	_stringContent()
 }
 
 // if this is changed, change the comment above
 var (
-	_ StringItem = (*StringText)(nil)
-	_ StringItem = (*StringInterpolation)(nil)
+	_ StringContent = (*StringText)(nil)
+	_ StringContent = (*EscapedHash)(nil)
+	_ StringContent = (*ExpressionInterpolation)(nil)
+	_ StringContent = (*CharacterReference)(nil)
+	_ StringContent = (*BadInterpolation)(nil)
 )
 
-var _ GoCodeItem = (*String)(nil)
-
-// ============================================================================
-// String Item
-// ======================================================================================
-
-// StringItem is a pointer to either [StringText] or [StringInterpolation].
-type StringItem interface {
-	_stringItem()
-	Poser
-}
-
 // ==================================== String Text =====================================
-
-func (s *String) Pos() Position { return s.Start }
-func (*String) _goCodeItem()    {}
 
 type StringText struct {
 	Text     string
 	Position Position
 }
 
-var _ StringItem = (*StringText)(nil)
+var _ StringContent = (*StringText)(nil)
 
 func (t StringText) Unescape() string {
 	return strings.ReplaceAll(t.Text, "##", "#")
 }
 
 func (t *StringText) Pos() Position { return t.Position }
-func (*StringText) _stringItem()    {}
+func (t *StringText) End() Position { return deltaPos(t.Position, len(t.Text)) }
+
+func (*StringText) _node()          {}
+func (*StringText) _stringContent() {}
 
 // ================================ String Interpolation ================================
 
-type StringInterpolation struct {
-	FormatDirective string // a Sprintf formatting placeholder, w/o preceding '%'
-	LBrace          *Position
-	Expression      Expression
-	RBrace          *Position
-	Position        Position // of the hash
+type StringInterpolation interface {
+	StringContent
+	_stringInterpolation()
 }
-
-var _ StringItem = (*StringInterpolation)(nil)
-
-func (i *StringInterpolation) Pos() Position { return i.Position }
-func (*StringInterpolation) _stringItem()    {}

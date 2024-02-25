@@ -7,7 +7,9 @@
 // they are marked as optional.
 package ast
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type AST struct {
 	// Raw contains the raw input file, as it was parsed.
@@ -21,11 +23,14 @@ type AST struct {
 	Scope *Scope // optional
 }
 
-type Poser interface {
+type Node interface {
+	_node()
 	Pos() Position
+	// End returns the exclusive end position of the node.
+	End() Position
 }
 
-// Position indicates the position where a token was encountered.
+// Position represents a position in a file.
 type Position struct {
 	Line int
 	Col  int
@@ -35,4 +40,9 @@ var InvalidPosition = Position{0, 0}
 
 func (p Position) String() string {
 	return fmt.Sprintf("%d:%d", p.Line, p.Col)
+}
+
+func deltaPos(p Position, delta int) Position {
+	p.Col += delta
+	return p
 }

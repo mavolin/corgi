@@ -9,10 +9,13 @@ type Doctype struct {
 	Position Position
 }
 
-var _ ScopeItem = (*Doctype)(nil)
+var _ ScopeNode = (*Doctype)(nil)
 
 func (d *Doctype) Pos() Position { return d.Position }
-func (*Doctype) _scopeItem()     {}
+func (d *Doctype) End() Position { return deltaPos(d.Position, len("!doctype(html)")) }
+
+func (*Doctype) _node()      {}
+func (*Doctype) _scopeNode() {}
 
 // ============================================================================
 // DevComment
@@ -24,10 +27,13 @@ type HTMLComment struct {
 	Position Position
 }
 
-var _ ScopeItem = (*HTMLComment)(nil)
+var _ ScopeNode = (*HTMLComment)(nil)
 
 func (c *HTMLComment) Pos() Position { return c.Position }
-func (*HTMLComment) _scopeItem()     {}
+func (c *HTMLComment) End() Position { return deltaPos(c.Position, len("//-")+len(c.Comment)) }
+
+func (*HTMLComment) _node()      {}
+func (*HTMLComment) _scopeNode() {}
 
 // ============================================================================
 // Element
@@ -35,19 +41,33 @@ func (*HTMLComment) _scopeItem()     {}
 
 // Element represents a single HTML element.
 type Element struct {
-	Name       string
-	Attributes []AttributeCollection
+	Name string
 	// Void is true, if the element was manually marked as void.
-	Void bool
-	Body Body
+	Void       bool
+	Attributes []AttributeCollection
+	Body       Body
 
 	Position Position
 }
 
-var _ ScopeItem = (*Element)(nil)
+var _ ScopeNode = (*Element)(nil)
 
 func (e *Element) Pos() Position { return e.Position }
-func (*Element) _scopeItem()     {}
+func (e *Element) End() Position {
+	if e.Body != nil {
+		return e.Body.End()
+	} else if len(e.Attributes) > 0 {
+		return e.Attributes[len(e.Attributes)-1].End()
+	}
+
+	if e.Void {
+		return deltaPos(e.Position, len(e.Name)+len("/"))
+	}
+	return deltaPos(e.Position, len(e.Name))
+}
+
+func (*Element) _node()      {}
+func (*Element) _scopeNode() {}
 
 // ============================================================================
 // Raw Element
@@ -60,7 +80,15 @@ type RawElement struct {
 	Position Position
 }
 
-var _ ScopeItem = (*RawElement)(nil)
+var _ ScopeNode = (*RawElement)(nil)
 
 func (e *RawElement) Pos() Position { return e.Position }
-func (*RawElement) _scopeItem()     {}
+func (e *RawElement) End() Position {
+	if e.Body != nil {
+		return e.Body.End()
+	}
+	return deltaPos(e.Position, len("!raw"))
+}
+
+func (*RawElement) _node()      {}
+func (*RawElement) _scopeNode() {}

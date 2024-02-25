@@ -12,9 +12,12 @@ type Ident struct {
 	Position Position
 }
 
-var _ Poser = (*Ident)(nil)
+var _ Node = (*Ident)(nil)
 
 func (ident *Ident) Pos() Position { return ident.Position }
+func (ident *Ident) End() Position { return deltaPos(ident.Position, len(ident.Ident)) }
+
+func (*Ident) _node() {}
 
 // ============================================================================
 // Type
@@ -26,9 +29,12 @@ type Type struct {
 	Position Position
 }
 
-var _ Poser = (*Type)(nil)
+var _ Node = (*Type)(nil)
 
 func (t *Type) Pos() Position { return t.Position }
+func (t *Type) End() Position { return deltaPos(t.Position, len(t.Type)) }
+
+func (*Type) _node() {}
 
 // ============================================================================
 // Static String
@@ -36,20 +42,26 @@ func (t *Type) Pos() Position { return t.Position }
 
 // StaticString represents a string literal without any interpolation.
 type StaticString struct {
-	Start    Position
+	Open     Position
 	Quote    rune
 	Contents string
-	End      *Position
+	Close    *Position
 }
 
-var _ Poser = (*StaticString)(nil)
+var _ Node = (*StaticString)(nil)
 
-func (s *StaticString) Pos() Position { return s.Start }
+func (s *StaticString) Pos() Position { return s.Open }
+func (s *StaticString) End() Position {
+	if s.Close != nil {
+		return *s.Close
+	}
+
+	return deltaPos(s.Open, len(`"`)+len(s.Contents))
+}
 
 func (s *StaticString) Quoted() string {
 	return string(s.Quote) + s.Contents + string(s.Quote)
 }
-
 func (s *StaticString) Unquote() string {
 	if s.Quote == '`' {
 		return s.Contents
@@ -62,3 +74,5 @@ func (s *StaticString) Unquote() string {
 
 	return unq
 }
+
+func (*StaticString) _node() {}
