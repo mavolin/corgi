@@ -1,14 +1,14 @@
 package internal
 
 import (
-	"github.com/mavolin/corgi/file"
+	"github.com/mavolin/corgi/file/ast"
 )
 
 type (
 	State struct {
 		Indentation IndentationState
 
-		Start []file.Position
+		Start []ast.Position
 
 		// whether the upcoming tokens must be inline
 		Inline bool
@@ -22,7 +22,7 @@ type (
 
 func newState(c *current) {
 	c.state["state"] = State{
-		Start: make([]file.Position, 0, 16),
+		Start: make([]ast.Position, 0, 16),
 	}
 }
 
@@ -40,12 +40,12 @@ func pushStart(c *current) {
 	editState(c, func(s *State) { s.Start = append(s.Start, pos(c)) })
 }
 
-func peekStart(c *current) file.Position {
+func peekStart(c *current) ast.Position {
 	return state(c).Start[len(state(c).Start)-1]
 }
 
-func popStart(c *current) file.Position {
-	var start file.Position
+func popStart(c *current) ast.Position {
+	var start ast.Position
 	editState(c, func(s *State) {
 		start = s.Start[len(s.Start)-1]
 		s.Start = s.Start[:len(s.Start)-1]
