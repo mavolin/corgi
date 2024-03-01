@@ -4,35 +4,35 @@ import (
 	"github.com/mavolin/corgi/file"
 	"github.com/mavolin/corgi/file/ast"
 	"github.com/mavolin/corgi/file/fileerr"
+	"github.com/mavolin/corgi/file/fileerr/anno"
 	"github.com/mavolin/corgi/file/walk"
-	"github.com/mavolin/corgi/internal/anno"
 )
 
-func collectComponentCalls(p *file.Package) {
+func collectComponentCalls(ctx *context, p *file.Package) {
 	p.ComponentCalls = make([]*file.ComponentCall, 0, 32*len(p.Files))
 
 	for _, f := range p.Files {
 		walk.Walk(f, f.Scope, func(_ []walk.Context, wctx walk.Context) error {
-			switch itm := wctx.Item.(type) {
+			switch itm := wctx.Node.(type) {
 			case *ast.ComponentCall:
 				if itm != nil {
-					p.ComponentCalls = append(p.ComponentCalls, &file.ComponentCall{File: f, Source: itm})
+					p.ComponentCalls = append(p.ComponentCalls, &file.ComponentCall{File: f, ComponentCall: itm})
 				}
 			case *ast.ArrowBlock:
 				if itm != nil {
-					collectComponentCallsFromText(f, itm.Lines)
+					collectComponentCallsFromText(ctx, f, itm.Lines)
 				}
 			case *ast.Element:
 				if itm != nil {
-					collectComponentCallsFromAttributes(f, itm.Attributes)
+					collectComponentCallsFromAttributes(ctx, f, itm.Attributes)
 				}
 			case *ast.And:
 				if itm != nil {
-					collectComponentCallsFromAttributes(f, itm.Attributes)
+					collectComponentCallsFromAttributes(ctx, f, itm.Attributes)
 				}
 			default:
 				if bt, _ := file.BracketText(itm); bt != nil {
-					collectComponentCallsFromText(f, bt.Lines)
+					collectComponentCallsFromText(ctx, f, bt.Lines)
 				}
 			}
 			return nil
@@ -42,27 +42,27 @@ func collectComponentCalls(p *file.Package) {
 	p.ComponentCalls = p.ComponentCalls[:len(p.ComponentCalls):len(p.ComponentCalls)]
 }
 
-func collectComponentCallsFromText(f *file.File, lns []ast.TextLine) {
+func collectComponentCallsFromText(ctx *context, f *file.File, lns []ast.TextLine) {
 	for _, ln := range lns {
 		for _, itm := range ln {
 			switch itm := itm.(type) {
 			case *ast.ComponentCallInterpolation:
 				if itm != nil && itm.ComponentCall != nil {
 					f.Package.ComponentCalls = append(f.Package.ComponentCalls, &file.ComponentCall{
-						File:   f,
-						Source: itm.ComponentCall,
+						File:          f,
+						ComponentCall: itm.ComponentCall,
 					})
 				}
 			case *ast.ElementInterpolation:
 				if itm != nil && itm.Element != nil {
-					collectComponentCallsFromAttributes(f, itm.Element.Attributes)
+					collectComponentCallsFromAttributes(ctx, f, itm.Element.Attributes)
 				}
 			}
 		}
 	}
 }
 
-func collectComponentCallsFromAttributes(f *file.File, attrColls []ast.AttributeCollection) {
+func collectComponentCallsFromAttributes(_ *context, f *file.File, attrColls []ast.AttributeCollection) {
 	for _, attrColl := range attrColls {
 		attrList, _ := attrColl.(*ast.AttributeList)
 		if attrList == nil {
@@ -75,24 +75,24 @@ func collectComponentCallsFromAttributes(f *file.File, attrColls []ast.Attribute
 				continue
 			}
 
-			compCallAttr, _ := simpleAttr.Value.(*ast.ComponentCallAttribute)
+			compCallAttr, _ := simpleAttr.Value.(*ast.ComponentCallAttributeValue)
 			if compCallAttr != nil && compCallAttr.ComponentCall != nil {
 				f.Package.ComponentCalls = append(f.Package.ComponentCalls, &file.ComponentCall{
-					File:   f,
-					Source: compCallAttr.ComponentCall,
+					File:          f,
+					ComponentCall: compCallAttr.ComponentCall,
 				})
 			}
 		}
 	}
 }
 
-func linkLocalComponentCalls(p *file.Package) {
+func linkLocalComponentCalls(_ *context, p *file.Package) {
 	for _, cc := range p.ComponentCalls {
-		if cc.Namespace() != "" {
+		if cc.Namespace != nil || cc.Name == nil {
 			continue
 		}
 
-		if c := p.ComponentByName(cc.Name()); c != nil {
+		if c := p.ComponentByName(cc.Name.Ident); c != nil {
 			cc.Component = c
 			continue
 		}
@@ -100,30 +100,24 @@ func linkLocalComponentCalls(p *file.Package) {
 	return
 }
 
-func linkExternalComponentCalls(p *file.Package) fileerr.List {
-	errs := make(fileerr.List, 0, len(p.ComponentCalls))
-
+func linkExternalComponentCalls(ctx *context, p *file.Package) {
 	for _, cc := range p.ComponentCalls {
 		if cc.Component != nil {
 			continue
 		}
 
-		if err := linkComponentCall(cc.File, cc); err != nil {
-			errs = append(errs, err)
-		}
+		linkComponentCall(ctx, cc.File, cc)
 	}
-
-	return errs
 }
 
-func linkComponentCall(f *file.File, cc *file.ComponentCall) *fileerr.Error {
-	if cc.Source.Name == nil {
-		return nil
+func linkComponentCall(ctx *context, f *file.File, cc *file.ComponentCall) {
+	if cc.Name == nil || cc.Name.Ident == "" || (cc.Namespace != nil && cc.Namespace.Ident == "") {
+		return
 	}
 
-	namespace := cc.Namespace()
-	if namespace == "" {
-		namespace = "."
+	namespace := "."
+	if cc.Namespace != nil {
+		namespace = cc.Namespace.Ident
 	}
 
 	missingImport := true
@@ -134,60 +128,43 @@ func linkComponentCall(f *file.File, cc *file.ComponentCall) *fileerr.Error {
 		}
 		missingImport = false
 
-		c := imp.Package.ComponentByName(cc.Name())
+		c := imp.Package.ComponentByName(cc.Name.Ident)
 		if c != nil {
 			cc.Component = c
-			return nil
+			return
 		}
 	}
 
 	if missingImport && namespace != "." {
-		return &fileerr.Error{
-			Message: "missing import",
-			ErrorAnnotation: anno.Anno(f, anno.Annotation{
-				Start:      cc.Source.Namespace.Position,
-				Len:        len(namespace),
-				Annotation: "there is no import for this package",
-			}),
-		}
+		ctx.err(&fileerr.Error{
+			Message:         "missing import",
+			ErrorAnnotation: anno.Node(f, cc.Namespace, "there is no import for this package"),
+		})
+		return
 	}
 
-	return newUnknownComponentError(f, cc)
+	ctx.err(newUnknownComponentError(f, cc))
 }
 
 func newUnknownComponentError(f *file.File, cc *file.ComponentCall) *fileerr.Error {
 	var hint *fileerr.Annotation
 	var suggestion *fileerr.Suggestion
 
-	namespace := cc.Namespace()
-	if namespace == "" {
-		namespace = "."
+	namespace := "."
+	if cc.Namespace != nil {
+		namespace = cc.Namespace.Ident
 	}
 	imp := f.ImportByNamespace(namespace)
 	if imp != nil {
-		a := anno.Anno(f, anno.Annotation{
-			Start:      imp.Source.Position,
-			ToEOL:      true,
-			Annotation: "in this package",
-		})
+		a := anno.Node(f, imp.ImportSpec, "in this package")
 		hint = &a
-	} else if cc.Exported() {
+	} else if file.IsExported(cc.Name.Ident) {
 		suggestion = &fileerr.Suggestion{Suggestion: "did you forget to add a dot import?"}
 	}
 
-	start := cc.Source.Name.Position
-	if cc.Source.Namespace != nil {
-		start = cc.Source.Namespace.Position
-	}
-
 	ferr := &fileerr.Error{
-		Message: "unknown component",
-		ErrorAnnotation: anno.Anno(f, anno.Annotation{
-			Start:      start,
-			End:        cc.Source.Name.Position,
-			EndOffset:  len(cc.Source.Name.Ident),
-			Annotation: "found no component with this name",
-		}),
+		Message:         "unknown component",
+		ErrorAnnotation: anno.Node(f, cc, "found no component with this name"),
 	}
 	if hint != nil {
 		ferr.HintAnnotations = []fileerr.Annotation{*hint}

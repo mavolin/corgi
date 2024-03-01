@@ -26,14 +26,28 @@ func New(imp Importer) *Linker {
 //
 // The returned error is always of type [fileerr.List].
 func (l *Linker) Link(p *file.Package) error {
-	imports := collectImports(p)
-	duplErr := checkDuplicateImports(p)
-	compErr := collectComponents(p)
-	collectComponentCalls(p)
+	ctx := &context{errs: make(fileerr.List, 0, 128)}
 
-	linkLocalComponentCalls(p)
-	impErr := loadImports(p, l.importer, imports)
-	linkErr := linkExternalComponentCalls(p)
+	imports := collectImports(ctx, p)
+	checkDuplicateImports(ctx, p)
+	collectComponents(ctx, p)
+	collectComponentCalls(ctx, p)
 
-	return fileerr.Join(duplErr, impErr, compErr, linkErr)
+	linkLocalComponentCalls(ctx, p)
+	loadImports(ctx, p, l.importer, imports)
+	linkExternalComponentCalls(ctx, p)
+
+	return ctx.error()
+}
+
+type context struct {
+	errs fileerr.List
+}
+
+func (ctx *context) err(err *fileerr.Error) {
+	ctx.errs = append(ctx.errs, err)
+}
+
+func (ctx *context) error() error {
+	return ctx.errs.AsError()
 }

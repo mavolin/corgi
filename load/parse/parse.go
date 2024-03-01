@@ -9,7 +9,7 @@ import (
 	"github.com/mavolin/corgi/file"
 	"github.com/mavolin/corgi/file/ast"
 	"github.com/mavolin/corgi/file/fileerr"
-	"github.com/mavolin/corgi/parse/internal"
+	"github.com/mavolin/corgi/load/parse/internal"
 )
 
 // Parse parses the given input file and returns a [file.File] with its AST set.

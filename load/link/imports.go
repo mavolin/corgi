@@ -6,7 +6,7 @@ import (
 	"github.com/mavolin/corgi/file"
 	"github.com/mavolin/corgi/file/ast"
 	"github.com/mavolin/corgi/file/fileerr"
-	"github.com/mavolin/corgi/internal/anno"
+	"github.com/mavolin/corgi/file/fileerr/anno"
 	"github.com/sourcegraph/conc"
 )
 
@@ -15,7 +15,7 @@ type fileImport struct {
 	*file.Import
 }
 
-func collectImports(p *file.Package) map[string][]*fileImport {
+func collectImports(_ *context, p *file.Package) map[string][]*fileImport {
 	imports := make(map[string][]*fileImport)
 
 	for _, f := range p.Files {
@@ -23,7 +23,7 @@ func collectImports(p *file.Package) map[string][]*fileImport {
 			continue
 		}
 
-		for _, itm := range f.Scope.Items {
+		for _, itm := range f.Scope.Nodes {
 			imp, _ := itm.(*ast.Import)
 			if imp == nil {
 				continue
@@ -32,7 +32,7 @@ func collectImports(p *file.Package) map[string][]*fileImport {
 			if f.Imports == nil {
 				// 95% of all files have a single import group containing all imports,
 				// so this is a pretty solid guess
-				f.Imports = make([]*file.Import, 0, len(imp.Imports)+1)
+				f.Imports = make([]*file.Import, 0, len(imp.Imports)+5)
 			}
 
 			for _, impItm := range imp.Imports {
@@ -41,14 +41,14 @@ func collectImports(p *file.Package) map[string][]*fileImport {
 					continue
 				}
 
-				fImp := &fileImport{file: f, Import: &file.Import{Source: spec}}
+				fImp := &fileImport{file: f, Import: &file.Import{ImportSpec: spec}}
 				f.Imports = append(f.Imports, fImp.Import)
 
 				if spec.Path == nil {
 					continue
 				}
 
-				path := fImp.Path()
+				path := fImp.ImportPath()
 				pImp := imports[path]
 				if pImp == nil {
 					pImp = make([]*fileImport, 1, len(p.Files))
@@ -67,9 +67,7 @@ func collectImports(p *file.Package) map[string][]*fileImport {
 	return imports
 }
 
-func checkDuplicateImports(p *file.Package) fileerr.List {
-	errs := make(fileerr.List, 0, 48)
-
+func checkDuplicateImports(ctx *context, p *file.Package) {
 	duplNamespace := make([]*file.Import, 0, 8)
 	duplPath := make([]*file.Import, 0, 8)
 
@@ -81,7 +79,7 @@ func checkDuplicateImports(p *file.Package) fileerr.List {
 		ignore := make(map[*file.Import]struct{}, len(f.Imports))
 
 		for ai, a := range f.Imports[:len(f.Imports)-1] {
-			if a.Source.Path == nil {
+			if a.Path == nil {
 				continue
 			}
 			if _, ok := ignore[a]; ok {
@@ -92,11 +90,11 @@ func checkDuplicateImports(p *file.Package) fileerr.List {
 			duplPath = duplPath[:0]
 
 			for _, b := range f.Imports[ai:] {
-				if b.Source.Path == nil {
+				if b.Path == nil {
 					continue
 				}
 
-				if a.Path() == b.Path() {
+				if a.ImportPath() == b.ImportPath() {
 					duplPath = append(duplPath, a, b)
 					ignore[b] = struct{}{}
 				} else if a.Namespace() == b.Namespace() {
@@ -106,78 +104,41 @@ func checkDuplicateImports(p *file.Package) fileerr.List {
 			}
 
 			if len(duplPath) > 0 {
-				start := a.Source.Path.Start
-				if a.Source.Alias != nil {
-					start = a.Source.Alias.Position
-				}
-
 				err := &fileerr.Error{
-					Message: "package imported twice",
-					ErrorAnnotation: anno.Anno(f, anno.Annotation{
-						Start:      start,
-						ToEOL:      true,
-						Annotation: "imported for the first time here",
-					}),
+					Message:         "package imported twice",
+					ErrorAnnotation: anno.Node(f, a.ImportSpec, "imported for the first time here"),
 					HintAnnotations: make([]fileerr.Annotation, len(duplPath)),
 					Suggestions: []fileerr.Suggestion{
 						{Suggestion: "only keep one import and remove the others"},
 					},
 				}
 				for i, dupl := range duplPath {
-					start = dupl.Source.Path.Start
-					if dupl.Source.Alias != nil {
-						start = dupl.Source.Alias.Position
-					}
-					err.HintAnnotations[i] = anno.Anno(f, anno.Annotation{
-						Start:      start,
-						ToEOL:      true,
-						Annotation: "then again here",
-					})
+					err.HintAnnotations[i] = anno.Node(f, dupl.ImportSpec, "then again here")
 				}
-				errs = append(errs, err)
+				ctx.err(err)
 			}
 			if len(duplNamespace) > 0 {
-				start := a.Source.Path.Start
-				if a.Source.Alias != nil {
-					start = a.Source.Alias.Position
-				}
-
 				err := &fileerr.Error{
-					Message: "import collision",
-					ErrorAnnotation: anno.Anno(f, anno.Annotation{
-						Start:      start,
-						ToEOL:      true,
-						Annotation: "namespace `" + a.Namespace() + "` used for the first time here",
-					}),
+					Message:         "import collision",
+					ErrorAnnotation: anno.Node(f, a.ImportSpec, "namespace `"+a.Namespace()+"` used for the first time here"),
 					HintAnnotations: make([]fileerr.Annotation, len(duplNamespace)),
 					Suggestions: []fileerr.Suggestion{
 						{Suggestion: "use an import alias"},
 					},
 				}
 				for i, dupl := range duplNamespace {
-					start = dupl.Source.Path.Start
-					if dupl.Source.Alias != nil {
-						start = dupl.Source.Alias.Position
-					}
-					err.HintAnnotations[i] = anno.Anno(f, anno.Annotation{
-						Start:      start,
-						ToEOL:      true,
-						Annotation: "then again here",
-					})
+					err.HintAnnotations[i] = anno.Node(f, dupl.ImportSpec, "then again here")
 				}
-				errs = append(errs, err)
+				ctx.err(err)
 			}
 		}
 	}
-
-	return errs
 }
 
-func loadImports(p *file.Package, importer Importer, imports map[string] /*path*/ []*fileImport) fileerr.List {
+func loadImports(ctx *context, p *file.Package, importer Importer, imports map[string] /*path*/ []*fileImport) {
 	var wg conc.WaitGroup
 	var mut sync.Mutex
 
-	errs := make(fileerr.List, 0, len(imports))
 	for _, fImps := range imports {
 		ref := fImps[0]
 		namespace := ref.Namespace()
@@ -186,33 +147,26 @@ func loadImports(p *file.Package, importer Importer, imports map[string] /*path*
 			// Only load the import if we actually need it.
 			// Local component calls are linked before loading imports, so that
 			// we only need to load a dot import, if it's actually used.
-			if cc.Component != nil || cc.Namespace() != namespace || !cc.Exported() {
+			if cc.Component != nil ||
+				(cc.Namespace != nil && cc.Namespace.Ident != namespace) ||
+				file.IsExported(cc.Name.Ident) {
 				continue
 			}
 
 			wg.Go(func() {
-				pkg, err := importer(ref.Path())
+				pkg, err := importer(ref.ImportPath())
 
 				mut.Lock()
 				defer mut.Unlock()
 
 				if err != nil {
 					if lerr := fileerr.As(err); lerr != nil {
-						errs = append(errs, lerr...)
+						ctx.errs = append(ctx.errs, lerr...)
 					} else {
-						start := ref.Source.Path.Start
-						if ref.Source.Alias != nil {
-							start = ref.Source.Alias.Position
-						}
-
-						errs = append(errs, &fileerr.Error{
-							Message: "failed to load import",
-							ErrorAnnotation: anno.Anno(fImps[0].file, anno.Annotation{
-								Start:      start,
-								ToEOL:      true,
-								Annotation: err.Error(),
-							}),
-							Cause: err,
+						ctx.err(&fileerr.Error{
+							Message:         "failed to load import",
+							ErrorAnnotation: anno.Node(ref.file, ref.ImportSpec, err.Error()),
+							Cause:           err,
 						})
 					}
 					return
@@ -222,13 +176,9 @@ func loadImports(p *file.Package, importer Importer, imports map[string] /*path*
 					fImp.Package = pkg
 				}
 			})
+			break
 		}
 	}
 
 	wg.Wait()
-
-	if len(errs) == 0 {
-		return nil
-	}
-	return errs
 }
