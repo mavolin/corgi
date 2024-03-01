@@ -29,11 +29,8 @@ codeStatements <- firstLineI:GoExpression restI:codeStatement* {
     return stmts, nil
 } / EOL {
     return ([]*ast.GoCode)(nil), &fileerr.Error{
-        Message: "empty code block",
-        ErrorAnnotation: anno(c, annotation{
-            Start:      pos(c),
-            Annotation: "expected code",
-        }),
+        Message:         "empty code block",
+        ErrorAnnotation: annoPos(c, "expected code"),
         Suggestions: []fileerr.Suggestion{
             {Suggestion: "either write some code, or delete this line"},
         },
@@ -48,7 +45,7 @@ codeStatement <- !(_* ';' EOL) EOC stmtI:GoExpression {
 
 implicitCode <- implicitAhead stmtI:GoStatement EOC {
     return &ast.Code{
-        Statements: []ast.GoCode{deref[ast.GoCode](stmtI)},
+        Statements: []*ast.GoCode{stmtI.(*ast.GoCode)},
         Position:   pos(c),
     }, nil
 }
@@ -60,12 +57,11 @@ colonDecl   <- goIdentifierList _* ":=" _* goRestOfCommand
 varDecl     <- ("var" / "const") (_+ varDeclLine / '(' (WS* varDeclLine)* WS* ')')
 varDeclLine <- goIdentifierList (_+ goType)? _* '=' _* goRestOfCommand
 
-assignment <- goIdentifierList _* [-+*/%|&^]? '=' _* goRestOfCommand {
-    return string(c.text), nil
-}
-increment <- goIdentifier _* ("++" / "--") {
-    return string(c.text), nil
-}
+assignment <- assignmentVarList _* [-+*/%|&^]? '=' _* goRestOfCommand
+assignmentVarList <- assignmentVar _* (',' WS* assignmentVar)*
+assignmentVar <- goIdentifier (_* ('.' _* goIdentifier / '[' _* [^\r\n\]]+ _* ']'))*
+
+increment <- goIdentifier _* ("++" / "--")
 
 label <- goIdentifier _* ':' EOC
 fallthroughKeyword <- "fallthrough" EOC

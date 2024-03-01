@@ -21,7 +21,7 @@ type Option func(parents []Context, wctx Context) error
 // ChildOf asserts that the visited item must be a child of the passed sequence
 // of types.
 // Other types may appear in between or in front/after the types.
-func ChildOf(types ...ast.ScopeItem) Option {
+func ChildOf(types ...ast.ScopeNode) Option {
 	rTypes := make([]reflect.Type, len(types))
 	for i, t := range types {
 		rTypes[i] = reflect.TypeOf(t)
@@ -30,7 +30,7 @@ func ChildOf(types ...ast.ScopeItem) Option {
 	return func(parents []Context, wctx Context) error {
 		var typI int
 		for _, p := range parents {
-			pt := reflect.TypeOf(p.Item)
+			pt := reflect.TypeOf(p.Node)
 			if pt != rTypes[typI] {
 				continue
 			}
@@ -47,7 +47,7 @@ func ChildOf(types ...ast.ScopeItem) Option {
 
 // ChildOfAny asserts that the visited item must be a child of an item of any of
 // the passed types.
-func ChildOfAny(types ...ast.ScopeItem) Option {
+func ChildOfAny(types ...ast.ScopeNode) Option {
 	rTypes := make([]reflect.Type, len(types))
 	for i, t := range types {
 		rTypes[i] = reflect.TypeOf(t)
@@ -55,7 +55,7 @@ func ChildOfAny(types ...ast.ScopeItem) Option {
 
 	return func(parents []Context, wctx Context) error {
 		for _, p := range parents {
-			pt := reflect.TypeOf(p.Item)
+			pt := reflect.TypeOf(p.Node)
 			for _, rType := range rTypes {
 				if pt == rType {
 					return nil
@@ -71,7 +71,7 @@ func ChildOfAny(types ...ast.ScopeItem) Option {
 // passed sequence of types.
 // Other types may appear in between or in front/after the types and the
 // assertion will still fail.
-func NotChildOf(types ...ast.ScopeItem) Option {
+func NotChildOf(types ...ast.ScopeNode) Option {
 	rTypes := make([]reflect.Type, len(types))
 	for i, t := range types {
 		rTypes[i] = reflect.TypeOf(t)
@@ -80,7 +80,7 @@ func NotChildOf(types ...ast.ScopeItem) Option {
 	return func(parents []Context, wctx Context) error {
 		var typI int
 		for _, p := range parents {
-			pt := reflect.TypeOf(p.Item)
+			pt := reflect.TypeOf(p.Node)
 			if pt != rTypes[typI] {
 				continue
 			}
@@ -91,7 +91,7 @@ func NotChildOf(types ...ast.ScopeItem) Option {
 			}
 		}
 
-		if typI == len(rTypes)-1 && reflect.TypeOf(wctx.Item) == rTypes[typI] {
+		if typI == len(rTypes)-1 && reflect.TypeOf(wctx.Node) == rTypes[typI] {
 			return NoDive
 		}
 
@@ -101,7 +101,7 @@ func NotChildOf(types ...ast.ScopeItem) Option {
 
 // NotChildOfAny asserts that the visited item must not be a child of any of the
 // passed types.
-func NotChildOfAny(types ...ast.ScopeItem) Option {
+func NotChildOfAny(types ...ast.ScopeNode) Option {
 	rTypes := make([]reflect.Type, len(types))
 	for i, t := range types {
 		rTypes[i] = reflect.TypeOf(t)
@@ -109,7 +109,7 @@ func NotChildOfAny(types ...ast.ScopeItem) Option {
 
 	return func(parents []Context, wctx Context) error {
 		for _, p := range parents {
-			pt := reflect.TypeOf(p.Item)
+			pt := reflect.TypeOf(p.Node)
 			for _, rType := range rTypes {
 				if pt == rType {
 					return IgnoreNoDive
@@ -121,16 +121,16 @@ func NotChildOfAny(types ...ast.ScopeItem) Option {
 	}
 }
 
-// DontDive prevents the function from diving if the current item is of any of
+// DontDiveAny prevents the function from diving if the current item is of any of
 // the passed types.
-func DontDive(types ...ast.ScopeItem) Option {
+func DontDiveAny(types ...ast.ScopeNode) Option {
 	rTypes := make([]reflect.Type, len(types))
 	for i, t := range types {
 		rTypes[i] = reflect.TypeOf(t)
 	}
 
 	return func(_ []Context, wctx Context) error {
-		t := reflect.TypeOf(wctx.Item)
+		t := reflect.TypeOf(wctx.Node)
 		for _, rType := range rTypes {
 			if rType == t {
 				return NoDive

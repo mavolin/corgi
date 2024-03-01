@@ -4,7 +4,7 @@
 
 And <- '&' collsI:andAttributes EOC {
     return &ast.And{
-        Attributes: collsI.([]*ast.AttributeCollection),
+        Attributes: collsI.([]ast.AttributeCollection),
         Position:   pos(c),
     }, nil
 }
@@ -12,10 +12,7 @@ And <- '&' collsI:andAttributes EOC {
 andAttributes <- AttributeCollection unexpectedAndAttributes / UNEXPECTED {
     return ([]*ast.AttributeCollection)(nil), &fileerr.Error{
         Message: "`&` with no attributes",
-        ErrorAnnotation: anno(c, annotation{
-            Start:      pos(c),
-            Annotation: "expected attributes",
-        }),
+        ErrorAnnotation: annoPos(c, "expected attributes"),
         Suggestions: []fileerr.Suggestion{
             {Suggestion: "write a class shorthand", Example: "`&.woof`"},
             {Suggestion: "write an id shorthand", Example: "`&#bark`"},
@@ -27,11 +24,7 @@ andAttributes <- AttributeCollection unexpectedAndAttributes / UNEXPECTED {
 unexpectedAndAttributes <- UNEXPECTED endI:POS {
     return nil, &fileerr.Error{
         Message: "bad attribute syntax",
-        ErrorAnnotation: anno(c, annotation{
-            Start:      pos(c),
-            End:        *endI.(*ast.Position),
-            Annotation: "this is not a valid attribute list",
-        }),
+        ErrorAnnotation: annoRange(c, pos(c), endI, "this is not a valid attribute list"),
         Suggestions: []fileerr.Suggestion{
             {
                 Suggestion: "if there is, remove any whitespace between class/id shorthands and attribute lists",
@@ -49,11 +42,11 @@ unexpectedAndAttributes <- UNEXPECTED endI:POS {
 // AttributeCollection
 // ======================================================================================
 
-AttributeCollection <- attrsI:attributeCollectionItem+ {
+AttributeCollection <- attrsI:attributeCollection+ {
     return sliceOf[*ast.AttributeCollection](attrsI), nil
 }
-attributeCollectionItem <- _* itmI:(IDShorthand / ClassShorthand / AttributeList)  {
-    return itmI, nil
+attributeCollection <- _* nodeI:(IDShorthand / ClassShorthand / AttributeList)  {
+    return nodeI, nil
 }
 
 shorthandName <- [^ \t\r\n.#()[\]{};]+ {
@@ -72,11 +65,8 @@ IDShorthand <- '#' idI:idShorthandName {
 
 idShorthandName <- shorthandName / POS {
     return "", &fileerr.Error{
-        Message: "id shorthand: missing id",
-        ErrorAnnotation: anno(c, annotation{
-            Start:      pos(c),
-            Annotation: "expected an id",
-        }),
+        Message:         "id shorthand: missing id",
+        ErrorAnnotation: annoPos(c, "expected an id"),
     }
 }
 
@@ -93,11 +83,8 @@ ClassShorthand <- '.' nameI:classShorthandName {
 
 classShorthandName <- shorthandName / POS {
     return "", &fileerr.Error{
-        Message: "class shorthand: missing class name",
-        ErrorAnnotation: anno(c, annotation{
-            Start:      pos(c),
-            Annotation: "expected a class name",
-        }),
+        Message:         "class shorthand: missing class name",
+        ErrorAnnotation: annoPos(c, "expected a class name"),
     }
 }
 
@@ -109,7 +96,7 @@ classShorthandName <- shorthandName / POS {
 AttributeList <- listStart attributesI:attributes? rParenI:attributeListEnd {
     return &ast.AttributeList{
         LParen:     pos(c),
-        Attributes: optCast[[]*ast.Attribute](attributesI),
+        Attributes: optCast[[]ast.Attribute](attributesI),
         RParen:     rParenI.(*ast.Position),
     }, nil
 }
@@ -132,12 +119,8 @@ AttributeName <- (![(),=] htmlAttributeNameChar)+ &(_* [\r\n=,)]) {
     return string(c.text), nil
 } / (!(_* [,=)]) [^\r\t(),=])+ {
     return string(c.text), &fileerr.Error{
-        Message: "attribute: invalid name",
-        ErrorAnnotation: anno(c, annotation{
-            Start:      pos(c),
-            Len:        len(c.text),
-            Annotation: "contains characters not allowed by the HTML5 spec",
-        }),
+        Message:         "attribute: invalid name",
+        ErrorAnnotation: annoCaptured(c, "contains characters not allowed by the HTML5 spec"),
     }
 }
 
@@ -177,10 +160,7 @@ simpleAttributeValue <- &[,)] {
 AttributeValue <- TypedAttributeValue / ComponentCallAttributeValue / Expression / POS {
     return nil, &fileerr.Error{
         Message: "attribute: missing value",
-        ErrorAnnotation: anno(c, annotation{
-            Start:      pos(c),
-            Annotation: "expected an expression or component call",
-        }),
+        ErrorAnnotation: annoPos(c, "expected an expression or component call"),
         Suggestions: []fileerr.Suggestion{
             {
                 Suggestion: "if you want to write a static boolean attribute, remove the equal sign",
@@ -233,7 +213,7 @@ typedAttributeValueValue <- Expression
 //
 
 ComponentCallAttributeValue <- '+' inlineStart headerI:ComponentCallHeader inlineEnd valueI:InterpolationValue? {
-    return &ast.ComponentCallAttribute{
+    return &ast.ComponentCallAttributeValue{
         ComponentCall: headerI.(*ast.ComponentCall),
         Value:         optCast[*ast.InterpolationValue](valueI),
     }, nil

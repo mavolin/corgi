@@ -6,11 +6,11 @@
 }
 
 AST <- init docI:PackageDoc EMPTY_LINE* pkgI:Package EMPTY_LINE* scopeI:GlobalScope EMPTY_LINE* EOF {
-    return &ast.AST{
-        PackageDoc:       optCast[[]*ast.DevComment](docI),
-        PackageDirective: optCast[*ast.PackageDirective](pkgI),
-        Scope:            scopeI.(*ast.Scope),
-    }, nil
+    f := file(c)
+    f.PackageDoc = optCast[[]*ast.DevComment](docI)
+    f.PackageDirective = optCast[*ast.PackageDirective](pkgI)
+    f.Scope = scopeI.(*ast.Scope)
+    return f.AST, nil
 }
 
 init <- #{

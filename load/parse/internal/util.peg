@@ -56,10 +56,7 @@ scopeEnd <- WS* rBraceI:R_BRACE popStart {
 } / posI:POS {
     return posI.(*ast.Position), &fileerr.Error{
         Message: "unclosed `{`",
-        ErrorAnnotation: anno(c, annotation{
-            Start:      popStart(c),
-            Annotation: "expected a closing `}` for this `{`",
-        }),
+        ErrorAnnotation: anno.Position(file(c), popStart(c), "expected a closing `}` for this `{`"),
     }
 }
 

@@ -1,0 +1,301 @@
+// ============================================================================
+// Arrow Block
+// ======================================================================================
+
+ArrowBlock <- INDENTATION_REF "> " firstI:(ArrowBlockLine / EOL) restI:(EMPTY_LINE* INDENTATION2 ArrowBlockLine)* {
+    first, firstOk := firstI.(ast.TextLine)
+    restTuples := slice(restI)
+
+    n := len(restTuples)
+    if firstOk {
+        n++
+    }
+
+    lines := make([]ast.TextLine, 0, n)
+    if firstOk {
+        lines = append(lines, first)
+    }
+    for _, lt := range restTuples {
+        lines = append(lines, getTuple[ast.TextLine](lt, -1))
+    }
+
+    return &ast.ArrowBlock{
+        Lines:    lines,
+        Position: pos(c),
+    }, nil
+} / ">" EOL {
+    return ast.ArrowBlock{Position: pos(c)}, nil
+}
+
+// ============================================================================
+// Bracket Text
+// ======================================================================================
+
+BracketText <- L_BRACKET WS* btI:BracketTextLine* WS* rBracketI:R_BRACKET EOC {
+    return &ast.BracketText{
+        LBracket: pos(c),
+        Lines:    sliceOf[ast.TextLine](btI),
+        RBracket: rBracketI.(*ast.Position),
+    }, nil
+} / L_BRACKET btI:BracketTextLine* .* EOF {
+    return &ast.BracketText{
+        LBracket: pos(c),
+        Lines:    sliceOf[ast.TextLine](btI),
+    }, &fileerr.Error{
+        Message: "unclosed bracket text",
+        ErrorAnnotation: annoPos(c, "missing closing `]`"),
+    }
+}
+
+// ============================================================================
+// TextLine
+// ======================================================================================
+
+ArrowBlockLine <- nodesI:ArrowBlockTextNode+ EOL {
+    return ast.TextLine(sliceOf[ast.TextNode](nodesI)), nil
+}
+BracketTextLine <- WS* nodesI:BracketTextTextNode+ EOL? {
+    return ast.TextLine(sliceOf[ast.TextNode](nodesI)), nil
+}
+InterpolationValueLine <- nodesI:InterpolationValueTextNode* {
+    return ast.TextLine(sliceOf[ast.TextNode](nodesI)), nil
+}
+
+// ============================================================================
+// TextNode
+// ======================================================================================
+
+ArrowBlockTextNode         <- ArrowBlockText / Interpolation
+BracketTextTextNode        <- BracketTextText / Interpolation
+InterpolationValueTextNode <- InterpolationValueText / Interpolation
+
+// ============================================================================
+// Text
+// ======================================================================================
+
+ArrowBlockText <- textI:((!EOL [^#])+ / nonInterpolationHash)+ {
+    return &ast.Text{
+        Text:     string(c.text),
+        Position: pos(c),
+    }, nil
+}
+
+BracketTextText <- textI:((!(EOL / _* R_BRACKET EOC) [^#\]])+ / nonInterpolationHash / R_BRACKET !EOC)+ {
+    return &ast.Text{
+        Text:     string(c.text),
+        Position: pos(c),
+    }, nil
+}
+
+InterpolationValueText <- textI:((!EOL [^#\]])+ / nonInterpolationHash)+ {
+    return &ast.Text{
+        Text:     string(c.text),
+        Position: pos(c),
+    }, nil
+}
+
+nonInterpolationHash <- '#' WS
+
+// ============================================================================
+// Interpolation
+// ======================================================================================
+
+Interpolation <- interpolationStart interpI:interpolation interpolationEnd {
+    return interpI, nil
+}
+interpolation <- EscapedHash / HashSpace / CharacterReference / ExpressionInterpolation /
+                 ElementInterpolation / ComponentCallInterpolation / BadInterpolation
+
+interpolationStart <- pushStart startI:POS '#' { return startI.(*ast.Position), nil }
+interpolationEnd   <- endI:POS popStart { return endI.(*ast.Position), nil }
+
+// ============================================================================
+// Escaped Hash
+// ======================================================================================
+
+EscapedHash <- '#' {
+    return &ast.EscapedHash{Position: peekStart(c)}, nil
+}
+
+// ============================================================================
+// Hash Space
+// ======================================================================================
+
+HashSpace <- '_' {
+    return &ast.HashSpace{Position: peekStart(c)}, nil
+}
+
+// ============================================================================
+// Character Reference
+// ======================================================================================
+
+CharacterReference <- nameI:characterReferenceName ';' {
+    return &ast.CharacterReference{
+        Name:     nameI.(string),
+        Position: peekStart(c),
+    }, nil
+}
+characterReferenceName <- [a-zA-Z]+ {
+    return string(c.text), nil
+}
+
+// ============================================================================
+// Expression Interpolation
+// ======================================================================================
+
+ExpressionInterpolation <- fmtDirectiveI:fmtDirective? exprI:interpolationExpression {
+    exprInterp := exprI.(*ast.ExpressionInterpolation)
+    exprInterp.FormatDirective = optCast[string](fmtDirectiveI)
+    exprInterp.Position = peekStart(c)
+    return exprInterp, nil
+}
+
+interpolationExpression <- lBraceI:interpolationExpressionStart exprI:InlineExpression rBraceI:interpolationExpressionEnd {
+    return &ast.ExpressionInterpolation{
+        LBrace:     lBraceI.(*ast.Position),
+        Expression: optCast[ast.Expression](exprI),
+        RBrace:     rBraceI.(*ast.Position),
+    }, nil
+}
+interpolationExpressionStart <- pushStart lBraceI:L_BRACE { return lBraceI.(*ast.Position), nil }
+interpolationExpressionEnd <- rBraceI:R_BRACE popStart {
+    return rBraceI.(*ast.Position), nil
+} / posI:POS {
+    braceStart := popStart(c)
+    hashStart := peekStart(c)
+    return posI.(*ast.Position), &fileerr.Error{
+        Message: "unclosed interpolation",
+        ErrorAnnotation: anno.Position(file(c), braceStart, "expected a closing `}` for this `}`"),
+        HintAnnotations: []fileerr.Annotation{
+            anno.Position(file(c), hashStart, "for the interpolation started here"),
+        },
+        Suggestions: []fileerr.Suggestion{
+            {Suggestion: "add the missing `}`"},
+            {Suggestion: "if you didn't mean to start an interpolation, escape the `#` by writing `##`"},
+        },
+    }
+}
+
+fmtDirective <- '%' fmtFlag* ([1-9][0-9]*)? ('.' [0-9]*)? fmtVerb {
+    return string(c.text[1:]), nil
+} / '%' [^`"{]* endI:POS {
+    return string(c.text[1:]), &fileerr.Error{
+        Message: "invalid format directive",
+        ErrorAnnotation: annoRange(c, pos(c), endI, "invalid formatter"),
+        Suggestions: []fileerr.Suggestion{
+            {Suggestion: "consult the docs of the Go built-in package `fmt` on how to write a formatting placeholder"},
+            {Suggestion: "if you didn't mean to start an interpolation, escape the `#` by writing `##`"},
+        },
+    }
+}
+fmtFlag <- [-+# 0]
+fmtVerb <- [bcdeEfFgGoOpqstTUvX] / &('{' / '"' / '`') {
+    return []byte(nil), &fileerr.Error{
+        Message: "missing format verb",
+        ErrorAnnotation: annoPos(c, "expected a formatting verb"),
+        Suggestions: []fileerr.Suggestion{
+            {Suggestion: "consult the docs of the Go built-in package `fmt` on valid formatting verbs"},
+            {Suggestion: "if you didn't mean to start an interpolation, escape the `#` before this error by writing `##`"},
+        },
+    }
+} / . {
+    return c.text, &fileerr.Error{
+        Message: "invalid format verb",
+        ErrorAnnotation: annoPos(c, "this is not a valid format verb"),
+        Suggestions: []fileerr.Suggestion{
+            {Suggestion: "consult the docs of the Go built-in package `fmt` on valid formatting verbs"},
+            {Suggestion: "if you didn't mean to start an interpolation, escape the `#` before this error by writing `##`"},
+        },
+    }
+}
+
+// ============================================================================
+// ElementInterpolation
+// ======================================================================================
+
+ElementInterpolation <- elementInterpolation / voidElementInterpolation
+
+elementInterpolation <- nameI:htmlTagName inlineStart attrsI:AttributeCollection* inlineEnd valI:InterpolationValue? {
+    return &ast.ElementInterpolation{
+        Element: &ast.Element{
+            Name:       concat(nameI),
+            Attributes: sliceOf[ast.AttributeCollection](attrsI),
+            Position:   pos(c),
+        },
+        Value:    optCast[*ast.InterpolationValue](valI),
+        Position: peekStart(c),
+    }, nil
+}
+
+voidElementInterpolation <- nameI:htmlTagName '/' inlineStart attrsI:AttributeCollection* inlineEnd {
+    return &ast.ElementInterpolation{
+        Element: &ast.Element{
+            Name:       concat(nameI),
+            Attributes: sliceOf[ast.AttributeCollection](attrsI),
+            Void:       true,
+            Position:   pos(c),
+        },
+        Position: peekStart(c),
+    }, nil
+}
+
+// ============================================================================
+// ComponentCallInterpolation
+// ======================================================================================
+
+ComponentCallInterpolation <- '+' inlineStart callI:ComponentCallHeader inlineEnd valI:(InterpolationValue / popStart) {
+    call := callI.(ast.ComponentCall)
+    call.Position = pos(c)
+
+    return &ast.ComponentCallInterpolation{
+        ComponentCall: &call,
+        Value:         optCast[*ast.InterpolationValue](valI),
+        Position:      peekStart(c),
+    }, nil
+}
+
+// ============================================================================
+// InterpolationValue
+// ======================================================================================
+
+InterpolationValue <- interpolationValueStart valI:InterpolationValueLine rBracketI:interpolationValueEnd {
+    return &ast.InterpolationValue{
+        LBracket: pos(c),
+        Text:     valI.(ast.TextLine),
+        RBracket: rBracketI.(*ast.Position),
+    }, nil
+}
+
+interpolationValueStart <- pushStart lBracketI:L_BRACKET { return lBracketI.(*ast.Position), nil }
+interpolationValueEnd <- rBracketI:R_BRACKET popStart {
+    return rBracketI.(*ast.Position), nil
+} / posI:POS {
+    bracketStart := popStart(c)
+    hashStart := peekStart(c)
+    return posI.(*ast.Position), &fileerr.Error{
+        Message: "unclosed interpolation",
+        ErrorAnnotation: anno.Position(file(c), bracketStart, "expected a `]` for this `]`"),
+        HintAnnotations: []fileerr.Annotation{
+            anno.Position(file(c), hashStart, "for the interpolation started here"),
+        },
+        Suggestions: []fileerr.Suggestion{
+            {Suggestion: "add the missing `]`"},
+            {Suggestion: "if you didn't mean to start an interpolation, escape the `#` by writing `##`"},
+        },
+    }
+}
+
+// ============================================================================
+// Bad Interpolation
+// ======================================================================================
+
+BadInterpolation <- '#' {
+    return &ast.BadInterpolation{Position: peekStart(c)}, &fileerr.Error{
+        Message: "bad interpolation",
+        ErrorAnnotation: annoPos(c, "expected an expression interpolation, a component call,\n" +
+            "an element interpolation, or a HTML character reference"),
+        Suggestions: []fileerr.Suggestion{
+            {Suggestion: "if you didn't mean to start an interpolation, escape the `#`", Code: "`##`"},
+        },
+    }
+}

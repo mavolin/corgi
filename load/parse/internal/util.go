@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"strings"
 
+	file2 "github.com/mavolin/corgi/file"
 	"github.com/mavolin/corgi/file/ast"
 	"github.com/mavolin/corgi/file/fileerr"
-	anno2 "github.com/mavolin/corgi/internal/anno"
+	anno "github.com/mavolin/corgi/file/fileerr/anno"
 )
 
 // pos returns the position of the current state as a [ast.Position].
@@ -132,10 +133,30 @@ func concatBuilder(sb *strings.Builder, iface any) {
 	}
 }
 
-type annotation = anno2.Annotation
+func file(c *current) *file2.File {
+	return c.globalStore["file"].(*file2.File)
+}
 
-func anno(c *current, aw annotation) fileerr.Annotation {
-	return anno2.Lines(c.globalStore["lines"].([]string), aw)
+func annoPos(c *current, a string) fileerr.Annotation {
+	return anno.Position(file(c), pos(c), a)
+}
+
+func annoRange(c *current, startI, endI any, a string) fileerr.Annotation {
+	start, ok := startI.(ast.Position)
+	if !ok {
+		start = *startI.(*ast.Position)
+	}
+
+	end, ok := endI.(ast.Position)
+	if !ok {
+		end = *endI.(*ast.Position)
+	}
+
+	return anno.Range(file(c), start, end, a)
+}
+
+func annoCaptured(c *current, a string) fileerr.Annotation {
+	return anno.NChars(file(c), pos(c), len(c.text), a)
 }
 
 // ============================================================================
@@ -150,8 +171,8 @@ func combineGoCode(exprsI any) *ast.GoCode {
 	return &ast.GoCode{Expressions: exprs}
 }
 
-func combineGoCodeSlice(exprIs []any) []ast.GoCodeItem {
-	exprs := make([]ast.GoCodeItem, 0, 16)
+func combineGoCodeSlice(exprIs []any) []ast.GoCodeNode {
+	exprs := make([]ast.GoCodeNode, 0, 16)
 	var prevGoCode *ast.RawGoCode
 
 	for _, eI := range exprIs {
@@ -215,7 +236,7 @@ func combineGoCodeSlice(exprIs []any) []ast.GoCodeItem {
 	return exprs
 }
 
-func chainExprItmsCheck(itms []ast.ChainExpressionItem) bool {
+func chainExprItmsCheck(itms []ast.ChainExpressionNode) bool {
 	for _, itm := range itms {
 		switch itm := itm.(type) {
 		case *ast.IndexExpression:
@@ -231,7 +252,7 @@ func chainExprItmsCheck(itms []ast.ChainExpressionItem) bool {
 				return true
 			}
 		case *ast.TypeAssertionExpression:
-			if itm.Check {
+			if itm.CheckType || itm.CheckValue {
 				return true
 			}
 		}

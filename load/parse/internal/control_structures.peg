@@ -1,11 +1,7 @@
-missingCondition <- posI:POS {
+missingCondition <- _? posI:POS {
     return nil, &fileerr.Error{
         Message: "missing condition",
-        ErrorAnnotation: anno(c, annotation{
-            Start:       *posI.(*ast.Position),
-            StartOffset: 1,
-            Annotation:  "expected an expression",
-        }),
+        ErrorAnnotation: annoPos(c, "expected a condition"),
     }
 }
 
@@ -13,9 +9,9 @@ missingCondition <- posI:POS {
 // If
 // ======================================================================================
 
-If <- "if" condI:ifCondition thenI:Body elseIfsI:ElseIf* elseI:Else? {
+If <- "if" condI:ifHeader thenI:Body elseIfsI:ElseIf* elseI:Else? {
     return &ast.If{
-        Condition: condI.(*ast.IfExpression),
+        Header:    condI.(*ast.IfHeader),
         Then:      optCast[ast.Body](thenI),
         ElseIfs:   sliceOf[*ast.ElseIf](elseIfsI),
         Else:      optCast[*ast.Else](elseI),
@@ -23,9 +19,9 @@ If <- "if" condI:ifCondition thenI:Body elseIfsI:ElseIf* elseI:Else? {
     }, nil
 }
 
-ElseIf <- WS* "else" _* "if" condI:ifCondition _* thenI:Body {
+ElseIf <- WS* "else" _* "if" condI:ifHeader _* thenI:Body {
     return &ast.ElseIf{
-        Condition: condI.(*ast.IfExpression),
+        Header: condI.(*ast.IfHeader),
         Then:      optCast[ast.Body](thenI),
         Position:  pos(c),
     }, nil
@@ -38,20 +34,32 @@ Else <- WS* "else" _* thenI:Body {
     }, nil
 }
 
-ifCondition <- _+ condI:IfExpression {
+ifHeader <- _+ condI:IfHeader {
     return condI, nil
 } / missingCondition {
-    return (*ast.IfExpression)(nil), nil
+    return (*ast.IfHeader)(nil), nil
+}
+
+IfHeader <- stmtI:goIfHeaderStatement? condI:(ChainExpression / ConditionalGoExpression) {
+    return &ast.IfHeader{
+        Statement: optCast[*ast.GoCode](stmtI),
+        Condition: optCast[ast.Expression](condI),
+    }, nil
+}
+goIfHeaderStatement <- stmtI:GoStatement EOC WS* ![[{] {
+    return stmtI, nil
 }
 
 // ============================================================================
 // Switch
 // ======================================================================================
 
-Switch <- "switch" comparatorI:switchComparator endI:POS casesI:switchCases {
-    s := ast.Switch{
+Switch <- "switch" comparatorI:switchComparator lBraceI:scopeStart casesI:switchCases rBraceI:scopeEnd {
+    s := &ast.Switch{
         Comparator: comparatorI.(*ast.GoCode),
+        LBrace:     lBraceI.(*ast.Position),
         Cases:      casesI.([]*ast.Case),
+        RBrace:     rBraceI.(*ast.Position),
         Position:   pos(c),
     }
 
@@ -63,11 +71,10 @@ Switch <- "switch" comparatorI:switchComparator endI:POS casesI:switchCases {
 
     return s, &fileerr.Error{
         Message: "switch: no cases",
-        ErrorAnnotation: anno(c, annotation{
-            ContextEndDelta: 1,
-            Start:           pos(c),
-            End:             *endI.(*ast.Position),
-            Annotation:      "expected switch to have at least one non-default case",
+        ErrorAnnotation: anno.Anno(file(c), anno.Annotation{
+            Context:    anno.ContextDelta(0, 1),
+            Highlight:  anno.HighlightNode(s),
+            Annotation: "expected switch to have at least one non-default case",
         }),
     }
 }
@@ -81,8 +88,8 @@ switchComparator <- _* &'{' {
         newUnexpectedTokensErr(c, *startI.(*ast.Position), *endI.(*ast.Position), "switch comparator terminated early")
 }
 
-switchCases <- scopeStart WS* preFirstCase? itms:switchCase* WS* endI:scopeEnd {
-    cases := sliceOf[*ast.Case](itms)
+switchCases <- preFirstCase? casesI:switchCase* {
+    cases := sliceOf[*ast.Case](casesI)
 
     var firstDefault *ast.Case
     for _, ca := range cases {
@@ -96,17 +103,9 @@ switchCases <- scopeStart WS* preFirstCase? itms:switchCase* WS* endI:scopeEnd {
 
         return cases, &fileerr.Error{
             Message: "multiple default cases in switch",
-            ErrorAnnotation: anno(c, annotation{
-                Start:      ca.Position,
-                Len:        len("default"),
-                Annotation: "second default case",
-            }),
+            ErrorAnnotation: anno.Node(file(c), ca, "second default case"),
             HintAnnotations: []fileerr.Annotation{
-                anno(c, annotation{
-                    Start:      firstDefault.Position,
-                    Len:        len("default"),
-                    Annotation: "first default case",
-                }),
+                anno.Node(file(c), firstDefault, "first default case"),
             },
         }
     }
@@ -116,11 +115,8 @@ switchCases <- scopeStart WS* preFirstCase? itms:switchCase* WS* endI:scopeEnd {
 
 preFirstCase <- (!("case" / "default") [^{}] / '{' preFirstCase '}'?)+ {
     return nil, &fileerr.Error{
-        Message: "switch: unexpected tokens",
-        ErrorAnnotation: anno(c, annotation{
-            Start:      pos(c),
-            Annotation: "expected a `case` or `default`",
-        }),
+        Message:         "switch: unexpected tokens",
+        ErrorAnnotation: annoPos(c, "expected a `case` or `default`"),
     }
 }
 
@@ -132,7 +128,7 @@ Case <- "case" _+ condI:caseCondition _* colonI:switchColon thenI:switchThen? {
     return &ast.Case{
         Expression: optCast[ast.Expression](condI),
         Colon:      colonI.(*ast.Position),
-        Then:       optCast[ast.Body](thenI),
+        Then:       optCast[*ast.Scope](thenI),
         Position:   pos(c),
     }, nil
 }
@@ -140,7 +136,7 @@ Case <- "case" _+ condI:caseCondition _* colonI:switchColon thenI:switchThen? {
 Default <- "default" _* colonI:switchColon thenI:switchThen? {
     return &ast.Case{
         Colon:    colonI.(*ast.Position),
-        Then:     optCast[ast.Body](thenI),
+        Then:     optCast[*ast.Scope](thenI),
         Position: pos(c),
     }, nil
 }
@@ -150,10 +146,7 @@ switchColon <- ':' {
 } / POS {
     return pos(c), &fileerr.Error{
         Message: "switch case: missing colon",
-        ErrorAnnotation: anno(c, annotation{
-            Start:      pos(c),
-            Annotation: "expected a colon",
-        }),
+        ErrorAnnotation: annoPos(c, "expected a colon"),
     }
 }
 
@@ -163,27 +156,58 @@ caseCondition <- _+ condI:Expression {
     return nil, nil
 }
 
-switchThen <- itmsI:switchScopeItem+ {
-    return &ast.Scope{Items: sliceOf[ast.ScopeItem](itmsI)}, nil
+switchThen <- nodesI:switchScopeNode+ {
+    return &ast.Scope{Nodes: sliceOf[ast.ScopeNode](nodesI)}, nil
 }
 
-switchScopeItem <- !('}' / "case" _+ / "default" _* ':') itmI:ScopeItem {
-    return itmI, nil
+switchScopeNode <- !('}' / "case" _+ / "default" _* ':') nodeI:ScopeNode {
+    return nodeI, nil
 }
 
 // ============================================================================
 // For
 // ======================================================================================
 
-For <- "for" exprI:forExpression? _* bodyI:Body {
+For <- "for" exprI:forHeader? _* bodyI:Body {
     return &ast.For{
-        Expression: optCast[ast.ForExpression](exprI),
+        Header: optCast[ast.ForHeader](exprI),
         Body:       optCast[ast.Body](bodyI),
         Position:   pos(c),
     }, nil
 }
 
-forExpression <- _+ condI:ForExpression {
+ForHeader <- ForRangeHeader / ChainExpression / GoExpression
+
+forHeader <- _+ condI:ForHeader {
     return condI, nil
+}
+
+// ============================================================================
+// For Range Header
+// ======================================================================================
+
+ForRangeHeader <- varsI:forRangeHeaderVars? orderedPosI:POS orderedI:("ordered" _+)? rangePosI:POS "range" _+ exprI:Expression {
+    e := optCast[ast.ForRangeHeader](varsI)
+    if orderedI != nil {
+        e.Ordered = orderedPosI.(*ast.Position)
+    }
+    e.Range = rangePosI.(*ast.Position)
+    e.Expression = optCast[ast.Expression](exprI)
+    e.Position = pos(c)
+    return &e, nil
+}
+
+forRangeHeaderVars <- var1I:Ident _* var2I:(POS ',' _* Ident)? _* eqPosI:POS declaresI:':'? '=' _* {
+    h := ast.ForRangeHeader{
+        Var1:      var1I.(*ast.Ident),
+        EqualSign: eqPosI.(*ast.Position),
+        Declares:  declaresI != nil,
+    }
+    if var2I != nil {
+        h.Comma = getTuple[*ast.Position](var2I, 0)
+        h.Var2 = getTuple[*ast.Ident](var2I, -1)
+    }
+
+    return h, nil
 }
 

@@ -33,7 +33,7 @@ func childIsTopLevel(parents []Context, current Context) (bool, bool) {
 
 parents:
 	for _, p := range parents {
-		switch itm := p.Item.(type) {
+		switch itm := p.Node.(type) {
 		case *ast.If:
 		case *ast.For:
 		case *ast.Switch:
@@ -63,11 +63,11 @@ parents:
 		}
 	}
 
-	if current.Item == nil {
+	if current.Node == nil {
 		return true, false
 	}
 
-	switch itm := current.Item.(type) {
+	switch itm := current.Node.(type) {
 	case *ast.If:
 	case *ast.For:
 	case *ast.Switch:
@@ -94,12 +94,17 @@ parents:
 // Closest returns the closest parent of the passed type, or the zero value for
 // T.
 func Closest[T any](parents []Context) T {
+	t, _ := ClosestItem[T](parents)
+	return t
+}
+
+func ClosestItem[T any](parents []Context) (T, int) {
 	for i := len(parents) - 1; i >= 0; i-- {
-		if t, ok := parents[i].Item.(T); !ok {
-			return t
+		if t, ok := parents[i].Node.(T); ok {
+			return t, i
 		}
 	}
 
 	var zero T
-	return zero
+	return zero, -1
 }

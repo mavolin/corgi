@@ -33,7 +33,7 @@ func isSentinel(err error) bool {
 
 type (
 	Func                       func(parents []Context, wctx Context) error
-	TypedFunc[T ast.ScopeItem] func(parents []Context, wctx TypedContext[T]) error
+	TypedFunc[T ast.ScopeNode] func(parents []Context, wctx TypedContext[T]) error
 
 	Context struct {
 		// File is the file we are walking.
@@ -42,7 +42,7 @@ type (
 		Scope *ast.Scope
 		// Index is the index of the item in the scope.
 		Index int
-		Item  ast.ScopeItem
+		Node  ast.ScopeNode
 
 		// Case is the case of [file.Switch] that we are walking.
 		Case *ast.Case
@@ -54,7 +54,7 @@ type (
 		// Comments are the corgi comments preceding the item.
 		Comments []*ast.DevComment
 	}
-	TypedContext[T ast.ScopeItem] struct {
+	TypedContext[T ast.ScopeNode] struct {
 		Item T
 		Context
 	}
@@ -84,7 +84,7 @@ func (ctx *Context) CommentDirectives() []file.CommentDirective {
 // Branches may be distinguished by the appropriate fields of the passed
 // Context.
 //
-// Walk calls f with a slice of ctx.Item's parents.
+// Walk calls f with a slice of ctx.Node's parents.
 // That slice is reused for each call to f, and should not be retained after f
 // returns.
 //
@@ -111,9 +111,9 @@ func Walk(fil *file.File, b ast.Body, f Func, opts ...Option) error {
 }
 
 // WalkT is the same as [Walk] but only calls f for items of type T.
-func WalkT[T ast.ScopeItem](fil *file.File, b ast.Body, f TypedFunc[T], opts ...Option) error {
+func WalkT[T ast.ScopeNode](fil *file.File, b ast.Body, f TypedFunc[T], opts ...Option) error {
 	return Walk(fil, b, func(parents []Context, wctx Context) error {
-		t, ok := wctx.Item.(T)
+		t, ok := wctx.Node.(T)
 		if !ok {
 			return nil
 		}
@@ -125,12 +125,12 @@ func WalkT[T ast.ScopeItem](fil *file.File, b ast.Body, f TypedFunc[T], opts ...
 func walk(fil *file.File, parents []Context, s *ast.Scope, f Func, opts []Option) error {
 	var comments []*ast.DevComment
 
-	for i, itm := range s.Items {
+	for i, itm := range s.Nodes {
 		ctx := Context{
 			File:     fil,
 			Scope:    s,
 			Index:    i,
-			Item:     s.Items[i],
+			Node:     s.Nodes[i],
 			Comments: comments,
 		}
 
@@ -148,11 +148,13 @@ func walk(fil *file.File, parents []Context, s *ast.Scope, f Func, opts []Option
 
 		if !ignore {
 			err := f(parents, ctx)
-			if !isSentinel(err) || errors.Is(err, Stop) {
-				return err
-			}
-			if !noDive {
-				noDive = errors.Is(err, NoDive)
+			if err != nil {
+				if !isSentinel(err) || errors.Is(err, Stop) {
+					return err
+				}
+				if !noDive {
+					noDive = errors.Is(err, NoDive)
+				}
 			}
 		}
 
@@ -163,15 +165,15 @@ func walk(fil *file.File, parents []Context, s *ast.Scope, f Func, opts []Option
 				if then != nil {
 					parents = append(parents, ctx)
 					err := walk(fil, parents, then, f, opts)
-
-					if !isSentinel(err) || errors.Is(err, Stop) {
-						return err
+					if err != nil {
+						if !isSentinel(err) || errors.Is(err, Stop) {
+							return err
+						}
+						if !noDive {
+							noDive = errors.Is(err, NoDive)
+						}
 					}
-					if !noDive {
-						noDive = errors.Is(err, NoDive)
-
-						parents = parents[:len(parents)-1]
-					}
+					parents = parents[:len(parents)-1]
 
 					for i, elseIf := range itm.ElseIfs {
 						then, _ = elseIf.Then.(*ast.Scope)
@@ -183,11 +185,13 @@ func walk(fil *file.File, parents []Context, s *ast.Scope, f Func, opts []Option
 						parents = append(parents, ctx)
 
 						err := walk(fil, parents, then, f, opts)
-						if !isSentinel(err) || errors.Is(err, Stop) {
-							return err
-						}
-						if !noDive {
-							noDive = errors.Is(err, NoDive)
+						if err != nil {
+							if !isSentinel(err) || errors.Is(err, Stop) {
+								return err
+							}
+							if !noDive {
+								noDive = errors.Is(err, NoDive)
+							}
 						}
 
 						parents = parents[:len(parents)-1]
@@ -204,11 +208,13 @@ func walk(fil *file.File, parents []Context, s *ast.Scope, f Func, opts []Option
 						parents = append(parents, ctx)
 
 						err := walk(fil, parents, then, f, opts)
-						if !isSentinel(err) || errors.Is(err, Stop) {
-							return err
-						}
-						if !noDive {
-							noDive = errors.Is(err, NoDive)
+						if err != nil {
+							if !isSentinel(err) || errors.Is(err, Stop) {
+								return err
+							}
+							if !noDive {
+								noDive = errors.Is(err, NoDive)
+							}
 						}
 
 						parents = parents[:len(parents)-1]
@@ -225,11 +231,13 @@ func walk(fil *file.File, parents []Context, s *ast.Scope, f Func, opts []Option
 					parents = append(parents, ctx)
 
 					err := walk(fil, parents, c.Then, f, opts)
-					if !isSentinel(err) || errors.Is(err, Stop) {
-						return err
-					}
-					if !noDive {
-						noDive = errors.Is(err, NoDive)
+					if err != nil {
+						if !isSentinel(err) || errors.Is(err, Stop) {
+							return err
+						}
+						if !noDive {
+							noDive = errors.Is(err, NoDive)
+						}
 					}
 
 					parents = parents[:len(parents)-1]
@@ -241,14 +249,15 @@ func walk(fil *file.File, parents []Context, s *ast.Scope, f Func, opts []Option
 					break
 				}
 				parents = append(parents, ctx)
-				comments = nil
 
 				err := walk(fil, parents, s, f, opts)
-				if !isSentinel(err) || errors.Is(err, Stop) {
-					return err
-				}
-				if !noDive {
-					noDive = errors.Is(err, NoDive)
+				if err != nil {
+					if !isSentinel(err) || errors.Is(err, Stop) {
+						return err
+					}
+					if !noDive {
+						noDive = errors.Is(err, NoDive)
+					}
 				}
 
 				parents = parents[:len(parents)-1]

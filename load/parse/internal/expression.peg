@@ -1,61 +1,26 @@
-Expression    <- ChainExpression / GoExpression
-ForExpression <- RangeExpression / ChainExpression / GoExpression
-
-IfExpression <- stmtI:goIfConditionStatement? condI:(ChainExpression / ConditionalGoExpression) {
-    return &ast.IfExpression{
-        Statement: optCast[*ast.GoCode](stmtI),
-        Condition: optCast[ast.Expression](condI),
-    }, nil
-}
-goIfConditionStatement <- !([^;\r\n{[]* [{[]) stmtI:GoStatement EOC WS* {
-    return stmtI, nil
-}
-
-// ============================================================================
-// Range Expression
-// ======================================================================================
-
-RangeExpression <- varsI:rangeExpressionVars? orderedI:("ordered" _+)? "range" _+ exprI:Expression {
-    e := optCast[ast.RangeExpression](varsI)
-    e.Ordered = orderedI != nil
-    e.RangeExpression = optCast[ast.Expression](exprI)
-    e.Position = pos(c)
-    return &e, nil
-}
-
-rangeExpressionVars <- var1I:Ident var2I:(_* ',' _* Ident)? _* eqPosI:POS declaresI:':'? '=' _* {
-    return ast.RangeExpression{
-        Var1:      var1I.(*ast.Ident),
-        Var2:      optGetTuple[*ast.Ident](var2I, -1),
-        EqualSign: eqPosI.(*ast.Position),
-        Declares:  declaresI != nil,
-    }, nil
-}
+Expression       <- ChainExpression / GoExpression
+InlineExpression <- inlineStart exprI:Expression inlineEnd { return exprI, nil }
 
 // ============================================================================
 // Chain Expression
 // ======================================================================================
 
-ChainExpression <- derefsI:chainExpressionDerefs rootI:chainExpressionRoot checkRootI:'?'? chainI:ChainExpressionItem*
+ChainExpression <- derefsI:chainExpressionDerefs rootI:chainExpressionRoot checkRootI:'?'? chainI:ChainExpressionNode*
                    defaultI:chainExpressionDefault? endPosI:POS _* &{
-    return checkRootI != nil || chainExprItmsCheck(sliceOf[ast.ChainExpressionItem](chainI)) || defaultI != nil, nil
+    return checkRootI != nil || chainExprItmsCheck(sliceOf[ast.ChainExpressionNode](chainI)) || defaultI != nil, nil
 } chainExpressionTrail? {
     expr := optCast[ast.ChainExpression](defaultI)
     expr.Root = rootI.(*ast.RawGoCode)
     expr.CheckRoot = checkRootI != nil
-    expr.Chain = sliceOf[ast.ChainExpressionItem](chainI)
+    expr.Chain = sliceOf[ast.ChainExpressionNode](chainI)
     expr.DerefCount = derefsI.(int)
     expr.Position = pos(c)
     return &expr, nil
 }
-chainExpressionTrail <-  GoExpression endI:POS {
+chainExpressionTrail <-  exprI:GoExpression endI:POS {
     return nil, &fileerr.Error{
-        Message: "malformed chain expression",
-        ErrorAnnotation: anno(c, annotation{
-            Start:      pos(c),
-            End:        *endI.(*ast.Position),
-            Annotation: "unable to parse this line or the lines below",
-        }),
+        Message:         "malformed chain expression",
+        ErrorAnnotation: anno.Node(file(c), exprI.(ast.Node), "unable to parse this expression as of a chain expression"),
         Suggestions: []fileerr.Suggestion{
             {
                 Suggestion: "did you mean to put a default? default values start with the `~` operator",
@@ -93,10 +58,10 @@ chainExpressionDefault <- posI:POS '~' WS* exprI:GoExpression {
 }
 
 //
-// Chain Expression Item
+// Chain Expression Node
 //
 
-ChainExpressionItem <- IndexExpression / DotIdentExpression / ParenExpression / TypeAssertionExpression
+ChainExpressionNode <- IndexExpression / DotIdentExpression / ParenExpression / TypeAssertionExpression
 
 IndexExpression <- indexStart exprI:GoExpression checkIndexI:'?'? rBracketI:indexExpressionEnd checkValueI:'?'? {
     return &ast.IndexExpression{
@@ -134,14 +99,15 @@ parenExpressionArgs <- firstI:GoExpression restI:(_* ',' WS* GoExpression)* {
     return collectList[*ast.GoCode](firstI, restI, -1), nil
 }
 
-TypeAssertionExpression <- '.' lParenI:L_PAREN _* ptrsI:'*'* _* packageI:Namespace? typeI:Ident _* rParenI:R_PAREN checkI:'?'? {
+TypeAssertionExpression <- '.' lParenI:L_PAREN _* ptrsI:'*'* _* packageI:Namespace? typeI:Ident checkTypeI:'?'? _* rParenI:R_PAREN checkValueI:'?'? {
     return &ast.TypeAssertionExpression{
         LParen:       lParenI.(*ast.Position),
         PointerCount: len(slice(ptrsI)),
         Package:      optCast[*ast.Ident](packageI),
         Type:         typeI.(*ast.Ident),
+        CheckType:    checkTypeI != nil,
         RParen:       rParenI.(*ast.Position),
-        Check:        checkI != nil,
+        CheckValue:   checkValueI != nil,
         Position:     pos(c),
     }, nil
 }

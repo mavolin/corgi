@@ -76,12 +76,8 @@ goRuneLit <- '\'' (goRuneUnicodeValue / goByteValue / goRecoverRuneEscape) '\'' 
     '\'' valsI:(goRuneUnicodeValue / goByteValue / goRecoverRuneEscape)* '\'' endI:POS {
         valIs := slice(valsI)
         return c.text, &fileerr.Error{
-            Message: "rune literals may not contain multiple or zero characters",
-            ErrorAnnotation: anno(c, annotation{
-                Start: pos(c),
-                End: *endI.(*ast.Position),
-                Annotation: "should contain only a single character or escape sequence",
-            }),
+            Message:         "rune literals may not contain multiple or zero characters",
+            ErrorAnnotation: annoRange(c, pos(c), endI, "should contain only a single character or escape sequence"),
             Suggestions: []fileerr.Suggestion{
                 {
                     Suggestion: "use a single character or escape sequence",
@@ -105,13 +101,9 @@ goOctalByteValue    <- '\\' goOctalDigit goOctalDigit goOctalDigit
 goHexByteValue      <- '\\' 'x' goHexDigit goHexDigit /
     '\\' 'x' goHexDigit? goHexDigit? {
         return c.text, &fileerr.Error{
-            Message: "invalid hex byte escape",
-            ErrorAnnotation: anno(c, annotation{
-                Start: pos(c),
-                Len: 4,
-                Annotation: "expected `\\x`, followed by two hex digits",
-            }),
-            Example: "`\\x1f`",
+            Message:         "invalid hex byte escape",
+            ErrorAnnotation: anno.NChars(file(c), pos(c), 4, "expected `\\x`, followed by two hex digits"),
+            Example:         "`\\x1f`",
             Suggestions: []fileerr.Suggestion{
                 {
                     Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
@@ -125,27 +117,23 @@ goLittleUValue <- '\\' 'u' goHexDigit goHexDigit goHexDigit goHexDigit /
         suggestions := []fileerr.Suggestion{
             {
                 Suggestion: "if you didn't mean to write a hex escape, escape the `\\`",
-                Code: "`\\\\" + string(c.text[1:]) + "`",
+                Code:       "`\\\\" + string(c.text[1:]) + "`",
             },
         }
         if len(c.text) >= 4 {
             suggestions = append(suggestions, fileerr.Suggestion{
                 Suggestion: "make this a two digit hex escape",
-                Code: "`\\x" + string(c.text[2:4]) + "`",
+                Code:       "`\\x" + string(c.text[2:4]) + "`",
             })
         }
         suggestions = append(suggestions, fileerr.Suggestion{
             Suggestion: fmt.Sprint("append the missing ", 6-len(c.text), " hex digit(s)"),
-            Example: "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 6-len(c.text)) + "`",
+            Example:    "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 6-len(c.text)) + "`",
         })
 
         return c.text, &fileerr.Error{
             Message: "invalid little u escape",
-            ErrorAnnotation: anno(c, annotation{
-                Start: pos(c),
-                Len: 6,
-                Annotation: "expected `\\u`, followed by four hex digits",
-            }),
+            ErrorAnnotation: anno.NChars(file(c), pos(c), 6, "expected `\\u`, followed by four hex digits"),
             Example: "`\\u1a7f`",
             Suggestions: suggestions,
         }
@@ -175,25 +163,18 @@ goBigUValue <- '\\' 'U' goHexDigit goHexDigit goHexDigit goHexDigit goHexDigit g
             Example: "`\\U" + string(c.text[2:4]) + strings.Repeat("f", 10-len(c.text)) + "`",
         })
         return c.text, &fileerr.Error{
-            Message: "invalid big u escape",
-            ErrorAnnotation: anno(c, annotation{
-                Start: pos(c),
-                Len: 10,
-                Annotation: "expected `\\U`, followed by eight hex digits",
-            }),
-            Example: "`\\u1a7f`",
-            Suggestions: suggestions,
+            Message:         "invalid big u escape",
+            ErrorAnnotation: anno.NChars(file(c), pos(c), 10, "expected `\\U`, followed by eight hex digits"),
+            Example:         "`\\u1a7f`",
+            Suggestions:     suggestions,
         }
     }
 goRuneEscapedChar   <- '\\' [abfnrtv\\'] // altered from escaped_char to exclude "
 goRecoverRuneEscape <- '\\' goHexDigit goHexDigit goHexDigit goHexDigit goHexDigit goHexDigit goHexDigit goHexDigit {
     return c.text, &fileerr.Error{
         Message: "invalid escape sequence",
-        ErrorAnnotation: anno(c, annotation{
-            Start: pos(c),
-            Len: 2,
-            Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
-        }),
+        ErrorAnnotation: anno.NChars(file(c), pos(c), 2,
+            "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`"),
         Suggestions: []fileerr.Suggestion{
             {
                 Suggestion: "if you didn't mean to write an escape, escape the `\\`",
@@ -213,11 +194,8 @@ goRecoverRuneEscape <- '\\' goHexDigit goHexDigit goHexDigit goHexDigit goHexDig
 } / '\\' goHexDigit goHexDigit goHexDigit goHexDigit {
     return c.text, &fileerr.Error{
         Message: "invalid escape sequence",
-        ErrorAnnotation: anno(c, annotation{
-            Start: pos(c),
-            Len: 2,
-            Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
-        }),
+        ErrorAnnotation: anno.NChars(file(c), pos(c), 2,
+            "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`"),
         Suggestions: []fileerr.Suggestion{
             {
                 Suggestion: "if you didn't mean to write an escape, escape the `\\`",
@@ -234,11 +212,8 @@ goRecoverRuneEscape <- '\\' goHexDigit goHexDigit goHexDigit goHexDigit goHexDig
 } / '\\' goHexDigit goHexDigit {
     return c.text, &fileerr.Error{
         Message: "invalid escape sequence",
-        ErrorAnnotation: anno(c, annotation{
-            Start: pos(c),
-            Len: 2,
-            Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`",
-        }),
+        ErrorAnnotation: anno.NChars(file(c), pos(c), 2,
+            "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`"),
         Suggestions: []fileerr.Suggestion{
             {
                 Suggestion: "if you didn't mean to write an escape, escape the `\\`",
@@ -252,11 +227,8 @@ goRecoverRuneEscape <- '\\' goHexDigit goHexDigit goHexDigit goHexDigit goHexDig
 } / '\\' {
     return c.text, &fileerr.Error{
         Message: "invalid escape sequence",
-        ErrorAnnotation: anno(c, annotation{
-            Start: pos(c),
-            Len: 2,
-            Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, an octal escape, `\\u`, or `\\U`",
-        }),
+        ErrorAnnotation: anno.NChars(file(c), pos(c), 2,
+            "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`"),
         Suggestions: []fileerr.Suggestion{
             {
                 Suggestion: "if you didn't mean to write an escape, escape the `\\`",
@@ -268,11 +240,8 @@ goRecoverRuneEscape <- '\\' goHexDigit goHexDigit goHexDigit goHexDigit goHexDig
 goRecoverInterpretedStringEscape <- '\\' goHexDigit goHexDigit goHexDigit goHexDigit goHexDigit goHexDigit goHexDigit goHexDigit {
     return c.text, &fileerr.Error{
         Message: "invalid escape sequence",
-        ErrorAnnotation: anno(c, annotation{
-            Start: pos(c),
-            Len: 2,
-            Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
-        }),
+        ErrorAnnotation: anno.NChars(file(c), pos(c), 2,
+            "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`"),
         Suggestions: []fileerr.Suggestion{
             {
                 Suggestion: "if you didn't mean to write an escape, escape the `\\`",
@@ -292,11 +261,8 @@ goRecoverInterpretedStringEscape <- '\\' goHexDigit goHexDigit goHexDigit goHexD
 } / '\\' goHexDigit goHexDigit goHexDigit goHexDigit {
     return c.text, &fileerr.Error{
         Message: "invalid escape sequence",
-        ErrorAnnotation: anno(c, annotation{
-            Start: pos(c),
-            Len: 2,
-            Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
-        }),
+        ErrorAnnotation: anno.NChars(file(c), pos(c), 2,
+            "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`"),
         Suggestions: []fileerr.Suggestion{
             {
                 Suggestion: "if you didn't mean to write an escape, escape the `\\`",
@@ -313,11 +279,8 @@ goRecoverInterpretedStringEscape <- '\\' goHexDigit goHexDigit goHexDigit goHexD
 } / '\\' goHexDigit goHexDigit {
     return c.text, &fileerr.Error{
         Message: "invalid escape sequence",
-        ErrorAnnotation: anno(c, annotation{
-            Start: pos(c),
-            Len: 2,
-            Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, `\\u`, an octal escape, or `\\U`",
-        }),
+        ErrorAnnotation: anno.NChars(file(c), pos(c), 2,
+            "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`"),
         Suggestions: []fileerr.Suggestion{
             {
                 Suggestion: "if you didn't mean to write an escape, escape the `\\`",
@@ -331,11 +294,8 @@ goRecoverInterpretedStringEscape <- '\\' goHexDigit goHexDigit goHexDigit goHexD
 } / '\\' {
     return c.text, &fileerr.Error{
         Message: "invalid escape sequence",
-        ErrorAnnotation: anno(c, annotation{
-            Start: pos(c),
-            Len: 2,
-            Annotation: "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\\"`, `\\x`, an octal escape, `\\u`, or `\\U`",
-        }),
+        ErrorAnnotation: anno.NChars(file(c), pos(c), 2,
+            "expected `\\a`, `\\b`, `\\f`, `\\n`, `\\r`, `\\t`, `\\`, `\\'`, `\\x`, `\\u`, an octal escape, or `\\U`"),
         Suggestions: []fileerr.Suggestion{
             {
                 Suggestion: "if you didn't mean to write an escape, escape the `\\`",
@@ -354,12 +314,8 @@ goStringLit <- goRawStringLit / goInterpretedStringLit
 goRawStringLit <- '`' goRawStringUnicodeChar* '`' /
     '`' goRawStringUnicodeChar* EOL {
         return c.text, &fileerr.Error{
-            Message: "unclosed string literal",
-            ErrorAnnotation: anno(c, annotation{
-                Start: pos(c),
-                EOLDelta: 1,
-                Annotation: "expected a ``` somewhere here",
-            }),
+            Message:         "unclosed string literal",
+            ErrorAnnotation: annoPos(c, "expected a closing ``` for this ```"),
         }
 }
 goRawStringUnicodeChar <- [^`]
@@ -367,12 +323,14 @@ goRawStringUnicodeChar <- [^`]
 goInterpretedStringLit <- '"' (goInterpretedStringUnicodeValue / goByteValue / goRecoverInterpretedStringEscape)* '"' /
     '"' (goInterpretedStringUnicodeValue / goByteValue / goRecoverInterpretedStringEscape)* EOF {
         return c.text, &fileerr.Error{
-            Message: "unclosed string literal",
-            ErrorAnnotation: anno(c, annotation{
-                Start: pos(c),
-                EOLDelta: 1,
+            Message:         "unclosed string literal",
+            ErrorAnnotation: anno.Anno(file(c), anno.Annotation{
+                Highlight:  anno.HighlightToEOL(pos(c)).Delta(1, 0),
                 Annotation: "expected a `\"` somewhere here",
             }),
+            HintAnnotations: []fileerr.Annotation{
+                annoPos(c, "for the string literal started here"),
+            },
         }
     }
 goInterpretedStringUnicodeValue <- goLittleUValue / goBigUValue /

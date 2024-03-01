@@ -7,10 +7,7 @@ Body <- _* bodyI:body {
 } / EOC {
     return nil, &fileerr.Error{
         Message: "missing body",
-        ErrorAnnotation: anno(c, annotation{
-            Start:      pos(c),
-            Annotation: "expected a body",
-        }),
+        ErrorAnnotation: annoPos(c, "expected a body"),
         Suggestions: []fileerr.Suggestion{
             {Suggestion: "start a scope", Example: "`{ ... }`"},
             {Suggestion: "write bracketed text", Example: "`[ woof woof ]`"},
@@ -38,130 +35,102 @@ body <- Scope / BracketText
 // Scope
 // ======================================================================================
 
-GlobalScope <- scopeStart itmsI:globalScopeItem* rBraceI:scopeEnd {
+GlobalScope <- scopeStart nodesI:globalScopeNode* rBraceI:scopeEnd {
     return &ast.Scope{
         LBrace: pos(c),
-        Items:  sliceOf[ast.ScopeItem](itemsI),
+        Nodes:  sliceOf[ast.ScopeNode](nodesI),
         RBrace: rBraceI.(*ast.Position),
     }, nil
 }
 
-globalScopeItem <- WS* itmI:(LoneBrace / Import / State / Component / GlobalCode) {
-    return itmI, nil
+globalScopeNode <- WS* nodeI:(LoneBrace / Import / State / Component / GlobalCode) {
+    return nodeI, nil
 }
 
-Scope <- scopeStart itemsI:ScopeItem* rBraceI:scopeEnd {
+Scope <- scopeStart nodesI:ScopeNode* rBraceI:scopeEnd {
     return &ast.Scope{
         LBrace: pos(c),
-        Items:  sliceOf[ast.ScopeItem](itemsI),
+        Nodes:  sliceOf[ast.ScopeNode](nodesI),
         RBrace: rBraceI.(*ast.Position),
     }, nil
 }
 
-ScopeItem <- WS* !'}' itmI:(ValidScopeItem / BadItem) {
-    return itmI, nil
+ScopeNode <- WS* !'}' nodeI:(ValidScopeNode / BadNode) {
+    return nodeI, nil
 }
 
-ValidScopeItem <- WS* itmI:validScopeItem {
-    return itmI, nil
+ValidScopeNode <- WS* nodeI:validScopeNode {
+    return nodeI, nil
 }
-validScopeItem <- And /                                         // attribute.peg
-                  DevComment /                                // body.peg
-                  Code / Return / Continue / Break /            // code.peg
-                  ComponentCall / Block /                       // component.peg
-                  If / Switch / For /                           // control_structures.peg
-                  HTMLComment / And / RawElement / Doctype /    // element.peg, excl. Element, which is last
-                  ArrowBlock /                                  // text.peg
-                  Element                                       // needs to come last
+validScopeNode <- And /                                        // attribute.peg
+                       DevComment /                                 // body.peg
+                       Code / Return / Continue / Break /           // code.peg
+                       ComponentCall / Block /                      // component.peg
+                       If / Switch / For /                          // control_structures.peg
+                       HTMLComment / And / RawElement / Doctype /   // element.peg, excl. Element, which is last
+                       ArrowBlock /                                 // text.peg
+                       Element                                      // needs to come last
 
 // ============================================================================
 // Lone Brace
 // ======================================================================================
 
 LoneBrace <- R_BRACE {
-    return &ast.BadItem{
+    return &ast.BadNode{
         Line:     "}",
         Position: pos(c),
     }, &fileerr.Error{
         Message: "lone brace",
-        ErrorAnnotation: anno(c, annotation{
-            ContextStartDelta: -2,
-            Start:      pos(c),
-            Annotation: "does not belong to a scope",
+        ErrorAnnotation: anno.Anno(file(c), anno.Annotation{
+            Context:    anno.ContextDelta(-1, 1),
+            Highlight:  anno.HighlightPosition(pos(c)),
+            Annotation: "no matching opening brace",
         }),
     }
 }
 
 // ============================================================================
-// BadItem
+// BadNode
 // ======================================================================================
 
-BadItem <- reservedBadItem / lineI:(!(_* [\r\n;{}]) [^\r\n;{}])+ bodyI:OptionalBody {
+BadNode <- reservedBadNode / lineI:(!(_* [\r\n;{}]) [^\r\n;{}])+ bodyI:OptionalBody {
     line := concat(lineI)
-
-    firstWordLen := strings.IndexByte(line, ' ')
-    if firstWordLen <= 0 {
-        firstWordLen = len([]rune(line))
-    }
-
-    return &ast.BadItem{
+    return &ast.BadNode{
         Line:     line,
         Body:     optCast[ast.Body](bodyI),
         Position: pos(c),
     }, &fileerr.Error{
         Message: "unrecognized directive or invalid element name",
-        ErrorAnnotation: anno(c, annotation{
-            Start:      pos(c),
-            Len:        firstWordLen,
-            Annotation: "expected a valid directive or an element name",
-        }),
+        ErrorAnnotation: anno.FirstWord(file(c), pos(c), line, "expected a state variable"),
         Suggestions: []fileerr.Suggestion{
             {Suggestion: "if this is supposed to be an element name, make sure it conforms to the HTML spec"},
             {Suggestion: "if this is Go code and you didn't misspell, it needs the `-` code prefix"},
-            {
-                Suggestion: "use a valid directive",
-                ShouldBe: "a block (`block`), code (`-`), a conditional (`if`, `else if`, `else`, `switch`),\n" +
-                    "a loop (`for`), & attributes (`&`), a component call (`+`), an arrow block (`>`)",
-            },
         },
     }
 } / LoneBody
 
 LoneBody <- _* &[[{] bodyI:Body {
-    return &ast.BadItem{
+    return &ast.BadNode{
         Body:     optCast[ast.Body](bodyI),
         Position: pos(c),
     }, &fileerr.Error{
         Message: "lone body",
-        ErrorAnnotation: anno(c, annotation{
-            Start:      pos(c),
-            Annotation: "this body is not attached to a directive or element",
-        }),
+        ErrorAnnotation: annoPos(c, "this body is not attached to a directive or element"),
         Suggestions: []fileerr.Suggestion{
-            {Suggestion: "if this belongs to a directive, make sure it starts on the same line"},
+            {Suggestion: "make sure to place the opening brace/bracket on the same line as the attached directive"},
             {Suggestion: "if this is Go code and you didn't misspell, it needs the `-` code prefix"},
-            {
-                Suggestion: "place a directive requiring a body in front",
-                ShouldBe: "a block (`block`), a conditional (`if`, `else if`, `else`),\n" +
-                    "a loop (`for`), a component call (`+`)",
-            },
         },
     }
 }
 
-reservedBadItem <- RESERVED endI:POS _* UNEXPECTED? EOC {
-    return &ast.BadItem{
-        Line:     string(c.globalStore["lines"].([]string)[pos(c).Line-1]),
+reservedBadNode <- resI:RESERVED endI:POS lineI:(!(_* [\r\n;{}]) [^\r\n;{}])+ bodyI:OptionalBody {
+    return &ast.BadNode{
+        Line:     concat(resI)+concat(lineI),
         Body:     optCast[ast.Body](bodyI),
         Position: pos(c),
     }, &fileerr.Error{
         Message: "potential use of reserved word",
-        ErrorAnnotation: anno(c, annotation{
-            Start:      pos(c),
-            End:        *endI.(*ast.Position),
-            EndOffset:  -1,
-            Annotation: "cannot use reserved word",
-        }),
+        ErrorAnnotation: annoRange(c, pos(c), endI, "cannot use reserved word as element name"),
         Suggestions: []fileerr.Suggestion{
             {Suggestion: "if this is supposed to be an element, uppercase the first letter"},
             {Suggestion: "if this is Go code, you are seeing this error because you have a syntax error"},

@@ -17,15 +17,11 @@ type Interface interface {
 
 // As attempts to cast the given error to a [List] or a pointer to an [Error].
 //
-// If the error is a [List] and is nil, As returns an empty, non-nil [List].
-//
-// If the error is a pointer to an [Error] and is nil, As returns an empty,
-// non-nil [List].
-//
-// If the error is a pointer to an [Error] and isn't nil, As returns a [List]
-// with a single element, the error.
-//
-// For any other type, and only then, As returns nil.
+// It returns:
+//   - A non-nil, empty [List] if err is a nil [List] or a nil pointer to an [Error].
+//   - The error itself, if err is a non-empty [List].
+//   - List{err} if err is a non-nil pointer to an [Error].
+//   - nil in any other case, and only then.
 func As(err error) List {
 	if err == nil {
 		return nil
@@ -33,6 +29,9 @@ func As(err error) List {
 
 	var ferr *Error
 	if errors.As(err, &ferr) {
+		if ferr == nil {
+			return List{}
+		}
 		return List{ferr}
 	}
 
@@ -140,6 +139,7 @@ func (l List) Pretty(o PrettyOptions) string {
 	return s
 }
 
+// AsError returns nil, if the list is empty, otherwise the list itself.
 func (l List) AsError() error {
 	if len(l) == 0 {
 		return nil

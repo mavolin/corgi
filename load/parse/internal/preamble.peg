@@ -28,10 +28,9 @@ packageName <- identI:Ident EOL {
 } / EOL {
     return (*ast.Ident)(nil), &fileerr.Error{
         Message: "missing package name",
-        ErrorAnnotation: anno(c, annotation{
-            Start:       pos(c),
-            StartOffset: 1,
-            Annotation:  "expected a package name",
+        ErrorAnnotation: anno.Anno(file(c), anno.Annotation{
+            Highlight:  anno.HighlightPosition(pos(c)).Delta(1, 1),
+            Annotation: "expected a package name",
         }),
         Example: "`package woof`",
     }
@@ -42,11 +41,8 @@ packageName <- identI:Ident EOL {
 MissingPackageDirective <- POS {
     return (*ast.PackageDirective)(nil), &fileerr.Error{
         Message: "missing package directive",
-        ErrorAnnotation: anno(c, annotation{
-            Start:       pos(c),
-            ToEOL:       true,
-            Annotation:  "expected `package` directive as first non-comment, found this instead",
-        }),
+        ErrorAnnotation: anno.ToEOL(file(c), pos(c),
+            "expected `package` directive as first non-comment, found this instead"),
         Example: "`package woof`",
     }
 }
@@ -59,15 +55,15 @@ Import <- SingleImport / GroupImport / BadImport
 
 SingleImport <- "import" _+ specI:ImportSpec EOC {
     return ast.Import{
-        Imports:  []ast.ImportScopeItem{specI.(ast.ImportSpec)},
+        Imports:  []ast.ImportNode{specI.(*ast.ImportSpec)},
         Position: pos(c),
     }, nil
 }
 
-GroupImport <- "import" _* lParenI:listStart itmsI:importScopeItem* rParenI:groupImportEnd {
+GroupImport <- "import" _* lParenI:listStart nodesI:importNode* rParenI:groupImportEnd {
     return ast.Import{
         LParen:   lParenI.(*ast.Position),
-        Imports:  sliceOf[ast.ImportScopeItem](itmsI),
+        Imports:  sliceOf[ast.ImportNode](nodesI),
         RParen:   rParenI.(*ast.Position),
         Position: pos(c),
     }, nil
@@ -78,17 +74,14 @@ groupImportEnd <- WS* rParenI:R_PAREN {
 } / POS {
     return nil, &fileerr.Error{
         Message: "missing `)`",
-        ErrorAnnotation: anno(c, annotation{
-            Start:       pos(c),
-            Annotation:  "expected `)` to close the import group",
-        }),
+        ErrorAnnotation: annoPos(c, "expected `)` to close the import group"),
     }
 }
 
 BadImport <- "import" _* startI:POS badI:UNEXPECTED endI:EOC {
     return &ast.Import{
-        Imports: []ast.ImportScopeItem{
-            ast.BadImportSpec{
+        Imports: []ast.ImportNode{
+            &ast.BadImportSpec{
                 Line:     badI.(string),
                 Position: *startI.(*ast.Position),
             },
@@ -96,25 +89,21 @@ BadImport <- "import" _* startI:POS badI:UNEXPECTED endI:EOC {
         Position: pos(c),
     }, &fileerr.Error{
         Message: "invalid import",
-        ErrorAnnotation: anno(c, annotation{
-            Start:       *startI.(*ast.Position),
-            End:         *endI.(*ast.Position),
-            Annotation:  "expected an import path, optionally preceded by an import alias\n" +
-                "or a group of imports",
-        }),
+        ErrorAnnotation: annoRange(c, startI, endI,
+            "expected an import path, optionally preceded by an import alias\n" +
+                "or a group of imports"),
         Example: "`import \"fmt\"`",
     }
 }
 
-importScopeItem <- WS* itmI:(DevComment / ImportSpec / BadImportSpec) {
-    return itmI, nil
+importNode <- WS* nodeI:(DevComment / ImportSpec / BadImportSpec) {
+    return nodeI, nil
 }
 
 ImportSpec <- aliasI:importAlias? pathI:StaticString EOC {
     return &ast.ImportSpec{
         Alias:    optCast[*ast.Ident](aliasI),
         Path:     pathI.(*ast.StaticString),
-        Position: pos(c),
     }, nil
 }
 
@@ -133,11 +122,8 @@ BadImportSpec <- lineI:UNEXPECTED EOC {
         Position: pos(c),
     }, &fileerr.Error{
         Message: "invalid import spec",
-        ErrorAnnotation: anno(c, annotation{
-            Start:       pos(c),
-            Len:         len(line),
-            Annotation:  "expected an import path, optionally preceded by an import alias",
-        }),
+        ErrorAnnotation: anno.NChars(file(c), pos(c), len(line),
+            "expected an import path, optionally preceded by an import alias"),
     }
 }
 
@@ -149,15 +135,15 @@ State <- SingleState / GroupState / BadState
 
 SingleState <- "state" _+ varI:StateVar EOC {
     return ast.State{
-        Vars:     []ast.StateScopeItem{varI.(*ast.StateVar)},
+        Vars:     []ast.StateNode{varI.(*ast.StateVar)},
         Position: pos(c),
     }, nil
 }
 
-GroupState <- "state" _* lParenI:listStart itmsI:stateScopeItem* rParenI:groupStateEnd {
+GroupState <- "state" _* lParenI:listStart nodesI:stateNode* rParenI:groupStateEnd {
     return ast.State{
         LParen:   lParenI.(*ast.Position),
-        Vars:     sliceOf[ast.StateScopeItem](itmsI),
+        Vars:     sliceOf[ast.StateNode](nodesI),
         RParen:   rParenI.(*ast.Position),
         Position: pos(c),
     }, nil
@@ -168,16 +154,13 @@ groupStateEnd <- WS* rParenI:R_PAREN {
 } / POS {
     return nil, &fileerr.Error{
         Message: "missing `)`",
-        ErrorAnnotation: anno(c, annotation{
-            Start:       pos(c),
-            Annotation:  "expected `)` to close the state group",
-        }),
+        ErrorAnnotation: annoPos(c, "expected `)` to close the state group"),
     }
 }
 
 BadState <- "state" _* startI:POS badI:UNEXPECTED endI:EOC {
     return &ast.State{
-        Vars: []ast.StateScopeItem{
+        Vars: []ast.StateNode{
             &ast.BadStateVar{
                 Line:     badI.(string),
                 Position: *startI.(*ast.Position),
@@ -186,17 +169,14 @@ BadState <- "state" _* startI:POS badI:UNEXPECTED endI:EOC {
         Position: pos(c),
     }, &fileerr.Error{
         Message: "invalid state",
-        ErrorAnnotation: anno(c, annotation{
-            Start:      *startI.(*ast.Position),
-            End:        *endI.(*ast.Position),
-            Annotation: "expected a state variable declaration or a group of state variables",
-        }),
+        ErrorAnnotation: annoRange(c, startI, endI,
+            "expected a state variable declaration or a group of state variables"),
         Example: "`state bark = \"woof\"`",
     }
 }
 
-stateScopeItem <- WS* itmI:(DevComment / StateVar / BadStateVar) {
-    return itmI, nil
+stateNode <- WS* nodeI:(DevComment / StateVar / BadStateVar) {
+    return nodeI, nil
 }
 
 StateVar <- namesI:stateVarNames _* typI:stateVarType? _* assignI:POS valsI:stateVarValues {
@@ -206,10 +186,8 @@ StateVar <- namesI:stateVarNames _* typI:stateVarType? _* assignI:POS valsI:stat
     if len(names) != len(vals) && len(vals) > 0 {
         return (*ast.StateVar)(nil), &fileerr.Error{
             Message: "state variable: unequal number of declarations and initializations",
-            ErrorAnnotation: anno(c, annotation{
-                Start:      pos(c),
-                Annotation: fmt.Sprintf("have %d declarations and %d initializations", len(names), len(vals)),
-            }),
+            ErrorAnnotation: annoPos(c,
+                fmt.Sprintf("have %d declarations and %d initializations", len(names), len(vals))),
             Example: "`state bark, howl = \"woof\", \"awoooo\"`",
             Suggestions: []fileerr.Suggestion{
                 {Suggestion: "the number of variable names must always match the number of expressions"},
@@ -244,17 +222,14 @@ stateVarIdent <- Ident / [^\r\n\t ,=]+ {
 
 stateVarType <- typI:Type _* {
     return typI, nil
-} / (!(_* '=') [^\r\n])+ _* {
+} / textI:(!(_* '=') [^\r\n])+ _* {
+    text := concat(textI)
     return ast.Type{
         Type:     string(c.text),
         Position: pos(c),
     }, &fileerr.Error{
         Message: "invalid type",
-        ErrorAnnotation: anno(c, annotation{
-            Start:       pos(c),
-            Len:         len(c.text),
-            Annotation:  "this is not a valid Go type",
-        }),
+        ErrorAnnotation: anno.NChars(file(c), pos(c), len(text), "this is not a valid Go type"),
     }
 }
 
@@ -266,11 +241,7 @@ stateVarValues <- '=' WS* valsI:stateVarValueList EOC {
 } / '=' WS* startI:POS UNEXPECTED endI:EOC {
     return ([]*ast.GoCode)(nil), &fileerr.Error{
         Message: "invalid state variable values",
-        ErrorAnnotation: anno(c, annotation{
-            Start:       *startI.(*ast.Position),
-            End:         *endI.(*ast.Position),
-            Annotation:  "expected one or more Go expressions",
-        }),
+        ErrorAnnotation: annoRange(c, startI, endI, "expected one or more Go expressions"),
         Example: "`state bark = \"woof\"`",
     }
 } / EOC {
@@ -292,10 +263,6 @@ BadStateVar <- lineI:UNEXPECTED EOC {
         Position: pos(c),
     }, &fileerr.Error{
         Message: "invalid state variable",
-        ErrorAnnotation: anno(c, annotation{
-            Start:       pos(c),
-            Len:         len(line),
-            Annotation:  "expected a state variable declaration",
-        }),
+        ErrorAnnotation: anno.NChars(file(c), pos(c), len(line), "expected a state variable declaration"),
     }
 }

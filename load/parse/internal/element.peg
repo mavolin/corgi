@@ -6,16 +6,11 @@ Doctype <- "!doctype" behindDoctype {
     return &ast.Doctype{Position: pos(c)}, nil
 }
 
-behindDoctype <- _* listStart "html" attributeListEnd EOC / _* startI:POS UNEXPECTED endI:EOC {
+behindDoctype <- _* listStart "html" attributeListEnd EOC / _* startI:POS UNEXPECTED endI:POS EOC {
     return nil, &fileerr.Error{
-        Message: "use of non-HTML5 doctype",
-        ErrorAnnotation: anno(c, annotation{
-            Start:      *startI.(*ast.Position),
-            End:        *endI.(*ast.Position),
-            EndOffset:  -1,
-            Annotation: "this is not part of the HTML5 doctype",
-        }),
-        ShouldBe: "`!doctype(html)`",
+        Message:         "use of non-HTML5 doctype",
+        ErrorAnnotation: annoRange(c, startI, endI, "this is not part of the HTML5 doctype"),
+        ShouldBe:        "`!doctype(html)`",
     }
 }
 
@@ -63,20 +58,17 @@ rawElementBody <- _+ btI:BracketText EOC {
     return btI, nil
 } / _+ posI:POS Scope {
     return (*ast.BracketText)(nil), &fileerr.Error{
-        Message: "`!raw` with scope",
-        ErrorAnnotation: anno(c, annotation{
-            Start:      *posI.(*ast.Position),
-            Annotation: "the `!raw` element must have bracketed text as body",
-        }),
-        ShouldBe: "`!raw [ ... ]`",
+        Message:         "`!raw` with scope",
+        ErrorAnnotation: anno.Position(file(c), *posI.(*ast.Position),
+            "the `!raw` element must have bracketed text as body"),
+        ShouldBe:        "`!raw [ ... ]`",
     }
 } / EOC {
     return (*ast.BracketText)(nil), &fileerr.Error{
         Message: "empty `!raw` element",
-        ErrorAnnotation: anno(c, annotation{
-            Start:       pos(c),
-            StartOffset: 1,
-            Annotation:  "expected a body",
+        ErrorAnnotation: anno.Anno(file(c), anno.Annotation{
+            Highlight:  anno.HighlightPosition(pos(c)).Delta(1, 1),
+            Annotation: "expected a body",
         }),
         ShouldBe: "`!raw [ ... ]`",
     }

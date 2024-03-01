@@ -38,3 +38,8 @@ htmlTagName <- htmlASCIIAlphanumeric+
 // https://html.spec.whatwg.org/#attributes-2
 
 htmlAttributeNameChar <- !(htmlControl / [\u0020\u0022\u0027\u003e\u002f\u003d] / htmlNoncharacter) .
+
+// ============================================================================
+// Character References
+// ======================================================================================
+// https://html.spec.whatwg.org/#character-references

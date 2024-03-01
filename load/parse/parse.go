@@ -31,16 +31,8 @@ func Parse(input []byte) (*file.File, error) {
 		}
 	}
 
-	aI, err := internal.Parse("bytedata", input, internal.GlobalStore("lines", lines))
-
-	a, _ := aI.(*ast.AST)
-	if a == nil {
-		a = new(ast.AST)
-	}
-	a.Raw = string(input)
-	a.Lines = lines
-
-	f := &file.File{AST: a}
+	f := &file.File{AST: &ast.AST{Raw: string(input), Lines: lines}}
+	_, err := internal.Parse("bytedata", input, internal.GlobalStore("file", f))
 
 	var errs internal.ErrList
 	errors.As(err, &errs)
@@ -88,7 +80,6 @@ func parserErrorToCorgiError(lines []string, perr *internal.ParserError) *fileer
 				Start:        1,
 				End:          2,
 				Annotation:   "position unknown",
-				Lines:        []string{""},
 			},
 		}
 	}
@@ -104,7 +95,6 @@ func parserErrorToCorgiError(lines []string, perr *internal.ParserError) *fileer
 				Start:        1,
 				End:          2,
 				Annotation:   "position unknown",
-				Lines:        []string{""},
 			},
 		}
 	}
@@ -123,7 +113,6 @@ func parserErrorToCorgiError(lines []string, perr *internal.ParserError) *fileer
 			Start:        colNum,
 			End:          colNum + 1,
 			Annotation:   "here",
-			Lines:        []string{lines[lineNum-1]},
 		},
 	}
 }

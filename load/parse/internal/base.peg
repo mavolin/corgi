@@ -30,10 +30,10 @@ StaticString <- staticRawString / staticInterpretedString
 
 staticRawString <- rawStringStart contentsI:[^`]* endI:rawStringEnd {
     return &ast.StaticString{
-        Start:    pos(c),
+        Open:     pos(c),
         Quote:    '`',
         Contents: concat(contentsI),
-        End:      endI.(*ast.Position),
+        Close:    endI.(*ast.Position),
     }, nil
 }
 
@@ -43,10 +43,10 @@ staticRawString <- rawStringStart contentsI:[^`]* endI:rawStringEnd {
 
 staticInterpretedString <- interpretedStringStart contentsI:staticInterpretedStringContents? endI:interpretedStringEnd {
     return &ast.StaticString{
-        Start:    pos(c),
+        Open:     pos(c),
         Quote:    '"',
         Contents: optCast[string](contentsI),
-        End:      endI.(*ast.Position),
+        Close:    endI.(*ast.Position),
     }, nil
 }
 

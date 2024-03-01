@@ -61,7 +61,13 @@ type (
 	}
 )
 
-var _ Node = (TextLine)(nil)
+var (
+	_ Node = (TextLine)(nil)
+
+	// change above comment if this changes
+	_ TextNode = (*Text)(nil)
+	_ TextNode = (Interpolation)(nil)
+)
 
 func (l TextLine) Pos() Position {
 	if len(l) == 0 {

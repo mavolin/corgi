@@ -64,7 +64,7 @@ func unclosedIndex(c *current, listName string) (ast.Position, error) {
 	}
 }
 
-func unclosedParen(c *current, open, close string) (*ast.GoCodeItem, error) {
+func unclosedParen(c *current, open, close string) (*ast.GoCodeNode, error) {
 	start := popStart(c)
 	return nil, &fileerr.Error{
 		Message: "go code: unclosed `" + open + "`",

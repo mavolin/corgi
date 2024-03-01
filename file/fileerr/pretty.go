@@ -370,7 +370,7 @@ func (p *prettyPrinter) printLineStart(lineNo int) {
 func (p *prettyPrinter) printAnnotationMarker(a annotation) int {
 	endCol := a.End
 	if endCol <= 0 {
-		endCol = len(a.Lines[a.Line-a.ContextStart]) + 1
+		endCol = len(a.File.Lines[a.Line-1]) + 1
 	} else if endCol < a.Start {
 		endCol = a.Start + 1
 	}
@@ -418,7 +418,7 @@ type lineRange struct {
 func lineRanges(as []annotation) []lineRange {
 	lines := make([]lineRange, len(as))
 	for i, a := range as {
-		lines[i] = lineRange{a.ContextStart, a.ContextEnd, a.Lines}
+		lines[i] = lineRange{a.ContextStart, a.ContextEnd, a.File.Lines[a.ContextStart-1 : a.ContextEnd-1]}
 	}
 
 	sort.Slice(lines, func(i, j int) bool {

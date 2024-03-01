@@ -55,9 +55,9 @@ ConditionalGoExpression <- codesI:(conditionalGoParenExpr / String / expressionB
 
 conditionalGoParenExpr <- openI:goParenExprStart codeI:nestedGoCode? closeI:goParenExprEnd {
     return []any{openI, codeI, closeI}, nil
-} / openI:goBraceExprStart codeI:nestedGoCode? closeI:goBraceExprEnd !(EOC / WS* "else") {
+} / openI:goBraceExprStart codeI:nestedGoCode? closeI:goBraceExprEnd !(EOC / _* "else") {
     return []any{openI, codeI, closeI}, nil
-} / openI:goBracketExprStart codeI:nestedGoCode? closeI:goBracketExprEnd !(EOC / WS* "else") {
+} / openI:goBracketExprStart codeI:nestedGoCode? closeI:goBracketExprEnd !(EOC / _* "else") {
     return []any{openI, codeI, closeI}, nil
 }
 
@@ -134,12 +134,12 @@ blockFunctionEnd <- listEnd / POS {
 
 String <- InterpretedString / RawString
 
-InterpretedString <- interpretedStringStart contentsI:InterpretedStringItem* endI:interpretedStringEnd {
+InterpretedString <- interpretedStringStart contentsI:InterpretedStringContent* endI:interpretedStringEnd {
     return &ast.String{
-        Start:    pos(c),
+        Open:     pos(c),
         Quote:    '"',
-        Contents: sliceOf[ast.StringItem](contentsI),
-        End:      endI.(*ast.Position),
+        Contents: sliceOf[ast.StringContent](contentsI),
+        Close:    endI.(*ast.Position),
     }, nil
 }
 
@@ -150,27 +150,22 @@ interpretedStringEnd <- '"' endI:POS popStart {
     start := popStart(c)
     return endI.(*ast.Position), &fileerr.Error{
         Message: "unclosed string literal",
-        ErrorAnnotation: anno(c, annotation{
-            Start:       start,
-            StartOffset: 1,
-            EOLDelta:    1,
-            Annotation:  "expected a `\"` somewhere here",
+        ErrorAnnotation: anno.Anno(file(c), anno.Annotation{
+            Highlight:  anno.HighlightToEOL(start).Delta(1, 0),
+            Annotation: "expected a `\"` somewhere here",
         }),
         HintAnnotations: []fileerr.Annotation{
-            anno(c, annotation{
-                Start:      start,
-                Annotation: "for the string literal started here",
-            }),
+            anno.Position(file(c), start, "for the string literal started here"),
         },
     }
 }
 
-RawString <- rawStringStart contentsI:RawStringItem* endI:rawStringEnd {
+RawString <- rawStringStart contentsI:RawStringContent* endI:rawStringEnd {
     return &ast.String{
-        Start:    pos(c),
+        Open:     pos(c),
         Quote:    '`',
-        Contents: sliceOf[ast.StringItem](contentsI),
-        End:      endI.(*ast.Position),
+        Contents: sliceOf[ast.StringContent](contentsI),
+        Close:    endI.(*ast.Position),
     }, nil
 }
 
@@ -179,108 +174,28 @@ rawStringEnd <- posI:POS '`' popStart {
     return posI.(*ast.Position), nil
 } / posI:POS {
     return posI.(*ast.Position), &fileerr.Error{
-        Message: "unclosed string literal",
-        ErrorAnnotation: anno(c, annotation{
-            Start:      popStart(c),
-            Annotation: "you never closed this ```",
-        }),
+        Message:         "unclosed string literal",
+        ErrorAnnotation: anno.Position(file(c), popStart(c), "expected a closing ``` for this ```"),
     }
 }
 
-InterpretedStringItem <- InterpretedStringText / StringInterpolation
-RawStringItem         <- RawStringText / StringInterpolation
+InterpretedStringContent <- InterpretedStringText / StringInterpolation
+RawStringContent         <- RawStringText / StringInterpolation
 
-InterpretedStringText <- ("##" / !definiteStringInterpolationStart (goInterpretedStringUnicodeValue / goByteValue / goRecoverInterpretedStringEscape))+ {
+InterpretedStringText <- (nonInterpolationHash / !'#' (goInterpretedStringUnicodeValue / goByteValue / goRecoverInterpretedStringEscape))+ {
     return &ast.StringText{
         Text:     string(c.text),
         Position: pos(c),
     }, nil
 }
-RawStringText <- ("##" / !definiteStringInterpolationStart ensureInline goRawStringUnicodeChar)+ {
+RawStringText <- (nonInterpolationHash / !'#' ensureInline goRawStringUnicodeChar)+ {
     return &ast.StringText{
         Text:     string(c.text),
         Position: pos(c),
     }, nil
 }
 
-StringInterpolation <- interpolationStart fmtDirectiveI:fmtDirective? exprI:stringInterpolationExpression {
-    interp := exprI.(ast.StringInterpolation)
-    interp.FormatDirective = optCast[string](fmtDirectiveI)
-    interp.Position = pos(c)
-    return interp, nil
+StringInterpolation <- interpolationStart interpI:stringInterpolation interpolationEnd {
+    return interpI, nil
 }
-
-stringInterpolationExpression <- lBraceI:interpolationExpressionStart inlineStart exprI:Expression inlineEnd rBraceI:interpolationExpressionEnd {
-    return ast.StringInterpolation{
-        LBrace:     lBraceI.(*ast.Position),
-        Expression: optCast[ast.Expression](exprI),
-        RBrace:     rBraceI.(*ast.Position),
-    }, nil
-} / POS {
-    start := popStart(c)
-    return (*ast.StringInterpolation)(nil), &fileerr.Error{
-        Message: "string interpolation: missing expression",
-        ErrorAnnotation: anno(c, annotation{
-            Start:      pos(c),
-            Annotation: "expected a `{`",
-        }),
-        HintAnnotations: []fileerr.Annotation{
-            anno(c, annotation{
-                Start:      start,
-                Annotation: "for the interpolation started here",
-            }),
-        },
-        Suggestions: []fileerr.Suggestion{
-            {
-                Suggestion: "add an expression enclosed in braces",
-                Example: "`#" + string(c.text) + "{1+1}`",
-            },
-            {Suggestion: "if you didn't mean to start an interpolation, escape the `#` by writing `##`"},
-        },
-    }
-}
-
-fmtDirective <- '%' fmtFlag* ([1-9][0-9]*)? ('.' [0-9]*)? fmtVerb {
-    return string(c.text[1:]), nil
-} / '%' [^`"{]* endI:POS {
-    return string(c.text[1:]), &fileerr.Error{
-        Message: "invalid format directive",
-        ErrorAnnotation: anno(c, annotation{
-            Start:      pos(c),
-            End:        *endI.(*ast.Position),
-            Annotation: "invalid formatter",
-        }),
-        Suggestions: []fileerr.Suggestion{
-            {Suggestion: "consult the docs of the Go built-in package `fmt` on how to write a formatting placeholder"},
-            {Suggestion: "if you didn't mean to start an interpolation, escape the `#` by writing `##`"},
-        },
-    }
-}
-fmtFlag <- [-+# 0]
-fmtVerb <- [bcdeEfFgGoOpqstTUvX] / &('{' / '"' / '`') {
-    return []byte(nil), &fileerr.Error{
-        Message: "missing format verb",
-        ErrorAnnotation: anno(c, annotation{
-            Start:      pos(c),
-            Annotation: "expected a formatting verb",
-        }),
-        Suggestions: []fileerr.Suggestion{
-            {Suggestion: "consult the docs of the Go built-in package `fmt` on valid formatting verbs"},
-            {Suggestion: "if you didn't mean to start an interpolation, escape the `#` before this error by writing `##`"},
-        },
-    }
-} / . {
-    return c.text, &fileerr.Error{
-        Message: "invalid format verb",
-        ErrorAnnotation: anno(c, annotation{
-            Start:      pos(c),
-            Annotation: "this is not a valid format verb",
-        }),
-        Suggestions: []fileerr.Suggestion{
-            {Suggestion: "consult the docs of the Go built-in package `fmt` on valid formatting verbs"},
-            {Suggestion: "if you didn't mean to start an interpolation, escape the `#` before this error by writing `##`"},
-        },
-    }
-}
-
-definiteStringInterpolationStart <- posI:POS ("#%" / "#{") { return posI.(*ast.Position), nil }
+stringInterpolation <- EscapedHash / CharacterReference / ExpressionInterpolation / BadInterpolation

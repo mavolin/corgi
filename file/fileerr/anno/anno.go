@@ -1,7 +1,8 @@
-// Package anno provides helpers for creating annotations.
+// Package anno provides helpers that reduce common boilerplate when creating
+// annotations.
 //
-// Throughout the package, it assumed that supplied positions are valid positions
-// in the file.
+// Throughout the package, it assumed that supplied positions are valid
+// positions in the file.
 // If end > start or if start and end are on different lines even though they
 // aren't allowed to be, start is preferred over end and a reasonable end is
 // calculated.
@@ -51,9 +52,20 @@ func ToEOL(f *file.File, start ast.Position, anno string) fileerr.Annotation {
 	})
 }
 
-// Position is a shorthand for NChars(f, pos, 1, anno).
+// FirstWord is a shorthand for [HighlightFirstWord].attached
+func FirstWord(f *file.File, start ast.Position, s, anno string) fileerr.Annotation {
+	return Anno(f, Annotation{
+		Highlight:  HighlightFirstWord(start, s),
+		Annotation: anno,
+	})
+}
+
+// Position is a shorthand for [HighlightPosition].
 func Position(f *file.File, pos ast.Position, anno string) fileerr.Annotation {
-	return NChars(f, pos, 1, anno)
+	return Anno(f, Annotation{
+		Highlight:  HighlightPosition(pos),
+		Annotation: anno,
+	})
 }
 
 // NChars is a shorthand for [HighlightNChars].
@@ -156,8 +168,31 @@ func toEOL(f *file.File, start ast.Position) Highlight {
 	return Highlight{start.Line, s, e}
 }
 
+// HighlightFirstWord highlights the first word in s, as determined by the
+// space, tab, carriage return and newline characters.
+// If s is the empty string, a single char is highlighted.
+// If s contains only a single word, it is highlighted in its entirety.
+func HighlightFirstWord(start ast.Position, s string) HighlightFunc {
+	length := len(s)
+	if length == 0 {
+		return HighlightPosition(start)
+	}
+	for i, b := range []byte(s[1:]) {
+		if b == ' ' || b == '\t' || b == '\r' || b == '\n' {
+			length = i
+		}
+	}
+	return HighlightNChars(start, length)
+}
+
+// HighlightPosition is a shorthand for HighlightNChars(start, 1).
+func HighlightPosition(start ast.Position) HighlightFunc {
+	return HighlightNChars(start, 1)
+}
+
 // HighlightNChars highlights the area from start to start+n.
 // n must be at least 1.
+// n must be specified in bytes.
 func HighlightNChars(start ast.Position, n int) HighlightFunc {
 	if n <= 0 {
 		panic("anno: HighlightNChars: n must be at least 1")
@@ -195,6 +230,45 @@ func HighlightNode(node ast.Node) HighlightFunc {
 				h.End = node.Name.End().Col
 			} else {
 				h.End = h.Start + len("+")
+			}
+		// === control_structures.go ===
+		case *ast.If:
+			if node.Header != nil && node.Header.End().Line == h.Line {
+				h.End = node.Header.End().Col
+			} else {
+				h.End = h.Start + len("if")
+			}
+		case *ast.ElseIf:
+			if node.Header != nil && node.Header.End().Line == h.Line {
+				h.End = node.Header.End().Col
+			} else {
+				h.End = h.Start + len("else if")
+			}
+		case *ast.Else:
+			h.End = h.Start + len("else")
+		case *ast.For:
+			if node.Header != nil && node.Header.End().Line == h.Line {
+				h.End = node.Header.End().Col
+			} else {
+				h.End = h.Start + len("if")
+			}
+		case *ast.Switch:
+			if node.Comparator != nil && node.Comparator.End().Line == h.Line {
+				h.End = node.Comparator.End().Col
+			} else {
+				h.End = h.Start + len("switch")
+			}
+		case *ast.Case:
+			if node.Expression != nil && node.Expression.End().Line == h.Line {
+				h.End = node.Expression.End().Col
+			} else if node.Colon != nil {
+				h.End = node.Colon.Col
+			} else {
+				if node.Expression == nil {
+					h.End = h.Start + len("default")
+				} else {
+					h.End = h.Start + len("case")
+				}
 			}
 		}
 
