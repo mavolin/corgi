@@ -29,7 +29,24 @@ OptionalBody <- _* bodyI:body {
     return nil, newUnexpectedTokensErr(c, *startI.(*ast.Position), *endI.(*ast.Position), "expected a body, or nothing")
 }
 
-body <- Scope / BracketText
+body <- Scope / BracketText / ubsI:UnderscoreBlockShorthand {
+    return ubsI, &fileerr.Error{
+        Message: "illegal use of underscore block shorthand",
+        ErrorAnnotation: annoPos(c, "can only use underscore block shorthand for component calls"),
+        Suggestions: []fileerr.Suggestion{
+            {Suggestion: "if this is supposed to be a component call, you forgot the `+`"},
+            {Suggestion: "remove the `_`"},
+        },
+    }
+} / extI:Extend {
+    return ubsI, &fileerr.Error{
+        Message: "illegal use of extend",
+        ErrorAnnotation: annoPos(c, "only components can extend other components"),
+        Suggestions: []fileerr.Suggestion{
+            {Suggestion: "place the component call inside a regular `{ scope }`"},
+        },
+    }
+}
 
 // ============================================================================
 // Scope
@@ -70,6 +87,14 @@ validScopeNode <- And /                                        // attribute.peg
                        HTMLComment / And / RawElement / Doctype /   // element.peg, excl. Element, which is last
                        ArrowBlock /                                 // text.peg
                        Element                                      // needs to come last
+
+// ============================================================================
+// Extend
+// ======================================================================================
+
+Extend <- ccI:ComponentCall {
+    return &file.Extend{ComponentCall: ccI.(*ast.ComponentCall)}, nil
+}
 
 // ============================================================================
 // Lone Brace

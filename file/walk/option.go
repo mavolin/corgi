@@ -45,7 +45,7 @@ func ChildOf(types ...ast.ScopeNode) Option {
 	}
 }
 
-// ChildOfAny asserts that the visited item must be a child of an item of any of
+// ChildOfAny asserts that the visited item must be a child of an item of
 // the passed types.
 func ChildOfAny(types ...ast.ScopeNode) Option {
 	rTypes := make([]reflect.Type, len(types))
@@ -99,7 +99,7 @@ func NotChildOf(types ...ast.ScopeNode) Option {
 	}
 }
 
-// NotChildOfAny asserts that the visited item must not be a child of any of the
+// NotChildOfAny asserts that the visited item must not be a child of the
 // passed types.
 func NotChildOfAny(types ...ast.ScopeNode) Option {
 	rTypes := make([]reflect.Type, len(types))
@@ -121,7 +121,7 @@ func NotChildOfAny(types ...ast.ScopeNode) Option {
 	}
 }
 
-// DontDiveAny prevents the function from diving if the current item is of any of
+// DontDiveAny prevents the function from diving if the current item is of
 // the passed types.
 func DontDiveAny(types ...ast.ScopeNode) Option {
 	rTypes := make([]reflect.Type, len(types))

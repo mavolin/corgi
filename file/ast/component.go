@@ -116,9 +116,10 @@ type ComponentCall struct {
 	TypeArgs []*Type
 	RBracket *Position // nil if no type params
 
-	LParen *Position
-	Args   []*ComponentArg
-	RParen *Position
+	LParen      *Position
+	ImplicitArg Expression // the implicit val arg, may be nil
+	Args        []*ComponentArg
+	RParen      *Position
 
 	Body Body
 
@@ -135,6 +136,8 @@ func (c *ComponentCall) End() Position {
 		return deltaPos(*c.RParen, 1)
 	} else if len(c.Args) > 0 {
 		return c.Args[len(c.Args)-1].End()
+	} else if c.ImplicitArg != nil {
+		return c.ImplicitArg.End()
 	} else if c.LParen != nil {
 		return deltaPos(*c.LParen, 1)
 	} else if c.RBracket != nil {
@@ -203,25 +206,3 @@ func (b *Block) End() Position {
 
 func (*Block) _node()      {}
 func (*Block) _scopeNode() {}
-
-// ============================================================================
-// Underscore Block Shorthand
-// ======================================================================================
-
-type UnderscoreBlockShorthand struct {
-	Body     Body
-	Position Position
-}
-
-var _ Body = (*UnderscoreBlockShorthand)(nil)
-
-func (s *UnderscoreBlockShorthand) Pos() Position { return s.Position }
-func (s *UnderscoreBlockShorthand) End() Position {
-	if s.Body != nil {
-		return s.Body.End()
-	}
-	return deltaPos(s.Position, len("_"))
-}
-
-func (*UnderscoreBlockShorthand) _node() {}
-func (*UnderscoreBlockShorthand) _body() {}

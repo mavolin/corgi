@@ -2,7 +2,7 @@
 // Component
 // ======================================================================================
 
-Component <- "comp" _+ nameI:componentName _* typeParamsI:componentTypeParamList? _* paramsI:componentParamList bodyI:Body {
+Component <- "comp" _+ nameI:componentName _* typeParamsI:componentTypeParamList? _* paramsI:componentParamList bodyI:componentBody {
     comp := paramsI.(ast.Component)
     comp.Name = nameI.(*ast.Ident)
 
@@ -140,6 +140,10 @@ componentParamDefaultValue <- exprI:GoExpression {
     }
 }
 
+componentBody <- _* extI:Extend {
+    return extI, nil
+} / Body
+
 // ============================================================================
 // Component Call
 // ======================================================================================
@@ -195,11 +199,12 @@ typeArg <- tI:Type {
     }
 }
 
-componentArgList <- lParenI:listStart argsI:componentArgs? rParenI:componentArgListEnd {
+componentArgList <- lParenI:listStart implicitArgI:implicitComponentArg argsI:componentArgs? rParenI:componentArgListEnd {
     return ast.ComponentCall{
-        LParen: lParenI.(*ast.Position),
-        Args:   optCast[[]*ast.ComponentArg](argsI),
-        RParen: rParenI.(*ast.Position),
+        LParen:      lParenI.(*ast.Position),
+        ImplicitArg: optCast[ast.Expression](implicitArgI),
+        Args:        optCast[[]*ast.ComponentArg](argsI),
+        RParen:      rParenI.(*ast.Position),
     }, nil
 } / POS {
     return ast.ComponentCall{}, &fileerr.Error{
@@ -211,6 +216,10 @@ componentArgList <- lParenI:listStart argsI:componentArgs? rParenI:componentArgL
 
 componentArgListEnd <- listEnd / POS {
     return unclosedList(c, "component arguments")
+}
+
+implicitComponentArg <- exprI:Expression _* ',' WS* {
+    return exprI, nil
 }
 
 componentArgs <- firstI:componentArg restI:(_* ',' WS* componentArg)* {
@@ -246,7 +255,11 @@ componentArgValue <- ':' WS* exprI:Expression {
 // ======================================================================================
 
 ComponentCallBody <- _* bI:componentCallBody { return bI, nil }
-componentCallBody <- UnderscoreBlockShorthand / Scope / EOC { return nil, nil } / uI:UNEXPECTED endI:EOC {
+componentCallBody <- UnderscoreBlockShorthand / Scope / EOC {
+    return nil, nil
+} / _* startI:POS [^\r\n;{}]* endI:POS &[{] sI:Scope {
+    return bodyI, newUnexpectedTokensErr(c, *startI.(*ast.Position), *endI.(*ast.Position), "unexpected tokens")
+} / uI:UNEXPECTED endI:EOC {
     return nil, &fileerr.Error{
         Message: "unexpected tokens",
         ErrorAnnotation: annoRange(c, pos(c), endI, "expected a body or the end of command"),

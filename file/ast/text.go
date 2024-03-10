@@ -23,31 +23,6 @@ func (*ArrowBlock) _node()      {}
 func (*ArrowBlock) _scopeNode() {}
 
 // ============================================================================
-// BracketText
-// ======================================================================================
-
-type BracketText struct {
-	LBracket Position
-	Lines    []TextLine
-	RBracket *Position
-}
-
-var _ Body = (*BracketText)(nil)
-
-func (t *BracketText) Pos() Position { return t.LBracket }
-func (t *BracketText) End() Position {
-	if t.RBracket != nil {
-		return *t.RBracket
-	} else if len(t.Lines) > 0 {
-		return t.Lines[len(t.Lines)-1].End()
-	}
-	return deltaPos(t.LBracket, 1)
-}
-
-func (*BracketText) _node() {}
-func (*BracketText) _body() {}
-
-// ============================================================================
 // TextNode
 // ======================================================================================
 

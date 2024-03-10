@@ -11,6 +11,15 @@ import (
 func collectComponentCalls(ctx *context, p *file.Package) {
 	p.ComponentCalls = make([]*file.ComponentCall, 0, 32*len(p.Files))
 
+	for _, c := range p.Components {
+		if ext, _ := c.Body.(*ast.Extend); ext != nil {
+			p.ComponentCalls = append(p.ComponentCalls, &file.ComponentCall{
+				File:          c.File,
+				ComponentCall: ext.ComponentCall,
+			})
+		}
+	}
+
 	for _, f := range p.Files {
 		walk.Walk(f, f.Scope, func(_ []walk.Context, wctx walk.Context) error {
 			switch itm := wctx.Node.(type) {

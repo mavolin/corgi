@@ -97,6 +97,12 @@ func Walk(fil *file.File, b ast.Body, f Func, opts ...Option) error {
 		return nil
 	}
 
+	if ubs, _ := b.(*ast.UnderscoreBlockShorthand); ubs != nil {
+		b = ubs.Body
+	} else if ext, _ := b.(*ast.Extend); ext != nil {
+		b = ext.ComponentCall.Body
+	}
+
 	s, _ := b.(*ast.Scope)
 	if s == nil {
 		return nil
