@@ -50,7 +50,7 @@ func (*Scope) _body() {}
 
 type BracketText struct {
 	LBracket Position
-	Lines    []TextLine
+	Lines    TextBlock
 	RBracket *Position
 }
 

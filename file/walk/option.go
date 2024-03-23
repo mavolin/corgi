@@ -16,20 +16,20 @@ import (
 //
 // Note that an Option is called on every item, even if the walk function
 // is typed.
-type Option func(parents []Context, wctx Context) error
+type Option func(*Context) error
 
 // ChildOf asserts that the visited item must be a child of the passed sequence
 // of types.
-// Other types may appear in between or in front/after the types.
-func ChildOf(types ...ast.ScopeNode) Option {
+// Other nodes may appear in between or in front/after the types.
+func ChildOf(types ...ast.Node) Option {
 	rTypes := make([]reflect.Type, len(types))
 	for i, t := range types {
 		rTypes[i] = reflect.TypeOf(t)
 	}
 
-	return func(parents []Context, wctx Context) error {
+	return func(wctx *Context) error {
 		var typI int
-		for _, p := range parents {
+		for _, p := range wctx.Parents {
 			pt := reflect.TypeOf(p.Node)
 			if pt != rTypes[typI] {
 				continue
@@ -47,14 +47,14 @@ func ChildOf(types ...ast.ScopeNode) Option {
 
 // ChildOfAny asserts that the visited item must be a child of an item of
 // the passed types.
-func ChildOfAny(types ...ast.ScopeNode) Option {
+func ChildOfAny(types ...ast.Node) Option {
 	rTypes := make([]reflect.Type, len(types))
 	for i, t := range types {
 		rTypes[i] = reflect.TypeOf(t)
 	}
 
-	return func(parents []Context, wctx Context) error {
-		for _, p := range parents {
+	return func(wctx *Context) error {
+		for _, p := range wctx.Parents {
 			pt := reflect.TypeOf(p.Node)
 			for _, rType := range rTypes {
 				if pt == rType {
@@ -69,17 +69,17 @@ func ChildOfAny(types ...ast.ScopeNode) Option {
 
 // NotChildOf asserts that the visited item must not be a child of exactly the
 // passed sequence of types.
-// Other types may appear in between or in front/after the types and the
+// Other nodes may appear in between or in front/after the types and the
 // assertion will still fail.
-func NotChildOf(types ...ast.ScopeNode) Option {
+func NotChildOf(types ...ast.Node) Option {
 	rTypes := make([]reflect.Type, len(types))
 	for i, t := range types {
 		rTypes[i] = reflect.TypeOf(t)
 	}
 
-	return func(parents []Context, wctx Context) error {
+	return func(wctx *Context) error {
 		var typI int
-		for _, p := range parents {
+		for _, p := range wctx.Parents {
 			pt := reflect.TypeOf(p.Node)
 			if pt != rTypes[typI] {
 				continue
@@ -87,7 +87,7 @@ func NotChildOf(types ...ast.ScopeNode) Option {
 
 			typI++
 			if typI == len(rTypes) {
-				return IgnoreNoDive
+				return Skip
 			}
 		}
 
@@ -101,18 +101,18 @@ func NotChildOf(types ...ast.ScopeNode) Option {
 
 // NotChildOfAny asserts that the visited item must not be a child of the
 // passed types.
-func NotChildOfAny(types ...ast.ScopeNode) Option {
+func NotChildOfAny(types ...ast.Node) Option {
 	rTypes := make([]reflect.Type, len(types))
 	for i, t := range types {
 		rTypes[i] = reflect.TypeOf(t)
 	}
 
-	return func(parents []Context, wctx Context) error {
-		for _, p := range parents {
+	return func(wctx *Context) error {
+		for _, p := range wctx.Parents {
 			pt := reflect.TypeOf(p.Node)
 			for _, rType := range rTypes {
 				if pt == rType {
-					return IgnoreNoDive
+					return Skip
 				}
 			}
 		}
@@ -123,13 +123,13 @@ func NotChildOfAny(types ...ast.ScopeNode) Option {
 
 // DontDiveAny prevents the function from diving if the current item is of
 // the passed types.
-func DontDiveAny(types ...ast.ScopeNode) Option {
+func DontDiveAny(types ...ast.Node) Option {
 	rTypes := make([]reflect.Type, len(types))
 	for i, t := range types {
 		rTypes[i] = reflect.TypeOf(t)
 	}
 
-	return func(_ []Context, wctx Context) error {
+	return func(wctx *Context) error {
 		t := reflect.TypeOf(wctx.Node)
 		for _, rType := range rTypes {
 			if rType == t {
@@ -144,14 +144,16 @@ func DontDiveAny(types ...ast.ScopeNode) Option {
 // TopLevel asserts that the visited item must be a top-level item, as defined
 // by [IsTopLevel].
 func TopLevel() Option {
-	return func(parents []Context, current Context) error {
-		topLevel, childTopLevel := childIsTopLevel(parents, current)
-		if topLevel && childTopLevel {
+	return func(wctx *Context) error {
+		topLevel := IsTopLevel(wctx)
+		childTopLevel := topLevel && isTopLevel(wctx.Node)
+		if topLevel {
+			if !childTopLevel {
+				return NoDive
+			}
 			return nil
-		} else if !childTopLevel {
-			return NoDive
 		}
 
-		return Ignore
+		return SkipIf
 	}
 }

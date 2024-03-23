@@ -1,7 +1,6 @@
 package walk
 
 import (
-	"github.com/mavolin/corgi/file"
 	"github.com/mavolin/corgi/file/ast"
 )
 
@@ -11,100 +10,52 @@ import (
 // That means, it would not be nested in another element, but may very
 // well be nested in a conditional or component.
 //
-// When judging blocks inside component calls, IsTopLevel relies on the File's
-// link information.
-// If the block is not linked, IsTopLevel always returns false.
-func IsTopLevel(parents []Context) bool {
-	p, _ := childIsTopLevel(parents, Context{})
-	return p
+// Always returns false for items inside component calls.
+func IsTopLevel(ctx *Context) bool {
+	for _, p := range ctx.Parents {
+		if !isTopLevel(p.Node) {
+			return false
+		}
+	}
+
+	return true
 }
 
 // ChildIsTopLevel indicates whether a child of current would be top-level in
 // its scope.
 //
 // It works under the same rules as [IsTopLevel].
-func ChildIsTopLevel(parents []Context, current Context) bool {
-	_, t := childIsTopLevel(parents, current)
-	return t
+func ChildIsTopLevel(ctx *Context) bool {
+	return IsTopLevel(ctx) && isTopLevel(ctx.Node)
 }
 
-func childIsTopLevel(parents []Context, current Context) (bool, bool) {
-	var comp *file.Component
-
-parents:
-	for _, p := range parents {
-		switch itm := p.Node.(type) {
-		case *ast.If:
-		case *ast.For:
-		case *ast.Switch:
-		case *ast.ComponentCall:
-			if p.File == nil {
-				return false, false
-			}
-			cc := p.File.Package.ComponentCallByPtr(itm)
-			if cc == nil {
-				return false, false
-			}
-			comp = cc.Component
-		case *ast.Block:
-			if comp != nil {
-				for _, b := range comp.Blocks {
-					if b.Name == itm.Name.Ident {
-						if !b.TopLevel {
-							return false, false
-						}
-						break parents
-					}
-				}
-				return false, false
-			}
-		default:
-			return false, false
-		}
-	}
-
-	if current.Node == nil {
-		return true, false
-	}
-
-	switch itm := current.Node.(type) {
+func isTopLevel(n ast.Node) bool {
+	switch n.(type) {
 	case *ast.If:
+	case *ast.ElseIf:
+	case *ast.Else:
 	case *ast.For:
 	case *ast.Switch:
+	case *ast.Case:
 	case *ast.ComponentCall:
-		if comp == nil {
-			return true, false
-		}
+		return false
 	case *ast.Block:
-		if comp != nil {
-			for _, b := range comp.Blocks {
-				if b.Name == itm.Name.Ident {
-					return true, b.TopLevel
-				}
-			}
-			return true, false
-		}
+	case *ast.TextLine:
 	default:
-		return true, false
+		return false
 	}
-
-	return true, true
+	return true
 }
 
 // Closest returns the closest parent of the passed type, or the zero value for
 // T.
-func Closest[T any](parents []Context) T {
-	t, _ := ClosestItem[T](parents)
-	return t
-}
-
-func ClosestItem[T any](parents []Context) (T, int) {
-	for i := len(parents) - 1; i >= 0; i-- {
-		if t, ok := parents[i].Node.(T); ok {
-			return t, i
+func Closest[T any](ctx *Context) T {
+	for i := len(ctx.Parents) - 1; i >= 0; i-- {
+		if t, ok := ctx.Parents[i].Node.(T); ok {
+			return t
 		}
 	}
 
-	var zero T
-	return zero, -1
+	var z T
+	return z
 }

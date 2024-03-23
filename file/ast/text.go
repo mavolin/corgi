@@ -5,7 +5,7 @@ package ast
 // ======================================================================================
 
 type ArrowBlock struct {
-	Lines    []TextLine
+	Lines    TextBlock
 	Position Position
 }
 
@@ -27,7 +27,8 @@ func (*ArrowBlock) _scopeNode() {}
 // ======================================================================================
 
 type (
-	TextLine []TextNode
+	TextBlock []TextLine
+	TextLine  []TextNode
 
 	// TextNode is a pointer to either a pointer to [Text] or [Interpolation].
 	TextNode interface {

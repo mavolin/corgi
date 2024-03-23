@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+//goland:noinspection GoSnakeCaseUsage
 var (
 	scope = &ast.Scope{
 		Nodes: []ast.ScopeNode{
@@ -69,6 +70,8 @@ var (
 	/*    */ elseIf_p = elseIfScope.Nodes[0].(*ast.Element)
 	/*      */ elseIf_pScope = elseIf_p.Body.(*ast.Scope)
 	/*        */ elseIf_p_arrowBlock = elseIf_pScope.Nodes[0].(*ast.ArrowBlock)
+	/*          */ elseIf_p_arrowBlock_textLine = elseIf_p_arrowBlock.Lines[0]
+	/*            */ elseIf_p_arrowBlock_textLine_text = elseIf_p_arrowBlock_textLine[0].(*ast.Text)
 	/**/ div = scope.Nodes[1].(*ast.Element)
 	/*  */ divScope = div.Body.(*ast.Scope)
 	/*    */ div_span = divScope.Nodes[0].(*ast.Element)
@@ -79,17 +82,18 @@ var (
 )
 
 func TestWalk(t *testing.T) {
-	expectOrder := []ast.ScopeNode{
+	expectOrder := []ast.Node{
 		if_, if_br,
-		elseIf_p, elseIf_p_arrowBlock,
+		elseIf, elseIf_p, elseIf_p_arrowBlock, elseIf_p_arrowBlock_textLine,
+		elseIf_p_arrowBlock_textLine_text,
 		div, div_span, div_span_componentCall, div_span_table, div_img,
 	}
 
 	var i int
 
-	err := Walk(nil, scope, func(parents []Context, wctx Context) error {
+	err := Walk(scope, func(wctx *Context) error {
 		require.Less(t, i, len(expectOrder), "unexpected node")
-		assert.Same(t, expectOrder[i], wctx.Node)
+		assert.Equal(t, expectOrder[i], wctx.Node)
 		i++
 		return nil
 	})
@@ -98,13 +102,13 @@ func TestWalk(t *testing.T) {
 }
 
 func TestWalkT(t *testing.T) {
-	expectOrder := []ast.ScopeNode{if_br, elseIf_p, div, div_span, div_span_table, div_img}
+	expectOrder := []ast.Node{if_br, elseIf_p, div, div_span, div_span_table, div_img}
 
 	var i int
 
-	err := WalkT(nil, scope, func(parents []Context, wctx TypedContext[*ast.Element]) error {
+	err := WalkT(scope, func(wctx *ContextT[*ast.Element]) error {
 		require.Less(t, i, len(expectOrder), "unexpected node")
-		assert.Same(t, expectOrder[i], wctx.Item)
+		assert.Equal(t, expectOrder[i], wctx.Node)
 		i++
 		return nil
 	})
