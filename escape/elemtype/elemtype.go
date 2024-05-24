@@ -57,3 +57,24 @@ const (
 func (t Type) IsValid() bool {
 	return t > Unknown && t < invalid
 }
+
+func (t Type) String() string {
+	switch t {
+	case Unknown:
+		return "<unknown>"
+	case Void:
+		return "void"
+	case Nothing:
+		return "nothing"
+	case HTML:
+		return "html"
+	case Text:
+		return "text"
+	case CSS:
+		return "css"
+	case JS:
+		return "js"
+	default:
+		return "<invalid>"
+	}
+}

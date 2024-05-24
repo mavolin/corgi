@@ -3,150 +3,150 @@ package elemtype
 // HTML5 is a [Func] that returns the [Type] for HTML5 elements, as defined
 // in chapter 4 "[The elements of HTML]" of the HTML specification.
 //
-// [The elements of HTML]: https://html.spec.whatwg.org/multipage/semantics.html#semantics
+// [The elements of HTML]: https://html.spec.whatwg.org/multipage/indices.html#elements-3
 func HTML5(element string) Type {
 	switch element {
 	//
 	// 4.1 The document element
 
 	case "html":
-		return HTML // https://html.spec.whatwg.org/multipage/semantics.html#the-html-element
+		return HTML
 
 	//
 	// 4.2 Document metadata
 
 	case "head":
-		return HTML // https://html.spec.whatwg.org/multipage/semantics.html#the-head-element
+		return HTML
 	case "title":
-		return Text // https://html.spec.whatwg.org/multipage/semantics.html#the-title-element
+		return Text
 	case "base":
-		return Void // https://html.spec.whatwg.org/multipage/semantics.html#the-base-element
+		return Void
 	case "link":
-		return Void // https://html.spec.whatwg.org/multipage/semantics.html#the-link-element
+		return Void
 	case "meta":
-		return Void // https://html.spec.whatwg.org/multipage/semantics.html#the-meta-element
+		return Void
 	case "style":
-		return CSS // https://html.spec.whatwg.org/multipage/semantics.html#the-style-element
+		return CSS
 
 	//
 	// 4.3 Sections
 
 	case "body":
-		return HTML // https://html.spec.whatwg.org/multipage/sections.html#the-body-element
+		return HTML
 	case "article":
-		return HTML // https://html.spec.whatwg.org/multipage/sections.html#the-article-element
+		return HTML
 	case "section":
-		return HTML // https://html.spec.whatwg.org/multipage/sections.html#the-section-element
+		return HTML
 	case "nav":
-		return HTML // https://html.spec.whatwg.org/multipage/sections.html#the-nav-element
+		return HTML
 	case "aside":
-		return HTML // https://html.spec.whatwg.org/multipage/sections.html#the-aside-element
+		return HTML
 	case "h1", "h2", "h3", "h4", "h5", "h6":
-		return HTML // https://html.spec.whatwg.org/multipage/sections.html#the-h1,-h2,-h3,-h4,-h5,-and-h6-elements
+		return HTML
 	case "hgroup":
-		return HTML // https://html.spec.whatwg.org/multipage/sections.html#the-hgroup-element
+		return HTML
 	case "header":
-		return HTML // https://html.spec.whatwg.org/multipage/sections.html#the-header-element
+		return HTML
 	case "footer":
-		return HTML // https://html.spec.whatwg.org/multipage/sections.html#the-footer-element
+		return HTML
 	case "address":
-		return HTML // https://html.spec.whatwg.org/multipage/sections.html#the-address-element
+		return HTML
 
 	//
 	// 4.4 Grouping content
 
 	case "p":
-		return HTML // https://html.spec.whatwg.org/multipage/grouping-content.html#the-p-element
+		return HTML
 	case "hr":
-		return Void // https://html.spec.whatwg.org/multipage/grouping-content.html#the-hr-element
+		return Void
 	case "pre":
-		return HTML // https://html.spec.whatwg.org/multipage/grouping-content.html#the-pre-element
+		return HTML
 	case "blockquote":
-		return HTML // https://html.spec.whatwg.org/multipage/grouping-content.html#the-blockquote-element
+		return HTML
 	case "ol":
-		return HTML // https://html.spec.whatwg.org/multipage/grouping-content.html#the-ol-element
+		return HTML
 	case "ul":
-		return HTML // https://html.spec.whatwg.org/multipage/grouping-content.html#the-ul-element
+		return HTML
 	case "menu":
-		return HTML // https://html.spec.whatwg.org/multipage/grouping-content.html#the-menu-element
+		return HTML
 	case "li":
-		return HTML // https://html.spec.whatwg.org/multipage/grouping-content.html#the-li-element
+		return HTML
 	case "dl":
-		return HTML // https://html.spec.whatwg.org/multipage/grouping-content.html#the-dl-element
+		return HTML
 	case "dt":
-		return HTML // https://html.spec.whatwg.org/multipage/grouping-content.html#the-dt-element
+		return HTML
 	case "dd":
-		return HTML // https://html.spec.whatwg.org/multipage/grouping-content.html#the-dd-element
+		return HTML
 	case "figure":
-		return HTML // https://html.spec.whatwg.org/multipage/grouping-content.html#the-figure-element
+		return HTML
 	case "figcaption":
-		return HTML // https://html.spec.whatwg.org/multipage/grouping-content.html#the-figcaption-element
+		return HTML
 	case "main":
-		return HTML // https://html.spec.whatwg.org/multipage/grouping-content.html#the-main-element
+		return HTML
 	case "search":
-		return HTML // https://html.spec.whatwg.org/multipage/grouping-content.html#the-search-element
+		return HTML
 	case "div":
-		return HTML // https://html.spec.whatwg.org/multipage/grouping-content.html#the-div-element
+		return HTML
 
 	//
 	// 4.5 Text-level semantics
 
 	case "a":
-		return HTML // https://html.spec.whatwg.org/multipage/text-level-semantics.html#the-a-element
+		return HTML
 	case "em":
-		return HTML // https://html.spec.whatwg.org/multipage/text-level-semantics.html#the-em-element
+		return HTML
 	case "strong":
-		return HTML // https://html.spec.whatwg.org/multipage/text-level-semantics.html#the-strong-element
+		return HTML
 	case "small":
-		return HTML // https://html.spec.whatwg.org/multipage/text-level-semantics.html#the-small-element
+		return HTML
 	case "s":
-		return HTML // https://html.spec.whatwg.org/multipage/text-level-semantics.html#the-s-element
+		return HTML
 	case "cite":
-		return HTML // https://html.spec.whatwg.org/multipage/text-level-semantics.html#the-cite-element
+		return HTML
 	case "q":
-		return HTML // https://html.spec.whatwg.org/multipage/text-level-semantics.html#the-q-element
+		return HTML
 	case "dfn":
-		return HTML // https://html.spec.whatwg.org/multipage/text-level-semantics.html#the-dfn-element
+		return HTML
 	case "abbr":
-		return HTML // https://html.spec.whatwg.org/multipage/text-level-semantics.html#the-abbr-element
+		return HTML
 	case "ruby":
-		return HTML // https://html.spec.whatwg.org/multipage/text-level-semantics.html#the-ruby-element
+		return HTML
 	case "rt":
-		return HTML // https://html.spec.whatwg.org/multipage/text-level-semantics.html#the-rt-element
+		return HTML
 	case "rp":
-		return Text // https://html.spec.whatwg.org/multipage/text-level-semantics.html#the-rp-element
+		return Text
 	case "data":
-		return HTML // https://html.spec.whatwg.org/multipage/text-level-semantics.html#the-data-element
+		return HTML
 	case "time":
-		return HTML // https://html.spec.whatwg.org/multipage/text-level-semantics.html#the-time-element
+		return HTML
 	case "code":
-		return HTML // https://html.spec.whatwg.org/multipage/text-level-semantics.html#the-code-element
+		return HTML
 	case "var":
-		return HTML // https://html.spec.whatwg.org/multipage/text-level-semantics.html#the-var-element
+		return HTML
 	case "samp":
-		return HTML // https://html.spec.whatwg.org/multipage/text-level-semantics.html#the-samp-element
+		return HTML
 	case "kbd":
-		return HTML // https://html.spec.whatwg.org/multipage/text-level-semantics.html#the-kbd-element
+		return HTML
 	case "sub", "sup":
-		return HTML // https://html.spec.whatwg.org/multipage/text-level-semantics.html#the-sub-and-sup-elements
+		return HTML
 	case "i":
-		return HTML // https://html.spec.whatwg.org/multipage/text-level-semantics.html#the-i-element
+		return HTML
 	case "b":
-		return HTML // https://html.spec.whatwg.org/multipage/text-level-semantics.html#the-b-element
+		return HTML
 	case "u":
-		return HTML // https://html.spec.whatwg.org/multipage/text-level-semantics.html#the-u-element
+		return HTML
 	case "mark":
-		return HTML // https://html.spec.whatwg.org/multipage/text-level-semantics.html#the-mark-element
+		return HTML
 	case "bdi":
-		return HTML // https://html.spec.whatwg.org/multipage/text-level-semantics.html#the-bdi-element
+		return HTML
 	case "bdo":
-		return HTML // https://html.spec.whatwg.org/multipage/text-level-semantics.html#the-bdo-element
+		return HTML
 	case "span":
-		return HTML // https://html.spec.whatwg.org/multipage/text-level-semantics.html#the-span-element
+		return HTML
 	case "br":
-		return Void // https://html.spec.whatwg.org/multipage/text-level-semantics.html#the-br-element
+		return Void
 	case "wbr":
-		return Void // https://html.spec.whatwg.org/multipage/text-level-semantics.html#the-wbr-element
+		return Void
 
 	//
 	// 4.6 Links
@@ -157,35 +157,35 @@ func HTML5(element string) Type {
 	// 4.7 Edits
 
 	case "ins":
-		return HTML // https://html.spec.whatwg.org/multipage/edits.html#the-ins-element
+		return HTML
 	case "del":
-		return HTML // https://html.spec.whatwg.org/multipage/edits.html#the-del-element
+		return HTML
 
 	//
 	// 4.8 Embedded content
 
 	case "picture":
-		return HTML // https://html.spec.whatwg.org/multipage/embedded-content.html#the-picture-element
+		return HTML
 	case "source":
-		return Void // https://html.spec.whatwg.org/multipage/embedded-content.html#the-source-element
+		return Void
 	case "img":
-		return Void // https://html.spec.whatwg.org/multipage/embedded-content.html#the-img-element
+		return Void
 	case "iframe":
-		return Nothing // https://html.spec.whatwg.org/multipage/iframe-embed-object.html#the-iframe-element
+		return Nothing
 	case "embed":
-		return Void // https://html.spec.whatwg.org/multipage/iframe-embed-object.html#the-embed-element
+		return Void
 	case "object":
-		return HTML // https://html.spec.whatwg.org/multipage/iframe-embed-object.html#the-object-element
+		return HTML
 	case "video":
-		return HTML // https://html.spec.whatwg.org/multipage/media.html#the-video-element
+		return HTML
 	case "audio":
-		return HTML // https://html.spec.whatwg.org/multipage/media.html#the-audio-element
+		return HTML
 	case "track":
-		return Void // https://html.spec.whatwg.org/multipage/media.html#the-track-element
+		return Void
 	case "map":
-		return HTML // https://html.spec.whatwg.org/multipage/image-maps.html#the-map-element
+		return HTML
 	case "area":
-		return Void // https://html.spec.whatwg.org/multipage/image-maps.html#the-area-element
+		return Void
 	// Excluding support for math and svg elements, simply because they add a
 	// plethora of elements (sometimes even in conflict with HTML5 elements,
 	// e.g. "title" has a different content model in SVG).
@@ -205,81 +205,81 @@ func HTML5(element string) Type {
 	// 4.9 Tabular data
 
 	case "table":
-		return HTML // https://html.spec.whatwg.org/multipage/tabular-data.html#the-table-element
+		return HTML
 	case "caption":
-		return HTML // https://html.spec.whatwg.org/multipage/tabular-data.html#the-caption-element
+		return HTML
 	case "colgroup":
-		return HTML // https://html.spec.whatwg.org/multipage/tabular-data.html#the-colgroup-element
+		return HTML
 	case "col":
-		return Void // https://html.spec.whatwg.org/multipage/tabular-data.html#the-col-element
+		return Void
 	case "tbody":
-		return HTML // https://html.spec.whatwg.org/multipage/tabular-data.html#the-tbody-element
+		return HTML
 	case "thead":
-		return HTML // https://html.spec.whatwg.org/multipage/tabular-data.html#the-thead-element
+		return HTML
 	case "tfoot":
-		return HTML // https://html.spec.whatwg.org/multipage/tabular-data.html#the-tfoot-element
+		return HTML
 	case "tr":
-		return HTML // https://html.spec.whatwg.org/multipage/tabular-data.html#the-tr-element
+		return HTML
 	case "td":
-		return HTML // https://html.spec.whatwg.org/multipage/tabular-data.html#the-td-element
+		return HTML
 	case "th":
-		return HTML // https://html.spec.whatwg.org/multipage/tabular-data.html#the-th-element
+		return HTML
 
 	//
 	// 4.10 Forms
 
 	case "form":
-		return HTML // https://html.spec.whatwg.org/multipage/forms.html#the-form-element
+		return HTML
 	case "label":
-		return HTML // https://html.spec.whatwg.org/multipage/forms.html#the-label-element
+		return HTML
 	case "input":
-		return Void // https://html.spec.whatwg.org/multipage/input.html
+		return Void
 	case "button":
-		return HTML // https://html.spec.whatwg.org/multipage/form-elements.html#the-button-element
+		return HTML
 	case "select":
-		return HTML // https://html.spec.whatwg.org/multipage/form-elements.html#the-select-element
+		return HTML
 	case "datalist":
-		return HTML // https://html.spec.whatwg.org/multipage/form-elements.html#the-datalist-element
+		return HTML
 	case "optgroup":
-		return HTML // https://html.spec.whatwg.org/multipage/form-elements.html#the-optgroup-element
+		return HTML
 	case "option":
-		return Text // https://html.spec.whatwg.org/multipage/form-elements.html#the-option-element
+		return Text
 	case "textarea":
-		return Text // https://html.spec.whatwg.org/multipage/form-elements.html#the-textarea-element
+		return Text
 	case "output":
-		return HTML // https://html.spec.whatwg.org/multipage/form-elements.html#the-output-element
+		return HTML
 	case "progress":
-		return HTML // https://html.spec.whatwg.org/multipage/form-elements.html#the-progress-element
+		return HTML
 	case "meter":
-		return HTML // https://html.spec.whatwg.org/multipage/form-elements.html#the-meter-element
+		return HTML
 	case "fieldset":
-		return HTML // https://html.spec.whatwg.org/multipage/form-elements.html#the-fieldset-element
+		return HTML
 	case "legend":
-		return HTML // https://html.spec.whatwg.org/multipage/form-elements.html#the-legend-element
+		return HTML
 
 	//
 	// 4.11 Interactive elements
 
 	case "details":
-		return HTML // https://html.spec.whatwg.org/multipage/interactive-elements.html#the-details-element
+		return HTML
 	case "summary":
-		return HTML // https://html.spec.whatwg.org/multipage/interactive-elements.html#the-summary-element
+		return HTML
 	case "dialog":
-		return HTML // https://html.spec.whatwg.org/multipage/interactive-elements.html#the-dialog-element
+		return HTML
 
 	//
 	// 4.12 Scripting
 
 	case "script":
-		return JS // https://html.spec.whatwg.org/multipage/scripting.html#the-script-element
+		return JS
 	case "noscript":
-		return HTML // https://html.spec.whatwg.org/multipage/scripting.html#the-noscript-element
+		return HTML
 	case "template":
-		return HTML // https://html.spec.whatwg.org/multipage/scripting.html#the-template-element
+		return HTML
 	case "slot":
-		return HTML // https://html.spec.whatwg.org/multipage/scripting.html#the-slot-element
+		return HTML
 	case "canvas":
-		return HTML // https://html.spec.whatwg.org/multipage/scripting.html#the-canvas-element
+		return HTML
 
 	default:
 		return Unknown
