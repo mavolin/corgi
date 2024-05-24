@@ -10,7 +10,7 @@ func TestCombine(t *testing.T) {
 	t.Parallel()
 
 	var called bool
-	expectElement, expectAttr := "el", "attr"
+	expectElement, expectAttr := "el", "html5Attribute"
 
 	expect := URL
 	actual := Combine(func(element, attr string) Type {
