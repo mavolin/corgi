@@ -28,7 +28,7 @@ func Combine(fs ...Func) Func {
 //
 // A Type is a single of the types, or a bitmask of TextList and at least one
 // of Comma, Semicolon, or Space as the delimiters.
-type Type uint16
+type Type uint8
 
 const (
 	Unknown Type = iota
@@ -46,15 +46,6 @@ const (
 	ResourceURL // a URL loading a resource; stricter security requirements
 	Srcset      // a srcset-like attribute
 	invalid
-)
-
-// Bitmasks
-const (
-	Space Type = 1 << (15 - iota)
-	Comma
-	Semicolon
-
-	delimiters = Comma | Semicolon | Space
 )
 
 func (t Type) IsValid() bool {

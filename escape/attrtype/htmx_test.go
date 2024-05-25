@@ -36,6 +36,8 @@ func TestHTMX(t *testing.T) {
 				assert.Equal(t, URL, HTMX("", attr.name), "description contains 'URL': expected URL")
 			case strings.Contains(attr.description, "JSON"):
 				assert.Equal(t, JS, HTMX("", attr.name), "description contains 'JSON': expected JS")
+			default:
+				assert.True(t, HTMX("", attr.name).IsValid(), "attr listed in spec, but not handled")
 			}
 		})
 	}

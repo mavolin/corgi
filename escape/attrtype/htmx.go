@@ -2,7 +2,6 @@ package attrtype
 
 import (
 	"regexp"
-	"strings"
 )
 
 // https://htmx.org/extensions/response-targets/
@@ -73,6 +72,8 @@ func HTMX(_, attr string) Type {
 		return Unsafe
 	case "hx-patch":
 		return URL
+	case "hx-preserve":
+		return Bool
 	case "hx-presence":
 		return Text
 	case "hx-prompt":
@@ -153,7 +154,7 @@ func HTMX(_, attr string) Type {
 		return Text
 	}
 
-	if strings.HasPrefix(attr, "hx-on:") {
+	if len(attr) > len("hx-on:") && attr[:len("hx-on:")] == "hx-on:" {
 		return JS
 	}
 
