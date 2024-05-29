@@ -1,54 +1,59 @@
-package internal
+package parser
 
 import (
 	"github.com/mavolin/corgi/file/ast"
+	"github.com/mavolin/corgi/file/fileerr"
 )
 
 type (
 	State struct {
-		Indentation IndentationState
+		line, col int
+		index     int
 
-		Start []ast.Position
+		errs     []*fileerr.Error
+		comments []*ast.CommentGroup
 
-		// whether the upcoming tokens must be inline
-		Inline bool
-	}
-
-	IndentationState struct {
-		Target  int
-		Current int
+		inline bool
 	}
 )
 
-func newState(c *current) {
-	c.state["state"] = State{
-		Start: make([]ast.Position, 0, 16),
+func newState() *State {
+	return &State{
+		line:     1,
+		col:      1,
+		index:    0,
+		errs:     make([]*fileerr.Error, 0, 48),
+		comments: make([]*ast.CommentGroup, 0, 128),
 	}
 }
 
-func state(c *current) State {
-	return c.state["state"].(State)
+func (s *State) Pos() ast.Position {
+	return ast.Position{Line: s.line, Col: s.col}
 }
 
-func editState(c *current, f func(*State)) {
-	s := state(c)
-	f(&s)
-	c.state["state"] = s
+func (s *State) advance(size int, isNL bool) {
+	if isNL {
+		s.line++
+		s.col = 1
+	} else {
+		s.col += size
+	}
+	s.index += size
 }
 
-func pushStart(c *current) {
-	editState(c, func(s *State) { s.Start = append(s.Start, pos(c)) })
+func (s *State) Errors() []*fileerr.Error {
+	return s.errs
 }
 
-func peekStart(c *current) ast.Position {
-	return state(c).Start[len(state(c).Start)-1]
+func (s *State) CaptureError(err *fileerr.Error) {
+	s.errs = append(s.errs, err)
 }
 
-func popStart(c *current) ast.Position {
-	var start ast.Position
-	editState(c, func(s *State) {
-		start = s.Start[len(s.Start)-1]
-		s.Start = s.Start[:len(s.Start)-1]
-	})
-	return start
+func (s *State) CaptureComment(cg *ast.CommentGroup) {
+	s.comments = append(s.comments, cg)
+}
+
+func (s State) Clone() *State {
+	s2 := s
+	return &s2
 }
