@@ -5,7 +5,6 @@ import (
 
 	parser "github.com/mavolin/corgi/load/parse/internal"
 	"github.com/mavolin/corgi/load/parse/internal/testutil"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestEOL(t *testing.T) {
@@ -44,37 +43,4 @@ func testEOF(t *testing.T, f parser.Func[struct{}]) {
 			testutil.AssertParsesFully(t, tc, f)
 		})
 	}
-}
-
-func TestEOS(t *testing.T) {
-	t.Parallel()
-
-	t.Run("}", func(t *testing.T) {
-		t.Parallel()
-		p := testutil.NewParser(t, " \t }")
-		testutil.AssertNoError(t, p, EOS())
-		assert.Equal(t, 0, p.Index(), "index mismatch")
-	})
-
-	t.Run("//", func(t *testing.T) {
-		t.Parallel()
-		p := testutil.NewParser(t, " \t\t //")
-		testutil.AssertNoError(t, p, EOS())
-		assert.Equal(t, 0, p.Index(), "index mismatch")
-	})
-
-	t.Run(";", func(t *testing.T) {
-		t.Parallel()
-		testutil.AssertParsesFully(t, "  \t \t\t;", EOS())
-	})
-
-	t.Run("EOL", func(t *testing.T) {
-		t.Parallel()
-		testEOL(t, EOS())
-	})
-
-	t.Run("EOF", func(t *testing.T) {
-		t.Parallel()
-		testEOF(t, EOS())
-	})
 }

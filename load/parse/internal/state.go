@@ -45,6 +45,10 @@ func (s *State) Errors() []*fileerr.Error {
 	return s.errs
 }
 
+func (s *State) Comments() []*ast.CommentGroup {
+	return s.comments
+}
+
 func (s *State) CaptureError(err *fileerr.Error) {
 	s.errs = append(s.errs, err)
 }

@@ -2,7 +2,7 @@ package parser
 
 // TryToken attempts to match the given token verbatim.
 func TryToken(p *Parser, s string) (ok bool) {
-	if MatchesString(p, s) {
+	if MatchesToken(p, s) {
 		for range s {
 			p.next()
 		}

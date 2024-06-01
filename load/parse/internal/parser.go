@@ -71,19 +71,17 @@ func (p *Parser) RestoreState(s *State) {
 	p.state = s
 }
 
-type (
-	// Func represents a sub-parser that can be tried to see if it matches.
-	//
-	// While the implementation is up to the function itself, a typical
-	// indicator of whether the function matches is the present of a unique
-	// prefix, such as `comp` for a component declaration.
-	//
-	// If the func does not match, it should return an error.
-	//
-	// If the func matches, but the parsed value contains syntactical errors,
-	// those should be captured using the `CaptureError` method of the parser.
-	Func[T any] func(p *Parser) (T, *fileerr.Error)
-)
+// Func represents a sub-parser that can be tried to see if it matches.
+//
+// While the implementation is up to the function itself, a typical
+// indicator of whether the function matches is the present of a unique
+// prefix, such as `comp` for a component declaration.
+//
+// If the func does not match, it should return an error.
+//
+// If the func matches, but the parsed value contains syntactical errors,
+// those should be captured using the `CaptureError` method of the parser.
+type Func[T any] func(p *Parser) (T, *fileerr.Error)
 
 // Matches reports whether f would match.
 // It does not consume any input.
@@ -94,7 +92,7 @@ func Matches[T any](p *Parser, f Func[T]) bool {
 	return err == nil
 }
 
-func MatchesString(p *Parser, s string) bool {
+func MatchesToken(p *Parser, s string) bool {
 	start := p.Index()
 	end := start + len(s)
 	return end <= len(p.File.Raw) && p.Raw[start:end] == s

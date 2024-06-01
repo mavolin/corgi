@@ -38,28 +38,3 @@ func EOF() parser.Func[struct{}] {
 		}
 	}
 }
-
-// EOS matches the end of a statement.
-func EOS() parser.Func[struct{}] {
-	return func(p *parser.Parser) (struct{}, *fileerr.Error) {
-		state := p.CloneState()
-		parser.Try(p, Horizontal())
-		if _, ok := parser.Try(p, EOL()); ok {
-			return struct{}{}, nil
-		}
-
-		if parser.MatchesString(p, "}") || parser.MatchesString(p, "//") {
-			p.RestoreState(state)
-			return struct{}{}, nil
-		}
-
-		if parser.TryRune(p, ';') {
-			return struct{}{}, nil
-		}
-
-		return struct{}{}, &fileerr.Error{
-			Message:         "expected end of statement",
-			ErrorAnnotation: anno.NChars(p.File, p.Pos(), 1, "expected a newline, `;` or a `}`"),
-		}
-	}
-}
