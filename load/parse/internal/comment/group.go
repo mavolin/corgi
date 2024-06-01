@@ -7,6 +7,7 @@ import (
 	"github.com/mavolin/corgi/file/fileerr"
 	"github.com/mavolin/corgi/file/hintfmt/anno"
 	parser "github.com/mavolin/corgi/load/parse/internal"
+	"github.com/mavolin/corgi/load/parse/internal/quickanno"
 	"github.com/mavolin/corgi/load/parse/internal/whitespace"
 )
 
@@ -25,7 +26,7 @@ func InlineGroup() parser.Func[*ast.CommentGroup] {
 		if !ok {
 			return nil, &fileerr.Error{
 				Message:         "missing inline comment",
-				ErrorAnnotation: anno.NChars(p.File, p.Pos(), 1, "expected a single-line block comment"),
+				ErrorAnnotation: quickanno.Expected(p, p.Pos(), "a single-line block comment"),
 			}
 		}
 
@@ -49,7 +50,7 @@ func LoneGroup() parser.Func[*ast.CommentGroup] {
 		if !ok {
 			return nil, &fileerr.Error{
 				Message:         "missing comment",
-				ErrorAnnotation: anno.NChars(p.File, p.Pos(), 1, "expected a block or line comment"),
+				ErrorAnnotation: quickanno.Expected(p, p.Pos(), "a block or line comment"),
 			}
 		}
 

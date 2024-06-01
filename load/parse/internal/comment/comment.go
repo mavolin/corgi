@@ -5,6 +5,7 @@ import (
 	"github.com/mavolin/corgi/file/fileerr"
 	"github.com/mavolin/corgi/file/hintfmt/anno"
 	parser "github.com/mavolin/corgi/load/parse/internal"
+	"github.com/mavolin/corgi/load/parse/internal/quickanno"
 	"github.com/mavolin/corgi/load/parse/internal/whitespace"
 )
 
@@ -17,7 +18,7 @@ func Comment() parser.Func[*ast.Comment] {
 
 		return nil, &fileerr.Error{
 			Message:         "missing comment",
-			ErrorAnnotation: anno.NChars(p.File, p.Pos(), 1, "expected a block or line comment"),
+			ErrorAnnotation: quickanno.Expected(p, p.Pos(), "expected a block or line comment"),
 		}
 	}
 }
@@ -41,7 +42,7 @@ func lineCommentWithoutEOL() parser.Func[*ast.Comment] {
 		if !parser.TryToken(p, "//") {
 			return nil, &fileerr.Error{
 				Message:         "missing line comment",
-				ErrorAnnotation: anno.NChars(p.File, p.Pos(), 1, "expected a line comment"),
+				ErrorAnnotation: quickanno.Expected(p, p.Pos(), "a line comment"),
 			}
 		}
 
@@ -63,7 +64,7 @@ func BlockComment() parser.Func[*ast.Comment] {
 		if !parser.TryToken(p, "/*") {
 			return nil, &fileerr.Error{
 				Message:         "missing block comment",
-				ErrorAnnotation: anno.NChars(p.File, p.Pos(), 1, "expected a block comment"),
+				ErrorAnnotation: quickanno.Expected(p, p.Pos(), "a block comment"),
 			}
 		}
 
@@ -104,7 +105,7 @@ func singleLineBlockComment() parser.Func[*ast.Comment] {
 		if !parser.TryToken(p, "/*") {
 			return nil, &fileerr.Error{
 				Message:         "missing block comment",
-				ErrorAnnotation: anno.NChars(p.File, p.Pos(), 1, "expected a block comment"),
+				ErrorAnnotation: quickanno.Expected(p, p.Pos(), "a block comment"),
 			}
 		}
 

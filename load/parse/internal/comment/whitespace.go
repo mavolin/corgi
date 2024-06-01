@@ -3,8 +3,8 @@ package comment
 import (
 	"github.com/mavolin/corgi/file/ast"
 	"github.com/mavolin/corgi/file/fileerr"
-	"github.com/mavolin/corgi/file/hintfmt/anno"
 	parser "github.com/mavolin/corgi/load/parse/internal"
+	"github.com/mavolin/corgi/load/parse/internal/quickanno"
 	"github.com/mavolin/corgi/load/parse/internal/whitespace"
 )
 
@@ -17,7 +17,7 @@ func OrHorizontalWhitespace() parser.Func[struct{}] {
 		if !hasWS && !hasComment {
 			return struct{}{}, &fileerr.Error{
 				Message:         "missing horizontal whitespace",
-				ErrorAnnotation: anno.NChars(p.File, p.Pos(), 1, "expected a space, tab, or a single-line block comment"),
+				ErrorAnnotation: quickanno.Expected(p, p.Pos(), "a space, tab, or a single-line block comment"),
 			}
 		}
 		if hasComment {
@@ -68,7 +68,7 @@ func AndEOS() parser.Func[struct{}] {
 		if !parser.TryToken(p, "/*") {
 			return struct{}{}, &fileerr.Error{
 				Message:         "expected end of statement",
-				ErrorAnnotation: anno.NChars(p.File, pos, 1, "expected a semicolon, EOL, or a line comment"),
+				ErrorAnnotation: quickanno.Expected(p, pos, "a semicolon, EOL, or a line comment"),
 			}
 		}
 
@@ -82,7 +82,7 @@ func AndEOS() parser.Func[struct{}] {
 
 		return struct{}{}, &fileerr.Error{
 			Message:         "expected end of statement",
-			ErrorAnnotation: anno.NChars(p.File, pos, 1, "expected a semicolon, EOL, or a line comment"),
+			ErrorAnnotation: quickanno.Expected(p, pos, "a semicolon, EOL, or a line comment"),
 		}
 	}
 }
@@ -112,7 +112,7 @@ func OrEOL() parser.Func[struct{}] {
 
 		return struct{}{}, &fileerr.Error{
 			Message:         "expected EOL",
-			ErrorAnnotation: anno.NChars(p.File, p.Pos(), 1, "expected end of line, end of file, or a line comment"),
+			ErrorAnnotation: quickanno.Expected(p, p.Pos(), "the end of line, end of file, or a line comment"),
 		}
 	}
 }
@@ -139,7 +139,7 @@ func OrLoneWS() parser.Func[struct{}] {
 		if !hasWS && !hasComment {
 			return struct{}{}, &fileerr.Error{
 				Message:         "missing whitespace",
-				ErrorAnnotation: anno.NChars(p.File, p.Pos(), 1, "expected a space, tab, newline, or a comment"),
+				ErrorAnnotation: quickanno.Expected(p, p.Pos(), "a space, tab, newline, or a comment"),
 			}
 		}
 
