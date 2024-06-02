@@ -1,30 +1,30 @@
 package comment
 
 import (
+	"github.com/mavolin/corgi/fancyerr"
+	"github.com/mavolin/corgi/fancyerr/anno"
 	"github.com/mavolin/corgi/file/ast"
-	"github.com/mavolin/corgi/file/fileerr"
-	"github.com/mavolin/corgi/file/hintfmt/anno"
 	parser "github.com/mavolin/corgi/load/parse/internal"
 	"github.com/mavolin/corgi/load/parse/internal/quickanno"
 	"github.com/mavolin/corgi/load/parse/internal/whitespace"
 )
 
 func Comment() parser.Func[*ast.Comment] {
-	return func(p *parser.Parser) (*ast.Comment, *fileerr.Error) {
+	return func(p *parser.Parser) (*ast.Comment, *fancyerr.Error) {
 		c, ok := parser.TryInOrder(p, LineComment(), BlockComment())
 		if ok {
 			return c, nil
 		}
 
-		return nil, &fileerr.Error{
-			Message:         "missing comment",
-			ErrorAnnotation: quickanno.Expected(p, p.Pos(), "expected a block or line comment"),
+		return nil, &fancyerr.Error{
+			Message: "missing comment",
+			Primary: quickanno.Expected(p, p.Pos(), "a block or line comment"),
 		}
 	}
 }
 
 func LineComment() parser.Func[*ast.Comment] {
-	return func(p *parser.Parser) (*ast.Comment, *fileerr.Error) {
+	return func(p *parser.Parser) (*ast.Comment, *fancyerr.Error) {
 		c, err := lineCommentWithoutEOL()(p)
 		if err != nil {
 			return nil, err
@@ -35,18 +35,18 @@ func LineComment() parser.Func[*ast.Comment] {
 }
 
 func lineCommentWithoutEOL() parser.Func[*ast.Comment] {
-	return func(p *parser.Parser) (*ast.Comment, *fileerr.Error) {
+	return func(p *parser.Parser) (*ast.Comment, *fancyerr.Error) {
 		var c ast.Comment
 		c.Open = p.Pos()
 
 		if !parser.TryToken(p, "//") {
-			return nil, &fileerr.Error{
-				Message:         "missing line comment",
-				ErrorAnnotation: quickanno.Expected(p, p.Pos(), "a line comment"),
+			return nil, &fancyerr.Error{
+				Message: "missing line comment",
+				Primary: quickanno.Expected(p, p.Pos(), "a line comment"),
 			}
 		}
 
-		c.Comment = parser.While(p, func() bool {
+		c.Comment = parser.TokenWhile(p, func() bool {
 			return !parser.Matches(p, whitespace.EOL())
 		})
 		c.Close = p.PosPtr()
@@ -56,40 +56,51 @@ func lineCommentWithoutEOL() parser.Func[*ast.Comment] {
 }
 
 func BlockComment() parser.Func[*ast.Comment] {
-	return func(p *parser.Parser) (*ast.Comment, *fileerr.Error) {
+	return func(p *parser.Parser) (*ast.Comment, *fancyerr.Error) {
 		var c ast.Comment
 		c.Block = true
 		c.Open = p.Pos()
 
 		if !parser.TryToken(p, "/*") {
-			return nil, &fileerr.Error{
-				Message:         "missing block comment",
-				ErrorAnnotation: quickanno.Expected(p, p.Pos(), "a block comment"),
+			return nil, &fancyerr.Error{
+				Message: "missing block comment",
+				Primary: quickanno.Expected(p, p.Pos(), "a block comment"),
 			}
 		}
 
-		c.Comment = parser.While(p, func() bool {
-			if p.Inline() && parser.Matches(p, whitespace.Vertical()) {
-				return false
-			}
+		c.Comment = parser.TokenWhile(p, func() bool {
 			return !parser.MatchesToken(p, "*/")
 		})
 		c.Close = p.PosPtr()
 		if !parser.TryToken(p, "*/") {
-			err := &fileerr.Error{
-				Message:         "unclosed block comment",
-				ErrorAnnotation: anno.NChars(p.File, c.Open, len("/*"), "this comment is never closed"),
-				Hints: []fileerr.Hint{
-					{Hint: "close the comment with `*/`", Example: "`/* foo */`"},
+			err := &fancyerr.Error{
+				Message: "unclosed block comment",
+				Primary: []fancyerr.Annotation{
+					anno.NChars(p.File, c.Open, len("/*"), "this comment is never closed"),
 				},
-			}
-			if p.Inline() {
-				err.Hints = append(err.Hints, fileerr.Hint{
-					Hint: "the current context doesn't allow newlines: make sure you close the comment on the same line",
-				})
+				Explanation: "Unlike line comments, block comments must be closed using `*/`.\n" +
+					"Either change the `/*` to a `//` if you want a single-line comment, or add " +
+					"a closing `*/` at the end of the comment.",
 			}
 
 			p.CaptureError(err)
+			c.Close = nil
+		} else {
+			// only capture this if we didn't accidentally capture the rest of
+			// the file, just because of the missing `*/`
+			if p.Inline() && c.Open.Line != c.Close.Line {
+				p.CaptureError(&fancyerr.Error{
+					Message: "illegal placement of multiline block comment",
+					Primary: []fancyerr.Annotation{
+						anno.Anno(p.File, anno.Annotation{
+							Context:    anno.ContextLines(c.Open, *c.Close),
+							Highlight:  anno.HighlightToEOL(c.Open),
+							Annotation: "at this position, only single-line comments are allowed",
+						}),
+					},
+					Explanation: "Block comments must be closed on the same line they were opened on.",
+				})
+			}
 		}
 
 		return &c, nil
@@ -97,29 +108,31 @@ func BlockComment() parser.Func[*ast.Comment] {
 }
 
 func singleLineBlockComment() parser.Func[*ast.Comment] {
-	return func(p *parser.Parser) (*ast.Comment, *fileerr.Error) {
+	return func(p *parser.Parser) (*ast.Comment, *fancyerr.Error) {
 		var c ast.Comment
 		c.Block = true
 		c.Open = p.Pos()
 
 		if !parser.TryToken(p, "/*") {
-			return nil, &fileerr.Error{
-				Message:         "missing block comment",
-				ErrorAnnotation: quickanno.Expected(p, p.Pos(), "a block comment"),
+			return nil, &fancyerr.Error{
+				Message: "missing block comment",
+				Primary: quickanno.Expected(p, p.Pos(), "a block comment"),
 			}
 		}
 
-		c.Comment = parser.While(p, func() bool {
+		c.Comment = parser.TokenWhile(p, func() bool {
 			return !parser.Matches(p, whitespace.Vertical()) && !parser.MatchesToken(p, "*/")
 		})
 		c.Close = p.PosPtr()
 		if !parser.TryToken(p, "*/") {
-			return nil, &fileerr.Error{
-				Message:         "unclosed block comment",
-				ErrorAnnotation: anno.NChars(p.File, c.Open, len("/*"), "this comment is never closed"),
-				Hints: []fileerr.Hint{
-					{Hint: "close the comment with `*/`", Example: "`/* foo */`"},
+			return nil, &fancyerr.Error{
+				Message: "unclosed block comment",
+				Primary: []fancyerr.Annotation{
+					anno.NChars(p.File, c.Open, len("/*"), "this comment is never closed"),
 				},
+				Explanation: "Unlike line comments, block comments must be closed using `*/`.\n" +
+					"Either change the `/*` to a `//` if you want a single-line comment, or add " +
+					"a closing `*/` at the end of the comment.",
 			}
 		}
 

@@ -193,7 +193,7 @@ func TestNode(t *testing.T) {
 			node: &ast.String{
 				Open:  start,
 				Quote: '"',
-				Contents: []ast.StringContent{
+				Contents: []ast.StringNode{
 					&ast.StringText{
 						Text:     "foo",
 						Position: delta(start, 1),
@@ -210,10 +210,10 @@ func TestNode(t *testing.T) {
 					&ast.StateVar{
 						Names:  []*ast.Ident{{Ident: "foo", Position: ast.Position{Line: start.Line + 1, Col: 3}}},
 						Assign: &ast.Position{Line: start.Line + 1, Col: 3 + len("foo ")},
-						Values: []*ast.GoCode{
+						Values: []*ast.Code{
 							{
-								Expressions: []ast.GoCodeNode{
-									&ast.RawGoCode{
+								Expressions: []ast.CodeNode{
+									&ast.GoCode{
 										Code:     "bar",
 										Position: ast.Position{Line: start.Line + 1, Col: 3 + len("foo = ")},
 									},

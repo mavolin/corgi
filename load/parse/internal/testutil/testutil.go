@@ -39,6 +39,14 @@ func AssertParsesFully[T any](t *testing.T, input string, f parser.Func[T]) T {
 	return v
 }
 
+func AssertNoMatches[T any](t *testing.T, input string, f parser.Func[T]) {
+	t.Helper()
+
+	p := NewParser(t, input)
+	_, err := f(p)
+	assert.Error(t, err, "expected match error")
+}
+
 func AssertMatchesButError[T any](t *testing.T, input string, f parser.Func[T]) T {
 	t.Helper()
 

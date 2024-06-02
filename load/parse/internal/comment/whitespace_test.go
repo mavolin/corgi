@@ -213,7 +213,7 @@ func testOrEOL(t *testing.T, f parser.Func[struct{}]) {
 	}
 }
 
-func TestOrEOLWhitespace(t *testing.T) {
+func TestOrAnyWhitespace(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
@@ -270,7 +270,7 @@ func TestOrEOLWhitespace(t *testing.T) {
 			t.Parallel()
 
 			p := testutil.NewParser(t, c.in)
-			testutil.AssertNoError(t, p, OrEOLWhitespace())
+			testutil.AssertNoError(t, p, OrAnyWhitespace())
 			testutil.AssertEOF(t, p)
 
 			expectGroups := make([]*ast.CommentGroup, len(c.expectComments))
@@ -281,7 +281,7 @@ func TestOrEOLWhitespace(t *testing.T) {
 		})
 	}
 
-	testOrEOL(t, OrEOLWhitespace())
+	testOrEOL(t, OrAnyWhitespace())
 }
 
 func TestOrLoneWS(t *testing.T) {

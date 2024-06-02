@@ -1,13 +1,13 @@
 package whitespace
 
 import (
-	"github.com/mavolin/corgi/file/fileerr"
-	"github.com/mavolin/corgi/file/hintfmt/anno"
+	"github.com/mavolin/corgi/fancyerr"
 	parser "github.com/mavolin/corgi/load/parse/internal"
+	"github.com/mavolin/corgi/load/parse/internal/quickanno"
 )
 
 func Any() parser.Func[struct{}] {
-	return func(p *parser.Parser) (struct{}, *fileerr.Error) {
+	return func(p *parser.Parser) (struct{}, *fancyerr.Error) {
 		if p.Inline() {
 			return Horizontal()(p)
 		}
@@ -15,9 +15,9 @@ func Any() parser.Func[struct{}] {
 		pos := p.Pos()
 
 		if _, ok := parser.TryInOrder(p, Horizontal(), Vertical()); !ok {
-			return struct{}{}, &fileerr.Error{
-				Message:         "missing whitespace",
-				ErrorAnnotation: anno.NChars(p.File, pos, 1, "expected a space, tab, LF, or CRLF line ending"),
+			return struct{}{}, &fancyerr.Error{
+				Message: "missing whitespace",
+				Primary: quickanno.Expected(p, pos, "a space, tab, or line ending"),
 			}
 		}
 
@@ -30,13 +30,13 @@ func Any() parser.Func[struct{}] {
 }
 
 func Horizontal() parser.Func[struct{}] {
-	return func(p *parser.Parser) (struct{}, *fileerr.Error) {
+	return func(p *parser.Parser) (struct{}, *fancyerr.Error) {
 		pos := p.Pos()
 
 		if !parser.TryAnyRune(p, ' ', '\t') {
-			return struct{}{}, &fileerr.Error{
-				Message:         "missing horizontal whitespace",
-				ErrorAnnotation: anno.NChars(p.File, pos, 1, "expected a space or tab"),
+			return struct{}{}, &fancyerr.Error{
+				Message: "missing horizontal whitespace",
+				Primary: quickanno.Expected(p, pos, "a space or tab"),
 			}
 		}
 
@@ -47,13 +47,13 @@ func Horizontal() parser.Func[struct{}] {
 }
 
 func Vertical() parser.Func[struct{}] {
-	return func(p *parser.Parser) (struct{}, *fileerr.Error) {
+	return func(p *parser.Parser) (struct{}, *fancyerr.Error) {
 		pos := p.Pos()
 
 		if !parser.TryAnyTokens(p, "\r\n", "\n") {
-			return struct{}{}, &fileerr.Error{
-				Message:         "missing vertical whitespace",
-				ErrorAnnotation: anno.NChars(p.File, pos, 1, "expected a LF or CRLF line ending"),
+			return struct{}{}, &fancyerr.Error{
+				Message: "missing vertical whitespace",
+				Primary: quickanno.Expected(p, pos, "a line ending"),
 			}
 		}
 
@@ -64,13 +64,13 @@ func Vertical() parser.Func[struct{}] {
 }
 
 func SingleVertical() parser.Func[struct{}] {
-	return func(p *parser.Parser) (struct{}, *fileerr.Error) {
+	return func(p *parser.Parser) (struct{}, *fancyerr.Error) {
 		pos := p.Pos()
 
 		if !parser.TryAnyTokens(p, "\r\n", "\n") {
-			return struct{}{}, &fileerr.Error{
-				Message:         "missing vertical whitespace",
-				ErrorAnnotation: anno.NChars(p.File, pos, 1, "expected a LF or CRLF line ending"),
+			return struct{}{}, &fancyerr.Error{
+				Message: "missing vertical whitespace",
+				Primary: quickanno.Expected(p, pos, "a line ending"),
 			}
 		}
 

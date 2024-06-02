@@ -3,9 +3,9 @@ package parser
 import (
 	"unicode/utf8"
 
+	"github.com/mavolin/corgi/fancyerr"
 	"github.com/mavolin/corgi/file"
 	"github.com/mavolin/corgi/file/ast"
-	"github.com/mavolin/corgi/file/fileerr"
 )
 
 const EOF rune = 0
@@ -63,7 +63,7 @@ func (p *Parser) DoInline(f func()) {
 	f()
 	p.state.inline = false
 }
-func (p *Parser) CaptureError(err *fileerr.Error)    { p.state.CaptureError(err) }
+func (p *Parser) CaptureError(err *fancyerr.Error)   { p.state.CaptureError(err) }
 func (p *Parser) CaptureComment(g *ast.CommentGroup) { p.state.CaptureComment(g) }
 func (p *Parser) CloneState() *State                 { return p.state.Clone() }
 
@@ -73,7 +73,7 @@ func (p *Parser) RestoreState(s *State) {
 
 // Func represents a sub-parser that can be tried to see if it matches.
 //
-// While the implementation is up to the function itself, a typical
+// TokenWhile the implementation is up to the function itself, a typical
 // indicator of whether the function matches is the present of a unique
 // prefix, such as `comp` for a component declaration.
 //
@@ -81,7 +81,7 @@ func (p *Parser) RestoreState(s *State) {
 //
 // If the func matches, but the parsed value contains syntactical errors,
 // those should be captured using the `CaptureError` method of the parser.
-type Func[T any] func(p *Parser) (T, *fileerr.Error)
+type Func[T any] func(p *Parser) (T, *fancyerr.Error)
 
 // Matches reports whether f would match.
 // It does not consume any input.
@@ -98,14 +98,32 @@ func MatchesToken(p *Parser, s string) bool {
 	return end <= len(p.File.Raw) && p.Raw[start:end] == s
 }
 
+func MatchesAnyRune(p *Parser, rs ...rune) bool {
+	peek := p.peek()
+	for _, r := range rs {
+		if peek == r {
+			return true
+		}
+	}
+	return false
+}
+
+func MatchesAnyRunePredicate(p *Parser, preds ...func(rune) bool) bool {
+	r := p.peek()
+	for _, pred := range preds {
+		if pred(r) {
+			return true
+		}
+	}
+	return false
+}
+
 // Try tries to parse using the given [Func], ignoring an error if one occurs.
 func Try[T any](p *Parser, f Func[T]) (_ T, ok bool) {
 	state := p.CloneState()
 	v, err := f(p)
 	if err != nil {
-		if state.index != p.Index() {
-			p.RestoreState(state)
-		}
+		p.RestoreState(state)
 		return v, false
 	}
 	return v, true

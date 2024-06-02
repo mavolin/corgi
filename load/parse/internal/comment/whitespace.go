@@ -1,8 +1,8 @@
 package comment
 
 import (
+	"github.com/mavolin/corgi/fancyerr"
 	"github.com/mavolin/corgi/file/ast"
-	"github.com/mavolin/corgi/file/fileerr"
 	parser "github.com/mavolin/corgi/load/parse/internal"
 	"github.com/mavolin/corgi/load/parse/internal/quickanno"
 	"github.com/mavolin/corgi/load/parse/internal/whitespace"
@@ -11,13 +11,13 @@ import (
 // OrHorizontalWhitespace parses and captures inline comments and horizontal
 // whitespace.
 func OrHorizontalWhitespace() parser.Func[struct{}] {
-	return func(p *parser.Parser) (struct{}, *fileerr.Error) {
+	return func(p *parser.Parser) (struct{}, *fancyerr.Error) {
 		_, hasWS := parser.Try(p, whitespace.Horizontal())
 		c, hasComment := parser.Try(p, InlineGroup())
 		if !hasWS && !hasComment {
-			return struct{}{}, &fileerr.Error{
-				Message:         "missing horizontal whitespace",
-				ErrorAnnotation: quickanno.Expected(p, p.Pos(), "a space, tab, or a single-line block comment"),
+			return struct{}{}, &fancyerr.Error{
+				Message: "missing horizontal whitespace",
+				Primary: quickanno.Expected(p, p.Pos(), "a space, tab, or a single-line block comment"),
 			}
 		}
 		if hasComment {
@@ -40,7 +40,7 @@ func OrHorizontalWhitespace() parser.Func[struct{}] {
 // If the line ends with a line comment, AndEOS accepts, but does not consume
 // it.
 func AndEOS() parser.Func[struct{}] {
-	return func(p *parser.Parser) (struct{}, *fileerr.Error) {
+	return func(p *parser.Parser) (struct{}, *fancyerr.Error) {
 		pos := p.Pos()
 		for {
 			_, hasWS := parser.Try(p, whitespace.Horizontal())
@@ -66,13 +66,13 @@ func AndEOS() parser.Func[struct{}] {
 
 		state := p.CloneState()
 		if !parser.TryToken(p, "/*") {
-			return struct{}{}, &fileerr.Error{
-				Message:         "expected end of statement",
-				ErrorAnnotation: quickanno.Expected(p, pos, "a semicolon, EOL, or a line comment"),
+			return struct{}{}, &fancyerr.Error{
+				Message: "expected end of statement",
+				Primary: quickanno.Expected(p, pos, "a semicolon, EOL, or a line comment"),
 			}
 		}
 
-		parser.While(p, func() bool {
+		parser.TokenWhile(p, func() bool {
 			return !parser.MatchesToken(p, "*/") && parser.Matches(p, whitespace.EOL())
 		})
 		if !parser.MatchesToken(p, "*/") { // IS multi-line
@@ -80,17 +80,17 @@ func AndEOS() parser.Func[struct{}] {
 			return struct{}{}, nil
 		}
 
-		return struct{}{}, &fileerr.Error{
-			Message:         "expected end of statement",
-			ErrorAnnotation: quickanno.Expected(p, pos, "a semicolon, EOL, or a line comment"),
+		return struct{}{}, &fancyerr.Error{
+			Message: "expected end of statement",
+			Primary: quickanno.Expected(p, pos, "a semicolon, EOL, or a line comment"),
 		}
 	}
 }
 
-// OrEOL captures the comments until the first EOL.
+// OrEOL captures the comments until and including the first EOL.
 // Only single-line block comments are captured.
 func OrEOL() parser.Func[struct{}] {
-	return func(p *parser.Parser) (struct{}, *fileerr.Error) {
+	return func(p *parser.Parser) (struct{}, *fancyerr.Error) {
 		for {
 			parser.Try(p, whitespace.Horizontal())
 			c, ok := parser.Try(p, singleLineBlockComment())
@@ -110,36 +110,56 @@ func OrEOL() parser.Func[struct{}] {
 			return struct{}{}, nil
 		}
 
-		return struct{}{}, &fileerr.Error{
-			Message:         "expected EOL",
-			ErrorAnnotation: quickanno.Expected(p, p.Pos(), "the end of line, end of file, or a line comment"),
+		return struct{}{}, &fancyerr.Error{
+			Message: "expected EOL",
+			Primary: quickanno.Expected(p, p.Pos(), "the end of line, end of file, or a line comment"),
 		}
 	}
 }
 
-// OrEOLWhitespace captures the comments until the first EOL and then the lone
-// comments following it.
-func OrEOLWhitespace() parser.Func[struct{}] {
-	return func(p *parser.Parser) (struct{}, *fileerr.Error) {
-		_, err := OrEOL()(p)
-		if err != nil {
-			return struct{}{}, err
+// OrAnyWhitespace parses and captures comments and any whitespace.
+func OrAnyWhitespace() parser.Func[struct{}] {
+	return func(p *parser.Parser) (struct{}, *fancyerr.Error) {
+		pos := p.Pos()
+		for {
+			parser.Try(p, whitespace.Horizontal())
+			c, ok := parser.Try(p, singleLineBlockComment())
+			if !ok {
+				break
+			}
+			p.CaptureComment(&ast.CommentGroup{Comments: []*ast.Comment{c}})
+		}
+
+		c, ok := parser.Try(p, lineCommentWithoutEOL())
+		if ok {
+			p.CaptureComment(&ast.CommentGroup{Comments: []*ast.Comment{c}})
+		}
+
+		_, ok = parser.Try(p, whitespace.EOL())
+		if !ok {
+			if pos == p.Pos() {
+				return struct{}{}, &fancyerr.Error{
+					Message: "missing whitespace",
+					Primary: quickanno.Expected(p, p.Pos(), "a space, tab, newline, or a comment"),
+				}
+			}
+
+			return struct{}{}, nil
 		}
 
 		parser.Try(p, OrLoneWS())
-
 		return struct{}{}, nil
 	}
 }
 
 func OrLoneWS() parser.Func[struct{}] {
-	return func(p *parser.Parser) (struct{}, *fileerr.Error) {
+	return func(p *parser.Parser) (struct{}, *fancyerr.Error) {
 		_, hasWS := parser.Try(p, whitespace.Any())
 		g, hasComment := parser.Try(p, LoneGroup())
 		if !hasWS && !hasComment {
-			return struct{}{}, &fileerr.Error{
-				Message:         "missing whitespace",
-				ErrorAnnotation: quickanno.Expected(p, p.Pos(), "a space, tab, newline, or a comment"),
+			return struct{}{}, &fancyerr.Error{
+				Message: "missing whitespace",
+				Primary: quickanno.Expected(p, p.Pos(), "a space, tab, newline, or a comment"),
 			}
 		}
 

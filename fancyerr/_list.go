@@ -1,4 +1,4 @@
-package fileerr
+package fancyerr
 
 import (
 	"errors"
@@ -107,37 +107,37 @@ func (l List) Error() string {
 //
 // Errors are printed in sorted order.
 // The source slice will not be modified.
-func (l List) Pretty(o PrettyOptions) string {
-	errs := l
-	if !sort.IsSorted(l) {
-		errs = make(List, len(l))
-		copy(errs, l)
-		sort.Sort(errs)
-	}
-
-	var sb strings.Builder
-	for _, err := range errs {
-		if err == nil {
-			continue
-		}
-		sb.WriteString(err.Pretty(o))
-		sb.WriteString("\n\n")
-	}
-
-	for _, err := range errs {
-		if err == nil {
-			continue
-		}
-		sb.WriteString(err.Error())
-		sb.WriteString("\n\n")
-	}
-
-	s := sb.String()
-	if len(s) > 0 {
-		s = s[:len(s)-2]
-	}
-	return s
-}
+// func (l List) Pretty(o PrettyOptions) string {
+// 	errs := l
+// 	if !sort.IsSorted(l) {
+// 		errs = make(List, len(l))
+// 		copy(errs, l)
+// 		sort.Sort(errs)
+// 	}
+//
+// 	var sb strings.Builder
+// 	for _, err := range errs {
+// 		if err == nil {
+// 			continue
+// 		}
+// 		sb.WriteString(err.Pretty(o))
+// 		sb.WriteString("\n\n")
+// 	}
+//
+// 	for _, err := range errs {
+// 		if err == nil {
+// 			continue
+// 		}
+// 		sb.WriteString(err.Error())
+// 		sb.WriteString("\n\n")
+// 	}
+//
+// 	s := sb.String()
+// 	if len(s) > 0 {
+// 		s = s[:len(s)-2]
+// 	}
+// 	return s
+// }
 
 // AsError returns nil, if the list is empty, otherwise the list itself.
 func (l List) AsError() error {

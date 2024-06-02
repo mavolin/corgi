@@ -1,28 +1,26 @@
 package parser
 
 import (
+	"github.com/mavolin/corgi/fancyerr"
 	"github.com/mavolin/corgi/file/ast"
-	"github.com/mavolin/corgi/file/fileerr"
 )
 
-type (
-	State struct {
-		line, col int
-		index     int
+type State struct {
+	line, col int
+	index     int
 
-		errs     []*fileerr.Error
-		comments []*ast.CommentGroup
+	errs     []*fancyerr.Error
+	comments []*ast.CommentGroup
 
-		inline bool
-	}
-)
+	inline bool
+}
 
 func newState() *State {
 	return &State{
 		line:     1,
 		col:      1,
 		index:    0,
-		errs:     make([]*fileerr.Error, 0, 48),
+		errs:     make([]*fancyerr.Error, 0, 48),
 		comments: make([]*ast.CommentGroup, 0, 128),
 	}
 }
@@ -41,7 +39,7 @@ func (s *State) advance(size int, isNL bool) {
 	s.index += size
 }
 
-func (s *State) Errors() []*fileerr.Error {
+func (s *State) Errors() []*fancyerr.Error {
 	return s.errs
 }
 
@@ -49,7 +47,7 @@ func (s *State) Comments() []*ast.CommentGroup {
 	return s.comments
 }
 
-func (s *State) CaptureError(err *fileerr.Error) {
+func (s *State) CaptureError(err *fancyerr.Error) {
 	s.errs = append(s.errs, err)
 }
 
