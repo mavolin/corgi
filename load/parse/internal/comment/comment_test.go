@@ -36,7 +36,7 @@ func testLineComment(t *testing.T, f parser.Func[*ast.Comment]) {
 		Close:   &ast.Position{Line: 1, Col: 7},
 	}
 
-	actual := testutil.AssertParsesFully(t, "// foo", f)
+	actual := testutil.ParsesFully(t, "// foo", f)
 	assert.Equal(t, expect, actual)
 }
 
@@ -56,7 +56,7 @@ func testBlockComment(t *testing.T, f parser.Func[*ast.Comment]) {
 			Close:   &ast.Position{Line: 1, Col: 8},
 		}
 
-		actual := testutil.AssertParsesFully(t, "/* foo */", f)
+		actual := testutil.ParsesFully(t, "/* foo */", f)
 		assert.Equal(t, expect, actual)
 	})
 
@@ -70,7 +70,7 @@ func testBlockComment(t *testing.T, f parser.Func[*ast.Comment]) {
 			Close:   &ast.Position{Line: 2, Col: 8},
 		}
 
-		actual := testutil.AssertParsesFully(t, "/* foo\n   bar */", f)
+		actual := testutil.ParsesFully(t, "/* foo\n   bar */", f)
 		assert.Equal(t, expect, actual)
 	})
 
@@ -79,7 +79,7 @@ func testBlockComment(t *testing.T, f parser.Func[*ast.Comment]) {
 
 		p := testutil.NewParser(t, "/* foo")
 		p.DoInline(func() {
-			testutil.AssertMatchButError(t, p, f)
+			testutil.AssertMatchesButError(t, p, f)
 		})
 	})
 
@@ -109,7 +109,7 @@ func testBlockComment(t *testing.T, f parser.Func[*ast.Comment]) {
 
 			p := testutil.NewParser(t, "/* foo\n   bar */")
 			p.DoInline(func() {
-				testutil.AssertMatchButError(t, p, f)
+				testutil.AssertMatchesButError(t, p, f)
 			})
 		})
 
@@ -118,7 +118,7 @@ func testBlockComment(t *testing.T, f parser.Func[*ast.Comment]) {
 
 			p := testutil.NewParser(t, "/* foo\n*/")
 			p.DoInline(func() {
-				testutil.AssertMatchButError(t, p, f)
+				testutil.AssertMatchesButError(t, p, f)
 			})
 		})
 	})

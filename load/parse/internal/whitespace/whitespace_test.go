@@ -16,7 +16,7 @@ func TestAny(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(testName(tc), func(t *testing.T) {
 			t.Parallel()
-			testutil.AssertParsesFully(t, tc, Any())
+			testutil.ParsesFully(t, tc, Any())
 		})
 	}
 
@@ -42,7 +42,7 @@ func testHorizontal(t *testing.T, f parser.Func[struct{}]) {
 	for _, tc := range testCases {
 		t.Run(testName(tc), func(t *testing.T) {
 			t.Parallel()
-			testutil.AssertParsesFully(t, tc, f)
+			testutil.ParsesFully(t, tc, f)
 		})
 	}
 }
@@ -58,7 +58,7 @@ func testVertical(t *testing.T, f parser.Func[struct{}]) {
 	for _, tc := range testCases {
 		t.Run(testName(tc), func(t *testing.T) {
 			t.Parallel()
-			testutil.AssertParsesFully(t, tc, f)
+			testutil.ParsesFully(t, tc, f)
 		})
 	}
 }
@@ -71,7 +71,7 @@ func TestSingleVertical(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(testName(tc), func(t *testing.T) {
 			t.Parallel()
-			testutil.AssertParsesFully(t, tc, SingleVertical())
+			testutil.ParsesFully(t, tc, SingleVertical())
 		})
 	}
 }

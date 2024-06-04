@@ -24,7 +24,7 @@ func testEOL(t *testing.T, f parser.Func[struct{}]) {
 	for _, tc := range testCases {
 		t.Run(testName(tc), func(t *testing.T) {
 			t.Parallel()
-			testutil.AssertParsesFully(t, tc, f)
+			testutil.ParsesFully(t, tc, f)
 		})
 	}
 }
@@ -40,7 +40,7 @@ func testEOF(t *testing.T, f parser.Func[struct{}]) {
 	for _, tc := range testCases {
 		t.Run(testName(tc), func(t *testing.T) {
 			t.Parallel()
-			testutil.AssertParsesFully(t, tc, f)
+			testutil.ParsesFully(t, tc, f)
 		})
 	}
 }

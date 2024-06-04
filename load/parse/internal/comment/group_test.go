@@ -28,21 +28,21 @@ func TestInlineGroup(t *testing.T) {
 				},
 			}
 
-			actual := testutil.AssertParsesFully(t, "/* hello */", InlineGroup())
+			actual := testutil.ParsesFully(t, "/* hello */", InlineGroup())
 			assert.Equal(t, expect, actual)
 		})
 
 		t.Run("multi-line", func(t *testing.T) {
 			t.Parallel()
 
-			testutil.AssertMatchesButError(t, "/* hello\nworld */", InlineGroup())
+			testutil.MatchesButError(t, "/* hello\nworld */", InlineGroup())
 		})
 	})
 
 	t.Run("line comment", func(t *testing.T) {
 		t.Parallel()
 
-		testutil.AssertMatchesButError(t, "// hello", InlineGroup())
+		testutil.MatchesButError(t, "// hello", InlineGroup())
 	})
 }
 
@@ -67,7 +67,7 @@ func TestLoneGroup(t *testing.T) {
 			}
 
 			in := "/* hello */"
-			actual := testutil.AssertParsesFully(t, in, LoneGroup())
+			actual := testutil.ParsesFully(t, in, LoneGroup())
 			assert.Equal(t, expect, actual)
 
 			p := testutil.NewParser(t, in+"/* ignore me */")
@@ -90,7 +90,7 @@ func TestLoneGroup(t *testing.T) {
 			}
 
 			in := "/* hello\n   world */"
-			actual := testutil.AssertParsesFully(t, in, LoneGroup())
+			actual := testutil.ParsesFully(t, in, LoneGroup())
 			assert.Equal(t, expect, actual)
 
 			p := testutil.NewParser(t, in+"/* ignore me */")
@@ -117,10 +117,10 @@ func TestLoneGroup(t *testing.T) {
 			}
 
 			in := "// hello"
-			actual := testutil.AssertParsesFully(t, in, LoneGroup())
+			actual := testutil.ParsesFully(t, in, LoneGroup())
 			assert.Equal(t, expect, actual)
 
-			actual = testutil.AssertParsesFully(t, in+"\n", LoneGroup())
+			actual = testutil.ParsesFully(t, in+"\n", LoneGroup())
 			assert.Equal(t, expect, actual)
 
 			p := testutil.NewParser(t, in+"\n/* ignore me */")
@@ -150,10 +150,10 @@ func TestLoneGroup(t *testing.T) {
 
 			in := "// hello\n// world"
 
-			actual := testutil.AssertParsesFully(t, in, LoneGroup())
+			actual := testutil.ParsesFully(t, in, LoneGroup())
 			assert.Equal(t, expect, actual)
 
-			actual = testutil.AssertParsesFully(t, in+"\n", LoneGroup())
+			actual = testutil.ParsesFully(t, in+"\n", LoneGroup())
 			assert.Equal(t, expect, actual)
 
 			p := testutil.NewParser(t, in+"\n/* ignore me */")

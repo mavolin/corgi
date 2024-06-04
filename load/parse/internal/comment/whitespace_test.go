@@ -74,7 +74,7 @@ func TestOrHorizontalWhitespace(t *testing.T) {
 		for _, c := range failureCases {
 			t.Run(testName(c), func(t *testing.T) {
 				t.Parallel()
-				testutil.AssertMatchesButError(t, c, OrHorizontalWhitespace())
+				testutil.MatchesButError(t, c, OrHorizontalWhitespace())
 			})
 		}
 	})
