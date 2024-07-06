@@ -6,6 +6,8 @@ import (
 	"github.com/mavolin/corgi/load/parse/internal/quickanno"
 )
 
+var Runes = []rune{' ', '\t', '\r', '\n'}
+
 func Any() parser.Func[struct{}] {
 	return func(p *parser.Parser) (struct{}, *fancyerr.Error) {
 		if p.Inline() {

@@ -9,6 +9,7 @@ import (
 	"github.com/mavolin/corgi/load/parse/internal/comment"
 	"github.com/mavolin/corgi/load/parse/internal/html"
 	"github.com/mavolin/corgi/load/parse/internal/quickanno"
+	"github.com/mavolin/corgi/load/parse/internal/unexpected"
 )
 
 func Attribute() parser.Func[ast.Attribute] {
@@ -75,22 +76,41 @@ func NamedAttribute() parser.Func[*ast.NamedAttribute] {
 				Primary:  quickanno.Expected(p, attr.Position, "an attribute name before the `=`"),
 				Examples: []fancyerr.Example{{Example: "`class=\"woof\"`"}},
 			})
-		} else if parenCount != 0 {
+		} else if parenCount > 0 {
 			p.CaptureError(&fancyerr.Error{
 				Message: "unbalanced parentheses",
 				Primary: quickanno.Expected(p, attr.Position, fmt.Sprintf("%d closing parenthesis", parenCount)),
-				Explanation: "Attributes may contain parentheses, but they must be balanced to " +
-					"help the parser distinguish between the end of an attribute list and an " +
-					"attribute name.",
+				Explanation: fmt.Sprint("Attributes may contain parentheses, but they must be balanced to "+
+					"help the parser distinguish between the end of an attribute list and an "+
+					"attribute name. You currently have an excess of ", parenCount, " opening parentheses, "+
+					"which need to be closed to make this a valid attribute name."),
 			})
 		}
 
 		state := p.CloneState()
-		parser.Try(p, comment.OrHorizontalWhitespace())
+		err := unexpected.UntilAnyRune(p, comment.OrHorizontalWhitespace(), '=', ',', ')')
+		if err != nil {
+			err.Message = "unexpected runes after attribute name"
+
+			// Check if this could possibly be a component argument
+			for i, r := range attr.Name {
+				if r == '(' || r == ')' {
+					break
+				} else if r == ':' && i > 0 { // this could be a comp arg
+					err.Hints = append(err.Hints, fancyerr.Hint{
+						Hint:    "If this is supposed to be a component argument, add a space after the colon.",
+						Example: "`" + attr.Name[:i] + ": ...`",
+					})
+					break
+				}
+			}
+
+			p.CaptureError(err)
+		}
 
 		assignPos := p.Pos()
 		if !parser.TryRune(p, '=') {
-			if attr.Name == "" { // we have neither a name nor a lone =, this is not an attr
+			if attr.Name == "" { // we have neither a name nor a =, this is not an attr
 				return nil, &fancyerr.Error{
 					Message: "missing named attribute",
 					Primary: quickanno.Expected(p, attr.Position, "an attribute"),

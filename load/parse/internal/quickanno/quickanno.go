@@ -9,7 +9,7 @@ import (
 )
 
 func Expected(p *parser.Parser, pos ast.Position, expected string) []fancyerr.Annotation {
-	return []fancyerr.Annotation{anno.NChars(p.File, pos, 1, "expected "+expected)}
+	return []fancyerr.Annotation{anno.Position(p.File, pos, "expected "+expected)}
 }
 
 func DeltaPos(p ast.Position, dLine, dCol int) ast.Position {

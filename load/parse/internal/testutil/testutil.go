@@ -123,7 +123,7 @@ func CoerceFunc[I, O any](t *testing.T, in parser.Func[I]) parser.Func[O] {
 func AssertAlsoFulfils[I, O any](t *testing.T, f parser.Func[I], subTest func(*testing.T, parser.Func[O])) {
 	t.Helper()
 	var zeroI I
-	iType := reflect.TypeOf(zeroI)
+	iType := reflect.TypeOf(&zeroI).Elem()
 	for iType.Kind() == reflect.Pointer {
 		iType = iType.Elem()
 	}

@@ -74,9 +74,7 @@ func TypedAttributeValue() parser.Func[*ast.TypedAttributeValue] {
 			v.Type = attrtype.Srcset
 		}
 
-		extra := parser.TokenWhile(p, func() bool {
-			return parser.Matches(p, golang.AnyIdentifierRune())
-		})
+		extra, _ := parser.Try(p, golang.IdentTrail())
 		end := p.Pos()
 
 		parser.Try(p, comment.OrHorizontalWhitespace())

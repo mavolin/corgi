@@ -1,3 +1,13 @@
+// Package parser implements a parser for the corgi language.
+//
+// The parser is basically parser combinator, although each function still
+// operates on the same shared Parser instance to facilitate positional
+// tracking, error recovery and reporting, and other stateful operations.
+// This is, of course, different from a typical parser combinator that takes in
+// a string, but eases implementation tremendously with no drawback.
+//
+// Using a parser combinator also means each parser function can be
+// individually tested.
 package parser
 
 import (
@@ -146,7 +156,9 @@ func TryInOrder[T any](p *Parser, fs ...Func[T]) (T, bool) {
 	return z, false
 }
 
-// Must tries to parse using the given [Func] and try set to false.
+// Must tries to parse using the given [Func].
+// If the func returns an error, Must captures it and returns the value
+// returned by Func, most commonly the zero value.
 func Must[T any](p *Parser, f Func[T]) T {
 	state := p.CloneState()
 	v, err := f(p)

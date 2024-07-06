@@ -41,23 +41,20 @@ func TestNamedAttribute(t *testing.T) {
 
 func testNamedAttribute(t *testing.T, f parser.Func[*ast.NamedAttribute]) {
 	testCases := []struct {
-		name        string
-		in          string
-		expect      *ast.NamedAttribute
-		expectIndex int
+		name   string
+		in     string
+		expect *ast.NamedAttribute
 	}{
 		{
 			name: "boolean",
-			// add the other value to simulate a real list and make sure the comma isn't consumed
-			in: "async, other",
+			in:   "async",
 			expect: &ast.NamedAttribute{
 				Position: ast.Position{Line: 1, Col: 1},
 				Name:     "async",
 			},
-			expectIndex: 5,
 		}, {
 			name: "value",
-			in:   `value=woof, other`,
+			in:   `value=woof`,
 			expect: &ast.NamedAttribute{
 				Position: ast.Position{Line: 1, Col: 1},
 				Name:     "class",
@@ -69,18 +66,18 @@ func testNamedAttribute(t *testing.T, f parser.Func[*ast.NamedAttribute]) {
 					},
 				},
 			},
-			expectIndex: 10,
 		},
 	}
 
 	for _, c := range testCases {
 		t.Run(c.name, func(t *testing.T) {
-			p := testutil.NewParser(t, c.in)
+			// we add ", other" to the input to ensure that the parser stops at
+			// the correct position
+			p := testutil.NewParser(t, c.in+", other")
 			actual := testutil.AssertNoError(t, p, f)
 			if assert.Equal(t, c.expect, actual) {
-				testutil.AssertPosition(t, p, c.expect.End().Line, c.expect.End().Col, c.expectIndex)
+				testutil.AssertPosition(t, p, c.expect.End().Line, c.expect.End().Col, len(c.in))
 			}
 		})
-
 	}
 }
