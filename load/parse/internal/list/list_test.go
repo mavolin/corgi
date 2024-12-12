@@ -5,11 +5,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mavolin/corgi/fancyerr"
-	"github.com/mavolin/corgi/file/ast"
-	parser "github.com/mavolin/corgi/load/parse/internal"
-	"github.com/mavolin/corgi/load/parse/internal/quickanno"
-	"github.com/mavolin/corgi/load/parse/internal/testutil"
+	"github.com/mavolin/corgi/v2/fancyerr"
+	"github.com/mavolin/corgi/v2/file/ast"
+	parser "github.com/mavolin/corgi/v2/load/parse/internal"
+	"github.com/mavolin/corgi/v2/load/parse/internal/quickanno"
+	"github.com/mavolin/corgi/v2/load/parse/internal/testutil"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -26,7 +26,7 @@ func TestBracketList(t *testing.T) {
 func testList(t *testing.T, name string, open, close rune) {
 	elemFunc := func(p *parser.Parser) (string, *fancyerr.Error) {
 		s := parser.TokenWhile(p, func() bool {
-			return parser.MatchesAnyRunePredicate(p, func(r rune) bool {
+			return parser.MatchesRunePredicate(p, func(r rune) bool {
 				return r >= 'a' && r <= 'z'
 			})
 		})
@@ -87,11 +87,8 @@ func testList(t *testing.T, name string, open, close rune) {
 					expect.Close.Col = len(in[strings.LastIndex(in, "\n")+1:])
 				}
 
-				p := testutil.NewParser(t, in+" other")
-				actual := testutil.AssertNoError(t, p, list(name, open, close, elemFunc))
-				if assert.Equal(t, expect, actual) {
-					assert.Equal(t, p.Index(), len(in))
-				}
+				actual := testutil.ParsesFully(t, in, list(name, open, close, elemFunc))
+				assert.Equal(t, expect, actual)
 			})
 		}
 	})
@@ -152,6 +149,91 @@ func testList(t *testing.T, name string, open, close rune) {
 				actual := testutil.AssertMatchesButError(t, p, list(name, open, close, elemFunc))
 				if assert.Equal(t, expect, actual) {
 					assert.Equal(t, p.Index(), len(in))
+				}
+			})
+		}
+	})
+}
+
+func TestCommaList(t *testing.T) {
+	elemFunc := func(p *parser.Parser) (string, *fancyerr.Error) {
+		s := parser.TokenWhile(p, func() bool {
+			return parser.MatchesRunePredicate(p, func(r rune) bool {
+				return r >= 'a' && r <= 'z'
+			})
+		})
+		if s == "" {
+			return "", &fancyerr.Error{
+				Message: "missing test element",
+				Primary: quickanno.Expected(p, p.Pos(), "a test element"),
+			}
+		}
+		return s, nil
+	}
+
+	successCases := []struct {
+		name   string
+		in     string
+		expect []string
+	}{
+		{
+			name:   "single",
+			in:     "foo",
+			expect: []string{"foo"},
+		}, {
+			name:   "multiple",
+			in:     "foo, bar, baz",
+			expect: []string{"foo", "bar", "baz"},
+		}, {
+			name:   "multiline",
+			in:     "foo\t ,\nbar  ,\n\nbaz",
+			expect: []string{"foo", "bar", "baz"},
+		},
+	}
+
+	t.Run("success", func(t *testing.T) {
+		t.Parallel()
+
+		for _, c := range successCases {
+			t.Run(c.name, func(t *testing.T) {
+				t.Parallel()
+
+				p := testutil.NewParser(t, c.in+" other")
+				actual := testutil.AssertNoError(t, p, CommaList("a", "as", elemFunc))
+				if assert.Equal(t, c.expect, actual) {
+					assert.Equal(t, p.Index(), len(c.in))
+				}
+			})
+		}
+	})
+
+	recoverCases := []struct {
+		name   string
+		in     string
+		expect []string
+	}{
+		{
+			name:   "empty elem",
+			in:     "foo, , baz",
+			expect: []string{"foo", "", "baz"},
+		}, {
+			name:   "no elems but comma",
+			in:     ",",
+			expect: []string{""},
+		},
+	}
+
+	t.Run("recover", func(t *testing.T) {
+		t.Parallel()
+
+		for _, c := range recoverCases {
+			t.Run(c.name, func(t *testing.T) {
+				t.Parallel()
+
+				p := testutil.NewParser(t, c.in+" 123")
+				actual := testutil.AssertMatchesButError(t, p, CommaList("a", "as", elemFunc))
+				if assert.Equal(t, c.expect, actual) {
+					assert.Equal(t, p.Index(), len(c.in))
 				}
 			})
 		}

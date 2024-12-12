@@ -3,13 +3,13 @@ package list
 import (
 	"slices"
 
-	"github.com/mavolin/corgi/fancyerr"
-	"github.com/mavolin/corgi/fancyerr/anno"
-	"github.com/mavolin/corgi/file/ast"
-	parser "github.com/mavolin/corgi/load/parse/internal"
-	"github.com/mavolin/corgi/load/parse/internal/comment"
-	"github.com/mavolin/corgi/load/parse/internal/quickanno"
-	"github.com/mavolin/corgi/load/parse/internal/unexpected"
+	"github.com/mavolin/corgi/v2/fancyerr"
+	"github.com/mavolin/corgi/v2/fancyerr/anno"
+	"github.com/mavolin/corgi/v2/file/ast"
+	parser "github.com/mavolin/corgi/v2/load/parse/internal"
+	"github.com/mavolin/corgi/v2/load/parse/internal/comment"
+	"github.com/mavolin/corgi/v2/load/parse/internal/quickanno"
+	"github.com/mavolin/corgi/v2/load/parse/internal/unexpected"
 )
 
 type List[T any] struct {
@@ -39,48 +39,54 @@ func list[T any](name string, open, close rune, elemFunc parser.Func[T]) parser.
 
 		l.Elems = make([]T, 0, 64)
 		for {
-			parser.Try(p, comment.OrAnyWhitespace())
+			parser.TrySkip(p, comment.OrAnyWhitespace())
 
 			pos := p.Pos()
-			if parser.TryRune(p, close) {
-				l.Close = &pos
-				break
-			} else if parser.TryRune(p, parser.EOF) {
-				p.CaptureError(&fancyerr.Error{
-					Message: "unclosed " + name,
-					Primary: quickanno.Expected(p, l.Open, "a `"+string(close)+"`"),
-					Secondary: []fancyerr.Annotation{
-						anno.Position(p.File, l.Open, "for the opening `"+string(open)+"` here"),
-					},
-				})
+			elem, err := parser.Try(p, func(p *parser.Parser) (*T, *fancyerr.Error) {
+				if parser.TryRune(p, close) {
+					l.Close = &pos
+					return nil, nil
+				} else if parser.TryRune(p, parser.EOF) {
+					p.CaptureError(&fancyerr.Error{
+						Message: "unclosed " + name,
+						Primary: quickanno.Expected(p, l.Open, "a `"+string(close)+"`"),
+						Secondary: []fancyerr.Annotation{
+							anno.Position(p.File, l.Open, "for the opening `"+string(open)+"` here"),
+						},
+					})
+					return nil, nil
+				}
+
+				elem, err := parser.Try(p, elemFunc)
+				if err != nil {
+					return nil, err
+				}
+				return &elem, nil
+			})
+			if elem == nil {
 				break
 			}
-
-			elem, err := elemFunc(p)
-			l.Elems = append(l.Elems, elem)
+			l.Elems = append(l.Elems, *elem)
 			if err != nil {
 				if parser.MatchesToken(p, ",") { // missing elem
 					p.CaptureError(err)
 				} else {
 					err = unexpected.UntilAnyRune(p, comment.OrAnyWhitespace(), ',', close)
-					if err != nil {
-						err.Message = "missing " + name + " element"
-						err.Primary[0].Annotation = "found these unexpected runes instead"
-						p.CaptureError(err)
-					}
+					err.Message = "missing " + name + " element"
+					err.Primary[0].Annotation = "found these unexpected runes instead"
+					p.CaptureError(err)
 				}
 			}
 
-			parser.Try(p, comment.OrHorizontalWhitespace())
+			parser.TrySkip(p, comment.OrHorizontalWhitespace())
 
-			if parser.TryRune(p, ',') {
-				continue
-			} else if parser.MatchesAnyRune(p, close, parser.EOF) {
+			if parser.MatchesAnyRune(p, close, parser.EOF) || parser.TryRune(p, ',') {
 				continue
 			}
 
 			// let's be hyper-forgiving and allow for a missing comma, if the
 			// upcoming runes parse successfully
+			parser.TrySkip(p, comment.OrHorizontalWhitespace())
 			if parser.Matches(p, elemFunc) {
 				p.CaptureError(&fancyerr.Error{
 					Message: "missing comma",
@@ -113,5 +119,51 @@ func list[T any](name string, open, close rune, elemFunc parser.Func[T]) parser.
 
 		l.Elems = slices.Clip(l.Elems)
 		return l, nil
+	}
+}
+
+func CommaList[T any](singular, plural string, elemFunc parser.Func[T]) parser.Func[[]T] {
+	return func(p *parser.Parser) ([]T, *fancyerr.Error) {
+		elems := make([]T, 1, 64)
+
+		var err *fancyerr.Error
+		elems[0], err = parser.Try(p, elemFunc)
+		if err != nil {
+			if parser.MatchesToken(p, ",") { // missing elem
+				p.CaptureError(err)
+			} else {
+				return nil, &fancyerr.Error{
+					Message: "missing " + singular,
+					Primary: quickanno.Expected(p, p.Pos(), "one or more "+plural),
+				}
+			}
+		}
+
+		for {
+			state := p.CloneState()
+
+			parser.TrySkip(p, comment.OrHorizontalWhitespace())
+
+			commaPos := p.Pos()
+			if !parser.TryRune(p, ',') {
+				p.RestoreState(state)
+				return slices.Clip(elems), nil
+			}
+
+			parser.TrySkip(p, comment.OrAnyWhitespace())
+
+			elem, err := parser.Try(p, elemFunc)
+			if err != nil {
+				if parser.MatchesToken(p, ",") { // missing elem
+					p.CaptureError(err)
+				} else {
+					p.CaptureError(&fancyerr.Error{
+						Message: "missing " + singular,
+						Primary: quickanno.Expected(p, commaPos, "found a comma here, but no "+singular+" after it"),
+					})
+				}
+			}
+			elems = append(elems, elem)
+		}
 	}
 }
