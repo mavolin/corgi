@@ -4,9 +4,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mavolin/corgi/file/ast"
-	parser "github.com/mavolin/corgi/load/parse/internal"
-	"github.com/mavolin/corgi/load/parse/internal/testutil"
+	"github.com/mavolin/corgi/v2/file/ast"
+	parser "github.com/mavolin/corgi/v2/load/parse/internal"
+	"github.com/mavolin/corgi/v2/load/parse/internal/testutil"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -54,7 +54,8 @@ func TestOrHorizontalWhitespace(t *testing.T) {
 				t.Parallel()
 
 				p := testutil.NewParser(t, c.in)
-				testutil.AssertNoError(t, p, OrHorizontalWhitespace())
+				err := parser.TrySkip(p, OrHorizontalWhitespace())
+				assert.Nil(t, err, "expected no error")
 				testutil.AssertEOF(t, p)
 
 				expectGroups := make([]*ast.CommentGroup, len(c.expectComments))
@@ -66,7 +67,7 @@ func TestOrHorizontalWhitespace(t *testing.T) {
 		}
 	})
 
-	failureCases := []string{"/* dsafasd\nsda*/", "// sdafads"}
+	failureCases := []string{"// sdafads"}
 
 	t.Run("failure", func(t *testing.T) {
 		t.Parallel()
@@ -74,7 +75,9 @@ func TestOrHorizontalWhitespace(t *testing.T) {
 		for _, c := range failureCases {
 			t.Run(testName(c), func(t *testing.T) {
 				t.Parallel()
-				testutil.MatchesButError(t, c, OrHorizontalWhitespace())
+				p := testutil.NewParser(t, c)
+				err := OrHorizontalWhitespace()(p)
+				assert.NotNil(t, err, "expected match error")
 			})
 		}
 	})
@@ -103,7 +106,15 @@ func TestAndEOS(t *testing.T) {
 			},
 		}, {
 			in:          " /* test\n */",
-			expectIndex: 1,
+			expectIndex: -1,
+			expectComments: []*ast.Comment{
+				{
+					Open:    ast.Position{Line: 1, Col: 2},
+					Comment: " test\n ",
+					Block:   true,
+					Close:   &ast.Position{Line: 2, Col: 2},
+				},
+			},
 		}, {
 			in:          "  /* test */ \t/* test2 */\n",
 			expectIndex: 25,
@@ -135,7 +146,8 @@ func TestAndEOS(t *testing.T) {
 			}
 
 			p := testutil.NewParser(t, c.in)
-			testutil.AssertNoError(t, p, AndEOS())
+			err := parser.TrySkip(p, AndEOS())
+			assert.Nil(t, err, "expected no error")
 			assert.Equal(t, c.expectIndex, p.Index())
 
 			expectGroups := make([]*ast.CommentGroup, len(c.expectComments))
@@ -147,17 +159,31 @@ func TestAndEOS(t *testing.T) {
 	}
 }
 
-func TestOrEOL(t *testing.T) {
+func TestAndEOL(t *testing.T) {
 	t.Parallel()
-	testOrEOL(t, OrEOL())
+
+	t.Run("special", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("eof", func(t *testing.T) {
+			t.Parallel()
+
+			p := testutil.NewParser(t, "")
+			err := parser.TrySkip(p, AndEOL())
+			assert.Nil(t, err, "expected no error")
+			testutil.AssertEOF(t, p)
+		})
+	})
+
+	testOrEOL(t, AndEOL())
 }
 
-func testOrEOL(t *testing.T, f parser.Func[struct{}]) {
+func testOrEOL(t *testing.T, f parser.WhitespaceFunc) {
 	testCases := []struct {
 		in             string
 		expectComments []*ast.Comment
 	}{
-		{in: ""}, {in: "\n"}, {in: "\r\n"}, {in: "  \t  \t\t\n"}, {in: "  \t  \t\t\r\n"},
+		{in: "\n"}, {in: "\r\n"}, {in: "  \t  \t\t\n"}, {in: "  \t  \t\t\r\n"},
 		{
 			in: "/* test */",
 			expectComments: []*ast.Comment{
@@ -201,7 +227,8 @@ func testOrEOL(t *testing.T, f parser.Func[struct{}]) {
 			t.Parallel()
 
 			p := testutil.NewParser(t, c.in)
-			testutil.AssertNoError(t, p, f)
+			err := parser.TrySkip(p, f)
+			assert.Nil(t, err, "expected no error")
 			testutil.AssertEOF(t, p)
 
 			expectGroups := make([]*ast.CommentGroup, len(c.expectComments))
@@ -270,7 +297,8 @@ func TestOrAnyWhitespace(t *testing.T) {
 			t.Parallel()
 
 			p := testutil.NewParser(t, c.in)
-			testutil.AssertNoError(t, p, OrAnyWhitespace())
+			err := parser.TrySkip(p, OrAnyWhitespace())
+			assert.Nil(t, err, "expected no error")
 			testutil.AssertEOF(t, p)
 
 			expectGroups := make([]*ast.CommentGroup, len(c.expectComments))
@@ -281,7 +309,9 @@ func TestOrAnyWhitespace(t *testing.T) {
 		})
 	}
 
-	testOrEOL(t, OrAnyWhitespace())
+	t.Run("eol", func(t *testing.T) {
+		testOrEOL(t, OrAnyWhitespace())
+	})
 }
 
 func TestOrLoneWS(t *testing.T) {
@@ -356,7 +386,8 @@ func TestOrLoneWS(t *testing.T) {
 			t.Parallel()
 
 			p := testutil.NewParser(t, c.in)
-			testutil.AssertNoError(t, p, OrLoneWS())
+			err := parser.TrySkip(p, OrLoneWS())
+			assert.Nil(t, err, "expected no error")
 			testutil.AssertEOF(t, p)
 
 			expectGroups := make([]*ast.CommentGroup, len(c.expectComments))
@@ -388,7 +419,7 @@ func testName(input string) string {
 			i++
 			switch input[i] {
 			case '/':
-				name.WriteString("<ln comm>")
+				name.WriteString("<ln comment>")
 				for ; i < len(input); i++ {
 					if input[i] == '\n' {
 						i--
@@ -396,7 +427,7 @@ func testName(input string) string {
 					}
 				}
 			case '*':
-				name.WriteString("<blo comm>")
+				name.WriteString("<block comment>")
 				for ; i < len(input); i++ {
 					if input[i] == '*' && i+1 < len(input) && input[i+1] == '/' {
 						i++

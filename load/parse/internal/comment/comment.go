@@ -1,16 +1,20 @@
 package comment
 
 import (
-	"github.com/mavolin/corgi/fancyerr"
-	"github.com/mavolin/corgi/fancyerr/anno"
-	"github.com/mavolin/corgi/file/ast"
-	parser "github.com/mavolin/corgi/load/parse/internal"
-	"github.com/mavolin/corgi/load/parse/internal/quickanno"
-	"github.com/mavolin/corgi/load/parse/internal/whitespace"
+	"github.com/mavolin/corgi/v2/fancyerr"
+	"github.com/mavolin/corgi/v2/fancyerr/anno"
+	"github.com/mavolin/corgi/v2/file/ast"
+	parser "github.com/mavolin/corgi/v2/load/parse/internal"
+	"github.com/mavolin/corgi/v2/load/parse/internal/quickanno"
+	"github.com/mavolin/corgi/v2/load/parse/internal/whitespace"
 )
 
 func Comment() parser.Func[*ast.Comment] {
 	return func(p *parser.Parser) (*ast.Comment, *fancyerr.Error) {
+		if p.Inline() {
+			return BlockComment()(p)
+		}
+
 		c, ok := parser.TryInOrder(p, LineComment(), BlockComment())
 		if ok {
 			return c, nil
@@ -29,7 +33,7 @@ func LineComment() parser.Func[*ast.Comment] {
 		if err != nil {
 			return nil, err
 		}
-		parser.Must(p, whitespace.EOL())
+		parser.TrySkip(p, whitespace.EOL())
 		return c, nil
 	}
 }
@@ -47,7 +51,7 @@ func lineCommentWithoutEOL() parser.Func[*ast.Comment] {
 		}
 
 		c.Comment = parser.TokenWhile(p, func() bool {
-			return !parser.Matches(p, whitespace.EOL())
+			return !parser.MatchesWS(p, whitespace.EOL())
 		})
 		c.Close = p.PosPtr()
 
@@ -98,41 +102,8 @@ func BlockComment() parser.Func[*ast.Comment] {
 							Annotation: "at this position, only single-line comments are allowed",
 						}),
 					},
-					Explanation: "Block comments must be closed on the same line they were opened on.",
+					Explanation: "A block comment placed here must be closed on the same line it was opened on.",
 				})
-			}
-		}
-
-		return &c, nil
-	}
-}
-
-func singleLineBlockComment() parser.Func[*ast.Comment] {
-	return func(p *parser.Parser) (*ast.Comment, *fancyerr.Error) {
-		var c ast.Comment
-		c.Block = true
-		c.Open = p.Pos()
-
-		if !parser.TryToken(p, "/*") {
-			return nil, &fancyerr.Error{
-				Message: "missing block comment",
-				Primary: quickanno.Expected(p, p.Pos(), "a block comment"),
-			}
-		}
-
-		c.Comment = parser.TokenWhile(p, func() bool {
-			return !parser.Matches(p, whitespace.Vertical()) && !parser.MatchesToken(p, "*/")
-		})
-		c.Close = p.PosPtr()
-		if !parser.TryToken(p, "*/") {
-			return nil, &fancyerr.Error{
-				Message: "unclosed block comment",
-				Primary: []fancyerr.Annotation{
-					anno.NChars(p.File, c.Open, len("/*"), "this comment is never closed"),
-				},
-				Explanation: "Unlike line comments, block comments must be closed using `*/`.\n" +
-					"Either change the `/*` to a `//` if you want a single-line comment, or add " +
-					"a closing `*/` at the end of the comment.",
 			}
 		}
 

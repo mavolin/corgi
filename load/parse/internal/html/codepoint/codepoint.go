@@ -3,11 +3,18 @@
 package codepoint
 
 import (
-	parser "github.com/mavolin/corgi/load/parse/internal"
+	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 )
 
-func Matches(p *parser.Parser, fs ...func(rune) bool) bool {
-	return parser.MatchesAnyRunePredicate(p, fs...)
+func MatchesAny(p *parser.Parser, fs ...func(rune) bool) bool {
+	return parser.MatchesRunePredicate(p, func(r rune) bool {
+		for _, f := range fs {
+			if f(r) {
+				return true
+			}
+		}
+		return false
+	})
 }
 
 func LeadingSurrogate(r rune) bool { // https://infra.spec.whatwg.org/#leading-surrogate

@@ -3,10 +3,10 @@ package attribute
 import (
 	"testing"
 
-	"github.com/mavolin/corgi/fancyerr"
-	"github.com/mavolin/corgi/file/ast"
-	parser "github.com/mavolin/corgi/load/parse/internal"
-	"github.com/mavolin/corgi/load/parse/internal/testutil"
+	"github.com/mavolin/corgi/v2/fancyerr"
+	"github.com/mavolin/corgi/v2/file/ast"
+	parser "github.com/mavolin/corgi/v2/load/parse/internal"
+	"github.com/mavolin/corgi/v2/load/parse/internal/testutil"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -22,10 +22,12 @@ func testIDShorthand(t *testing.T, f parser.Func[*ast.IDShorthand]) {
 			&ast.ShorthandText{Text: "foo", Position: ast.Position{Line: 1, Col: 2}},
 			&ast.ShorthandInterpolation{
 				LBrace: &ast.Position{Line: 1, Col: 6},
-				Expression: ast.Expression{
-					&ast.GoCode{
-						Code:     "bar",
-						Position: ast.Position{Line: 1, Col: 7},
+				Expression: &ast.Expression{
+					Nodes: []ast.ExpressionNode{
+						&ast.GoCode{
+							Code:     "bar",
+							Position: ast.Position{Line: 1, Col: 7},
+						},
 					},
 				},
 				RBrace:   &ast.Position{Line: 1, Col: 10},
@@ -67,10 +69,12 @@ func testClassShorthand(t *testing.T, f parser.Func[*ast.ClassShorthand]) {
 					&ast.ShorthandText{Text: "foo", Position: ast.Position{Line: 1, Col: 2}},
 					&ast.ShorthandInterpolation{
 						LBrace: &ast.Position{Line: 1, Col: 6},
-						Expression: ast.Expression{
-							&ast.GoCode{
-								Code:     "bar",
-								Position: ast.Position{Line: 1, Col: 7},
+						Expression: &ast.Expression{
+							Nodes: []ast.ExpressionNode{
+								&ast.GoCode{
+									Code:     "bar",
+									Position: ast.Position{Line: 1, Col: 7},
+								},
 							},
 						},
 						RBrace:   &ast.Position{Line: 1, Col: 10},
@@ -93,10 +97,12 @@ func testClassShorthand(t *testing.T, f parser.Func[*ast.ClassShorthand]) {
 					}, {
 						&ast.ShorthandInterpolation{
 							LBrace: &ast.Position{Line: 1, Col: 11},
-							Expression: ast.Expression{
-								&ast.GoCode{
-									Code:     "bar",
-									Position: ast.Position{Line: 1, Col: 12},
+							Expression: &ast.Expression{
+								Nodes: []ast.ExpressionNode{
+									&ast.GoCode{
+										Code:     "bar",
+										Position: ast.Position{Line: 1, Col: 12},
+									},
 								},
 							},
 							RBrace:   &ast.Position{Line: 1, Col: 15},
@@ -122,10 +128,12 @@ func testClassShorthand(t *testing.T, f parser.Func[*ast.ClassShorthand]) {
 						&ast.ShorthandText{Text: "--", Position: ast.Position{Line: 1, Col: 12}},
 						&ast.ShorthandInterpolation{
 							LBrace: &ast.Position{Line: 1, Col: 15},
-							Expression: ast.Expression{
-								&ast.GoCode{
-									Code:     "baz",
-									Position: ast.Position{Line: 1, Col: 16},
+							Expression: &ast.Expression{
+								Nodes: []ast.ExpressionNode{
+									&ast.GoCode{
+										Code:     "baz",
+										Position: ast.Position{Line: 1, Col: 16},
+									},
 								},
 							},
 							RBrace:   &ast.Position{Line: 1, Col: 19},
@@ -180,8 +188,10 @@ func testShorthand(t *testing.T, f parser.Func[ast.Shorthand]) {
 			expect: ast.Shorthand{
 				&ast.ShorthandInterpolation{
 					LBrace: &ast.Position{Line: 1, Col: 2},
-					Expression: ast.Expression{
-						&ast.GoCode{Code: "bar", Position: ast.Position{Line: 1, Col: 3}},
+					Expression: &ast.Expression{
+						Nodes: []ast.ExpressionNode{
+							&ast.GoCode{Code: "bar", Position: ast.Position{Line: 1, Col: 3}},
+						},
 					},
 					RBrace:   &ast.Position{Line: 1, Col: 6},
 					Position: ast.Position{Line: 1, Col: 1},
@@ -194,8 +204,10 @@ func testShorthand(t *testing.T, f parser.Func[ast.Shorthand]) {
 				&ast.ShorthandText{Text: "foo", Position: ast.Position{Line: 1, Col: 1}},
 				&ast.ShorthandInterpolation{
 					LBrace: &ast.Position{Line: 1, Col: 5},
-					Expression: ast.Expression{
-						&ast.GoCode{Code: "bar", Position: ast.Position{Line: 1, Col: 6}},
+					Expression: &ast.Expression{
+						Nodes: []ast.ExpressionNode{
+							&ast.GoCode{Code: "bar", Position: ast.Position{Line: 1, Col: 6}},
+						},
 					},
 					RBrace:   &ast.Position{Line: 1, Col: 9},
 					Position: ast.Position{Line: 1, Col: 4},
@@ -250,8 +262,10 @@ func testShorthandInterpolation(t *testing.T, f parser.Func[*ast.ShorthandInterp
 		t.Parallel()
 		expect := &ast.ShorthandInterpolation{
 			LBrace: &ast.Position{Line: 1, Col: 2},
-			Expression: ast.Expression{
-				&ast.GoCode{Code: "foo", Position: ast.Position{Line: 1, Col: 3}},
+			Expression: &ast.Expression{
+				Nodes: []ast.ExpressionNode{
+					&ast.GoCode{Code: "foo", Position: ast.Position{Line: 1, Col: 3}},
+				},
 			},
 			RBrace:   &ast.Position{Line: 1, Col: 6},
 			Position: ast.Position{Line: 1, Col: 1},

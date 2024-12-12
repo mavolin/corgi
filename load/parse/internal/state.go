@@ -1,15 +1,15 @@
 package parser
 
 import (
-	"github.com/mavolin/corgi/fancyerr"
-	"github.com/mavolin/corgi/file/ast"
+	"github.com/mavolin/corgi/v2/fancyerr"
+	"github.com/mavolin/corgi/v2/file/ast"
 )
 
 type State struct {
 	line, col int
 	index     int
 
-	errs     []*fancyerr.Error
+	errs     fancyerr.List
 	comments []*ast.CommentGroup
 
 	inline bool
@@ -20,7 +20,7 @@ func newState() *State {
 		line:     1,
 		col:      1,
 		index:    0,
-		errs:     make([]*fancyerr.Error, 0, 48),
+		errs:     make(fancyerr.List, 0, 48),
 		comments: make([]*ast.CommentGroup, 0, 128),
 	}
 }
@@ -39,7 +39,7 @@ func (s *State) advance(size int, isNL bool) {
 	s.index += size
 }
 
-func (s *State) Errors() []*fancyerr.Error {
+func (s *State) Errors() fancyerr.List {
 	return s.errs
 }
 

@@ -1,22 +1,19 @@
 package attribute
 
 import (
-	"github.com/mavolin/corgi/escape/attrtype"
-	"github.com/mavolin/corgi/fancyerr"
-	"github.com/mavolin/corgi/fancyerr/anno"
-	"github.com/mavolin/corgi/file/ast"
-	parser "github.com/mavolin/corgi/load/parse/internal"
-	"github.com/mavolin/corgi/load/parse/internal/code"
-	"github.com/mavolin/corgi/load/parse/internal/comment"
-	"github.com/mavolin/corgi/load/parse/internal/golang"
-	"github.com/mavolin/corgi/load/parse/internal/quickanno"
+	"github.com/mavolin/corgi/v2/fancyerr"
+	"github.com/mavolin/corgi/v2/file/ast"
+	parser "github.com/mavolin/corgi/v2/load/parse/internal"
+	"github.com/mavolin/corgi/v2/load/parse/internal/code"
+	"github.com/mavolin/corgi/v2/load/parse/internal/comment"
+	"github.com/mavolin/corgi/v2/load/parse/internal/quickanno"
 )
 
 func Value() parser.Func[ast.AttributeValue] {
 	return func(p *parser.Parser) (ast.AttributeValue, *fancyerr.Error) {
-		if v, ok := parser.Try(p, TypedAttributeValue()); ok {
+		if v, ok := parser.TryOk(p, TypedAttributeValue()); ok {
 			return v, nil
-		} else if v, ok := parser.Try(p, ExpressionValue()); ok {
+		} else if v, ok := parser.TryOk(p, ExpressionValue()); ok {
 			return v, nil
 		}
 
@@ -31,9 +28,9 @@ func Value() parser.Func[ast.AttributeValue] {
 	}
 }
 
-func ExpressionValue() parser.Func[ast.ExpressionAttributeValue] {
-	return func(p *parser.Parser) (ast.ExpressionAttributeValue, *fancyerr.Error) {
-		expr, ok := parser.Try(p, code.Expression())
+func ExpressionValue() parser.Func[*ast.ExpressionAttributeValue] {
+	return func(p *parser.Parser) (*ast.ExpressionAttributeValue, *fancyerr.Error) {
+		expr, ok := parser.TryOk(p, code.Expression())
 		if !ok {
 			return nil, &fancyerr.Error{
 				Message: "missing expression",
@@ -41,72 +38,48 @@ func ExpressionValue() parser.Func[ast.ExpressionAttributeValue] {
 			}
 		}
 
-		return ast.ExpressionAttributeValue(expr), nil
+		return (*ast.ExpressionAttributeValue)(expr), nil
 	}
 }
 
 func TypedAttributeValue() parser.Func[*ast.TypedAttributeValue] {
 	return func(p *parser.Parser) (*ast.TypedAttributeValue, *fancyerr.Error) {
-		v := &ast.TypedAttributeValue{Position: p.Pos()}
-
-		// remember that cases that are a superset of another case must come
-		// first
-		switch {
-		case parser.TryToken(p, "unsafeBool"):
-			v.Type = attrtype.UnsafeBool
-		case parser.TryToken(p, "unsafe"):
-			v.Type = attrtype.Unsafe
-		case parser.TryToken(p, "bool"):
-			v.Type = attrtype.Bool
-		case parser.TryToken(p, "text"):
-			v.Type = attrtype.Text
-		case parser.TryToken(p, "css"):
-			v.Type = attrtype.CSS
-		case parser.TryToken(p, "js"):
-			v.Type = attrtype.JS
-		case parser.TryToken(p, "urlList"):
-			v.Type = attrtype.URLList
-		case parser.TryToken(p, "url"):
-			v.Type = attrtype.URL
-		case parser.TryToken(p, "resourceURL"):
-			v.Type = attrtype.ResourceURL
-		case parser.TryToken(p, "srcset"):
-			v.Type = attrtype.Srcset
-		}
-
-		extra, _ := parser.Try(p, golang.IdentTrail())
-		end := p.Pos()
-
-		parser.Try(p, comment.OrHorizontalWhitespace())
-
-		lParenPos := p.Pos()
-		v.LParen = &lParenPos
-
-		if !v.Type.IsValid() || extra != "" || !parser.TryRune(p, '(') {
+		t, ok := parser.TryOk(p, Type())
+		if !ok {
 			return nil, &fancyerr.Error{
-				Message: "invalid type",
-				Primary: []fancyerr.Annotation{anno.Range(p.File, v.Position, end, "not a valid attribute type")},
+				Message: "missing typed attribute value",
+				Primary: quickanno.Expected(p, p.Pos(), "an attribute type"),
 			}
 		}
 
+		v := &ast.TypedAttributeValue{Type: *t}
+
+		parser.TrySkip(p, comment.OrHorizontalWhitespace())
+
+		lParenPos := p.Pos()
+		if !parser.TryRune(p, '(') {
+			p.CaptureError(&fancyerr.Error{
+				Message: "missing opening parenthesis",
+				Primary: quickanno.Expected(p, p.Pos(), "an opening parenthesis"),
+			})
+			return v, nil
+		}
+		v.LParen = &lParenPos
+
+		parser.TrySkip(p, comment.OrAnyWhitespace())
+
 		v.Value = parser.Must(p, ExpressionValue())
 
-		pos := p.Pos()
-
-		parser.Try(p, comment.OrHorizontalWhitespace())
-
-		if parser.TryRune(p, ',') {
-			parser.Try(p, comment.OrAnyWhitespace())
-		}
+		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 
 		rParenPos := p.Pos()
-		if !parser.TryRune(p, ')') {
+		if parser.TryRune(p, ')') {
+			v.RParen = &rParenPos
+		} else {
 			p.CaptureError(&fancyerr.Error{
 				Message: "missing closing parenthesis",
-				Primary: quickanno.Expected(p, pos, "a closing parenthesis"),
+				Primary: quickanno.Expected(p, p.Pos(), "a closing parenthesis"),
 			})
-		} else {
-			v.RParen = &rParenPos
 		}
 
 		return v, nil

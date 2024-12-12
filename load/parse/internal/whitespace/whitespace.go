@@ -1,81 +1,88 @@
 package whitespace
 
 import (
-	"github.com/mavolin/corgi/fancyerr"
-	parser "github.com/mavolin/corgi/load/parse/internal"
-	"github.com/mavolin/corgi/load/parse/internal/quickanno"
+	"github.com/mavolin/corgi/v2/fancyerr"
+	parser "github.com/mavolin/corgi/v2/load/parse/internal"
+	"github.com/mavolin/corgi/v2/load/parse/internal/quickanno"
 )
 
-var Runes = []rune{' ', '\t', '\r', '\n'}
+var (
+	Runes           = []rune{' ', '\t', '\r', '\n'}
+	HorizontalRunes = []rune{' ', '\t'}
+	VerticalRunes   = []rune{'\r', '\n'}
+)
 
-func Any() parser.Func[struct{}] {
-	return func(p *parser.Parser) (struct{}, *fancyerr.Error) {
+func Any() parser.WhitespaceFunc {
+	return func(p *parser.Parser) *fancyerr.Error {
 		if p.Inline() {
 			return Horizontal()(p)
 		}
 
 		pos := p.Pos()
 
-		if _, ok := parser.TryInOrder(p, Horizontal(), Vertical()); !ok {
-			return struct{}{}, &fancyerr.Error{
+		hErr := parser.TrySkip(p, Horizontal())
+		vErr := parser.TrySkip(p, Vertical())
+
+		if hErr != nil && vErr != nil {
+			return &fancyerr.Error{
 				Message: "missing whitespace",
 				Primary: quickanno.Expected(p, pos, "a space, tab, or line ending"),
 			}
 		}
 
-		for {
-			if _, ok := parser.TryInOrder(p, Horizontal(), Vertical()); !ok {
-				return struct{}{}, nil
-			}
+		for hErr == nil || vErr == nil {
+			hErr = parser.TrySkip(p, Horizontal())
+			vErr = parser.TrySkip(p, Vertical())
 		}
+		return nil
 	}
 }
 
-func Horizontal() parser.Func[struct{}] {
-	return func(p *parser.Parser) (struct{}, *fancyerr.Error) {
+func Horizontal() parser.WhitespaceFunc {
+	return func(p *parser.Parser) *fancyerr.Error {
 		pos := p.Pos()
 
-		if !parser.TryAnyRune(p, ' ', '\t') {
-			return struct{}{}, &fancyerr.Error{
+		if parser.TryAnyRune(p, ' ', '\t') <= 0 {
+			return &fancyerr.Error{
 				Message: "missing horizontal whitespace",
 				Primary: quickanno.Expected(p, pos, "a space or tab"),
 			}
 		}
 
-		for parser.TryAnyRune(p, ' ', '\t') {
+		for parser.TryAnyRune(p, ' ', '\t') > 0 {
 		}
-		return struct{}{}, nil
+		return nil
 	}
 }
 
-func Vertical() parser.Func[struct{}] {
-	return func(p *parser.Parser) (struct{}, *fancyerr.Error) {
+func Vertical() parser.WhitespaceFunc {
+	return func(p *parser.Parser) *fancyerr.Error {
 		pos := p.Pos()
 
-		if !parser.TryAnyTokens(p, "\r\n", "\n") {
-			return struct{}{}, &fancyerr.Error{
+		if parser.TryAnyToken(p, "\n", "\r\n") == "" {
+			return &fancyerr.Error{
 				Message: "missing vertical whitespace",
 				Primary: quickanno.Expected(p, pos, "a line ending"),
 			}
 		}
 
-		for parser.TryAnyTokens(p, "\r\n", "\n") {
+		for parser.TryAnyToken(p, "\n", "\r\n") != "" {
 		}
-		return struct{}{}, nil
+		return nil
 	}
 }
 
-func SingleVertical() parser.Func[struct{}] {
-	return func(p *parser.Parser) (struct{}, *fancyerr.Error) {
+func SingleVertical() parser.WhitespaceFunc {
+	return func(p *parser.Parser) *fancyerr.Error {
 		pos := p.Pos()
 
-		if !parser.TryAnyTokens(p, "\r\n", "\n") {
-			return struct{}{}, &fancyerr.Error{
+		if parser.TryAnyToken(p, "\n", "\r\n") == "" {
+			return &fancyerr.Error{
 				Message: "missing vertical whitespace",
 				Primary: quickanno.Expected(p, pos, "a line ending"),
 			}
 		}
 
-		return struct{}{}, nil
+		return nil
 	}
 }

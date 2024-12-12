@@ -1,37 +1,39 @@
 package comment
 
 import (
-	"github.com/mavolin/corgi/fancyerr"
-	"github.com/mavolin/corgi/file/ast"
-	parser "github.com/mavolin/corgi/load/parse/internal"
-	"github.com/mavolin/corgi/load/parse/internal/quickanno"
-	"github.com/mavolin/corgi/load/parse/internal/whitespace"
+	"slices"
+
+	"github.com/mavolin/corgi/v2/fancyerr"
+	"github.com/mavolin/corgi/v2/file/ast"
+	parser "github.com/mavolin/corgi/v2/load/parse/internal"
+	"github.com/mavolin/corgi/v2/load/parse/internal/quickanno"
+	"github.com/mavolin/corgi/v2/load/parse/internal/whitespace"
 )
 
 // OrHorizontalWhitespace parses and captures inline comments and horizontal
 // whitespace.
-func OrHorizontalWhitespace() parser.Func[struct{}] {
-	return func(p *parser.Parser) (struct{}, *fancyerr.Error) {
-		_, hasWS := parser.Try(p, whitespace.Horizontal())
-		c, hasComment := parser.Try(p, InlineGroup())
+func OrHorizontalWhitespace() parser.WhitespaceFunc {
+	return func(p *parser.Parser) *fancyerr.Error {
+		hasWS := parser.TrySkipOk(p, whitespace.Horizontal())
+		c, hasComment := parser.TryOk(p, BlockComment())
 		if !hasWS && !hasComment {
-			return struct{}{}, &fancyerr.Error{
+			return &fancyerr.Error{
 				Message: "missing horizontal whitespace",
-				Primary: quickanno.Expected(p, p.Pos(), "a space, tab, or a single-line block comment"),
+				Primary: quickanno.Expected(p, p.Pos(), "a space, tab, or a block comment"),
 			}
 		}
 		if hasComment {
-			p.CaptureComment(c)
+			p.CaptureComment(&ast.CommentGroup{Comments: []*ast.Comment{c}})
 		}
 
 		for hasWS || hasComment {
-			_, hasWS = parser.Try(p, whitespace.Horizontal())
-			c, hasComment = parser.Try(p, InlineGroup())
+			hasWS = parser.TrySkipOk(p, whitespace.Horizontal())
+			c, hasComment = parser.TryOk(p, BlockComment())
 			if hasComment {
-				p.CaptureComment(c)
+				p.CaptureComment(&ast.CommentGroup{Comments: []*ast.Comment{c}})
 			}
 		}
-		return struct{}{}, nil
+		return nil
 	}
 }
 
@@ -39,78 +41,60 @@ func OrHorizontalWhitespace() parser.Func[struct{}] {
 // It consumes trailing horizontal whitespace; it doesn't consume the EOL.
 // If the line ends with a line comment, AndEOS accepts, but does not consume
 // it.
-func AndEOS() parser.Func[struct{}] {
-	return func(p *parser.Parser) (struct{}, *fancyerr.Error) {
+func AndEOS() parser.WhitespaceFunc {
+	return func(p *parser.Parser) *fancyerr.Error {
 		pos := p.Pos()
 		for {
-			_, hasWS := parser.Try(p, whitespace.Horizontal())
-			c, hasComment := parser.Try(p, singleLineBlockComment())
-			if !hasComment && !hasWS {
+			parser.TrySkip(p, whitespace.Horizontal())
+			c, hasComment := parser.TryOk(p, BlockComment())
+			if !hasComment {
 				break
 			}
-			if hasComment {
-				p.CaptureComment(&ast.CommentGroup{Comments: []*ast.Comment{c}})
-			}
+			p.CaptureComment(&ast.CommentGroup{Comments: []*ast.Comment{c}})
 		}
 
 		switch {
 		case parser.TryRune(p, ';'):
-			return struct{}{}, nil
-		case parser.Matches(p, whitespace.EOL()):
-			return struct{}{}, nil
+			return nil
+		case parser.MatchesWS(p, whitespace.EOL()):
+			return nil
 		case parser.MatchesToken(p, "}"):
-			return struct{}{}, nil
+			return nil
 		case parser.MatchesToken(p, "//"):
-			return struct{}{}, nil
+			return nil
 		}
 
-		state := p.CloneState()
-		if !parser.TryToken(p, "/*") {
-			return struct{}{}, &fancyerr.Error{
-				Message: "expected end of statement",
-				Primary: quickanno.Expected(p, pos, "a semicolon, EOL, or a line comment"),
-			}
-		}
-
-		parser.TokenWhile(p, func() bool {
-			return !parser.MatchesToken(p, "*/") && parser.Matches(p, whitespace.EOL())
-		})
-		if !parser.MatchesToken(p, "*/") { // IS multi-line
-			p.RestoreState(state)
-			return struct{}{}, nil
-		}
-
-		return struct{}{}, &fancyerr.Error{
+		return &fancyerr.Error{
 			Message: "expected end of statement",
 			Primary: quickanno.Expected(p, pos, "a semicolon, EOL, or a line comment"),
 		}
 	}
 }
 
-// OrEOL captures the comments until and including the first EOL.
+// AndEOL captures the comments until and including the first EOL.
 // Only single-line block comments are captured.
-func OrEOL() parser.Func[struct{}] {
-	return func(p *parser.Parser) (struct{}, *fancyerr.Error) {
+func AndEOL() parser.WhitespaceFunc {
+	return func(p *parser.Parser) *fancyerr.Error {
 		for {
-			parser.Try(p, whitespace.Horizontal())
-			c, ok := parser.Try(p, singleLineBlockComment())
-			if !ok {
+			parser.TrySkip(p, whitespace.Horizontal())
+			c, hasComment := parser.TryOk(p, BlockComment())
+			if !hasComment {
 				break
 			}
 			p.CaptureComment(&ast.CommentGroup{Comments: []*ast.Comment{c}})
 		}
 
-		c, ok := parser.Try(p, lineCommentWithoutEOL())
-		if ok {
+		c, hasComment := parser.TryOk(p, lineCommentWithoutEOL())
+		if hasComment {
 			p.CaptureComment(&ast.CommentGroup{Comments: []*ast.Comment{c}})
 		}
 
-		_, ok = parser.Try(p, whitespace.EOL())
-		if ok {
-			return struct{}{}, nil
+		hasEOL := parser.TrySkipOk(p, whitespace.EOL())
+		if hasEOL {
+			return nil
 		}
 
-		return struct{}{}, &fancyerr.Error{
+		return &fancyerr.Error{
 			Message: "expected EOL",
 			Primary: quickanno.Expected(p, p.Pos(), "the end of line, end of file, or a line comment"),
 		}
@@ -118,66 +102,66 @@ func OrEOL() parser.Func[struct{}] {
 }
 
 // OrAnyWhitespace parses and captures comments and any whitespace.
-func OrAnyWhitespace() parser.Func[struct{}] {
-	return func(p *parser.Parser) (struct{}, *fancyerr.Error) {
+func OrAnyWhitespace() parser.WhitespaceFunc {
+	return func(p *parser.Parser) *fancyerr.Error {
 		pos := p.Pos()
 		for {
-			parser.Try(p, whitespace.Horizontal())
-			c, ok := parser.Try(p, singleLineBlockComment())
-			if !ok {
+			parser.TrySkip(p, whitespace.Horizontal())
+			c, hasComment := parser.TryOk(p, BlockComment())
+			if !hasComment {
 				break
 			}
 			p.CaptureComment(&ast.CommentGroup{Comments: []*ast.Comment{c}})
 		}
 
-		c, ok := parser.Try(p, lineCommentWithoutEOL())
-		if ok {
+		parser.TrySkip(p, whitespace.Horizontal())
+		c, hasComment := parser.TryOk(p, LineComment())
+		if hasComment {
 			p.CaptureComment(&ast.CommentGroup{Comments: []*ast.Comment{c}})
 		}
 
-		_, ok = parser.Try(p, whitespace.EOL())
-		if !ok {
-			if pos == p.Pos() {
-				return struct{}{}, &fancyerr.Error{
-					Message: "missing whitespace",
-					Primary: quickanno.Expected(p, p.Pos(), "a space, tab, newline, or a comment"),
-				}
+		parser.TrySkip(p, OrLoneWS())
+		if pos == p.Pos() {
+			return &fancyerr.Error{
+				Message: "missing whitespace",
+				Primary: quickanno.Expected(p, p.Pos(), "a space, tab, newline, or a comment"),
 			}
-
-			return struct{}{}, nil
 		}
-
-		parser.Try(p, OrLoneWS())
-		return struct{}{}, nil
+		return nil
 	}
 }
 
-func OrLoneWS() parser.Func[struct{}] {
-	return func(p *parser.Parser) (struct{}, *fancyerr.Error) {
-		_, hasWS := parser.Try(p, whitespace.Any())
-		g, hasComment := parser.Try(p, LoneGroup())
-		if !hasWS && !hasComment {
-			return struct{}{}, &fancyerr.Error{
+func OrLoneWS() parser.WhitespaceFunc {
+	return func(p *parser.Parser) *fancyerr.Error {
+		hasWS := parser.TrySkipOk(p, whitespace.Any())
+
+		c, hasComment := parser.TryOk(p, BlockComment())
+		if hasComment {
+			p.CaptureComment(&ast.CommentGroup{Comments: []*ast.Comment{c}})
+			parser.TrySkip(p, OrAnyWhitespace())
+			return nil
+		}
+
+		c, hasComment = parser.TryOk(p, LineComment())
+		if !hasComment {
+			if hasWS {
+				return nil
+			}
+			return &fancyerr.Error{
 				Message: "missing whitespace",
 				Primary: quickanno.Expected(p, p.Pos(), "a space, tab, newline, or a comment"),
 			}
 		}
 
-		for hasWS || hasComment {
-			if hasComment {
-				p.CaptureComment(g)
+		cs := make([]*ast.Comment, 0, 48)
+		for hasComment {
+			cs = append(cs, c)
 
-				if g.Comments[0].Block {
-					if _, ok := parser.Try(p, OrEOL()); !ok {
-						break // we've reached EOF
-					}
-				}
-			}
-
-			_, hasWS = parser.Try(p, whitespace.Any())
-			g, hasComment = parser.Try(p, LoneGroup())
+			parser.TrySkip(p, whitespace.Horizontal())
+			c, hasComment = parser.TryOk(p, LineComment())
 		}
-
-		return struct{}{}, nil
+		p.CaptureComment(&ast.CommentGroup{Comments: slices.Clip(cs)})
+		parser.TrySkip(p, OrLoneWS())
+		return nil
 	}
 }

@@ -3,8 +3,9 @@ package whitespace
 import (
 	"testing"
 
-	parser "github.com/mavolin/corgi/load/parse/internal"
-	"github.com/mavolin/corgi/load/parse/internal/testutil"
+	parser "github.com/mavolin/corgi/v2/load/parse/internal"
+	"github.com/mavolin/corgi/v2/load/parse/internal/testutil"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestEOL(t *testing.T) {
@@ -18,13 +19,17 @@ func TestEOL(t *testing.T) {
 	})
 }
 
-func testEOL(t *testing.T, f parser.Func[struct{}]) {
+func testEOL(t *testing.T, f parser.WhitespaceFunc) {
 	testCases := []string{"\n", "\r\n"}
 
-	for _, tc := range testCases {
-		t.Run(testName(tc), func(t *testing.T) {
+	for _, in := range testCases {
+		t.Run(testName(in), func(t *testing.T) {
 			t.Parallel()
-			testutil.ParsesFully(t, tc, f)
+
+			p := testutil.NewParser(t, in)
+			assert.Nil(t, f(p))
+			line, col, index := testutil.CalcEnd(1, 1, 0, in)
+			testutil.AssertPosition(t, p, line, col, index)
 		})
 	}
 }
@@ -34,13 +39,17 @@ func TestEOF(t *testing.T) {
 	testEOF(t, EOF())
 }
 
-func testEOF(t *testing.T, f parser.Func[struct{}]) {
+func testEOF(t *testing.T, f parser.WhitespaceFunc) {
 	testCases := []string{"", " ", "\t", "\t  ", "   \t  \t "}
 
-	for _, tc := range testCases {
-		t.Run(testName(tc), func(t *testing.T) {
+	for _, in := range testCases {
+		t.Run(testName(in), func(t *testing.T) {
 			t.Parallel()
-			testutil.ParsesFully(t, tc, f)
+
+			p := testutil.NewParser(t, in)
+			assert.Nil(t, f(p))
+			line, col, index := testutil.CalcEnd(1, 1, 0, in)
+			testutil.AssertPosition(t, p, line, col, index)
 		})
 	}
 }

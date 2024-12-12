@@ -2,56 +2,81 @@ package parser
 
 // TryToken attempts to match the given token verbatim.
 func TryToken(p *Parser, s string) (ok bool) {
-	if MatchesToken(p, s) {
-		for range s {
-			p.next()
-		}
-		return true
+	restore := p.takeRestore()
+	if !MatchesToken(p, s) {
+		p.RestoreState(restore)
+		return false
 	}
-	return false
+
+	for range s {
+		p.next()
+	}
+	return true
 }
 
-func TryAnyTokens(p *Parser, ss ...string) (ok bool) {
+func TryAnyToken(p *Parser, ss ...string) string {
+	restore := p.takeRestore()
 	for _, s := range ss {
-		if TryToken(p, s) {
-			return true
+		if MatchesToken(p, s) {
+			for range s {
+				p.next()
+			}
+			return s
 		}
 	}
-	return false
+	p.RestoreState(restore)
+	return ""
 }
 
 func TryRune(p *Parser, r rune) (ok bool) {
-	if r == p.peek() {
-		p.next()
-		return true
+	restore := p.takeRestore()
+	if r != p.peek() {
+		p.RestoreState(restore)
+		return false
 	}
-	return false
+	p.next()
+	return true
 }
 
 // TryAnyRune attempts to match the next rune against any of the passed runes.
-func TryAnyRune(p *Parser, rs ...rune) (ok bool) {
-	peek := p.peek()
-	for _, r := range rs {
-		if peek == r {
-			p.next()
-			return true
+//
+// It returns the matched rune, or -1 if none matched.
+func TryAnyRune(p *Parser, rs ...rune) rune {
+	return TryRunePredicate(p, func(r rune) bool {
+		for _, rr := range rs {
+			if r == rr {
+				return true
+			}
 		}
-	}
-	return false
+		return false
+	})
 }
 
-func TryRunePredicate(p *Parser, pred func(rune) bool) (r rune, ok bool) {
-	if pred(p.peek()) {
-		return p.next(), true
+// TryRunePredicate attempts to match the next rune against the predicate.
+// If successful, it returns the matched rune, otherwise, it returns -1.
+func TryRunePredicate(p *Parser, pred func(rune) bool) rune {
+	restore := p.takeRestore()
+	if !pred(p.peek()) {
+		p.RestoreState(restore)
+		return -1
 	}
-	return 0, false
+	return p.next()
 }
 
 // TokenWhile consumes runes as long as the predicate returns true.
 // The predicate may invoke the parser inside the predicate, but must not
 // consume any runes itself.
+//
+// If TokenWhile doesn't consume any runes, previously consumed whitespace is
+// rolled back.
 func TokenWhile(p *Parser, pred func() bool) string {
+	restore := p.takeRestore()
 	start := p.Index()
+	if !pred() {
+		p.RestoreState(restore)
+		return ""
+	}
+	p.next()
 	for pred() {
 		r := p.next()
 		if r == EOF {
@@ -59,22 +84,4 @@ func TokenWhile(p *Parser, pred func() bool) string {
 		}
 	}
 	return p.File.Raw[start:p.Index()]
-}
-
-func TryAtLeastOne[T any](p *Parser, f Func[T]) (_ []T, ok bool) {
-	first, ok := Try(p, f)
-	if !ok {
-		return nil, false
-	}
-
-	res := make([]T, 1, 48)
-	res[0] = first
-
-	for {
-		next, ok := Try(p, f)
-		if !ok {
-			return res, true
-		}
-		res = append(res, next)
-	}
 }

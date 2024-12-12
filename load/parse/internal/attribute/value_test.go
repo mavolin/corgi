@@ -3,10 +3,9 @@ package attribute
 import (
 	"testing"
 
-	"github.com/mavolin/corgi/escape/attrtype"
-	"github.com/mavolin/corgi/file/ast"
-	parser "github.com/mavolin/corgi/load/parse/internal"
-	"github.com/mavolin/corgi/load/parse/internal/testutil"
+	"github.com/mavolin/corgi/v2/file/ast"
+	parser "github.com/mavolin/corgi/v2/load/parse/internal"
+	"github.com/mavolin/corgi/v2/load/parse/internal/testutil"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -21,11 +20,13 @@ func TestExpressionValue(t *testing.T) {
 	testExpressionValue(t, ExpressionValue())
 }
 
-func testExpressionValue(t *testing.T, f parser.Func[ast.ExpressionAttributeValue]) {
+func testExpressionValue(t *testing.T, f parser.Func[*ast.ExpressionAttributeValue]) {
 	expect := &ast.ExpressionAttributeValue{
-		&ast.GoCode{
-			Code:     "woof",
-			Position: ast.Position{Line: 1, Col: 1},
+		Nodes: []ast.ExpressionNode{
+			&ast.GoCode{
+				Code:     "woof",
+				Position: ast.Position{Line: 1, Col: 1},
+			},
 		},
 	}
 
@@ -39,40 +40,49 @@ func TestTypedAttributeValue(t *testing.T) {
 }
 
 func testTypedAttributeValue(t *testing.T, f parser.Func[*ast.TypedAttributeValue]) {
-	testCases := []struct {
-		name string
-		typ  attrtype.Type
-	}{
-		{name: "unsafeBool", typ: attrtype.UnsafeBool},
-		{name: "unsafe", typ: attrtype.Unsafe},
-		{name: "bool", typ: attrtype.Bool},
-		{name: "text", typ: attrtype.Text},
-		{name: "css", typ: attrtype.CSS},
-		{name: "js", typ: attrtype.JS},
-		{name: "url", typ: attrtype.URL},
-		{name: "urlList", typ: attrtype.URLList},
-		{name: "resourceURL", typ: attrtype.ResourceURL},
-		{name: "srcset", typ: attrtype.Srcset},
-	}
-
-	for _, c := range testCases {
+	for _, c := range attrTypes {
 		t.Run(c.name, func(t *testing.T) {
-			in := c.name + "(woof)"
+			in := "'" + c.name + "(woof)"
 			expect := &ast.TypedAttributeValue{
-				Type:   c.typ,
-				LParen: &ast.Position{Line: 1, Col: 1 + len(c.name)},
-				Value: &ast.ExpressionAttributeValue{
-					&ast.GoCode{
-						Code:     "woof",
-						Position: ast.Position{Line: 1, Col: 1 + len(c.name) + len("(")},
+				Type: ast.AttributeType{
+					Quote: ast.Position{Line: 1, Col: 1},
+					Name: &ast.AttributeTypeName{
+						Name:     c.name,
+						Type:     c.typ,
+						Position: ast.Position{Line: 1, Col: 2},
 					},
 				},
-				RParen:   &ast.Position{Line: 1, Col: 1 + len(c.name) + len("(woof")},
-				Position: ast.Position{Line: 1, Col: 1},
+				LParen: &ast.Position{Line: 1, Col: 1 + len(c.name)},
+				Value: &ast.ExpressionAttributeValue{
+					Nodes: []ast.ExpressionNode{
+						&ast.GoCode{
+							Code:     "woof",
+							Position: ast.Position{Line: 1, Col: 1 + len(c.name) + len("(")},
+						},
+					},
+				},
+				RParen: &ast.Position{Line: 1, Col: 1 + len(c.name) + len("(woof")},
 			}
 
 			actual := testutil.ParsesFully(t, in, TypedAttributeValue())
 			assert.Equal(t, expect, actual)
 		})
 	}
+
+	t.Run("false positive", func(t *testing.T) {
+		t.Parallel()
+
+		testCases := []string{
+			`'w'`,
+			`'\"'`,
+		}
+
+		for _, in := range testCases {
+			t.Run(in, func(t *testing.T) {
+				t.Parallel()
+
+				testutil.NoMatch(t, in, TypedAttributeValue())
+			})
+		}
+	})
 }

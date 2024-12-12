@@ -3,9 +3,9 @@ package attribute
 import (
 	"testing"
 
-	"github.com/mavolin/corgi/file/ast"
-	parser "github.com/mavolin/corgi/load/parse/internal"
-	"github.com/mavolin/corgi/load/parse/internal/testutil"
+	"github.com/mavolin/corgi/v2/file/ast"
+	parser "github.com/mavolin/corgi/v2/load/parse/internal"
+	"github.com/mavolin/corgi/v2/load/parse/internal/testutil"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -49,20 +49,26 @@ func testNamedAttribute(t *testing.T, f parser.Func[*ast.NamedAttribute]) {
 			name: "boolean",
 			in:   "async",
 			expect: &ast.NamedAttribute{
-				Position: ast.Position{Line: 1, Col: 1},
-				Name:     "async",
+				Name: ast.AttributeName{
+					Name:     "async",
+					Position: ast.Position{Line: 1, Col: 1},
+				},
 			},
 		}, {
 			name: "value",
 			in:   `value=woof`,
 			expect: &ast.NamedAttribute{
-				Position: ast.Position{Line: 1, Col: 1},
-				Name:     "class",
-				Assign:   &ast.Position{Line: 1, Col: 6},
+				Name: ast.AttributeName{
+					Name:     "value",
+					Position: ast.Position{Line: 1, Col: 1},
+				},
+				Assign: &ast.Position{Line: 1, Col: 6},
 				Value: &ast.ExpressionAttributeValue{
-					&ast.GoCode{
-						Code:     "woof",
-						Position: ast.Position{Line: 1, Col: 7},
+					Nodes: []ast.ExpressionNode{
+						&ast.GoCode{
+							Code:     "woof",
+							Position: ast.Position{Line: 1, Col: 7},
+						},
 					},
 				},
 			},

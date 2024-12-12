@@ -4,26 +4,62 @@
 // operates on the same shared Parser instance to facilitate positional
 // tracking, error recovery and reporting, and other stateful operations.
 // This is, of course, different from a typical parser combinator that takes in
-// a string, but eases implementation tremendously with no drawback.
+// a string, but our approach eases implementation tremendously with no
+// drawback.
 //
 // Using a parser combinator also means each parser function can be
 // individually tested.
+//
+// We use special functions for consuming whitespace, which is rolled back, if
+// the next call to Try or Must in the same function fails.
+// This is incredibly convenient, but can be tricky if you skip WS and then
+// try a bunch of functions.
+// For example, consider the buggy code below:
+//
+//	 parser.MustSkip(p, whitespace.Any())
+//	 if res1, ok := parser.TryOk(p, a()); ok {
+//			// ...
+//	 } else if res2, ok := parser.TryOk(p, b()); ok {
+//			// ...
+//	 }
+//
+// If a fails, the consumed whitespace is rolled back and b is tried with
+// whitespace in front.
+// To remedy, either use TryInOrder, or, if a and b return different types,
+// wrap them in a Func like this:
+//
+//	parser.MustSkip(p, whitespace.Any())
+//	v, ok := parser.Try(p, func(p *parser.Parser) (parentType, *fancyerr.Error) {
+//		if res1, ok := parser.TryOk(p, a()); ok {
+//			return parentType(res1), nil
+//		}
+//		return parser.Try(p, b())
+//	})
 package parser
 
 import (
 	"unicode/utf8"
 
-	"github.com/mavolin/corgi/fancyerr"
-	"github.com/mavolin/corgi/file"
-	"github.com/mavolin/corgi/file/ast"
+	"github.com/mavolin/corgi/v2/fancyerr"
+	"github.com/mavolin/corgi/v2/file"
+	"github.com/mavolin/corgi/v2/file/ast"
 )
 
 const EOF rune = 0
 
+type Preloader func(importPath string)
+
 type Parser struct {
 	*file.File
+	Preload Preloader
 
 	state *State
+
+	// restore holds a *State to restore to, if the next try or must doesn't
+	// match
+	// Do not interact directly, but use makeRestore and takeRestore.
+	restore   *State
+	parsingWS bool
 }
 
 func New(f *file.File) *Parser {
@@ -74,6 +110,7 @@ func (p *Parser) DoInline(f func()) {
 	p.state.inline = false
 }
 func (p *Parser) CaptureError(err *fancyerr.Error)   { p.state.CaptureError(err) }
+func (p *Parser) Errors() fancyerr.List              { return p.state.Errors() }
 func (p *Parser) CaptureComment(g *ast.CommentGroup) { p.state.CaptureComment(g) }
 func (p *Parser) CloneState() *State                 { return p.state.Clone() }
 
@@ -81,23 +118,53 @@ func (p *Parser) RestoreState(s *State) {
 	p.state = s
 }
 
-// Func represents a sub-parser that can be tried to see if it matches.
-//
-// TokenWhile the implementation is up to the function itself, a typical
-// indicator of whether the function matches is the present of a unique
-// prefix, such as `comp` for a component declaration.
-//
-// If the func does not match, it should return an error.
-//
-// If the func matches, but the parsed value contains syntactical errors,
-// those should be captured using the `CaptureError` method of the parser.
-type Func[T any] func(p *Parser) (T, *fancyerr.Error)
+func (p *Parser) makeRestore() {
+	if p.restore == nil {
+		p.restore = p.CloneState()
+	}
+}
+
+func (p *Parser) takeRestore() *State {
+	if p.restore == nil || p.parsingWS {
+		return p.CloneState()
+	}
+	defer func() { p.restore = nil }()
+	return p.restore
+}
+
+type (
+	// Func represents a sub-parser that can be tried to see if it matches.
+	//
+	// While the implementation is up to the function itself, a typical
+	// indicator of whether the function matches is the present of a unique
+	// prefix, such as `comp` for a component declaration.
+	//
+	// If the func does not match, it should return an error.
+	//
+	// If the func matches, but the parsed value contains syntactical errors,
+	// those should be captured using the `CaptureError` method of the parser.
+	//
+	// Funcs must not be called directly, but only using [Try] and [Must].
+	Func[T any] func(p *Parser) (T, *fancyerr.Error)
+
+	// A WhitespaceFunc is a special [Func] that parses whitespace.
+	// It semantically differs, in that consumed whitespace is rolled back, if
+	// the next call to [Try] or [Must] (and its derivatives) fails.
+	WhitespaceFunc func(p *Parser) *fancyerr.Error
+)
 
 // Matches reports whether f would match.
 // It does not consume any input.
 func Matches[T any](p *Parser, f Func[T]) bool {
 	state := p.CloneState()
 	_, err := f(p)
+	p.RestoreState(state)
+	return err == nil
+}
+
+func MatchesWS(p *Parser, f WhitespaceFunc) bool {
+	state := p.CloneState()
+	err := f(p)
 	p.RestoreState(state)
 	return err == nil
 }
@@ -109,62 +176,101 @@ func MatchesToken(p *Parser, s string) bool {
 }
 
 func MatchesAnyRune(p *Parser, rs ...rune) bool {
-	peek := p.peek()
-	for _, r := range rs {
-		if peek == r {
-			return true
+	return MatchesRunePredicate(p, func(cmp rune) bool {
+		for _, r := range rs {
+			if r == cmp {
+				return true
+			}
 		}
-	}
-	return false
+		return false
+	})
 }
 
-func MatchesAnyRunePredicate(p *Parser, preds ...func(rune) bool) bool {
-	r := p.peek()
-	for _, pred := range preds {
-		if pred(r) {
-			return true
-		}
-	}
-	return false
+func MatchesRunePredicate(p *Parser, pred func(rune) bool) bool {
+	return pred(p.peek())
 }
 
 // Try tries to parse using the given [Func], ignoring an error if one occurs.
-func Try[T any](p *Parser, f Func[T]) (_ T, ok bool) {
-	state := p.CloneState()
+func Try[T any](p *Parser, f Func[T]) (T, *fancyerr.Error) {
+	restore := p.takeRestore()
 	v, err := f(p)
 	if err != nil {
-		p.RestoreState(state)
-		return v, false
+		p.RestoreState(restore)
+		return v, err
 	}
-	return v, true
+	return v, err
+}
+
+func TryOk[T any](p *Parser, f Func[T]) (T, bool) {
+	v, err := Try(p, f)
+	return v, err == nil
 }
 
 // TryInOrder tries all Funcs until it finds one that matches.
 //
 // If none match, it returns false.
 func TryInOrder[T any](p *Parser, fs ...Func[T]) (T, bool) {
+	restore := p.takeRestore()
 	state := p.CloneState()
 	for _, f := range fs {
 		v, err := f(p)
 		if err == nil { // IS nil
 			return v, true
 		}
+		p.RestoreState(state)
 	}
-	p.RestoreState(state)
+	p.RestoreState(restore)
 
 	var z T
 	return z, false
+}
+
+// TrySkip attempts to skip whitespace using the given [WhitespaceFunc].
+//
+// Calls to TrySkip can be stacked, so that the next call to [Try] or [Must]
+// (and friends) rolls back to the first TrySkip call in a chain of many.
+//
+// Even if TrySkip fails to match, it does not affect a previous restore
+// point.
+func TrySkip(p *Parser, f WhitespaceFunc) *fancyerr.Error {
+	if !p.parsingWS {
+		p.makeRestore()
+		p.parsingWS = true
+		defer func() { p.parsingWS = false }()
+	}
+
+	state := p.CloneState()
+	if err := f(p); err != nil {
+		p.RestoreState(state)
+		return err
+	}
+	return nil
+}
+
+func TrySkipOk(p *Parser, f WhitespaceFunc) bool {
+	return TrySkip(p, f) == nil
 }
 
 // Must tries to parse using the given [Func].
 // If the func returns an error, Must captures it and returns the value
 // returned by Func, most commonly the zero value.
 func Must[T any](p *Parser, f Func[T]) T {
-	state := p.CloneState()
-	v, err := f(p)
+	v, err := Try(p, f)
 	if err != nil {
-		p.RestoreState(state)
 		p.CaptureError(err)
 	}
 	return v
+}
+
+// MustSkip is the [Must] equivalent of [TrySkip].
+func MustSkip(p *Parser, f WhitespaceFunc) {
+	if err := TrySkip(p, f); err != nil {
+		p.CaptureError(err)
+	}
+}
+
+// RestoreWS restores all whitespace consumed by the last calls to [TrySkip]
+// and friends.
+func RestoreWS(p *Parser) {
+	p.RestoreState(p.takeRestore())
 }

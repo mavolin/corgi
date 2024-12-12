@@ -3,9 +3,9 @@ package comment
 import (
 	"testing"
 
-	"github.com/mavolin/corgi/file/ast"
-	parser "github.com/mavolin/corgi/load/parse/internal"
-	"github.com/mavolin/corgi/load/parse/internal/testutil"
+	"github.com/mavolin/corgi/v2/file/ast"
+	parser "github.com/mavolin/corgi/v2/load/parse/internal"
+	"github.com/mavolin/corgi/v2/load/parse/internal/testutil"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -36,7 +36,7 @@ func testLineComment(t *testing.T, f parser.Func[*ast.Comment]) {
 		Close:   &ast.Position{Line: 1, Col: 7},
 	}
 
-	actual := testutil.ParsesFully(t, "// foo", f)
+	actual := testutil.ParsesFully(t, "// foo\n", f)
 	assert.Equal(t, expect, actual)
 }
 
