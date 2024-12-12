@@ -2,10 +2,10 @@
 package quickanno
 
 import (
-	"github.com/mavolin/corgi/fancyerr"
-	"github.com/mavolin/corgi/fancyerr/anno"
-	"github.com/mavolin/corgi/file/ast"
-	parser "github.com/mavolin/corgi/load/parse/internal"
+	"github.com/mavolin/corgi/v2/fancyerr"
+	"github.com/mavolin/corgi/v2/fancyerr/anno"
+	"github.com/mavolin/corgi/v2/file/ast"
+	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 )
 
 func Expected(p *parser.Parser, pos ast.Position, expected string) []fancyerr.Annotation {
