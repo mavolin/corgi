@@ -5,10 +5,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mavolin/corgi/fancyerr"
-	"github.com/mavolin/corgi/file"
-	"github.com/mavolin/corgi/file/ast"
-	parser "github.com/mavolin/corgi/load/parse/internal"
+	"github.com/mavolin/corgi/v2/fancyerr"
+	"github.com/mavolin/corgi/v2/file"
+	"github.com/mavolin/corgi/v2/file/ast"
+	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -26,7 +26,7 @@ func NewParser(t *testing.T, input string) *parser.Parser {
 
 	return parser.New(&file.File{
 		Name: t.Name(),
-		AST: &ast.AST{
+		File: &ast.File{
 			Raw:   input,
 			Lines: lines,
 		},
@@ -36,9 +36,12 @@ func NewParser(t *testing.T, input string) *parser.Parser {
 func ParsesFully[T any](t *testing.T, input string, f parser.Func[T]) T {
 	t.Helper()
 
-	p := NewParser(t, input)
+	p := NewParser(t, input+" 1other stuff")
 	v := AssertNoError(t, p, f)
-	AssertEOF(t, p)
+
+	line, col, index := CalcEnd(1, 1, 0, input)
+	AssertPosition(t, p, line, col, index)
+
 	return v
 }
 
@@ -47,7 +50,7 @@ func NoMatch[T any](t *testing.T, input string, f parser.Func[T]) {
 
 	p := NewParser(t, input)
 	_, err := f(p)
-	assert.Error(t, err, "expected match error")
+	assert.NotNil(t, err, "expected match error")
 }
 
 func MatchesButError[T any](t *testing.T, input string, f parser.Func[T]) T {
@@ -87,17 +90,26 @@ func AssertNoError[T any](t *testing.T, p *parser.Parser, f parser.Func[T]) T {
 }
 
 func AssertEOF(t *testing.T, p *parser.Parser) {
-	line, col, index := 1, 1, 0
-	for _, r := range p.Raw {
+	line, col, index := CalcEnd(1, 1, 0, p.Raw)
+	AssertPosition(t, p, line, col, index)
+}
+
+func CalcEnd(line, col, index int, input string) (int, int, int) {
+	for _, r := range input {
 		if r == '\n' {
 			line++
 			col = 1
 		} else {
 			col++
 		}
-		index++
+		index += len(string(r))
 	}
-	AssertPosition(t, p, line, col, index)
+	return line, col, index
+}
+
+func CalcEndPos(in string) ast.Position {
+	line, col, _ := CalcEnd(1, 1, 0, in)
+	return ast.Position{Line: line, Col: col}
 }
 
 func AssertPosition(t *testing.T, p *parser.Parser, line, col, index int) {
@@ -116,17 +128,19 @@ func CoerceFunc[I, O any](t *testing.T, in parser.Func[I]) parser.Func[O] {
 		}
 
 		require.IsType(t, zero, v)
-		return any(in).(O), err
+		return any(v).(O), err
 	}
 }
 
 func AssertAlsoFulfils[I, O any](t *testing.T, f parser.Func[I], subTest func(*testing.T, parser.Func[O])) {
 	t.Helper()
+
 	var zeroI I
 	iType := reflect.TypeOf(&zeroI).Elem()
 	for iType.Kind() == reflect.Pointer {
 		iType = iType.Elem()
 	}
+
 	t.Run(iType.Name(), func(t *testing.T) {
 		t.Parallel()
 		subTest(t, CoerceFunc[I, O](t, f))
