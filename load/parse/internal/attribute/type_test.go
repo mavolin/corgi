@@ -44,7 +44,7 @@ func TestType(t *testing.T) {
 						Position: ast.Position{Line: 1, Col: 2},
 					},
 				}
-				actual := testutil.ParsesFully(t, "'"+c.name, TypedAttributeValue())
+				actual := testutil.ParsesFully(t, "'"+c.name, Type())
 				assert.Equal(t, expect, actual)
 			})
 		}
@@ -63,7 +63,7 @@ func TestType(t *testing.T) {
 					Position: ast.Position{Line: 1, Col: 2},
 				},
 			}
-			actual := testutil.MatchesButError(t, "'foo", TypedAttributeValue())
+			actual := testutil.MatchesButError(t, "'foo", Type())
 			assert.Equal(t, expect, actual)
 		})
 	})
@@ -84,7 +84,7 @@ func TestTypeName(t *testing.T) {
 					Type:     c.typ,
 					Position: ast.Position{Line: 1, Col: 1},
 				}
-				actual := testutil.ParsesFully(t, c.name, TypedAttributeValue())
+				actual := testutil.ParsesFully(t, c.name, TypeName())
 				assert.Equal(t, expect, actual)
 			})
 		}
@@ -100,7 +100,7 @@ func TestTypeName(t *testing.T) {
 				Type:     attrtype.Unknown,
 				Position: ast.Position{Line: 1, Col: 1},
 			}
-			actual := testutil.MatchesButError(t, "foo", TypedAttributeValue())
+			actual := testutil.MatchesButError(t, "foo", TypeName())
 			assert.Equal(t, expect, actual)
 		})
 	})

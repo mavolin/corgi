@@ -52,8 +52,13 @@ func AndPlaceholder() parser.Func[*ast.AndPlaceholder] {
 
 func NamedAttribute() parser.Func[*ast.NamedAttribute] {
 	return func(p *parser.Parser) (*ast.NamedAttribute, *fancyerr.Error) {
+		attr := &ast.NamedAttribute{}
+
 		attrName, ok := parser.TryOk(p, Name())
-		if !ok {
+		if ok {
+			attr.Name = *attrName
+		} else {
+			attr.Name.Position = p.Pos()
 			// let this slide, as long as there is an equal sign following
 			p.CaptureError(&fancyerr.Error{
 				Message:  "missing attribute name",
@@ -61,8 +66,6 @@ func NamedAttribute() parser.Func[*ast.NamedAttribute] {
 				Examples: []fancyerr.Example{{Example: "`class=\"woof\"`"}},
 			})
 		}
-
-		attr := &ast.NamedAttribute{Name: *attrName}
 
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 

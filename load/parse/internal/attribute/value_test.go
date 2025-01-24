@@ -21,6 +21,7 @@ func TestExpressionValue(t *testing.T) {
 }
 
 func testExpressionValue(t *testing.T, f parser.Func[*ast.ExpressionAttributeValue]) {
+	in := "woof"
 	expect := &ast.ExpressionAttributeValue{
 		Nodes: []ast.ExpressionNode{
 			&ast.GoCode{
@@ -30,44 +31,18 @@ func testExpressionValue(t *testing.T, f parser.Func[*ast.ExpressionAttributeVal
 		},
 	}
 
-	actual := testutil.ParsesFully(t, "woof", ExpressionValue())
+	p := testutil.NewParser(t, in+", 1other stuff")
+	actual := testutil.AssertNoError(t, p, f)
+
+	line, col, index := testutil.CalcEnd(1, 1, 0, in)
+	testutil.AssertPosition(t, p, line, col, index)
+
 	assert.Equal(t, expect, actual)
 }
 
 func TestTypedAttributeValue(t *testing.T) {
 	t.Parallel()
 	testTypedAttributeValue(t, TypedAttributeValue())
-}
-
-func testTypedAttributeValue(t *testing.T, f parser.Func[*ast.TypedAttributeValue]) {
-	for _, c := range attrTypes {
-		t.Run(c.name, func(t *testing.T) {
-			in := "'" + c.name + "(woof)"
-			expect := &ast.TypedAttributeValue{
-				Type: ast.AttributeType{
-					Quote: ast.Position{Line: 1, Col: 1},
-					Name: &ast.AttributeTypeName{
-						Name:     c.name,
-						Type:     c.typ,
-						Position: ast.Position{Line: 1, Col: 2},
-					},
-				},
-				LParen: &ast.Position{Line: 1, Col: 1 + len(c.name)},
-				Value: &ast.ExpressionAttributeValue{
-					Nodes: []ast.ExpressionNode{
-						&ast.GoCode{
-							Code:     "woof",
-							Position: ast.Position{Line: 1, Col: 1 + len(c.name) + len("(")},
-						},
-					},
-				},
-				RParen: &ast.Position{Line: 1, Col: 1 + len(c.name) + len("(woof")},
-			}
-
-			actual := testutil.ParsesFully(t, in, TypedAttributeValue())
-			assert.Equal(t, expect, actual)
-		})
-	}
 
 	t.Run("false positive", func(t *testing.T) {
 		t.Parallel()
@@ -85,4 +60,39 @@ func testTypedAttributeValue(t *testing.T, f parser.Func[*ast.TypedAttributeValu
 			})
 		}
 	})
+}
+
+func testTypedAttributeValue(t *testing.T, f parser.Func[*ast.TypedAttributeValue]) {
+	for _, c := range attrTypes {
+		t.Run(c.name, func(t *testing.T) {
+			in := "'" + c.name + "(woof)"
+			expect := &ast.TypedAttributeValue{
+				Type: ast.AttributeType{
+					Quote: ast.Position{Line: 1, Col: 1},
+					Name: &ast.AttributeTypeName{
+						Name:     c.name,
+						Type:     c.typ,
+						Position: ast.Position{Line: 1, Col: 2},
+					},
+				},
+				LParen: &ast.Position{Line: 1, Col: 1 + len("'") + len(c.name)},
+				Value: &ast.ExpressionAttributeValue{
+					Nodes: []ast.ExpressionNode{
+						&ast.GoCode{
+							Code:     "woof",
+							Position: ast.Position{Line: 1, Col: 1 + len("'") + len(c.name) + len("(")},
+						},
+					},
+				},
+				RParen: &ast.Position{Line: 1, Col: 1 + len("'") + len(c.name) + len("(woof")},
+			}
+
+			p := testutil.NewParser(t, in+", 1other stuff")
+			actual := testutil.AssertNoError(t, p, f)
+
+			line, col, index := testutil.CalcEnd(1, 1, 0, in)
+			testutil.AssertPosition(t, p, line, col, index)
+			assert.Equal(t, expect, actual)
+		})
+	}
 }

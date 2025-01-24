@@ -2,26 +2,23 @@ package attribute
 
 import (
 	"slices"
-	"unicode"
-	"unicode/utf8"
 
 	"github.com/mavolin/corgi/v2/fancyerr"
 	"github.com/mavolin/corgi/v2/file/ast"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
-	"github.com/mavolin/corgi/v2/load/parse/internal/code"
-	"github.com/mavolin/corgi/v2/load/parse/internal/comment"
 	"github.com/mavolin/corgi/v2/load/parse/internal/html/codepoint"
+	"github.com/mavolin/corgi/v2/load/parse/internal/interpolation"
 	"github.com/mavolin/corgi/v2/load/parse/internal/quickanno"
 	"github.com/mavolin/corgi/v2/load/parse/internal/whitespace"
 )
 
 func IDShorthand() parser.Func[*ast.IDShorthand] {
 	return func(p *parser.Parser) (*ast.IDShorthand, *fancyerr.Error) {
-		s := &ast.IDShorthand{Position: p.Pos()}
+		s := &ast.IDShorthand{Hash: p.Pos()}
 		if !parser.TryRune(p, '#') {
 			return nil, &fancyerr.Error{
 				Message:  "missing id shorthand",
-				Primary:  quickanno.Expected(p, s.Position, "an id shorthand"),
+				Primary:  quickanno.Expected(p, s.Hash, "an id shorthand"),
 				Examples: []fancyerr.Example{{Example: "`#woof`"}},
 			}
 		}
@@ -33,55 +30,32 @@ func IDShorthand() parser.Func[*ast.IDShorthand] {
 
 func ClassShorthand() parser.Func[*ast.ClassShorthand] {
 	return func(p *parser.Parser) (*ast.ClassShorthand, *fancyerr.Error) {
-		s := &ast.ClassShorthand{Position: p.Pos()}
+		s := &ast.ClassShorthand{Dot: p.Pos()}
 		if !parser.TryRune(p, '.') {
 			return nil, &fancyerr.Error{
 				Message:  "missing class shorthand",
-				Primary:  quickanno.Expected(p, s.Position, "a class shorthand"),
+				Primary:  quickanno.Expected(p, s.Dot, "a class shorthand"),
 				Examples: []fancyerr.Example{{Example: "`.woof`"}},
 			}
 		}
 
-		s.Name = parser.Must(p, Shorthand())
+		s.Names = make([]ast.Shorthand, 1, 16)
+		var err *fancyerr.Error
+		s.Names[0], err = parser.Try(p, Shorthand())
+		if err != nil {
+			p.CaptureError(err)
+		}
 
-		suffixes := make([]ast.ClassSuffix, 0, 16)
-		for {
-			if !parser.TrySkipOk(p, comment.OrHorizontalWhitespace()) {
-				parser.RestoreWS(p)
-			}
-
-			suffix, ok := parser.TryOk(p, ClassSuffix())
+		for parser.TrySkipOk(p, whitespace.Horizontal()) {
+			name, ok := parser.TryOk(p, Shorthand())
 			if !ok {
 				break
 			}
-			suffixes = append(suffixes, suffix)
+			s.Names = append(s.Names, name)
 		}
-		s.Suffixes = slices.Clip(suffixes)
-
-		if len(s.Suffixes) > 0 && len(s.Name) > 0 {
-			lastShorthand := s.Name[len(s.Name)-1]
-			if txt, ok := lastShorthand.(*ast.ShorthandText); ok && txt.Text != "" {
-				r, _ := utf8.DecodeLastRuneInString(txt.Text)
-				s.IsPrefix = unicode.IsPunct(r)
-			}
-		}
+		s.Names = slices.Clip(s.Names)
 
 		return s, nil
-	}
-}
-
-func ClassSuffix() parser.Func[ast.ClassSuffix] {
-	return func(p *parser.Parser) (ast.ClassSuffix, *fancyerr.Error) {
-		s, ok := parser.TryOk(p, Shorthand())
-		if !ok {
-			return nil, &fancyerr.Error{
-				Message:  "missing class suffix",
-				Primary:  quickanno.Expected(p, p.Pos(), "a class suffix"),
-				Examples: []fancyerr.Example{{Example: "`.button --blue --small`"}},
-			}
-		}
-
-		return ast.ClassSuffix(s), nil
 	}
 }
 
@@ -96,8 +70,8 @@ func Shorthand() parser.Func[ast.Shorthand] {
 				Message: "missing shorthand name",
 				Primary: quickanno.Expected(p, p.Pos(), "text or interpolation"),
 				Examples: []fancyerr.Example{
-					{Title: "just text", Example: "`.woof`"},
-					{Title: "with interpolation", Example: "`.button--#{size}`"},
+					{Title: "just text", Example: "`.woof` or `#bark`"},
+					{Title: "with interpolation", Example: "`.button--#{size}` or `#button-#{i}`"},
 				},
 			}
 		}
@@ -134,7 +108,7 @@ func ShorthandText() parser.Func[*ast.ShorthandText] {
 	return func(p *parser.Parser) (*ast.ShorthandText, *fancyerr.Error) {
 		txt := &ast.ShorthandText{Position: p.Pos()}
 		txt.Text = parser.TokenWhile(p, func() bool {
-			return !parser.MatchesWS(p, whitespace.Any()) && !parser.MatchesToken(p, "#") &&
+			return !parser.MatchesWS(p, whitespace.Any()) && !parser.MatchesAnyRune(p, '#', ',', ')') &&
 				// https://html.spec.whatwg.org/multipage/common-microsyntaxes.html#set-of-space-separated-tokens
 				!codepoint.MatchesAny(p, codepoint.ASCIIWhitespace) // includes FF
 		})
@@ -151,7 +125,7 @@ func ShorthandText() parser.Func[*ast.ShorthandText] {
 
 func ShorthandInterpolation() parser.Func[*ast.ShorthandInterpolation] {
 	return func(p *parser.Parser) (*ast.ShorthandInterpolation, *fancyerr.Error) {
-		interp, ok := parser.TryOk(p, code.ExpressionInterpolation())
+		interp, ok := parser.TryOk(p, interpolation.ExpressionInterpolation())
 		if !ok {
 			if parser.MatchesToken(p, "#") {
 				p.CaptureError(&fancyerr.Error{
