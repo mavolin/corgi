@@ -7,9 +7,6 @@
 // a string, but our approach eases implementation tremendously with no
 // drawback.
 //
-// Using a parser combinator also means each parser function can be
-// individually tested.
-//
 // We use special functions for consuming whitespace, which is rolled back, if
 // the next call to Try or Must in the same function fails.
 // This is incredibly convenient, but can be tricky if you skip WS and then
@@ -25,8 +22,8 @@
 //
 // If a fails, the consumed whitespace is rolled back and b is tried with
 // whitespace in front.
-// To remedy, either use TryInOrder, or, if a and b return different types,
-// wrap them in a Func like this:
+// To remedy, either use TryInOrder, TryOptional*, or, if a and b return
+// different types, wrap them in a Func like this:
 //
 //	parser.MustSkip(p, whitespace.Any())
 //	v, ok := parser.Try(p, func(p *parser.Parser) (parentType, *fancyerr.Error) {
@@ -54,18 +51,13 @@ type Parser struct {
 	Preload Preloader
 
 	state *State
-
-	// restore holds a *State to restore to, if the next try or must doesn't
-	// match
-	// Do not interact directly, but use makeRestore and takeRestore.
-	restore   *State
-	parsingWS bool
 }
 
 func New(f *file.File) *Parser {
 	return &Parser{
-		File:  f,
-		state: newState(),
+		File:    f,
+		Preload: func(string) {},
+		state:   newState(),
 	}
 }
 
@@ -118,20 +110,6 @@ func (p *Parser) RestoreState(s *State) {
 	p.state = s
 }
 
-func (p *Parser) makeRestore() {
-	if p.restore == nil {
-		p.restore = p.CloneState()
-	}
-}
-
-func (p *Parser) takeRestore() *State {
-	if p.restore == nil || p.parsingWS {
-		return p.CloneState()
-	}
-	defer func() { p.restore = nil }()
-	return p.restore
-}
-
 type (
 	// Func represents a sub-parser that can be tried to see if it matches.
 	//
@@ -164,6 +142,7 @@ func Matches[T any](p *Parser, f Func[T]) bool {
 
 func MatchesWS(p *Parser, f WhitespaceFunc) bool {
 	state := p.CloneState()
+	p.state.ws = nil
 	err := f(p)
 	p.RestoreState(state)
 	return err == nil
@@ -190,9 +169,8 @@ func MatchesRunePredicate(p *Parser, pred func(rune) bool) bool {
 	return pred(p.peek())
 }
 
-// Try tries to parse using the given [Func], ignoring an error if one occurs.
 func Try[T any](p *Parser, f Func[T]) (T, *fancyerr.Error) {
-	restore := p.takeRestore()
+	restore := p.state.takeWSStart()
 	v, err := f(p)
 	if err != nil {
 		p.RestoreState(restore)
@@ -206,12 +184,29 @@ func TryOk[T any](p *Parser, f Func[T]) (T, bool) {
 	return v, err == nil
 }
 
+func TryOptional[T any](p *Parser, f Func[T]) (T, *fancyerr.Error) {
+	state := p.CloneState()
+	p.state.ws = nil
+	v, err := f(p)
+	if err != nil {
+		p.RestoreState(state)
+		return v, err
+	}
+	return v, nil
+}
+
+func TryOptionalOk[T any](p *Parser, f Func[T]) (T, bool) {
+	v, err := TryOptional(p, f)
+	return v, err == nil
+
+}
+
 // TryInOrder tries all Funcs until it finds one that matches.
 //
 // If none match, it returns false.
 func TryInOrder[T any](p *Parser, fs ...Func[T]) (T, bool) {
-	restore := p.takeRestore()
 	state := p.CloneState()
+	p.state.ws = nil
 	for _, f := range fs {
 		v, err := f(p)
 		if err == nil { // IS nil
@@ -219,7 +214,9 @@ func TryInOrder[T any](p *Parser, fs ...Func[T]) (T, bool) {
 		}
 		p.RestoreState(state)
 	}
-	p.RestoreState(restore)
+	if state.ws != nil {
+		p.RestoreState(state.ws)
+	}
 
 	var z T
 	return z, false
@@ -233,13 +230,13 @@ func TryInOrder[T any](p *Parser, fs ...Func[T]) (T, bool) {
 // Even if TrySkip fails to match, it does not affect a previous restore
 // point.
 func TrySkip(p *Parser, f WhitespaceFunc) *fancyerr.Error {
-	if !p.parsingWS {
-		p.makeRestore()
-		p.parsingWS = true
-		defer func() { p.parsingWS = false }()
+	state := p.CloneState()
+	if !p.state.parsingWS {
+		p.state.markWSStart()
+		p.state.parsingWS = true
+		defer func() { p.state.parsingWS = false }()
 	}
 
-	state := p.CloneState()
 	if err := f(p); err != nil {
 		p.RestoreState(state)
 		return err
@@ -269,8 +266,14 @@ func MustSkip(p *Parser, f WhitespaceFunc) {
 	}
 }
 
+func CommitWS(p *Parser) {
+	p.state.ws = nil
+}
+
 // RestoreWS restores all whitespace consumed by the last calls to [TrySkip]
 // and friends.
 func RestoreWS(p *Parser) {
-	p.RestoreState(p.takeRestore())
+	if p.state.ws != nil {
+		p.RestoreState(p.state.ws)
+	}
 }

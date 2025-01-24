@@ -37,13 +37,15 @@ func TestArguments(t *testing.T) {
 				LParen: ast.Position{Line: 1, Col: 1},
 				Args: []ast.Argument{
 					&ast.ClassShorthand{
-						Name: ast.Shorthand{
-							&ast.ShorthandText{
-								Text:     "foo",
-								Position: ast.Position{Line: 1, Col: 3},
+						Dot: ast.Position{Line: 1, Col: 2},
+						Names: []ast.Shorthand{
+							{
+								&ast.ShorthandText{
+									Text:     "foo",
+									Position: ast.Position{Line: 1, Col: 3},
+								},
 							},
 						},
-						Position: ast.Position{Line: 1, Col: 2},
 					},
 				},
 				RParen: &ast.Position{Line: 1, Col: 6},
@@ -55,6 +57,7 @@ func TestArguments(t *testing.T) {
 				LParen: ast.Position{Line: 1, Col: 1},
 				Args: []ast.Argument{
 					&ast.IDShorthand{
+						Hash: ast.Position{Line: 1, Col: 2},
 						ID: ast.Shorthand{
 							&ast.ShorthandText{
 								Text:     "foo",
@@ -75,7 +78,7 @@ func TestArguments(t *testing.T) {
 						Position: ast.Position{Line: 1, Col: 2},
 					},
 				},
-				RParen: &ast.Position{Line: 1, Col: 4},
+				RParen: &ast.Position{Line: 1, Col: 3},
 			},
 		}, {
 			name: "single named boolean attribute",
@@ -139,11 +142,11 @@ func TestArguments(t *testing.T) {
 						Position: ast.Position{Line: 1, Col: 2},
 					},
 				},
-				RParen: &ast.Position{Line: 1, Col: 11},
+				RParen: &ast.Position{Line: 1, Col: 10},
 			},
 		}, {
 			name: "mix",
-			in:   "(arg1: arg1Value, arg2: arg2Value, &, .class1, .class2, #id, booleanAttr, valueAttr=valueAttrValue)",
+			in:   "(arg1: arg1Value, arg2: arg2Value, &, .class1 class2, #id, booleanAttr, valueAttr=valueAttrValue)",
 			expect: &ast.Arguments{
 				LParen: ast.Position{Line: 1, Col: 1},
 				Args: []ast.Argument{
@@ -183,55 +186,53 @@ func TestArguments(t *testing.T) {
 						Position: ast.Position{Line: 1, Col: 36},
 					},
 					&ast.ClassShorthand{
-						Name: ast.Shorthand{
-							&ast.ShorthandText{
-								Text:     "class1",
-								Position: ast.Position{Line: 1, Col: 40},
+						Dot: ast.Position{Line: 1, Col: 39},
+						Names: []ast.Shorthand{
+							{
+								&ast.ShorthandText{
+									Text:     "class1",
+									Position: ast.Position{Line: 1, Col: 40},
+								},
+							}, {
+								&ast.ShorthandText{
+									Text:     "class2",
+									Position: ast.Position{Line: 1, Col: 47},
+								},
 							},
 						},
-						Position: ast.Position{Line: 1, Col: 39},
-					},
-					&ast.ClassShorthand{
-						Name: ast.Shorthand{
-							&ast.ShorthandText{
-								Text:     "class2",
-								Position: ast.Position{Line: 1, Col: 49},
-							},
-						},
-						Position: ast.Position{Line: 1, Col: 48},
 					},
 					&ast.IDShorthand{
 						ID: ast.Shorthand{
 							&ast.ShorthandText{
 								Text:     "id",
-								Position: ast.Position{Line: 1, Col: 58},
+								Position: ast.Position{Line: 1, Col: 56},
 							},
 						},
-						Position: ast.Position{Line: 1, Col: 57},
+						Hash: ast.Position{Line: 1, Col: 55},
 					},
 					&ast.NamedAttribute{
 						Name: ast.AttributeName{
 							Name:     "booleanAttr",
-							Position: ast.Position{Line: 1, Col: 62},
+							Position: ast.Position{Line: 1, Col: 60},
 						},
 					},
 					&ast.NamedAttribute{
 						Name: ast.AttributeName{
 							Name:     "valueAttr",
-							Position: ast.Position{Line: 1, Col: 75},
+							Position: ast.Position{Line: 1, Col: 73},
 						},
-						Assign: &ast.Position{Line: 1, Col: 83},
+						Assign: &ast.Position{Line: 1, Col: 82},
 						Value: &ast.ExpressionAttributeValue{
 							Nodes: []ast.ExpressionNode{
 								&ast.GoCode{
 									Code:     "valueAttrValue",
-									Position: ast.Position{Line: 1, Col: 84},
+									Position: ast.Position{Line: 1, Col: 83},
 								},
 							},
 						},
 					},
 				},
-				RParen: &ast.Position{Line: 1, Col: 99},
+				RParen: &ast.Position{Line: 1, Col: 97},
 			},
 		},
 	}

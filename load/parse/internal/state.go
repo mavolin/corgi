@@ -5,15 +5,20 @@ import (
 	"github.com/mavolin/corgi/v2/file/ast"
 )
 
-type State struct {
-	line, col int
-	index     int
+type (
+	State struct {
+		line, col int
+		index     int
 
-	errs     fancyerr.List
-	comments []*ast.CommentGroup
+		errs     fancyerr.List
+		comments []*ast.CommentGroup
 
-	inline bool
-}
+		ws *State
+
+		inline    bool
+		parsingWS bool
+	}
+)
 
 func newState() *State {
 	return &State{
@@ -34,7 +39,7 @@ func (s *State) advance(size int, isNL bool) {
 		s.line++
 		s.col = 1
 	} else {
-		s.col += size
+		s.col++
 	}
 	s.index += size
 }
@@ -53,6 +58,22 @@ func (s *State) CaptureError(err *fancyerr.Error) {
 
 func (s *State) CaptureComment(cg *ast.CommentGroup) {
 	s.comments = append(s.comments, cg)
+}
+
+func (s *State) markWSStart() {
+	if s.ws != nil {
+		return
+	}
+	s.ws = s.Clone()
+}
+
+func (s *State) takeWSStart() *State {
+	if s.ws == nil || s.parsingWS {
+		return s.Clone()
+	}
+	wsStart := s.ws
+	s.ws = nil
+	return wsStart
 }
 
 func (s State) Clone() *State {

@@ -36,6 +36,7 @@ func ComponentArgument() parser.Func[*ast.ComponentArgument] {
 		arg.Colon = &colon
 
 		hasPostColonWS := parser.TrySkipOk(p, comment.OrHorizontalWhitespace())
+		defer parser.RestoreWS(p)
 		if !hasPostColonWS {
 			p.CaptureError(&fancyerr.Error{
 				Message: "missing whitespace after colon",
@@ -51,7 +52,7 @@ func ComponentArgument() parser.Func[*ast.ComponentArgument] {
 
 		pos := p.Pos()
 		start := p.Index()
-		arg.Value, ok = parser.TryOk(p, code.Expression())
+		arg.Value, ok = parser.TryOptionalOk(p, code.Expression())
 		if !ok {
 			// just as likely a named argument with a trailing colon
 			if !hasPreColonWS && (parser.MatchesWS(p, whitespace.EOL()) || parser.MatchesAnyRune(p, ',', ')')) {
@@ -68,7 +69,7 @@ func ComponentArgument() parser.Func[*ast.ComponentArgument] {
 
 		if !hasPreColonWS && !hasPostColonWS {
 			// The only other way we can be sure this is not a named attribute,
-			// is if this value contains no `=` and at least one non-trailing
+			// is if the value contains no `=` and at least one non-trailing
 			// whitespace.
 			var haveWS bool
 			for i := start; i < p.Index(); i++ {

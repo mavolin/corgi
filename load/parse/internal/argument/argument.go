@@ -11,9 +11,9 @@ import (
 
 func Argument() parser.Func[ast.Argument] {
 	return func(p *parser.Parser) (ast.Argument, *fancyerr.Error) {
-		if a, ok := parser.TryOk(p, attribute.Attribute()); ok {
+		if a, ok := parser.TryOk(p, ComponentArgument()); ok {
 			return a, nil
-		} else if a, ok := parser.TryOk(p, ComponentArgument()); ok {
+		} else if a, ok := parser.TryOk(p, attribute.Attribute()); ok {
 			return a, nil
 		}
 

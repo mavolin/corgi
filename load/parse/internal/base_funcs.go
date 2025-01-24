@@ -2,7 +2,7 @@ package parser
 
 // TryToken attempts to match the given token verbatim.
 func TryToken(p *Parser, s string) (ok bool) {
-	restore := p.takeRestore()
+	restore := p.state.takeWSStart()
 	if !MatchesToken(p, s) {
 		p.RestoreState(restore)
 		return false
@@ -15,7 +15,7 @@ func TryToken(p *Parser, s string) (ok bool) {
 }
 
 func TryAnyToken(p *Parser, ss ...string) string {
-	restore := p.takeRestore()
+	restore := p.state.takeWSStart()
 	for _, s := range ss {
 		if MatchesToken(p, s) {
 			for range s {
@@ -29,11 +29,22 @@ func TryAnyToken(p *Parser, ss ...string) string {
 }
 
 func TryRune(p *Parser, r rune) (ok bool) {
-	restore := p.takeRestore()
+	restore := p.state.takeWSStart()
 	if r != p.peek() {
 		p.RestoreState(restore)
 		return false
 	}
+	p.next()
+	return true
+}
+
+func TryOptionalRune(p *Parser, r rune) (ok bool) {
+	state := p.CloneState()
+	if r != p.peek() {
+		p.RestoreState(state)
+		return false
+	}
+	p.state.ws = nil
 	p.next()
 	return true
 }
@@ -55,8 +66,12 @@ func TryAnyRune(p *Parser, rs ...rune) rune {
 // TryRunePredicate attempts to match the next rune against the predicate.
 // If successful, it returns the matched rune, otherwise, it returns -1.
 func TryRunePredicate(p *Parser, pred func(rune) bool) rune {
-	restore := p.takeRestore()
-	if !pred(p.peek()) {
+	restore := p.state.takeWSStart()
+	peek := p.peek()
+	if peek == EOF {
+		return -1
+	}
+	if !pred(peek) {
 		p.RestoreState(restore)
 		return -1
 	}
@@ -70,18 +85,27 @@ func TryRunePredicate(p *Parser, pred func(rune) bool) rune {
 // If TokenWhile doesn't consume any runes, previously consumed whitespace is
 // rolled back.
 func TokenWhile(p *Parser, pred func() bool) string {
-	restore := p.takeRestore()
+	restore := p.state.takeWSStart()
 	start := p.Index()
 	if !pred() {
+		if p.Index() != start {
+			panic("TokenWhile: predicate consumed runes")
+		}
 		p.RestoreState(restore)
 		return ""
 	}
 	p.next()
+	i := p.Index()
 	for pred() {
+		if p.Index() != i {
+			panic("TokenWhile: predicate consumed runes")
+		}
 		r := p.next()
 		if r == EOF {
 			break
 		}
+		i = p.Index()
 	}
+	p.state.ws = nil // the predicate might've set a restore point
 	return p.File.Raw[start:p.Index()]
 }
