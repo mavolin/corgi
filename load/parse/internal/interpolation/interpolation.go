@@ -23,6 +23,8 @@ func TextInterpolation() parser.Func[ast.TextInterpolation] {
 			return eh, nil
 		} else if hs, ok := parser.TryOk(p, HashSpace()); ok {
 			return hs, nil
+		} else if hs, ok := parser.TryOk(p, EscapedRBracket()); ok {
+			return hs, nil
 		} else if ei, ok := parser.TryOk(p, ExpressionInterpolation()); ok {
 			return ei, nil
 		} else if cc, ok := parser.TryOk(p, ComponentCallInterpolation()); ok {
@@ -44,6 +46,7 @@ func TextInterpolation() parser.Func[ast.TextInterpolation] {
 			Examples: []fancyerr.Example{
 				{Title: "escaped hash", Example: "`##`"},
 				{Title: "hash space", Example: "`#_`"},
+				{Title: "escaped right bracket", Example: "`#]`"},
 				{Title: "expression interpolation", Example: "`#{1 + 1}`"},
 				{Title: "component call interpolation", Example: "`#:fmt.Number(val: 21_000)`"},
 				{Title: "character reference", Example: "`#amp;`"},
@@ -73,7 +76,7 @@ func StringInterpolation() parser.Func[ast.StringInterpolation] {
 		// Try other kinds of interpolation, that aren't allowed inside a string
 		if hs, ok := parser.TryOk(p, HashSpace()); ok {
 			p.CaptureError(&fancyerr.Error{
-				Message: "cannot use hash space in string interpolation",
+				Message: "string interpolation: cannot use hash space here",
 				Primary: []fancyerr.Annotation{
 					anno.Range(p.File, hs.Pos(), hs.End(),
 						"there is no point in using a hash space, you can just write a space instead"),
@@ -82,6 +85,18 @@ func StringInterpolation() parser.Func[ast.StringInterpolation] {
 					"This isn't necessary in strings, and you can just as well write a regular space instead.",
 			})
 			return &ast.BadInterpolation{Start: hs.Pos(), Until: hs.End()}, nil
+		} else if hr, ok := parser.TryOk(p, EscapedRBracket()); ok {
+			p.CaptureError(&fancyerr.Error{
+				Message: "string interpolation: cannot use escaped right bracket here",
+				Primary: []fancyerr.Annotation{
+					anno.Range(p.File, hr.Pos(), hr.End(),
+						"there is no point in using an escaped right bracket, you can just write a right bracket instead"),
+				},
+				Explanation: "An escaped right bracket is an escape sequence available in bracket text " +
+					"so that one can write a `]` without terminating the bracket text." +
+					"Since `]` is not a control character in strings, " +
+					"you can just as well write a regular right bracket instead.",
+			})
 		}
 		// I don't see a reason why someone would use an element interpolation
 		// in a string, so don't bother checking, especially since "#mdash foo"
@@ -161,6 +176,20 @@ func HashSpace() parser.Func[*ast.HashSpace] {
 		}
 
 		return &ast.HashSpace{Position: pos}, nil
+	}
+}
+
+func EscapedRBracket() parser.Func[*ast.EscapedRBracket] {
+	return func(p *parser.Parser) (*ast.EscapedRBracket, *fancyerr.Error) {
+		pos := p.Pos()
+		if !parser.TryToken(p, "#]") {
+			return nil, &fancyerr.Error{
+				Message: "missing hash right bracket",
+				Primary: quickanno.Expected(p, pos, "a hash followed by a right bracket (`#]`)"),
+			}
+		}
+
+		return &ast.EscapedRBracket{Position: pos}, nil
 	}
 }
 

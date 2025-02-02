@@ -13,7 +13,7 @@ func Identifier() parser.Func[*ast.Ident] { // https://go.dev/ref/spec#Identifie
 
 		r := parser.TryRunePredicate(p, Letter)
 		if r < 0 {
-			return ident, &fancyerr.Error{
+			return nil, &fancyerr.Error{
 				Message:  "missing identifier",
 				Primary:  quickanno.Expected(p, p.Pos(), "an identifier"),
 				Examples: []fancyerr.Example{{Example: "`woof`"}},
