@@ -7,11 +7,10 @@ import (
 	"github.com/mavolin/corgi/v2/fancyerr/anno"
 	"github.com/mavolin/corgi/v2/file/ast"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
+	"github.com/mavolin/corgi/v2/load/parse/internal/body"
 	"github.com/mavolin/corgi/v2/load/parse/internal/html/codepoint"
 	"github.com/mavolin/corgi/v2/load/parse/internal/quickanno"
 	"github.com/mavolin/corgi/v2/load/parse/internal/whitespace"
-
-	_ "unsafe"
 )
 
 func TextInterpolation() parser.Func[ast.TextInterpolation] {
@@ -37,10 +36,10 @@ func TextInterpolation() parser.Func[ast.TextInterpolation] {
 		p.CaptureError(&fancyerr.Error{
 			Message: "bad interpolation",
 			Primary: []fancyerr.Annotation{
-				anno.NChars(p.File, p.Pos(), 1, "expected a valid interpolation, but found this"),
+				anno.Position(p.File, p.Pos(), "expected a valid interpolation, but found this"),
 			},
 			Hints: []fancyerr.Hint{
-				{Hint: "If you just wanted to use hash, you need to escape it.", Example: "`##`"},
+				{Hint: "If you just wanted to write hash, you need to escape it.", Example: "`##`"},
 			},
 			Examples: []fancyerr.Example{
 				{Title: "escaped hash", Example: "`##`"},
@@ -72,7 +71,6 @@ func StringInterpolation() parser.Func[ast.StringInterpolation] {
 		}
 
 		// Try other kinds of interpolation, that aren't allowed inside a string
-		pos := p.Pos()
 		if hs, ok := parser.TryOk(p, HashSpace()); ok {
 			p.CaptureError(&fancyerr.Error{
 				Message: "cannot use hash space in string interpolation",
@@ -83,7 +81,7 @@ func StringInterpolation() parser.Func[ast.StringInterpolation] {
 				Explanation: "A hash space is used to insert a trailing space in text blocks. " +
 					"This isn't necessary in strings, and you can just as well write a regular space instead.",
 			})
-			return &ast.BadInterpolation{Start: pos, Until: hs.Position}, nil
+			return &ast.BadInterpolation{Start: hs.Pos(), Until: hs.End()}, nil
 		}
 		// I don't see a reason why someone would use an element interpolation
 		// in a string, so don't bother checking, especially since "#mdash foo"
@@ -129,13 +127,12 @@ func ensureInterpolation(p *parser.Parser) *fancyerr.Error {
 func BadInterpolation() parser.Func[*ast.BadInterpolation] {
 	return func(p *parser.Parser) (*ast.BadInterpolation, *fancyerr.Error) {
 		pos := p.Pos()
-		if parser.TryRune(p, '#') {
-			return &ast.BadInterpolation{Start: pos, Until: p.Pos()}, nil
+		if !parser.TryRune(p, '#') {
+			return nil, &fancyerr.Error{
+				Message: "missing bad interpolation",
+			}
 		}
-
-		return nil, &fancyerr.Error{
-			Message: "missing bad interpolation",
-		}
+		return &ast.BadInterpolation{Start: pos, Until: p.Pos()}, nil
 	}
 }
 
@@ -189,7 +186,7 @@ func UnambiguousHash() parser.Func[struct{}] {
 
 func CharacterReference() parser.Func[*ast.CharacterReference] {
 	return func(p *parser.Parser) (*ast.CharacterReference, *fancyerr.Error) {
-		r := &ast.CharacterReference{Position: p.Pos()}
+		r := &ast.CharacterReference{Hash: p.Pos()}
 
 		if !parser.TryRune(p, '#') {
 			return nil, &fancyerr.Error{
@@ -208,6 +205,9 @@ func CharacterReference() parser.Func[*ast.CharacterReference] {
 			return nil, &fancyerr.Error{
 				Message: "character reference: missing semicolon",
 				Primary: quickanno.Expected(p, p.Pos(), "a semicolon to terminate the character reference"),
+				Hints: []fancyerr.Hint{
+					{Hint: "If you just wanted to write hash, you need to escape it.", Example: "`##`"},
+				},
 			}
 		}
 		if r.Name == "" {
@@ -215,6 +215,9 @@ func CharacterReference() parser.Func[*ast.CharacterReference] {
 				Message:  "character reference: missing name",
 				Primary:  quickanno.Expected(p, p.Pos(), "a character reference name"),
 				Examples: []fancyerr.Example{{Example: "`#amp;` or `#mdash;`"}},
+				Hints: []fancyerr.Hint{
+					{Hint: "If you just wanted to write hash, you need to escape it.", Example: "`##`"},
+				},
 			})
 			return r, nil
 		}
@@ -225,6 +228,9 @@ func CharacterReference() parser.Func[*ast.CharacterReference] {
 				Message:  "character reference: unknown name",
 				Primary:  quickanno.Expected(p, p.Pos(), "a valid character reference name"),
 				Examples: []fancyerr.Example{{Example: "`#amp;` or `#mdash;`"}},
+				Hints: []fancyerr.Hint{
+					{Hint: "If you just wanted to write hash, you need to escape it.", Example: "`##`"},
+				},
 			})
 		}
 
@@ -232,11 +238,198 @@ func CharacterReference() parser.Func[*ast.CharacterReference] {
 	}
 }
 
-//go:linkname ElementInterpolation
-func ElementInterpolation() parser.Func[*ast.ElementInterpolation]
+var elementHeader parser.Func[*ast.ElementHeader]
 
-//go:linkname ComponentCallInterpolation
-func ComponentCallInterpolation() parser.Func[*ast.ComponentCallInterpolation]
+func SetElementHeader(f parser.Func[*ast.ElementHeader]) {
+	elementHeader = f
+}
+func ElementInterpolation() parser.Func[*ast.ElementInterpolation] {
+	return func(p *parser.Parser) (*ast.ElementInterpolation, *fancyerr.Error) {
+		ei := &ast.ElementInterpolation{Hash: p.Pos()}
+		if !parser.TryRune(p, '#') {
+			return nil, &fancyerr.Error{
+				Message: "missing element interpolation",
+				Primary: quickanno.Expected(p, p.Pos(), "an element interpolation"),
+			}
+		}
 
-//go:linkname ExpressionInterpolation
-func ExpressionInterpolation() parser.Func[*ast.ExpressionInterpolation]
+		header, ok := parser.TryOk(p, elementHeader)
+		if !ok {
+			return nil, &fancyerr.Error{
+				Message: "missing element interpolation: missing element name",
+				Primary: quickanno.Expected(p, p.Pos(), "an element name"),
+				Examples: []fancyerr.Example{
+					{Example: "`#br` or `#strong[foo]`"},
+				},
+			}
+		}
+
+		ei.Element = &ast.Element{Header: *header}
+		p.DoInline(func() {
+			bt, _ := parser.Try(p, body.BracketText())
+			if bt != nil { // can't assign directly: any(nil) != (*ast.BracketText)(nil)
+				ei.Element.Body = bt
+			}
+		})
+		return ei, nil
+	}
+}
+
+var componentCallHeader parser.Func[*ast.ComponentCallHeader]
+
+func SetComponentCallHeader(f parser.Func[*ast.ComponentCallHeader]) {
+	componentCallHeader = f
+}
+
+func ComponentCallInterpolation() parser.Func[*ast.ComponentCallInterpolation] {
+	return func(p *parser.Parser) (*ast.ComponentCallInterpolation, *fancyerr.Error) {
+		cci := &ast.ComponentCallInterpolation{Hash: p.Pos()}
+		if !parser.TryRune(p, '#') {
+			return nil, &fancyerr.Error{
+				Message: "missing component call interpolation",
+				Primary: quickanno.Expected(p, p.Pos(), "a component call interpolation"),
+			}
+		}
+
+		header, ok := parser.TryOk(p, componentCallHeader)
+		if !ok {
+			return nil, &fancyerr.Error{
+				Message: "missing component call interpolation: missing header",
+				Primary: quickanno.Expected(p, p.Pos(), "a component call header"),
+			}
+		}
+		cci.ComponentCall = &ast.ComponentCall{Header: *header}
+
+		p.DoInline(func() {
+			b, ok := parser.TryOk(p, body.BracketText())
+			if ok {
+				cci.ComponentCall.Body = &ast.UnderscoreBlockShorthand{
+					Implicit: true,
+					Body:     b,
+					Position: b.LBracket,
+				}
+			}
+		})
+
+		return cci, nil
+	}
+}
+
+var expression parser.Func[*ast.Expression]
+
+func SetExpression(f parser.Func[*ast.Expression]) {
+	expression = f
+}
+
+func ExpressionInterpolation() parser.Func[*ast.ExpressionInterpolation] {
+	return func(p *parser.Parser) (*ast.ExpressionInterpolation, *fancyerr.Error) {
+		ei := &ast.ExpressionInterpolation{Hash: p.Pos()}
+		if !parser.TryRune(p, '#') {
+			return nil, &fancyerr.Error{
+				Message: "missing expression interpolation",
+				Primary: quickanno.Expected(p, p.Pos(), "an expression interpolation"),
+			}
+		}
+
+		ei.FormatDirective, _ = parser.Try(p, formatDirective())
+
+		ei.LBrace = p.PosPtr()
+		if !parser.TryRune(p, '{') {
+			ei.LBrace = nil
+			if ei.FormatDirective != "" {
+				p.CaptureError(&fancyerr.Error{
+					Message: "expression interpolation: missing opening brace",
+					Primary: quickanno.Expected(p, ei.Hash, "an opening brace `{`"),
+					Examples: []fancyerr.Example{
+						{Example: "`#%" + ei.FormatDirective + "{...}`"},
+					},
+				})
+				return ei, nil
+			}
+			return nil, &fancyerr.Error{
+				Message: "expression interpolation: missing opening brace",
+				Primary: quickanno.Expected(p, ei.Hash, "an opening brace `{`"),
+				Examples: []fancyerr.Example{
+					{Example: "`#{...}`"},
+				},
+			}
+		}
+
+		parser.TrySkip(p, whitespace.Horizontal())
+		ei.Expression = parser.Must(p, expression)
+		parser.TrySkip(p, whitespace.Horizontal())
+
+		ei.RBrace = p.PosPtr()
+		if !parser.TryRune(p, '}') {
+			ei.RBrace = nil
+			p.CaptureError(&fancyerr.Error{
+				Message: "expression interpolation: missing closing brace",
+				Primary: quickanno.Expected(p, ei.Hash, "a closing brace `}`"),
+			})
+			return ei, nil
+		}
+
+		return ei, nil
+	}
+}
+
+func formatDirective() parser.Func[string] {
+	return func(p *parser.Parser) (string, *fancyerr.Error) {
+		if !parser.TryRune(p, '%') {
+			return "", &fancyerr.Error{
+				Message: "missing format directive",
+				Primary: quickanno.Expected(p, p.Pos(), "a format directive"),
+				Examples: []fancyerr.Example{
+					{Example: "`%d`"},
+				},
+			}
+		}
+
+		startIndex := p.Index()
+
+		// flag
+		for parser.TryAnyRune(p, '+', '-', '#', ' ', '0') > 0 {
+		}
+
+		// width
+		if parser.TryRunePredicate(p, isInRange('1', '9')) > 0 {
+			for parser.TryRunePredicate(p, isInRange('0', '9')) > 0 {
+			}
+		}
+
+		// precision
+		if parser.TryRune(p, '.') {
+			for parser.TryRunePredicate(p, isInRange('0', '9')) > 0 {
+			}
+		}
+
+		// verb
+		if parser.TryAnyRune(p, 'v', 'T', 't', 'b', 'c', 'd', 'o', 'O', 'x', 'X', 'U', 'e', 'E', 'f', 'F', 'g', 'G', 's', 'p') < 0 {
+			if parser.TryRunePredicate(p, isInRange('a', 'z')) > 0 || parser.TryRunePredicate(p, isInRange('A', 'Z')) > 0 {
+				return p.Raw[startIndex:p.Index()], &fancyerr.Error{
+					Message: "invalid format verb",
+					Primary: quickanno.Expected(p, p.Pos(), "a valid format verb"),
+					Examples: []fancyerr.Example{
+						{Example: "`%d`"},
+					},
+					Explanation: "This is not a format verb according to the Go documentation. " +
+						"Consult the documentation of the Go built-in package `fmt` for a list of valid format verbs.",
+				}
+			}
+
+			return p.Raw[startIndex:p.Index()], &fancyerr.Error{
+				Message: "missing format verb",
+				Primary: quickanno.Expected(p, p.Pos(), "a format verb"),
+				Examples: []fancyerr.Example{
+					{Example: "`%d`"},
+				},
+			}
+		}
+
+		return p.Raw[startIndex:p.Index()], nil
+	}
+}
+
+func isInRange(s, e rune) func(rune) bool {
+	return func(r rune) bool { return r >= s && r <= e }
+}

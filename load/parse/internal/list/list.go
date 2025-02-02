@@ -42,37 +42,27 @@ func list[T any](name string, open, close rune, elemFunc parser.Func[T]) parser.
 			parser.TrySkip(p, comment.OrAnyWhitespace())
 
 			pos := p.Pos()
-			elem, err := parser.Try(p, func(p *parser.Parser) (*T, *fancyerr.Error) {
-				if parser.TryRune(p, close) {
-					l.Close = &pos
-					return nil, nil
-				} else if parser.TryRune(p, parser.EOF) {
-					p.CaptureError(&fancyerr.Error{
-						Message: "unclosed " + name,
-						Primary: quickanno.Expected(p, l.Open, "a `"+string(close)+"`"),
-						Secondary: []fancyerr.Annotation{
-							anno.Position(p.File, l.Open, "for the opening `"+string(open)+"` here"),
-						},
-					})
-					return nil, nil
-				}
-
-				elem, err := parser.Try(p, elemFunc)
-				if err != nil {
-					return nil, err
-				}
-				return &elem, nil
-			})
-			if elem == nil {
+			if parser.TryOptionalRune(p, close) {
+				l.Close = &pos
+				break
+			} else if parser.TryOptionalRune(p, parser.EOF) {
+				p.CaptureError(&fancyerr.Error{
+					Message: "unclosed " + name,
+					Primary: quickanno.Expected(p, l.Open, "a `"+string(close)+"`"),
+					Secondary: []fancyerr.Annotation{
+						anno.Position(p.File, l.Open, "for the opening `"+string(open)+"` here"),
+					},
+				})
 				break
 			}
-			l.Elems = append(l.Elems, *elem)
+			elem, err := parser.Try(p, elemFunc)
+			l.Elems = append(l.Elems, elem)
 			if err != nil {
 				if parser.MatchesToken(p, ",") { // missing elem
 					p.CaptureError(err)
 				} else {
 					err = unexpected.UntilAnyRune(p, comment.OrAnyWhitespace(), ',', close)
-					err.Message = "missing " + name + " element"
+					err.Message = "missing " + name
 					err.Primary[0].Annotation = "found these unexpected runes instead"
 					p.CaptureError(err)
 				}
@@ -140,13 +130,13 @@ func CommaList[T any](singular, plural string, elemFunc parser.Func[T]) parser.F
 		}
 
 		for {
-			state := p.CloneState()
-
 			parser.TrySkip(p, comment.OrHorizontalWhitespace())
 
 			commaPos := p.Pos()
 			if !parser.TryRune(p, ',') {
-				p.RestoreState(state)
+				if len(elems) == 0 {
+					return nil, nil
+				}
 				return slices.Clip(elems), nil
 			}
 

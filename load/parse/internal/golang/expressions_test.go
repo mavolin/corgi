@@ -31,3 +31,29 @@ func testQualifiedIdent(t *testing.T, f parser.Func[*ast.QualifiedIdent]) {
 	actual := testutil.ParsesFully(t, in, f)
 	assert.Equal(t, expect, actual)
 }
+
+func TestAddOp(t *testing.T) {
+	t.Parallel()
+
+	testCases := []string{"+", "-", "|", "^"}
+	for _, c := range testCases {
+		t.Run(c, func(t *testing.T) {
+			t.Parallel()
+			actual := testutil.ParsesFully(t, c, AddOp())
+			assert.Equal(t, c, actual)
+		})
+	}
+}
+
+func TestMulOp(t *testing.T) {
+	t.Parallel()
+
+	testCases := []string{"*", "/", "%", "<<", ">>", "&", "&^"}
+	for _, c := range testCases {
+		t.Run(c, func(t *testing.T) {
+			t.Parallel()
+			actual := testutil.ParsesFully(t, c, MulOp())
+			assert.Equal(t, c, actual)
+		})
+	}
+}

@@ -38,8 +38,8 @@ func TestType(t *testing.T) {
 						},
 					},
 				},
-				Position:    ast.Position{Line: 1, Col: 1},
-				EndPosition: testutil.CalcEndPos(in),
+				Position: ast.Position{Line: 1, Col: 1},
+				Until:    testutil.CalcEndPos(in),
 			}
 
 			actual := testutil.ParsesFully(t, in, Type())
@@ -50,9 +50,9 @@ func TestType(t *testing.T) {
 
 			in := "(foo.Bar)"
 			expect := &ast.Type{
-				Type:        in,
-				Position:    ast.Position{Line: 1, Col: 1},
-				EndPosition: testutil.CalcEndPos(in),
+				Type:     in,
+				Position: ast.Position{Line: 1, Col: 1},
+				Until:    testutil.CalcEndPos(in),
 			}
 
 			actual := testutil.ParsesFully(t, in, Type())
@@ -75,9 +75,9 @@ func TestType(t *testing.T) {
 					t.Parallel()
 
 					expect := &ast.Type{
-						Type:        in,
-						Position:    ast.Position{Line: 1, Col: 1},
-						EndPosition: testutil.CalcEndPos(in),
+						Type:     in,
+						Position: ast.Position{Line: 1, Col: 1},
+						Until:    testutil.CalcEndPos(in),
 					}
 
 					p := testutil.NewParser(t, in+" 123")
@@ -156,9 +156,9 @@ func testArrayType(t *testing.T, f parser.Func[*ast.Type]) {
 				t.Parallel()
 
 				expect := &ast.Type{
-					Type:        in,
-					Position:    ast.Position{Line: 1, Col: 1},
-					EndPosition: testutil.CalcEndPos(in),
+					Type:     in,
+					Position: ast.Position{Line: 1, Col: 1},
+					Until:    testutil.CalcEndPos(in),
 				}
 
 				actual := testutil.ParsesFully(t, in, f)
@@ -179,9 +179,9 @@ func testArrayType(t *testing.T, f parser.Func[*ast.Type]) {
 				t.Parallel()
 
 				expect := &ast.Type{
-					Type:        in,
-					Position:    ast.Position{Line: 1, Col: 1},
-					EndPosition: testutil.CalcEndPos(in),
+					Type:     in,
+					Position: ast.Position{Line: 1, Col: 1},
+					Until:    testutil.CalcEndPos(in),
 				}
 
 				p := testutil.NewParser(t, in+" ; aa")
@@ -211,9 +211,9 @@ func testStructType(t *testing.T, f parser.Func[*ast.Type]) {
 				t.Parallel()
 
 				expect := &ast.Type{
-					Type:        in,
-					Position:    ast.Position{Line: 1, Col: 1},
-					EndPosition: testutil.CalcEndPos(in),
+					Type:     in,
+					Position: ast.Position{Line: 1, Col: 1},
+					Until:    testutil.CalcEndPos(in),
 				}
 
 				actual := testutil.ParsesFully(t, in, f)
@@ -234,9 +234,9 @@ func testStructType(t *testing.T, f parser.Func[*ast.Type]) {
 				t.Parallel()
 
 				expect := &ast.Type{
-					Type:        in,
-					Position:    ast.Position{Line: 1, Col: 1},
-					EndPosition: testutil.CalcEndPos(in),
+					Type:     in,
+					Position: ast.Position{Line: 1, Col: 1},
+					Until:    testutil.CalcEndPos(in),
 				}
 
 				p := testutil.NewParser(t, in+" ")
@@ -264,9 +264,9 @@ func testPointerType(t *testing.T, f parser.Func[*ast.Type]) {
 			t.Parallel()
 
 			expect := &ast.Type{
-				Type:        in,
-				Position:    ast.Position{Line: 1, Col: 1},
-				EndPosition: testutil.CalcEndPos(in),
+				Type:     in,
+				Position: ast.Position{Line: 1, Col: 1},
+				Until:    testutil.CalcEndPos(in),
 			}
 
 			actual := testutil.ParsesFully(t, in, f)
@@ -294,9 +294,9 @@ func testFunctionType(t *testing.T, f parser.Func[*ast.Type]) {
 				t.Parallel()
 
 				expect := &ast.Type{
-					Type:        in,
-					Position:    ast.Position{Line: 1, Col: 1},
-					EndPosition: testutil.CalcEndPos(in),
+					Type:     in,
+					Position: ast.Position{Line: 1, Col: 1},
+					Until:    testutil.CalcEndPos(in),
 				}
 
 				actual := testutil.ParsesFully(t, in, f)
@@ -317,9 +317,9 @@ func testFunctionType(t *testing.T, f parser.Func[*ast.Type]) {
 				t.Parallel()
 
 				expect := &ast.Type{
-					Type:        in,
-					Position:    ast.Position{Line: 1, Col: 1},
-					EndPosition: testutil.CalcEndPos(in),
+					Type:     in,
+					Position: ast.Position{Line: 1, Col: 1},
+					Until:    testutil.CalcEndPos(in),
 				}
 
 				p := testutil.NewParser(t, in+" 123")
@@ -351,9 +351,9 @@ func testInterfaceType(t *testing.T, f parser.Func[*ast.Type]) {
 				t.Parallel()
 
 				expect := &ast.Type{
-					Type:        in,
-					Position:    ast.Position{Line: 1, Col: 1},
-					EndPosition: testutil.CalcEndPos(in),
+					Type:     in,
+					Position: ast.Position{Line: 1, Col: 1},
+					Until:    testutil.CalcEndPos(in),
 				}
 
 				actual := testutil.ParsesFully(t, in, f)
@@ -374,9 +374,9 @@ func testInterfaceType(t *testing.T, f parser.Func[*ast.Type]) {
 				t.Parallel()
 
 				expect := &ast.Type{
-					Type:        in,
-					Position:    ast.Position{Line: 1, Col: 1},
-					EndPosition: testutil.CalcEndPos(in),
+					Type:     in,
+					Position: ast.Position{Line: 1, Col: 1},
+					Until:    testutil.CalcEndPos(in),
 				}
 
 				p := testutil.NewParser(t, in+" ")
@@ -407,9 +407,9 @@ func testSliceType(t *testing.T, f parser.Func[*ast.Type]) {
 				t.Parallel()
 
 				expect := &ast.Type{
-					Type:        in,
-					Position:    ast.Position{Line: 1, Col: 1},
-					EndPosition: testutil.CalcEndPos(in),
+					Type:     in,
+					Position: ast.Position{Line: 1, Col: 1},
+					Until:    testutil.CalcEndPos(in),
 				}
 
 				actual := testutil.ParsesFully(t, in, f)
@@ -430,9 +430,9 @@ func testSliceType(t *testing.T, f parser.Func[*ast.Type]) {
 				t.Parallel()
 
 				expect := &ast.Type{
-					Type:        in,
-					Position:    ast.Position{Line: 1, Col: 1},
-					EndPosition: testutil.CalcEndPos(in),
+					Type:     in,
+					Position: ast.Position{Line: 1, Col: 1},
+					Until:    testutil.CalcEndPos(in),
 				}
 
 				p := testutil.NewParser(t, in+" 123")
@@ -463,9 +463,9 @@ func testMapType(t *testing.T, f parser.Func[*ast.Type]) {
 				t.Parallel()
 
 				expect := &ast.Type{
-					Type:        in,
-					Position:    ast.Position{Line: 1, Col: 1},
-					EndPosition: testutil.CalcEndPos(in),
+					Type:     in,
+					Position: ast.Position{Line: 1, Col: 1},
+					Until:    testutil.CalcEndPos(in),
 				}
 
 				actual := testutil.ParsesFully(t, in, f)
@@ -486,9 +486,9 @@ func testMapType(t *testing.T, f parser.Func[*ast.Type]) {
 				t.Parallel()
 
 				expect := &ast.Type{
-					Type:        in,
-					Position:    ast.Position{Line: 1, Col: 1},
-					EndPosition: testutil.CalcEndPos(in),
+					Type:     in,
+					Position: ast.Position{Line: 1, Col: 1},
+					Until:    testutil.CalcEndPos(in),
 				}
 
 				p := testutil.NewParser(t, in+" 123")
@@ -520,9 +520,9 @@ func testChannelType(t *testing.T, f parser.Func[*ast.Type]) {
 				t.Parallel()
 
 				expect := &ast.Type{
-					Type:        in,
-					Position:    ast.Position{Line: 1, Col: 1},
-					EndPosition: testutil.CalcEndPos(in),
+					Type:     in,
+					Position: ast.Position{Line: 1, Col: 1},
+					Until:    testutil.CalcEndPos(in),
 				}
 
 				actual := testutil.ParsesFully(t, in, f)
@@ -543,9 +543,9 @@ func testChannelType(t *testing.T, f parser.Func[*ast.Type]) {
 				t.Parallel()
 
 				expect := &ast.Type{
-					Type:        in,
-					Position:    ast.Position{Line: 1, Col: 1},
-					EndPosition: testutil.CalcEndPos(in),
+					Type:     in,
+					Position: ast.Position{Line: 1, Col: 1},
+					Until:    testutil.CalcEndPos(in),
 				}
 
 				p := testutil.NewParser(t, in+" 123")
@@ -629,8 +629,8 @@ func testNamedType(t *testing.T, f parser.Func[*ast.NamedType]) {
 									Position: ast.Position{Line: 1, Col: 9},
 								},
 							},
-							Position:    ast.Position{Line: 1, Col: 9},
-							EndPosition: ast.Position{Line: 1, Col: 12},
+							Position: ast.Position{Line: 1, Col: 9},
+							Until:    ast.Position{Line: 1, Col: 12},
 						}, {
 							Type: "foobar",
 							Parsed: &ast.NamedType{
@@ -639,8 +639,8 @@ func testNamedType(t *testing.T, f parser.Func[*ast.NamedType]) {
 									Position: ast.Position{Line: 1, Col: 14},
 								},
 							},
-							Position:    ast.Position{Line: 1, Col: 14},
-							EndPosition: ast.Position{Line: 1, Col: 20},
+							Position: ast.Position{Line: 1, Col: 14},
+							Until:    ast.Position{Line: 1, Col: 20},
 						},
 					},
 					RBrace: &ast.Position{Line: 1, Col: 20},

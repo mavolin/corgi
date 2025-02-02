@@ -12,10 +12,10 @@ import (
 func Comment() parser.Func[*ast.Comment] {
 	return func(p *parser.Parser) (*ast.Comment, *fancyerr.Error) {
 		if p.Inline() {
-			return BlockComment()(p)
+			return GeneralComment()(p)
 		}
 
-		c, ok := parser.TryInOrder(p, LineComment(), BlockComment())
+		c, ok := parser.TryInOrder(p, LineComment(), GeneralComment())
 		if ok {
 			return c, nil
 		}
@@ -53,22 +53,22 @@ func lineCommentWithoutEOL() parser.Func[*ast.Comment] {
 		c.Comment = parser.TokenWhile(p, func() bool {
 			return !parser.MatchesWS(p, whitespace.EOL())
 		})
-		c.Close = p.PosPtr()
+		c.Until = p.Pos()
 
 		return &c, nil
 	}
 }
 
-func BlockComment() parser.Func[*ast.Comment] {
+func GeneralComment() parser.Func[*ast.Comment] {
 	return func(p *parser.Parser) (*ast.Comment, *fancyerr.Error) {
 		var c ast.Comment
-		c.Block = true
+		c.General = true
 		c.Open = p.Pos()
 
 		if !parser.TryToken(p, "/*") {
 			return nil, &fancyerr.Error{
 				Message: "missing block comment",
-				Primary: quickanno.Expected(p, p.Pos(), "a block comment"),
+				Primary: quickanno.Expected(p, p.Pos(), "a general comment"),
 			}
 		}
 
@@ -77,19 +77,20 @@ func BlockComment() parser.Func[*ast.Comment] {
 		})
 		c.Close = p.PosPtr()
 		if !parser.TryToken(p, "*/") {
-			err := &fancyerr.Error{
+			c.Close = nil
+			p.CaptureError(&fancyerr.Error{
 				Message: "unclosed block comment",
 				Primary: []fancyerr.Annotation{
 					anno.NChars(p.File, c.Open, len("/*"), "this comment is never closed"),
 				},
-				Explanation: "Unlike line comments, block comments must be closed using `*/`.\n" +
+				Explanation: "Unlike line comments, general comments must be closed using `*/`.\n" +
 					"Either change the `/*` to a `//` if you want a single-line comment, or add " +
 					"a closing `*/` at the end of the comment.",
-			}
+			})
+		}
 
-			p.CaptureError(err)
-			c.Close = nil
-		} else {
+		c.Until = p.Pos()
+		if c.Close != nil {
 			// only capture this if we didn't accidentally capture the rest of
 			// the file, just because of the missing `*/`
 			if p.Inline() && c.Open.Line != c.Close.Line {
@@ -97,7 +98,7 @@ func BlockComment() parser.Func[*ast.Comment] {
 					Message: "illegal placement of multiline block comment",
 					Primary: []fancyerr.Annotation{
 						anno.Anno(p.File, anno.Annotation{
-							Context:    anno.ContextLines(c.Open, *c.Close),
+							Context:    anno.ContextLines(c.Open, c.Until),
 							Highlight:  anno.HighlightToEOL(c.Open),
 							Annotation: "at this position, only single-line comments are allowed",
 						}),

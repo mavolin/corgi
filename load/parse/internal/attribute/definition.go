@@ -27,6 +27,8 @@ func Definition() parser.Func[*ast.AttributeDefinition] {
 			}
 		}
 
+		defer parser.MustSkip(p, comment.AndMustEOS())
+
 		beforePrefix := p.CloneState()
 
 		// technically '(' would be a valid attribute name, so check that we
@@ -123,7 +125,7 @@ func Ruleset() parser.Func[*ast.AttributeRuleset] {
 			}
 			rs.Rules = append(rs.Rules, r)
 
-			parser.MustSkip(p, comment.AndEOS())
+			parser.MustSkip(p, comment.AndMustEOS())
 		}
 		rs.Rules = slices.Clip(rs.Rules)
 

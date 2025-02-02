@@ -1,6 +1,7 @@
 package testutil
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -10,7 +11,6 @@ import (
 	"github.com/mavolin/corgi/v2/file/ast"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func NewParser(t *testing.T, input string) *parser.Parser {
@@ -49,8 +49,8 @@ func NoMatch[T any](t *testing.T, input string, f parser.Func[T]) {
 	t.Helper()
 
 	p := NewParser(t, input)
-	_, err := f(p)
-	assert.NotNil(t, err, "expected match error")
+	v, err := f(p)
+	assert.NotNilf(t, err, "expected match error, found: %#v", v)
 }
 
 func MatchesButError[T any](t *testing.T, input string, f parser.Func[T]) T {
@@ -81,8 +81,8 @@ func AssertNoError[T any](t *testing.T, p *parser.Parser, f parser.Func[T]) T {
 	assert.Nil(t, err, "match error")
 
 	for _, err = range p.CloneState().Errors() {
-		if !assert.NotNil(t, err, "a nil error was captured") {
-			assert.Fail(t, "unexpected error: %s", err)
+		if assert.NotNil(t, err, "a nil error was captured") {
+			assert.Fail(t, "unexpected error", err.Message)
 		}
 	}
 
@@ -127,21 +127,27 @@ func CoerceFunc[I, O any](t *testing.T, in parser.Func[I]) parser.Func[O] {
 			return zero, err
 		}
 
-		require.IsType(t, zero, v)
-		return any(v).(O), err
+		t, ok := any(v).(O)
+		if !ok {
+			return zero, &fancyerr.Error{
+				Message: fmt.Sprintf("expected %T, found %T", zero, v),
+			}
+		}
+
+		return t, nil
 	}
 }
 
 func AssertAlsoFulfils[I, O any](t *testing.T, f parser.Func[I], subTest func(*testing.T, parser.Func[O])) {
 	t.Helper()
 
-	var zeroI I
-	iType := reflect.TypeOf(&zeroI).Elem()
-	for iType.Kind() == reflect.Pointer {
-		iType = iType.Elem()
+	var zeroO O
+	oType := reflect.TypeOf(&zeroO).Elem()
+	for oType.Kind() == reflect.Pointer {
+		oType = oType.Elem()
 	}
 
-	t.Run(iType.Name(), func(t *testing.T) {
+	t.Run(oType.Name(), func(t *testing.T) {
 		t.Parallel()
 		subTest(t, CoerceFunc[I, O](t, f))
 	})

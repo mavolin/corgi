@@ -4,6 +4,7 @@ import (
 	"slices"
 
 	"github.com/mavolin/corgi/v2/fancyerr"
+	"github.com/mavolin/corgi/v2/fancyerr/anno"
 	"github.com/mavolin/corgi/v2/file/ast"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/mavolin/corgi/v2/load/parse/internal/quickanno"
@@ -15,7 +16,7 @@ import (
 func OrHorizontalWhitespace() parser.WhitespaceFunc {
 	return func(p *parser.Parser) *fancyerr.Error {
 		hasWS := parser.TrySkipOk(p, whitespace.Horizontal())
-		c, hasComment := parser.TryOk(p, BlockComment())
+		c, hasComment := parser.TryOk(p, GeneralComment())
 		if !hasWS && !hasComment {
 			return &fancyerr.Error{
 				Message: "missing horizontal whitespace",
@@ -28,7 +29,7 @@ func OrHorizontalWhitespace() parser.WhitespaceFunc {
 
 		for hasWS || hasComment {
 			hasWS = parser.TrySkipOk(p, whitespace.Horizontal())
-			c, hasComment = parser.TryOk(p, BlockComment())
+			c, hasComment = parser.TryOk(p, GeneralComment())
 			if hasComment {
 				p.CaptureComment(&ast.CommentGroup{Comments: []*ast.Comment{c}})
 			}
@@ -46,7 +47,7 @@ func AndEOS() parser.WhitespaceFunc {
 		pos := p.Pos()
 		for {
 			parser.TrySkip(p, whitespace.Horizontal())
-			c, hasComment := parser.TryOk(p, BlockComment())
+			c, hasComment := parser.TryOk(p, GeneralComment())
 			if !hasComment {
 				break
 			}
@@ -71,13 +72,35 @@ func AndEOS() parser.WhitespaceFunc {
 	}
 }
 
+func AndMustEOS() parser.WhitespaceFunc {
+	return func(p *parser.Parser) *fancyerr.Error {
+		parser.TrySkip(p, OrHorizontalWhitespace())
+		if parser.TrySkipOk(p, AndEOS()) { // fast path
+			return nil
+		}
+
+		start := p.Pos()
+		parser.TokenWhile(p, func() bool {
+			return !parser.MatchesWS(p, AndEOS())
+		})
+		p.CaptureError(&fancyerr.Error{
+			Message: "end of statement: unexpected tokens",
+			Primary: []fancyerr.Annotation{
+				anno.Range(p.File, start, p.Pos(), "unexpected tokens, expected end of statement"),
+			},
+		})
+
+		parser.TrySkip(p, AndEOS())
+		return nil
+	}
+}
+
 // AndEOL captures the comments until and including the first EOL.
-// Only single-line block comments are captured.
 func AndEOL() parser.WhitespaceFunc {
 	return func(p *parser.Parser) *fancyerr.Error {
 		for {
 			parser.TrySkip(p, whitespace.Horizontal())
-			c, hasComment := parser.TryOk(p, BlockComment())
+			c, hasComment := parser.TryOk(p, GeneralComment())
 			if !hasComment {
 				break
 			}
@@ -107,7 +130,7 @@ func OrAnyWhitespace() parser.WhitespaceFunc {
 		pos := p.Pos()
 		for {
 			parser.TrySkip(p, whitespace.Horizontal())
-			c, hasComment := parser.TryOk(p, BlockComment())
+			c, hasComment := parser.TryOk(p, GeneralComment())
 			if !hasComment {
 				break
 			}
@@ -135,7 +158,7 @@ func OrLoneWS() parser.WhitespaceFunc {
 	return func(p *parser.Parser) *fancyerr.Error {
 		hasWS := parser.TrySkipOk(p, whitespace.Any())
 
-		c, hasComment := parser.TryOk(p, BlockComment())
+		c, hasComment := parser.TryOk(p, GeneralComment())
 		if hasComment {
 			p.CaptureComment(&ast.CommentGroup{Comments: []*ast.Comment{c}})
 			parser.TrySkip(p, OrAnyWhitespace())

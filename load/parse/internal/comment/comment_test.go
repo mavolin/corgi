@@ -32,7 +32,7 @@ func testLineComment(t *testing.T, f parser.Func[*ast.Comment]) {
 	expect := &ast.Comment{
 		Open:    ast.Position{Line: 1, Col: 1},
 		Comment: " foo",
-		Block:   false,
+		General: false,
 		Close:   &ast.Position{Line: 1, Col: 7},
 	}
 
@@ -42,7 +42,7 @@ func testLineComment(t *testing.T, f parser.Func[*ast.Comment]) {
 
 func TestBlockComment(t *testing.T) {
 	t.Parallel()
-	testBlockComment(t, BlockComment())
+	testBlockComment(t, GeneralComment())
 }
 
 func testBlockComment(t *testing.T, f parser.Func[*ast.Comment]) {
@@ -52,7 +52,7 @@ func testBlockComment(t *testing.T, f parser.Func[*ast.Comment]) {
 		expect := &ast.Comment{
 			Open:    ast.Position{Line: 1, Col: 1},
 			Comment: " foo ",
-			Block:   true,
+			General: true,
 			Close:   &ast.Position{Line: 1, Col: 8},
 		}
 
@@ -66,7 +66,7 @@ func testBlockComment(t *testing.T, f parser.Func[*ast.Comment]) {
 		expect := &ast.Comment{
 			Open:    ast.Position{Line: 1, Col: 1},
 			Comment: " foo\n   bar ",
-			Block:   true,
+			General: true,
 			Close:   &ast.Position{Line: 2, Col: 8},
 		}
 
@@ -92,7 +92,7 @@ func testBlockComment(t *testing.T, f parser.Func[*ast.Comment]) {
 			expect := &ast.Comment{
 				Open:    ast.Position{Line: 1, Col: 1},
 				Comment: " foo ",
-				Block:   true,
+				General: true,
 				Close:   &ast.Position{Line: 1, Col: 8},
 			}
 

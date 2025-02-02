@@ -30,8 +30,9 @@ func QualifiedIdent() parser.Func[*ast.QualifiedIdent] { // https://go.dev/ref/s
 
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 
-		dot := p.Pos()
+		ident.Dot = p.PosPtr()
 		if !parser.TryRune(p, '.') {
+			ident.Dot = nil
 			p.CaptureError(&fancyerr.Error{
 				Message: "qualified identifier: missing dot and name in package",
 				Primary: quickanno.Expected(p, p.Pos(), "a dot"),
@@ -49,10 +50,50 @@ func QualifiedIdent() parser.Func[*ast.QualifiedIdent] { // https://go.dev/ref/s
 		if !ok {
 			p.CaptureError(&fancyerr.Error{
 				Message: "qualified identifier: missing name in package",
-				Primary: quickanno.Expected(p, dot, "an identifier"),
+				Primary: quickanno.Expected(p, *ident.Dot, "an identifier"),
 			})
 		}
 
 		return ident, nil
+	}
+}
+
+// ============================================================================
+// Operators
+// ======================================================================================
+
+func AddOp() parser.Func[string] {
+	return func(p *parser.Parser) (string, *fancyerr.Error) {
+		r := parser.TryAnyRune(p, '+', '-', '|', '^')
+		if r < 0 {
+			return "", &fancyerr.Error{
+				Message: "missing add op",
+				Primary: quickanno.Expected(p, p.Pos(), "`+`, `-`, `|`, `^`"),
+			}
+		}
+
+		return string(r), nil
+	}
+}
+
+func MulOp() parser.Func[string] {
+	return func(p *parser.Parser) (string, *fancyerr.Error) {
+		if parser.TryToken(p, "<<") {
+			return "<<", nil
+		} else if parser.TryToken(p, ">>") {
+			return ">>", nil
+		} else if parser.TryToken(p, "&^") {
+			return "&^", nil
+		}
+
+		r := parser.TryAnyRune(p, '*', '/', '%', '&')
+		if r < 0 {
+			return "", &fancyerr.Error{
+				Message: "missing mul op",
+				Primary: quickanno.Expected(p, p.Pos(), "`*`, `/`, `%`, `<<`, `>>`, `&`, `&^`"),
+			}
+		}
+
+		return string(r), nil
 	}
 }

@@ -1,5 +1,19 @@
 package parser
 
+func TryOptionalToken(p *Parser, s string) (ok bool) {
+	state := p.CloneState()
+	if !MatchesToken(p, s) {
+		p.RestoreState(state)
+		return false
+	}
+
+	p.state.ws = nil
+	for range s {
+		p.next()
+	}
+	return true
+}
+
 // TryToken attempts to match the given token verbatim.
 func TryToken(p *Parser, s string) (ok bool) {
 	restore := p.state.takeWSStart()

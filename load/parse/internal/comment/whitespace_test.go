@@ -24,7 +24,7 @@ func TestOrHorizontalWhitespace(t *testing.T) {
 				{
 					Open:    ast.Position{Line: 1, Col: 1},
 					Comment: " test ",
-					Block:   true,
+					General: true,
 					Close:   &ast.Position{Line: 1, Col: 9},
 				},
 			},
@@ -34,12 +34,12 @@ func TestOrHorizontalWhitespace(t *testing.T) {
 				{
 					Open:    ast.Position{Line: 1, Col: 3},
 					Comment: " test ",
-					Block:   true,
+					General: true,
 					Close:   &ast.Position{Line: 1, Col: 11},
 				}, {
 					Open:    ast.Position{Line: 1, Col: 15},
 					Comment: " test2 ",
-					Block:   true,
+					General: true,
 					Close:   &ast.Position{Line: 1, Col: 24},
 				},
 			},
@@ -100,7 +100,7 @@ func TestAndEOS(t *testing.T) {
 				{
 					Open:    ast.Position{Line: 1, Col: 1},
 					Comment: " test ",
-					Block:   true,
+					General: true,
 					Close:   &ast.Position{Line: 1, Col: 9},
 				},
 			},
@@ -111,7 +111,7 @@ func TestAndEOS(t *testing.T) {
 				{
 					Open:    ast.Position{Line: 1, Col: 2},
 					Comment: " test\n ",
-					Block:   true,
+					General: true,
 					Close:   &ast.Position{Line: 2, Col: 2},
 				},
 			},
@@ -122,12 +122,12 @@ func TestAndEOS(t *testing.T) {
 				{
 					Open:    ast.Position{Line: 1, Col: 3},
 					Comment: " test ",
-					Block:   true,
+					General: true,
 					Close:   &ast.Position{Line: 1, Col: 11},
 				}, {
 					Open:    ast.Position{Line: 1, Col: 15},
 					Comment: " test2 ",
-					Block:   true,
+					General: true,
 					Close:   &ast.Position{Line: 1, Col: 24},
 				},
 			},
@@ -190,7 +190,7 @@ func testOrEOL(t *testing.T, f parser.WhitespaceFunc) {
 				{
 					Open:    ast.Position{Line: 1, Col: 1},
 					Comment: " test ",
-					Block:   true,
+					General: true,
 					Close:   &ast.Position{Line: 1, Col: 9},
 				},
 			},
@@ -200,12 +200,12 @@ func testOrEOL(t *testing.T, f parser.WhitespaceFunc) {
 				{
 					Open:    ast.Position{Line: 1, Col: 3},
 					Comment: " test ",
-					Block:   true,
+					General: true,
 					Close:   &ast.Position{Line: 1, Col: 11},
 				}, {
 					Open:    ast.Position{Line: 1, Col: 15},
 					Comment: " test2 ",
-					Block:   true,
+					General: true,
 					Close:   &ast.Position{Line: 1, Col: 24},
 				},
 			},
@@ -215,7 +215,7 @@ func testOrEOL(t *testing.T, f parser.WhitespaceFunc) {
 				{
 					Open:    ast.Position{Line: 1, Col: 2},
 					Comment: " foo",
-					Block:   false,
+					General: false,
 					Close:   &ast.Position{Line: 1, Col: 8},
 				},
 			},
@@ -255,22 +255,22 @@ func TestOrAnyWhitespace(t *testing.T) {
 				{
 					Open:    ast.Position{Line: 1, Col: 3},
 					Comment: " test ",
-					Block:   true,
+					General: true,
 					Close:   &ast.Position{Line: 1, Col: 11},
 				}, {
 					Open:    ast.Position{Line: 1, Col: 15},
 					Comment: " test2 ",
-					Block:   true,
+					General: true,
 					Close:   &ast.Position{Line: 1, Col: 24},
 				}, {
 					Open:    ast.Position{Line: 2, Col: 1},
 					Comment: " foo",
-					Block:   false,
+					General: false,
 					Close:   &ast.Position{Line: 2, Col: 7},
 				}, {
 					Open:    ast.Position{Line: 3, Col: 1},
 					Comment: " bar ",
-					Block:   true,
+					General: true,
 					Close:   &ast.Position{Line: 3, Col: 8},
 				},
 			},
@@ -280,12 +280,12 @@ func TestOrAnyWhitespace(t *testing.T) {
 				{
 					Open:    ast.Position{Line: 1, Col: 2},
 					Comment: " foo",
-					Block:   false,
+					General: false,
 					Close:   &ast.Position{Line: 1, Col: 8},
 				}, {
 					Open:    ast.Position{Line: 2, Col: 1},
 					Comment: " bar",
-					Block:   false,
+					General: false,
 					Close:   &ast.Position{Line: 2, Col: 7},
 				},
 			},
@@ -328,7 +328,7 @@ func TestOrLoneWS(t *testing.T) {
 				{
 					Open:    ast.Position{Line: 1, Col: 1},
 					Comment: " test ",
-					Block:   true,
+					General: true,
 					Close:   &ast.Position{Line: 1, Col: 9},
 				},
 			},
@@ -338,12 +338,12 @@ func TestOrLoneWS(t *testing.T) {
 				{
 					Open:    ast.Position{Line: 1, Col: 3},
 					Comment: " test ",
-					Block:   true,
+					General: true,
 					Close:   &ast.Position{Line: 1, Col: 11},
 				}, {
 					Open:    ast.Position{Line: 2, Col: 2},
 					Comment: " test2 ",
-					Block:   true,
+					General: true,
 					Close:   &ast.Position{Line: 2, Col: 11},
 				},
 			},
@@ -353,12 +353,12 @@ func TestOrLoneWS(t *testing.T) {
 				{
 					Open:    ast.Position{Line: 1, Col: 2},
 					Comment: " foo",
-					Block:   false,
+					General: false,
 					Close:   &ast.Position{Line: 1, Col: 8},
 				}, {
 					Open:    ast.Position{Line: 2, Col: 1},
 					Comment: " bar\n baz ",
-					Block:   true,
+					General: true,
 					Close:   &ast.Position{Line: 3, Col: 6},
 				},
 			},
@@ -369,12 +369,12 @@ func TestOrLoneWS(t *testing.T) {
 				{
 					Open:    ast.Position{Line: 1, Col: 1},
 					Comment: " foo ",
-					Block:   true,
+					General: true,
 					Close:   &ast.Position{Line: 1, Col: 8},
 				}, {
 					Open:    ast.Position{Line: 1, Col: 11},
 					Comment: " bar",
-					Block:   false,
+					General: false,
 					Close:   &ast.Position{Line: 1, Col: 17},
 				},
 			},
