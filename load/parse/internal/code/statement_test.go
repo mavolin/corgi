@@ -682,7 +682,7 @@ func testVarDeclaration(t *testing.T, f parser.Func[*ast.VarDeclaration]) {
 				},
 			},
 		}, {
-			name: "zero value",
+			name: "only type",
 			in:   "var foo int",
 			expect: &ast.VarDeclaration{
 				Var: ast.Position{Line: 1, Col: 1},

@@ -25,9 +25,8 @@ import (
 func UntilAnyRune(p *parser.Parser, wsFunc parser.WhitespaceFunc, runes ...rune) *fancyerr.Error {
 	var start, end ast.Position
 
-	state := p.CloneState()
-
 	if wsFunc == nil {
+		state := p.CloneState()
 		start = p.Pos()
 		s := parser.TokenWhile(p, func() bool {
 			return !parser.MatchesAnyRune(p, runes...) && !parser.MatchesAnyRune(p, whitespace.Runes...)
@@ -39,6 +38,7 @@ func UntilAnyRune(p *parser.Parser, wsFunc parser.WhitespaceFunc, runes ...rune)
 		end = p.Pos()
 	} else {
 		parser.TrySkip(p, wsFunc)
+		state := p.CloneState()
 		start = p.Pos()
 		for {
 			s := parser.TokenWhile(p, func() bool {
