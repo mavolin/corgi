@@ -85,6 +85,13 @@ func TypeName() parser.Func[*ast.AttributeTypeName] {
 				Primary: []fancyerr.Annotation{
 					anno.Range(p.File, ident.Position, ident.End(), "not a known attribute type"),
 				},
+				Hints: []fancyerr.Hint{
+					{
+						Hint: "Valid attribute types are: " +
+							"`unsafe`, `unsafeBool`, `bool`, `text`, `innocuous`," +
+							" `css`, `js`, `url`, `urlList`, `resourceURL`, `srcset`",
+					},
+				},
 			})
 		}
 		return n, nil

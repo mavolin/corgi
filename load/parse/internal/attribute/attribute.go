@@ -105,7 +105,7 @@ func NamedAttribute() parser.Func[*ast.NamedAttribute] {
 
 			return attr, nil
 		}
-		attr.Assign = &assignPos
+		attr.EqualSign = &assignPos
 
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 

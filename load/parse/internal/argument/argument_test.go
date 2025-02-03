@@ -106,7 +106,7 @@ func TestArguments(t *testing.T) {
 							Name:     "class",
 							Position: ast.Position{Line: 1, Col: 2},
 						},
-						Assign: &ast.Position{Line: 1, Col: 7},
+						EqualSign: &ast.Position{Line: 1, Col: 7},
 						Value: &ast.ExpressionAttributeValue{
 							Nodes: []ast.ExpressionNode{
 								&ast.GoCode{
@@ -221,7 +221,7 @@ func TestArguments(t *testing.T) {
 							Name:     "valueAttr",
 							Position: ast.Position{Line: 1, Col: 73},
 						},
-						Assign: &ast.Position{Line: 1, Col: 82},
+						EqualSign: &ast.Position{Line: 1, Col: 82},
 						Value: &ast.ExpressionAttributeValue{
 							Nodes: []ast.ExpressionNode{
 								&ast.GoCode{
