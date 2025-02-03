@@ -13,16 +13,15 @@ import (
 
 func ComponentArgument() parser.Func[*ast.ComponentArgument] {
 	return func(p *parser.Parser) (*ast.ComponentArgument, *fancyerr.Error) {
-		arg := &ast.ComponentArgument{Position: p.Pos()}
-
-		var ok bool
-		arg.Name, ok = parser.TryOk(p, golang.Identifier())
+		name, ok := parser.TryOk(p, golang.Identifier())
 		if !ok {
 			return nil, &fancyerr.Error{
 				Message: "missing component argument",
-				Primary: quickanno.Expected(p, arg.Position, "an argument name"),
+				Primary: quickanno.Expected(p, p.Pos(), "an argument name"),
 			}
 		}
+
+		arg := &ast.ComponentArgument{Name: *name}
 
 		hasPreColonWS := parser.TrySkipOk(p, comment.OrHorizontalWhitespace())
 
@@ -30,7 +29,7 @@ func ComponentArgument() parser.Func[*ast.ComponentArgument] {
 		if !parser.TryRune(p, ':') {
 			return nil, &fancyerr.Error{
 				Message: "missing colon",
-				Primary: quickanno.Expected(p, arg.Position, "a colon separating the argument name and value"),
+				Primary: quickanno.Expected(p, p.Pos(), "a colon separating the argument name and value"),
 			}
 		}
 		arg.Colon = &colon
@@ -58,7 +57,7 @@ func ComponentArgument() parser.Func[*ast.ComponentArgument] {
 			if !hasPreColonWS && (parser.MatchesWS(p, whitespace.EOL()) || parser.MatchesAnyRune(p, ',', ')')) {
 				return nil, &fancyerr.Error{
 					Message: "missing component argument",
-					Primary: quickanno.Expected(p, arg.Position, "a valid component argument"),
+					Primary: quickanno.Expected(p, arg.Pos(), "a valid component argument"),
 				}
 			}
 			p.CaptureError(&fancyerr.Error{
@@ -96,7 +95,7 @@ func ComponentArgument() parser.Func[*ast.ComponentArgument] {
 		err:
 			return nil, &fancyerr.Error{
 				Message: "missing component argument",
-				Primary: quickanno.Expected(p, arg.Position, "an argument name"),
+				Primary: quickanno.Expected(p, arg.Pos(), "an argument name"),
 				Hints: []fancyerr.Hint{
 					{Hint: "If this is supposed to be a named attribute, add a space after the colon."},
 				},

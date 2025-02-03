@@ -108,7 +108,7 @@ func TestArguments(t *testing.T) {
 						},
 						EqualSign: &ast.Position{Line: 1, Col: 7},
 						Value: &ast.ExpressionAttributeValue{
-							Nodes: []ast.ExpressionNode{
+							Code: ast.Code{
 								&ast.GoCode{
 									Code:     "foo",
 									Position: ast.Position{Line: 1, Col: 8},
@@ -126,20 +126,19 @@ func TestArguments(t *testing.T) {
 				LParen: ast.Position{Line: 1, Col: 1},
 				Args: []ast.Argument{
 					&ast.ComponentArgument{
-						Name: &ast.Ident{
+						Name: ast.Ident{
 							Ident:    "foo",
 							Position: ast.Position{Line: 1, Col: 2},
 						},
 						Colon: &ast.Position{Line: 1, Col: 5},
 						Value: &ast.Expression{
-							Nodes: []ast.ExpressionNode{
+							Code: ast.Code{
 								&ast.GoCode{
 									Code:     "bar",
 									Position: ast.Position{Line: 1, Col: 7},
 								},
 							},
 						},
-						Position: ast.Position{Line: 1, Col: 2},
 					},
 				},
 				RParen: &ast.Position{Line: 1, Col: 10},
@@ -151,36 +150,34 @@ func TestArguments(t *testing.T) {
 				LParen: ast.Position{Line: 1, Col: 1},
 				Args: []ast.Argument{
 					&ast.ComponentArgument{
-						Name: &ast.Ident{
+						Name: ast.Ident{
 							Ident:    "arg1",
 							Position: ast.Position{Line: 1, Col: 2},
 						},
 						Colon: &ast.Position{Line: 1, Col: 6},
 						Value: &ast.Expression{
-							Nodes: []ast.ExpressionNode{
+							Code: ast.Code{
 								&ast.GoCode{
 									Code:     "arg1Value",
 									Position: ast.Position{Line: 1, Col: 8},
 								},
 							},
 						},
-						Position: ast.Position{Line: 1, Col: 2},
 					},
 					&ast.ComponentArgument{
-						Name: &ast.Ident{
+						Name: ast.Ident{
 							Ident:    "arg2",
 							Position: ast.Position{Line: 1, Col: 19},
 						},
 						Colon: &ast.Position{Line: 1, Col: 23},
 						Value: &ast.Expression{
-							Nodes: []ast.ExpressionNode{
+							Code: ast.Code{
 								&ast.GoCode{
 									Code:     "arg2Value",
 									Position: ast.Position{Line: 1, Col: 25},
 								},
 							},
 						},
-						Position: ast.Position{Line: 1, Col: 19},
 					},
 					&ast.AndPlaceholder{
 						Position: ast.Position{Line: 1, Col: 36},
@@ -223,7 +220,7 @@ func TestArguments(t *testing.T) {
 						},
 						EqualSign: &ast.Position{Line: 1, Col: 82},
 						Value: &ast.ExpressionAttributeValue{
-							Nodes: []ast.ExpressionNode{
+							Code: ast.Code{
 								&ast.GoCode{
 									Code:     "valueAttrValue",
 									Position: ast.Position{Line: 1, Col: 83},

@@ -618,8 +618,8 @@ func testNamedType(t *testing.T, f parser.Func[*ast.NamedType]) {
 						Position: ast.Position{Line: 1, Col: 5},
 					},
 				},
-				TypeArgs: &ast.TypeArgs{
-					LBrace: ast.Position{Line: 1, Col: 8},
+				TypeArgs: &ast.TypeArguments{
+					LBracket: ast.Position{Line: 1, Col: 8},
 					Types: []*ast.Type{
 						{
 							Type: "int",
@@ -643,7 +643,7 @@ func testNamedType(t *testing.T, f parser.Func[*ast.NamedType]) {
 							Until:    ast.Position{Line: 1, Col: 20},
 						},
 					},
-					RBrace: &ast.Position{Line: 1, Col: 20},
+					RBracket: &ast.Position{Line: 1, Col: 20},
 				},
 			},
 		},

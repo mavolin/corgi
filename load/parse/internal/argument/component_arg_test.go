@@ -21,14 +21,13 @@ func testComponentArgument(t *testing.T, f parser.Func[*ast.ComponentArgument]) 
 		in := "name: value"
 
 		expect := &ast.ComponentArgument{
-			Position: ast.Position{Line: 1, Col: 1},
-			Name: &ast.Ident{
+			Name: ast.Ident{
 				Ident:    "name",
 				Position: ast.Position{Line: 1, Col: 1},
 			},
 			Colon: &ast.Position{Line: 1, Col: 5},
 			Value: &ast.Expression{
-				Nodes: []ast.ExpressionNode{
+				Code: ast.Code{
 					&ast.GoCode{
 						Code:     "value",
 						Position: ast.Position{Line: 1, Col: 7},
@@ -57,14 +56,13 @@ func testComponentArgument(t *testing.T, f parser.Func[*ast.ComponentArgument]) 
 				name: "no colon space: no equal sign",
 				in:   "name:value 2",
 				expect: &ast.ComponentArgument{
-					Position: ast.Position{Line: 1, Col: 1},
-					Name: &ast.Ident{
+					Name: ast.Ident{
 						Ident:    "name",
 						Position: ast.Position{Line: 1, Col: 1},
 					},
 					Colon: &ast.Position{Line: 1, Col: 5},
 					Value: &ast.Expression{
-						Nodes: []ast.ExpressionNode{
+						Code: ast.Code{
 							&ast.GoCode{
 								Code:     "value 2",
 								Position: ast.Position{Line: 1, Col: 6},
@@ -76,14 +74,13 @@ func testComponentArgument(t *testing.T, f parser.Func[*ast.ComponentArgument]) 
 				name: "no colon space: string",
 				in:   `name:"value"`,
 				expect: &ast.ComponentArgument{
-					Position: ast.Position{Line: 1, Col: 1},
-					Name: &ast.Ident{
+					Name: ast.Ident{
 						Ident:    "name",
 						Position: ast.Position{Line: 1, Col: 1},
 					},
 					Colon: &ast.Position{Line: 1, Col: 5},
 					Value: &ast.Expression{
-						Nodes: []ast.ExpressionNode{
+						Code: ast.Code{
 							&ast.String{
 								Open:  ast.Position{Line: 1, Col: 6},
 								Quote: '"',

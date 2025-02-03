@@ -333,7 +333,7 @@ func testComponentCallInterpolation(t *testing.T, f parser.Func[*ast.ComponentCa
 							Ident:    "component",
 							Position: ast.Position{Line: 1, Col: 3},
 						},
-						Args: &ast.Arguments{
+						Arguments: &ast.Arguments{
 							LParen: ast.Position{Line: 1, Col: 12},
 							RParen: &ast.Position{Line: 1, Col: 13},
 						},
@@ -352,7 +352,7 @@ func testComponentCallInterpolation(t *testing.T, f parser.Func[*ast.ComponentCa
 							Ident:    "component",
 							Position: ast.Position{Line: 1, Col: 3},
 						},
-						Args: &ast.Arguments{
+						Arguments: &ast.Arguments{
 							LParen: ast.Position{Line: 1, Col: 12},
 							RParen: &ast.Position{Line: 1, Col: 13},
 						},

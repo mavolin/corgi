@@ -53,7 +53,7 @@ func componentCallHeaderStub(p *parser.Parser) (*ast.ComponentCallHeader, *fancy
 	}
 	h.Name = name
 
-	h.Args = &ast.Arguments{
+	h.Arguments = &ast.Arguments{
 		LParen: ast.Position{Line: 1, Col: p.Col()},
 	}
 	if !parser.TryRune(p, '(') {
@@ -62,7 +62,7 @@ func componentCallHeaderStub(p *parser.Parser) (*ast.ComponentCallHeader, *fancy
 			Primary: quickanno.Expected(p, p.Pos(), "opening parenthesis"),
 		}
 	}
-	h.Args.RParen = p.PosPtr()
+	h.Arguments.RParen = p.PosPtr()
 	if !parser.TryRune(p, ')') {
 		return nil, &fancyerr.Error{
 			Message: "missing closing parenthesis",

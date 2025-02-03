@@ -80,16 +80,16 @@ func TypeName() parser.Func[ast.FullIdent] { // https://go.dev/ref/spec#TypeName
 	return FullIdent()
 }
 
-func TypeArgs() parser.Func[*ast.TypeArgs] { // https://go.dev/ref/spec#TypeArgs
-	return func(p *parser.Parser) (*ast.TypeArgs, *fancyerr.Error) {
+func TypeArgs() parser.Func[*ast.TypeArguments] { // https://go.dev/ref/spec#TypeArgs
+	return func(p *parser.Parser) (*ast.TypeArguments, *fancyerr.Error) {
 		l, err := list.BracketList("type arguments", Type())(p)
 		if err != nil {
 			return nil, err
 		}
-		return &ast.TypeArgs{
-			LBrace: l.Open,
-			Types:  l.Elems,
-			RBrace: l.Close,
+		return &ast.TypeArguments{
+			LBracket: l.Open,
+			Types:    l.Elems,
+			RBracket: l.Close,
 		}, nil
 	}
 }
