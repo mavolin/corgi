@@ -52,22 +52,22 @@ func testNonZCExpression(t *testing.T, f parser.Func[*ast.Expression]) {
 			Code: ast.Code{
 				&ast.GoCode{
 					Code:     "foo(bar, ",
-					Position: ast.Position{Line: 1, Col: 1},
+					Position: &ast.Position{Line: 1, Col: 1},
 				}, &ast.String{
-					Open:  ast.Position{Line: 1, Col: 10},
+					Open:  &ast.Position{Line: 1, Col: 10},
 					Quote: '"',
 					Contents: []ast.StringNode{
 						&ast.StringText{
 							Text:     "baz ",
-							Position: ast.Position{Line: 1, Col: 11},
+							Position: &ast.Position{Line: 1, Col: 11},
 						}, &ast.ExpressionInterpolation{
-							Hash:   ast.Position{Line: 1, Col: 15},
+							Hash:   &ast.Position{Line: 1, Col: 15},
 							LBrace: &ast.Position{Line: 1, Col: 16},
 							Expression: &ast.Expression{
 								Code: ast.Code{
 									&ast.GoCode{
 										Code:     "woof",
-										Position: ast.Position{Line: 1, Col: 17},
+										Position: &ast.Position{Line: 1, Col: 17},
 									},
 								},
 							},
@@ -77,23 +77,23 @@ func testNonZCExpression(t *testing.T, f parser.Func[*ast.Expression]) {
 					Close: &ast.Position{Line: 1, Col: 22},
 				}, &ast.GoCode{
 					Code:     ") || ",
-					Position: ast.Position{Line: 1, Col: 23},
+					Position: &ast.Position{Line: 1, Col: 23},
 				}, &ast.BlockFunction{
-					LParen:   &ast.Position{Line: 1, Col: 33},
-					Block:    &ast.Ident{Ident: "myBlock", Position: ast.Position{Line: 1, Col: 34}},
-					RParen:   &ast.Position{Line: 1, Col: 41},
-					Position: ast.Position{Line: 1, Col: 28},
+					LParen:    &ast.Position{Line: 1, Col: 33},
+					BlockName: &ast.Ident{Ident: "myBlock", Position: &ast.Position{Line: 1, Col: 34}},
+					RParen:    &ast.Position{Line: 1, Col: 41},
+					Block:     &ast.Position{Line: 1, Col: 28},
 				}, &ast.GoCode{
 					Code:     "||",
-					Position: ast.Position{Line: 1, Col: 43},
+					Position: &ast.Position{Line: 1, Col: 43},
 				}, &ast.Ternary{
-					QuestionMark: ast.Position{Line: 1, Col: 46},
+					QuestionMark: &ast.Position{Line: 1, Col: 46},
 					LParen:       &ast.Position{Line: 1, Col: 47},
 					Condition: &ast.Expression{
 						Code: ast.Code{
 							&ast.GoCode{
 								Code:     "cond",
-								Position: ast.Position{Line: 1, Col: 48},
+								Position: &ast.Position{Line: 1, Col: 48},
 							},
 						},
 					},
@@ -101,7 +101,7 @@ func testNonZCExpression(t *testing.T, f parser.Func[*ast.Expression]) {
 						Code: ast.Code{
 							&ast.GoCode{
 								Code:     "ifT",
-								Position: ast.Position{Line: 1, Col: 54},
+								Position: &ast.Position{Line: 1, Col: 54},
 							},
 						},
 					},
@@ -109,7 +109,7 @@ func testNonZCExpression(t *testing.T, f parser.Func[*ast.Expression]) {
 						Code: ast.Code{
 							&ast.GoCode{
 								Code:     "ifF",
-								Position: ast.Position{Line: 1, Col: 59},
+								Position: &ast.Position{Line: 1, Col: 59},
 							},
 						},
 					},

@@ -37,11 +37,11 @@ func TestType(t *testing.T) {
 				t.Parallel()
 
 				expect := &ast.AttributeType{
-					Quote: ast.Position{Line: 1, Col: 1},
+					Quote: &ast.Position{Line: 1, Col: 1},
 					Name: &ast.AttributeTypeName{
 						Name:     c.name,
 						Type:     c.typ,
-						Position: ast.Position{Line: 1, Col: 2},
+						Position: &ast.Position{Line: 1, Col: 2},
 					},
 				}
 				actual := testutil.ParsesFully(t, "'"+c.name, Type())
@@ -56,11 +56,11 @@ func TestType(t *testing.T) {
 			t.Parallel()
 
 			expect := &ast.AttributeType{
-				Quote: ast.Position{Line: 1, Col: 1},
+				Quote: &ast.Position{Line: 1, Col: 1},
 				Name: &ast.AttributeTypeName{
 					Name:     "foo",
 					Type:     attrtype.Unknown,
-					Position: ast.Position{Line: 1, Col: 2},
+					Position: &ast.Position{Line: 1, Col: 2},
 				},
 			}
 			actual := testutil.MatchesButError(t, "'foo", Type())
@@ -82,7 +82,7 @@ func TestTypeName(t *testing.T) {
 				expect := &ast.AttributeTypeName{
 					Name:     c.name,
 					Type:     c.typ,
-					Position: ast.Position{Line: 1, Col: 1},
+					Position: &ast.Position{Line: 1, Col: 1},
 				}
 				actual := testutil.ParsesFully(t, c.name, TypeName())
 				assert.Equal(t, expect, actual)
@@ -98,7 +98,7 @@ func TestTypeName(t *testing.T) {
 			expect := &ast.AttributeTypeName{
 				Name:     "foo",
 				Type:     attrtype.Unknown,
-				Position: ast.Position{Line: 1, Col: 1},
+				Position: &ast.Position{Line: 1, Col: 1},
 			}
 			actual := testutil.MatchesButError(t, "foo", TypeName())
 			assert.Equal(t, expect, actual)

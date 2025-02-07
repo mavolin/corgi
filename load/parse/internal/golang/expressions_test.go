@@ -17,14 +17,14 @@ func TestQualifiedIdent(t *testing.T) {
 func testQualifiedIdent(t *testing.T, f parser.Func[*ast.QualifiedIdent]) {
 	in := "foo.bar"
 	expect := &ast.QualifiedIdent{
-		Package: ast.Ident{
+		Package: &ast.Ident{
 			Ident:    "foo",
-			Position: ast.Position{Line: 1, Col: 1},
+			Position: &ast.Position{Line: 1, Col: 1},
 		},
 		Dot: &ast.Position{Line: 1, Col: 4},
 		Name: &ast.Ident{
 			Ident:    "bar",
-			Position: ast.Position{Line: 1, Col: 5},
+			Position: &ast.Position{Line: 1, Col: 5},
 		},
 	}
 

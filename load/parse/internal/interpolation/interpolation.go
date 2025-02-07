@@ -19,19 +19,19 @@ func TextInterpolation() parser.Func[ast.TextInterpolation] {
 			return nil, err
 		}
 
-		if eh, ok := parser.TryOk(p, EscapedHash()); ok {
+		if eh := parser.Try(p, EscapedHash()); eh != nil {
 			return eh, nil
-		} else if hs, ok := parser.TryOk(p, HashSpace()); ok {
+		} else if hs := parser.Try(p, HashSpace()); hs != nil {
 			return hs, nil
-		} else if hs, ok := parser.TryOk(p, EscapedRBracket()); ok {
+		} else if hs := parser.Try(p, EscapedRBracket()); hs != nil {
 			return hs, nil
-		} else if ei, ok := parser.TryOk(p, ExpressionInterpolation()); ok {
+		} else if ei := parser.Try(p, ExpressionInterpolation()); ei != nil {
 			return ei, nil
-		} else if cc, ok := parser.TryOk(p, ComponentCallInterpolation()); ok {
+		} else if cc := parser.Try(p, ComponentCallInterpolation()); cc != nil {
 			return cc, nil
-		} else if cr, ok := parser.TryOk(p, CharacterReference()); ok {
+		} else if cr := parser.Try(p, CharacterReference()); cr != nil {
 			return cr, nil
-		} else if ei, ok := parser.TryOk(p, ElementInterpolation()); ok {
+		} else if ei := parser.Try(p, ElementInterpolation()); ei != nil {
 			return ei, nil
 		}
 
@@ -53,7 +53,7 @@ func TextInterpolation() parser.Func[ast.TextInterpolation] {
 				{Title: "element interpolation", Example: "`#br` or #strong[foo]"},
 			},
 		})
-		return parser.Try(p, BadInterpolation())
+		return parser.TryErr(p, BadInterpolation())
 	}
 }
 
@@ -63,33 +63,33 @@ func StringInterpolation() parser.Func[ast.StringInterpolation] {
 			return nil, err
 		}
 
-		if eh, ok := parser.TryOk(p, EscapedHash()); ok {
+		if eh := parser.Try(p, EscapedHash()); eh != nil {
 			return eh, nil
-		} else if ei, ok := parser.TryOk(p, ExpressionInterpolation()); ok {
+		} else if ei := parser.Try(p, ExpressionInterpolation()); ei != nil {
 			return ei, nil
-		} else if cc, ok := parser.TryOk(p, ComponentCallInterpolation()); ok {
+		} else if cc := parser.Try(p, ComponentCallInterpolation()); cc != nil {
 			return cc, nil
-		} else if cr, ok := parser.TryOk(p, CharacterReference()); ok {
+		} else if cr := parser.Try(p, CharacterReference()); cr != nil {
 			return cr, nil
 		}
 
-		// Try other kinds of interpolation, that aren't allowed inside a string
-		if hs, ok := parser.TryOk(p, HashSpace()); ok {
+		// TryErr other kinds of interpolation, that aren't allowed inside a string
+		if hs := parser.Try(p, HashSpace()); hs != nil {
 			p.CaptureError(&fancyerr.Error{
 				Message: "string interpolation: cannot use hash space here",
 				Primary: []fancyerr.Annotation{
-					anno.Range(p.File, hs.Pos(), hs.End(),
+					anno.Range(p.File, hs.Start(), hs.End(),
 						"there is no point in using a hash space, you can just write a space instead"),
 				},
 				Explanation: "A hash space is used to insert a trailing space in text blocks. " +
 					"This isn't necessary in strings, and you can just as well write a regular space instead.",
 			})
-			return &ast.BadInterpolation{Start: hs.Pos(), Until: hs.End()}, nil
-		} else if hr, ok := parser.TryOk(p, EscapedRBracket()); ok {
+			return &ast.BadInterpolation{From: hs.Start(), Until: hs.End()}, nil
+		} else if hr := parser.Try(p, EscapedRBracket()); hr != nil {
 			p.CaptureError(&fancyerr.Error{
 				Message: "string interpolation: cannot use escaped right bracket here",
 				Primary: []fancyerr.Annotation{
-					anno.Range(p.File, hr.Pos(), hr.End(),
+					anno.Range(p.File, hr.Start(), hr.End(),
 						"there is no point in using an escaped right bracket, you can just write a right bracket instead"),
 				},
 				Explanation: "An escaped right bracket is an escape sequence available in bracket text " +
@@ -118,7 +118,7 @@ func StringInterpolation() parser.Func[ast.StringInterpolation] {
 				{Title: "character reference", Example: "`#amp;`"},
 			},
 		})
-		return parser.Try(p, BadInterpolation())
+		return parser.TryErr(p, BadInterpolation())
 	}
 }
 
@@ -141,55 +141,65 @@ func ensureInterpolation(p *parser.Parser) *fancyerr.Error {
 // that a valid interpolation was expected.
 func BadInterpolation() parser.Func[*ast.BadInterpolation] {
 	return func(p *parser.Parser) (*ast.BadInterpolation, *fancyerr.Error) {
-		pos := p.Pos()
+		var bi ast.BadInterpolation
+
+		bi.From = p.Pos()
 		if !parser.TryRune(p, '#') {
 			return nil, &fancyerr.Error{
 				Message: "missing bad interpolation",
 			}
 		}
-		return &ast.BadInterpolation{Start: pos, Until: p.Pos()}, nil
+		bi.Until = p.Pos()
+
+		return &bi, nil
 	}
 }
 
 func EscapedHash() parser.Func[*ast.EscapedHash] {
 	return func(p *parser.Parser) (*ast.EscapedHash, *fancyerr.Error) {
-		pos := p.Pos()
-		if !parser.TryToken(p, "##") {
+		var eh ast.EscapedHash
+
+		eh.Hash = parser.TryTokenAt(p, "##")
+		if eh.Hash == nil {
 			return nil, &fancyerr.Error{
 				Message: "missing escaped hash",
-				Primary: quickanno.Expected(p, pos, "an escaped hash (`##`)"),
+				Primary: quickanno.Expected(p, p.Pos(), "an escaped hash (`##`)"),
 			}
 		}
 
-		return &ast.EscapedHash{Position: pos}, nil
+		return &eh, nil
 	}
 }
 
 func HashSpace() parser.Func[*ast.HashSpace] {
 	return func(p *parser.Parser) (*ast.HashSpace, *fancyerr.Error) {
-		pos := p.Pos()
-		if !parser.TryToken(p, "#_") {
+		var hs ast.HashSpace
+
+		hs.Hash = parser.TryTokenAt(p, "#_")
+		if hs.Hash == nil {
 			return nil, &fancyerr.Error{
 				Message: "missing hash space",
-				Primary: quickanno.Expected(p, pos, "a hash followed by an underline (`#_`)"),
+				Primary: quickanno.Expected(p, p.Pos(), "a hash followed by an underline (`#_`)"),
 			}
 		}
 
-		return &ast.HashSpace{Position: pos}, nil
+		return &hs, nil
 	}
 }
 
 func EscapedRBracket() parser.Func[*ast.EscapedRBracket] {
 	return func(p *parser.Parser) (*ast.EscapedRBracket, *fancyerr.Error) {
-		pos := p.Pos()
-		if !parser.TryToken(p, "#]") {
+		var erb ast.EscapedRBracket
+
+		erb.Hash = parser.TryTokenAt(p, "#]")
+		if erb.Hash == nil {
 			return nil, &fancyerr.Error{
 				Message: "missing hash right bracket",
-				Primary: quickanno.Expected(p, pos, "a hash followed by a right bracket (`#]`)"),
+				Primary: quickanno.Expected(p, p.Pos(), "a hash followed by a right bracket (`#]`)"),
 			}
 		}
 
-		return &ast.EscapedRBracket{Position: pos}, nil
+		return &erb, nil
 	}
 }
 
@@ -215,9 +225,10 @@ func UnambiguousHash() parser.Func[struct{}] {
 
 func CharacterReference() parser.Func[*ast.CharacterReference] {
 	return func(p *parser.Parser) (*ast.CharacterReference, *fancyerr.Error) {
-		r := &ast.CharacterReference{Hash: p.Pos()}
+		var r ast.CharacterReference
 
-		if !parser.TryRune(p, '#') {
+		r.Hash = parser.TryTokenAt(p, "#")
+		if r.Hash == nil {
 			return nil, &fancyerr.Error{
 				Message: "missing character reference",
 				Primary: quickanno.Expected(p, p.Pos(), "a character reference"),
@@ -248,7 +259,7 @@ func CharacterReference() parser.Func[*ast.CharacterReference] {
 					{Hint: "If you just wanted to write hash, you need to escape it.", Example: "`##`"},
 				},
 			})
-			return r, nil
+			return &r, nil
 		}
 
 		r.Chars = charref.Chars(r.Name)
@@ -263,7 +274,7 @@ func CharacterReference() parser.Func[*ast.CharacterReference] {
 			})
 		}
 
-		return r, nil
+		return &r, nil
 	}
 }
 
@@ -274,16 +285,19 @@ func SetElementHeader(f parser.Func[*ast.ElementHeader]) {
 }
 func ElementInterpolation() parser.Func[*ast.ElementInterpolation] {
 	return func(p *parser.Parser) (*ast.ElementInterpolation, *fancyerr.Error) {
-		ei := &ast.ElementInterpolation{Hash: p.Pos()}
-		if !parser.TryRune(p, '#') {
+		var ei ast.ElementInterpolation
+
+		ei.Hash = parser.TryRuneAt(p, '#')
+		if ei.Hash == nil {
 			return nil, &fancyerr.Error{
 				Message: "missing element interpolation",
 				Primary: quickanno.Expected(p, p.Pos(), "an element interpolation"),
 			}
 		}
 
-		header, ok := parser.TryOk(p, elementHeader)
-		if !ok {
+		var header *ast.ElementHeader
+		p.DoInline(func() { header = parser.Try(p, elementHeader) })
+		if header == nil {
 			return nil, &fancyerr.Error{
 				Message: "missing element interpolation: missing element name",
 				Primary: quickanno.Expected(p, p.Pos(), "an element name"),
@@ -293,14 +307,14 @@ func ElementInterpolation() parser.Func[*ast.ElementInterpolation] {
 			}
 		}
 
-		ei.Element = &ast.Element{Header: *header}
+		ei.Element = &ast.Element{Header: header}
 		p.DoInline(func() {
-			bt, _ := parser.Try(p, body.BracketText())
+			bt := parser.Try(p, body.BracketText())
 			if bt != nil { // can't assign directly: any(nil) != (*ast.BracketText)(nil)
 				ei.Element.Body = bt
 			}
 		})
-		return ei, nil
+		return &ei, nil
 	}
 }
 
@@ -312,35 +326,40 @@ func SetComponentCallHeader(f parser.Func[*ast.ComponentCallHeader]) {
 
 func ComponentCallInterpolation() parser.Func[*ast.ComponentCallInterpolation] {
 	return func(p *parser.Parser) (*ast.ComponentCallInterpolation, *fancyerr.Error) {
-		cci := &ast.ComponentCallInterpolation{Hash: p.Pos()}
-		if !parser.TryRune(p, '#') {
+		var cci ast.ComponentCallInterpolation
+
+		cci.Hash = parser.TryTokenAt(p, "#:")
+		if cci.Hash == nil {
 			return nil, &fancyerr.Error{
 				Message: "missing component call interpolation",
 				Primary: quickanno.Expected(p, p.Pos(), "a component call interpolation"),
 			}
 		}
+		cci.ComponentCall = new(ast.ComponentCall)
+		cci.ComponentCall.Colon = new(ast.Position)
+		*cci.ComponentCall.Colon = *cci.Hash
+		cci.ComponentCall.Colon.Col++
 
-		header, ok := parser.TryOk(p, componentCallHeader)
-		if !ok {
+		cci.ComponentCall.Header = parser.Try(p, componentCallHeader)
+		if cci.ComponentCall.Header == nil {
 			return nil, &fancyerr.Error{
 				Message: "missing component call interpolation: missing header",
 				Primary: quickanno.Expected(p, p.Pos(), "a component call header"),
 			}
 		}
-		cci.ComponentCall = &ast.ComponentCall{Header: *header}
 
 		p.DoInline(func() {
-			b, ok := parser.TryOk(p, body.BracketText())
-			if ok {
+			bt := parser.Try(p, body.BracketText())
+			if bt != nil {
 				cci.ComponentCall.Body = &ast.UnderscoreBlockShorthand{
 					Implicit: true,
-					Body:     b,
-					Position: b.LBracket,
+					Body:     bt,
+					Position: bt.LBracket,
 				}
 			}
 		})
 
-		return cci, nil
+		return &cci, nil
 	}
 }
 
@@ -352,32 +371,33 @@ func SetExpression(f parser.Func[*ast.Expression]) {
 
 func ExpressionInterpolation() parser.Func[*ast.ExpressionInterpolation] {
 	return func(p *parser.Parser) (*ast.ExpressionInterpolation, *fancyerr.Error) {
-		ei := &ast.ExpressionInterpolation{Hash: p.Pos()}
-		if !parser.TryRune(p, '#') {
+		var ei ast.ExpressionInterpolation
+
+		ei.Hash = parser.TryRuneAt(p, '#')
+		if ei.Hash == nil {
 			return nil, &fancyerr.Error{
 				Message: "missing expression interpolation",
 				Primary: quickanno.Expected(p, p.Pos(), "an expression interpolation"),
 			}
 		}
 
-		ei.FormatDirective, _ = parser.Try(p, formatDirective())
+		ei.FormatDirective = parser.Try(p, formatDirective())
 
-		ei.LBrace = p.PosPtr()
-		if !parser.TryRune(p, '{') {
-			ei.LBrace = nil
+		ei.LBrace = parser.TryRuneAt(p, '{')
+		if ei.LBrace == nil {
 			if ei.FormatDirective != "" {
 				p.CaptureError(&fancyerr.Error{
 					Message: "expression interpolation: missing opening brace",
-					Primary: quickanno.Expected(p, ei.Hash, "an opening brace `{`"),
+					Primary: quickanno.Expected(p, *ei.Hash, "an opening brace `{`"),
 					Examples: []fancyerr.Example{
 						{Example: "`#%" + ei.FormatDirective + "{...}`"},
 					},
 				})
-				return ei, nil
+				return &ei, nil
 			}
 			return nil, &fancyerr.Error{
 				Message: "expression interpolation: missing opening brace",
-				Primary: quickanno.Expected(p, ei.Hash, "an opening brace `{`"),
+				Primary: quickanno.Expected(p, *ei.Hash, "an opening brace `{`"),
 				Examples: []fancyerr.Example{
 					{Example: "`#{...}`"},
 				},
@@ -388,17 +408,16 @@ func ExpressionInterpolation() parser.Func[*ast.ExpressionInterpolation] {
 		ei.Expression = parser.Must(p, expression)
 		parser.TrySkip(p, whitespace.Horizontal())
 
-		ei.RBrace = p.PosPtr()
-		if !parser.TryRune(p, '}') {
-			ei.RBrace = nil
+		ei.RBrace = parser.TryRuneAt(p, '}')
+		if ei.RBrace == nil {
 			p.CaptureError(&fancyerr.Error{
 				Message: "expression interpolation: missing closing brace",
-				Primary: quickanno.Expected(p, ei.Hash, "a closing brace `}`"),
+				Primary: quickanno.Expected(p, *ei.Hash, "a closing brace `}`"),
 			})
-			return ei, nil
+			return &ei, nil
 		}
 
-		return ei, nil
+		return &ei, nil
 	}
 }
 

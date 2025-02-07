@@ -7,6 +7,7 @@ import (
 	"github.com/mavolin/corgi/v2/file"
 	"github.com/mavolin/corgi/v2/file/ast"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
+	fileparser "github.com/mavolin/corgi/v2/load/parse/internal/file"
 )
 
 type Options struct {
@@ -50,6 +51,6 @@ func Parse(input string, o Options) (*file.File, fancyerr.List) {
 	p := parser.New(f)
 	p.Preload = o.Preloader
 
-	// todo
+	parser.Must(p, fileparser.File())
 	return f, p.Errors()
 }

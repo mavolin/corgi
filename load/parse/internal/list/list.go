@@ -13,9 +13,9 @@ import (
 )
 
 type List[T any] struct {
-	Open  ast.Position
-	Close *ast.Position
+	Open  *ast.Position
 	Elems []T
+	Close *ast.Position
 }
 
 func ParenList[T any](name string, elemFunc parser.Func[T]) parser.Func[*List[T]] {
@@ -28,9 +28,10 @@ func BracketList[T any](name string, elemFunc parser.Func[T]) parser.Func[*List[
 
 func list[T any](name string, open, close rune, elemFunc parser.Func[T]) parser.Func[*List[T]] {
 	return func(p *parser.Parser) (*List[T], *fancyerr.Error) {
-		l := &List[T]{Open: p.Pos()}
+		var l List[T]
 
-		if !parser.TryRune(p, open) {
+		l.Open = parser.TryRuneAt(p, open)
+		if l.Open == nil {
 			return nil, &fancyerr.Error{
 				Message: "missing " + name,
 				Primary: quickanno.Expected(p, p.Pos(), "a `"+string(open)+"`"),
@@ -42,20 +43,20 @@ func list[T any](name string, open, close rune, elemFunc parser.Func[T]) parser.
 			parser.TrySkip(p, comment.OrAnyWhitespace())
 
 			pos := p.Pos()
-			if parser.TryOptionalRune(p, close) {
+			if parser.TryOptionalRune(p, close, nil) {
 				l.Close = &pos
 				break
-			} else if parser.TryOptionalRune(p, parser.EOF) {
+			} else if parser.TryOptionalRune(p, parser.EOF, nil) {
 				p.CaptureError(&fancyerr.Error{
 					Message: "unclosed " + name,
-					Primary: quickanno.Expected(p, l.Open, "a `"+string(close)+"`"),
+					Primary: quickanno.Expected(p, *l.Open, "a `"+string(close)+"`"),
 					Secondary: []fancyerr.Annotation{
-						anno.Position(p.File, l.Open, "for the opening `"+string(open)+"` here"),
+						anno.Position(p.File, *l.Open, "for the opening `"+string(open)+"` here"),
 					},
 				})
 				break
 			}
-			elem, err := parser.Try(p, elemFunc)
+			elem, err := parser.TryOptionalErr(p, elemFunc, nil)
 			l.Elems = append(l.Elems, elem)
 			if err != nil {
 				if parser.MatchesToken(p, ",") { // missing elem
@@ -96,9 +97,9 @@ func list[T any](name string, open, close rune, elemFunc parser.Func[T]) parser.
 			if !parser.MatchesAnyRune(p, ',', close) {
 				p.CaptureError(&fancyerr.Error{
 					Message: "unclosed " + name,
-					Primary: quickanno.Expected(p, l.Open, "a `"+string(close)+"`"),
+					Primary: quickanno.Expected(p, *l.Open, "a `"+string(close)+"`"),
 					Secondary: []fancyerr.Annotation{
-						anno.Position(p.File, l.Open, "for the opening `"+string(open)+"` here"),
+						anno.Position(p.File, *l.Open, "for the opening `"+string(open)+"` here"),
 					},
 				})
 				break
@@ -107,8 +108,12 @@ func list[T any](name string, open, close rune, elemFunc parser.Func[T]) parser.
 			parser.TryRune(p, ',')
 		}
 
-		l.Elems = slices.Clip(l.Elems)
-		return l, nil
+		if len(l.Elems) == 0 {
+			l.Elems = nil
+		} else {
+			l.Elems = slices.Clip(l.Elems)
+		}
+		return &l, nil
 	}
 }
 
@@ -117,7 +122,7 @@ func CommaList[T any](singular, plural string, elemFunc parser.Func[T]) parser.F
 		elems := make([]T, 1, 64)
 
 		var err *fancyerr.Error
-		elems[0], err = parser.Try(p, elemFunc)
+		elems[0], err = parser.TryErr(p, elemFunc)
 		if err != nil {
 			if parser.MatchesToken(p, ",") { // missing elem
 				p.CaptureError(err)
@@ -142,7 +147,7 @@ func CommaList[T any](singular, plural string, elemFunc parser.Func[T]) parser.F
 
 			parser.TrySkip(p, comment.OrAnyWhitespace())
 
-			elem, err := parser.Try(p, elemFunc)
+			elem, err := parser.TryErr(p, elemFunc)
 			if err != nil {
 				if parser.MatchesToken(p, ",") { // missing elem
 					p.CaptureError(err)

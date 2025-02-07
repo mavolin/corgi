@@ -39,7 +39,7 @@ func TestUnicodeValue(t *testing.T) {
 	testutil.AssertAlsoFulfils(t, UnicodeValue('\''), testEscapedChar('\''))
 	testutil.AssertAlsoFulfils(t, UnicodeValue('\''), func(t *testing.T, f parser.Func[string]) {
 		testUnicodeChar(t, '\'', func(p *parser.Parser) (rune, *fancyerr.Error) {
-			s, err := parser.Try(p, f)
+			s, err := parser.TryErr(p, f)
 			if err != nil {
 				return 0, err
 			}
@@ -58,7 +58,7 @@ func TestUnicodeValue(t *testing.T) {
 	testutil.AssertAlsoFulfils(t, UnicodeValue('"'), testEscapedChar('"'))
 	testutil.AssertAlsoFulfils(t, UnicodeValue('"'), func(t *testing.T, f parser.Func[string]) {
 		testUnicodeChar(t, '"', func(p *parser.Parser) (rune, *fancyerr.Error) {
-			s, err := parser.Try(p, f)
+			s, err := parser.TryErr(p, f)
 			if err != nil {
 				return 0, err
 			}

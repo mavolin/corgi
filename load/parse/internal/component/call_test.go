@@ -20,11 +20,11 @@ func TestCall(t *testing.T) {
 			name: "no body",
 			in:   ":foo",
 			expect: &ast.ComponentCall{
-				Header: ast.ComponentCallHeader{
-					Colon: ast.Position{Line: 1, Col: 1},
+				Colon: &ast.Position{Line: 1, Col: 1},
+				Header: &ast.ComponentCallHeader{
 					Name: &ast.Ident{
 						Ident:    "foo",
-						Position: ast.Position{Line: 1, Col: 2},
+						Position: &ast.Position{Line: 1, Col: 2},
 					},
 				},
 			},
@@ -34,21 +34,21 @@ func TestCall(t *testing.T) {
 				"\tbar\n" +
 				"}",
 			expect: &ast.ComponentCall{
-				Header: ast.ComponentCallHeader{
-					Colon: ast.Position{Line: 1, Col: 1},
+				Colon: &ast.Position{Line: 1, Col: 1},
+				Header: &ast.ComponentCallHeader{
 					Name: &ast.Ident{
 						Ident:    "foo",
-						Position: ast.Position{Line: 1, Col: 2},
+						Position: &ast.Position{Line: 1, Col: 2},
 					},
 				},
 				Body: &ast.Scope{
-					LBrace: ast.Position{Line: 1, Col: 6},
+					LBrace: &ast.Position{Line: 1, Col: 6},
 					Nodes: []ast.ScopeNode{
 						&ast.Element{
-							Header: ast.ElementHeader{
-								Name: ast.ElementName{
+							Header: &ast.ElementHeader{
+								Name: &ast.ElementName{
 									Name:     "bar",
-									Position: ast.Position{Line: 2, Col: 2},
+									Position: &ast.Position{Line: 2, Col: 2},
 								},
 							},
 						},
@@ -78,112 +78,108 @@ func TestCallHeader(t *testing.T) {
 	}{
 		{
 			name: "only name",
-			in:   ":foo",
+			in:   "foo",
 			expect: &ast.ComponentCallHeader{
-				Colon: ast.Position{Line: 1, Col: 1},
 				Name: &ast.Ident{
 					Ident:    "foo",
-					Position: ast.Position{Line: 1, Col: 2},
+					Position: &ast.Position{Line: 1, Col: 1},
 				},
 			},
 		}, {
 			name: "with type arguments",
-			in:   ":foo[bar]",
+			in:   "foo[bar]",
 			expect: &ast.ComponentCallHeader{
-				Colon: ast.Position{Line: 1, Col: 1},
 				Name: &ast.Ident{
 					Ident:    "foo",
-					Position: ast.Position{Line: 1, Col: 2},
+					Position: &ast.Position{Line: 1, Col: 1},
 				},
 				TypeArguments: &ast.TypeArguments{
-					LBracket: ast.Position{Line: 1, Col: 5},
+					LBracket: &ast.Position{Line: 1, Col: 4},
 					Types: []*ast.Type{
 						{
 							Parsed: &ast.NamedType{
 								Name: &ast.Ident{
 									Ident:    "bar",
-									Position: ast.Position{Line: 1, Col: 6},
+									Position: &ast.Position{Line: 1, Col: 5},
 								},
 							},
-							Type:     "bar",
-							Position: ast.Position{Line: 1, Col: 6},
-							Until:    ast.Position{Line: 1, Col: 9},
+							Type:  "bar",
+							From:  ast.Position{Line: 1, Col: 5},
+							Until: ast.Position{Line: 1, Col: 8},
 						},
 					},
-					RBracket: &ast.Position{Line: 1, Col: 9},
+					RBracket: &ast.Position{Line: 1, Col: 8},
 				},
 			},
 		}, {
 			name: "with arguments",
-			in:   ":foo(bar: baz)",
+			in:   "foo(bar: baz)",
 			expect: &ast.ComponentCallHeader{
-				Colon: ast.Position{Line: 1, Col: 1},
 				Name: &ast.Ident{
 					Ident:    "foo",
-					Position: ast.Position{Line: 1, Col: 2},
+					Position: &ast.Position{Line: 1, Col: 1},
 				},
 				Arguments: &ast.Arguments{
-					LParen: ast.Position{Line: 1, Col: 5},
+					LParen: &ast.Position{Line: 1, Col: 4},
 					Args: []ast.Argument{
 						&ast.ComponentArgument{
-							Name:  ast.Ident{Ident: "bar", Position: ast.Position{Line: 1, Col: 6}},
-							Colon: &ast.Position{Line: 1, Col: 9},
+							Name:  &ast.Ident{Ident: "bar", Position: &ast.Position{Line: 1, Col: 5}},
+							Colon: &ast.Position{Line: 1, Col: 8},
 							Value: &ast.Expression{
 								Code: ast.Code{
 									&ast.GoCode{
 										Code:     "baz",
-										Position: ast.Position{Line: 1, Col: 11},
+										Position: &ast.Position{Line: 1, Col: 10},
 									},
 								},
 							},
 						},
 					},
-					RParen: &ast.Position{Line: 1, Col: 14},
+					RParen: &ast.Position{Line: 1, Col: 13},
 				},
 			},
 		}, {
 			name: "with type arguments and arguments",
-			in:   ":foo[bar](baz: qux)",
+			in:   "foo[bar](baz: qux)",
 			expect: &ast.ComponentCallHeader{
-				Colon: ast.Position{Line: 1, Col: 1},
 				Name: &ast.Ident{
 					Ident:    "foo",
-					Position: ast.Position{Line: 1, Col: 2},
+					Position: &ast.Position{Line: 1, Col: 1},
 				},
 				TypeArguments: &ast.TypeArguments{
-					LBracket: ast.Position{Line: 1, Col: 5},
+					LBracket: &ast.Position{Line: 1, Col: 4},
 					Types: []*ast.Type{
 						{
 							Parsed: &ast.NamedType{
 								Name: &ast.Ident{
 									Ident:    "bar",
-									Position: ast.Position{Line: 1, Col: 6},
+									Position: &ast.Position{Line: 1, Col: 5},
 								},
 							},
-							Type:     "bar",
-							Position: ast.Position{Line: 1, Col: 6},
-							Until:    ast.Position{Line: 1, Col: 9},
+							Type:  "bar",
+							From:  ast.Position{Line: 1, Col: 5},
+							Until: ast.Position{Line: 1, Col: 8},
 						},
 					},
-					RBracket: &ast.Position{Line: 1, Col: 9},
+					RBracket: &ast.Position{Line: 1, Col: 8},
 				},
 				Arguments: &ast.Arguments{
-					LParen: ast.Position{Line: 1, Col: 10},
+					LParen: &ast.Position{Line: 1, Col: 9},
 					Args: []ast.Argument{
 						&ast.ComponentArgument{
-							Name:  ast.Ident{Ident: "baz", Position: ast.Position{Line: 1, Col: 11}},
-							Colon: &ast.Position{Line: 1, Col: 14},
+							Name:  &ast.Ident{Ident: "baz", Position: &ast.Position{Line: 1, Col: 10}},
+							Colon: &ast.Position{Line: 1, Col: 13},
 							Value: &ast.Expression{
 								Code: ast.Code{
 									&ast.GoCode{
 										Code:     "qux",
-										Position: ast.Position{Line: 1, Col: 16},
+										Position: &ast.Position{Line: 1, Col: 15},
 									},
 								},
 							},
 						},
 					},
-					RParen: &ast.Position{Line: 1, Col: 19},
+					RParen: &ast.Position{Line: 1, Col: 18},
 				},
 			},
 		},
@@ -205,19 +201,19 @@ func TestWith(t *testing.T) {
 		"\tbr\n" +
 		"}"
 	expect := &ast.With{
-		With: ast.Position{Line: 1, Col: 1},
+		With: &ast.Position{Line: 1, Col: 1},
 		Name: &ast.Ident{
 			Ident:    "foo",
-			Position: ast.Position{Line: 1, Col: 6},
+			Position: &ast.Position{Line: 1, Col: 6},
 		},
 		Body: &ast.Scope{
-			LBrace: ast.Position{Line: 1, Col: 10},
+			LBrace: &ast.Position{Line: 1, Col: 10},
 			Nodes: []ast.ScopeNode{
 				&ast.Element{
-					Header: ast.ElementHeader{
-						Name: ast.ElementName{
+					Header: &ast.ElementHeader{
+						Name: &ast.ElementName{
 							Name:     "br",
-							Position: ast.Position{Line: 2, Col: 2},
+							Position: &ast.Position{Line: 2, Col: 2},
 						},
 					},
 				},

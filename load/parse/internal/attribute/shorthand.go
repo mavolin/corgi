@@ -14,58 +14,59 @@ import (
 
 func IDShorthand() parser.Func[*ast.IDShorthand] {
 	return func(p *parser.Parser) (*ast.IDShorthand, *fancyerr.Error) {
-		s := &ast.IDShorthand{Hash: p.Pos()}
-		if !parser.TryRune(p, '#') {
+		var s ast.IDShorthand
+
+		s.Hash = parser.TryRuneAt(p, '#')
+		if s.Hash == nil {
 			return nil, &fancyerr.Error{
 				Message:  "missing id shorthand",
-				Primary:  quickanno.Expected(p, s.Hash, "an id shorthand"),
+				Primary:  quickanno.Expected(p, p.Pos(), "an id shorthand"),
 				Examples: []fancyerr.Example{{Example: "`#woof`"}},
 			}
 		}
 
 		s.ID = parser.Must(p, Shorthand())
-		return s, nil
+		return &s, nil
 	}
 }
 
 func ClassShorthand() parser.Func[*ast.ClassShorthand] {
 	return func(p *parser.Parser) (*ast.ClassShorthand, *fancyerr.Error) {
-		s := &ast.ClassShorthand{Dot: p.Pos()}
-		if !parser.TryRune(p, '.') {
+		var s ast.ClassShorthand
+
+		s.Dot = parser.TryRuneAt(p, '.')
+		if s.Dot == nil {
 			return nil, &fancyerr.Error{
 				Message:  "missing class shorthand",
-				Primary:  quickanno.Expected(p, s.Dot, "a class shorthand"),
+				Primary:  quickanno.Expected(p, p.Pos(), "a class shorthand"),
 				Examples: []fancyerr.Example{{Example: "`.woof`"}},
 			}
 		}
 
 		s.Names = make([]ast.Shorthand, 1, 16)
 		var err *fancyerr.Error
-		s.Names[0], err = parser.Try(p, Shorthand())
+		s.Names[0], err = parser.TryErr(p, Shorthand())
 		if err != nil {
 			p.CaptureError(err)
 		}
 
-		for parser.TrySkipOk(p, whitespace.Horizontal()) {
-			name, ok := parser.TryOk(p, Shorthand())
-			if !ok {
+		for parser.TrySkip(p, whitespace.Horizontal()) {
+			name := parser.Try(p, Shorthand())
+			if name == nil {
 				break
 			}
 			s.Names = append(s.Names, name)
 		}
 		s.Names = slices.Clip(s.Names)
 
-		return s, nil
+		return &s, nil
 	}
 }
 
 func Shorthand() parser.Func[ast.Shorthand] {
 	return func(p *parser.Parser) (ast.Shorthand, *fancyerr.Error) {
-		nodes := make([]ast.ShorthandNode, 1, 16)
-
-		var ok bool
-		nodes[0], ok = parser.TryOk(p, ShorthandNode())
-		if !ok {
+		s := parser.Collect(p, ShorthandNode(), 16, nil)
+		if len(s) == 0 {
 			return nil, &fancyerr.Error{
 				Message: "missing shorthand name",
 				Primary: quickanno.Expected(p, p.Pos(), "text or interpolation"),
@@ -75,22 +76,15 @@ func Shorthand() parser.Func[ast.Shorthand] {
 				},
 			}
 		}
-
-		for {
-			n, ok := parser.TryOk(p, ShorthandNode())
-			if !ok {
-				return slices.Clip(nodes), nil
-			}
-			nodes = append(nodes, n)
-		}
+		return s, nil
 	}
 }
 
 func ShorthandNode() parser.Func[ast.ShorthandNode] {
 	return func(p *parser.Parser) (ast.ShorthandNode, *fancyerr.Error) {
-		if txt, ok := parser.TryOk(p, ShorthandText()); ok {
+		if txt := parser.Try(p, ShorthandText()); txt != nil {
 			return txt, nil
-		} else if interp, ok := parser.TryOk(p, ShorthandInterpolation()); ok {
+		} else if interp := parser.Try(p, ShorthandInterpolation()); interp != nil {
 			return interp, nil
 		}
 		return nil, &fancyerr.Error{
@@ -106,7 +100,9 @@ func ShorthandNode() parser.Func[ast.ShorthandNode] {
 
 func ShorthandText() parser.Func[*ast.ShorthandText] {
 	return func(p *parser.Parser) (*ast.ShorthandText, *fancyerr.Error) {
-		txt := &ast.ShorthandText{Position: p.Pos()}
+		var txt ast.ShorthandText
+		txt.Position = p.PosPtr()
+
 		txt.Text = parser.TokenWhile(p, func() bool {
 			return !parser.MatchesWS(p, whitespace.Any()) && !parser.MatchesAnyRune(p, '#', ',', ')') &&
 				// https://html.spec.whatwg.org/multipage/common-microsyntaxes.html#set-of-space-separated-tokens
@@ -119,14 +115,14 @@ func ShorthandText() parser.Func[*ast.ShorthandText] {
 			}
 		}
 
-		return txt, nil
+		return &txt, nil
 	}
 }
 
 func ShorthandInterpolation() parser.Func[*ast.ShorthandInterpolation] {
 	return func(p *parser.Parser) (*ast.ShorthandInterpolation, *fancyerr.Error) {
-		interp, ok := parser.TryOk(p, interpolation.ExpressionInterpolation())
-		if !ok {
+		interp := parser.Try(p, interpolation.ExpressionInterpolation())
+		if interp == nil {
 			if parser.MatchesToken(p, "#") {
 				p.CaptureError(&fancyerr.Error{
 					Message: "interpolation: missing opening brace",

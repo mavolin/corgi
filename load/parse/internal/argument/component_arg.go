@@ -13,33 +13,36 @@ import (
 
 func ComponentArgument() parser.Func[*ast.ComponentArgument] {
 	return func(p *parser.Parser) (*ast.ComponentArgument, *fancyerr.Error) {
-		name, ok := parser.TryOk(p, golang.Identifier())
-		if !ok {
+		var arg ast.ComponentArgument
+
+		arg.Name = parser.TryOptional(p, golang.Identifier(), nil)
+		if arg.Name == nil {
+			p.CaptureError(&fancyerr.Error{
+				Message: "component argument: missing name",
+				Primary: quickanno.Expected(p, p.Pos(), "an argument name"),
+			})
+		}
+		hasPreColonWS := parser.TrySkip(p, comment.OrHorizontalWhitespace())
+		arg.Colon = parser.TryOptionalRuneAt(p, ':', nil)
+		if arg.Colon == nil {
+			return nil, &fancyerr.Error{
+				Message: "component argument: missing colon",
+				Primary: quickanno.Expected(p, p.Pos(), "a colon separating the argument name and value"),
+			}
+		}
+		hasPostColonWS := parser.TrySkip(p, comment.OrAnyWhitespace())
+
+		if arg.Name == nil && !hasPostColonWS {
 			return nil, &fancyerr.Error{
 				Message: "missing component argument",
 				Primary: quickanno.Expected(p, p.Pos(), "an argument name"),
 			}
 		}
 
-		arg := &ast.ComponentArgument{Name: *name}
-
-		hasPreColonWS := parser.TrySkipOk(p, comment.OrHorizontalWhitespace())
-
-		colon := p.Pos()
-		if !parser.TryRune(p, ':') {
-			return nil, &fancyerr.Error{
-				Message: "missing colon",
-				Primary: quickanno.Expected(p, p.Pos(), "a colon separating the argument name and value"),
-			}
-		}
-		arg.Colon = &colon
-
-		hasPostColonWS := parser.TrySkipOk(p, comment.OrHorizontalWhitespace())
-		defer parser.RestoreWS(p)
 		if !hasPostColonWS {
 			p.CaptureError(&fancyerr.Error{
 				Message: "missing whitespace after colon",
-				Primary: quickanno.Expected(p, colon, "a space, tab, or an inline block comment"),
+				Primary: quickanno.Expected(p, *arg.Colon, "a space, tab, or an inline block comment"),
 			})
 
 			// A string directly after the colon is one of two cases where we
@@ -51,17 +54,24 @@ func ComponentArgument() parser.Func[*ast.ComponentArgument] {
 
 		pos := p.Pos()
 		start := p.Index()
-		arg.Value, ok = parser.TryOptionalOk(p, code.Expression())
-		if !ok {
+		arg.Value = parser.Try(p, code.Expression())
+		if arg.Value == nil {
+			if arg.Name == nil { // only a colon
+				return nil, &fancyerr.Error{
+					Message: "missing component argument",
+					Primary: quickanno.Expected(p, arg.Start(), "a valid component argument"),
+				}
+			}
+
 			// just as likely a named argument with a trailing colon
 			if !hasPreColonWS && (parser.MatchesWS(p, whitespace.EOL()) || parser.MatchesAnyRune(p, ',', ')')) {
 				return nil, &fancyerr.Error{
 					Message: "missing component argument",
-					Primary: quickanno.Expected(p, arg.Pos(), "a valid component argument"),
+					Primary: quickanno.Expected(p, arg.Start(), "a valid component argument"),
 				}
 			}
 			p.CaptureError(&fancyerr.Error{
-				Message: "missing component argument value",
+				Message: "component argument: missing value",
 				Primary: quickanno.Expected(p, pos, "a value for the argument"),
 			})
 		}
@@ -78,7 +88,13 @@ func ComponentArgument() parser.Func[*ast.ComponentArgument] {
 					switch prev {
 					case '!', '<', '>', '=':
 					default:
-						goto err
+						return nil, &fancyerr.Error{
+							Message: "missing component argument",
+							Primary: quickanno.Expected(p, arg.Start(), "an argument name"),
+							Hints: []fancyerr.Hint{
+								{Hint: "If this is supposed to be a named attribute, add a space after the colon."},
+							},
+						}
 					}
 				case ' ', '\t', '\n':
 					if !haveWS {
@@ -87,21 +103,12 @@ func ComponentArgument() parser.Func[*ast.ComponentArgument] {
 				default:
 					if haveWS {
 						// the ws we have is non-trailing
-						return arg, nil
+						return &arg, nil
 					}
 				}
 			}
-
-		err:
-			return nil, &fancyerr.Error{
-				Message: "missing component argument",
-				Primary: quickanno.Expected(p, arg.Pos(), "an argument name"),
-				Hints: []fancyerr.Hint{
-					{Hint: "If this is supposed to be a named attribute, add a space after the colon."},
-				},
-			}
 		}
 
-		return arg, nil
+		return &arg, nil
 	}
 }

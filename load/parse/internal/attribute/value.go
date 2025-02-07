@@ -11,12 +11,11 @@ import (
 
 func Value() parser.Func[ast.AttributeValue] {
 	return func(p *parser.Parser) (ast.AttributeValue, *fancyerr.Error) {
-		if v, ok := parser.TryOk(p, TypedAttributeValue()); ok {
+		if v := parser.Try(p, TypedAttributeValue()); v != nil {
 			return v, nil
-		} else if v, ok := parser.TryOk(p, ExpressionValue()); ok {
+		} else if v := parser.Try(p, ExpressionValue()); v != nil {
 			return v, nil
 		}
-
 		return nil, &fancyerr.Error{
 			Message: "missing attribute value",
 			Primary: quickanno.Expected(p, p.Pos(), "an attribute value"),
@@ -30,8 +29,8 @@ func Value() parser.Func[ast.AttributeValue] {
 
 func ExpressionValue() parser.Func[*ast.ExpressionAttributeValue] {
 	return func(p *parser.Parser) (*ast.ExpressionAttributeValue, *fancyerr.Error) {
-		expr, ok := parser.TryOk(p, code.Expression())
-		if !ok {
+		expr := parser.Try(p, code.Expression())
+		if expr == nil {
 			return nil, &fancyerr.Error{
 				Message: "missing expression",
 				Primary: quickanno.Expected(p, p.Pos(), "an expression"),
@@ -44,44 +43,39 @@ func ExpressionValue() parser.Func[*ast.ExpressionAttributeValue] {
 
 func TypedAttributeValue() parser.Func[*ast.TypedAttributeValue] {
 	return func(p *parser.Parser) (*ast.TypedAttributeValue, *fancyerr.Error) {
-		t, ok := parser.TryOk(p, Type())
-		if !ok {
+		var v ast.TypedAttributeValue
+
+		v.Type = parser.Try(p, Type())
+		if v.Type == nil {
 			return nil, &fancyerr.Error{
 				Message: "missing typed attribute value",
 				Primary: quickanno.Expected(p, p.Pos(), "an attribute type"),
 			}
 		}
 
-		v := &ast.TypedAttributeValue{Type: *t}
-
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 
-		lParenPos := p.Pos()
-		if !parser.TryRune(p, '(') {
+		v.LParen = parser.TryRuneAt(p, '(')
+		if v.LParen == nil {
 			p.CaptureError(&fancyerr.Error{
-				Message: "missing opening parenthesis",
+				Message: "typed attribute value: missing opening parenthesis",
 				Primary: quickanno.Expected(p, p.Pos(), "an opening parenthesis"),
 			})
-			return v, nil
+			return &v, nil
 		}
-		v.LParen = &lParenPos
 
 		parser.TrySkip(p, comment.OrAnyWhitespace())
-
 		v.Value = parser.Must(p, ExpressionValue())
-
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 
-		rParenPos := p.Pos()
-		if parser.TryRune(p, ')') {
-			v.RParen = &rParenPos
-		} else {
+		v.RParen = parser.TryRuneAt(p, ')')
+		if v.RParen == nil {
 			p.CaptureError(&fancyerr.Error{
 				Message: "missing closing parenthesis",
 				Primary: quickanno.Expected(p, p.Pos(), "a closing parenthesis"),
 			})
 		}
 
-		return v, nil
+		return &v, nil
 	}
 }

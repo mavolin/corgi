@@ -20,19 +20,19 @@ func TestDeclaration(t *testing.T) {
 			name: "single",
 			in:   "state foo int",
 			expect: &ast.StateDeclaration{
-				State: ast.Position{Line: 1, Col: 1},
+				State: &ast.Position{Line: 1, Col: 1},
 				Specs: []*ast.StateSpec{
 					{
 						Names: []*ast.Ident{
-							{Ident: "foo", Position: ast.Position{Line: 1, Col: 7}},
+							{Ident: "foo", Position: &ast.Position{Line: 1, Col: 7}},
 						},
 						Type: &ast.Type{
 							Parsed: &ast.NamedType{
-								Name: &ast.Ident{Ident: "int", Position: ast.Position{Line: 1, Col: 11}},
+								Name: &ast.Ident{Ident: "int", Position: &ast.Position{Line: 1, Col: 11}},
 							},
-							Type:     "int",
-							Position: ast.Position{Line: 1, Col: 11},
-							Until:    ast.Position{Line: 1, Col: 14},
+							Type:  "int",
+							From:  ast.Position{Line: 1, Col: 11},
+							Until: ast.Position{Line: 1, Col: 14},
 						},
 					},
 				},
@@ -44,32 +44,32 @@ func TestDeclaration(t *testing.T) {
 				"\tbar int\n" +
 				")",
 			expect: &ast.StateDeclaration{
-				State:  ast.Position{Line: 1, Col: 1},
+				State:  &ast.Position{Line: 1, Col: 1},
 				LParen: &ast.Position{Line: 1, Col: 7},
 				Specs: []*ast.StateSpec{
 					{
 						Names: []*ast.Ident{
-							{Ident: "foo", Position: ast.Position{Line: 2, Col: 2}},
+							{Ident: "foo", Position: &ast.Position{Line: 2, Col: 2}},
 						},
 						EqualSign: &ast.Position{Line: 2, Col: 6},
 						Values: []*ast.Expression{
 							{
 								Code: ast.Code{
-									&ast.GoCode{Code: "42", Position: ast.Position{Line: 2, Col: 8}},
+									&ast.GoCode{Code: "42", Position: &ast.Position{Line: 2, Col: 8}},
 								},
 							},
 						},
 					}, {
 						Names: []*ast.Ident{
-							{Ident: "bar", Position: ast.Position{Line: 3, Col: 2}},
+							{Ident: "bar", Position: &ast.Position{Line: 3, Col: 2}},
 						},
 						Type: &ast.Type{
 							Parsed: &ast.NamedType{
-								Name: &ast.Ident{Ident: "int", Position: ast.Position{Line: 3, Col: 6}},
+								Name: &ast.Ident{Ident: "int", Position: &ast.Position{Line: 3, Col: 6}},
 							},
-							Type:     "int",
-							Position: ast.Position{Line: 3, Col: 6},
-							Until:    ast.Position{Line: 3, Col: 9},
+							Type:  "int",
+							From:  ast.Position{Line: 3, Col: 6},
+							Until: ast.Position{Line: 3, Col: 9},
 						},
 					},
 				},
@@ -100,15 +100,15 @@ func TestSpec(t *testing.T) {
 			in:   "foo int",
 			expect: &ast.StateSpec{
 				Names: []*ast.Ident{
-					{Ident: "foo", Position: ast.Position{Line: 1, Col: 1}},
+					{Ident: "foo", Position: &ast.Position{Line: 1, Col: 1}},
 				},
 				Type: &ast.Type{
 					Parsed: &ast.NamedType{
-						Name: &ast.Ident{Ident: "int", Position: ast.Position{Line: 1, Col: 5}},
+						Name: &ast.Ident{Ident: "int", Position: &ast.Position{Line: 1, Col: 5}},
 					},
-					Type:     "int",
-					Position: ast.Position{Line: 1, Col: 5},
-					Until:    ast.Position{Line: 1, Col: 8},
+					Type:  "int",
+					From:  ast.Position{Line: 1, Col: 5},
+					Until: ast.Position{Line: 1, Col: 8},
 				},
 			},
 		}, {
@@ -116,13 +116,13 @@ func TestSpec(t *testing.T) {
 			in:   "foo = 42",
 			expect: &ast.StateSpec{
 				Names: []*ast.Ident{
-					{Ident: "foo", Position: ast.Position{Line: 1, Col: 1}},
+					{Ident: "foo", Position: &ast.Position{Line: 1, Col: 1}},
 				},
 				EqualSign: &ast.Position{Line: 1, Col: 5},
 				Values: []*ast.Expression{
 					{
 						Code: ast.Code{
-							&ast.GoCode{Code: "42", Position: ast.Position{Line: 1, Col: 7}},
+							&ast.GoCode{Code: "42", Position: &ast.Position{Line: 1, Col: 7}},
 						},
 					},
 				},
@@ -132,21 +132,21 @@ func TestSpec(t *testing.T) {
 			in:   "foo int = 42",
 			expect: &ast.StateSpec{
 				Names: []*ast.Ident{
-					{Ident: "foo", Position: ast.Position{Line: 1, Col: 1}},
+					{Ident: "foo", Position: &ast.Position{Line: 1, Col: 1}},
 				},
 				Type: &ast.Type{
 					Parsed: &ast.NamedType{
-						Name: &ast.Ident{Ident: "int", Position: ast.Position{Line: 1, Col: 5}},
+						Name: &ast.Ident{Ident: "int", Position: &ast.Position{Line: 1, Col: 5}},
 					},
-					Type:     "int",
-					Position: ast.Position{Line: 1, Col: 5},
-					Until:    ast.Position{Line: 1, Col: 8},
+					Type:  "int",
+					From:  ast.Position{Line: 1, Col: 5},
+					Until: ast.Position{Line: 1, Col: 8},
 				},
 				EqualSign: &ast.Position{Line: 1, Col: 9},
 				Values: []*ast.Expression{
 					{
 						Code: ast.Code{
-							&ast.GoCode{Code: "42", Position: ast.Position{Line: 1, Col: 11}},
+							&ast.GoCode{Code: "42", Position: &ast.Position{Line: 1, Col: 11}},
 						},
 					},
 				},
@@ -156,16 +156,16 @@ func TestSpec(t *testing.T) {
 			in:   "foo, bar int",
 			expect: &ast.StateSpec{
 				Names: []*ast.Ident{
-					{Ident: "foo", Position: ast.Position{Line: 1, Col: 1}},
-					{Ident: "bar", Position: ast.Position{Line: 1, Col: 6}},
+					{Ident: "foo", Position: &ast.Position{Line: 1, Col: 1}},
+					{Ident: "bar", Position: &ast.Position{Line: 1, Col: 6}},
 				},
 				Type: &ast.Type{
 					Parsed: &ast.NamedType{
-						Name: &ast.Ident{Ident: "int", Position: ast.Position{Line: 1, Col: 10}},
+						Name: &ast.Ident{Ident: "int", Position: &ast.Position{Line: 1, Col: 10}},
 					},
-					Type:     "int",
-					Position: ast.Position{Line: 1, Col: 10},
-					Until:    ast.Position{Line: 1, Col: 13},
+					Type:  "int",
+					From:  ast.Position{Line: 1, Col: 10},
+					Until: ast.Position{Line: 1, Col: 13},
 				},
 			},
 		}, {
@@ -173,18 +173,18 @@ func TestSpec(t *testing.T) {
 			in:   "foo, bar = 42, 43",
 			expect: &ast.StateSpec{
 				Names: []*ast.Ident{
-					{Ident: "foo", Position: ast.Position{Line: 1, Col: 1}},
-					{Ident: "bar", Position: ast.Position{Line: 1, Col: 6}},
+					{Ident: "foo", Position: &ast.Position{Line: 1, Col: 1}},
+					{Ident: "bar", Position: &ast.Position{Line: 1, Col: 6}},
 				},
 				EqualSign: &ast.Position{Line: 1, Col: 10},
 				Values: []*ast.Expression{
 					{
 						Code: ast.Code{
-							&ast.GoCode{Code: "42", Position: ast.Position{Line: 1, Col: 12}},
+							&ast.GoCode{Code: "42", Position: &ast.Position{Line: 1, Col: 12}},
 						},
 					}, {
 						Code: ast.Code{
-							&ast.GoCode{Code: "43", Position: ast.Position{Line: 1, Col: 16}},
+							&ast.GoCode{Code: "43", Position: &ast.Position{Line: 1, Col: 16}},
 						},
 					},
 				},
@@ -194,26 +194,26 @@ func TestSpec(t *testing.T) {
 			in:   "foo, bar int = 42, 43",
 			expect: &ast.StateSpec{
 				Names: []*ast.Ident{
-					{Ident: "foo", Position: ast.Position{Line: 1, Col: 1}},
-					{Ident: "bar", Position: ast.Position{Line: 1, Col: 6}},
+					{Ident: "foo", Position: &ast.Position{Line: 1, Col: 1}},
+					{Ident: "bar", Position: &ast.Position{Line: 1, Col: 6}},
 				},
 				Type: &ast.Type{
 					Parsed: &ast.NamedType{
-						Name: &ast.Ident{Ident: "int", Position: ast.Position{Line: 1, Col: 10}},
+						Name: &ast.Ident{Ident: "int", Position: &ast.Position{Line: 1, Col: 10}},
 					},
-					Type:     "int",
-					Position: ast.Position{Line: 1, Col: 10},
-					Until:    ast.Position{Line: 1, Col: 13},
+					Type:  "int",
+					From:  ast.Position{Line: 1, Col: 10},
+					Until: ast.Position{Line: 1, Col: 13},
 				},
 				EqualSign: &ast.Position{Line: 1, Col: 14},
 				Values: []*ast.Expression{
 					{
 						Code: ast.Code{
-							&ast.GoCode{Code: "42", Position: ast.Position{Line: 1, Col: 16}},
+							&ast.GoCode{Code: "42", Position: &ast.Position{Line: 1, Col: 16}},
 						},
 					}, {
 						Code: ast.Code{
-							&ast.GoCode{Code: "43", Position: ast.Position{Line: 1, Col: 20}},
+							&ast.GoCode{Code: "43", Position: &ast.Position{Line: 1, Col: 20}},
 						},
 					},
 				},
@@ -223,14 +223,14 @@ func TestSpec(t *testing.T) {
 			in:   "foo, bar = baz()",
 			expect: &ast.StateSpec{
 				Names: []*ast.Ident{
-					{Ident: "foo", Position: ast.Position{Line: 1, Col: 1}},
-					{Ident: "bar", Position: ast.Position{Line: 1, Col: 6}},
+					{Ident: "foo", Position: &ast.Position{Line: 1, Col: 1}},
+					{Ident: "bar", Position: &ast.Position{Line: 1, Col: 6}},
 				},
 				EqualSign: &ast.Position{Line: 1, Col: 10},
 				Values: []*ast.Expression{
 					{
 						Code: ast.Code{
-							&ast.GoCode{Code: "baz()", Position: ast.Position{Line: 1, Col: 12}},
+							&ast.GoCode{Code: "baz()", Position: &ast.Position{Line: 1, Col: 12}},
 						},
 					},
 				},

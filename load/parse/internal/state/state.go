@@ -18,33 +18,37 @@ import (
 
 func Declaration() parser.Func[*ast.StateDeclaration] {
 	return func(p *parser.Parser) (*ast.StateDeclaration, *fancyerr.Error) {
-		d := &ast.StateDeclaration{State: p.Pos()}
-		if !parser.TryToken(p, "state") {
+		var d ast.StateDeclaration
+
+		d.State = parser.TryTokenAt(p, "state")
+		if d.State == nil {
 			return nil, &fancyerr.Error{
 				Message: "missing state declaration",
-				Primary: quickanno.Expected(p, d.Pos(), "a state declaration"),
+				Primary: quickanno.Expected(p, d.Start(), "a state declaration"),
 			}
 		}
 
-		parser.TrySkip(p, comment.OrAnyWhitespace())
+		hasWS := parser.TrySkip(p, comment.OrAnyWhitespace())
 
-		d.LParen = p.PosPtr()
-		if !parser.TryOptionalRune(p, '(') {
-			d.LParen = nil
+		d.LParen = parser.TryOptionalRuneAt(p, '(', nil)
+		if d.LParen == nil {
+			if !hasWS {
+				return nil, &fancyerr.Error{
+					Message: "missing state declaration",
+					Primary: quickanno.Expected(p, d.Start(), "a state declaration"),
+				}
+			}
 
-			d.Specs = make([]*ast.StateSpec, 1)
-			d.Specs[0] = parser.Must(p, Spec())
-
+			d.Specs = []*ast.StateSpec{parser.Must(p, Spec())}
 			parser.MustSkip(p, comment.AndMustEOS())
-			return d, nil
+			return &d, nil
 		}
 
 		d.Specs = make([]*ast.StateSpec, 0, 18)
 		for {
 			parser.TrySkip(p, comment.OrAnyWhitespace())
-
-			spec, ok := parser.TryOk(p, Spec())
-			if !ok {
+			spec := parser.Try(p, Spec())
+			if spec == nil {
 				break
 			}
 			d.Specs = append(d.Specs, spec)
@@ -56,7 +60,11 @@ func Declaration() parser.Func[*ast.StateDeclaration] {
 
 			parser.MustSkip(p, comment.AndEOS())
 		}
-		d.Specs = slices.Clip(d.Specs)
+		if len(d.Specs) == 0 {
+			d.Specs = nil
+		} else {
+			d.Specs = slices.Clip(d.Specs)
+		}
 
 		err := unexpected.UntilAnyRune(p, comment.OrAnyWhitespace(), ')')
 		if err != nil {
@@ -64,9 +72,8 @@ func Declaration() parser.Func[*ast.StateDeclaration] {
 			p.CaptureError(err)
 		}
 
-		d.RParen = p.PosPtr()
-		if !parser.TryRune(p, ')') {
-			d.RParen = nil
+		d.RParen = parser.TryOptionalRuneAt(p, ')', nil)
+		if d.RParen == nil {
 			p.CaptureError(&fancyerr.Error{
 				Message: "state declaration: missing ')'",
 				Primary: quickanno.Expected(p, *d.LParen, "a closing ')' for the '(' here"),
@@ -74,14 +81,16 @@ func Declaration() parser.Func[*ast.StateDeclaration] {
 		}
 
 		parser.MustSkip(p, comment.AndMustEOS())
-		return d, nil
+		return &d, nil
 	}
 }
 
 func Spec() parser.Func[*ast.StateSpec] {
 	return func(p *parser.Parser) (*ast.StateSpec, *fancyerr.Error) {
-		names, ok := parser.TryOk(p, list.CommaList("state name", "state names", golang.Identifier()))
-		if !ok {
+		var s ast.StateSpec
+
+		s.Names = parser.Try(p, list.CommaList("state name", "state names", golang.Identifier()))
+		if s.Names == nil {
 			return nil, &fancyerr.Error{
 				Message: "missing state spec",
 				Primary: quickanno.Expected(p, p.Pos(), "one or more identifiers"),
@@ -91,16 +100,10 @@ func Spec() parser.Func[*ast.StateSpec] {
 			}
 		}
 
-		s := &ast.StateSpec{Names: names}
-
 		var pos ast.Position
-		if parser.TrySkipOk(p, comment.OrHorizontalWhitespace()) {
+		if parser.TrySkip(p, comment.OrHorizontalWhitespace()) {
 			pos = p.Pos()
-
-			s.Type, ok = parser.TryOptionalOk(p, golang.Type())
-			if ok {
-				parser.TrySkip(p, comment.OrHorizontalWhitespace())
-			}
+			s.Type = parser.TryOptional(p, golang.Type(), comment.OrHorizontalWhitespace())
 		}
 
 		err := unexpected.UntilAnyRune(p, comment.OrHorizontalWhitespace(), '=', ';', ')')
@@ -109,23 +112,20 @@ func Spec() parser.Func[*ast.StateSpec] {
 			p.CaptureError(err)
 		}
 
-		s.EqualSign = p.PosPtr()
-		if !parser.TryRune(p, '=') {
-			s.EqualSign = nil
+		s.EqualSign = parser.TryOptionalRuneAt(p, '=', comment.OrAnyWhitespace())
+		if s.EqualSign == nil {
 			if s.Type == nil {
 				p.CaptureError(&fancyerr.Error{
 					Message: "state spec: missing type or value",
 					Primary: quickanno.Expected(p, pos, "either a type or an equal sign"),
 				})
 			}
-			return s, nil
+			return &s, nil
 		}
 
-		parser.TrySkip(p, comment.OrAnyWhitespace())
-
-		s.Values, ok = parser.TryOk(p, list.CommaList("state value", "state values", code.Expression()))
-		if !ok {
-			if len(names) == 1 {
+		s.Values = parser.Try(p, list.CommaList("state value", "state values", code.Expression()))
+		if s.Values == nil {
+			if len(s.Names) == 1 {
 				p.CaptureError(&fancyerr.Error{
 					Message: "state spec: missing values",
 					Primary: quickanno.Expected(p, p.Pos(), "an expression"),
@@ -133,17 +133,17 @@ func Spec() parser.Func[*ast.StateSpec] {
 			} else {
 				p.CaptureError(&fancyerr.Error{
 					Message: "state spec: missing values",
-					Primary: quickanno.Expected(p, p.Pos(), fmt.Sprint("one or a list of ", len(names), " expressions")),
+					Primary: quickanno.Expected(p, p.Pos(), fmt.Sprint("one or a list of ", len(s.Names), " expressions")),
 				})
 			}
 		}
 
 		if len(s.Values) > 1 && len(s.Names) != len(s.Values) {
-			if len(names) == 1 {
+			if len(s.Names) == 1 {
 				p.CaptureError(&fancyerr.Error{
 					Message: "state spec: mismatched number of values and variables",
 					Primary: []fancyerr.Annotation{
-						anno.Range(p.File, s.Values[0].Pos(), s.Values[len(s.Values)-1].End(),
+						anno.Range(p.File, s.Values[0].Start(), s.Values[len(s.Values)-1].End(),
 							fmt.Sprint("expected a single expression, but found ", len(s.Values))),
 					},
 				})
@@ -151,13 +151,13 @@ func Spec() parser.Func[*ast.StateSpec] {
 				p.CaptureError(&fancyerr.Error{
 					Message: "state spec: mismatched number of values and variables",
 					Primary: []fancyerr.Annotation{
-						anno.Range(p.File, s.Values[0].Pos(), s.Values[len(s.Values)-1].End(),
-							fmt.Sprint("a single or ", len(names), " expressions, but found ", len(s.Values))),
+						anno.Range(p.File, s.Values[0].Start(), s.Values[len(s.Values)-1].End(),
+							fmt.Sprint("a single or ", len(s.Names), " expressions, but found ", len(s.Values))),
 					},
 				})
 			}
 		}
 
-		return s, nil
+		return &s, nil
 	}
 }

@@ -1,18 +1,10 @@
 package parser
 
-func TryOptionalToken(p *Parser, s string) (ok bool) {
-	state := p.CloneState()
-	if !MatchesToken(p, s) {
-		p.RestoreState(state)
-		return false
-	}
+import (
+	"slices"
 
-	p.state.ws = nil
-	for range s {
-		p.next()
-	}
-	return true
-}
+	"github.com/mavolin/corgi/v2/file/ast"
+)
 
 // TryToken attempts to match the given token verbatim.
 func TryToken(p *Parser, s string) (ok bool) {
@@ -24,6 +16,23 @@ func TryToken(p *Parser, s string) (ok bool) {
 
 	for range s {
 		p.next()
+	}
+	return true
+}
+
+func TryOptionalToken(p *Parser, s string, ws WhitespaceFunc) (ok bool) {
+	state := p.CloneState()
+	if !MatchesToken(p, s) {
+		p.RestoreState(state)
+		return false
+	}
+
+	p.state.ws = nil
+	for range s {
+		p.next()
+	}
+	if ws != nil {
+		TrySkip(p, ws)
 	}
 	return true
 }
@@ -42,6 +51,30 @@ func TryAnyToken(p *Parser, ss ...string) string {
 	return ""
 }
 
+func TryKeywordAt(p *Parser, k string, ws WhitespaceFunc) *ast.Position {
+	pos := p.Pos()
+	if !TryToken(p, k) || (!MatchesAnyRune(p, '(', ';', '}', '\n', '\r') && !TrySkip(p, ws)) {
+		return nil
+	}
+	return &pos
+}
+
+func TryTokenAt(p *Parser, s string) *ast.Position {
+	pos := p.Pos()
+	if !TryToken(p, s) {
+		return nil
+	}
+	return &pos
+}
+
+func TryOptionalTokenAt(p *Parser, s string, ws WhitespaceFunc) *ast.Position {
+	pos := p.Pos()
+	if !TryOptionalToken(p, s, ws) {
+		return nil
+	}
+	return &pos
+}
+
 func TryRune(p *Parser, r rune) (ok bool) {
 	restore := p.state.takeWSStart()
 	if r != p.peek() {
@@ -52,7 +85,15 @@ func TryRune(p *Parser, r rune) (ok bool) {
 	return true
 }
 
-func TryOptionalRune(p *Parser, r rune) (ok bool) {
+func TryRuneAt(p *Parser, r rune) *ast.Position {
+	pos := p.Pos()
+	if !TryRune(p, r) {
+		return nil
+	}
+	return &pos
+}
+
+func TryOptionalRune(p *Parser, r rune, ws WhitespaceFunc) (ok bool) {
 	state := p.CloneState()
 	if r != p.peek() {
 		p.RestoreState(state)
@@ -60,7 +101,18 @@ func TryOptionalRune(p *Parser, r rune) (ok bool) {
 	}
 	p.state.ws = nil
 	p.next()
+	if ws != nil {
+		TrySkip(p, ws)
+	}
 	return true
+}
+
+func TryOptionalRuneAt(p *Parser, r rune, ws WhitespaceFunc) *ast.Position {
+	pos := p.Pos()
+	if !TryOptionalRune(p, r, ws) {
+		return nil
+	}
+	return &pos
 }
 
 // TryAnyRune attempts to match the next rune against any of the passed runes.
@@ -122,4 +174,22 @@ func TokenWhile(p *Parser, pred func() bool) string {
 	}
 	p.state.ws = nil // the predicate might've set a restore point
 	return p.File.Raw[start:p.Index()]
+}
+
+func Collect[T any](p *Parser, f Func[T], cap int, ws WhitespaceFunc) []T {
+	ts := make([]T, 0, cap)
+	for {
+		if ws != nil {
+			TrySkip(p, ws)
+		}
+		t, err := TryErr(p, f)
+		if err != nil {
+			break
+		}
+		ts = append(ts, t)
+	}
+	if len(ts) == 0 {
+		return nil
+	}
+	return slices.Clip(ts)
 }

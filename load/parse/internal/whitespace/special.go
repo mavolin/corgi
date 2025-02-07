@@ -9,12 +9,12 @@ import (
 // EOL matches the EOL or EOF with optionally preceding horizontal whitespace
 func EOL() parser.WhitespaceFunc {
 	return func(p *parser.Parser) *fancyerr.Error {
-		if err := parser.TrySkip(p, EOF()); err == nil {
+		if parser.TrySkip(p, EOF()) {
 			return nil
 		}
 
 		parser.TrySkip(p, Horizontal())
-		if err := parser.TrySkip(p, SingleVertical()); err == nil {
+		if parser.TrySkip(p, SingleVertical()) {
 			return nil
 		}
 		return &fancyerr.Error{

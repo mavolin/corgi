@@ -26,8 +26,8 @@ func RuneLit() parser.Func[string] {
 			}
 		}
 
-		v, ok := parser.TryInOrder(p, ByteValue(), UnicodeValue('\''))
-		if !ok {
+		v := parser.TryInOrder(p, ByteValue(), UnicodeValue('\''))
+		if v == "" {
 			p.CaptureError(&fancyerr.Error{
 				Message: "rune literal: missing rune",
 				Primary: quickanno.Expected(p, p.Pos(), "a rune"),
@@ -56,13 +56,13 @@ func RuneLit() parser.Func[string] {
 func UnicodeValue(term rune) parser.Func[string] {
 	return func(p *parser.Parser) (string, *fancyerr.Error) {
 		if parser.MatchesAnyRune(p, '\\') {
-			s, ok := parser.TryInOrder(p, LittleUValue(), BigUValue(), EscapedChar(term))
-			if ok {
+			s := parser.TryInOrder(p, LittleUValue(), BigUValue(), EscapedChar(term))
+			if s != "" {
 				return s, nil
 			}
 		} else {
-			r, ok := parser.TryOk(p, UnicodeChar(term))
-			if ok {
+			r := parser.Try(p, UnicodeChar(term))
+			if r != 0 {
 				return string(r), nil
 			}
 		}
@@ -76,8 +76,8 @@ func UnicodeValue(term rune) parser.Func[string] {
 
 func ByteValue() parser.Func[string] {
 	return func(p *parser.Parser) (string, *fancyerr.Error) {
-		s, ok := parser.TryInOrder(p, OctalByteValue(), HexByteValue())
-		if !ok {
+		s := parser.TryInOrder(p, OctalByteValue(), HexByteValue())
+		if s == "" {
 			return "", &fancyerr.Error{
 				Message:  "missing byte value",
 				Primary:  quickanno.Expected(p, p.Pos(), "a byte value"),
@@ -237,8 +237,8 @@ func EscapedChar(term rune) parser.Func[string] {
 
 func StringLit() parser.Func[*ast.StaticString] {
 	return func(p *parser.Parser) (*ast.StaticString, *fancyerr.Error) {
-		s, ok := parser.TryInOrder(p, RawStringLit(), InterpretedStringLit())
-		if !ok {
+		s := parser.TryInOrder(p, RawStringLit(), InterpretedStringLit())
+		if s == nil {
 			return nil, &fancyerr.Error{
 				Message:  "missing string literal",
 				Primary:  quickanno.Expected(p, p.Pos(), "a string literal"),
@@ -251,9 +251,11 @@ func StringLit() parser.Func[*ast.StaticString] {
 
 func RawStringLit() parser.Func[*ast.StaticString] {
 	return func(p *parser.Parser) (*ast.StaticString, *fancyerr.Error) {
-		s := &ast.StaticString{Open: p.Pos(), Quote: '`'}
+		var s ast.StaticString
+		s.Quote = '`'
 
-		if !parser.TryRune(p, '`') {
+		s.Open = parser.TryRuneAt(p, '`')
+		if s.Open == nil {
 			return nil, &fancyerr.Error{
 				Message: "missing raw string literal",
 				Primary: quickanno.Expected(p, p.Pos(), "a raw string literal"),
@@ -264,23 +266,24 @@ func RawStringLit() parser.Func[*ast.StaticString] {
 			return !parser.MatchesAnyRune(p, '`')
 		})
 
-		s.Close = p.PosPtr()
-		if !parser.TryRune(p, '`') {
-			s.Close = nil
+		s.Close = parser.TryRuneAt(p, '`')
+		if s.Close == nil {
 			p.CaptureError(&fancyerr.Error{
 				Message: "raw string literal: missing closing backtick",
-				Primary: quickanno.Expected(p, s.Open, "a closing backtick for the opening backtick here"),
+				Primary: quickanno.Expected(p, *s.Open, "a closing backtick for the opening backtick here"),
 			})
 		}
-		return s, nil
+		return &s, nil
 	}
 }
 
 func InterpretedStringLit() parser.Func[*ast.StaticString] {
 	return func(p *parser.Parser) (*ast.StaticString, *fancyerr.Error) {
-		s := &ast.StaticString{Open: p.Pos(), Quote: '"'}
+		var s ast.StaticString
+		s.Quote = '"'
 
-		if !parser.TryRune(p, '"') {
+		s.Open = parser.TryRuneAt(p, '"')
+		if s.Open == nil {
 			return nil, &fancyerr.Error{
 				Message:  "missing interpreted string literal",
 				Primary:  quickanno.Expected(p, p.Pos(), "an interpreted string literal"),
@@ -289,23 +292,19 @@ func InterpretedStringLit() parser.Func[*ast.StaticString] {
 		}
 
 		index := p.Index()
-		for {
-			_, ok := parser.TryInOrder(p, ByteValue(), UnicodeValue('"'))
-			if !ok {
-				break
-			}
+		for parser.TryInOrder(p, ByteValue(), UnicodeValue('"')) != "" {
 		}
 		s.Contents = p.File.Raw[index:p.Index()]
 
-		s.Close = p.PosPtr()
-		if !parser.TryRune(p, '"') {
+		s.Close = parser.TryRuneAt(p, '"')
+		if s.Close == nil {
 			s.Close = nil
 			p.CaptureError(&fancyerr.Error{
 				Message: "interpreted string literal: missing closing quote",
-				Primary: quickanno.Expected(p, s.Open, "a closing quote for the opening quote here"),
+				Primary: quickanno.Expected(p, *s.Open, "a closing quote for the opening quote here"),
 			})
 		}
 
-		return s, nil
+		return &s, nil
 	}
 }

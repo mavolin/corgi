@@ -20,19 +20,19 @@ func Any() parser.WhitespaceFunc {
 
 		pos := p.Pos()
 
-		hErr := parser.TrySkip(p, Horizontal())
-		vErr := parser.TrySkip(p, Vertical())
+		h := parser.TrySkip(p, Horizontal())
+		v := parser.TrySkip(p, Vertical())
 
-		if hErr != nil && vErr != nil {
+		if !h && !v {
 			return &fancyerr.Error{
 				Message: "missing whitespace",
 				Primary: quickanno.Expected(p, pos, "a space, tab, or line ending"),
 			}
 		}
 
-		for hErr == nil || vErr == nil {
-			hErr = parser.TrySkip(p, Horizontal())
-			vErr = parser.TrySkip(p, Vertical())
+		for h || v {
+			h = parser.TrySkip(p, Horizontal())
+			v = parser.TrySkip(p, Vertical())
 		}
 		return nil
 	}

@@ -1,10 +1,7 @@
 package body
 
 import (
-	"slices"
-
 	"github.com/mavolin/corgi/v2/fancyerr"
-	"github.com/mavolin/corgi/v2/fancyerr/anno"
 	"github.com/mavolin/corgi/v2/file/ast"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/mavolin/corgi/v2/load/parse/internal/comment"
@@ -14,42 +11,28 @@ import (
 
 func Scope() parser.Func[*ast.Scope] {
 	return func(p *parser.Parser) (*ast.Scope, *fancyerr.Error) {
-		s := &ast.Scope{LBrace: p.Pos()}
-		if !parser.TryRune(p, '{') {
+		var s ast.Scope
+
+		s.LBrace = parser.TryRuneAt(p, '{')
+		if s.LBrace == nil {
 			return nil, &fancyerr.Error{
 				Message: "missing scope",
 				Primary: quickanno.Expected(p, p.Pos(), "a opening brace"),
 			}
 		}
 
-		s.Nodes = make([]ast.ScopeNode, 0, 24)
-		for {
-			parser.TrySkip(p, comment.OrAnyWhitespace())
-
-			n, ok := parser.TryOk(p, ScopeNode())
-			if !ok {
-				break
-			}
-			s.Nodes = append(s.Nodes, n)
-		}
-		if len(s.Nodes) == 0 {
-			s.Nodes = nil
-		} else {
-			s.Nodes = slices.Clip(s.Nodes)
-		}
-
+		s.Nodes = parser.Collect(p, ScopeNode(), 24, comment.OrAnyWhitespace())
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 
-		s.RBrace = p.PosPtr()
-		if !parser.TryRune(p, '}') {
-			s.RBrace = nil
+		s.RBrace = parser.TryRuneAt(p, '}')
+		if s.RBrace == nil {
 			p.CaptureError(&fancyerr.Error{
 				Message: "unclosed scope",
-				Primary: quickanno.Expected(p, s.LBrace, "expected a `}` for the opening `{` here"),
+				Primary: quickanno.Expected(p, *s.LBrace, "expected a `}` for the opening `{` here"),
 			})
 		}
 
-		return s, nil
+		return &s, nil
 	}
 }
 
@@ -65,7 +48,9 @@ func ScopeNode() parser.Func[ast.ScopeNode] {
 
 func BadScopeNode() parser.Func[*ast.BadScopeNode] {
 	return func(p *parser.Parser) (*ast.BadScopeNode, *fancyerr.Error) {
-		b := &ast.BadScopeNode{Start: p.Pos()}
+		var b ast.BadScopeNode
+		b.From = p.Pos()
+
 		for {
 			unexpected.UntilAnyRune(p, nil, '(', ')', '[', ']', '{', '}', ';')
 			b.Until = p.Pos()
@@ -73,11 +58,11 @@ func BadScopeNode() parser.Func[*ast.BadScopeNode] {
 			if parser.MatchesAnyRune(p, '}', ';') {
 				break
 			} else if parser.MatchesAnyRune(p, '{') {
-				if _, ok := parser.TryOptionalOk(p, Scope()); !ok {
+				if parser.TryOptional(p, Scope(), nil) == nil {
 					parser.TryRune(p, '{')
 				}
 			} else if parser.MatchesAnyRune(p, '[') {
-				if _, ok := parser.TryOptionalOk(p, BracketText()); !ok {
+				if parser.TryOptional(p, BracketText(), nil) == nil {
 					parser.TryRune(p, '[')
 				}
 			}
@@ -88,20 +73,14 @@ func BadScopeNode() parser.Func[*ast.BadScopeNode] {
 				break
 			}
 
-			if parser.TryOptionalRune(p, ']') {
-			} else if parser.TryOptionalRune(p, '(') {
-			} else if parser.TryOptionalRune(p, ')') {
+			if parser.TryOptionalRune(p, ']', nil) {
+			} else if parser.TryOptionalRune(p, '(', nil) {
+			} else if parser.TryOptionalRune(p, ')', nil) {
 			}
 		}
 
 		parser.RestoreWS(p)
 		b.Until = p.Pos()
-		p.CaptureError(&fancyerr.Error{
-			Message: "bad scope node",
-			Primary: []fancyerr.Annotation{
-				anno.Range(p.File, b.Start, b.Until, "unexpected tokens"),
-			},
-		})
-		return b, nil
+		return &b, nil
 	}
 }

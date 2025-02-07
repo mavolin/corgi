@@ -28,12 +28,12 @@ func testString(withEOS bool) func(t *testing.T, f parser.Func[*ast.String]) {
 					name: "simple interpreted string",
 					in:   `"foo"`,
 					expect: &ast.String{
-						Open:  ast.Position{Line: 1, Col: 1},
+						Open:  &ast.Position{Line: 1, Col: 1},
 						Quote: '"',
 						Contents: []ast.StringNode{
 							&ast.StringText{
 								Text:     "foo",
-								Position: ast.Position{Line: 1, Col: 2},
+								Position: &ast.Position{Line: 1, Col: 2},
 							},
 						},
 						Close: &ast.Position{Line: 1, Col: 5},
@@ -42,12 +42,12 @@ func testString(withEOS bool) func(t *testing.T, f parser.Func[*ast.String]) {
 					name: "simple raw string",
 					in:   "`bar`",
 					expect: &ast.String{
-						Open:  ast.Position{Line: 1, Col: 1},
+						Open:  &ast.Position{Line: 1, Col: 1},
 						Quote: '`',
 						Contents: []ast.StringNode{
 							&ast.StringText{
 								Text:     "bar",
-								Position: ast.Position{Line: 1, Col: 2},
+								Position: &ast.Position{Line: 1, Col: 2},
 							},
 						},
 						Close: &ast.Position{Line: 1, Col: 5},
@@ -56,28 +56,28 @@ func testString(withEOS bool) func(t *testing.T, f parser.Func[*ast.String]) {
 					name: "with interpolation",
 					in:   `"foo #%1.2f{bar} baz"`,
 					expect: &ast.String{
-						Open:  ast.Position{Line: 1, Col: 1},
+						Open:  &ast.Position{Line: 1, Col: 1},
 						Quote: '"',
 						Contents: []ast.StringNode{
 							&ast.StringText{
 								Text:     "foo ",
-								Position: ast.Position{Line: 1, Col: 2},
+								Position: &ast.Position{Line: 1, Col: 2},
 							}, &ast.ExpressionInterpolation{
-								Hash:            ast.Position{Line: 1, Col: 6},
+								Hash:            &ast.Position{Line: 1, Col: 6},
 								FormatDirective: "1.2f",
 								LBrace:          &ast.Position{Line: 1, Col: 12},
 								Expression: &ast.Expression{
 									Code: ast.Code{
 										&ast.GoCode{
 											Code:     "bar",
-											Position: ast.Position{Line: 1, Col: 13},
+											Position: &ast.Position{Line: 1, Col: 13},
 										},
 									},
 								},
 								RBrace: &ast.Position{Line: 1, Col: 16},
 							}, &ast.StringText{
 								Text:     " baz",
-								Position: ast.Position{Line: 1, Col: 17},
+								Position: &ast.Position{Line: 1, Col: 17},
 							},
 						},
 						Close: &ast.Position{Line: 1, Col: 21},
@@ -110,12 +110,12 @@ func testString(withEOS bool) func(t *testing.T, f parser.Func[*ast.String]) {
 					name: "missing closing quote",
 					in:   `"foo`,
 					expect: &ast.String{
-						Open:  ast.Position{Line: 1, Col: 1},
+						Open:  &ast.Position{Line: 1, Col: 1},
 						Quote: '"',
 						Contents: []ast.StringNode{
 							&ast.StringText{
 								Text:     "foo",
-								Position: ast.Position{Line: 1, Col: 2},
+								Position: &ast.Position{Line: 1, Col: 2},
 							},
 						},
 					},

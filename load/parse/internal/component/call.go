@@ -13,78 +13,83 @@ import (
 
 func Call() parser.Func[*ast.ComponentCall] {
 	return func(p *parser.Parser) (*ast.ComponentCall, *fancyerr.Error) {
-		h, ok := parser.TryOk(p, CallHeader())
-		if !ok {
+		var c ast.ComponentCall
+
+		c.Colon = parser.TryRuneAt(p, ':')
+		if c.Colon == nil {
 			return nil, &fancyerr.Error{
 				Message: "missing component call",
-				Primary: quickanno.Expected(p, p.Pos(), "a component call"),
+				Primary: quickanno.Expected(p, p.Pos(), "a colon"),
 			}
 		}
 
-		c := &ast.ComponentCall{Header: *h}
+		if !p.Inline() {
+			parser.TrySkip(p, comment.OrHorizontalWhitespace())
+		}
+
+		c.Header = parser.Try(p, CallHeader())
+		if c.Header == nil {
+			return nil, &fancyerr.Error{
+				Message: "missing component call",
+				Primary: quickanno.Expected(p, p.Pos(), "a component call header"),
+			}
+		}
 
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 
-		c.Body, _ = parser.Try(p, body.Body())
-		return c, nil
+		c.Body = parser.Try(p, body.Body())
+		return &c, nil
 	}
 }
 
 func CallHeader() parser.Func[*ast.ComponentCallHeader] {
 	return func(p *parser.Parser) (*ast.ComponentCallHeader, *fancyerr.Error) {
-		h := &ast.ComponentCallHeader{Colon: p.Pos()}
-		if !parser.TryRune(p, ':') {
-			return nil, &fancyerr.Error{
-				Message: "missing component call header",
-				Primary: quickanno.Expected(p, h.Colon, "a colon"),
-			}
+		var h ast.ComponentCallHeader
+
+		h.Name = parser.Try(p, golang.FullIdent())
+		if !p.Inline() {
+			parser.TrySkip(p, comment.OrHorizontalWhitespace())
 		}
 
-		parser.TrySkip(p, comment.OrAnyWhitespace())
+		h.TypeArguments = parser.TryOptional(p, golang.TypeArgs(), nil)
+		if h.TypeArguments != nil && !p.Inline() {
+			parser.TrySkip(p, comment.OrHorizontalWhitespace())
+		}
 
-		var ok bool
-		h.Name, ok = parser.TryOk(p, golang.FullIdent())
-		if !ok {
+		h.Arguments = parser.Try(p, argument.Arguments())
+		if h.Name == nil && h.Arguments == nil {
 			return nil, &fancyerr.Error{
-				Message: "component call header: missing name",
+				Message: "missing component call header",
 				Primary: quickanno.Expected(p, p.Pos(), "a name of a component"),
 			}
 		}
 
-		parser.TrySkip(p, comment.OrHorizontalWhitespace())
-
-		h.TypeArguments, ok = parser.TryOptionalOk(p, golang.TypeArgs())
-		if ok {
-			parser.TrySkip(p, comment.OrHorizontalWhitespace())
-		}
-
-		h.Arguments, _ = parser.Try(p, argument.Arguments())
-		return h, nil
+		return &h, nil
 	}
 }
 
 func With() parser.Func[*ast.With] {
 	return func(p *parser.Parser) (*ast.With, *fancyerr.Error) {
-		w := &ast.With{With: p.Pos()}
-		if !parser.TryToken(p, "with") || !parser.TrySkipOk(p, comment.OrAnyWhitespace()) {
+		var w ast.With
+
+		w.With = parser.TryKeywordAt(p, "with", comment.OrAnyWhitespace())
+		if w.With == nil {
 			return nil, &fancyerr.Error{
 				Message: "missing with",
-				Primary: quickanno.Expected(p, w.With, "a `with` here"),
+				Primary: quickanno.Expected(p, *w.With, "a `with` here"),
 			}
 		}
 
-		var ok bool
-		w.Name, ok = parser.TryOk(p, golang.Identifier())
-		if !ok {
-			return nil, &fancyerr.Error{
+		w.Name = parser.Try(p, golang.Identifier())
+		if w.Name == nil {
+			p.CaptureError(&fancyerr.Error{
 				Message: "with: missing block name",
-				Primary: quickanno.Expected(p, w.With, "a name of a block"),
-			}
+				Primary: quickanno.Expected(p, *w.With, "a name of a block"),
+			})
 		}
-
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 
 		w.Body = parser.Must(p, body.Body())
-		return w, nil
+		return &w, nil
 	}
 }

@@ -46,16 +46,16 @@ func testGoCode(withEOS bool) func(t *testing.T, f parser.Func[[]ast.CodeNode]) 
 				name: "string in parentheses",
 				code: "(\"foo\")",
 				expect: []ast.CodeNode{
-					&ast.GoCode{Code: "(", Position: ast.Position{Line: 1, Col: 1}},
+					&ast.GoCode{Code: "(", Position: &ast.Position{Line: 1, Col: 1}},
 					&ast.String{
-						Open:  ast.Position{Line: 1, Col: 2},
+						Open:  &ast.Position{Line: 1, Col: 2},
 						Quote: '"',
 						Contents: []ast.StringNode{
-							&ast.StringText{Text: "foo", Position: ast.Position{Line: 1, Col: 3}},
+							&ast.StringText{Text: "foo", Position: &ast.Position{Line: 1, Col: 3}},
 						},
 						Close: &ast.Position{Line: 1, Col: 6},
 					},
-					&ast.GoCode{Code: ")", Position: ast.Position{Line: 1, Col: 7}},
+					&ast.GoCode{Code: ")", Position: &ast.Position{Line: 1, Col: 7}},
 				},
 			},
 		}
@@ -66,7 +66,7 @@ func testGoCode(withEOS bool) func(t *testing.T, f parser.Func[[]ast.CodeNode]) 
 
 				expect := c.expect
 				if expect == nil {
-					expect = []ast.CodeNode{&ast.GoCode{Code: c.code, Position: ast.Position{Line: 1, Col: 1}}}
+					expect = []ast.CodeNode{&ast.GoCode{Code: c.code, Position: &ast.Position{Line: 1, Col: 1}}}
 				}
 
 				if withEOS {
@@ -94,10 +94,10 @@ func testBlockFunction(withEOS bool) func(t *testing.T, f parser.Func[*ast.Block
 				in += ";"
 			}
 			expect := &ast.BlockFunction{
-				LParen:   &ast.Position{Line: 1, Col: 6},
-				Block:    &ast.Ident{Ident: "foo", Position: ast.Position{Line: 1, Col: 7}},
-				RParen:   &ast.Position{Line: 1, Col: 10},
-				Position: ast.Position{Line: 1, Col: 1},
+				LParen:    &ast.Position{Line: 1, Col: 6},
+				BlockName: &ast.Ident{Ident: "foo", Position: &ast.Position{Line: 1, Col: 7}},
+				RParen:    &ast.Position{Line: 1, Col: 10},
+				Block:     &ast.Position{Line: 1, Col: 1},
 			}
 
 			actual := parsesCodeNodeFully(t, in, f)
@@ -117,26 +117,26 @@ func testBlockFunction(withEOS bool) func(t *testing.T, f parser.Func[*ast.Block
 					in:      "block()",
 					needEOS: true,
 					expect: &ast.BlockFunction{
-						LParen:   &ast.Position{Line: 1, Col: 6},
-						RParen:   &ast.Position{Line: 1, Col: 7},
-						Position: ast.Position{Line: 1, Col: 1},
+						LParen: &ast.Position{Line: 1, Col: 6},
+						RParen: &ast.Position{Line: 1, Col: 7},
+						Block:  &ast.Position{Line: 1, Col: 1},
 					},
 				}, {
 					name: "missing closing parenthesis",
 					in:   "block(",
 					expect: &ast.BlockFunction{
-						LParen:   &ast.Position{Line: 1, Col: 6},
-						Position: ast.Position{Line: 1, Col: 1},
+						LParen: &ast.Position{Line: 1, Col: 6},
+						Block:  &ast.Position{Line: 1, Col: 1},
 					},
 				}, {
 					name:    "too many arguments",
 					in:      "block(foo, bar)",
 					needEOS: true,
 					expect: &ast.BlockFunction{
-						LParen:   &ast.Position{Line: 1, Col: 6},
-						Block:    &ast.Ident{Ident: "foo", Position: ast.Position{Line: 1, Col: 7}},
-						RParen:   &ast.Position{Line: 1, Col: 15},
-						Position: ast.Position{Line: 1, Col: 1},
+						LParen:    &ast.Position{Line: 1, Col: 6},
+						BlockName: &ast.Ident{Ident: "foo", Position: &ast.Position{Line: 1, Col: 7}},
+						RParen:    &ast.Position{Line: 1, Col: 15},
+						Block:     &ast.Position{Line: 1, Col: 1},
 					},
 				},
 			}
@@ -171,21 +171,21 @@ func testTernary(withEOS bool) func(t *testing.T, f parser.Func[*ast.Ternary]) {
 				in += ";"
 			}
 			expect := &ast.Ternary{
-				QuestionMark: ast.Position{Line: 1, Col: 1},
+				QuestionMark: &ast.Position{Line: 1, Col: 1},
 				LParen:       &ast.Position{Line: 1, Col: 2},
 				Condition: &ast.Expression{
 					Code: ast.Code{
-						&ast.GoCode{Code: "condition", Position: ast.Position{Line: 1, Col: 3}},
+						&ast.GoCode{Code: "condition", Position: &ast.Position{Line: 1, Col: 3}},
 					},
 				},
 				TrueVal: &ast.Expression{
 					Code: ast.Code{
-						&ast.GoCode{Code: "ifTrue", Position: ast.Position{Line: 1, Col: 14}},
+						&ast.GoCode{Code: "ifTrue", Position: &ast.Position{Line: 1, Col: 14}},
 					},
 				},
 				FalseVal: &ast.Expression{
 					Code: ast.Code{
-						&ast.GoCode{Code: "ifFalse", Position: ast.Position{Line: 1, Col: 22}},
+						&ast.GoCode{Code: "ifFalse", Position: &ast.Position{Line: 1, Col: 22}},
 					},
 				},
 				RParen: &ast.Position{Line: 1, Col: 29},
@@ -209,7 +209,7 @@ func testTernary(withEOS bool) func(t *testing.T, f parser.Func[*ast.Ternary]) {
 					in:      "?()",
 					needEOS: true,
 					expect: &ast.Ternary{
-						QuestionMark: ast.Position{Line: 1, Col: 1},
+						QuestionMark: &ast.Position{Line: 1, Col: 1},
 						LParen:       &ast.Position{Line: 1, Col: 2},
 						RParen:       &ast.Position{Line: 1, Col: 3},
 					},
@@ -218,11 +218,11 @@ func testTernary(withEOS bool) func(t *testing.T, f parser.Func[*ast.Ternary]) {
 					in:      "?(condition)",
 					needEOS: true,
 					expect: &ast.Ternary{
-						QuestionMark: ast.Position{Line: 1, Col: 1},
+						QuestionMark: &ast.Position{Line: 1, Col: 1},
 						LParen:       &ast.Position{Line: 1, Col: 2},
 						Condition: &ast.Expression{
 							Code: ast.Code{
-								&ast.GoCode{Code: "condition", Position: ast.Position{Line: 1, Col: 3}},
+								&ast.GoCode{Code: "condition", Position: &ast.Position{Line: 1, Col: 3}},
 							},
 						},
 						RParen: &ast.Position{Line: 1, Col: 12},
@@ -232,16 +232,16 @@ func testTernary(withEOS bool) func(t *testing.T, f parser.Func[*ast.Ternary]) {
 					in:      "?(condition, ifTrue)",
 					needEOS: true,
 					expect: &ast.Ternary{
-						QuestionMark: ast.Position{Line: 1, Col: 1},
+						QuestionMark: &ast.Position{Line: 1, Col: 1},
 						LParen:       &ast.Position{Line: 1, Col: 2},
 						Condition: &ast.Expression{
 							Code: ast.Code{
-								&ast.GoCode{Code: "condition", Position: ast.Position{Line: 1, Col: 3}},
+								&ast.GoCode{Code: "condition", Position: &ast.Position{Line: 1, Col: 3}},
 							},
 						},
 						TrueVal: &ast.Expression{
 							Code: ast.Code{
-								&ast.GoCode{Code: "ifTrue", Position: ast.Position{Line: 1, Col: 14}},
+								&ast.GoCode{Code: "ifTrue", Position: &ast.Position{Line: 1, Col: 14}},
 							},
 						},
 						RParen: &ast.Position{Line: 1, Col: 20},
@@ -251,21 +251,21 @@ func testTernary(withEOS bool) func(t *testing.T, f parser.Func[*ast.Ternary]) {
 					in:      "?(condition, ifTrue, ifFalse, foo)",
 					needEOS: true,
 					expect: &ast.Ternary{
-						QuestionMark: ast.Position{Line: 1, Col: 1},
+						QuestionMark: &ast.Position{Line: 1, Col: 1},
 						LParen:       &ast.Position{Line: 1, Col: 2},
 						Condition: &ast.Expression{
 							Code: ast.Code{
-								&ast.GoCode{Code: "condition", Position: ast.Position{Line: 1, Col: 3}},
+								&ast.GoCode{Code: "condition", Position: &ast.Position{Line: 1, Col: 3}},
 							},
 						},
 						TrueVal: &ast.Expression{
 							Code: ast.Code{
-								&ast.GoCode{Code: "ifTrue", Position: ast.Position{Line: 1, Col: 14}},
+								&ast.GoCode{Code: "ifTrue", Position: &ast.Position{Line: 1, Col: 14}},
 							},
 						},
 						FalseVal: &ast.Expression{
 							Code: ast.Code{
-								&ast.GoCode{Code: "ifFalse", Position: ast.Position{Line: 1, Col: 22}},
+								&ast.GoCode{Code: "ifFalse", Position: &ast.Position{Line: 1, Col: 22}},
 							},
 						},
 						RParen: &ast.Position{Line: 1, Col: 34},

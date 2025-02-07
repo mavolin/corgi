@@ -15,11 +15,11 @@ import (
 
 func Code(statement bool) parser.Func[ast.Code] {
 	return func(p *parser.Parser) (ast.Code, *fancyerr.Error) {
-		if zc, ok := parser.TryOk(p, ZeroCoalescing()); ok {
+		if zc := parser.Try(p, ZeroCoalescing()); zc != nil {
 			return ast.Code{zc}, nil
 		}
 
-		return parser.Try(p, NonZCCode(statement))
+		return parser.TryErr(p, NonZCCode(statement))
 	}
 }
 
@@ -27,8 +27,8 @@ func NonZCCode(statement bool) parser.Func[ast.Code] {
 	return func(p *parser.Parser) (ast.Code, *fancyerr.Error) {
 		c := make(ast.Code, 0, 24)
 		for {
-			n, ok := parser.TryOk(p, nonZCNode(statement))
-			if !ok {
+			n := parser.Try(p, nonZCNode(statement))
+			if n == nil {
 				break
 			}
 			c = append(c, n...)
@@ -50,13 +50,13 @@ func NonZCCode(statement bool) parser.Func[ast.Code] {
 // See the doc of [GoCode] on why it may return more than one node.
 func nonZCNode(statement bool) parser.Func[[]ast.CodeNode] {
 	return func(p *parser.Parser) ([]ast.CodeNode, *fancyerr.Error) {
-		if gc, ok := parser.TryOk(p, GoCode(statement)); ok {
+		if gc := parser.Try(p, GoCode(statement)); gc != nil {
 			return gc, nil
-		} else if bf, ok := parser.TryOk(p, BlockFunction()); ok {
+		} else if bf := parser.Try(p, BlockFunction()); bf != nil {
 			return []ast.CodeNode{bf}, nil
-		} else if s, ok := parser.TryOk(p, String()); ok {
+		} else if s := parser.Try(p, String()); s != nil {
 			return []ast.CodeNode{s}, nil
-		} else if t, ok := parser.TryOk(p, Ternary()); ok {
+		} else if t := parser.Try(p, Ternary()); t != nil {
 			return []ast.CodeNode{t}, nil
 		}
 		return nil, &fancyerr.Error{
@@ -72,7 +72,7 @@ func nonZCNode(statement bool) parser.Func[[]ast.CodeNode] {
 // the parsed code contains corgi language extensions within parenthesis.
 func GoCode(statement bool) parser.Func[[]ast.CodeNode] {
 	return func(p *parser.Parser) ([]ast.CodeNode, *fancyerr.Error) {
-		ns, err := parser.Try(p, goCode(false, statement))
+		ns, err := parser.TryErr(p, goCode(false, statement))
 		if err != nil {
 			return nil, err
 		}
@@ -82,7 +82,7 @@ func GoCode(statement bool) parser.Func[[]ast.CodeNode] {
 
 func goCode(tilParenClose, statement bool) parser.Func[[]ast.CodeNode] {
 	return func(p *parser.Parser) ([]ast.CodeNode, *fancyerr.Error) {
-		c := &ast.GoCode{Position: p.Pos()}
+		c := &ast.GoCode{Position: p.PosPtr()}
 
 		exps := make([]ast.CodeNode, 0, 8)
 
@@ -145,14 +145,14 @@ func goCode(tilParenClose, statement bool) parser.Func[[]ast.CodeNode] {
 					})
 				}
 				continue
-			} else if _, ok := parser.TryOk(p, golang.RuneLit()); ok {
+			} else if parser.Try(p, golang.RuneLit()) != "" {
 				continue
 			} else if parser.MatchesToken(p, "block") && parser.Matches(p, BlockFunction()) {
 				if len(parenStack) > 0 {
 					c.Code = p.Raw[start:p.Index()]
 					exps = append(exps, c, parser.Must(p, BlockFunction()))
 					start = p.Index()
-					c = &ast.GoCode{Position: p.Pos()}
+					c = &ast.GoCode{Position: p.PosPtr()}
 					continue
 				}
 				break
@@ -161,18 +161,18 @@ func goCode(tilParenClose, statement bool) parser.Func[[]ast.CodeNode] {
 					c.Code = p.Raw[start:p.Index()]
 					exps = append(exps, c, parser.Must(p, String()))
 					start = p.Index()
-					c = &ast.GoCode{Position: p.Pos()}
+					c = &ast.GoCode{Position: p.PosPtr()}
 					continue
 				}
 				break
 			} else if parser.MatchesAnyRune(p, '?') {
 				if len(parenStack) > 0 {
 					c.Code = p.Raw[start:p.Index()]
-					t, ok := parser.TryOk(p, Ternary())
-					if ok {
+					t := parser.Try(p, Ternary())
+					if t != nil {
 						exps = append(exps, c, t)
 						start = p.Index()
-						c = &ast.GoCode{Position: p.Pos()}
+						c = &ast.GoCode{Position: p.PosPtr()}
 						continue
 					}
 				}
@@ -238,11 +238,10 @@ func goCode(tilParenClose, statement bool) parser.Func[[]ast.CodeNode] {
 
 func BlockFunction() parser.Func[*ast.BlockFunction] {
 	return func(p *parser.Parser) (*ast.BlockFunction, *fancyerr.Error) {
-		bf := &ast.BlockFunction{
-			Position: p.Pos(),
-		}
+		var bf ast.BlockFunction
 
-		if !parser.TryToken(p, "block") {
+		bf.Block = parser.TryTokenAt(p, "block")
+		if bf.Block == nil {
 			return nil, &fancyerr.Error{
 				Message: "missing block function",
 				Primary: quickanno.Expected(p, p.Pos(), "a block function"),
@@ -251,84 +250,72 @@ func BlockFunction() parser.Func[*ast.BlockFunction] {
 
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 
-		l, err := parser.Try(p, list.ParenList("block function arguments", golang.Identifier()))
+		l, err := parser.TryErr(p, list.ParenList("block function arguments", golang.Identifier()))
 		if err != nil {
 			return nil, err
 		}
 
-		bf.LParen, bf.RParen = &l.Open, l.Close
+		bf.LParen, bf.RParen = l.Open, l.Close
 
 		if len(l.Elems) == 0 {
 			p.CaptureError(&fancyerr.Error{
 				Message: "block function: missing block name",
-				Primary: quickanno.Expected(p, l.Open, "a block name"),
+				Primary: quickanno.Expected(p, *l.Open, "a block name"),
 			})
 		} else {
-			bf.Block = l.Elems[0]
+			bf.BlockName = l.Elems[0]
 			if len(l.Elems) > 1 {
 				p.CaptureError(&fancyerr.Error{
 					Message: "block function: too many arguments",
 					Primary: []fancyerr.Annotation{
-						anno.Range(p.File, l.Elems[1].Pos(), l.Elems[len(l.Elems)-1].End(),
+						anno.Range(p.File, l.Elems[1].Start(), l.Elems[len(l.Elems)-1].End(),
 							"unexpected arguments, expected only a single block name"),
 					},
 				})
 			}
 		}
 
-		return bf, nil
+		return &bf, nil
 	}
 }
 
 func Ternary() parser.Func[*ast.Ternary] {
 	return func(p *parser.Parser) (*ast.Ternary, *fancyerr.Error) {
-		t := &ast.Ternary{
-			QuestionMark: p.Pos(),
-		}
-		if !parser.TryRune(p, '?') {
+		var t ast.Ternary
+
+		t.QuestionMark = parser.TryRuneAt(p, '?')
+		if t.QuestionMark == nil {
 			return nil, &fancyerr.Error{
-				Message: "missing ternary function",
-				Primary: quickanno.Expected(p, p.Pos(), "a ternary function"),
-				Examples: []fancyerr.Example{
-					{
-						Example: "?(condition, ifTrue, ifFalse)",
-					},
-				},
+				Message:  "missing ternary function",
+				Primary:  quickanno.Expected(p, p.Pos(), "a ternary function"),
+				Examples: []fancyerr.Example{{Example: "?(condition, ifTrue, ifFalse)"}},
 			}
 		}
 
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 
-		l, err := parser.Try(p, list.ParenList("ternary function arguments", NonZCExpression()))
+		l, err := parser.TryErr(p, list.ParenList("ternary function arguments", NonZCExpression()))
 		if err != nil {
 			return nil, &fancyerr.Error{
-				Message: "missing ternary function",
-				Primary: quickanno.Expected(p, p.Pos(), "a ternary function"),
-				Examples: []fancyerr.Example{
-					{
-						Example: "?(condition, ifTrue, ifFalse)",
-					},
-				},
+				Message:  "missing ternary function",
+				Primary:  quickanno.Expected(p, p.Pos(), "a ternary function"),
+				Examples: []fancyerr.Example{{Example: "?(condition, ifTrue, ifFalse)"}},
 			}
 		}
 
-		t.LParen, t.RParen = &l.Open, l.Close
+		t.LParen, t.RParen = l.Open, l.Close
 		switch {
 		case len(l.Elems) == 0:
 			p.CaptureError(&fancyerr.Error{
 				Message: "ternary function: missing arguments",
-				Primary: quickanno.Expected(p, l.Open,
+				Primary: quickanno.Expected(p, *l.Open,
 					"a condition, a value for if the condition is true, and a value for if the condition is false"),
-				Examples: []fancyerr.Example{
-					{
-						Example: "?(condition, ifTrue, ifFalse)",
-					},
-				},
+				Examples: []fancyerr.Example{{Example: "?(condition, ifTrue, ifFalse)"}},
 			})
 		case len(l.Elems) == 1:
 			t.Condition = l.Elems[0]
 
-			pos := l.Open
+			pos := *l.Open
 			if l.Close != nil {
 				pos = *l.Close
 			}
@@ -337,27 +324,19 @@ func Ternary() parser.Func[*ast.Ternary] {
 				Message: "ternary function: missing if-true and if-false values",
 				Primary: quickanno.Expected(p, pos,
 					"a value for if the condition is true and a value for if the condition is false, after the condition"),
-				Examples: []fancyerr.Example{
-					{
-						Example: "?(condition, ifTrue, ifFalse)",
-					},
-				},
+				Examples: []fancyerr.Example{{Example: "?(condition, ifTrue, ifFalse)"}},
 			})
 		case len(l.Elems) == 2:
 			t.Condition, t.TrueVal = l.Elems[0], l.Elems[1]
 
-			pos := l.Open
+			pos := *l.Open
 			if l.Close != nil {
 				pos = *l.Close
 			}
 			p.CaptureError(&fancyerr.Error{
-				Message: "ternary function: missing if-false value",
-				Primary: quickanno.Expected(p, pos, "a value for if the condition is false"),
-				Examples: []fancyerr.Example{
-					{
-						Example: "?(condition, ifTrue, ifFalse)",
-					},
-				},
+				Message:  "ternary function: missing if-false value",
+				Primary:  quickanno.Expected(p, pos, "a value for if the condition is false"),
+				Examples: []fancyerr.Example{{Example: "?(condition, ifTrue, ifFalse)"}},
 			})
 		default:
 			t.Condition, t.TrueVal, t.FalseVal = l.Elems[0], l.Elems[1], l.Elems[2]
@@ -367,13 +346,13 @@ func Ternary() parser.Func[*ast.Ternary] {
 			p.CaptureError(&fancyerr.Error{
 				Message: "ternary function: too many arguments",
 				Primary: []fancyerr.Annotation{
-					anno.Range(p.File, l.Elems[3].Pos(), l.Elems[len(l.Elems)-1].End(),
+					anno.Range(p.File, l.Elems[3].Start(), l.Elems[len(l.Elems)-1].End(),
 						"unexpected arguments: expected only a condition, "+
 							"a value for if the condition is true, and a value for if the condition is false"),
 				},
 			})
 		}
 
-		return t, nil
+		return &t, nil
 	}
 }

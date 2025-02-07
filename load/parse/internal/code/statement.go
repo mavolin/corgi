@@ -17,12 +17,12 @@ import (
 
 func Statement() parser.Func[*ast.Statement] {
 	return func(p *parser.Parser) (*ast.Statement, *fancyerr.Error) {
-		s, _ := parser.Try(p, parsedStatement())
+		s := parser.Try(p, parsedStatement())
 		if s != nil && s.Parsed != nil {
 			return s, nil
 		}
 
-		c, _ := parser.TryOk(p, NonZCCode(true))
+		c := parser.Try(p, NonZCCode(true))
 		parser.MustSkip(p, comment.AndMustEOS())
 		if s == nil {
 			if len(c) == 0 {
@@ -46,7 +46,7 @@ func Statement() parser.Func[*ast.Statement] {
 
 func ParsedStatement() parser.Func[*ast.Statement] {
 	return func(p *parser.Parser) (*ast.Statement, *fancyerr.Error) {
-		s, err := parser.Try(p, parsedStatement())
+		s, err := parser.TryErr(p, parsedStatement())
 		if err != nil {
 			return nil, err
 		} else if s.Parsed == nil {
@@ -61,42 +61,42 @@ func ParsedStatement() parser.Func[*ast.Statement] {
 
 func parsedStatement() parser.Func[*ast.Statement] {
 	return func(p *parser.Parser) (*ast.Statement, *fancyerr.Error) {
-		if r, ok := parser.TryOk(p, Return()); ok {
+		if r := parser.Try(p, Return()); r != nil {
 			return &ast.Statement{
 				Code:   ReturnAsCode(r),
 				Parsed: r,
 			}, nil
-		} else if b, ok := parser.TryOk(p, Break()); ok {
+		} else if b := parser.Try(p, Break()); b != nil {
 			return &ast.Statement{
 				Code:   BreakAsCode(b),
 				Parsed: b,
 			}, nil
-		} else if c, ok := parser.TryOk(p, Continue()); ok {
+		} else if c := parser.Try(p, Continue()); c != nil {
 			return &ast.Statement{
 				Code:   ContinueAsCode(c),
 				Parsed: c,
 			}, nil
-		} else if f, ok := parser.TryOk(p, Fallthrough()); ok {
+		} else if f := parser.Try(p, Fallthrough()); f != nil {
 			return &ast.Statement{
 				Code:   FallthroughAsCode(f),
 				Parsed: f,
 			}, nil
-		} else if d, ok := parser.TryOk(p, Defer()); ok {
+		} else if d := parser.Try(p, Defer()); d != nil {
 			return &ast.Statement{
 				Code:   DeferAsCode(d),
 				Parsed: d,
 			}, nil
-		} else if cd, ok := parser.TryOk(p, ConstDeclaration()); ok {
+		} else if cd := parser.Try(p, ConstDeclaration()); cd != nil {
 			return &ast.Statement{
 				Code:   ConstDeclarationAsCode(cd),
 				Parsed: cd,
 			}, nil
-		} else if vd, ok := parser.TryOk(p, VarDeclaration()); ok {
+		} else if vd := parser.Try(p, VarDeclaration()); vd != nil {
 			return &ast.Statement{
 				Code:   VarDeclarationAsCode(vd),
 				Parsed: vd,
 			}, nil
-		} else if l, ok := parser.TryOk(p, Label()); ok {
+		} else if l := parser.Try(p, Label()); l != nil {
 			return &ast.Statement{
 				Code:   LabelAsCode(l),
 				Parsed: l,
@@ -104,8 +104,8 @@ func parsedStatement() parser.Func[*ast.Statement] {
 		}
 
 		beforeExpr := p.CloneState()
-		e, ok := parser.TryOk(p, Expression())
-		if !ok {
+		e := parser.Try(p, Expression())
+		if e == nil {
 			return nil, &fancyerr.Error{
 				Message: "missing statement",
 				Primary: quickanno.Expected(p, p.Pos(), "a statement"),
@@ -115,17 +115,17 @@ func parsedStatement() parser.Func[*ast.Statement] {
 
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 
-		if zca, ok := parser.TryOptionalOk(p, zeroCoalescingAssignment(e)); ok {
+		if zca := parser.TryOptional(p, zeroCoalescingAssignment(e), nil); zca != nil {
 			return &ast.Statement{
 				Code:   ZeroCoalescingAssignmentAsCode(zca),
 				Parsed: zca,
 			}, nil
-		} else if incDec, ok := parser.TryOptionalOk(p, incDec(e)); ok {
+		} else if incDec := parser.TryOptional(p, incDec(e), nil); incDec != nil {
 			return &ast.Statement{
 				Code:   IncDecAsCode(incDec),
 				Parsed: incDec,
 			}, nil
-		} else if a, ok := parser.TryOk(p, assignment(e)); ok {
+		} else if a := parser.Try(p, assignment(e)); a != nil {
 			return &ast.Statement{
 				Code:   AssignmentAsCode(a),
 				Parsed: a,
@@ -133,7 +133,7 @@ func parsedStatement() parser.Func[*ast.Statement] {
 		}
 
 		p.RestoreState(beforeExpr)
-		if svd, ok := parser.TryOk(p, ShortVarDeclaration()); ok {
+		if svd := parser.Try(p, ShortVarDeclaration()); svd != nil {
 			return &ast.Statement{
 				Code:   ShortVarDeclarationAsCode(svd),
 				Parsed: svd,
@@ -147,12 +147,12 @@ func parsedStatement() parser.Func[*ast.Statement] {
 
 func SimpleStatement() parser.Func[*ast.SimpleStatement] {
 	return func(p *parser.Parser) (*ast.SimpleStatement, *fancyerr.Error) {
-		ss, _ := parser.Try(p, parsedSimpleStatement())
+		ss, _ := parser.TryErr(p, parsedSimpleStatement())
 		if ss != nil && ss.Parsed != nil {
 			return ss, nil
 		}
 
-		c, _ := parser.TryOk(p, NonZCCode(true))
+		c := parser.Try(p, NonZCCode(true))
 		parser.MustSkip(p, comment.AndMustEOS())
 		if ss == nil {
 			if len(c) == 0 {
@@ -176,7 +176,7 @@ func SimpleStatement() parser.Func[*ast.SimpleStatement] {
 
 func ParsedSimpleStatement() parser.Func[*ast.SimpleStatement] {
 	return func(p *parser.Parser) (*ast.SimpleStatement, *fancyerr.Error) {
-		ss, err := parser.Try(p, parsedSimpleStatement())
+		ss, err := parser.TryErr(p, parsedSimpleStatement())
 		if err != nil {
 			return nil, err
 		} else if ss.Parsed == nil {
@@ -193,8 +193,8 @@ func parsedSimpleStatement() parser.Func[*ast.SimpleStatement] {
 	return func(p *parser.Parser) (*ast.SimpleStatement, *fancyerr.Error) {
 		beforeExpr := p.CloneState()
 
-		e, ok := parser.TryOk(p, Expression())
-		if !ok {
+		e := parser.Try(p, Expression())
+		if e == nil {
 			return nil, &fancyerr.Error{
 				Message: "missing simple statement",
 				Primary: quickanno.Expected(p, p.Pos(), "a simple statement"),
@@ -204,17 +204,17 @@ func parsedSimpleStatement() parser.Func[*ast.SimpleStatement] {
 
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 
-		if zca, ok := parser.TryOptionalOk(p, zeroCoalescingAssignment(e)); ok {
+		if zca := parser.TryOptional(p, zeroCoalescingAssignment(e), nil); zca != nil {
 			return &ast.SimpleStatement{
 				Code:   ZeroCoalescingAssignmentAsCode(zca),
 				Parsed: zca,
 			}, nil
-		} else if incDec, ok := parser.TryOptionalOk(p, incDec(e)); ok {
+		} else if incDec := parser.TryOptional(p, incDec(e), nil); incDec != nil {
 			return &ast.SimpleStatement{
 				Code:   IncDecAsCode(incDec),
 				Parsed: incDec,
 			}, nil
-		} else if a, ok := parser.TryOk(p, assignment(e)); ok {
+		} else if a := parser.Try(p, assignment(e)); a != nil {
 			return &ast.SimpleStatement{
 				Code:   AssignmentAsCode(a),
 				Parsed: a,
@@ -222,7 +222,7 @@ func parsedSimpleStatement() parser.Func[*ast.SimpleStatement] {
 		}
 
 		p.RestoreState(beforeExpr)
-		if svd, ok := parser.TryOk(p, ShortVarDeclaration()); ok {
+		if svd := parser.Try(p, ShortVarDeclaration()); svd != nil {
 			return &ast.SimpleStatement{
 				Code:   ShortVarDeclarationAsCode(svd),
 				Parsed: svd,
@@ -236,80 +236,62 @@ func parsedSimpleStatement() parser.Func[*ast.SimpleStatement] {
 
 func Return() parser.Func[*ast.Return] {
 	return func(p *parser.Parser) (*ast.Return, *fancyerr.Error) {
-		r := &ast.Return{Position: p.Pos()}
-		if !parser.TryToken(p, "return") {
+		var r ast.Return
+
+		r.Return = parser.TryKeywordAt(p, "return", comment.OrHorizontalWhitespace())
+		if r.Return == nil {
 			return nil, &fancyerr.Error{
 				Message: "missing return statement",
 				Primary: quickanno.Expected(p, p.Pos(), "a return statement"),
 			}
 		}
 
-		if parser.TrySkipOk(p, comment.AndEOS()) {
-			return r, nil
+		if parser.TrySkip(p, comment.AndEOS()) {
+			return &r, nil
 		}
 
-		if !parser.TrySkipOk(p, comment.OrAnyWhitespace()) {
-			return nil, &fancyerr.Error{
-				Message: "missing return statement",
-				Primary: quickanno.Expected(p, r.Position, "a return statement"),
-				Hints: []fancyerr.Hint{
-					{Hint: "You might be missing a space, newline, or semicolon."},
-				},
-			}
-		}
-
-		var ok bool
-		r.Error, ok = parser.TryOptionalOk(p, Expression())
-		if !ok {
+		r.Error = parser.TryOptional(p, Expression(), nil)
+		if r.Error == nil {
 			p.CaptureError(&fancyerr.Error{
-				Message: "return statement: missing expression or end of statement",
-				Primary: quickanno.Expected(p, p.Pos(), "an expression or the end of the statement"),
+				Message: "return statement: missing error or end of statement",
+				Primary: quickanno.Expected(p, p.Pos(), "an error or the end of the statement"),
 			})
 		}
 
 		parser.MustSkip(p, comment.AndMustEOS())
-		return r, nil
+		return &r, nil
 	}
 }
 
 func ReturnAsCode(r *ast.Return) ast.Code {
 	if r.Error == nil {
-		return ast.Code{&ast.GoCode{Code: "return", Position: r.Position}}
+		return ast.Code{&ast.GoCode{Code: "return", Position: r.Return}}
 	}
 
 	c := make(ast.Code, 1+len(r.Error.Code))
-	c[0] = &ast.GoCode{Code: "return", Position: r.Position}
+	c[0] = &ast.GoCode{Code: "return", Position: r.Return}
 	copy(c[1:], r.Error.Code)
 	return c
 }
 
 func Break() parser.Func[*ast.Break] {
 	return func(p *parser.Parser) (*ast.Break, *fancyerr.Error) {
-		b := &ast.Break{Position: p.Pos()}
-		if !parser.TryToken(p, "break") {
+		var b ast.Break
+
+		b.Break = parser.TryKeywordAt(p, "break", comment.OrHorizontalWhitespace())
+		if b.Break == nil {
 			return nil, &fancyerr.Error{
 				Message: "missing break statement",
 				Primary: quickanno.Expected(p, p.Pos(), "a break statement"),
 			}
 		}
 
-		if parser.TrySkipOk(p, comment.AndEOS()) {
-			return b, nil
+		if parser.TrySkip(p, comment.AndEOS()) {
+			return &b, nil
 		}
 
-		if !parser.TrySkipOk(p, comment.OrAnyWhitespace()) {
-			return nil, &fancyerr.Error{
-				Message: "missing break statement",
-				Primary: quickanno.Expected(p, b.Position, "a break statement"),
-				Hints: []fancyerr.Hint{
-					{Hint: "You might be missing a space, newline, or semicolon."},
-				},
-			}
-		}
-
-		var ok bool
-		b.Label, ok = parser.TryOptionalOk(p, golang.Identifier())
-		if !ok {
+		b.Label = parser.TryOptional(p, golang.Identifier(), nil)
+		if b.Label == nil {
 			p.CaptureError(&fancyerr.Error{
 				Message: "return statement: missing label or end of statement",
 				Primary: quickanno.Expected(p, p.Pos(), "a label or the end of the statement"),
@@ -317,47 +299,38 @@ func Break() parser.Func[*ast.Break] {
 		}
 
 		parser.MustSkip(p, comment.AndMustEOS())
-		return b, nil
+		return &b, nil
 	}
 }
 
 func BreakAsCode(b *ast.Break) ast.Code {
 	if b.Label == nil {
-		return ast.Code{&ast.GoCode{Code: "break", Position: b.Position}}
+		return ast.Code{&ast.GoCode{Code: "break", Position: b.Break}}
 	}
 	return ast.Code{
-		&ast.GoCode{Code: "break", Position: b.Position},
+		&ast.GoCode{Code: "break", Position: b.Break},
 		&ast.GoCode{Code: b.Label.Ident, Position: b.Label.Position},
 	}
 }
 
 func Continue() parser.Func[*ast.Continue] {
 	return func(p *parser.Parser) (*ast.Continue, *fancyerr.Error) {
-		b := &ast.Continue{Position: p.Pos()}
-		if !parser.TryToken(p, "continue") {
+		var c ast.Continue
+
+		c.Continue = parser.TryKeywordAt(p, "continue", comment.OrHorizontalWhitespace())
+		if c.Continue == nil {
 			return nil, &fancyerr.Error{
 				Message: "missing continue statement",
 				Primary: quickanno.Expected(p, p.Pos(), "a continue statement"),
 			}
 		}
 
-		if parser.TrySkipOk(p, comment.AndEOS()) {
-			return b, nil
+		if parser.TrySkip(p, comment.AndEOS()) {
+			return &c, nil
 		}
 
-		if !parser.TrySkipOk(p, comment.OrAnyWhitespace()) {
-			return nil, &fancyerr.Error{
-				Message: "missing continue statement",
-				Primary: quickanno.Expected(p, b.Position, "a continue statement"),
-				Hints: []fancyerr.Hint{
-					{Hint: "You might be missing a space, newline, or semicolon."},
-				},
-			}
-		}
-
-		var ok bool
-		b.Label, ok = parser.TryOptionalOk(p, golang.Identifier())
-		if !ok {
+		c.Label = parser.TryOptional(p, golang.Identifier(), nil)
+		if c.Label == nil {
 			p.CaptureError(&fancyerr.Error{
 				Message: "return statement: missing label or end of statement",
 				Primary: quickanno.Expected(p, p.Pos(), "a label or the end of the statement"),
@@ -365,47 +338,38 @@ func Continue() parser.Func[*ast.Continue] {
 		}
 
 		parser.MustSkip(p, comment.AndMustEOS())
-		return b, nil
+		return &c, nil
 	}
 }
 
 func ContinueAsCode(c *ast.Continue) ast.Code {
 	if c.Label == nil {
-		return ast.Code{&ast.GoCode{Code: "continue", Position: c.Position}}
+		return ast.Code{&ast.GoCode{Code: "continue", Position: c.Continue}}
 	}
 	return ast.Code{
-		&ast.GoCode{Code: "continue", Position: c.Position},
+		&ast.GoCode{Code: "continue", Position: c.Continue},
 		&ast.GoCode{Code: c.Label.Ident, Position: c.Label.Position},
 	}
 }
 
 func Fallthrough() parser.Func[*ast.Fallthrough] {
 	return func(p *parser.Parser) (*ast.Fallthrough, *fancyerr.Error) {
-		b := &ast.Fallthrough{Position: p.Pos()}
-		if !parser.TryToken(p, "fallthrough") {
+		var f ast.Fallthrough
+
+		f.Fallthrough = parser.TryKeywordAt(p, "fallthrough", comment.OrHorizontalWhitespace())
+		if f.Fallthrough == nil {
 			return nil, &fancyerr.Error{
 				Message: "missing fallthrough statement",
 				Primary: quickanno.Expected(p, p.Pos(), "a fallthrough statement"),
 			}
 		}
 
-		if parser.TrySkipOk(p, comment.AndEOS()) {
-			return b, nil
+		if parser.TrySkip(p, comment.AndEOS()) {
+			return &f, nil
 		}
 
-		if !parser.TrySkipOk(p, comment.OrAnyWhitespace()) {
-			return nil, &fancyerr.Error{
-				Message: "missing fallthrough statement",
-				Primary: quickanno.Expected(p, b.Position, "a fallthrough statement"),
-				Hints: []fancyerr.Hint{
-					{Hint: "You might be missing a space, newline, or semicolon."},
-				},
-			}
-		}
-
-		var ok bool
-		b.Label, ok = parser.TryOptionalOk(p, golang.Identifier())
-		if !ok {
+		f.Label = parser.TryOptional(p, golang.Identifier(), nil)
+		if f.Label == nil {
 			p.CaptureError(&fancyerr.Error{
 				Message: "return statement: missing label or end of statement",
 				Primary: quickanno.Expected(p, p.Pos(), "a label or the end of the statement"),
@@ -413,61 +377,53 @@ func Fallthrough() parser.Func[*ast.Fallthrough] {
 		}
 
 		parser.MustSkip(p, comment.AndMustEOS())
-		return b, nil
+		return &f, nil
 	}
 }
 
 func FallthroughAsCode(f *ast.Fallthrough) ast.Code {
 	if f.Label == nil {
-		return ast.Code{&ast.GoCode{Code: "fallthrough", Position: f.Position}}
+		return ast.Code{&ast.GoCode{Code: "fallthrough", Position: f.Fallthrough}}
 	}
 	return ast.Code{
-		&ast.GoCode{Code: "fallthrough", Position: f.Position},
+		&ast.GoCode{Code: "fallthrough", Position: f.Fallthrough},
 		&ast.GoCode{Code: f.Label.Ident, Position: f.Label.Position},
 	}
 }
 
 func Defer() parser.Func[*ast.Defer] {
 	return func(p *parser.Parser) (*ast.Defer, *fancyerr.Error) {
-		d := &ast.Defer{Position: p.Pos()}
-		if !parser.TryToken(p, "defer") {
+		var d ast.Defer
+
+		d.Defer = parser.TryKeywordAt(p, "defer", comment.OrAnyWhitespace())
+		if d.Defer == nil {
 			return nil, &fancyerr.Error{
 				Message: "missing defer statement",
 				Primary: quickanno.Expected(p, p.Pos(), "a defer statement"),
 			}
 		}
 
-		if !parser.TrySkipOk(p, comment.OrAnyWhitespace()) {
-			return nil, &fancyerr.Error{
-				Message: "missing defer statement",
-				Primary: quickanno.Expected(p, d.Position, "a defer statement"),
-				Hints: []fancyerr.Hint{
-					{Hint: "You might be missing a space, newline, or semicolon."},
-				},
-			}
-		}
-
 		d.Expression = parser.Must(p, Expression())
 		parser.MustSkip(p, comment.AndMustEOS())
-		return d, nil
+		return &d, nil
 	}
 }
 
 func DeferAsCode(d *ast.Defer) ast.Code {
 	if d.Expression == nil {
-		return ast.Code{&ast.GoCode{Code: "defer", Position: d.Position}}
+		return ast.Code{&ast.GoCode{Code: "defer", Position: d.Defer}}
 	}
 
 	c := make(ast.Code, 1+len(d.Expression.Code))
-	c[0] = &ast.GoCode{Code: "defer", Position: d.Position}
+	c[0] = &ast.GoCode{Code: "defer", Position: d.Defer}
 	copy(c[1:], d.Expression.Code)
 	return c
 }
 
 func ZeroCoalescingAssignment() parser.Func[*ast.ZeroCoalescingAssignment] {
 	return func(p *parser.Parser) (*ast.ZeroCoalescingAssignment, *fancyerr.Error) {
-		valueExpr, ok := parser.TryOk(p, Expression())
-		if !ok {
+		valueExpr := parser.Try(p, Expression())
+		if valueExpr == nil {
 			return nil, &fancyerr.Error{
 				Message: "missing zero coalescing assignment",
 				Primary: quickanno.Expected(p, p.Pos(), "a variable name or expression"),
@@ -476,43 +432,37 @@ func ZeroCoalescingAssignment() parser.Func[*ast.ZeroCoalescingAssignment] {
 
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 
-		return parser.Try(p, zeroCoalescingAssignment(valueExpr))
+		return parser.TryErr(p, zeroCoalescingAssignment(valueExpr))
 	}
 }
 
 func zeroCoalescingAssignment(valueExpr *ast.Expression) parser.Func[*ast.ZeroCoalescingAssignment] {
 	return func(p *parser.Parser) (*ast.ZeroCoalescingAssignment, *fancyerr.Error) {
-		zca := &ast.ZeroCoalescingAssignment{ValueExpression: *valueExpr}
+		var zca ast.ZeroCoalescingAssignment
+		zca.ValueExpression = valueExpr
 
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 
-		zca.VarComma = p.PosPtr()
-		if parser.TryOptionalRune(p, ',') {
-			parser.TrySkip(p, comment.OrAnyWhitespace())
+		zca.VarComma = parser.TryOptionalRuneAt(p, ',', comment.OrAnyWhitespace())
+		if zca.VarComma != nil {
 			zca.OkExpression = parser.Must(p, Expression())
 			parser.TrySkip(p, comment.OrHorizontalWhitespace())
-		} else {
-			zca.VarComma = nil
 		}
 
-		zca.Colon = p.PosPtr()
-		if !parser.TryOptionalRune(p, ':') {
-			zca.Colon = nil
-		}
+		zca.Colon = parser.TryOptionalRuneAt(p, ':', nil)
 
-		zca.EqualSign = p.PosPtr()
-		if !parser.TryRune(p, '=') {
+		zca.EqualSign = parser.TryRuneAt(p, '=')
+		if zca.EqualSign == nil {
 			return nil, &fancyerr.Error{
 				Message: "missing zero coalescing assignment",
-				Primary: quickanno.Expected(p, *zca.EqualSign, "an equal sign"),
+				Primary: quickanno.Expected(p, p.Pos(), "an equal sign"),
 			}
 		}
 
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 
-		var ok bool
-		zca.Expression, ok = parser.TryOk(p, ZeroCoalescing())
-		if !ok {
+		zca.Expression = parser.Try(p, ZeroCoalescing())
+		if zca.Expression == nil {
 			return nil, &fancyerr.Error{
 				Message: "missing zero coalescing assignment",
 				Primary: quickanno.Expected(p, p.Pos(), "a zero coalescing expression"),
@@ -520,7 +470,7 @@ func zeroCoalescingAssignment(valueExpr *ast.Expression) parser.Func[*ast.ZeroCo
 		}
 
 		parser.MustSkip(p, comment.AndMustEOS())
-		return zca, nil
+		return &zca, nil
 	}
 
 }
@@ -543,7 +493,7 @@ func ZeroCoalescingAssignmentAsCode(zca *ast.ZeroCoalescingAssignment) ast.Code 
 	c := make(ast.Code, n)
 	i := copy(c, zca.ValueExpression.Code)
 	if zca.VarComma != nil {
-		c[i] = &ast.GoCode{Code: ",", Position: *zca.VarComma}
+		c[i] = &ast.GoCode{Code: ",", Position: zca.VarComma}
 		i++
 	}
 	if zca.OkExpression != nil {
@@ -551,13 +501,13 @@ func ZeroCoalescingAssignmentAsCode(zca *ast.ZeroCoalescingAssignment) ast.Code 
 	}
 	if zca.EqualSign != nil {
 		if zca.Colon != nil {
-			c[i] = &ast.GoCode{Code: ":=", Position: *zca.Colon}
+			c[i] = &ast.GoCode{Code: ":=", Position: zca.Colon}
 		} else {
-			c[i] = &ast.GoCode{Code: "=", Position: *zca.EqualSign}
+			c[i] = &ast.GoCode{Code: "=", Position: zca.EqualSign}
 		}
 		i++
 	} else if zca.Colon != nil {
-		c[i] = &ast.GoCode{Code: ":", Position: *zca.Colon}
+		c[i] = &ast.GoCode{Code: ":", Position: zca.Colon}
 		i++
 	}
 	if zca.Expression != nil {
@@ -568,8 +518,8 @@ func ZeroCoalescingAssignmentAsCode(zca *ast.ZeroCoalescingAssignment) ast.Code 
 
 func IncDec() parser.Func[*ast.IncDec] {
 	return func(p *parser.Parser) (*ast.IncDec, *fancyerr.Error) {
-		expr, ok := parser.TryOk(p, Expression())
-		if !ok {
+		expr := parser.Try(p, Expression())
+		if expr == nil {
 			return nil, &fancyerr.Error{
 				Message: "missing inc/dec",
 				Primary: quickanno.Expected(p, p.Pos(), "an expression followed by `++` or `--`"),
@@ -577,16 +527,19 @@ func IncDec() parser.Func[*ast.IncDec] {
 		}
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 
-		return parser.Try(p, incDec(expr))
+		return parser.TryErr(p, incDec(expr))
 	}
 }
 
 func incDec(expr *ast.Expression) parser.Func[*ast.IncDec] {
 	return func(p *parser.Parser) (*ast.IncDec, *fancyerr.Error) {
-		incDec := &ast.IncDec{Expression: *expr}
+		var incDec ast.IncDec
+		incDec.Expression = expr
+
+		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 
 		pos := p.Pos()
-		if parser.TryOptionalToken(p, "++") {
+		if parser.TryToken(p, "++") {
 			incDec.IncrPos = &pos
 		} else if parser.TryToken(p, "--") {
 			incDec.DecrPos = &pos
@@ -598,7 +551,7 @@ func incDec(expr *ast.Expression) parser.Func[*ast.IncDec] {
 		}
 
 		parser.MustSkip(p, comment.AndMustEOS())
-		return incDec, nil
+		return &incDec, nil
 	}
 }
 
@@ -610,42 +563,38 @@ func IncDecAsCode(incDec *ast.IncDec) ast.Code {
 	c := make(ast.Code, len(incDec.Expression.Code)+1)
 	copy(c, incDec.Expression.Code)
 	if incDec.IncrPos != nil {
-		c[len(c)-1] = &ast.GoCode{Code: "++", Position: *incDec.IncrPos}
+		c[len(c)-1] = &ast.GoCode{Code: "++", Position: incDec.IncrPos}
 	} else {
-		c[len(c)-1] = &ast.GoCode{Code: "--", Position: *incDec.DecrPos}
+		c[len(c)-1] = &ast.GoCode{Code: "--", Position: incDec.DecrPos}
 	}
 	return c
 }
 
 func ConstDeclaration() parser.Func[*ast.ConstDeclaration] {
 	return func(p *parser.Parser) (*ast.ConstDeclaration, *fancyerr.Error) {
-		d := &ast.ConstDeclaration{Const: p.Pos()}
-		if !parser.TryToken(p, "const") {
+		var d ast.ConstDeclaration
+
+		d.Const = parser.TryKeywordAt(p, "const", comment.OrAnyWhitespace())
+		if d.Const == nil {
 			return nil, &fancyerr.Error{
 				Message: "missing const declaration",
-				Primary: quickanno.Expected(p, d.Pos(), "a const declaration"),
+				Primary: quickanno.Expected(p, d.Start(), "a const declaration"),
 			}
 		}
 
-		parser.TrySkip(p, comment.OrAnyWhitespace())
-
-		d.LParen = p.PosPtr()
-		if !parser.TryOptionalRune(p, '(') {
-			d.LParen = nil
-
-			d.Specs = make([]*ast.ConstSpec, 1)
-			d.Specs[0] = parser.Must(p, ConstSpec())
-
+		d.LParen = parser.TryOptionalRuneAt(p, '(', comment.OrAnyWhitespace())
+		if d.LParen == nil {
+			d.Specs = append(d.Specs, parser.Must(p, ConstSpec()))
 			parser.MustSkip(p, comment.AndMustEOS())
-			return d, nil
+			return &d, nil
 		}
 
 		d.Specs = make([]*ast.ConstSpec, 0, 18)
 		for {
 			parser.TrySkip(p, comment.OrAnyWhitespace())
 
-			spec, ok := parser.TryOk(p, ConstSpec())
-			if !ok {
+			spec := parser.Try(p, ConstSpec())
+			if spec == nil {
 				break
 			}
 			d.Specs = append(d.Specs, spec)
@@ -657,7 +606,11 @@ func ConstDeclaration() parser.Func[*ast.ConstDeclaration] {
 
 			parser.MustSkip(p, comment.AndEOS())
 		}
-		d.Specs = slices.Clip(d.Specs)
+		if len(d.Specs) == 0 {
+			d.Specs = nil
+		} else {
+			d.Specs = slices.Clip(d.Specs)
+		}
 
 		err := unexpected.UntilAnyRune(p, comment.OrAnyWhitespace(), ')')
 		if err != nil {
@@ -675,14 +628,16 @@ func ConstDeclaration() parser.Func[*ast.ConstDeclaration] {
 		}
 
 		parser.MustSkip(p, comment.AndMustEOS())
-		return d, nil
+		return &d, nil
 	}
 }
 
 func ConstSpec() parser.Func[*ast.ConstSpec] {
 	return func(p *parser.Parser) (*ast.ConstSpec, *fancyerr.Error) {
-		names, ok := parser.TryOk(p, list.CommaList("const name", "const names", golang.Identifier()))
-		if !ok {
+		var s ast.ConstSpec
+
+		s.Names = parser.Try(p, list.CommaList("const name", "const names", golang.Identifier()))
+		if s.Names == nil {
 			return nil, &fancyerr.Error{
 				Message: "missing const spec",
 				Primary: quickanno.Expected(p, p.Pos(), "one or more identifiers"),
@@ -692,13 +647,8 @@ func ConstSpec() parser.Func[*ast.ConstSpec] {
 			}
 		}
 
-		s := &ast.ConstSpec{Names: names}
-
-		if parser.TrySkipOk(p, comment.OrHorizontalWhitespace()) {
-			s.Type, ok = parser.TryOptionalOk(p, golang.Type())
-			if ok {
-				parser.TrySkip(p, comment.OrHorizontalWhitespace())
-			}
+		if parser.TrySkip(p, comment.OrHorizontalWhitespace()) {
+			s.Type = parser.TryOptional(p, golang.Type(), comment.OrHorizontalWhitespace())
 		}
 
 		err := unexpected.UntilAnyRune(p, comment.OrHorizontalWhitespace(), '=', ';', ')')
@@ -707,20 +657,20 @@ func ConstSpec() parser.Func[*ast.ConstSpec] {
 			p.CaptureError(err)
 		}
 
-		s.EqualSign = p.PosPtr()
-		if !parser.TryRune(p, '=') {
+		s.EqualSign = parser.TryRuneAt(p, '=')
+		if s.EqualSign == nil {
 			p.CaptureError(&fancyerr.Error{
 				Message: "const spec: missing equal sign",
 				Primary: quickanno.Expected(p, p.Pos(), "an equal sign"),
 			})
-			return s, nil
+			return &s, nil
 		}
 
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 
-		s.Values, ok = parser.TryOk(p, list.CommaList("const value", "const values", Expression()))
-		if !ok {
-			if len(names) == 1 {
+		s.Values = parser.Try(p, list.CommaList("const value", "const values", Expression()))
+		if s.Values == nil {
+			if len(s.Names) == 1 {
 				p.CaptureError(&fancyerr.Error{
 					Message: "const spec: missing values",
 					Primary: quickanno.Expected(p, p.Pos(), "an expression"),
@@ -728,17 +678,17 @@ func ConstSpec() parser.Func[*ast.ConstSpec] {
 			} else {
 				p.CaptureError(&fancyerr.Error{
 					Message: "const spec: missing values",
-					Primary: quickanno.Expected(p, p.Pos(), fmt.Sprint("one or a list of ", len(names), " expressions")),
+					Primary: quickanno.Expected(p, p.Pos(), fmt.Sprint("one or a list of ", len(s.Names), " expressions")),
 				})
 			}
 		}
 
 		if len(s.Values) > 1 && len(s.Names) != len(s.Values) {
-			if len(names) == 1 {
+			if len(s.Names) == 1 {
 				p.CaptureError(&fancyerr.Error{
 					Message: "var spec: mismatched number of values and constants",
 					Primary: []fancyerr.Annotation{
-						anno.Range(p.File, s.Values[0].Pos(), s.Values[len(s.Values)-1].End(),
+						anno.Range(p.File, s.Values[0].Start(), s.Values[len(s.Values)-1].End(),
 							fmt.Sprint("expected a single expression, but found ", len(s.Values))),
 					},
 				})
@@ -746,14 +696,14 @@ func ConstSpec() parser.Func[*ast.ConstSpec] {
 				p.CaptureError(&fancyerr.Error{
 					Message: "var spec: mismatched number of values and constants",
 					Primary: []fancyerr.Annotation{
-						anno.Range(p.File, s.Values[0].Pos(), s.Values[len(s.Values)-1].End(),
-							fmt.Sprint("a single or ", len(names), " expressions, but found ", len(s.Values))),
+						anno.Range(p.File, s.Values[0].Start(), s.Values[len(s.Values)-1].End(),
+							fmt.Sprint("a single or ", len(s.Names), " expressions, but found ", len(s.Values))),
 					},
 				})
 			}
 		}
 
-		return s, nil
+		return &s, nil
 	}
 }
 
@@ -780,7 +730,7 @@ func ConstDeclarationAsCode(d *ast.ConstDeclaration) ast.Code {
 	c[0] = &ast.GoCode{Code: "const", Position: d.Const}
 	i := 1
 	if d.LParen != nil {
-		c[i] = &ast.GoCode{Code: "(", Position: *d.LParen}
+		c[i] = &ast.GoCode{Code: "(", Position: d.LParen}
 		i++
 	}
 	for _, spec := range d.Specs {
@@ -793,20 +743,20 @@ func ConstDeclarationAsCode(d *ast.ConstDeclaration) ast.Code {
 			i++
 		}
 		if spec.EqualSign != nil {
-			c[i] = &ast.GoCode{Code: "=", Position: *spec.EqualSign}
+			c[i] = &ast.GoCode{Code: "=", Position: spec.EqualSign}
 		}
 		for valueI, value := range spec.Values {
 			i += copy(c[i:], value.Code)
 			if valueI < len(spec.Values)-1 {
 				comma := value.End()
 				comma.Col++
-				c[i] = &ast.GoCode{Code: ",", Position: comma}
+				c[i] = &ast.GoCode{Code: ",", Position: &comma}
 				i++
 			}
 		}
 	}
 	if d.RParen != nil {
-		c[i] = &ast.GoCode{Code: ")", Position: *d.RParen}
+		c[i] = &ast.GoCode{Code: ")", Position: d.RParen}
 	}
 
 	return c
@@ -814,33 +764,29 @@ func ConstDeclarationAsCode(d *ast.ConstDeclaration) ast.Code {
 
 func VarDeclaration() parser.Func[*ast.VarDeclaration] {
 	return func(p *parser.Parser) (*ast.VarDeclaration, *fancyerr.Error) {
-		d := &ast.VarDeclaration{Var: p.Pos()}
-		if !parser.TryToken(p, "var") {
+		var d ast.VarDeclaration
+
+		d.Var = parser.TryKeywordAt(p, "var", comment.OrAnyWhitespace())
+		if d.Var == nil {
 			return nil, &fancyerr.Error{
 				Message: "missing var declaration",
-				Primary: quickanno.Expected(p, d.Pos(), "a var declaration"),
+				Primary: quickanno.Expected(p, d.Start(), "a var declaration"),
 			}
 		}
 
-		parser.TrySkip(p, comment.OrAnyWhitespace())
-
-		d.LParen = p.PosPtr()
-		if !parser.TryOptionalRune(p, '(') {
-			d.LParen = nil
-
-			d.Specs = make([]*ast.VarSpec, 1)
-			d.Specs[0] = parser.Must(p, VarSpec())
-
+		d.LParen = parser.TryOptionalRuneAt(p, '(', comment.OrAnyWhitespace())
+		if d.LParen == nil {
+			d.Specs = []*ast.VarSpec{parser.Must(p, VarSpec())}
 			parser.MustSkip(p, comment.AndMustEOS())
-			return d, nil
+			return &d, nil
 		}
 
 		d.Specs = make([]*ast.VarSpec, 0, 18)
 		for {
 			parser.TrySkip(p, comment.OrAnyWhitespace())
 
-			spec, ok := parser.TryOk(p, VarSpec())
-			if !ok {
+			spec := parser.Try(p, VarSpec())
+			if spec == nil {
 				break
 			}
 			d.Specs = append(d.Specs, spec)
@@ -852,7 +798,11 @@ func VarDeclaration() parser.Func[*ast.VarDeclaration] {
 
 			parser.MustSkip(p, comment.AndEOS())
 		}
-		d.Specs = slices.Clip(d.Specs)
+		if len(d.Specs) == 0 {
+			d.Specs = nil
+		} else {
+			d.Specs = slices.Clip(d.Specs)
+		}
 
 		err := unexpected.UntilAnyRune(p, comment.OrAnyWhitespace(), ')')
 		if err != nil {
@@ -870,14 +820,16 @@ func VarDeclaration() parser.Func[*ast.VarDeclaration] {
 		}
 
 		parser.MustSkip(p, comment.AndMustEOS())
-		return d, nil
+		return &d, nil
 	}
 }
 
 func VarSpec() parser.Func[*ast.VarSpec] {
 	return func(p *parser.Parser) (*ast.VarSpec, *fancyerr.Error) {
-		names, ok := parser.TryOk(p, list.CommaList("var name", "var names", golang.Identifier()))
-		if !ok {
+		var s ast.VarSpec
+
+		s.Names = parser.Try(p, list.CommaList("var name", "var names", golang.Identifier()))
+		if s.Names == nil {
 			return nil, &fancyerr.Error{
 				Message: "missing var spec",
 				Primary: quickanno.Expected(p, p.Pos(), "one or more identifiers"),
@@ -887,16 +839,9 @@ func VarSpec() parser.Func[*ast.VarSpec] {
 			}
 		}
 
-		s := &ast.VarSpec{Names: names}
-
-		var pos ast.Position
-		if parser.TrySkipOk(p, comment.OrHorizontalWhitespace()) {
-			pos = p.Pos()
-
-			s.Type, ok = parser.TryOptionalOk(p, golang.Type())
-			if ok {
-				parser.TrySkip(p, comment.OrHorizontalWhitespace())
-			}
+		pos := p.Pos()
+		if parser.TrySkip(p, comment.OrHorizontalWhitespace()) {
+			s.Type = parser.TryOptional(p, golang.Type(), comment.OrHorizontalWhitespace())
 		}
 
 		err := unexpected.UntilAnyRune(p, comment.OrHorizontalWhitespace(), '=', ';', ')')
@@ -905,23 +850,22 @@ func VarSpec() parser.Func[*ast.VarSpec] {
 			p.CaptureError(err)
 		}
 
-		s.EqualSign = p.PosPtr()
-		if !parser.TryRune(p, '=') {
-			s.EqualSign = nil
+		s.EqualSign = parser.TryRuneAt(p, '=')
+		if s.EqualSign == nil {
 			if s.Type == nil {
 				p.CaptureError(&fancyerr.Error{
 					Message: "var spec: missing type or value",
 					Primary: quickanno.Expected(p, pos, "either a type or an equal sign"),
 				})
 			}
-			return s, nil
+			return &s, nil
 		}
 
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 
-		s.Values, ok = parser.TryOk(p, list.CommaList("var value", "var values", Expression()))
-		if !ok {
-			if len(names) == 1 {
+		s.Values = parser.Try(p, list.CommaList("var value", "var values", Expression()))
+		if s.Values == nil {
+			if len(s.Names) == 1 {
 				p.CaptureError(&fancyerr.Error{
 					Message: "var spec: missing values",
 					Primary: quickanno.Expected(p, p.Pos(), "an expression"),
@@ -929,17 +873,17 @@ func VarSpec() parser.Func[*ast.VarSpec] {
 			} else {
 				p.CaptureError(&fancyerr.Error{
 					Message: "var spec: missing values",
-					Primary: quickanno.Expected(p, p.Pos(), fmt.Sprint("one or a list of ", len(names), " expressions")),
+					Primary: quickanno.Expected(p, p.Pos(), fmt.Sprint("one or a list of ", len(s.Names), " expressions")),
 				})
 			}
 		}
 
 		if len(s.Values) > 1 && len(s.Names) != len(s.Values) {
-			if len(names) == 1 {
+			if len(s.Names) == 1 {
 				p.CaptureError(&fancyerr.Error{
 					Message: "var spec: mismatched number of values and variables",
 					Primary: []fancyerr.Annotation{
-						anno.Range(p.File, s.Values[0].Pos(), s.Values[len(s.Values)-1].End(),
+						anno.Range(p.File, s.Values[0].Start(), s.Values[len(s.Values)-1].End(),
 							fmt.Sprint("expected a single expression, but found ", len(s.Values))),
 					},
 				})
@@ -947,14 +891,14 @@ func VarSpec() parser.Func[*ast.VarSpec] {
 				p.CaptureError(&fancyerr.Error{
 					Message: "var spec: mismatched number of values and variables",
 					Primary: []fancyerr.Annotation{
-						anno.Range(p.File, s.Values[0].Pos(), s.Values[len(s.Values)-1].End(),
-							fmt.Sprint("a single or ", len(names), " expressions, but found ", len(s.Values))),
+						anno.Range(p.File, s.Values[0].Start(), s.Values[len(s.Values)-1].End(),
+							fmt.Sprint("a single or ", len(s.Names), " expressions, but found ", len(s.Values))),
 					},
 				})
 			}
 		}
 
-		return s, nil
+		return &s, nil
 	}
 }
 
@@ -981,7 +925,7 @@ func VarDeclarationAsCode(d *ast.VarDeclaration) ast.Code {
 	c[0] = &ast.GoCode{Code: "var", Position: d.Var}
 	i := 1
 	if d.LParen != nil {
-		c[i] = &ast.GoCode{Code: "(", Position: *d.LParen}
+		c[i] = &ast.GoCode{Code: "(", Position: d.LParen}
 		i++
 	}
 	for _, spec := range d.Specs {
@@ -994,20 +938,20 @@ func VarDeclarationAsCode(d *ast.VarDeclaration) ast.Code {
 			i++
 		}
 		if spec.EqualSign != nil {
-			c[i] = &ast.GoCode{Code: "=", Position: *spec.EqualSign}
+			c[i] = &ast.GoCode{Code: "=", Position: spec.EqualSign}
 		}
 		for valueI, value := range spec.Values {
 			i += copy(c[i:], value.Code)
 			if valueI < len(spec.Values)-1 {
 				comma := value.End()
 				comma.Col++
-				c[i] = &ast.GoCode{Code: ",", Position: comma}
+				c[i] = &ast.GoCode{Code: ",", Position: &comma}
 				i++
 			}
 		}
 	}
 	if d.RParen != nil {
-		c[i] = &ast.GoCode{Code: ")", Position: *d.RParen}
+		c[i] = &ast.GoCode{Code: ")", Position: d.RParen}
 	}
 
 	return c
@@ -1015,20 +959,20 @@ func VarDeclarationAsCode(d *ast.VarDeclaration) ast.Code {
 
 func ShortVarDeclaration() parser.Func[*ast.ShortVarDeclaration] {
 	return func(p *parser.Parser) (*ast.ShortVarDeclaration, *fancyerr.Error) {
-		names, ok := parser.TryOk(p, list.CommaList("identifier", "identifiers", golang.Identifier()))
-		if !ok {
+		var d ast.ShortVarDeclaration
+
+		d.Names = parser.Try(p, list.CommaList("identifier", "identifiers", golang.Identifier()))
+		if d.Names == nil {
 			return nil, &fancyerr.Error{
 				Message: "missing short var declaration",
 				Primary: quickanno.Expected(p, p.Pos(), "one or more identifiers"),
 			}
 		}
 
-		d := &ast.ShortVarDeclaration{Names: names}
-
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 
-		d.ColonEqual = p.PosPtr()
-		if !parser.TryToken(p, ":=") {
+		d.ColonEqualSign = parser.TryTokenAt(p, ":=")
+		if d.ColonEqualSign == nil {
 			return nil, &fancyerr.Error{
 				Message: "missing short var declaration",
 				Primary: quickanno.Expected(p, p.Pos(), "a `:=`"),
@@ -1037,9 +981,9 @@ func ShortVarDeclaration() parser.Func[*ast.ShortVarDeclaration] {
 
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 
-		d.Values, ok = parser.TryOk(p, list.CommaList("value", "values", Expression()))
-		if !ok {
-			if len(names) == 1 {
+		d.Values = parser.Try(p, list.CommaList("value", "values", Expression()))
+		if d.Values == nil {
+			if len(d.Names) == 1 {
 				p.CaptureError(&fancyerr.Error{
 					Message: "short var declaration: missing values",
 					Primary: quickanno.Expected(p, p.Pos(), "an expression"),
@@ -1047,17 +991,17 @@ func ShortVarDeclaration() parser.Func[*ast.ShortVarDeclaration] {
 			} else {
 				p.CaptureError(&fancyerr.Error{
 					Message: "short var declaration: missing values",
-					Primary: quickanno.Expected(p, p.Pos(), fmt.Sprint("one or a list of ", len(names), " expressions")),
+					Primary: quickanno.Expected(p, p.Pos(), fmt.Sprint("one or a list of ", len(d.Names), " expressions")),
 				})
 			}
 		}
 
 		if len(d.Values) > 1 && len(d.Names) != len(d.Values) {
-			if len(names) == 1 {
+			if len(d.Names) == 1 {
 				p.CaptureError(&fancyerr.Error{
 					Message: "short var declaration: mismatched number of values and variables",
 					Primary: []fancyerr.Annotation{
-						anno.Range(p.File, d.Values[0].Pos(), d.Values[len(d.Values)-1].End(),
+						anno.Range(p.File, d.Values[0].Start(), d.Values[len(d.Values)-1].End(),
 							fmt.Sprint("expected a single expression, but found ", len(d.Values))),
 					},
 				})
@@ -1065,21 +1009,21 @@ func ShortVarDeclaration() parser.Func[*ast.ShortVarDeclaration] {
 				p.CaptureError(&fancyerr.Error{
 					Message: "short var declaration: mismatched number of values and variables",
 					Primary: []fancyerr.Annotation{
-						anno.Range(p.File, d.Values[0].Pos(), d.Values[len(d.Values)-1].End(),
-							fmt.Sprint("a single or ", len(names), " expressions, but found ", len(d.Values))),
+						anno.Range(p.File, d.Values[0].Start(), d.Values[len(d.Values)-1].End(),
+							fmt.Sprint("a single or ", len(d.Names), " expressions, but found ", len(d.Values))),
 					},
 				})
 			}
 		}
 
 		parser.MustSkip(p, comment.AndMustEOS())
-		return d, nil
+		return &d, nil
 	}
 }
 
 func ShortVarDeclarationAsCode(d *ast.ShortVarDeclaration) ast.Code {
 	n := len(d.Names)
-	if d.ColonEqual != nil {
+	if d.ColonEqualSign != nil {
 		n++
 	}
 	for _, val := range d.Values {
@@ -1097,8 +1041,8 @@ func ShortVarDeclarationAsCode(d *ast.ShortVarDeclaration) ast.Code {
 		}
 		i++
 	}
-	if d.ColonEqual != nil {
-		c[i] = &ast.GoCode{Code: ":=", Position: *d.ColonEqual}
+	if d.ColonEqualSign != nil {
+		c[i] = &ast.GoCode{Code: ":=", Position: d.ColonEqualSign}
 		i++
 	}
 	for valueI, value := range d.Values {
@@ -1106,7 +1050,7 @@ func ShortVarDeclarationAsCode(d *ast.ShortVarDeclaration) ast.Code {
 		if valueI < len(d.Values)-1 {
 			comma := value.End()
 			comma.Col++
-			c[i] = &ast.GoCode{Code: ",", Position: comma}
+			c[i] = &ast.GoCode{Code: ",", Position: &comma}
 			i++
 		}
 	}
@@ -1116,20 +1060,20 @@ func ShortVarDeclarationAsCode(d *ast.ShortVarDeclaration) ast.Code {
 
 func Label() parser.Func[*ast.Label] {
 	return func(p *parser.Parser) (*ast.Label, *fancyerr.Error) {
-		name, ok := parser.TryOk(p, golang.Identifier())
-		if !ok {
+		var l ast.Label
+
+		l.Name = parser.Try(p, golang.Identifier())
+		if l.Name == nil {
 			return nil, &fancyerr.Error{
 				Message: "missing label",
 				Primary: quickanno.Expected(p, p.Pos(), "an identifier followed by a colon"),
 			}
 		}
 
-		l := &ast.Label{Name: *name}
-
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 
-		l.Colon = p.PosPtr()
-		if !parser.TryRune(p, ':') || parser.MatchesAnyRune(p, '=') {
+		l.Colon = parser.TryRuneAt(p, ':')
+		if l.Colon == nil || parser.MatchesAnyRune(p, '=') {
 			return nil, &fancyerr.Error{
 				Message: "missing label",
 				Primary: quickanno.Expected(p, p.Pos(), "a colon and the end of the statement"),
@@ -1137,7 +1081,7 @@ func Label() parser.Func[*ast.Label] {
 		}
 
 		parser.MustSkip(p, comment.AndMustEOS())
-		return l, nil
+		return &l, nil
 	}
 }
 
@@ -1147,7 +1091,7 @@ func LabelAsCode(l *ast.Label) ast.Code {
 	}
 	return ast.Code{
 		&ast.GoCode{Code: l.Name.Ident, Position: l.Name.Position},
-		&ast.GoCode{Code: ":", Position: *l.Colon},
+		&ast.GoCode{Code: ":", Position: l.Colon},
 	}
 }
 
@@ -1157,10 +1101,10 @@ func Assignment() parser.Func[*ast.Assignment] {
 
 func assignment(e *ast.Expression) parser.Func[*ast.Assignment] {
 	return func(p *parser.Parser) (*ast.Assignment, *fancyerr.Error) {
-		a := &ast.Assignment{}
+		var a ast.Assignment
 		if e != nil {
 			parser.TrySkip(p, comment.OrHorizontalWhitespace())
-			if parser.TryOptionalRune(p, ',') {
+			if parser.TryOptionalRune(p, ',', nil) {
 				parser.TrySkip(p, comment.OrAnyWhitespace())
 
 				es := parser.Must(p, list.CommaList("expression", "expressions", Expression()))
@@ -1169,9 +1113,8 @@ func assignment(e *ast.Expression) parser.Func[*ast.Assignment] {
 				a.LHS = []*ast.Expression{e}
 			}
 		} else {
-			var ok bool
-			a.LHS, ok = parser.TryOk(p, list.CommaList("expression", "expressions", Expression()))
-			if !ok {
+			a.LHS = parser.Try(p, list.CommaList("expression", "expressions", Expression()))
+			if a.LHS == nil {
 				return nil, &fancyerr.Error{
 					Message: "missing assignment",
 					Primary: quickanno.Expected(p, p.Pos(), "one or more expressions being assigned to"),
@@ -1182,9 +1125,8 @@ func assignment(e *ast.Expression) parser.Func[*ast.Assignment] {
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 
 		a.OperatorPosition = p.PosPtr()
-		var ok bool
-		a.SpecialOperator, ok = parser.TryOk(p, golang.AssignOp())
-		if !ok {
+		a.SpecialOperator = parser.Try(p, golang.AssignOp())
+		if a.SpecialOperator == "" {
 			return nil, &fancyerr.Error{
 				Message: "missing assignment",
 				Primary: quickanno.Expected(p, p.Pos(), "an assignment operator, e.g. `=` or `+=`"),
@@ -1201,7 +1143,7 @@ func assignment(e *ast.Expression) parser.Func[*ast.Assignment] {
 					p.CaptureError(&fancyerr.Error{
 						Message: "assigment: mismatched number of values and assignees",
 						Primary: []fancyerr.Annotation{
-							anno.Range(p.File, a.RHS[0].Pos(), a.RHS[len(a.RHS)-1].End(),
+							anno.Range(p.File, a.RHS[0].Start(), a.RHS[len(a.RHS)-1].End(),
 								fmt.Sprint("expected a single expression, but found ", len(a.RHS))),
 						},
 					})
@@ -1209,7 +1151,7 @@ func assignment(e *ast.Expression) parser.Func[*ast.Assignment] {
 					p.CaptureError(&fancyerr.Error{
 						Message: "assigment: mismatched number of values and assignees",
 						Primary: []fancyerr.Annotation{
-							anno.Range(p.File, a.RHS[0].Pos(), a.RHS[len(a.RHS)-1].End(),
+							anno.Range(p.File, a.RHS[0].Start(), a.RHS[len(a.RHS)-1].End(),
 								fmt.Sprint("a single or ", len(a.LHS), " expressions, but found ", len(a.RHS))),
 						},
 					})
@@ -1218,7 +1160,7 @@ func assignment(e *ast.Expression) parser.Func[*ast.Assignment] {
 		}
 
 		parser.MustSkip(p, comment.AndMustEOS())
-		return a, nil
+		return &a, nil
 	}
 }
 
@@ -1236,12 +1178,12 @@ func AssignmentAsCode(a *ast.Assignment) ast.Code {
 		if eI < len(a.LHS)-1 {
 			p := e.End()
 			p.Col++
-			c[i] = &ast.GoCode{Code: ",", Position: p}
+			c[i] = &ast.GoCode{Code: ",", Position: &p}
 			i++
 		}
 	}
 	if a.OperatorPosition != nil {
-		c[i] = &ast.GoCode{Code: a.SpecialOperator + "=", Position: *a.OperatorPosition}
+		c[i] = &ast.GoCode{Code: a.SpecialOperator + "=", Position: a.OperatorPosition}
 		i++
 	}
 	for eI, e := range a.RHS {
@@ -1249,7 +1191,7 @@ func AssignmentAsCode(a *ast.Assignment) ast.Code {
 		if eI < len(a.RHS)-1 {
 			p := e.End()
 			p.Col++
-			c[i] = &ast.GoCode{Code: ",", Position: p}
+			c[i] = &ast.GoCode{Code: ",", Position: &p}
 			i++
 		}
 	}

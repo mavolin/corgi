@@ -26,7 +26,7 @@ func testExpressionValue(t *testing.T, f parser.Func[*ast.ExpressionAttributeVal
 		Code: ast.Code{
 			&ast.GoCode{
 				Code:     "woof",
-				Position: ast.Position{Line: 1, Col: 1},
+				Position: &ast.Position{Line: 1, Col: 1},
 			},
 		},
 	}
@@ -67,12 +67,12 @@ func testTypedAttributeValue(t *testing.T, f parser.Func[*ast.TypedAttributeValu
 		t.Run(c.name, func(t *testing.T) {
 			in := "'" + c.name + "(woof)"
 			expect := &ast.TypedAttributeValue{
-				Type: ast.AttributeType{
-					Quote: ast.Position{Line: 1, Col: 1},
+				Type: &ast.AttributeType{
+					Quote: &ast.Position{Line: 1, Col: 1},
 					Name: &ast.AttributeTypeName{
 						Name:     c.name,
 						Type:     c.typ,
-						Position: ast.Position{Line: 1, Col: 2},
+						Position: &ast.Position{Line: 1, Col: 2},
 					},
 				},
 				LParen: &ast.Position{Line: 1, Col: 1 + len("'") + len(c.name)},
@@ -80,7 +80,7 @@ func testTypedAttributeValue(t *testing.T, f parser.Func[*ast.TypedAttributeValu
 					Code: ast.Code{
 						&ast.GoCode{
 							Code:     "woof",
-							Position: ast.Position{Line: 1, Col: 1 + len("'") + len(c.name) + len("(")},
+							Position: &ast.Position{Line: 1, Col: 1 + len("'") + len(c.name) + len("(")},
 						},
 					},
 				},

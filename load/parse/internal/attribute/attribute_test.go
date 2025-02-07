@@ -24,7 +24,7 @@ func TestAndPlaceholder(t *testing.T) {
 
 func testAndPlaceholder(t *testing.T, f parser.Func[*ast.AndPlaceholder]) {
 	expect := &ast.AndPlaceholder{
-		Position: ast.Position{Line: 1, Col: 1},
+		And: &ast.Position{Line: 1, Col: 1},
 	}
 
 	p := testutil.NewParser(t, "&, other")
@@ -49,25 +49,25 @@ func testNamedAttribute(t *testing.T, f parser.Func[*ast.NamedAttribute]) {
 			name: "boolean",
 			in:   "async",
 			expect: &ast.NamedAttribute{
-				Name: ast.AttributeName{
+				Name: &ast.AttributeName{
 					Name:     "async",
-					Position: ast.Position{Line: 1, Col: 1},
+					Position: &ast.Position{Line: 1, Col: 1},
 				},
 			},
 		}, {
 			name: "value",
 			in:   `value=woof`,
 			expect: &ast.NamedAttribute{
-				Name: ast.AttributeName{
+				Name: &ast.AttributeName{
 					Name:     "value",
-					Position: ast.Position{Line: 1, Col: 1},
+					Position: &ast.Position{Line: 1, Col: 1},
 				},
 				EqualSign: &ast.Position{Line: 1, Col: 6},
 				Value: &ast.ExpressionAttributeValue{
 					Code: ast.Code{
 						&ast.GoCode{
 							Code:     "woof",
-							Position: ast.Position{Line: 1, Col: 7},
+							Position: &ast.Position{Line: 1, Col: 7},
 						},
 					},
 				},

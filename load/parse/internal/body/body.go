@@ -19,16 +19,16 @@ func ComponentCallBody() parser.Func[ast.Body] {
 
 func body(allowUnderscoreBlockShorthand bool) parser.Func[ast.Body] {
 	return func(p *parser.Parser) (ast.Body, *fancyerr.Error) {
-		if s, ok := parser.TryOk(p, Scope()); ok {
+		if s := parser.Try(p, Scope()); s != nil {
 			return s, nil
-		} else if b, ok := parser.TryOk(p, BracketText()); ok {
+		} else if b := parser.Try(p, BracketText()); b != nil {
 			return b, nil
-		} else if s, ok := parser.TryOk(p, UnderscoreBlockShorthand()); ok {
+		} else if s := parser.Try(p, UnderscoreBlockShorthand()); s != nil {
 			if !allowUnderscoreBlockShorthand {
 				p.CaptureError(&fancyerr.Error{
 					Message: "underscore block shorthand not allowed here",
 					Primary: []fancyerr.Annotation{
-						anno.Position(p.File, s.Position, "cannot place an underscore block shorthand here"),
+						anno.Position(p.File, s.Start(), "cannot place an underscore block shorthand here"),
 					},
 					Explanation: "Underscore block shorthands can only be used as the body for component calls.",
 				})
@@ -54,7 +54,8 @@ func body(allowUnderscoreBlockShorthand bool) parser.Func[ast.Body] {
 
 func UnderscoreBlockShorthand() parser.Func[*ast.UnderscoreBlockShorthand] {
 	return func(p *parser.Parser) (*ast.UnderscoreBlockShorthand, *fancyerr.Error) {
-		s := &ast.UnderscoreBlockShorthand{Position: p.Pos()}
+		var s ast.UnderscoreBlockShorthand
+		s.Position = p.PosPtr()
 
 		if !parser.TryRune(p, '_') {
 			return nil, &fancyerr.Error{
@@ -79,12 +80,11 @@ func UnderscoreBlockShorthand() parser.Func[*ast.UnderscoreBlockShorthand] {
 		}
 
 		wsStart := p.Pos()
-		hasWS := parser.TrySkipOk(p, comment.OrHorizontalWhitespace())
+		hasWS := parser.TrySkip(p, comment.OrHorizontalWhitespace())
 		wsEnd := p.Pos()
 
-		var ok bool
-		s.Body, ok = parser.TryOk(p, Body())
-		if !ok {
+		s.Body = parser.Try(p, Body())
+		if s.Body == nil {
 			return nil, &fancyerr.Error{
 				Message: "missing underscore block shorthand: missing body",
 				Primary: quickanno.Expected(p, p.Pos(), "a body"),
@@ -98,6 +98,6 @@ func UnderscoreBlockShorthand() parser.Func[*ast.UnderscoreBlockShorthand] {
 			})
 		}
 
-		return s, nil
+		return &s, nil
 	}
 }

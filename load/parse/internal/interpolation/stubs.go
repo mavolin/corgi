@@ -28,33 +28,25 @@ func elementHeaderStub(p *parser.Parser) (*ast.ElementHeader, *fancyerr.Error) {
 		}
 	}
 	return &ast.ElementHeader{
-		Name: ast.ElementName{
+		Name: &ast.ElementName{
 			Name:     name,
-			Position: pos,
+			Position: &pos,
 		},
 	}, nil
 }
 
 func componentCallHeaderStub(p *parser.Parser) (*ast.ComponentCallHeader, *fancyerr.Error) {
-	h := &ast.ComponentCallHeader{Colon: p.Pos()}
-	if !parser.TryRune(p, ':') {
-		return nil, &fancyerr.Error{
-			Message: "missing colon",
-			Primary: quickanno.Expected(p, h.Colon, "colon"),
-		}
-	}
-
-	name, err := parser.Try(p, golang.Identifier())
+	name, err := parser.TryErr(p, golang.Identifier())
 	if err != nil {
 		return nil, &fancyerr.Error{
 			Message: "missing component name",
 			Primary: quickanno.Expected(p, p.Pos(), "a component name"),
 		}
 	}
-	h.Name = name
+	h := &ast.ComponentCallHeader{Name: name}
 
 	h.Arguments = &ast.Arguments{
-		LParen: ast.Position{Line: 1, Col: p.Col()},
+		LParen: &ast.Position{Line: 1, Col: p.Col()},
 	}
 	if !parser.TryRune(p, '(') {
 		return nil, &fancyerr.Error{
@@ -88,7 +80,7 @@ func expressionStub(p *parser.Parser) (*ast.Expression, *fancyerr.Error) {
 		Code: ast.Code{
 			&ast.GoCode{
 				Code:     code,
-				Position: pos,
+				Position: &pos,
 			},
 		},
 	}, nil

@@ -12,17 +12,18 @@ import (
 
 func Type() parser.Func[*ast.AttributeType] {
 	return func(p *parser.Parser) (*ast.AttributeType, *fancyerr.Error) {
-		t := &ast.AttributeType{Quote: p.Pos()}
-		if ok := parser.TryRune(p, '\''); !ok {
+		var t ast.AttributeType
+
+		t.Quote = parser.TryRuneAt(p, '\'')
+		if t.Quote == nil {
 			return nil, &fancyerr.Error{
 				Message: "missing attribute type",
-				Primary: quickanno.Expected(p, t.Quote, "a single quote and then an attribute type"),
+				Primary: quickanno.Expected(p, p.Pos(), "a single quote and then an attribute type"),
 			}
 		}
 
-		var ok bool
-		t.Name, ok = parser.TryOk(p, TypeName())
-		if !ok {
+		t.Name = parser.Try(p, TypeName())
+		if t.Name == nil {
 			return nil, &fancyerr.Error{
 				Message: "missing attribute type name",
 				Primary: quickanno.Expected(p, p.Pos(), "an attribute type name"),
@@ -34,28 +35,29 @@ func Type() parser.Func[*ast.AttributeType] {
 			return nil, &fancyerr.Error{
 				Message: "missing attribute type",
 				Primary: []fancyerr.Annotation{
-					anno.Range(p.File, t.Quote, p.Pos(),
+					anno.Range(p.File, *t.Quote, p.Pos(),
 						"expected a single quote and then an attribute type, but found a rune literal instead"),
 				},
 			}
 		}
-		return t, nil
+		return &t, nil
 	}
 }
 
 func TypeName() parser.Func[*ast.AttributeTypeName] {
 	return func(p *parser.Parser) (*ast.AttributeTypeName, *fancyerr.Error) {
-		n := &ast.AttributeTypeName{Position: p.Pos()}
+		var n ast.AttributeTypeName
+		n.Position = p.PosPtr()
 
-		ident, ok := parser.TryOk(p, golang.Identifier())
-		if !ok {
+		ident := parser.Try(p, golang.Identifier())
+		if ident == nil {
 			return nil, &fancyerr.Error{
 				Message: "missing attribute type name",
-				Primary: quickanno.Expected(p, n.Position, "an attribute type name"),
+				Primary: quickanno.Expected(p, *n.Position, "an attribute type name"),
 			}
 		}
-
 		n.Name = ident.Ident
+
 		switch n.Name {
 		case "unsafe":
 			n.Type = attrtype.Unsafe
@@ -83,7 +85,7 @@ func TypeName() parser.Func[*ast.AttributeTypeName] {
 			p.CaptureError(&fancyerr.Error{
 				Message: "unknown attribute type",
 				Primary: []fancyerr.Annotation{
-					anno.Range(p.File, ident.Position, ident.End(), "not a known attribute type"),
+					anno.Range(p.File, ident.Start(), ident.End(), "not a known attribute type"),
 				},
 				Hints: []fancyerr.Hint{
 					{
@@ -94,6 +96,6 @@ func TypeName() parser.Func[*ast.AttributeTypeName] {
 				},
 			})
 		}
-		return n, nil
+		return &n, nil
 	}
 }

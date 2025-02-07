@@ -47,7 +47,7 @@ func testList(t *testing.T, name string, open, close rune) {
 		{
 			name:   "empty",
 			elems:  "",
-			expect: []string{},
+			expect: nil,
 		}, {
 			name:   "single",
 			elems:  "foo",
@@ -76,7 +76,7 @@ func testList(t *testing.T, name string, open, close rune) {
 
 				in := fmt.Sprintf("%c%s%c", open, c.elems, close)
 				expect := &List[string]{
-					Open: ast.Position{Line: 1, Col: 1},
+					Open: &ast.Position{Line: 1, Col: 1},
 					Close: &ast.Position{
 						Line: strings.Count(in, "\n") + 1,
 						Col:  len(string(open)) + len(c.elems) + 1,
@@ -132,7 +132,7 @@ func testList(t *testing.T, name string, open, close rune) {
 
 				in := fmt.Sprintf("%c%s%c", open, c.elems, close)
 				expect := &List[string]{
-					Open:  ast.Position{Line: 1, Col: 1},
+					Open:  &ast.Position{Line: 1, Col: 1},
 					Close: &ast.Position{Line: 1, Col: len(string(open)) + len(c.elems) + 1},
 					Elems: c.expect,
 				}
@@ -219,7 +219,7 @@ func TestCommaList(t *testing.T) {
 		}, {
 			name:   "no elems but comma",
 			in:     ",",
-			expect: []string{""},
+			expect: []string{"", ""},
 		},
 	}
 

@@ -27,19 +27,19 @@ func TestType(t *testing.T) {
 				Type: in,
 				Parsed: &ast.NamedType{
 					Name: &ast.QualifiedIdent{
-						Package: ast.Ident{
+						Package: &ast.Ident{
 							Ident:    "foo",
-							Position: ast.Position{Line: 1, Col: 1},
+							Position: &ast.Position{Line: 1, Col: 1},
 						},
 						Dot: &ast.Position{Line: 1, Col: 4},
 						Name: &ast.Ident{
 							Ident:    "Bar",
-							Position: ast.Position{Line: 1, Col: 5},
+							Position: &ast.Position{Line: 1, Col: 5},
 						},
 					},
 				},
-				Position: ast.Position{Line: 1, Col: 1},
-				Until:    testutil.CalcEndPos(in),
+				From:  ast.Position{Line: 1, Col: 1},
+				Until: testutil.CalcEndPos(in),
 			}
 
 			actual := testutil.ParsesFully(t, in, Type())
@@ -50,9 +50,9 @@ func TestType(t *testing.T) {
 
 			in := "(foo.Bar)"
 			expect := &ast.Type{
-				Type:     in,
-				Position: ast.Position{Line: 1, Col: 1},
-				Until:    testutil.CalcEndPos(in),
+				Type:  in,
+				From:  ast.Position{Line: 1, Col: 1},
+				Until: testutil.CalcEndPos(in),
 			}
 
 			actual := testutil.ParsesFully(t, in, Type())
@@ -75,9 +75,9 @@ func TestType(t *testing.T) {
 					t.Parallel()
 
 					expect := &ast.Type{
-						Type:     in,
-						Position: ast.Position{Line: 1, Col: 1},
-						Until:    testutil.CalcEndPos(in),
+						Type:  in,
+						From:  ast.Position{Line: 1, Col: 1},
+						Until: testutil.CalcEndPos(in),
 					}
 
 					p := testutil.NewParser(t, in+" 123")
@@ -156,9 +156,9 @@ func testArrayType(t *testing.T, f parser.Func[*ast.Type]) {
 				t.Parallel()
 
 				expect := &ast.Type{
-					Type:     in,
-					Position: ast.Position{Line: 1, Col: 1},
-					Until:    testutil.CalcEndPos(in),
+					Type:  in,
+					From:  ast.Position{Line: 1, Col: 1},
+					Until: testutil.CalcEndPos(in),
 				}
 
 				actual := testutil.ParsesFully(t, in, f)
@@ -179,9 +179,9 @@ func testArrayType(t *testing.T, f parser.Func[*ast.Type]) {
 				t.Parallel()
 
 				expect := &ast.Type{
-					Type:     in,
-					Position: ast.Position{Line: 1, Col: 1},
-					Until:    testutil.CalcEndPos(in),
+					Type:  in,
+					From:  ast.Position{Line: 1, Col: 1},
+					Until: testutil.CalcEndPos(in),
 				}
 
 				p := testutil.NewParser(t, in+" ; aa")
@@ -211,9 +211,9 @@ func testStructType(t *testing.T, f parser.Func[*ast.Type]) {
 				t.Parallel()
 
 				expect := &ast.Type{
-					Type:     in,
-					Position: ast.Position{Line: 1, Col: 1},
-					Until:    testutil.CalcEndPos(in),
+					Type:  in,
+					From:  ast.Position{Line: 1, Col: 1},
+					Until: testutil.CalcEndPos(in),
 				}
 
 				actual := testutil.ParsesFully(t, in, f)
@@ -234,9 +234,9 @@ func testStructType(t *testing.T, f parser.Func[*ast.Type]) {
 				t.Parallel()
 
 				expect := &ast.Type{
-					Type:     in,
-					Position: ast.Position{Line: 1, Col: 1},
-					Until:    testutil.CalcEndPos(in),
+					Type:  in,
+					From:  ast.Position{Line: 1, Col: 1},
+					Until: testutil.CalcEndPos(in),
 				}
 
 				p := testutil.NewParser(t, in+" ")
@@ -264,9 +264,9 @@ func testPointerType(t *testing.T, f parser.Func[*ast.Type]) {
 			t.Parallel()
 
 			expect := &ast.Type{
-				Type:     in,
-				Position: ast.Position{Line: 1, Col: 1},
-				Until:    testutil.CalcEndPos(in),
+				Type:  in,
+				From:  ast.Position{Line: 1, Col: 1},
+				Until: testutil.CalcEndPos(in),
 			}
 
 			actual := testutil.ParsesFully(t, in, f)
@@ -294,9 +294,9 @@ func testFunctionType(t *testing.T, f parser.Func[*ast.Type]) {
 				t.Parallel()
 
 				expect := &ast.Type{
-					Type:     in,
-					Position: ast.Position{Line: 1, Col: 1},
-					Until:    testutil.CalcEndPos(in),
+					Type:  in,
+					From:  ast.Position{Line: 1, Col: 1},
+					Until: testutil.CalcEndPos(in),
 				}
 
 				actual := testutil.ParsesFully(t, in, f)
@@ -317,9 +317,9 @@ func testFunctionType(t *testing.T, f parser.Func[*ast.Type]) {
 				t.Parallel()
 
 				expect := &ast.Type{
-					Type:     in,
-					Position: ast.Position{Line: 1, Col: 1},
-					Until:    testutil.CalcEndPos(in),
+					Type:  in,
+					From:  ast.Position{Line: 1, Col: 1},
+					Until: testutil.CalcEndPos(in),
 				}
 
 				p := testutil.NewParser(t, in+" 123")
@@ -351,9 +351,9 @@ func testInterfaceType(t *testing.T, f parser.Func[*ast.Type]) {
 				t.Parallel()
 
 				expect := &ast.Type{
-					Type:     in,
-					Position: ast.Position{Line: 1, Col: 1},
-					Until:    testutil.CalcEndPos(in),
+					Type:  in,
+					From:  ast.Position{Line: 1, Col: 1},
+					Until: testutil.CalcEndPos(in),
 				}
 
 				actual := testutil.ParsesFully(t, in, f)
@@ -374,9 +374,9 @@ func testInterfaceType(t *testing.T, f parser.Func[*ast.Type]) {
 				t.Parallel()
 
 				expect := &ast.Type{
-					Type:     in,
-					Position: ast.Position{Line: 1, Col: 1},
-					Until:    testutil.CalcEndPos(in),
+					Type:  in,
+					From:  ast.Position{Line: 1, Col: 1},
+					Until: testutil.CalcEndPos(in),
 				}
 
 				p := testutil.NewParser(t, in+" ")
@@ -407,9 +407,9 @@ func testSliceType(t *testing.T, f parser.Func[*ast.Type]) {
 				t.Parallel()
 
 				expect := &ast.Type{
-					Type:     in,
-					Position: ast.Position{Line: 1, Col: 1},
-					Until:    testutil.CalcEndPos(in),
+					Type:  in,
+					From:  ast.Position{Line: 1, Col: 1},
+					Until: testutil.CalcEndPos(in),
 				}
 
 				actual := testutil.ParsesFully(t, in, f)
@@ -430,9 +430,9 @@ func testSliceType(t *testing.T, f parser.Func[*ast.Type]) {
 				t.Parallel()
 
 				expect := &ast.Type{
-					Type:     in,
-					Position: ast.Position{Line: 1, Col: 1},
-					Until:    testutil.CalcEndPos(in),
+					Type:  in,
+					From:  ast.Position{Line: 1, Col: 1},
+					Until: testutil.CalcEndPos(in),
 				}
 
 				p := testutil.NewParser(t, in+" 123")
@@ -463,9 +463,9 @@ func testMapType(t *testing.T, f parser.Func[*ast.Type]) {
 				t.Parallel()
 
 				expect := &ast.Type{
-					Type:     in,
-					Position: ast.Position{Line: 1, Col: 1},
-					Until:    testutil.CalcEndPos(in),
+					Type:  in,
+					From:  ast.Position{Line: 1, Col: 1},
+					Until: testutil.CalcEndPos(in),
 				}
 
 				actual := testutil.ParsesFully(t, in, f)
@@ -486,9 +486,9 @@ func testMapType(t *testing.T, f parser.Func[*ast.Type]) {
 				t.Parallel()
 
 				expect := &ast.Type{
-					Type:     in,
-					Position: ast.Position{Line: 1, Col: 1},
-					Until:    testutil.CalcEndPos(in),
+					Type:  in,
+					From:  ast.Position{Line: 1, Col: 1},
+					Until: testutil.CalcEndPos(in),
 				}
 
 				p := testutil.NewParser(t, in+" 123")
@@ -520,9 +520,9 @@ func testChannelType(t *testing.T, f parser.Func[*ast.Type]) {
 				t.Parallel()
 
 				expect := &ast.Type{
-					Type:     in,
-					Position: ast.Position{Line: 1, Col: 1},
-					Until:    testutil.CalcEndPos(in),
+					Type:  in,
+					From:  ast.Position{Line: 1, Col: 1},
+					Until: testutil.CalcEndPos(in),
 				}
 
 				actual := testutil.ParsesFully(t, in, f)
@@ -543,9 +543,9 @@ func testChannelType(t *testing.T, f parser.Func[*ast.Type]) {
 				t.Parallel()
 
 				expect := &ast.Type{
-					Type:     in,
-					Position: ast.Position{Line: 1, Col: 1},
-					Until:    testutil.CalcEndPos(in),
+					Type:  in,
+					From:  ast.Position{Line: 1, Col: 1},
+					Until: testutil.CalcEndPos(in),
 				}
 
 				p := testutil.NewParser(t, in+" 123")
@@ -575,7 +575,7 @@ func testNamedType(t *testing.T, f parser.Func[*ast.NamedType]) {
 			expect: &ast.NamedType{
 				Name: &ast.Ident{
 					Ident:    "int",
-					Position: ast.Position{Line: 1, Col: 1},
+					Position: &ast.Position{Line: 1, Col: 1},
 				},
 			},
 		}, {
@@ -584,7 +584,7 @@ func testNamedType(t *testing.T, f parser.Func[*ast.NamedType]) {
 			expect: &ast.NamedType{
 				Name: &ast.Ident{
 					Ident:    "foo",
-					Position: ast.Position{Line: 1, Col: 1},
+					Position: &ast.Position{Line: 1, Col: 1},
 				},
 			},
 		}, {
@@ -592,14 +592,14 @@ func testNamedType(t *testing.T, f parser.Func[*ast.NamedType]) {
 			in:   "foo.Bar",
 			expect: &ast.NamedType{
 				Name: &ast.QualifiedIdent{
-					Package: ast.Ident{
+					Package: &ast.Ident{
 						Ident:    "foo",
-						Position: ast.Position{Line: 1, Col: 1},
+						Position: &ast.Position{Line: 1, Col: 1},
 					},
 					Dot: &ast.Position{Line: 1, Col: 4},
 					Name: &ast.Ident{
 						Ident:    "Bar",
-						Position: ast.Position{Line: 1, Col: 5},
+						Position: &ast.Position{Line: 1, Col: 5},
 					},
 				},
 			},
@@ -608,39 +608,39 @@ func testNamedType(t *testing.T, f parser.Func[*ast.NamedType]) {
 			in:   "foo.Bar[int, foobar]",
 			expect: &ast.NamedType{
 				Name: &ast.QualifiedIdent{
-					Package: ast.Ident{
+					Package: &ast.Ident{
 						Ident:    "foo",
-						Position: ast.Position{Line: 1, Col: 1},
+						Position: &ast.Position{Line: 1, Col: 1},
 					},
 					Dot: &ast.Position{Line: 1, Col: 4},
 					Name: &ast.Ident{
 						Ident:    "Bar",
-						Position: ast.Position{Line: 1, Col: 5},
+						Position: &ast.Position{Line: 1, Col: 5},
 					},
 				},
 				TypeArgs: &ast.TypeArguments{
-					LBracket: ast.Position{Line: 1, Col: 8},
+					LBracket: &ast.Position{Line: 1, Col: 8},
 					Types: []*ast.Type{
 						{
 							Type: "int",
 							Parsed: &ast.NamedType{
 								Name: &ast.Ident{
 									Ident:    "int",
-									Position: ast.Position{Line: 1, Col: 9},
+									Position: &ast.Position{Line: 1, Col: 9},
 								},
 							},
-							Position: ast.Position{Line: 1, Col: 9},
-							Until:    ast.Position{Line: 1, Col: 12},
+							From:  ast.Position{Line: 1, Col: 9},
+							Until: ast.Position{Line: 1, Col: 12},
 						}, {
 							Type: "foobar",
 							Parsed: &ast.NamedType{
 								Name: &ast.Ident{
 									Ident:    "foobar",
-									Position: ast.Position{Line: 1, Col: 14},
+									Position: &ast.Position{Line: 1, Col: 14},
 								},
 							},
-							Position: ast.Position{Line: 1, Col: 14},
-							Until:    ast.Position{Line: 1, Col: 20},
+							From:  ast.Position{Line: 1, Col: 14},
+							Until: ast.Position{Line: 1, Col: 20},
 						},
 					},
 					RBracket: &ast.Position{Line: 1, Col: 20},
@@ -654,6 +654,166 @@ func testNamedType(t *testing.T, f parser.Func[*ast.NamedType]) {
 			t.Parallel()
 
 			actual := testutil.ParsesFully(t, c.in, f)
+			assert.Equal(t, c.expect, actual)
+		})
+	}
+}
+
+func TestTypeParameters(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name   string
+		in     string
+		expect *ast.TypeParameters
+	}{
+		{
+			name: "empty",
+			in:   "[]",
+			expect: &ast.TypeParameters{
+				LBracket: &ast.Position{Line: 1, Col: 1},
+				RBracket: &ast.Position{Line: 1, Col: 2},
+			},
+		}, {
+			name: "single",
+			in:   "[T int]",
+			expect: &ast.TypeParameters{
+				LBracket: &ast.Position{Line: 1, Col: 1},
+				Params: []*ast.TypeParameter{
+					{
+						Names: []*ast.Ident{
+							{Ident: "T", Position: &ast.Position{Line: 1, Col: 2}},
+						},
+						Type: &ast.Type{
+							Parsed: &ast.NamedType{
+								Name: &ast.Ident{Ident: "int", Position: &ast.Position{Line: 1, Col: 4}},
+							},
+							Type:  "int",
+							From:  ast.Position{Line: 1, Col: 4},
+							Until: ast.Position{Line: 1, Col: 7},
+						},
+					},
+				},
+				RBracket: &ast.Position{Line: 1, Col: 7},
+			},
+		}, {
+			name: "single",
+			in:   "[K int, V string]",
+			expect: &ast.TypeParameters{
+				LBracket: &ast.Position{Line: 1, Col: 1},
+				Params: []*ast.TypeParameter{
+					{
+						Names: []*ast.Ident{
+							{Ident: "K", Position: &ast.Position{Line: 1, Col: 2}},
+						},
+						Type: &ast.Type{
+							Parsed: &ast.NamedType{
+								Name: &ast.Ident{Ident: "int", Position: &ast.Position{Line: 1, Col: 4}},
+							},
+							Type:  "int",
+							From:  ast.Position{Line: 1, Col: 4},
+							Until: ast.Position{Line: 1, Col: 7},
+						},
+					}, {
+						Names: []*ast.Ident{
+							{Ident: "V", Position: &ast.Position{Line: 1, Col: 9}},
+						},
+						Type: &ast.Type{
+							Parsed: &ast.NamedType{
+								Name: &ast.Ident{Ident: "string", Position: &ast.Position{Line: 1, Col: 11}},
+							},
+							Type:  "string",
+							From:  ast.Position{Line: 1, Col: 11},
+							Until: ast.Position{Line: 1, Col: 17},
+						},
+					},
+				},
+				RBracket: &ast.Position{Line: 1, Col: 17},
+			},
+		}, {
+			name: "comma",
+			in:   "[T int,]",
+			expect: &ast.TypeParameters{
+				LBracket: &ast.Position{Line: 1, Col: 1},
+				Params: []*ast.TypeParameter{
+					{
+						Names: []*ast.Ident{
+							{Ident: "T", Position: &ast.Position{Line: 1, Col: 2}},
+						},
+						Type: &ast.Type{
+							Parsed: &ast.NamedType{
+								Name: &ast.Ident{Ident: "int", Position: &ast.Position{Line: 1, Col: 4}},
+							},
+							Type:  "int",
+							From:  ast.Position{Line: 1, Col: 4},
+							Until: ast.Position{Line: 1, Col: 7},
+						},
+					},
+				},
+				RBracket: &ast.Position{Line: 1, Col: 8},
+			},
+		},
+	}
+
+	for _, c := range testCases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+
+			actual := testutil.ParsesFully(t, c.in, TypeParameters())
+			assert.Equal(t, c.expect, actual)
+		})
+	}
+}
+
+func TestTypeParameterDecl(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name   string
+		in     string
+		expect *ast.TypeParameter
+	}{
+		{
+			name: "single",
+			in:   "T int",
+			expect: &ast.TypeParameter{
+				Names: []*ast.Ident{
+					{Ident: "T", Position: &ast.Position{Line: 1, Col: 1}},
+				},
+				Type: &ast.Type{
+					Parsed: &ast.NamedType{
+						Name: &ast.Ident{Ident: "int", Position: &ast.Position{Line: 1, Col: 3}},
+					},
+					Type:  "int",
+					From:  ast.Position{Line: 1, Col: 3},
+					Until: ast.Position{Line: 1, Col: 6},
+				},
+			},
+		}, {
+			name: "multiple",
+			in:   "K, V string",
+			expect: &ast.TypeParameter{
+				Names: []*ast.Ident{
+					{Ident: "K", Position: &ast.Position{Line: 1, Col: 1}},
+					{Ident: "V", Position: &ast.Position{Line: 1, Col: 4}},
+				},
+				Type: &ast.Type{
+					Parsed: &ast.NamedType{
+						Name: &ast.Ident{Ident: "string", Position: &ast.Position{Line: 1, Col: 6}},
+					},
+					Type:  "string",
+					From:  ast.Position{Line: 1, Col: 6},
+					Until: ast.Position{Line: 1, Col: 12},
+				},
+			},
+		},
+	}
+
+	for _, c := range testCases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+
+			actual := testutil.ParsesFully(t, c.in, TypeParameterDecl())
 			assert.Equal(t, c.expect, actual)
 		})
 	}

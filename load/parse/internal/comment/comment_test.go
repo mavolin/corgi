@@ -30,10 +30,10 @@ func TestLineComment(t *testing.T) {
 
 func testLineComment(t *testing.T, f parser.Func[*ast.Comment]) {
 	expect := &ast.Comment{
-		Open:    ast.Position{Line: 1, Col: 1},
+		Open:    &ast.Position{Line: 1, Col: 1},
 		Comment: " foo",
 		General: false,
-		Close:   &ast.Position{Line: 1, Col: 7},
+		Until:   ast.Position{Line: 1, Col: 7},
 	}
 
 	actual := testutil.ParsesFully(t, "// foo\n", f)
@@ -50,10 +50,11 @@ func testBlockComment(t *testing.T, f parser.Func[*ast.Comment]) {
 		t.Parallel()
 
 		expect := &ast.Comment{
-			Open:    ast.Position{Line: 1, Col: 1},
+			Open:    &ast.Position{Line: 1, Col: 1},
 			Comment: " foo ",
 			General: true,
 			Close:   &ast.Position{Line: 1, Col: 8},
+			Until:   ast.Position{Line: 1, Col: 10},
 		}
 
 		actual := testutil.ParsesFully(t, "/* foo */", f)
@@ -64,10 +65,11 @@ func testBlockComment(t *testing.T, f parser.Func[*ast.Comment]) {
 		t.Parallel()
 
 		expect := &ast.Comment{
-			Open:    ast.Position{Line: 1, Col: 1},
+			Open:    &ast.Position{Line: 1, Col: 1},
 			Comment: " foo\n   bar ",
 			General: true,
 			Close:   &ast.Position{Line: 2, Col: 8},
+			Until:   ast.Position{Line: 2, Col: 10},
 		}
 
 		actual := testutil.ParsesFully(t, "/* foo\n   bar */", f)
@@ -90,10 +92,11 @@ func testBlockComment(t *testing.T, f parser.Func[*ast.Comment]) {
 			t.Parallel()
 
 			expect := &ast.Comment{
-				Open:    ast.Position{Line: 1, Col: 1},
+				Open:    &ast.Position{Line: 1, Col: 1},
 				Comment: " foo ",
 				General: true,
 				Close:   &ast.Position{Line: 1, Col: 8},
+				Until:   ast.Position{Line: 1, Col: 10},
 			}
 
 			p := testutil.NewParser(t, "/* foo */")

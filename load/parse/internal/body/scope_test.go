@@ -24,14 +24,14 @@ func testScope(t *testing.T, f parser.Func[*ast.Scope]) {
 			name: "empty",
 			in:   "{}",
 			expect: &ast.Scope{
-				LBrace: ast.Position{Line: 1, Col: 1},
+				LBrace: &ast.Position{Line: 1, Col: 1},
 				RBrace: &ast.Position{Line: 1, Col: 2},
 			},
 		}, {
 			name: "empty with newline",
 			in:   "{\n}",
 			expect: &ast.Scope{
-				LBrace: ast.Position{Line: 1, Col: 1},
+				LBrace: &ast.Position{Line: 1, Col: 1},
 				RBrace: &ast.Position{Line: 2, Col: 1},
 			},
 		}, {
@@ -40,13 +40,13 @@ func testScope(t *testing.T, f parser.Func[*ast.Scope]) {
 				"\tbr\n" +
 				"}",
 			expect: &ast.Scope{
-				LBrace: ast.Position{Line: 1, Col: 1},
+				LBrace: &ast.Position{Line: 1, Col: 1},
 				Nodes: []ast.ScopeNode{
 					&ast.Element{
-						Header: ast.ElementHeader{
-							Name: ast.ElementName{
+						Header: &ast.ElementHeader{
+							Name: &ast.ElementName{
 								Name:     "br",
-								Position: ast.Position{Line: 2, Col: 2},
+								Position: &ast.Position{Line: 2, Col: 2},
 							},
 						},
 					},
@@ -96,12 +96,12 @@ func TestBadScopeNode(t *testing.T) {
 			t.Parallel()
 
 			expect := &ast.BadScopeNode{
-				Start: ast.Position{Line: 1, Col: 1},
+				From:  ast.Position{Line: 1, Col: 1},
 				Until: ast.Position{Line: 1, Col: 1 + len(c.in)},
 			}
 
 			p := testutil.NewParser(t, c.in+" foo")
-			actual := testutil.AssertMatchesButError(t, p, BadScopeNode())
+			actual := testutil.AssertNoError(t, p, BadScopeNode())
 			assert.Equal(t, expect, actual)
 
 			testutil.AssertPosition(t, p, expect.Until.Line, expect.Until.Col, len(c.in))

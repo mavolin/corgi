@@ -9,28 +9,32 @@ import (
 
 func Expression() parser.Func[*ast.Expression] {
 	return func(p *parser.Parser) (*ast.Expression, *fancyerr.Error) {
-		c, ok := parser.TryOk(p, Code(false))
-		if !ok {
+		var e ast.Expression
+
+		e.Code = parser.Try(p, Code(false))
+		if e.Code == nil {
 			return nil, &fancyerr.Error{
 				Message: "missing expression",
 				Primary: quickanno.Expected(p, p.Pos(), "an expression"),
 			}
 		}
 
-		return &ast.Expression{Code: c}, nil
+		return &e, nil
 	}
 }
 
 func NonZCExpression() parser.Func[*ast.Expression] {
 	return func(p *parser.Parser) (*ast.Expression, *fancyerr.Error) {
-		c, ok := parser.TryOk(p, NonZCCode(false))
-		if !ok {
+		var e ast.Expression
+
+		e.Code = parser.Try(p, NonZCCode(false))
+		if e.Code == nil {
 			return nil, &fancyerr.Error{
 				Message: "missing expression",
 				Primary: quickanno.Expected(p, p.Pos(), "an expression"),
 			}
 		}
 
-		return &ast.Expression{Code: c}, nil
+		return &e, nil
 	}
 }

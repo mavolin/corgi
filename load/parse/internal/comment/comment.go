@@ -15,8 +15,8 @@ func Comment() parser.Func[*ast.Comment] {
 			return GeneralComment()(p)
 		}
 
-		c, ok := parser.TryInOrder(p, LineComment(), GeneralComment())
-		if ok {
+		c := parser.TryInOrder(p, LineComment(), GeneralComment())
+		if c != nil {
 			return c, nil
 		}
 
@@ -29,7 +29,7 @@ func Comment() parser.Func[*ast.Comment] {
 
 func LineComment() parser.Func[*ast.Comment] {
 	return func(p *parser.Parser) (*ast.Comment, *fancyerr.Error) {
-		c, err := lineCommentWithoutEOL()(p)
+		c, err := parser.TryErr(p, lineCommentWithoutEOL())
 		if err != nil {
 			return nil, err
 		}
@@ -41,9 +41,9 @@ func LineComment() parser.Func[*ast.Comment] {
 func lineCommentWithoutEOL() parser.Func[*ast.Comment] {
 	return func(p *parser.Parser) (*ast.Comment, *fancyerr.Error) {
 		var c ast.Comment
-		c.Open = p.Pos()
 
-		if !parser.TryToken(p, "//") {
+		c.Open = parser.TryTokenAt(p, "//")
+		if c.Open == nil {
 			return nil, &fancyerr.Error{
 				Message: "missing line comment",
 				Primary: quickanno.Expected(p, p.Pos(), "a line comment"),
@@ -63,9 +63,9 @@ func GeneralComment() parser.Func[*ast.Comment] {
 	return func(p *parser.Parser) (*ast.Comment, *fancyerr.Error) {
 		var c ast.Comment
 		c.General = true
-		c.Open = p.Pos()
 
-		if !parser.TryToken(p, "/*") {
+		c.Open = parser.TryTokenAt(p, "/*")
+		if c.Open == nil {
 			return nil, &fancyerr.Error{
 				Message: "missing block comment",
 				Primary: quickanno.Expected(p, p.Pos(), "a general comment"),
@@ -75,13 +75,12 @@ func GeneralComment() parser.Func[*ast.Comment] {
 		c.Comment = parser.TokenWhile(p, func() bool {
 			return !parser.MatchesToken(p, "*/")
 		})
-		c.Close = p.PosPtr()
-		if !parser.TryToken(p, "*/") {
-			c.Close = nil
+		c.Close = parser.TryTokenAt(p, "*/")
+		if c.Close == nil {
 			p.CaptureError(&fancyerr.Error{
 				Message: "unclosed block comment",
 				Primary: []fancyerr.Annotation{
-					anno.NChars(p.File, c.Open, len("/*"), "this comment is never closed"),
+					anno.NChars(p.File, *c.Open, len("/*"), "this comment is never closed"),
 				},
 				Explanation: "Unlike line comments, general comments must be closed using `*/`.\n" +
 					"Either change the `/*` to a `//` if you want a single-line comment, or add " +
@@ -98,8 +97,8 @@ func GeneralComment() parser.Func[*ast.Comment] {
 					Message: "illegal placement of multiline block comment",
 					Primary: []fancyerr.Annotation{
 						anno.Anno(p.File, anno.Annotation{
-							Context:    anno.ContextLines(c.Open, c.Until),
-							Highlight:  anno.HighlightToEOL(c.Open),
+							Context:    anno.ContextLines(*c.Open, c.Until),
+							Highlight:  anno.HighlightToEOL(*c.Open),
 							Annotation: "at this position, only single-line comments are allowed",
 						}),
 					},

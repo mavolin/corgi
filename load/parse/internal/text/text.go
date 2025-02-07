@@ -14,21 +14,22 @@ import (
 
 func ArrowBlock() parser.Func[*ast.ArrowBlock] {
 	return func(p *parser.Parser) (*ast.ArrowBlock, *fancyerr.Error) {
+		var b ast.ArrowBlock
 		refCol := p.Col()
-		b := &ast.ArrowBlock{Arrow: p.Pos()}
-		if !parser.TryRune(p, '>') {
+
+		b.Arrow = parser.TryRuneAt(p, '>')
+		if b.Arrow == nil {
 			return nil, &fancyerr.Error{
 				Message: "missing arrow block",
 				Primary: quickanno.Expected(p, p.Pos(), "an arrow block"),
 			}
 		}
-
 		parser.TrySkip(p, whitespace.Horizontal())
 
 		b.Lines = make(ast.TextBlock, 0, 36)
 		for {
-			line, ok := parser.TryOk(p, Line('\n'))
-			if !ok {
+			line := parser.Try(p, Line('\n'))
+			if line == nil {
 				break
 			}
 			b.Lines = append(b.Lines, line)
@@ -45,40 +46,31 @@ func ArrowBlock() parser.Func[*ast.ArrowBlock] {
 			b.Lines = slices.Clip(b.Lines)
 		}
 
-		return b, nil
+		return &b, nil
 	}
 }
 
 // Line parses a text line until the terminator rune or the EOL.
 func Line(term rune) parser.Func[ast.TextLine] {
 	return func(p *parser.Parser) (ast.TextLine, *fancyerr.Error) {
-		l := make(ast.TextLine, 0, 8)
-
-		for {
-			n, ok := parser.TryOk(p, Node(term))
-			if !ok {
-				break
-			}
-			l = append(l, n)
-		}
+		l := parser.Collect(p, Node(term), 8, nil)
 		if len(l) == 0 {
 			return nil, &fancyerr.Error{
 				Message: "missing text line",
 				Primary: quickanno.Expected(p, p.Pos(), "text"),
 			}
 		}
-
-		return slices.Clip(l), nil
+		return l, nil
 	}
 }
 
 func Node(term rune) parser.Func[ast.TextNode] {
 	return func(p *parser.Parser) (ast.TextNode, *fancyerr.Error) {
-		if t, ok := parser.TryOk(p, Text(term)); ok {
+		if t := parser.Try(p, Text(term)); t != nil {
 			return t, nil
-		} else if interp, ok := parser.TryOk(p, interpolation.TextInterpolation()); ok {
+		} else if interp := parser.Try(p, interpolation.TextInterpolation()); interp != nil {
 			return interp, nil
-		} else if bi, ok := parser.TryOk(p, interpolation.BadInterpolation()); ok {
+		} else if bi := parser.Try(p, interpolation.BadInterpolation()); bi != nil {
 			return bi, nil
 		}
 
@@ -91,7 +83,8 @@ func Node(term rune) parser.Func[ast.TextNode] {
 
 func Text(term rune) parser.Func[*ast.Text] {
 	return func(p *parser.Parser) (*ast.Text, *fancyerr.Error) {
-		t := &ast.Text{Position: p.Pos()}
+		var t ast.Text
+		t.Position = p.PosPtr()
 
 		t.Text = parser.TokenWhile(p, func() bool {
 			return !parser.MatchesAnyRune(p, term, term, '\r', '\n') &&
@@ -105,6 +98,6 @@ func Text(term rune) parser.Func[*ast.Text] {
 			}
 		}
 
-		return t, nil
+		return &t, nil
 	}
 }

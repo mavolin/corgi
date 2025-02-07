@@ -14,13 +14,13 @@ import (
 
 func Attribute() parser.Func[ast.Attribute] {
 	return func(p *parser.Parser) (ast.Attribute, *fancyerr.Error) {
-		if a, ok := parser.TryOk(p, AndPlaceholder()); ok {
+		if a := parser.Try(p, AndPlaceholder()); a != nil {
 			return a, nil
-		} else if a, ok := parser.TryOk(p, IDShorthand()); ok {
+		} else if a := parser.Try(p, IDShorthand()); a != nil {
 			return a, nil
-		} else if a, ok := parser.TryOk(p, ClassShorthand()); ok {
+		} else if a := parser.Try(p, ClassShorthand()); a != nil {
 			return a, nil
-		} else if a, ok := parser.TryOk(p, NamedAttribute()); ok {
+		} else if a := parser.Try(p, NamedAttribute()); a != nil {
 			return a, nil
 		}
 
@@ -38,27 +38,26 @@ func Attribute() parser.Func[ast.Attribute] {
 
 func AndPlaceholder() parser.Func[*ast.AndPlaceholder] {
 	return func(p *parser.Parser) (*ast.AndPlaceholder, *fancyerr.Error) {
-		pos := p.Pos()
-		if !parser.TryRune(p, '&') {
+		var ap ast.AndPlaceholder
+
+		ap.And = parser.TryRuneAt(p, '&')
+		if ap.And == nil {
 			return nil, &fancyerr.Error{
 				Message: "missing `&`",
-				Primary: quickanno.Expected(p, pos, "an and placeholder (`&`)"),
+				Primary: quickanno.Expected(p, p.Pos(), "an and placeholder (`&`)"),
 			}
 		}
 
-		return &ast.AndPlaceholder{Position: pos}, nil
+		return &ap, nil
 	}
 }
 
 func NamedAttribute() parser.Func[*ast.NamedAttribute] {
 	return func(p *parser.Parser) (*ast.NamedAttribute, *fancyerr.Error) {
-		attr := &ast.NamedAttribute{}
+		var attr ast.NamedAttribute
 
-		attrName, ok := parser.TryOk(p, Name())
-		if ok {
-			attr.Name = *attrName
-		} else {
-			attr.Name.Position = p.Pos()
+		attr.Name = parser.TryOptional(p, Name(), comment.OrHorizontalWhitespace())
+		if attr.Name == nil {
 			// let this slide, as long as there is an equal sign following
 			p.CaptureError(&fancyerr.Error{
 				Message:  "missing attribute name",
@@ -66,9 +65,6 @@ func NamedAttribute() parser.Func[*ast.NamedAttribute] {
 				Examples: []fancyerr.Example{{Example: "`class=\"woof\"`"}},
 			})
 		}
-
-		parser.TrySkip(p, comment.OrHorizontalWhitespace())
-
 		err := unexpected.UntilAnyRune(p, comment.OrHorizontalWhitespace(), '=', ',', ')')
 		if err != nil {
 			err.Message = "unexpected runes after attribute name"
@@ -90,12 +86,12 @@ func NamedAttribute() parser.Func[*ast.NamedAttribute] {
 			p.CaptureError(err)
 		}
 
-		assignPos := p.Pos()
-		if !parser.TryRune(p, '=') {
-			if attr.Name.Name == "" { // we have neither a name nor a =, this is not an attr
+		attr.EqualSign = parser.TryOptionalRuneAt(p, '=', comment.OrAnyWhitespace())
+		if attr.EqualSign == nil {
+			if attr.Name == nil { // we have neither a name nor a =, this is not an attr
 				return nil, &fancyerr.Error{
 					Message: "missing named attribute",
-					Primary: quickanno.Expected(p, attr.Pos(), "an attribute"),
+					Primary: quickanno.Expected(p, attr.Start(), "an attribute"),
 					Examples: []fancyerr.Example{
 						{Title: "value attribute", Example: "`class=\"woof\"`"},
 						{Title: "boolean attribute", Example: "`async`"},
@@ -103,20 +99,18 @@ func NamedAttribute() parser.Func[*ast.NamedAttribute] {
 				}
 			}
 
-			return attr, nil
+			return &attr, nil
 		}
-		attr.EqualSign = &assignPos
-
-		parser.TrySkip(p, comment.OrAnyWhitespace())
 
 		attr.Value = parser.Must(p, Value())
-		return attr, nil
+		return &attr, nil
 	}
 }
 
 func Name() parser.Func[*ast.AttributeName] {
 	return func(p *parser.Parser) (*ast.AttributeName, *fancyerr.Error) {
-		name := &ast.AttributeName{Position: p.Pos()}
+		var name ast.AttributeName
+		name.Position = p.PosPtr()
 
 		var parenCount int
 		name.Name = parser.TokenWhile(p, func() bool {
@@ -138,12 +132,12 @@ func Name() parser.Func[*ast.AttributeName] {
 		if name.Name == "" {
 			return nil, &fancyerr.Error{
 				Message: "missing attribute name",
-				Primary: quickanno.Expected(p, name.Position, "an attribute name"),
+				Primary: quickanno.Expected(p, name.Start(), "an attribute name"),
 			}
 		} else if parenCount > 0 {
 			p.CaptureError(&fancyerr.Error{
 				Message: "unbalanced parentheses",
-				Primary: quickanno.Expected(p, name.Position, fmt.Sprintf("%d closing parenthesis", parenCount)),
+				Primary: quickanno.Expected(p, name.Start(), fmt.Sprintf("%d closing parenthesis", parenCount)),
 				Explanation: fmt.Sprint("Attributes may contain parentheses, but they must be balanced to "+
 					"help the parser distinguish between the end of an attribute list and an "+
 					"attribute name. You currently have an excess of ", parenCount, " opening parentheses, "+
@@ -151,6 +145,6 @@ func Name() parser.Func[*ast.AttributeName] {
 			})
 		}
 
-		return name, nil
+		return &name, nil
 	}
 }

@@ -14,7 +14,7 @@ import (
 
 func AssignOp() parser.Func[string] {
 	return func(p *parser.Parser) (string, *fancyerr.Error) {
-		prefix, _ := parser.TryInOrder(p, AddOp(), MulOp())
+		prefix := parser.TryInOrder(p, AddOp(), MulOp())
 		if !parser.TryRune(p, '=') {
 			return "", &fancyerr.Error{
 				Message: "missing assign op",

@@ -22,15 +22,13 @@ func Type() parser.Func[*ast.Type] { // https://go.dev/ref/spec#Type
 		if parser.TryRune(p, '(') {
 			parser.TrySkip(p, comment.OrAnyWhitespace())
 
-			_, ok := parser.TryOk(p, Type())
-			if !ok {
+			t := parser.TryOptional(p, Type(), comment.OrHorizontalWhitespace())
+			if t == nil {
 				err := unexpected.UntilAnyRune(p, comment.OrHorizontalWhitespace(), ')')
 				if err != nil {
 					err.Message = "unexpected runes after opening parenthesis"
 					p.CaptureError(err)
 				}
-			} else {
-				parser.TrySkip(p, comment.OrHorizontalWhitespace())
 			}
 
 			if !parser.TryRune(p, ')') {
@@ -44,35 +42,32 @@ func Type() parser.Func[*ast.Type] { // https://go.dev/ref/spec#Type
 			}
 
 			return &ast.Type{
-				Type:     p.Raw[startIndex:p.Index()],
-				Position: starPos,
-				Until:    p.Pos(),
+				Type:  p.Raw[startIndex:p.Index()],
+				From:  starPos,
+				Until: p.Pos(),
 			}, nil
 		}
 
-		t, ok := parser.TryOk(p, TypeLit())
-		if ok {
+		t := parser.Try(p, TypeLit())
+		if t != nil {
 			return t, nil
 		}
 
-		namedType, ok := parser.TryOk(p, NamedType())
-		if ok {
+		namedType := parser.Try(p, NamedType())
+		if namedType != nil {
 			return &ast.Type{
-				Type:     p.Raw[startIndex:p.Index()],
-				Parsed:   namedType,
-				Position: namedType.Pos(),
-				Until:    namedType.End(),
+				Type:   p.Raw[startIndex:p.Index()],
+				Parsed: namedType,
+				From:   namedType.Start(),
+				Until:  namedType.End(),
 			}, nil
 		}
 
-		if !ok {
-			return nil, &fancyerr.Error{
-				Message:  "missing type",
-				Primary:  quickanno.Expected(p, p.Pos(), "a type"),
-				Examples: []fancyerr.Example{{Example: "`int`, `[]string`, or `woof.Bark`"}},
-			}
+		return nil, &fancyerr.Error{
+			Message:  "missing type",
+			Primary:  quickanno.Expected(p, p.Pos(), "a type"),
+			Examples: []fancyerr.Example{{Example: "`int`, `[]string`, or `woof.Bark`"}},
 		}
-		return t, nil
 	}
 }
 
@@ -82,7 +77,7 @@ func TypeName() parser.Func[ast.FullIdent] { // https://go.dev/ref/spec#TypeName
 
 func TypeArgs() parser.Func[*ast.TypeArguments] { // https://go.dev/ref/spec#TypeArgs
 	return func(p *parser.Parser) (*ast.TypeArguments, *fancyerr.Error) {
-		l, err := list.BracketList("type arguments", Type())(p)
+		l, err := parser.TryErr(p, list.BracketList("type arguments", Type()))
 		if err != nil {
 			return nil, err
 		}
@@ -96,9 +91,9 @@ func TypeArgs() parser.Func[*ast.TypeArguments] { // https://go.dev/ref/spec#Typ
 
 func TypeLit() parser.Func[*ast.Type] { // https://go.dev/ref/spec#TypeLit
 	return func(p *parser.Parser) (*ast.Type, *fancyerr.Error) {
-		t, ok := parser.TryInOrder(p, ArrayType(), StructType(), PointerType(), FunctionType(),
+		t := parser.TryInOrder(p, ArrayType(), StructType(), PointerType(), FunctionType(),
 			InterfaceType(), SliceType(), MapType(), ChannelType())
-		if !ok {
+		if t == nil {
 			return nil, &fancyerr.Error{
 				Message:  "missing type",
 				Primary:  quickanno.Expected(p, p.Pos(), "a type literal"),
@@ -116,8 +111,10 @@ func TypeLit() parser.Func[*ast.Type] { // https://go.dev/ref/spec#TypeLit
 
 func ArrayType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#ArrayType
 	return func(p *parser.Parser) (*ast.Type, *fancyerr.Error) {
+		var t ast.Type
+		t.From = p.Pos()
+
 		startIndex := p.Index()
-		t := &ast.Type{Position: p.Pos()}
 		if !parser.TryRune(p, '[') {
 			return nil, &fancyerr.Error{
 				Message: "missing array",
@@ -126,8 +123,8 @@ func ArrayType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#ArrayType
 		}
 
 		parser.TrySkip(p, comment.OrAnyWhitespace())
-		_, ok := parser.TryOk(p, ArrayLength())
-		if !ok {
+		l := parser.Try(p, ArrayLength())
+		if l == "" {
 			return nil, &fancyerr.Error{
 				Message:  "missing array",
 				Primary:  quickanno.Expected(p, p.Pos(), "an array length"),
@@ -141,7 +138,7 @@ func ArrayType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#ArrayType
 				Message: "array length: missing closing bracket",
 				Primary: quickanno.Expected(p, p.Pos(), "a closing bracket"),
 				Secondary: []fancyerr.Annotation{
-					anno.Position(p.File, t.Pos(), "for the opening bracket here"),
+					anno.Position(p.File, t.Start(), "for the opening bracket here"),
 				},
 			})
 		}
@@ -151,7 +148,7 @@ func ArrayType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#ArrayType
 
 		t.Type = p.Raw[startIndex:p.Index()]
 		t.Until = p.Pos()
-		return t, nil
+		return &t, nil
 	}
 }
 
@@ -213,8 +210,8 @@ func ArrayLength() parser.Func[string] { // https://go.dev/ref/spec#ArrayType
 
 func ElementType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#ElementType
 	return func(p *parser.Parser) (*ast.Type, *fancyerr.Error) {
-		t, ok := parser.TryOk(p, Type())
-		if !ok {
+		t := parser.Try(p, Type())
+		if t == nil {
 			return nil, &fancyerr.Error{
 				Message:  "missing element type",
 				Primary:  quickanno.Expected(p, p.Pos(), "a type"),
@@ -233,7 +230,8 @@ func ElementType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#ElementTy
 // spec.
 func StructType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#StructType
 	return func(p *parser.Parser) (*ast.Type, *fancyerr.Error) {
-		t := &ast.Type{Position: p.Pos()}
+		var t ast.Type
+		t.From = p.Pos()
 		startIndex := p.Index()
 
 		if !parser.TryToken(p, "struct") {
@@ -244,14 +242,20 @@ func StructType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#StructType
 			}
 		}
 
-		parser.TrySkip(p, comment.OrHorizontalWhitespace())
-		lBracePos := p.Pos()
-		if !parser.TryRune(p, '{') {
-			lBracePos = ast.NoPosition
+		hasWS := parser.TrySkip(p, comment.OrHorizontalWhitespace())
+		lBracePos := parser.TryRuneAt(p, '{')
+		if lBracePos == nil {
+			if !hasWS {
+				return nil, &fancyerr.Error{
+					Message:  "struct type: missing opening brace",
+					Primary:  quickanno.Expected(p, p.Pos(), "an opening curly brace"),
+					Examples: []fancyerr.Example{{Example: "`struct { Foo string }`"}},
+				}
+			}
 			p.CaptureError(&fancyerr.Error{
-				Message:  "interface type: missing opening brace",
+				Message:  "struct type: missing opening brace",
 				Primary:  quickanno.Expected(p, p.Pos(), "an opening curly brace"),
-				Examples: []fancyerr.Example{{Example: "`interface { Foo() }`"}},
+				Examples: []fancyerr.Example{{Example: "`struct { Foo() }`"}},
 			})
 		}
 
@@ -288,16 +292,16 @@ func StructType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#StructType
 				Message: "struct type: missing closing brace",
 				Primary: quickanno.Expected(p, p.Pos(), "a closing brace"),
 			}
-			if lBracePos != ast.NoPosition {
+			if lBracePos != nil {
 				err.Secondary = append(err.Secondary,
-					anno.Position(p.File, lBracePos, "for the opening brace here"))
+					anno.Position(p.File, *lBracePos, "for the opening brace here"))
 			}
 			p.CaptureError(err)
 		}
 
 		t.Type = p.Raw[startIndex:p.Index()]
 		t.Until = p.Pos()
-		return t, nil
+		return &t, nil
 	}
 }
 
@@ -307,7 +311,7 @@ func StructType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#StructType
 
 func PointerType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#PointerType
 	return func(p *parser.Parser) (*ast.Type, *fancyerr.Error) {
-		t := &ast.Type{Position: p.Pos()}
+		t := &ast.Type{From: p.Pos()}
 		startIndex := p.Index()
 
 		if !parser.TryRune(p, '*') {
@@ -319,7 +323,7 @@ func PointerType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#PointerTy
 
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 
-		parser.Must(p, BaseType(t.Pos()))
+		parser.Must(p, BaseType(t.Start()))
 
 		t.Type = p.Raw[startIndex:p.Index()]
 		t.Until = p.Pos()
@@ -329,8 +333,8 @@ func PointerType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#PointerTy
 
 func BaseType(asteriskPos ast.Position) parser.Func[*ast.Type] { // https://go.dev/ref/spec#BaseType
 	return func(p *parser.Parser) (*ast.Type, *fancyerr.Error) {
-		t, ok := parser.TryOk(p, Type())
-		if !ok {
+		t := parser.Try(p, Type())
+		if t == nil {
 			return nil, &fancyerr.Error{
 				Message: "missing base type",
 				Primary: quickanno.Expected(p, p.Pos(), "a type"),
@@ -352,7 +356,7 @@ func BaseType(asteriskPos ast.Position) parser.Func[*ast.Type] { // https://go.d
 // spec.
 func FunctionType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#FunctionType
 	return func(p *parser.Parser) (*ast.Type, *fancyerr.Error) {
-		t := &ast.Type{Position: p.Pos()}
+		t := &ast.Type{From: p.Pos()}
 		startIndex := p.Index()
 
 		if !parser.TryToken(p, "func") {
@@ -377,7 +381,7 @@ func FunctionType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#Function
 func Signature() parser.Func[string] { // https://go.dev/ref/spec#Signature
 	return func(p *parser.Parser) (string, *fancyerr.Error) {
 		startIndex := p.Index()
-		_, err := parser.Try(p, Parameters())
+		_, err := parser.TryErr(p, Parameters())
 		if err != nil {
 			return "", err
 		}
@@ -393,13 +397,13 @@ func Result() parser.Func[string] { // https://go.dev/ref/spec#Result
 	return func(p *parser.Parser) (string, *fancyerr.Error) {
 		startIndex := p.Index()
 
-		_, ok := parser.TryOk(p, Parameters())
-		if ok {
+		params := parser.Try(p, Parameters())
+		if params != "" {
 			return p.Raw[startIndex:p.Index()], nil
 		}
 
-		_, ok = parser.TryOk(p, Type())
-		if ok {
+		t := parser.Try(p, Type())
+		if t != nil {
 			return p.Raw[startIndex:p.Index()], nil
 		}
 
@@ -416,12 +420,12 @@ func Result() parser.Func[string] { // https://go.dev/ref/spec#Result
 func Parameters() parser.Func[string] { // https://go.dev/ref/spec#Parameters
 	return func(p *parser.Parser) (string, *fancyerr.Error) {
 		startIndex := p.Index()
-		_, ok := parser.TryOk(p, list.ParenList("parameters", NamedParameterDecl()))
-		if ok {
+		l := parser.Try(p, list.ParenList("parameters", NamedParameterDecl()))
+		if l != nil {
 			return p.Raw[startIndex:p.Index()], nil
 		}
 
-		_, err := list.ParenList("parameters", UnnamedParameterDecl())(p)
+		_, err := parser.TryErr(p, list.ParenList("parameters", UnnamedParameterDecl()))
 		if err != nil {
 			return "", err
 		}
@@ -432,13 +436,13 @@ func Parameters() parser.Func[string] { // https://go.dev/ref/spec#Parameters
 func NamedParameterDecl() parser.Func[string] { // https://go.dev/ref/spec#ParameterDecl
 	return func(p *parser.Parser) (string, *fancyerr.Error) {
 		startIndex := p.Index()
-		_, err := parser.Try(p, list.CommaList("parameter declaration", "parameter declarations", Identifier()))
+		_, err := parser.TryErr(p, list.CommaList("parameter declaration", "parameter declarations", Identifier()))
 		if err != nil {
 			return "", err
 		}
 
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
-		if parser.TryOptionalToken(p, "...") {
+		if parser.TryOptionalToken(p, "...", nil) {
 			parser.TrySkip(p, comment.OrHorizontalWhitespace())
 			parser.Must(p, Type())
 		} else {
@@ -457,8 +461,8 @@ func UnnamedParameterDecl() parser.Func[string] { // https://go.dev/ref/spec#Par
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 		parser.TryToken(p, "...")
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
-		_, ok := parser.TryOk(p, Type())
-		if !ok {
+		t := parser.Try(p, Type())
+		if t == nil {
 			return "", &fancyerr.Error{
 				Message: "missing parameter declaration",
 				Primary: quickanno.Expected(p, startPos, "an optional list of identifiers followed by a type"),
@@ -475,7 +479,7 @@ func UnnamedParameterDecl() parser.Func[string] { // https://go.dev/ref/spec#Par
 
 func InterfaceType() parser.Func[*ast.Type] {
 	return func(p *parser.Parser) (*ast.Type, *fancyerr.Error) {
-		t := &ast.Type{Position: p.Pos()}
+		t := &ast.Type{From: p.Pos()}
 		startIndex := p.Index()
 
 		if !parser.TryToken(p, "interface") {
@@ -487,14 +491,13 @@ func InterfaceType() parser.Func[*ast.Type] {
 		}
 
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
-		lBracePos := p.Pos()
-		if !parser.TryRune(p, '{') {
+		lBracePos := parser.TryRuneAt(p, '{')
+		if lBracePos == nil {
 			p.CaptureError(&fancyerr.Error{
 				Message:  "interface type: missing opening brace",
 				Primary:  quickanno.Expected(p, p.Pos(), "an opening curly brace"),
 				Examples: []fancyerr.Example{{Example: "`interface { Foo() }`"}},
 			})
-			lBracePos = ast.NoPosition
 		}
 
 		// see array length on why this is necessary
@@ -530,9 +533,9 @@ func InterfaceType() parser.Func[*ast.Type] {
 				Message: "interface type: missing closing brace",
 				Primary: quickanno.Expected(p, p.Pos(), "a closing brace"),
 			}
-			if lBracePos != ast.NoPosition {
+			if lBracePos != nil {
 				err.Secondary = append(err.Secondary,
-					anno.Position(p.File, lBracePos, "for the opening brace here"))
+					anno.Position(p.File, *lBracePos, "for the opening brace here"))
 			}
 			p.CaptureError(err)
 		}
@@ -550,7 +553,7 @@ func InterfaceType() parser.Func[*ast.Type] {
 func SliceType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#SliceType
 	return func(p *parser.Parser) (*ast.Type, *fancyerr.Error) {
 		startIndex := p.Index()
-		t := &ast.Type{Position: p.Pos()}
+		t := &ast.Type{From: p.Pos()}
 
 		if !parser.TryRune(p, '[') {
 			return nil, &fancyerr.Error{
@@ -565,7 +568,7 @@ func SliceType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#SliceType
 				Message: "slice: missing closing bracket",
 				Primary: quickanno.Expected(p, p.Pos(), "a closing bracket"),
 				Secondary: []fancyerr.Annotation{
-					anno.Position(p.File, t.Pos(), "for the opening bracket here"),
+					anno.Position(p.File, t.Start(), "for the opening bracket here"),
 				},
 			})
 		}
@@ -586,7 +589,7 @@ func SliceType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#SliceType
 func MapType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#MapType
 	return func(p *parser.Parser) (*ast.Type, *fancyerr.Error) {
 		startIndex := p.Index()
-		t := &ast.Type{Position: p.Pos()}
+		t := &ast.Type{From: p.Pos()}
 
 		if !parser.TryToken(p, "map") {
 			return nil, &fancyerr.Error{
@@ -635,7 +638,7 @@ func MapType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#MapType
 				Message: "map: missing closing bracket",
 				Primary: quickanno.Expected(p, p.Pos(), "a closing bracket"),
 				Secondary: []fancyerr.Annotation{
-					anno.Position(p.File, t.Pos(), "for the opening bracket here"),
+					anno.Position(p.File, t.Start(), "for the opening bracket here"),
 				},
 			})
 		}
@@ -651,8 +654,8 @@ func MapType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#MapType
 
 func KeyType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#KeyType
 	return func(p *parser.Parser) (*ast.Type, *fancyerr.Error) {
-		t, ok := parser.TryOk(p, Type())
-		if !ok {
+		t := parser.Try(p, Type())
+		if t == nil {
 			return nil, &fancyerr.Error{
 				Message:  "missing key type",
 				Primary:  quickanno.Expected(p, p.Pos(), "a type"),
@@ -670,7 +673,7 @@ func KeyType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#KeyType
 func ChannelType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#ChannelType
 	return func(p *parser.Parser) (*ast.Type, *fancyerr.Error) {
 		startIndex := p.Index()
-		t := &ast.Type{Position: p.Pos()}
+		t := &ast.Type{From: p.Pos()}
 
 		if parser.TryToken(p, "<-") {
 			parser.TrySkip(p, comment.OrAnyWhitespace())
@@ -710,11 +713,10 @@ func ChannelType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#ChannelTy
 
 func NamedType() parser.Func[*ast.NamedType] { // essentially the first of https://go.dev/ref/spec#Type
 	return func(p *parser.Parser) (*ast.NamedType, *fancyerr.Error) {
-		t := &ast.NamedType{}
+		var t ast.NamedType
 
-		var ok bool
-		t.Name, ok = parser.TryOk(p, TypeName())
-		if !ok {
+		t.Name = parser.Try(p, TypeName())
+		if t.Name == nil {
 			return nil, &fancyerr.Error{
 				Message:  "missing named type",
 				Primary:  quickanno.Expected(p, p.Pos(), "a type name"),
@@ -723,8 +725,46 @@ func NamedType() parser.Func[*ast.NamedType] { // essentially the first of https
 		}
 
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
-		t.TypeArgs, _ = parser.Try(p, TypeArgs())
+		t.TypeArgs = parser.Try(p, TypeArgs())
 
-		return t, nil
+		return &t, nil
+	}
+}
+
+// ============================================================================
+// Type parameter declarations
+// ======================================================================================
+
+func TypeParameters() parser.Func[*ast.TypeParameters] {
+	return func(p *parser.Parser) (*ast.TypeParameters, *fancyerr.Error) {
+		l, err := parser.TryErr(p, list.BracketList("type parameters", TypeParameterDecl()))
+		if err != nil {
+			return nil, err
+		}
+
+		return &ast.TypeParameters{
+			LBracket: l.Open,
+			Params:   l.Elems,
+			RBracket: l.Close,
+		}, nil
+	}
+}
+
+func TypeParameterDecl() parser.Func[*ast.TypeParameter] {
+	return func(p *parser.Parser) (*ast.TypeParameter, *fancyerr.Error) {
+		var tp ast.TypeParameter
+
+		tp.Names = parser.Try(p, list.CommaList("type parameter name", "type parameter names", Identifier()))
+		if tp.Names == nil {
+			return nil, &fancyerr.Error{
+				Message: "missing type parameter",
+				Primary: quickanno.Expected(p, p.Pos(), "a type parameter"),
+			}
+		}
+
+		parser.TrySkip(p, comment.OrHorizontalWhitespace())
+		tp.Type = parser.Must(p, Type())
+
+		return &tp, nil
 	}
 }

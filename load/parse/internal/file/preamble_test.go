@@ -13,8 +13,8 @@ func TestPackageDirective(t *testing.T) {
 
 	in := "package foo"
 	expect := &ast.PackageDirective{
-		Package: ast.Position{Line: 1, Col: 1},
-		Name:    &ast.Ident{Ident: "foo", Position: ast.Position{Line: 1, Col: 9}},
+		Package: &ast.Position{Line: 1, Col: 1},
+		Name:    &ast.Ident{Ident: "foo", Position: &ast.Position{Line: 1, Col: 9}},
 	}
 
 	actual := testutil.ParsesFully(t, in+";", PackageDirective())
@@ -33,11 +33,11 @@ func TestImport(t *testing.T) {
 			name: "single",
 			in:   "import \"foo\"",
 			expect: &ast.Import{
-				Import: ast.Position{Line: 1, Col: 1},
+				Import: &ast.Position{Line: 1, Col: 1},
 				Specs: []*ast.ImportSpec{
 					{
 						Path: &ast.StaticString{
-							Open:     ast.Position{Line: 1, Col: 8},
+							Open:     &ast.Position{Line: 1, Col: 8},
 							Quote:    '"',
 							Contents: "foo",
 							Close:    &ast.Position{Line: 1, Col: 12},
@@ -52,19 +52,19 @@ func TestImport(t *testing.T) {
 				"\t\"bar\"\n" +
 				")",
 			expect: &ast.Import{
-				Import: ast.Position{Line: 1, Col: 1},
+				Import: &ast.Position{Line: 1, Col: 1},
 				LParen: &ast.Position{Line: 1, Col: 8},
 				Specs: []*ast.ImportSpec{
 					{
 						Path: &ast.StaticString{
-							Open:     ast.Position{Line: 2, Col: 2},
+							Open:     &ast.Position{Line: 2, Col: 2},
 							Quote:    '"',
 							Contents: "foo",
 							Close:    &ast.Position{Line: 2, Col: 6},
 						},
 					}, {
 						Path: &ast.StaticString{
-							Open:     ast.Position{Line: 3, Col: 2},
+							Open:     &ast.Position{Line: 3, Col: 2},
 							Quote:    '"',
 							Contents: "bar",
 							Close:    &ast.Position{Line: 3, Col: 6},
@@ -99,7 +99,7 @@ func TestImportSpec(t *testing.T) {
 			in:   "\"foo\"",
 			expect: &ast.ImportSpec{
 				Path: &ast.StaticString{
-					Open:     ast.Position{Line: 1, Col: 1},
+					Open:     &ast.Position{Line: 1, Col: 1},
 					Quote:    '"',
 					Contents: "foo",
 					Close:    &ast.Position{Line: 1, Col: 5},
@@ -109,9 +109,9 @@ func TestImportSpec(t *testing.T) {
 			name: "alias",
 			in:   "foo \"bar\"",
 			expect: &ast.ImportSpec{
-				Alias: &ast.Ident{Ident: "foo", Position: ast.Position{Line: 1, Col: 1}},
+				Alias: &ast.Ident{Ident: "foo", Position: &ast.Position{Line: 1, Col: 1}},
 				Path: &ast.StaticString{
-					Open:     ast.Position{Line: 1, Col: 5},
+					Open:     &ast.Position{Line: 1, Col: 5},
 					Quote:    '"',
 					Contents: "bar",
 					Close:    &ast.Position{Line: 1, Col: 9},

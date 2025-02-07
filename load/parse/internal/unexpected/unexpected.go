@@ -50,7 +50,7 @@ func UntilAnyRune(p *parser.Parser, wsFunc parser.WhitespaceFunc, runes ...rune)
 			}
 			end = p.Pos()
 
-			hasWS := parser.TrySkipOk(p, wsFunc)
+			hasWS := parser.TrySkip(p, wsFunc)
 			if !hasWS {
 				break
 			}

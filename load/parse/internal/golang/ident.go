@@ -9,7 +9,8 @@ import (
 
 func Identifier() parser.Func[*ast.Ident] { // https://go.dev/ref/spec#Identifiers
 	return func(p *parser.Parser) (*ast.Ident, *fancyerr.Error) {
-		ident := &ast.Ident{Position: p.Pos()}
+		var ident ast.Ident
+		ident.Position = p.PosPtr()
 
 		r := parser.TryRunePredicate(p, Letter)
 		if r < 0 {
@@ -20,7 +21,7 @@ func Identifier() parser.Func[*ast.Ident] { // https://go.dev/ref/spec#Identifie
 			}
 		}
 
-		trail, _ := parser.Try(p, identTrail())
+		trail := parser.Try(p, identTrail())
 		ident.Ident = string(r) + trail
 		if IsKeyword(ident.Ident) {
 			p.CaptureError(&fancyerr.Error{
@@ -33,7 +34,7 @@ func Identifier() parser.Func[*ast.Ident] { // https://go.dev/ref/spec#Identifie
 			})
 		}
 
-		return ident, nil
+		return &ident, nil
 	}
 }
 

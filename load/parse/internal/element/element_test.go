@@ -13,7 +13,7 @@ func TestDoctype(t *testing.T) {
 
 	in := "!doctype(html)"
 	expect := &ast.Doctype{
-		Doctype: ast.Position{Line: 1, Col: 1},
+		Doctype: &ast.Position{Line: 1, Col: 1},
 		LParen:  &ast.Position{Line: 1, Col: 9},
 		HTML:    &ast.Position{Line: 1, Col: 10},
 		RParen:  &ast.Position{Line: 1, Col: 14},
@@ -35,10 +35,10 @@ func TestElement(t *testing.T) {
 			name: "void",
 			in:   "br",
 			expect: &ast.Element{
-				Header: ast.ElementHeader{
-					Name: ast.ElementName{
+				Header: &ast.ElementHeader{
+					Name: &ast.ElementName{
 						Name:     "br",
-						Position: ast.Position{Line: 1, Col: 1},
+						Position: &ast.Position{Line: 1, Col: 1},
 					},
 				},
 			},
@@ -46,25 +46,25 @@ func TestElement(t *testing.T) {
 			name: "void with attributes",
 			in:   "br(foo=bar)",
 			expect: &ast.Element{
-				Header: ast.ElementHeader{
-					Name: ast.ElementName{
+				Header: &ast.ElementHeader{
+					Name: &ast.ElementName{
 						Name:     "br",
-						Position: ast.Position{Line: 1, Col: 1},
+						Position: &ast.Position{Line: 1, Col: 1},
 					},
 					Attributes: &ast.Arguments{
-						LParen: ast.Position{Line: 1, Col: 3},
+						LParen: &ast.Position{Line: 1, Col: 3},
 						Args: []ast.Argument{
 							&ast.NamedAttribute{
-								Name: ast.AttributeName{
+								Name: &ast.AttributeName{
 									Name:     "foo",
-									Position: ast.Position{Line: 1, Col: 4},
+									Position: &ast.Position{Line: 1, Col: 4},
 								},
 								EqualSign: &ast.Position{Line: 1, Col: 7},
 								Value: &ast.ExpressionAttributeValue{
 									Code: ast.Code{
 										&ast.GoCode{
 											Code:     "bar",
-											Position: ast.Position{Line: 1, Col: 8},
+											Position: &ast.Position{Line: 1, Col: 8},
 										},
 									},
 								},
@@ -78,19 +78,19 @@ func TestElement(t *testing.T) {
 			name: "with body",
 			in:   "div [ foo ]",
 			expect: &ast.Element{
-				Header: ast.ElementHeader{
-					Name: ast.ElementName{
+				Header: &ast.ElementHeader{
+					Name: &ast.ElementName{
 						Name:     "div",
-						Position: ast.Position{Line: 1, Col: 1},
+						Position: &ast.Position{Line: 1, Col: 1},
 					},
 				},
 				Body: &ast.BracketText{
-					LBracket: ast.Position{Line: 1, Col: 5},
+					LBracket: &ast.Position{Line: 1, Col: 5},
 					Lines: ast.TextBlock{
 						ast.TextLine{
 							&ast.Text{
 								Text:     "foo",
-								Position: ast.Position{Line: 1, Col: 7},
+								Position: &ast.Position{Line: 1, Col: 7},
 							},
 						},
 					},
@@ -121,33 +121,33 @@ func TestHeader(t *testing.T) {
 			name: "name",
 			in:   "br",
 			expect: &ast.ElementHeader{
-				Name: ast.ElementName{
+				Name: &ast.ElementName{
 					Name:     "br",
-					Position: ast.Position{Line: 1, Col: 1},
+					Position: &ast.Position{Line: 1, Col: 1},
 				},
 			},
 		}, {
 			name: "name with attributes",
 			in:   "br(foo=bar)",
 			expect: &ast.ElementHeader{
-				Name: ast.ElementName{
+				Name: &ast.ElementName{
 					Name:     "br",
-					Position: ast.Position{Line: 1, Col: 1},
+					Position: &ast.Position{Line: 1, Col: 1},
 				},
 				Attributes: &ast.Arguments{
-					LParen: ast.Position{Line: 1, Col: 3},
+					LParen: &ast.Position{Line: 1, Col: 3},
 					Args: []ast.Argument{
 						&ast.NamedAttribute{
-							Name: ast.AttributeName{
+							Name: &ast.AttributeName{
 								Name:     "foo",
-								Position: ast.Position{Line: 1, Col: 4},
+								Position: &ast.Position{Line: 1, Col: 4},
 							},
 							EqualSign: &ast.Position{Line: 1, Col: 7},
 							Value: &ast.ExpressionAttributeValue{
 								Code: ast.Code{
 									&ast.GoCode{
 										Code:     "bar",
-										Position: ast.Position{Line: 1, Col: 8},
+										Position: &ast.Position{Line: 1, Col: 8},
 									},
 								},
 							},
@@ -174,7 +174,7 @@ func TestName(t *testing.T) {
 	in := "br"
 	expect := &ast.ElementName{
 		Name:     "br",
-		Position: ast.Position{Line: 1, Col: 1},
+		Position: &ast.Position{Line: 1, Col: 1},
 	}
 
 	actual := testutil.ParsesFully(t, in, Name())
@@ -186,14 +186,14 @@ func TestRaw(t *testing.T) {
 
 	in := "!raw [ foo ]"
 	expect := &ast.RawElement{
-		Raw: ast.Position{Line: 1, Col: 1},
+		Raw: &ast.Position{Line: 1, Col: 1},
 		Body: &ast.BracketText{
-			LBracket: ast.Position{Line: 1, Col: 6},
+			LBracket: &ast.Position{Line: 1, Col: 6},
 			Lines: ast.TextBlock{
 				ast.TextLine{
 					&ast.Text{
 						Text:     "foo",
-						Position: ast.Position{Line: 1, Col: 8},
+						Position: &ast.Position{Line: 1, Col: 8},
 					},
 				},
 			},
@@ -210,14 +210,14 @@ func TestAnd(t *testing.T) {
 
 	in := "&(foo)"
 	expect := &ast.And{
-		And: ast.Position{Line: 1, Col: 1},
+		And: &ast.Position{Line: 1, Col: 1},
 		Attributes: &ast.Arguments{
-			LParen: ast.Position{Line: 1, Col: 2},
+			LParen: &ast.Position{Line: 1, Col: 2},
 			Args: []ast.Argument{
 				&ast.NamedAttribute{
-					Name: ast.AttributeName{
+					Name: &ast.AttributeName{
 						Name:     "foo",
-						Position: ast.Position{Line: 1, Col: 3},
+						Position: &ast.Position{Line: 1, Col: 3},
 					},
 				},
 			},

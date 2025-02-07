@@ -19,7 +19,7 @@ func TestImplicitCodeLine(t *testing.T) {
 				return nil, err
 			}
 
-			return &f.Statement, nil
+			return f.Statement, nil
 		})
 	})
 }
@@ -29,10 +29,10 @@ func TestExplicitCodeLine(t *testing.T) {
 
 	in := "- foo();"
 	expect := &ast.ExplicitCodeLine{
-		Minus: ast.Position{Line: 1, Col: 1},
+		Minus: &ast.Position{Line: 1, Col: 1},
 		Statement: &ast.Statement{
 			Code: ast.Code{
-				&ast.GoCode{Code: "foo()", Position: ast.Position{Line: 1, Col: 3}},
+				&ast.GoCode{Code: "foo()", Position: &ast.Position{Line: 1, Col: 3}},
 			},
 		},
 	}

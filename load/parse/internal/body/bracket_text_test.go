@@ -24,19 +24,19 @@ func testBracketText(t *testing.T, f parser.Func[*ast.BracketText]) {
 			name: "empty",
 			in:   "[]",
 			expect: &ast.BracketText{
-				LBracket: ast.Position{Line: 1, Col: 1},
+				LBracket: &ast.Position{Line: 1, Col: 1},
 				RBracket: &ast.Position{Line: 1, Col: 2},
 			},
 		}, {
 			name: "single line",
 			in:   "[ foo ]",
 			expect: &ast.BracketText{
-				LBracket: ast.Position{Line: 1, Col: 1},
+				LBracket: &ast.Position{Line: 1, Col: 1},
 				Lines: ast.TextBlock{
 					ast.TextLine{
 						&ast.Text{
 							Text:     "foo",
-							Position: ast.Position{Line: 1, Col: 3},
+							Position: &ast.Position{Line: 1, Col: 3},
 						},
 					},
 				},
@@ -49,17 +49,17 @@ func testBracketText(t *testing.T, f parser.Func[*ast.BracketText]) {
 				"\tbar\n" +
 				"]",
 			expect: &ast.BracketText{
-				LBracket: ast.Position{Line: 1, Col: 1},
+				LBracket: &ast.Position{Line: 1, Col: 1},
 				Lines: ast.TextBlock{
 					ast.TextLine{
 						&ast.Text{
 							Text:     "foo",
-							Position: ast.Position{Line: 2, Col: 2},
+							Position: &ast.Position{Line: 2, Col: 2},
 						},
 					}, ast.TextLine{
 						&ast.Text{
 							Text:     "bar",
-							Position: ast.Position{Line: 3, Col: 2},
+							Position: &ast.Position{Line: 3, Col: 2},
 						},
 					},
 				},

@@ -11,8 +11,8 @@ import (
 
 func PackageName() parser.Func[*ast.Ident] { // https://go.dev/ref/spec#PackageName
 	return func(p *parser.Parser) (*ast.Ident, *fancyerr.Error) {
-		ident, ok := parser.TryOk(p, Identifier())
-		if !ok {
+		ident := parser.Try(p, Identifier())
+		if ident == nil {
 			return nil, &fancyerr.Error{
 				Message:  "missing package name",
 				Primary:  quickanno.Expected(p, p.Pos(), "a package name"),

@@ -22,25 +22,28 @@ func TestOrHorizontalWhitespace(t *testing.T) {
 			in: "/* test */",
 			expectComments: []*ast.Comment{
 				{
-					Open:    ast.Position{Line: 1, Col: 1},
+					Open:    &ast.Position{Line: 1, Col: 1},
 					Comment: " test ",
 					General: true,
 					Close:   &ast.Position{Line: 1, Col: 9},
+					Until:   ast.Position{Line: 1, Col: 11},
 				},
 			},
 		}, {
 			in: "  /* test */ \t/* test2 */\t",
 			expectComments: []*ast.Comment{
 				{
-					Open:    ast.Position{Line: 1, Col: 3},
+					Open:    &ast.Position{Line: 1, Col: 3},
 					Comment: " test ",
 					General: true,
 					Close:   &ast.Position{Line: 1, Col: 11},
+					Until:   ast.Position{Line: 1, Col: 13},
 				}, {
-					Open:    ast.Position{Line: 1, Col: 15},
+					Open:    &ast.Position{Line: 1, Col: 15},
 					Comment: " test2 ",
 					General: true,
 					Close:   &ast.Position{Line: 1, Col: 24},
+					Until:   ast.Position{Line: 1, Col: 26},
 				},
 			},
 		},
@@ -54,7 +57,7 @@ func TestOrHorizontalWhitespace(t *testing.T) {
 				t.Parallel()
 
 				p := testutil.NewParser(t, c.in)
-				err := parser.TrySkip(p, OrHorizontalWhitespace())
+				err := parser.TrySkipErr(p, OrHorizontalWhitespace())
 				assert.Nil(t, err, "expected no error")
 				testutil.AssertEOF(t, p)
 
@@ -98,10 +101,11 @@ func TestAndEOS(t *testing.T) {
 			expectIndex: -1,
 			expectComments: []*ast.Comment{
 				{
-					Open:    ast.Position{Line: 1, Col: 1},
+					Open:    &ast.Position{Line: 1, Col: 1},
 					Comment: " test ",
 					General: true,
 					Close:   &ast.Position{Line: 1, Col: 9},
+					Until:   ast.Position{Line: 1, Col: 11},
 				},
 			},
 		}, {
@@ -109,10 +113,11 @@ func TestAndEOS(t *testing.T) {
 			expectIndex: -1,
 			expectComments: []*ast.Comment{
 				{
-					Open:    ast.Position{Line: 1, Col: 2},
+					Open:    &ast.Position{Line: 1, Col: 2},
 					Comment: " test\n ",
 					General: true,
 					Close:   &ast.Position{Line: 2, Col: 2},
+					Until:   ast.Position{Line: 2, Col: 4},
 				},
 			},
 		}, {
@@ -120,15 +125,17 @@ func TestAndEOS(t *testing.T) {
 			expectIndex: 25,
 			expectComments: []*ast.Comment{
 				{
-					Open:    ast.Position{Line: 1, Col: 3},
+					Open:    &ast.Position{Line: 1, Col: 3},
 					Comment: " test ",
 					General: true,
 					Close:   &ast.Position{Line: 1, Col: 11},
+					Until:   ast.Position{Line: 1, Col: 13},
 				}, {
-					Open:    ast.Position{Line: 1, Col: 15},
+					Open:    &ast.Position{Line: 1, Col: 15},
 					Comment: " test2 ",
 					General: true,
 					Close:   &ast.Position{Line: 1, Col: 24},
+					Until:   ast.Position{Line: 1, Col: 26},
 				},
 			},
 		}, {
@@ -146,7 +153,7 @@ func TestAndEOS(t *testing.T) {
 			}
 
 			p := testutil.NewParser(t, c.in)
-			err := parser.TrySkip(p, AndEOS())
+			err := parser.TrySkipErr(p, AndEOS())
 			assert.Nil(t, err, "expected no error")
 			assert.Equal(t, c.expectIndex, p.Index())
 
@@ -169,7 +176,7 @@ func TestAndEOL(t *testing.T) {
 			t.Parallel()
 
 			p := testutil.NewParser(t, "")
-			err := parser.TrySkip(p, AndEOL())
+			err := parser.TrySkipErr(p, AndEOL())
 			assert.Nil(t, err, "expected no error")
 			testutil.AssertEOF(t, p)
 		})
@@ -188,35 +195,38 @@ func testOrEOL(t *testing.T, f parser.WhitespaceFunc) {
 			in: "/* test */",
 			expectComments: []*ast.Comment{
 				{
-					Open:    ast.Position{Line: 1, Col: 1},
+					Open:    &ast.Position{Line: 1, Col: 1},
 					Comment: " test ",
 					General: true,
 					Close:   &ast.Position{Line: 1, Col: 9},
+					Until:   ast.Position{Line: 1, Col: 11},
 				},
 			},
 		}, {
 			in: "  /* test */ \t/* test2 */\n",
 			expectComments: []*ast.Comment{
 				{
-					Open:    ast.Position{Line: 1, Col: 3},
+					Open:    &ast.Position{Line: 1, Col: 3},
 					Comment: " test ",
 					General: true,
 					Close:   &ast.Position{Line: 1, Col: 11},
+					Until:   ast.Position{Line: 1, Col: 13},
 				}, {
-					Open:    ast.Position{Line: 1, Col: 15},
+					Open:    &ast.Position{Line: 1, Col: 15},
 					Comment: " test2 ",
 					General: true,
 					Close:   &ast.Position{Line: 1, Col: 24},
+					Until:   ast.Position{Line: 1, Col: 26},
 				},
 			},
 		}, {
 			in: " // foo",
 			expectComments: []*ast.Comment{
 				{
-					Open:    ast.Position{Line: 1, Col: 2},
+					Open:    &ast.Position{Line: 1, Col: 2},
 					Comment: " foo",
 					General: false,
-					Close:   &ast.Position{Line: 1, Col: 8},
+					Until:   ast.Position{Line: 1, Col: 8},
 				},
 			},
 		},
@@ -227,7 +237,7 @@ func testOrEOL(t *testing.T, f parser.WhitespaceFunc) {
 			t.Parallel()
 
 			p := testutil.NewParser(t, c.in)
-			err := parser.TrySkip(p, f)
+			err := parser.TrySkipErr(p, f)
 			assert.Nil(t, err, "expected no error")
 			testutil.AssertEOF(t, p)
 
@@ -253,40 +263,43 @@ func TestOrAnyWhitespace(t *testing.T) {
 				"/* bar */\n",
 			expectComments: []*ast.Comment{
 				{
-					Open:    ast.Position{Line: 1, Col: 3},
+					Open:    &ast.Position{Line: 1, Col: 3},
 					Comment: " test ",
 					General: true,
 					Close:   &ast.Position{Line: 1, Col: 11},
+					Until:   ast.Position{Line: 1, Col: 13},
 				}, {
-					Open:    ast.Position{Line: 1, Col: 15},
+					Open:    &ast.Position{Line: 1, Col: 15},
 					Comment: " test2 ",
 					General: true,
 					Close:   &ast.Position{Line: 1, Col: 24},
+					Until:   ast.Position{Line: 1, Col: 26},
 				}, {
-					Open:    ast.Position{Line: 2, Col: 1},
+					Open:    &ast.Position{Line: 2, Col: 1},
 					Comment: " foo",
 					General: false,
-					Close:   &ast.Position{Line: 2, Col: 7},
+					Until:   ast.Position{Line: 2, Col: 7},
 				}, {
-					Open:    ast.Position{Line: 3, Col: 1},
+					Open:    &ast.Position{Line: 3, Col: 1},
 					Comment: " bar ",
 					General: true,
 					Close:   &ast.Position{Line: 3, Col: 8},
+					Until:   ast.Position{Line: 3, Col: 10},
 				},
 			},
 		}, {
 			in: " // foo\n// bar",
 			expectComments: []*ast.Comment{
 				{
-					Open:    ast.Position{Line: 1, Col: 2},
+					Open:    &ast.Position{Line: 1, Col: 2},
 					Comment: " foo",
 					General: false,
-					Close:   &ast.Position{Line: 1, Col: 8},
+					Until:   ast.Position{Line: 1, Col: 8},
 				}, {
-					Open:    ast.Position{Line: 2, Col: 1},
+					Open:    &ast.Position{Line: 2, Col: 1},
 					Comment: " bar",
 					General: false,
-					Close:   &ast.Position{Line: 2, Col: 7},
+					Until:   ast.Position{Line: 2, Col: 7},
 				},
 			},
 		},
@@ -297,7 +310,7 @@ func TestOrAnyWhitespace(t *testing.T) {
 			t.Parallel()
 
 			p := testutil.NewParser(t, c.in)
-			err := parser.TrySkip(p, OrAnyWhitespace())
+			err := parser.TrySkipErr(p, OrAnyWhitespace())
 			assert.Nil(t, err, "expected no error")
 			testutil.AssertEOF(t, p)
 
@@ -326,40 +339,44 @@ func TestOrLoneWS(t *testing.T) {
 			in: "/* test */",
 			expectComments: []*ast.Comment{
 				{
-					Open:    ast.Position{Line: 1, Col: 1},
+					Open:    &ast.Position{Line: 1, Col: 1},
 					Comment: " test ",
 					General: true,
 					Close:   &ast.Position{Line: 1, Col: 9},
+					Until:   ast.Position{Line: 1, Col: 11},
 				},
 			},
 		}, {
 			in: "  /* test */\n /* test2 */\n",
 			expectComments: []*ast.Comment{
 				{
-					Open:    ast.Position{Line: 1, Col: 3},
+					Open:    &ast.Position{Line: 1, Col: 3},
 					Comment: " test ",
 					General: true,
 					Close:   &ast.Position{Line: 1, Col: 11},
+					Until:   ast.Position{Line: 1, Col: 13},
 				}, {
-					Open:    ast.Position{Line: 2, Col: 2},
+					Open:    &ast.Position{Line: 2, Col: 2},
 					Comment: " test2 ",
 					General: true,
 					Close:   &ast.Position{Line: 2, Col: 11},
+					Until:   ast.Position{Line: 2, Col: 13},
 				},
 			},
 		}, {
 			in: " // foo\n/* bar\n baz */",
 			expectComments: []*ast.Comment{
 				{
-					Open:    ast.Position{Line: 1, Col: 2},
+					Open:    &ast.Position{Line: 1, Col: 2},
 					Comment: " foo",
 					General: false,
-					Close:   &ast.Position{Line: 1, Col: 8},
+					Until:   ast.Position{Line: 1, Col: 8},
 				}, {
-					Open:    ast.Position{Line: 2, Col: 1},
+					Open:    &ast.Position{Line: 2, Col: 1},
 					Comment: " bar\n baz ",
 					General: true,
 					Close:   &ast.Position{Line: 3, Col: 6},
+					Until:   ast.Position{Line: 3, Col: 8},
 				},
 			},
 		},
@@ -367,15 +384,16 @@ func TestOrLoneWS(t *testing.T) {
 			in: "/* foo */ // bar",
 			expectComments: []*ast.Comment{
 				{
-					Open:    ast.Position{Line: 1, Col: 1},
+					Open:    &ast.Position{Line: 1, Col: 1},
 					Comment: " foo ",
 					General: true,
 					Close:   &ast.Position{Line: 1, Col: 8},
+					Until:   ast.Position{Line: 1, Col: 10},
 				}, {
-					Open:    ast.Position{Line: 1, Col: 11},
+					Open:    &ast.Position{Line: 1, Col: 11},
 					Comment: " bar",
 					General: false,
-					Close:   &ast.Position{Line: 1, Col: 17},
+					Until:   ast.Position{Line: 1, Col: 17},
 				},
 			},
 		},
@@ -386,7 +404,7 @@ func TestOrLoneWS(t *testing.T) {
 			t.Parallel()
 
 			p := testutil.NewParser(t, c.in)
-			err := parser.TrySkip(p, OrLoneWS())
+			err := parser.TrySkipErr(p, OrLoneWS())
 			assert.Nil(t, err, "expected no error")
 			testutil.AssertEOF(t, p)
 

@@ -8,15 +8,15 @@
 // drawback.
 //
 // We use special functions for consuming whitespace, which is rolled back, if
-// the next call to Try or Must in the same function fails.
+// the next call to TryErr or Must in the same function fails.
 // This is incredibly convenient, but can be tricky if you skip WS and then
 // try a bunch of functions.
 // For example, consider the buggy code below:
 //
 //	 parser.MustSkip(p, whitespace.Any())
-//	 if res1, ok := parser.TryOk(p, a()); ok {
+//	 if res1, ok := parser.Try(p, a()); ok {
 //			// ...
-//	 } else if res2, ok := parser.TryOk(p, b()); ok {
+//	 } else if res2, ok := parser.Try(p, b()); ok {
 //			// ...
 //	 }
 //
@@ -26,11 +26,11 @@
 // different types, wrap them in a Func like this:
 //
 //	parser.MustSkip(p, whitespace.Any())
-//	v, ok := parser.Try(p, func(p *parser.Parser) (parentType, *fancyerr.Error) {
-//		if res1, ok := parser.TryOk(p, a()); ok {
+//	v, ok := parser.TryErr(p, func(p *parser.Parser) (parentType, *fancyerr.Error) {
+//		if res1, ok := parser.Try(p, a()); ok {
 //			return parentType(res1), nil
 //		}
-//		return parser.Try(p, b())
+//		return parser.TryErr(p, b())
 //	})
 package parser
 
@@ -122,12 +122,12 @@ type (
 	// If the func matches, but the parsed value contains syntactical errors,
 	// those should be captured using the `CaptureError` method of the parser.
 	//
-	// Funcs must not be called directly, but only using [Try] and [Must].
+	// Funcs must not be called directly, but only using [TryErr] and [Must].
 	Func[T any] func(p *Parser) (T, *fancyerr.Error)
 
 	// A WhitespaceFunc is a special [Func] that parses whitespace.
 	// It semantically differs, in that consumed whitespace is rolled back, if
-	// the next call to [Try] or [Must] (and its derivatives) fails.
+	// the next call to [TryErr] or [Must] (and its derivatives) fails.
 	WhitespaceFunc func(p *Parser) *fancyerr.Error
 )
 
@@ -169,7 +169,7 @@ func MatchesRunePredicate(p *Parser, pred func(rune) bool) bool {
 	return pred(p.peek())
 }
 
-func Try[T any](p *Parser, f Func[T]) (T, *fancyerr.Error) {
+func TryErr[T any](p *Parser, f Func[T]) (T, *fancyerr.Error) {
 	restore := p.state.takeWSStart()
 	v, err := f(p)
 	if err != nil {
@@ -179,12 +179,12 @@ func Try[T any](p *Parser, f Func[T]) (T, *fancyerr.Error) {
 	return v, err
 }
 
-func TryOk[T any](p *Parser, f Func[T]) (T, bool) {
-	v, err := Try(p, f)
-	return v, err == nil
+func Try[T any](p *Parser, f Func[T]) T {
+	v, _ := TryErr(p, f)
+	return v
 }
 
-func TryOptional[T any](p *Parser, f Func[T]) (T, *fancyerr.Error) {
+func TryOptionalErr[T any](p *Parser, f Func[T], ws WhitespaceFunc) (T, *fancyerr.Error) {
 	state := p.CloneState()
 	p.state.ws = nil
 	v, err := f(p)
@@ -192,25 +192,28 @@ func TryOptional[T any](p *Parser, f Func[T]) (T, *fancyerr.Error) {
 		p.RestoreState(state)
 		return v, err
 	}
+	if ws != nil {
+		TrySkip(p, ws)
+	}
 	return v, nil
 }
 
-func TryOptionalOk[T any](p *Parser, f Func[T]) (T, bool) {
-	v, err := TryOptional(p, f)
-	return v, err == nil
+func TryOptional[T any](p *Parser, f Func[T], ws WhitespaceFunc) T {
+	v, _ := TryOptionalErr(p, f, ws)
+	return v
 
 }
 
 // TryInOrder tries all Funcs until it finds one that matches.
 //
 // If none match, it returns false.
-func TryInOrder[T any](p *Parser, fs ...Func[T]) (T, bool) {
+func TryInOrder[T any](p *Parser, fs ...Func[T]) T {
 	state := p.CloneState()
 	p.state.ws = nil
 	for _, f := range fs {
 		v, err := f(p)
 		if err == nil { // IS nil
-			return v, true
+			return v
 		}
 		p.RestoreState(state)
 	}
@@ -219,17 +222,21 @@ func TryInOrder[T any](p *Parser, fs ...Func[T]) (T, bool) {
 	}
 
 	var z T
-	return z, false
+	return z
 }
 
 // TrySkip attempts to skip whitespace using the given [WhitespaceFunc].
 //
-// Calls to TrySkip can be stacked, so that the next call to [Try] or [Must]
+// Calls to TrySkip can be stacked, so that the next call to [TryErr] or [Must]
 // (and friends) rolls back to the first TrySkip call in a chain of many.
 //
 // Even if TrySkip fails to match, it does not affect a previous restore
 // point.
-func TrySkip(p *Parser, f WhitespaceFunc) *fancyerr.Error {
+func TrySkip(p *Parser, f WhitespaceFunc) bool {
+	return TrySkipErr(p, f) == nil
+}
+
+func TrySkipErr(p *Parser, f WhitespaceFunc) *fancyerr.Error {
 	state := p.CloneState()
 	if !p.state.parsingWS {
 		p.state.markWSStart()
@@ -244,15 +251,11 @@ func TrySkip(p *Parser, f WhitespaceFunc) *fancyerr.Error {
 	return nil
 }
 
-func TrySkipOk(p *Parser, f WhitespaceFunc) bool {
-	return TrySkip(p, f) == nil
-}
-
 // Must tries to parse using the given [Func].
 // If the func returns an error, Must captures it and returns the value
 // returned by Func, most commonly the zero value.
 func Must[T any](p *Parser, f Func[T]) T {
-	v, err := Try(p, f)
+	v, err := TryErr(p, f)
 	if err != nil {
 		p.CaptureError(err)
 	}
@@ -261,7 +264,7 @@ func Must[T any](p *Parser, f Func[T]) T {
 
 // MustSkip is the [Must] equivalent of [TrySkip].
 func MustSkip(p *Parser, f WhitespaceFunc) {
-	if err := TrySkip(p, f); err != nil {
+	if err := TrySkipErr(p, f); err != nil {
 		p.CaptureError(err)
 	}
 }

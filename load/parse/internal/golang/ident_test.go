@@ -18,7 +18,7 @@ func testIdentifier(t *testing.T, f parser.Func[*ast.Ident]) {
 	in := "foo"
 	expect := &ast.Ident{
 		Ident:    "foo",
-		Position: ast.Position{Line: 1, Col: 1},
+		Position: &ast.Position{Line: 1, Col: 1},
 	}
 
 	actual := testutil.ParsesFully(t, in, f)

@@ -30,7 +30,7 @@ func textLineStub(term rune) parser.Func[ast.TextLine] {
 		return ast.TextLine{
 			&ast.Text{
 				Text:     line,
-				Position: pos,
+				Position: &pos,
 			},
 		}, nil
 	}
@@ -63,10 +63,10 @@ func scopeNodeStub(p *parser.Parser) (ast.ScopeNode, *fancyerr.Error) {
 		}
 	}
 	return &ast.Element{
-		Header: ast.ElementHeader{
-			Name: ast.ElementName{
+		Header: &ast.ElementHeader{
+			Name: &ast.ElementName{
 				Name:     name,
-				Position: pos,
+				Position: &pos,
 			},
 		},
 	}, nil

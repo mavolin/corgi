@@ -15,22 +15,22 @@ import (
 // whitespace.
 func OrHorizontalWhitespace() parser.WhitespaceFunc {
 	return func(p *parser.Parser) *fancyerr.Error {
-		hasWS := parser.TrySkipOk(p, whitespace.Horizontal())
-		c, hasComment := parser.TryOk(p, GeneralComment())
-		if !hasWS && !hasComment {
+		hasWS := parser.TrySkip(p, whitespace.Horizontal())
+		c := parser.Try(p, GeneralComment())
+		if !hasWS && c == nil {
 			return &fancyerr.Error{
 				Message: "missing horizontal whitespace",
 				Primary: quickanno.Expected(p, p.Pos(), "a space, tab, or a block comment"),
 			}
 		}
-		if hasComment {
+		if c != nil {
 			p.CaptureComment(&ast.CommentGroup{Comments: []*ast.Comment{c}})
 		}
 
-		for hasWS || hasComment {
-			hasWS = parser.TrySkipOk(p, whitespace.Horizontal())
-			c, hasComment = parser.TryOk(p, GeneralComment())
-			if hasComment {
+		for hasWS || c != nil {
+			hasWS = parser.TrySkip(p, whitespace.Horizontal())
+			c = parser.Try(p, GeneralComment())
+			if c != nil {
 				p.CaptureComment(&ast.CommentGroup{Comments: []*ast.Comment{c}})
 			}
 		}
@@ -47,8 +47,8 @@ func AndEOS() parser.WhitespaceFunc {
 		pos := p.Pos()
 		for {
 			parser.TrySkip(p, whitespace.Horizontal())
-			c, hasComment := parser.TryOk(p, GeneralComment())
-			if !hasComment {
+			c := parser.Try(p, GeneralComment())
+			if c == nil {
 				break
 			}
 			p.CaptureComment(&ast.CommentGroup{Comments: []*ast.Comment{c}})
@@ -75,7 +75,7 @@ func AndEOS() parser.WhitespaceFunc {
 func AndMustEOS() parser.WhitespaceFunc {
 	return func(p *parser.Parser) *fancyerr.Error {
 		parser.TrySkip(p, OrHorizontalWhitespace())
-		if parser.TrySkipOk(p, AndEOS()) { // fast path
+		if parser.TrySkip(p, AndEOS()) { // fast path
 			return nil
 		}
 
@@ -100,19 +100,19 @@ func AndEOL() parser.WhitespaceFunc {
 	return func(p *parser.Parser) *fancyerr.Error {
 		for {
 			parser.TrySkip(p, whitespace.Horizontal())
-			c, hasComment := parser.TryOk(p, GeneralComment())
-			if !hasComment {
+			c := parser.Try(p, GeneralComment())
+			if c == nil {
 				break
 			}
 			p.CaptureComment(&ast.CommentGroup{Comments: []*ast.Comment{c}})
 		}
 
-		c, hasComment := parser.TryOk(p, lineCommentWithoutEOL())
-		if hasComment {
+		c := parser.Try(p, lineCommentWithoutEOL())
+		if c != nil {
 			p.CaptureComment(&ast.CommentGroup{Comments: []*ast.Comment{c}})
 		}
 
-		hasEOL := parser.TrySkipOk(p, whitespace.EOL())
+		hasEOL := parser.TrySkip(p, whitespace.EOL())
 		if hasEOL {
 			return nil
 		}
@@ -130,16 +130,16 @@ func OrAnyWhitespace() parser.WhitespaceFunc {
 		pos := p.Pos()
 		for {
 			parser.TrySkip(p, whitespace.Horizontal())
-			c, hasComment := parser.TryOk(p, GeneralComment())
-			if !hasComment {
+			c := parser.Try(p, GeneralComment())
+			if c == nil {
 				break
 			}
 			p.CaptureComment(&ast.CommentGroup{Comments: []*ast.Comment{c}})
 		}
 
 		parser.TrySkip(p, whitespace.Horizontal())
-		c, hasComment := parser.TryOk(p, LineComment())
-		if hasComment {
+		c := parser.Try(p, LineComment())
+		if c != nil {
 			p.CaptureComment(&ast.CommentGroup{Comments: []*ast.Comment{c}})
 		}
 
@@ -156,17 +156,17 @@ func OrAnyWhitespace() parser.WhitespaceFunc {
 
 func OrLoneWS() parser.WhitespaceFunc {
 	return func(p *parser.Parser) *fancyerr.Error {
-		hasWS := parser.TrySkipOk(p, whitespace.Any())
+		hasWS := parser.TrySkip(p, whitespace.Any())
 
-		c, hasComment := parser.TryOk(p, GeneralComment())
-		if hasComment {
+		c := parser.Try(p, GeneralComment())
+		if c != nil {
 			p.CaptureComment(&ast.CommentGroup{Comments: []*ast.Comment{c}})
 			parser.TrySkip(p, OrAnyWhitespace())
 			return nil
 		}
 
-		c, hasComment = parser.TryOk(p, LineComment())
-		if !hasComment {
+		c = parser.Try(p, LineComment())
+		if c == nil {
 			if hasWS {
 				return nil
 			}
@@ -177,11 +177,11 @@ func OrLoneWS() parser.WhitespaceFunc {
 		}
 
 		cs := make([]*ast.Comment, 0, 48)
-		for hasComment {
+		for c != nil {
 			cs = append(cs, c)
 
 			parser.TrySkip(p, whitespace.Horizontal())
-			c, hasComment = parser.TryOk(p, LineComment())
+			c = parser.Try(p, LineComment())
 		}
 		p.CaptureComment(&ast.CommentGroup{Comments: slices.Clip(cs)})
 		parser.TrySkip(p, OrLoneWS())

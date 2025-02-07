@@ -21,18 +21,18 @@ func TestArrowBlock(t *testing.T) {
 			name: "empty",
 			in:   ">",
 			expect: &ast.ArrowBlock{
-				Arrow: ast.Position{Line: 1, Col: 1},
+				Arrow: &ast.Position{Line: 1, Col: 1},
 			},
 		}, {
 			name: "single line",
 			in:   "> foo",
 			expect: &ast.ArrowBlock{
-				Arrow: ast.Position{Line: 1, Col: 1},
+				Arrow: &ast.Position{Line: 1, Col: 1},
 				Lines: ast.TextBlock{
 					{
 						&ast.Text{
 							Text:     "foo",
-							Position: ast.Position{Line: 1, Col: 3},
+							Position: &ast.Position{Line: 1, Col: 3},
 						},
 					},
 				},
@@ -43,17 +43,17 @@ func TestArrowBlock(t *testing.T) {
 				"\n" +
 				"  bar",
 			expect: &ast.ArrowBlock{
-				Arrow: ast.Position{Line: 1, Col: 1},
+				Arrow: &ast.Position{Line: 1, Col: 1},
 				Lines: ast.TextBlock{
 					{
 						&ast.Text{
 							Text:     "foo",
-							Position: ast.Position{Line: 1, Col: 3},
+							Position: &ast.Position{Line: 1, Col: 3},
 						},
 					}, {
 						&ast.Text{
 							Text:     "bar",
-							Position: ast.Position{Line: 3, Col: 3},
+							Position: &ast.Position{Line: 3, Col: 3},
 						},
 					},
 				},
@@ -77,27 +77,27 @@ func TestLine(t *testing.T) {
 	expect := ast.TextLine{
 		&ast.Text{
 			Text:     "foo",
-			Position: ast.Position{Line: 1, Col: 1},
+			Position: &ast.Position{Line: 1, Col: 1},
 		},
 		&ast.ExpressionInterpolation{
-			Hash:   ast.Position{Line: 1, Col: 5},
+			Hash:   &ast.Position{Line: 1, Col: 5},
 			LBrace: &ast.Position{Line: 1, Col: 6},
 			Expression: &ast.Expression{
 				Code: ast.Code{
 					&ast.GoCode{
 						Code:     "bar",
-						Position: ast.Position{Line: 1, Col: 7},
+						Position: &ast.Position{Line: 1, Col: 7},
 					},
 				},
 			},
 			RBrace: &ast.Position{Line: 1, Col: 10},
 		},
-		&ast.EscapedHash{Position: ast.Position{Line: 1, Col: 11}},
+		&ast.EscapedHash{Hash: &ast.Position{Line: 1, Col: 11}},
 		&ast.Text{
 			Text:     "baz",
-			Position: ast.Position{Line: 1, Col: 13},
+			Position: &ast.Position{Line: 1, Col: 13},
 		},
-		&ast.HashSpace{Position: ast.Position{Line: 1, Col: 17}},
+		&ast.HashSpace{Hash: &ast.Position{Line: 1, Col: 17}},
 	}
 
 	actual := parsesTextFully(t, in, Line('\n'))
@@ -129,7 +129,7 @@ func TestText(t *testing.T) {
 
 			expect := &ast.Text{
 				Text:     c.in,
-				Position: ast.Position{Line: 1, Col: 1},
+				Position: &ast.Position{Line: 1, Col: 1},
 			}
 			actual := parsesTextFully(t, c.in, Text('\n'))
 			assert.Equal(t, expect, actual)

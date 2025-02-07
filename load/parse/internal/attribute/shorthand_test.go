@@ -16,21 +16,21 @@ func TestIDShorthand(t *testing.T) {
 
 func testIDShorthand(t *testing.T, f parser.Func[*ast.IDShorthand]) {
 	expect := &ast.IDShorthand{
-		Hash: ast.Position{Line: 1, Col: 1},
+		Hash: &ast.Position{Line: 1, Col: 1},
 		ID: ast.Shorthand{
-			&ast.ShorthandText{Text: "foo", Position: ast.Position{Line: 1, Col: 2}},
+			&ast.ShorthandText{Text: "foo", Position: &ast.Position{Line: 1, Col: 2}},
 			&ast.ShorthandInterpolation{
 				LBrace: &ast.Position{Line: 1, Col: 6},
 				Expression: &ast.Expression{
 					Code: ast.Code{
 						&ast.GoCode{
 							Code:     "bar",
-							Position: ast.Position{Line: 1, Col: 7},
+							Position: &ast.Position{Line: 1, Col: 7},
 						},
 					},
 				},
 				RBrace: &ast.Position{Line: 1, Col: 10},
-				Hash:   ast.Position{Line: 1, Col: 5},
+				Hash:   &ast.Position{Line: 1, Col: 5},
 			},
 		},
 	}
@@ -54,31 +54,31 @@ func testClassShorthand(t *testing.T, f parser.Func[*ast.ClassShorthand]) {
 			name: "only constant",
 			in:   ".foo",
 			expect: &ast.ClassShorthand{
-				Dot: ast.Position{Line: 1, Col: 1},
+				Dot: &ast.Position{Line: 1, Col: 1},
 				Names: []ast.Shorthand{
-					{&ast.ShorthandText{Text: "foo", Position: ast.Position{Line: 1, Col: 2}}},
+					{&ast.ShorthandText{Text: "foo", Position: &ast.Position{Line: 1, Col: 2}}},
 				},
 			},
 		}, {
 			name: "constant and interpolation",
 			in:   ".foo#{bar}",
 			expect: &ast.ClassShorthand{
-				Dot: ast.Position{Line: 1, Col: 1},
+				Dot: &ast.Position{Line: 1, Col: 1},
 				Names: []ast.Shorthand{
 					{
-						&ast.ShorthandText{Text: "foo", Position: ast.Position{Line: 1, Col: 2}},
+						&ast.ShorthandText{Text: "foo", Position: &ast.Position{Line: 1, Col: 2}},
 						&ast.ShorthandInterpolation{
 							LBrace: &ast.Position{Line: 1, Col: 6},
 							Expression: &ast.Expression{
 								Code: ast.Code{
 									&ast.GoCode{
 										Code:     "bar",
-										Position: ast.Position{Line: 1, Col: 7},
+										Position: &ast.Position{Line: 1, Col: 7},
 									},
 								},
 							},
 							RBrace: &ast.Position{Line: 1, Col: 10},
-							Hash:   ast.Position{Line: 1, Col: 5},
+							Hash:   &ast.Position{Line: 1, Col: 5},
 						},
 					},
 				},
@@ -87,12 +87,12 @@ func testClassShorthand(t *testing.T, f parser.Func[*ast.ClassShorthand]) {
 			name: "multiple",
 			in:   ".md foo #{bar}",
 			expect: &ast.ClassShorthand{
-				Dot: ast.Position{Line: 1, Col: 1},
+				Dot: &ast.Position{Line: 1, Col: 1},
 				Names: []ast.Shorthand{
 					{
-						&ast.ShorthandText{Text: "md", Position: ast.Position{Line: 1, Col: 2}},
+						&ast.ShorthandText{Text: "md", Position: &ast.Position{Line: 1, Col: 2}},
 					}, {
-						&ast.ShorthandText{Text: "foo", Position: ast.Position{Line: 1, Col: 5}},
+						&ast.ShorthandText{Text: "foo", Position: &ast.Position{Line: 1, Col: 5}},
 					}, {
 						&ast.ShorthandInterpolation{
 							LBrace: &ast.Position{Line: 1, Col: 10},
@@ -100,12 +100,12 @@ func testClassShorthand(t *testing.T, f parser.Func[*ast.ClassShorthand]) {
 								Code: ast.Code{
 									&ast.GoCode{
 										Code:     "bar",
-										Position: ast.Position{Line: 1, Col: 11},
+										Position: &ast.Position{Line: 1, Col: 11},
 									},
 								},
 							},
 							RBrace: &ast.Position{Line: 1, Col: 14},
-							Hash:   ast.Position{Line: 1, Col: 9},
+							Hash:   &ast.Position{Line: 1, Col: 9},
 						},
 					},
 				},
@@ -142,7 +142,7 @@ func testShorthand(t *testing.T, f parser.Func[ast.Shorthand]) {
 			name: "text",
 			in:   "foo",
 			expect: ast.Shorthand{
-				&ast.ShorthandText{Text: "foo", Position: ast.Position{Line: 1, Col: 1}},
+				&ast.ShorthandText{Text: "foo", Position: &ast.Position{Line: 1, Col: 1}},
 			},
 		}, {
 			name: "interpolation",
@@ -152,29 +152,29 @@ func testShorthand(t *testing.T, f parser.Func[ast.Shorthand]) {
 					LBrace: &ast.Position{Line: 1, Col: 2},
 					Expression: &ast.Expression{
 						Code: ast.Code{
-							&ast.GoCode{Code: "bar", Position: ast.Position{Line: 1, Col: 3}},
+							&ast.GoCode{Code: "bar", Position: &ast.Position{Line: 1, Col: 3}},
 						},
 					},
 					RBrace: &ast.Position{Line: 1, Col: 6},
-					Hash:   ast.Position{Line: 1, Col: 1},
+					Hash:   &ast.Position{Line: 1, Col: 1},
 				},
 			},
 		}, {
 			name: "mix",
 			in:   "foo#{bar}foobar",
 			expect: ast.Shorthand{
-				&ast.ShorthandText{Text: "foo", Position: ast.Position{Line: 1, Col: 1}},
+				&ast.ShorthandText{Text: "foo", Position: &ast.Position{Line: 1, Col: 1}},
 				&ast.ShorthandInterpolation{
 					LBrace: &ast.Position{Line: 1, Col: 5},
 					Expression: &ast.Expression{
 						Code: ast.Code{
-							&ast.GoCode{Code: "bar", Position: ast.Position{Line: 1, Col: 6}},
+							&ast.GoCode{Code: "bar", Position: &ast.Position{Line: 1, Col: 6}},
 						},
 					},
 					RBrace: &ast.Position{Line: 1, Col: 9},
-					Hash:   ast.Position{Line: 1, Col: 4},
+					Hash:   &ast.Position{Line: 1, Col: 4},
 				},
-				&ast.ShorthandText{Text: "foobar", Position: ast.Position{Line: 1, Col: 10}},
+				&ast.ShorthandText{Text: "foobar", Position: &ast.Position{Line: 1, Col: 10}},
 			},
 		},
 	}
@@ -203,7 +203,7 @@ func TestShorthandText(t *testing.T) {
 func testShorthandText(t *testing.T, f parser.Func[*ast.ShorthandText]) {
 	t.Run("text", func(t *testing.T) {
 		t.Parallel()
-		expect := &ast.ShorthandText{Text: "foo", Position: ast.Position{Line: 1, Col: 1}}
+		expect := &ast.ShorthandText{Text: "foo", Position: &ast.Position{Line: 1, Col: 1}}
 		actual := testutil.ParsesFully(t, "foo", f)
 		assert.Equal(t, expect, actual)
 	})
@@ -226,11 +226,11 @@ func testShorthandInterpolation(t *testing.T, f parser.Func[*ast.ShorthandInterp
 			LBrace: &ast.Position{Line: 1, Col: 2},
 			Expression: &ast.Expression{
 				Code: ast.Code{
-					&ast.GoCode{Code: "foo", Position: ast.Position{Line: 1, Col: 3}},
+					&ast.GoCode{Code: "foo", Position: &ast.Position{Line: 1, Col: 3}},
 				},
 			},
 			RBrace: &ast.Position{Line: 1, Col: 6},
-			Hash:   ast.Position{Line: 1, Col: 1},
+			Hash:   &ast.Position{Line: 1, Col: 1},
 		}
 
 		actual := testutil.ParsesFully(t, "#{foo}", f)

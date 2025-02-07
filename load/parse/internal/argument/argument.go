@@ -11,9 +11,9 @@ import (
 
 func Argument() parser.Func[ast.Argument] {
 	return func(p *parser.Parser) (ast.Argument, *fancyerr.Error) {
-		if a, ok := parser.TryOk(p, ComponentArgument()); ok {
+		if a := parser.Try(p, ComponentArgument()); a != nil {
 			return a, nil
-		} else if a, ok := parser.TryOk(p, attribute.Attribute()); ok {
+		} else if a := parser.Try(p, attribute.Attribute()); a != nil {
 			return a, nil
 		}
 
@@ -30,8 +30,8 @@ func Argument() parser.Func[ast.Argument] {
 
 func Arguments() parser.Func[*ast.Arguments] {
 	return func(p *parser.Parser) (*ast.Arguments, *fancyerr.Error) {
-		l, ok := parser.TryOk(p, list.ParenList("arguments", Argument()))
-		if !ok {
+		l := parser.Try(p, list.ParenList("arguments", Argument()))
+		if l == nil {
 			return nil, &fancyerr.Error{
 				Message: "missing arguments",
 				Primary: quickanno.Expected(p, p.Pos(), "a list of arguments"),
