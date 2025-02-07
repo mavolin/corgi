@@ -13,6 +13,7 @@ import (
 	"github.com/mavolin/corgi/v2/load/parse/internal/html"
 	"github.com/mavolin/corgi/v2/load/parse/internal/list"
 	"github.com/mavolin/corgi/v2/load/parse/internal/quickanno"
+	"github.com/mavolin/corgi/v2/load/parse/internal/unexpected"
 	"github.com/mavolin/corgi/v2/load/parse/internal/whitespace"
 )
 
@@ -36,25 +37,21 @@ func Definition() parser.Func[*ast.AttributeDefinition] {
 			def.Prefix = parser.TryOptional(p, Name(), comment.OrAnyWhitespace())
 		}
 
-		// check if this is a single spec
-		if !parser.MatchesAnyRune(p, '(') {
+		def.LParen = parser.TryOptionalRuneAt(p, '(', comment.OrAnyWhitespace())
+		if def.LParen == nil {
 			if parser.MatchesAnyRune(p, '{') {
 				// our prefix is actually a single spec
 				def.Prefix = nil
 				p.RestoreState(beforePrefix)
 			}
 
-			s, err := parser.TryErr(p, Spec())
-			if err != nil {
-				p.CaptureError(err)
-			} else {
+			s := parser.Must(p, Spec())
+			if s != nil {
 				def.Specs = []*ast.AttributeSpec{s}
 			}
 			parser.MustSkip(p, comment.AndMustEOS())
 			return &def, nil
 		}
-
-		def.LParen = parser.TryRuneAt(p, '(') // guaranteed to be non-nil
 
 		def.Specs = make([]*ast.AttributeSpec, 0, 64)
 		for {
@@ -71,7 +68,17 @@ func Definition() parser.Func[*ast.AttributeDefinition] {
 			}
 			parser.MustSkip(p, comment.AndEOS())
 		}
-		def.Specs = slices.Clip(def.Specs)
+		if len(def.Specs) == 0 {
+			def.Specs = nil
+		} else {
+			def.Specs = slices.Clip(def.Specs)
+		}
+
+		err := unexpected.UntilAnyRune(p, comment.OrAnyWhitespace(), ')')
+		if err != nil {
+			err.Message = "attribute definition: unexpected runes"
+			p.CaptureError(err)
+		}
 
 		def.RParen = parser.TryOptionalRuneAt(p, ')', nil)
 		if def.RParen == nil {
@@ -80,6 +87,7 @@ func Definition() parser.Func[*ast.AttributeDefinition] {
 				Primary: quickanno.Expected(p, *def.LParen, "expected a `)` for the opening `(` here"),
 			})
 		}
+
 		parser.MustSkip(p, comment.AndMustEOS())
 		return &def, nil
 	}
