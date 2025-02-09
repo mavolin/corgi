@@ -75,14 +75,6 @@ func TryTokenAt(p *Parser, s string) *ast.Position {
 	return &pos
 }
 
-func TryOptionalTokenAt(p *Parser, s string, ws WhitespaceFunc) *ast.Position {
-	pos := p.Pos()
-	if !TryOptionalToken(p, s, ws) {
-		return nil
-	}
-	return &pos
-}
-
 func TryRune(p *Parser, r rune) (ok bool) {
 	restore := p.state.takeWSStart()
 	if r != p.peek() {

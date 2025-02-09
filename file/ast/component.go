@@ -1,207 +1,237 @@
 package ast
 
+import "slices"
+
 // ============================================================================
 // Component
 // ======================================================================================
 
 type Component struct {
-	Name *Ident
-
-	LBracket   *Position // nil if no type params
-	TypeParams []*TypeParam
-	RBracket   *Position // nil if no type params
-
-	LParen *Position
-	Params []*ComponentParam
-	RParen *Position
-
-	Body Body
-
-	Position Position
+	Comp   *Position
+	Header *ComponentHeader
+	Colon  *Position            // nil if no extend
+	Extend *ComponentCallHeader // optional
+	Body   Body
 }
 
 var _ ScopeNode = (*Component)(nil)
 
-func (c *Component) Pos() Position { return c.Position }
+func (c *Component) Start() Position {
+	if c.Comp != nil {
+		return *c.Comp
+	} else if c.Header != nil {
+		return c.Header.Start()
+	} else if c.Colon != nil {
+		return *c.Colon
+	} else if c.Extend != nil {
+		return c.Extend.Start()
+	}
+	return Position{}
+}
 func (c *Component) End() Position {
 	if c.Body != nil {
 		return c.Body.End()
-	} else if c.RParen != nil {
-		return deltaPos(*c.RParen, 1)
-	} else if len(c.Params) > 0 {
-		return c.Params[len(c.Params)-1].End()
-	} else if c.LParen != nil {
-		return deltaPos(*c.LParen, 1)
-	} else if c.RBracket != nil {
-		return deltaPos(*c.RBracket, 1)
-	} else if len(c.TypeParams) > 0 {
-		return c.TypeParams[len(c.TypeParams)-1].End()
-	} else if c.LBracket != nil {
-		return deltaPos(*c.LBracket, 1)
-	} else if c.Name != nil {
-		return c.Name.End()
+	} else if c.Extend != nil {
+		return c.Extend.End()
+	} else if c.Colon != nil {
+		return deltaPos(*c.Colon, len(":"))
+	} else if c.Header != nil {
+		return c.Header.End()
+	} else if c.Comp != nil {
+		deltaPos(*c.Comp, len("comp"))
 	}
-	return deltaPos(c.Position, len("comp"))
+	return Position{}
 }
 
 func (*Component) _node()      {}
 func (*Component) _scopeNode() {}
 
-// ==================================== Type Param =====================================
+// ============================================================================
+// Component Header
+// ======================================================================================
 
-type TypeParam struct {
-	Names []*Ident
-	Type  *Type
+type ComponentHeader struct {
+	Name       *Ident
+	TypeParams *TypeParameters // optional
+	Params     *ComponentParameters
 }
 
-var _ Node = (*TypeParam)(nil)
+var _ Node = (*ComponentHeader)(nil)
 
-func (p *TypeParam) Pos() Position {
-	if len(p.Names) > 0 {
-		return p.Names[0].Pos()
+func (h *ComponentHeader) Start() Position {
+	if h.Name != nil {
+		return h.Name.Start()
+	} else if h.TypeParams != nil {
+		return h.TypeParams.Start()
+	} else if h.Params != nil {
+		return h.Params.Start()
 	}
-	return InvalidPosition
+	return Position{}
 }
-func (p *TypeParam) End() Position {
-	if p.Type != nil {
-		return p.Type.End()
+func (h *ComponentHeader) End() Position {
+	if h.Params != nil {
+		return h.Params.End()
+	} else if h.TypeParams != nil {
+		return h.TypeParams.End()
+	} else if h.Name != nil {
+		return h.Name.End()
 	}
-	if len(p.Names) > 0 {
-		return p.Names[len(p.Names)-1].End()
-	}
-	return InvalidPosition
+	return Position{}
 }
 
-func (*TypeParam) _node() {}
+func (*ComponentHeader) _node() {}
 
-// ==================================== Component Param =====================================
+// ============================================================================
+// Component Params
+// ======================================================================================
 
-// ComponentParam represents a parameter of a Component.
-type ComponentParam struct {
+type ComponentParameters struct {
+	LParen *Position
+	Params []*ComponentParameter
+	RParen *Position
+}
+
+var _ Node = (*ComponentParameters)(nil)
+
+func (p *ComponentParameters) Start() Position {
+	if p.LParen != nil {
+		return *p.LParen
+	}
+	for _, param := range p.Params {
+		if param != nil {
+			return param.Start()
+		}
+	}
+	if p.RParen != nil {
+		return *p.RParen
+	}
+	return Position{}
+}
+func (p *ComponentParameters) End() Position {
+	if p.RParen != nil {
+		return deltaPos(*p.RParen, len(")"))
+	}
+	for _, param := range slices.Backward(p.Params) {
+		if param != nil {
+			return param.End()
+		}
+	}
+	if p.LParen != nil {
+		return deltaPos(*p.LParen, len("("))
+	}
+	return Position{}
+}
+
+func (*ComponentParameters) _node() {}
+
+// ============================================================================
+// Component Param
+// ======================================================================================
+
+// ComponentParameter is a parameter of a Component.
+type ComponentParameter struct {
 	Name    *Ident
-	Type    *Type // nil if inferred from default, set if Default is nil
-	Colon   *Position
-	Default *GoCode // optional, set if Type is nil
-
-	Position Position
+	Type    *Type       // nil if inferred from default, set if Default is nil
+	Colon   *Position   // optional, set if Default
+	Default *Expression // optional, set if Type is nil
 }
 
-var _ Node = (*ComponentParam)(nil)
+var _ Node = (*ComponentParameter)(nil)
 
-func (p *ComponentParam) Pos() Position { return p.Position }
-func (p *ComponentParam) End() Position {
+func (p *ComponentParameter) Start() Position {
+	if p.Name != nil {
+		return p.Name.Start()
+	} else if p.Type != nil {
+		return p.Type.Start()
+	} else if p.Colon != nil {
+		return *p.Colon
+	} else if p.Default != nil {
+		return p.Default.Start()
+	}
+	return Position{}
+}
+func (p *ComponentParameter) End() Position {
 	if p.Default != nil {
 		return p.Default.End()
 	} else if p.Colon != nil {
-		return deltaPos(*p.Colon, 1)
+		return deltaPos(*p.Colon, len(":"))
 	} else if p.Type != nil {
 		return p.Type.End()
 	} else if p.Name != nil {
 		return p.Name.End()
 	}
-	return InvalidPosition
+	return Position{}
 }
 
-func (*ComponentParam) _node() {}
+func (*ComponentParameter) _node() {}
 
 // ============================================================================
-// Component Call
+// Header
 // ======================================================================================
 
-type ComponentCall struct {
-	Namespace *Ident // may be nil
-	Name      *Ident
-
-	LBracket *Position // nil if no type params
-	TypeArgs []*Type
-	RBracket *Position // nil if no type params
-
-	LParen      *Position
-	ImplicitArg Expression // the implicit val arg, may be nil
-	Args        []*ComponentArg
-	RParen      *Position
-
-	Body Body
-
-	Position Position
+type Alias struct {
+	Alias         *Position
+	Header        *ComponentHeader
+	ComponentCall *ComponentCall
 }
 
-var _ ScopeNode = (*ComponentCall)(nil)
+var _ ScopeNode = (*Alias)(nil)
 
-func (c *ComponentCall) Pos() Position { return c.Position }
-func (c *ComponentCall) End() Position {
-	if c.Body != nil {
-		return c.Body.End()
-	} else if c.RParen != nil {
-		return deltaPos(*c.RParen, 1)
-	} else if len(c.Args) > 0 {
-		return c.Args[len(c.Args)-1].End()
-	} else if c.ImplicitArg != nil {
-		return c.ImplicitArg.End()
-	} else if c.LParen != nil {
-		return deltaPos(*c.LParen, 1)
-	} else if c.RBracket != nil {
-		return deltaPos(*c.RBracket, 1)
-	} else if len(c.TypeArgs) > 0 {
-		return c.TypeArgs[len(c.TypeArgs)-1].End()
-	} else if c.LBracket != nil {
-		return deltaPos(*c.LBracket, 1)
-	} else if c.Name != nil {
-		return c.Name.End()
+func (a *Alias) Start() Position {
+	if a.Alias != nil {
+		return *a.Alias
+	} else if a.Header != nil {
+		return a.Header.Start()
+	} else if a.ComponentCall != nil {
+		return a.ComponentCall.Start()
 	}
-	return deltaPos(c.Position, len("+"))
+	return Position{}
 }
-
-func (*ComponentCall) _node()      {}
-func (*ComponentCall) _scopeNode() {}
-
-// =================================== Component Call Arg ===================================
-
-type ComponentArg struct {
-	Name  *Ident
-	Colon *Position
-	Value Expression
-
-	Position Position
-}
-
-var _ Node = (*ComponentArg)(nil)
-
-func (a *ComponentArg) Pos() Position { return a.Position }
-func (a *ComponentArg) End() Position {
-	if a.Value != nil {
-		return a.Value.End()
-	} else if a.Colon != nil {
-		return deltaPos(*a.Colon, 1)
-	} else if a.Name != nil {
-		return a.Name.End()
+func (a *Alias) End() Position {
+	if a.ComponentCall != nil {
+		return a.ComponentCall.End()
+	} else if a.Header != nil {
+		return a.Header.End()
+	} else if a.Alias != nil {
+		return deltaPos(*a.Alias, len("alias"))
 	}
-	return InvalidPosition
+	return Position{}
 }
 
-func (*ComponentArg) _node() {}
+func (*Alias) _node()      {}
+func (*Alias) _scopeNode() {}
 
 // ============================================================================
-// Block
+// General
 // ======================================================================================
 
 type Block struct {
-	Name *Ident
-	Body Body // may be nil
-
-	Position Position
+	Block   *Position
+	Name    *Ident
+	Default Body // may be nil
 }
 
 var _ ScopeNode = (*Block)(nil)
 
-func (b *Block) Pos() Position { return b.Position }
+func (b *Block) Start() Position {
+	if b.Block != nil {
+		return *b.Block
+	} else if b.Name != nil {
+		return b.Name.Start()
+	} else if b.Default != nil {
+		return b.Default.Start()
+	}
+	return Position{}
+}
 func (b *Block) End() Position {
-	if b.Body != nil {
-		return b.Body.End()
+	if b.Default != nil {
+		return b.Default.End()
 	} else if b.Name != nil {
 		return b.Name.End()
+	} else if b.Block != nil {
+		return deltaPos(*b.Block, len("block"))
 	}
-	return deltaPos(b.Position, len("block"))
+	return Position{}
 }
 
 func (*Block) _node()      {}

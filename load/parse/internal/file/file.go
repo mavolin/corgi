@@ -14,6 +14,7 @@ import (
 	"github.com/mavolin/corgi/v2/load/parse/internal/component"
 	"github.com/mavolin/corgi/v2/load/parse/internal/element"
 	"github.com/mavolin/corgi/v2/load/parse/internal/interpolation"
+	"github.com/mavolin/corgi/v2/load/parse/internal/quickanno"
 	"github.com/mavolin/corgi/v2/load/parse/internal/state"
 	"github.com/mavolin/corgi/v2/load/parse/internal/text"
 )
@@ -28,9 +29,72 @@ func init() {
 }
 
 func scopeNode(p *parser.Parser) (ast.ScopeNode, *fancyerr.Error) {
-	// todo: detect invalid uses of doctype, import, package, component, else, and else if
+	if n := parser.Try(p, attribute.Definition()); n != nil {
+		return n, nil
+	} else if n := parser.Try(p, code.ImplicitCodeLine()); n != nil {
+		return n, nil
+	} else if n := parser.Try(p, code.ExplicitCodeLine()); n != nil {
+		return n, nil
+	} else if n := parser.Try(p, component.Component()); n != nil {
+		return n, nil
+	} else if n := parser.Try(p, component.Alias()); n != nil {
+		return n, nil
+	} else if n := parser.Try(p, component.Block()); n != nil {
+		return n, nil
+	} else if n := parser.Try(p, code.If()); n != nil {
+		return n, nil
+	} else if n := parser.Try(p, code.Switch()); n != nil {
+		return n, nil
+	} else if n := parser.Try(p, code.For()); n != nil {
+		return n, nil
+	} else if n := parser.Try(p, state.Declaration()); n != nil {
+		return n, nil
+	} else if n := parser.Try(p, text.ArrowBlock()); n != nil {
+		return n, nil
+	} else if n := parser.Try(p, element.Definition()); n != nil {
+		return n, nil
+	} else if n := parser.Try(p, element.And()); n != nil {
+		return n, nil
+	} else if n := parser.Try(p, element.Doctype()); n != nil {
+		return n, nil
+	} else if n := parser.Try(p, element.Raw()); n != nil {
+		return n, nil
+	}
 
-	panic("implement me")
+	if b := parser.Try(p, code.Else()); b != nil {
+		p.CaptureError(&fancyerr.Error{
+			Message: "unexpected `else`",
+			Primary: []fancyerr.Annotation{
+				anno.Range(p.File, *b.Else, quickanno.DeltaPos(*b.Else, 0, len("else")), "unexpected `else`"),
+			},
+			Explanation: "This `else` is not part of an if statement.",
+		})
+		return &ast.BadScopeNode{
+			From:  b.Start(),
+			Until: b.End(),
+		}, nil
+	} else if b := parser.Try(p, code.ElseIf()); b != nil {
+		p.CaptureError(&fancyerr.Error{
+			Message: "unexpected `else if`",
+			Primary: []fancyerr.Annotation{
+				anno.Range(p.File, *b.Else, quickanno.DeltaPos(*b.If, 0, len("if")), "unexpected `else if`"),
+			},
+			Explanation: "This `else if` is not part of an if statement.",
+		})
+		return &ast.BadScopeNode{
+			From:  b.Start(),
+			Until: b.End(),
+		}, nil
+	}
+
+	if n := parser.Try(p, element.Element()); n != nil {
+		return n, nil
+	}
+
+	return nil, &fancyerr.Error{
+		Message: "missing scope node",
+		Primary: quickanno.Expected(p, p.Pos(), "a scope node"),
+	}
 }
 
 func File() parser.Func[struct{}] {
@@ -38,9 +102,22 @@ func File() parser.Func[struct{}] {
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 		p.File.File.Package = parser.Must(p, PackageDirective())
 		p.File.File.Imports = parser.Collect(p, Import(), 8, comment.OrAnyWhitespace())
+		for _, imp := range p.File.File.Imports {
+			for _, spec := range imp.Specs {
+				if spec.Path != nil {
+					p.Preload(spec.Path.Unquote())
+				}
+			}
+		}
 		p.File.TopLevel = parser.Must(p, TopLevel())
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 		p.File.Comments = p.CloneState().Comments()
+		if !parser.MatchesAnyRune(p, parser.EOF) {
+			p.CaptureError(&fancyerr.Error{
+				Message: "unexpected tokens",
+				Primary: quickanno.Expected(p, p.Pos(), "end of file"),
+			})
+		}
 		return struct{}{}, nil
 	}
 }
@@ -89,6 +166,7 @@ func TopLevel() parser.Func[[]ast.ScopeNode] {
 				break
 			}
 
+			parser.MustSkip(p, comment.AndMustEOS())
 			parser.TrySkip(p, comment.OrAnyWhitespace())
 		}
 

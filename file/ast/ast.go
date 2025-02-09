@@ -5,40 +5,58 @@
 // parsing error that was recovered from.
 // In other words, users can safely assume that all fields are non-nil, unless
 // they are marked as optional.
+//
+// # A note on compatibility
+//
+// In order to allow for syntax changes in the future, a small reminder that
+// the sets of the sum types this package defines may expand in the future.
+// It should also be said, that fields with comments narrowing the set of
+// possible types may, therefore, eventually be broadened in future versions.
+// They exist to facilitate understanding of the AST, not to set a contract.
+// This goes against the usual precedent that a comment's contract is not
+// to be broken between versions.
 package ast
 
 import (
 	"fmt"
 )
 
-type AST struct {
+// A File holds the abstract syntax tree for a corgi file.
+type File struct {
 	// Raw contains the raw input file, as it was parsed.
 	Raw string
 	// Lines are the lines of Raw, stripped of their CRLF/LF line endings.
 	Lines []string
 
-	PackageDoc       []*DevComment // optional
-	PackageDirective *PackageDirective
+	Package *PackageDirective
+	Imports []*Import
 
-	Scope *Scope // optional
+	TopLevel []ScopeNode
+	Comments []*CommentGroup
 }
 
 type Node interface {
 	_node()
-	Pos() Position
+	// Start returns the inclusive start position of the node.
+	Start() Position
 	// End returns the exclusive end position of the node.
 	End() Position
 }
 
-// Position represents a position in a file.
+// ============================================================================
+// Hash
+// ======================================================================================
+
+// Position is a position in a file.
 type Position struct {
 	Line int
 	Col  int
 }
 
-var InvalidPosition = Position{0, 0}
-
-func (p Position) String() string {
+func (p *Position) String() string {
+	if p == nil {
+		return "<no position>"
+	}
 	return fmt.Sprintf("%d:%d", p.Line, p.Col)
 }
 

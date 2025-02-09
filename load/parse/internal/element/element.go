@@ -203,7 +203,7 @@ func And() parser.Func[*ast.And] {
 		if a.And == nil {
 			return nil, &fancyerr.Error{
 				Message: "missing &-attributes",
-				Primary: quickanno.Expected(p, *a.And, "&"),
+				Primary: quickanno.Expected(p, p.Pos(), "&"),
 			}
 		}
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())

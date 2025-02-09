@@ -1,178 +1,251 @@
 package ast
 
-import (
-	"github.com/mavolin/corgi/escape/attrtype"
-)
+import "slices"
 
-// ============================================================================
-// And
-// ======================================================================================
-
-// And represents an '&' expression.
-type And struct {
-	Attributes []AttributeCollection
-	Position   Position
-}
-
-var _ ScopeNode = (*And)(nil)
-
-func (a *And) Pos() Position { return a.Position }
-func (a *And) End() Position {
-	if len(a.Attributes) >= 0 {
-		return a.Attributes[len(a.Attributes)-1].End()
-	}
-	return deltaPos(a.Position, 1)
-}
-
-func (*And) _node()      {}
-func (*And) _scopeNode() {}
-
-// ============================================================================
-// AttributeCollection
-// ======================================================================================
-
-// An AttributeCollection is a pointer to either a [IDShorthand], a
-// [ClassShorthand], or an [AttributeList].
-type AttributeCollection interface {
-	Node
-	_attributeCollection()
-}
-
-// if this is changed, change the comment above
-var (
-	_ AttributeCollection = (*IDShorthand)(nil)
-	_ AttributeCollection = (*ClassShorthand)(nil)
-	_ AttributeCollection = (*AttributeList)(nil)
-)
-
-// ============================================================================
-// ID Shorthand
-// ======================================================================================
-
-type IDShorthand struct {
-	ID       string
-	Position Position
-}
-
-var _ AttributeCollection = (*IDShorthand)(nil)
-
-func (s *IDShorthand) Pos() Position { return s.Position }
-func (s *IDShorthand) End() Position { return deltaPos(s.Position, len("#")+len(s.ID)) }
-
-func (*IDShorthand) _node()                {}
-func (*IDShorthand) _attributeCollection() {}
-
-// ============================================================================
-// Class Shorthand
-// ======================================================================================
-
-type ClassShorthand struct {
-	Name     string
-	Position Position
-}
-
-var _ AttributeCollection = (*ClassShorthand)(nil)
-
-func (s *ClassShorthand) Pos() Position { return s.Position }
-func (s *ClassShorthand) End() Position { return deltaPos(s.Position, len(".")+len(s.Name)) }
-
-func (*ClassShorthand) _node()               {}
-func (ClassShorthand) _attributeCollection() {}
-
-// ============================================================================
-// Attribute List
-// ======================================================================================
-
-type AttributeList struct {
-	LParen     Position
-	Attributes []Attribute
-	RParen     *Position
-}
-
-var _ AttributeCollection = (*AttributeList)(nil)
-
-func (l *AttributeList) Pos() Position { return l.LParen }
-func (l *AttributeList) End() Position {
-	if l.RParen != nil {
-		return *l.RParen
-	} else if len(l.Attributes) > 0 {
-		return l.Attributes[len(l.Attributes)-1].End()
-	}
-	return deltaPos(l.LParen, 1)
-}
-
-func (*AttributeList) _node()                {}
-func (*AttributeList) _attributeCollection() {}
-
-// ============================================================================
-// Attribute
-// ======================================================================================
-
-// Attribute is a pointer to either an [AndPlaceholder], or a [SimpleAttribute].
+// Attribute is a pointer to either an [AndPlaceholder], a [IDShorthand], a
+// [ClassShorthand], or a [NamedAttribute].
 type Attribute interface {
-	Node
+	Argument
 	_attribute()
 }
 
 // if this is changed, change the comment above
 var (
 	_ Attribute = (*AndPlaceholder)(nil)
-	_ Attribute = (*SimpleAttribute)(nil)
+	_ Attribute = (*IDShorthand)(nil)
+	_ Attribute = (*ClassShorthand)(nil)
+	_ Attribute = (*NamedAttribute)(nil)
 )
 
-// ================================== And Placeholder ===================================
+// ============================================================================
+// And Placeholder
+// ======================================================================================
 
 // AndPlaceholder is an attribute 'named' `&` that is used as a placeholder for
 // the attributes attached to a Component call.
 //
 //	comp foo() {
-//	  div { span(&&) [ foo ] }
+//	  div { span(&) [ foo ] }
 //	}
-//
-// It may only be used inside a mixin definition.
 type AndPlaceholder struct {
-	Position Position
+	And *Position
 }
 
 var _ Attribute = (*AndPlaceholder)(nil)
 
-func (p *AndPlaceholder) Pos() Position { return p.Position }
-func (p *AndPlaceholder) End() Position { return deltaPos(p.Position, len("&&")) }
+func (p *AndPlaceholder) Start() Position {
+	if p.And != nil {
+		return *p.And
+	}
+	return Position{}
+}
+func (p *AndPlaceholder) End() Position {
+	if p.And != nil {
+		return deltaPos(*p.And, len("&"))
+	}
+	return Position{}
+}
 
 func (*AndPlaceholder) _node()      {}
+func (*AndPlaceholder) _argument()  {}
 func (*AndPlaceholder) _attribute() {}
 
-// ================================== Simple Attribute ==================================
+// ============================================================================
+// ID Shorthand
+// ======================================================================================
 
-type SimpleAttribute struct {
-	Name   string
-	Assign *Position      // nil for boolean attributes
-	Value  AttributeValue // nil for boolean attributes
-
-	Position Position
+type IDShorthand struct {
+	Hash *Position
+	ID   Shorthand
 }
 
-var _ Attribute = (*SimpleAttribute)(nil)
+var _ Attribute = (*IDShorthand)(nil)
 
-func (a *SimpleAttribute) Pos() Position { return a.Position }
-func (a *SimpleAttribute) End() Position {
+func (s *IDShorthand) Start() Position {
+	if s.Hash != nil {
+		return *s.Hash
+	}
+	return Position{}
+}
+func (s *IDShorthand) End() Position {
+	if len(s.ID) > 0 {
+		return s.ID[len(s.ID)-1].End()
+	} else if s.Hash != nil {
+		return deltaPos(*s.Hash, len("#"))
+	}
+	return Position{}
+}
+
+func (*IDShorthand) _node()      {}
+func (*IDShorthand) _argument()  {}
+func (*IDShorthand) _attribute() {}
+
+// ============================================================================
+// Class Shorthand
+// ======================================================================================
+
+type ClassShorthand struct {
+	Dot   *Position
+	Names []Shorthand
+}
+
+var _ Attribute = (*ClassShorthand)(nil)
+
+func (s *ClassShorthand) Start() Position {
+	if s.Dot != nil {
+		return *s.Dot
+	}
+	for _, name := range s.Names {
+		if len(name) > 0 {
+			return name.Start()
+		}
+	}
+	return Position{}
+}
+func (s *ClassShorthand) End() Position {
+	for _, name := range slices.Backward(s.Names) {
+		if len(name) > 0 {
+			return name.End()
+		}
+	}
+	if s.Dot != nil {
+		return deltaPos(*s.Dot, len("."))
+	}
+	return Position{}
+}
+
+func (*ClassShorthand) _node()     {}
+func (*ClassShorthand) _argument() {}
+func (ClassShorthand) _attribute() {}
+
+// ============================================================================
+// Shorthand
+// ======================================================================================
+
+// Shorthand is the text of an ID or Class shorthand.
+type Shorthand []ShorthandNode
+
+var _ Node = (Shorthand)(nil)
+
+func (s Shorthand) Start() Position {
+	for _, node := range s {
+		if node != nil {
+			return node.Start()
+		}
+	}
+	return Position{}
+}
+func (s Shorthand) End() Position {
+	for _, node := range slices.Backward(s) {
+		if node != nil {
+			return node.End()
+		}
+	}
+	return Position{}
+}
+
+func (Shorthand) _node() {}
+
+// =================================== Shorthand Node ===================================
+
+// A ShorthandNode is a pointer to either [ShorthandText], or
+// [ExpressionInterpolation].
+type ShorthandNode interface {
+	Node
+	_shorthandNode()
+}
+
+var (
+	_ ShorthandNode = (*ShorthandText)(nil)
+	_ ShorthandNode = (*ShorthandInterpolation)(nil)
+)
+
+// ============================================================================
+// Shorthand Text
+// ======================================================================================
+
+type ShorthandText struct {
+	Text     string
+	Position *Position
+}
+
+var _ ShorthandNode = (*ShorthandText)(nil)
+
+func (t *ShorthandText) Start() Position {
+	if t.Position != nil {
+		return *t.Position
+	}
+	return Position{}
+}
+func (t *ShorthandText) End() Position {
+	if t.Position != nil {
+		return deltaPos(*t.Position, len(t.Text))
+	}
+	return Position{}
+}
+
+func (*ShorthandText) _node()          {}
+func (*ShorthandText) _shorthandNode() {}
+
+// ============================================================================
+// Shorthand Interpolation
+// ======================================================================================
+
+type ShorthandInterpolation ExpressionInterpolation
+
+var _ ShorthandNode = (*ShorthandInterpolation)(nil)
+
+func (interp *ShorthandInterpolation) Start() Position {
+	return (*ExpressionInterpolation)(interp).Start()
+}
+func (interp *ShorthandInterpolation) End() Position { return (*ExpressionInterpolation)(interp).End() }
+
+func (*ShorthandInterpolation) _node()          {}
+func (*ShorthandInterpolation) _shorthandNode() {}
+
+// ============================================================================
+// Named Attribute
+// ======================================================================================
+
+type NamedAttribute struct {
+	Name      *AttributeName
+	EqualSign *Position      // nil for boolean attributes
+	Value     AttributeValue // nil for boolean attributes
+}
+
+var _ Attribute = (*NamedAttribute)(nil)
+
+func (a *NamedAttribute) Start() Position {
+	if a.Name != nil {
+		return a.Name.Start()
+	} else if a.EqualSign != nil {
+		return *a.EqualSign
+	} else if a.Value != nil {
+		return a.Value.Start()
+	}
+	return Position{}
+}
+func (a *NamedAttribute) End() Position {
 	if a.Value != nil {
 		return a.Value.End()
-	} else if a.Assign != nil {
-		return deltaPos(*a.Assign, 1)
+	} else if a.EqualSign != nil {
+		return deltaPos(*a.EqualSign, len("="))
+	} else if a.Name != nil {
+		return a.Name.End()
 	}
-	return deltaPos(a.Position, len(a.Name))
+	return Position{}
 }
 
-func (*SimpleAttribute) _node()      {}
-func (*SimpleAttribute) _attribute() {}
+func (*NamedAttribute) _node()      {}
+func (*NamedAttribute) _argument()  {}
+func (*NamedAttribute) _attribute() {}
 
 // ============================================================================
 // Attribute Value
 // ======================================================================================
 
-// AttributeValue is a pointer to either an [Expression], a
-// [ComponentCallAttributeValue], or a [TypedAttributeValue].
+// AttributeValue is a pointer to either an [ExpressionAttributeValue], or
+// [TypedAttributeValue].
 type AttributeValue interface {
 	Node
 	_attributeValue()
@@ -180,61 +253,80 @@ type AttributeValue interface {
 
 // if this is changed, change the comment above
 var (
-	_ AttributeValue = (Expression)(nil) // interface
-	_ AttributeValue = (*ComponentCallAttributeValue)(nil)
+	_ AttributeValue = (*ExpressionAttributeValue)(nil) // interface
 	_ AttributeValue = (*TypedAttributeValue)(nil)
 )
 
-// ============================================================================
-// Typed Attribute Value
-// ======================================================================================
+// ============================= Expression Attribute Value =============================
+
+type ExpressionAttributeValue Expression
+
+var _ AttributeValue = (*ExpressionAttributeValue)(nil)
+
+func (v ExpressionAttributeValue) Start() Position { return Expression(v).Start() }
+func (v ExpressionAttributeValue) End() Position   { return Expression(v).End() }
+
+func (*ExpressionAttributeValue) _node()           {}
+func (*ExpressionAttributeValue) _attributeValue() {}
+
+// =============================== Typed Attribute Value ================================
 
 type TypedAttributeValue struct {
-	Type   attrtype.Type
+	Type   *AttributeType
 	LParen *Position
 	Value  AttributeValue
 	RParen *Position
-
-	Position Position
 }
 
 var _ AttributeValue = (*TypedAttributeValue)(nil)
 
-func (v *TypedAttributeValue) Pos() Position { return v.Position }
+func (v *TypedAttributeValue) Start() Position {
+	if v.Type != nil {
+		return v.Type.Start()
+	} else if v.LParen != nil {
+		return *v.LParen
+	} else if v.Value != nil {
+		return v.Value.Start()
+	}
+	return Position{}
+}
 func (v *TypedAttributeValue) End() Position {
 	if v.RParen != nil {
-		return deltaPos(*v.RParen, 1)
+		return deltaPos(*v.RParen, len(")"))
 	} else if v.Value != nil {
 		return v.Value.End()
 	} else if v.LParen != nil {
-		return deltaPos(*v.LParen, 1)
+		return deltaPos(*v.LParen, len("("))
+	} else if v.Type != nil {
+		return v.Type.End()
 	}
-	return deltaPos(v.Position, len(v.Type.String()))
+	return Position{}
 }
 
 func (*TypedAttributeValue) _node()           {}
 func (*TypedAttributeValue) _attributeValue() {}
 
 // ============================================================================
-// Component Call Attribute Value
+// Attribute Name
 // ======================================================================================
 
-type ComponentCallAttributeValue struct {
-	ComponentCall *ComponentCall
-	Value         *InterpolationValue
-
-	Position Position
+type AttributeName struct {
+	Name     string
+	Position *Position
 }
 
-var _ AttributeValue = (*ComponentCallAttributeValue)(nil)
+var _ Node = (*AttributeName)(nil)
 
-func (a *ComponentCallAttributeValue) Pos() Position { return a.Position }
-func (a *ComponentCallAttributeValue) End() Position {
-	if a.Value != nil {
-		return a.Value.End()
+func (n *AttributeName) Start() Position {
+	if n.Position != nil {
+		return *n.Position
 	}
-	return a.ComponentCall.End()
+	return Position{}
 }
-
-func (*ComponentCallAttributeValue) _node()           {}
-func (*ComponentCallAttributeValue) _attributeValue() {}
+func (n *AttributeName) End() Position {
+	if n.Position != nil {
+		return deltaPos(*n.Position, len(n.Name))
+	}
+	return Position{}
+}
+func (*AttributeName) _node() {}

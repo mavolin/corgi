@@ -2,6 +2,7 @@ package body
 
 import (
 	"github.com/mavolin/corgi/v2/fancyerr"
+	"github.com/mavolin/corgi/v2/fancyerr/anno"
 	"github.com/mavolin/corgi/v2/file/ast"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/mavolin/corgi/v2/load/parse/internal/comment"
@@ -43,7 +44,24 @@ func SetScopeNode(f parser.Func[ast.ScopeNode]) {
 }
 
 func ScopeNode() parser.Func[ast.ScopeNode] {
-	return scopeNode
+	return func(p *parser.Parser) (ast.ScopeNode, *fancyerr.Error) {
+		n, err := parser.TryErr(p, scopeNode)
+		if err == nil {
+			return n, nil
+		}
+
+		if n := parser.Try(p, BadScopeNode()); n != nil {
+			p.CaptureError(&fancyerr.Error{
+				Message: "bad scope node",
+				Primary: []fancyerr.Annotation{
+					anno.Range(p.File, n.From, n.Until, "unexpected tokens"),
+				},
+			})
+			return n, nil
+		}
+
+		return nil, err
+	}
 }
 
 func BadScopeNode() parser.Func[*ast.BadScopeNode] {
@@ -52,7 +70,7 @@ func BadScopeNode() parser.Func[*ast.BadScopeNode] {
 		b.From = p.Pos()
 
 		for {
-			unexpected.UntilAnyRune(p, nil, '(', ')', '[', ']', '{', '}', ';')
+			_ = unexpected.UntilAnyRune(p, nil, '(', ')', '[', ']', '{', '}', ';')
 			b.Until = p.Pos()
 			parser.TrySkip(p, comment.OrHorizontalWhitespace())
 			if parser.MatchesAnyRune(p, '}', ';') {
@@ -69,7 +87,9 @@ func BadScopeNode() parser.Func[*ast.BadScopeNode] {
 			parser.TrySkip(p, comment.OrAnyWhitespace())
 			if parser.MatchesAnyRune(p, '}') {
 				break
-			} else if parser.Matches(p, ScopeNode()) {
+			} else if parser.Matches(p, scopeNode) {
+				break
+			} else if parser.MatchesAnyRune(p, parser.EOF) {
 				break
 			}
 
@@ -81,6 +101,12 @@ func BadScopeNode() parser.Func[*ast.BadScopeNode] {
 
 		parser.RestoreWS(p)
 		b.Until = p.Pos()
+		if b.Until == b.From {
+			return nil, &fancyerr.Error{
+				Message: "empty bad scope node",
+				Primary: quickanno.Expected(p, b.From, "a scope node"),
+			}
+		}
 		return &b, nil
 	}
 }

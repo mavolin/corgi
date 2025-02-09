@@ -1,36 +1,48 @@
 package ast
 
+import "slices"
+
 // ============================================================================
-// ArrowBlock
+// Arrow BlockName
 // ======================================================================================
 
 type ArrowBlock struct {
-	Lines    TextBlock
-	Position Position
+	Arrow *Position
+	Lines TextBlock
 }
 
 var _ ScopeNode = (*ArrowBlock)(nil)
 
-func (b *ArrowBlock) Pos() Position { return b.Position }
+func (b *ArrowBlock) Start() Position {
+	if b.Arrow != nil {
+		return *b.Arrow
+	}
+	if len(b.Lines) > 0 {
+		return b.Lines.Start()
+	}
+	return Position{}
+}
 func (b *ArrowBlock) End() Position {
 	if len(b.Lines) > 0 {
-		return b.Lines[len(b.Lines)-1].End()
+		return b.Lines.End()
+	} else if b.Arrow != nil {
+		return deltaPos(*b.Arrow, len(">"))
 	}
-	return deltaPos(b.Position, len(">"))
+	return Position{}
 }
 
 func (*ArrowBlock) _node()      {}
 func (*ArrowBlock) _scopeNode() {}
 
 // ============================================================================
-// TextNode
+// Text Node
 // ======================================================================================
 
 type (
 	TextBlock []TextLine
 	TextLine  []TextNode
 
-	// TextNode is a pointer to either a pointer to [Text] or [Interpolation].
+	// TextNode is a pointer to either a pointer to [Text] or [TextInterpolation].
 	TextNode interface {
 		Node
 		_textNode()
@@ -38,25 +50,45 @@ type (
 )
 
 var (
+	_ Node = (TextBlock)(nil)
 	_ Node = (TextLine)(nil)
 
 	// change above comment if this changes
 	_ TextNode = (*Text)(nil)
-	_ TextNode = (Interpolation)(nil)
+	_ TextNode = (TextInterpolation)(nil)
 )
 
-func (l TextLine) Pos() Position {
+func (b TextBlock) Start() Position {
+	for _, l := range b {
+		if len(l) > 0 {
+			return l.Start()
+		}
+	}
+	return Position{}
+}
+func (b TextBlock) End() Position {
+	for _, l := range slices.Backward(b) {
+		if len(l) > 0 {
+			return l.End()
+		}
+	}
+	return Position{}
+}
+
+func (TextBlock) _node() {}
+
+func (l TextLine) Start() Position {
 	if len(l) == 0 {
-		return InvalidPosition
+		return Position{}
 	}
 
-	return l[0].Pos()
+	return l[0].Start()
 }
 func (l TextLine) End() Position {
 	if len(l) > 0 {
 		return l[len(l)-1].End()
 	}
-	return InvalidPosition
+	return Position{}
 }
 
 func (TextLine) _node() {}
@@ -69,223 +101,47 @@ func (TextLine) _node() {}
 // It is not HTML-escaped yet.
 type Text struct {
 	Text     string
-	Position Position
+	Position *Position
 }
 
 var _ TextNode = (*Text)(nil)
 
-func (t *Text) Pos() Position { return t.Position }
-func (t *Text) End() Position { return deltaPos(t.Position, len(t.Text)) }
+func (t *Text) Start() Position {
+	if t.Position != nil {
+		return *t.Position
+	}
+	return Position{}
+}
+func (t *Text) End() Position {
+	if t.Position != nil {
+		return deltaPos(*t.Position, len(t.Text))
+	}
+	return Position{}
+}
 
 func (t *Text) _node()   {}
 func (*Text) _textNode() {}
 
 // ============================================================================
-// Interpolation
+// Text Interpolation
 // ======================================================================================
 
-// Interpolation is a pointer to either [BadInterpolation],
-// [ExpressionInterpolation], [TextInterpolation], [ElementInterpolation],
-// [ComponentCallInterpolation], or [CharacterReference].
-type Interpolation interface {
+// TextInterpolation is a pointer to either [BadInterpolation],
+// an [EscapedHash], a [HashSpace], a [EscapedRBracket], an [ElementInterpolation],
+// a [ComponentCallInterpolation], or a [CharacterReference].
+type TextInterpolation interface {
 	TextNode
-	_interpolation()
+	Interpolation
 }
 
 // if this is changed, change the comment above
 var (
-	_ Interpolation = (*BadInterpolation)(nil)
-	_ Interpolation = (*EscapedHash)(nil)
-	_ Interpolation = (*HashSpace)(nil)
-	_ Interpolation = (*ExpressionInterpolation)(nil)
-	_ Interpolation = (*ElementInterpolation)(nil)
-	_ Interpolation = (*ComponentCallInterpolation)(nil)
-	_ Interpolation = (*CharacterReference)(nil)
+	_ TextInterpolation = (*BadInterpolation)(nil)
+	_ TextInterpolation = (*EscapedHash)(nil)
+	_ TextInterpolation = (*HashSpace)(nil)
+	_ TextInterpolation = (*EscapedRBracket)(nil)
+	_ TextInterpolation = (*ExpressionInterpolation)(nil)
+	_ TextInterpolation = (*ElementInterpolation)(nil)
+	_ TextInterpolation = (*ComponentCallInterpolation)(nil)
+	_ TextInterpolation = (*CharacterReference)(nil)
 )
-
-// ================================= Bad Interpolation ==================================
-
-type BadInterpolation struct {
-	Position Position
-}
-
-var (
-	_ Interpolation       = (*BadInterpolation)(nil)
-	_ StringInterpolation = (*BadInterpolation)(nil)
-)
-
-func (b *BadInterpolation) Pos() Position { return b.Position }
-func (b *BadInterpolation) End() Position { return deltaPos(b.Position, len("#")) }
-
-func (*BadInterpolation) _node()                {}
-func (*BadInterpolation) _interpolation()       {}
-func (*BadInterpolation) _textNode()            {}
-func (*BadInterpolation) _stringInterpolation() {}
-func (*BadInterpolation) _stringContent()       {}
-
-// ===================================== EscapedHash =====================================
-
-type EscapedHash struct { // ##
-	Position
-}
-
-var (
-	_ Interpolation       = (*EscapedHash)(nil)
-	_ StringInterpolation = (*EscapedHash)(nil)
-)
-
-func (h *EscapedHash) Pos() Position { return h.Position }
-func (h *EscapedHash) End() Position { return deltaPos(h.Position, len("##")) }
-
-func (*EscapedHash) _node()                {}
-func (*EscapedHash) _textNode()            {}
-func (*EscapedHash) _interpolation()       {}
-func (*EscapedHash) _stringContent()       {}
-func (*EscapedHash) _stringInterpolation() {}
-
-// ===================================== HashSpace =====================================
-
-type HashSpace struct { // #_
-	Position
-}
-
-var _ Interpolation = (*HashSpace)(nil)
-
-func (h *HashSpace) Pos() Position { return h.Position }
-func (h *HashSpace) End() Position { return deltaPos(h.Position, len("#_")) }
-
-func (*HashSpace) _node()          {}
-func (*HashSpace) _textNode()      {}
-func (*HashSpace) _interpolation() {}
-
-// ============================== ExpressionInterpolation ===============================
-
-type ExpressionInterpolation struct {
-	// a sprintf placeholder, excluding the leading %
-	FormatDirective string
-	LBrace          *Position
-	Expression      Expression
-	RBrace          *Position
-
-	Position Position
-}
-
-var (
-	_ Interpolation       = (*ExpressionInterpolation)(nil)
-	_ StringInterpolation = (*ExpressionInterpolation)(nil)
-)
-
-func (interp *ExpressionInterpolation) Pos() Position { return interp.Position }
-func (interp *ExpressionInterpolation) End() Position {
-	if interp.RBrace != nil {
-		return *interp.RBrace
-	} else if interp.Expression != nil {
-		return interp.Expression.End()
-	} else if interp.LBrace != nil {
-		return deltaPos(*interp.LBrace, 1)
-	}
-	return deltaPos(interp.Position, len("#")+len(interp.FormatDirective))
-}
-
-func (*ExpressionInterpolation) _node()                {}
-func (*ExpressionInterpolation) _textNode()            {}
-func (*ExpressionInterpolation) _interpolation()       {}
-func (*ExpressionInterpolation) _stringContent()       {}
-func (*ExpressionInterpolation) _stringInterpolation() {}
-
-// ================================ ElementInterpolation ================================
-
-type ElementInterpolation struct {
-	Element *Element            // has no body
-	Value   *InterpolationValue // may be nil, always nil for void elems
-
-	Position Position
-}
-
-var _ Interpolation = (*ElementInterpolation)(nil)
-
-func (interp *ElementInterpolation) Pos() Position { return interp.Position }
-func (interp *ElementInterpolation) End() Position {
-	if interp.Value != nil {
-		return interp.Value.End()
-	} else if interp.Element != nil {
-		return interp.Element.End()
-	}
-	return deltaPos(interp.Position, len("#"))
-}
-
-func (*ElementInterpolation) _node()          {}
-func (*ElementInterpolation) _textNode()      {}
-func (*ElementInterpolation) _interpolation() {}
-
-// ================================= ComponentCallInterpolation =================================
-
-type ComponentCallInterpolation struct {
-	ComponentCall *ComponentCall
-	Value         *InterpolationValue // may be nil
-
-	Position Position
-}
-
-var _ Interpolation = (*ComponentCallInterpolation)(nil)
-
-func (interp *ComponentCallInterpolation) Pos() Position { return interp.Position }
-func (interp *ComponentCallInterpolation) End() Position {
-	if interp.Value != nil {
-		return interp.Value.End()
-	} else if interp.ComponentCall != nil {
-		return interp.ComponentCall.End()
-	}
-	return deltaPos(interp.Position, len("#"))
-}
-
-func (*ComponentCallInterpolation) _node()          {}
-func (*ComponentCallInterpolation) _textNode()      {}
-func (*ComponentCallInterpolation) _interpolation() {}
-
-// ================================= CharacterReference =================================
-
-type CharacterReference struct {
-	Name string // w/o & and ;
-	Position
-}
-
-var (
-	_ Interpolation       = (*CharacterReference)(nil)
-	_ StringInterpolation = (*CharacterReference)(nil)
-)
-
-func (c *CharacterReference) Pos() Position { return c.Position }
-func (c *CharacterReference) End() Position {
-	return deltaPos(c.Position, len("#")+len(c.Name)+len(";"))
-}
-
-func (*CharacterReference) _node()                {}
-func (*CharacterReference) _textNode()            {}
-func (*CharacterReference) _interpolation()       {}
-func (*CharacterReference) _stringContent()       {}
-func (*CharacterReference) _stringInterpolation() {}
-
-// ============================================================================
-// InterpolationValue
-// ======================================================================================
-
-type InterpolationValue struct {
-	LBracket Position
-	Text     TextLine
-	RBracket *Position
-}
-
-var _ Node = (*InterpolationValue)(nil)
-
-func (v *InterpolationValue) Pos() Position { return v.LBracket }
-func (v *InterpolationValue) End() Position {
-	if v.RBracket != nil {
-		return *v.RBracket
-	} else if len(v.Text) > 0 {
-		return v.Text[len(v.Text)-1].End()
-	}
-	return deltaPos(v.LBracket, 1)
-}
-
-func (*InterpolationValue) _node() {}

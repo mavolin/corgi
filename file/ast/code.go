@@ -1,98 +1,256 @@
 package ast
 
-// ============================================================================
-// Code
-// ======================================================================================
+import "slices"
 
-type Code struct {
-	Statements []*GoCode
-	// Implicit indicates whether this code was implicitly detected as such,
-	// i.e. it didn't use the '-' operator.
-	//
-	// This field has no relevance for global code and may be any value.
-	Implicit bool
-	Position Position
-}
+// Code is a sequence of Go code with corgi language extensions.
+//
+// Note that there may be multiple successive [GoCode] nodes in a [Code]
+// object, especially if the code was generated from a ParsedStatement.
+// There are no guarantees that between versions, the code will be split
+// in the same way.
+type Code []CodeNode
 
-var _ ScopeNode = (*Code)(nil)
+var _ Node = Code(nil)
 
-func (c *Code) Pos() Position { return c.Position }
-func (c *Code) End() Position {
-	if len(c.Statements) >= 0 {
-		return c.Statements[len(c.Statements)-1].End()
+func (c Code) Start() Position {
+	for _, n := range c {
+		if n != nil {
+			return n.Start()
+		}
 	}
-
-	if c.Implicit {
-		return InvalidPosition
+	return Position{}
+}
+func (c Code) End() Position {
+	for _, n := range slices.Backward(c) {
+		if n != nil {
+			return n.End()
+		}
 	}
-	return deltaPos(c.Position, len("-"))
+	return Position{}
 }
 
-func (*Code) _node()      {}
-func (*Code) _scopeNode() {}
+func (Code) _node() {}
 
-// ============================================================================
-// Return
-// ======================================================================================
-
-type Return struct {
-	Err      *GoCode // optional
-	Position Position
+type CodeNode interface {
+	Node
+	_codeNode()
 }
-
-var _ ScopeNode = (*Return)(nil)
-
-func (r *Return) Pos() Position { return r.Position }
-func (r *Return) End() Position {
-	if r.Err != nil {
-		return r.Err.End()
-	}
-	return r.Position
-}
-
-func (*Return) _node()      {}
-func (*Return) _scopeNode() {}
 
 // ============================================================================
-// Break
+// Go Code
 // ======================================================================================
 
-type Break struct {
-	Label    *Ident // optional
-	Position Position
+// GoCode is actual Go code, i.e. without any corgi language extensions.
+type GoCode struct {
+	Code     string
+	Position *Position
 }
 
-var _ ScopeNode = (*Break)(nil)
+var _ CodeNode = (*GoCode)(nil)
 
-func (b *Break) Pos() Position { return b.Position }
-func (b *Break) End() Position {
-	if b.Label != nil {
-		return b.Label.End()
+func (c *GoCode) Start() Position {
+	if c.Position != nil {
+		return *c.Position
 	}
-	return b.Position
+	return Position{}
+}
+func (c *GoCode) End() Position {
+	if c.Position != nil {
+		return deltaPos(*c.Position, len(c.Code))
+	}
+	return Position{}
 }
 
-func (*Break) _node()      {}
-func (*Break) _scopeNode() {}
+func (*GoCode) _node()     {}
+func (*GoCode) _codeNode() {}
 
 // ============================================================================
-// Continue
+// Block Function
 // ======================================================================================
 
-type Continue struct {
-	Label    *Ident // optional
-	Position Position
+// BlockFunction is the "built-in" block existence check function.
+type BlockFunction struct {
+	Block     *Position
+	LParen    *Position
+	BlockName *Ident
+	RParen    *Position
 }
 
-var _ ScopeNode = (*Continue)(nil)
+var _ CodeNode = (*BlockFunction)(nil)
 
-func (c *Continue) Pos() Position { return c.Position }
-func (c *Continue) End() Position {
-	if c.Label != nil {
-		return c.Label.End()
+func (f *BlockFunction) Start() Position {
+	if f.Block != nil {
+		return *f.Block
+	} else if f.LParen != nil {
+		return *f.LParen
+	} else if f.BlockName != nil {
+		return f.BlockName.Start()
+	} else if f.RParen != nil {
+		return *f.RParen
 	}
-	return c.Position
+	return Position{}
+}
+func (f *BlockFunction) End() Position {
+	if f.RParen != nil {
+		return deltaPos(*f.RParen, len(")"))
+	} else if f.BlockName != nil {
+		return f.BlockName.End()
+	} else if f.LParen != nil {
+		return deltaPos(*f.LParen, len("("))
+	} else if f.Block != nil {
+		return deltaPos(*f.Block, len("block"))
+	}
+	return Position{}
 }
 
-func (*Continue) _node()      {}
-func (*Continue) _scopeNode() {}
+func (*BlockFunction) _node()     {}
+func (*BlockFunction) _codeNode() {}
+
+// ============================================================================
+// Ternary
+// ======================================================================================
+
+type Ternary struct {
+	QuestionMark *Position
+	LParen       *Position
+	Condition    *Expression
+	TrueVal      *Expression
+	FalseVal     *Expression
+	RParen       *Position
+}
+
+var _ CodeNode = (*Ternary)(nil)
+
+func (t *Ternary) Start() Position {
+	if t.QuestionMark != nil {
+		return *t.QuestionMark
+	} else if t.LParen != nil {
+		return *t.LParen
+	} else if t.Condition != nil {
+		return t.Condition.Start()
+	} else if t.TrueVal != nil {
+		return t.TrueVal.Start()
+	} else if t.FalseVal != nil {
+		return t.FalseVal.Start()
+	} else if t.RParen != nil {
+		return *t.RParen
+	}
+	return Position{}
+}
+func (t *Ternary) End() Position {
+	if t.RParen != nil {
+		return deltaPos(*t.RParen, len(")"))
+	} else if t.FalseVal != nil {
+		return t.FalseVal.End()
+	} else if t.TrueVal != nil {
+		return t.TrueVal.End()
+	} else if t.Condition != nil {
+		return t.Condition.End()
+	} else if t.LParen != nil {
+		return deltaPos(*t.LParen, len("("))
+	} else if t.QuestionMark != nil {
+		return deltaPos(*t.QuestionMark, len("?"))
+	}
+	return Position{}
+}
+
+func (*Ternary) _node()     {}
+func (*Ternary) _codeNode() {}
+
+// ============================================================================
+// String
+// ======================================================================================
+
+// String is a Go string literal extended to allow Character References, and
+// StringInterpolation.
+type String struct {
+	Open     *Position
+	Quote    byte // either '"' or '`'
+	Contents []StringNode
+	Close    *Position
+}
+
+var _ CodeNode = (*String)(nil)
+
+func (s *String) Start() Position {
+	if s.Open != nil {
+		return *s.Open
+	}
+	for _, n := range s.Contents {
+		if n != nil {
+			return n.Start()
+		}
+	}
+	if s.Close != nil {
+		return *s.Close
+	}
+	return Position{}
+}
+func (s *String) End() Position {
+	if s.Close != nil {
+		return deltaPos(*s.Close, len(`"`))
+	}
+	for _, n := range slices.Backward(s.Contents) {
+		if n != nil {
+			return n.End()
+		}
+	}
+	if s.Open != nil {
+		return deltaPos(*s.Open, len(`"`))
+	}
+	return Position{}
+}
+
+func (*String) _node()     {}
+func (*String) _codeNode() {}
+
+// ============================================================================
+// String Node
+// ======================================================================================
+
+// StringNode is a pointer to either [StringText] or [StringInterpolation].
+type StringNode interface {
+	Node
+	_stringNode()
+}
+
+// if this is changed, change the comment above
+var (
+	_ StringNode = (*StringText)(nil)
+	_ StringNode = StringInterpolation(nil)
+)
+
+// ==================================== String Text =====================================
+
+type StringText struct {
+	Text     string
+	Position *Position
+}
+
+var _ StringNode = (*StringText)(nil)
+
+func (t *StringText) Start() Position {
+	if t.Position != nil {
+		return *t.Position
+	}
+	return Position{}
+}
+func (t *StringText) End() Position {
+	if t.Position != nil {
+		return deltaPos(*t.Position, len(t.Text))
+	}
+	return Position{}
+}
+
+func (*StringText) _node()       {}
+func (*StringText) _stringNode() {}
+
+// ================================ String Interpolation ================================
+
+// StringInterpolation is a pointer to either [BadInterpolation],
+// an [EscapedHash], an [ExpressionInterpolation], a [CharacterReference],
+// or a [ComponentCallInterpolation].
+type StringInterpolation interface {
+	StringNode
+	Interpolation
+}

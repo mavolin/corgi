@@ -49,7 +49,9 @@ func Parse(input string, o Options) (*file.File, fancyerr.List) {
 	}
 
 	p := parser.New(f)
-	p.Preload = o.Preloader
+	if o.Preloader != nil {
+		p.Preload = o.Preloader
+	}
 
 	parser.Must(p, fileparser.File())
 	return f, p.Errors()
