@@ -1,8 +1,0 @@
-func Comments()
-
-p Hello
-//- I'm included
-p World!
-//
-  However, I am not
-  included.

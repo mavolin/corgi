@@ -1,9 +1,0 @@
-func And()
-
-mixin foo()
-  p(&&): block _
-
-div
-  +foo
-    &.fooz.bar
-    block _ Content

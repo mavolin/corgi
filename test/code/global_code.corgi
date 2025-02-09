@@ -1,4 +1,0 @@
-- var globalCodeExecuted = true
-
-func GlobalCode()
-p

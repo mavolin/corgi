@@ -1,6 +1,0 @@
-func While()
-
-- i := 1
-for i <= 5
-  p #{i}
-  - i++

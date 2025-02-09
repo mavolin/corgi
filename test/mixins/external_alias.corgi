@@ -1,6 +1,0 @@
-use fooz "github.com/mavolin/corgi/test/mixins/foo"
-
-func ExternalAlias()
-
-p
-  +fooz.Fooz

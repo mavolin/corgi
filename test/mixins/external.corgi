@@ -1,5 +1,0 @@
-use "github.com/mavolin/corgi/test/mixins/foo"
-
-func External()
-
-p: +foo.Fooz
