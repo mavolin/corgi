@@ -34,7 +34,7 @@ func ExplicitCodeLine() parser.Func[*ast.ExplicitCodeLine] {
 			}
 		}
 
-		e.Statement = parser.Must(p, Statement())
+		e.Statement = parser.Must(p, Statement(Regular))
 		return &e, nil
 	}
 }

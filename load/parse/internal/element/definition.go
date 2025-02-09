@@ -44,7 +44,6 @@ func Definition() parser.Func[*ast.ElementDefinition] {
 			if spec != nil {
 				def.Specs = []*ast.ElementSpec{spec}
 			}
-			parser.MustSkip(p, comment.AndMustEOS())
 			return &def, nil
 		}
 
@@ -83,7 +82,6 @@ func Definition() parser.Func[*ast.ElementDefinition] {
 			}
 		}
 
-		parser.MustSkip(p, comment.AndMustEOS())
 		return &def, nil
 	}
 }

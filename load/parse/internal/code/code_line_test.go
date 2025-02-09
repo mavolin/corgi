@@ -27,7 +27,7 @@ func TestImplicitCodeLine(t *testing.T) {
 func TestExplicitCodeLine(t *testing.T) {
 	t.Parallel()
 
-	in := "- foo();"
+	in := "- foo()"
 	expect := &ast.ExplicitCodeLine{
 		Minus: &ast.Position{Line: 1, Col: 1},
 		Statement: &ast.Statement{
@@ -37,6 +37,6 @@ func TestExplicitCodeLine(t *testing.T) {
 		},
 	}
 
-	actual := testutil.ParsesFully(t, in, ExplicitCodeLine())
+	actual := parsesCodeNodeFully(t, in, ExplicitCodeLine())
 	assert.Equal(t, expect, actual)
 }

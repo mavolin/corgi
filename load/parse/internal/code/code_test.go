@@ -11,10 +11,10 @@ import (
 
 func TestGoCode(t *testing.T) {
 	t.Parallel()
-	testGoCode(false)(t, GoCode(false))
+	testGoCode()(t, GoCode(Regular))
 }
 
-func testGoCode(withEOS bool) func(t *testing.T, f parser.Func[[]ast.CodeNode]) {
+func testGoCode() func(t *testing.T, f parser.Func[[]ast.CodeNode]) {
 	return func(t *testing.T, f parser.Func[[]ast.CodeNode]) {
 		testCases := []struct {
 			name   string
@@ -69,9 +69,6 @@ func testGoCode(withEOS bool) func(t *testing.T, f parser.Func[[]ast.CodeNode]) 
 					expect = []ast.CodeNode{&ast.GoCode{Code: c.code, Position: &ast.Position{Line: 1, Col: 1}}}
 				}
 
-				if withEOS {
-					c.code += ";"
-				}
 				actual := parsesCodeNodeFully(t, c.code, f)
 				assert.Equal(t, expect, actual)
 			})
@@ -81,18 +78,15 @@ func testGoCode(withEOS bool) func(t *testing.T, f parser.Func[[]ast.CodeNode]) 
 
 func TestBlockFunction(t *testing.T) {
 	t.Parallel()
-	testBlockFunction(false)(t, BlockFunction())
+	testBlockFunction()(t, BlockFunction())
 }
 
-func testBlockFunction(withEOS bool) func(t *testing.T, f parser.Func[*ast.BlockFunction]) {
+func testBlockFunction() func(t *testing.T, f parser.Func[*ast.BlockFunction]) {
 	return func(t *testing.T, f parser.Func[*ast.BlockFunction]) {
 		t.Run("success", func(t *testing.T) {
 			t.Parallel()
 
 			in := "block(foo)"
-			if withEOS {
-				in += ";"
-			}
 			expect := &ast.BlockFunction{
 				LParen:    &ast.Position{Line: 1, Col: 6},
 				BlockName: &ast.Ident{Ident: "foo", Position: &ast.Position{Line: 1, Col: 7}},
@@ -107,15 +101,13 @@ func testBlockFunction(withEOS bool) func(t *testing.T, f parser.Func[*ast.Block
 			t.Parallel()
 
 			testCases := []struct {
-				name    string
-				in      string
-				expect  *ast.BlockFunction
-				needEOS bool
+				name   string
+				in     string
+				expect *ast.BlockFunction
 			}{
 				{
-					name:    "missing block name",
-					in:      "block()",
-					needEOS: true,
+					name: "missing block name",
+					in:   "block()",
 					expect: &ast.BlockFunction{
 						LParen: &ast.Position{Line: 1, Col: 6},
 						RParen: &ast.Position{Line: 1, Col: 7},
@@ -129,9 +121,8 @@ func testBlockFunction(withEOS bool) func(t *testing.T, f parser.Func[*ast.Block
 						Block:  &ast.Position{Line: 1, Col: 1},
 					},
 				}, {
-					name:    "too many arguments",
-					in:      "block(foo, bar)",
-					needEOS: true,
+					name: "too many arguments",
+					in:   "block(foo, bar)",
 					expect: &ast.BlockFunction{
 						LParen:    &ast.Position{Line: 1, Col: 6},
 						BlockName: &ast.Ident{Ident: "foo", Position: &ast.Position{Line: 1, Col: 7}},
@@ -145,9 +136,6 @@ func testBlockFunction(withEOS bool) func(t *testing.T, f parser.Func[*ast.Block
 				t.Run(c.name, func(t *testing.T) {
 					t.Parallel()
 
-					if c.needEOS && withEOS {
-						c.in += ";"
-					}
 					actual := testutil.MatchesButError(t, c.in, f)
 					assert.Equal(t, c.expect, actual)
 				})
@@ -158,18 +146,15 @@ func testBlockFunction(withEOS bool) func(t *testing.T, f parser.Func[*ast.Block
 
 func TestTernary(t *testing.T) {
 	t.Parallel()
-	testTernary(false)(t, Ternary())
+	testTernary()(t, Ternary())
 }
 
-func testTernary(withEOS bool) func(t *testing.T, f parser.Func[*ast.Ternary]) {
+func testTernary() func(t *testing.T, f parser.Func[*ast.Ternary]) {
 	return func(t *testing.T, f parser.Func[*ast.Ternary]) {
 		t.Run("success", func(t *testing.T) {
 			t.Parallel()
 
 			in := "?(condition, ifTrue, ifFalse)"
-			if withEOS {
-				in += ";"
-			}
 			expect := &ast.Ternary{
 				QuestionMark: &ast.Position{Line: 1, Col: 1},
 				LParen:       &ast.Position{Line: 1, Col: 2},
@@ -199,24 +184,21 @@ func testTernary(withEOS bool) func(t *testing.T, f parser.Func[*ast.Ternary]) {
 			t.Parallel()
 
 			testCases := []struct {
-				name    string
-				in      string
-				expect  *ast.Ternary
-				needEOS bool
+				name   string
+				in     string
+				expect *ast.Ternary
 			}{
 				{
-					name:    "no args",
-					in:      "?()",
-					needEOS: true,
+					name: "no args",
+					in:   "?()",
 					expect: &ast.Ternary{
 						QuestionMark: &ast.Position{Line: 1, Col: 1},
 						LParen:       &ast.Position{Line: 1, Col: 2},
 						RParen:       &ast.Position{Line: 1, Col: 3},
 					},
 				}, {
-					name:    "only condition",
-					in:      "?(condition)",
-					needEOS: true,
+					name: "only condition",
+					in:   "?(condition)",
 					expect: &ast.Ternary{
 						QuestionMark: &ast.Position{Line: 1, Col: 1},
 						LParen:       &ast.Position{Line: 1, Col: 2},
@@ -228,9 +210,8 @@ func testTernary(withEOS bool) func(t *testing.T, f parser.Func[*ast.Ternary]) {
 						RParen: &ast.Position{Line: 1, Col: 12},
 					},
 				}, {
-					name:    "missing ifFalse",
-					in:      "?(condition, ifTrue)",
-					needEOS: true,
+					name: "missing ifFalse",
+					in:   "?(condition, ifTrue)",
 					expect: &ast.Ternary{
 						QuestionMark: &ast.Position{Line: 1, Col: 1},
 						LParen:       &ast.Position{Line: 1, Col: 2},
@@ -247,9 +228,8 @@ func testTernary(withEOS bool) func(t *testing.T, f parser.Func[*ast.Ternary]) {
 						RParen: &ast.Position{Line: 1, Col: 20},
 					},
 				}, {
-					name:    "too many args",
-					in:      "?(condition, ifTrue, ifFalse, foo)",
-					needEOS: true,
+					name: "too many args",
+					in:   "?(condition, ifTrue, ifFalse, foo)",
 					expect: &ast.Ternary{
 						QuestionMark: &ast.Position{Line: 1, Col: 1},
 						LParen:       &ast.Position{Line: 1, Col: 2},
@@ -277,9 +257,6 @@ func testTernary(withEOS bool) func(t *testing.T, f parser.Func[*ast.Ternary]) {
 				t.Run(c.name, func(t *testing.T) {
 					t.Parallel()
 
-					if c.needEOS && withEOS {
-						c.in += ";"
-					}
 					actual := testutil.MatchesButError(t, c.in, f)
 					assert.Equal(t, c.expect, actual)
 				})
@@ -291,7 +268,7 @@ func testTernary(withEOS bool) func(t *testing.T, f parser.Func[*ast.Ternary]) {
 func parsesCodeNodeFully[T any](t *testing.T, input string, f parser.Func[T]) T {
 	t.Helper()
 
-	p := testutil.NewParser(t, input+", 1other stuff")
+	p := testutil.NewParser(t, input+"; 1other stuff")
 	v := testutil.AssertNoError(t, p, f)
 
 	line, col, index := testutil.CalcEnd(1, 1, 0, input)

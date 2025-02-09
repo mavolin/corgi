@@ -14,7 +14,7 @@ import (
 func TestExpression(t *testing.T) {
 	t.Parallel()
 
-	testutil.AssertAlsoFulfils(t, Expression(), func(t *testing.T, f parser.Func[*ast.Expression]) {
+	testutil.AssertAlsoFulfils(t, Expression(Regular), func(t *testing.T, f parser.Func[*ast.Expression]) {
 		testZeroCoalescing(t, func(p *parser.Parser) (*ast.ZeroCoalescing, *fancyerr.Error) {
 			e, err := f(p)
 			if err != nil {
@@ -31,19 +31,96 @@ func TestExpression(t *testing.T) {
 			return e.Code[0].(*ast.ZeroCoalescing), nil
 		})
 	})
-	testutil.AssertAlsoFulfils(t, Expression(), testNonZCExpression)
+	testutil.AssertAlsoFulfils(t, Expression(Regular), testNonZCExpression)
+
+	t.Run("body follows", func(t *testing.T) {
+		t.Parallel()
+
+		in := "func() { return block(foo) }()"
+		expect := &ast.Expression{
+			Code: ast.Code{
+				&ast.GoCode{
+					Code:     "func",
+					Position: &ast.Position{Line: 1, Col: 1},
+				}, &ast.GoCode{
+					Code:     "()",
+					Position: &ast.Position{Line: 1, Col: 5},
+				}, &ast.GoCode{
+					Code:     "{ return",
+					Position: &ast.Position{Line: 1, Col: 8},
+				}, &ast.BlockFunction{
+					Block:  &ast.Position{Line: 1, Col: 17},
+					LParen: &ast.Position{Line: 1, Col: 22},
+					BlockName: &ast.Ident{
+						Ident:    "foo",
+						Position: &ast.Position{Line: 1, Col: 23},
+					},
+					RParen: &ast.Position{Line: 1, Col: 26},
+				}, &ast.GoCode{
+					Code:     "}",
+					Position: &ast.Position{Line: 1, Col: 28},
+				}, &ast.GoCode{
+					Code:     "()",
+					Position: &ast.Position{Line: 1, Col: 29},
+				},
+			},
+		}
+
+		testCases := []struct {
+			name   string
+			body   string
+			expect *ast.Expression
+		}{
+			{
+				name: "scope",
+				body: "{\n\tfoo\n}",
+			}, {
+				name: "bracket text",
+				body: "[\n\tfoo\n]",
+			},
+		}
+
+		for _, c := range testCases {
+			t.Run(c.name, func(t *testing.T) {
+				t.Parallel()
+				t.Run("inline", func(t *testing.T) {
+					t.Parallel()
+
+					p := testutil.NewParser(t, in+" "+c.body+" 1other stuff")
+					var actual *ast.Expression
+					p.DoInline(func() {
+						actual = testutil.AssertNoError(t, p, Expression(BodyFollows))
+					})
+
+					line, col, index := testutil.CalcEnd(1, 1, 0, in)
+					testutil.AssertPosition(t, p, line, col, index)
+					assert.Equal(t, expect, actual)
+				})
+				t.Run("not inline", func(t *testing.T) {
+					t.Parallel()
+
+					p := testutil.NewParser(t, in+" "+c.body+" 1other stuff")
+					actual := testutil.AssertNoError(t, p, Expression(BodyFollows))
+
+					line, col, index := testutil.CalcEnd(1, 1, 0, in)
+					testutil.AssertPosition(t, p, line, col, index)
+					assert.Equal(t, expect, actual)
+				})
+			})
+		}
+	})
 }
 
 func TestNonZCExpression(t *testing.T) {
 	t.Parallel()
-	testNonZCExpression(t, NonZCExpression())
+	testNonZCExpression(t, NonZCExpression(Regular))
 }
 
 func testNonZCExpression(t *testing.T, f parser.Func[*ast.Expression]) {
-	testutil.AssertAlsoFulfils(t, f, nodesAsExpression(testGoCode(false)))
-	testutil.AssertAlsoFulfils(t, f, nodesAsExpression(nodeAsNodes(testBlockFunction(false))))
-	testutil.AssertAlsoFulfils(t, f, nodesAsExpression(nodeAsNodes(testString(false))))
-	testutil.AssertAlsoFulfils(t, f, nodesAsExpression(nodeAsNodes(testTernary(false))))
+	testutil.AssertAlsoFulfils(t, f, nodesAsExpression(testGoCode()))
+	testutil.AssertAlsoFulfils(t, f, nodesAsExpression(nodeAsNodes(testBlockFunction())))
+	testutil.AssertAlsoFulfils(t, f, nodesAsExpression(nodeAsNodes(testString())))
+	testutil.AssertAlsoFulfils(t, f, nodesAsExpression(nodeAsNodes(testTernary())))
 	t.Run("mix", func(t *testing.T) {
 		t.Parallel()
 
@@ -51,7 +128,7 @@ func testNonZCExpression(t *testing.T, f parser.Func[*ast.Expression]) {
 		expect := &ast.Expression{
 			Code: ast.Code{
 				&ast.GoCode{
-					Code:     "foo(bar, ",
+					Code:     "foo(bar,",
 					Position: &ast.Position{Line: 1, Col: 1},
 				}, &ast.String{
 					Open:  &ast.Position{Line: 1, Col: 10},
@@ -76,7 +153,7 @@ func testNonZCExpression(t *testing.T, f parser.Func[*ast.Expression]) {
 					},
 					Close: &ast.Position{Line: 1, Col: 22},
 				}, &ast.GoCode{
-					Code:     ") || ",
+					Code:     ") ||",
 					Position: &ast.Position{Line: 1, Col: 23},
 				}, &ast.BlockFunction{
 					LParen:    &ast.Position{Line: 1, Col: 33},

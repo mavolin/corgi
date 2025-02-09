@@ -25,7 +25,6 @@ func PackageDirective() parser.Func[*ast.PackageDirective] {
 		}
 
 		d.Name = parser.Must(p, golang.Identifier())
-		parser.MustSkip(p, comment.AndMustEOS())
 		return &d, nil
 	}
 }
@@ -34,6 +33,7 @@ func Import() parser.Func[*ast.Import] {
 	return func(p *parser.Parser) (*ast.Import, *fancyerr.Error) {
 		var imp ast.Import
 
+		imp.Import = p.PosPtr()
 		if !parser.TryToken(p, "import") {
 			return nil, &fancyerr.Error{
 				Message: "missing import directive",
@@ -53,8 +53,6 @@ func Import() parser.Func[*ast.Import] {
 			}
 
 			imp.Specs = []*ast.ImportSpec{parser.Must(p, ImportSpec())}
-
-			parser.MustSkip(p, comment.AndMustEOS())
 			return &imp, nil
 		}
 
@@ -94,7 +92,6 @@ func Import() parser.Func[*ast.Import] {
 			})
 		}
 
-		parser.MustSkip(p, comment.AndMustEOS())
 		return &imp, nil
 	}
 }

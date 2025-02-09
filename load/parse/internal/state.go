@@ -34,6 +34,10 @@ func (s *State) Pos() ast.Position {
 	return ast.Position{Line: s.line, Col: s.col}
 }
 
+func (s *State) Index() int {
+	return s.index
+}
+
 func (s *State) advance(size int, isNL bool) {
 	if isNL {
 		s.line++

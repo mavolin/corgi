@@ -40,7 +40,6 @@ func Declaration() parser.Func[*ast.StateDeclaration] {
 			}
 
 			d.Specs = []*ast.StateSpec{parser.Must(p, Spec())}
-			parser.MustSkip(p, comment.AndMustEOS())
 			return &d, nil
 		}
 
@@ -80,7 +79,6 @@ func Declaration() parser.Func[*ast.StateDeclaration] {
 			})
 		}
 
-		parser.MustSkip(p, comment.AndMustEOS())
 		return &d, nil
 	}
 }
@@ -106,13 +104,7 @@ func Spec() parser.Func[*ast.StateSpec] {
 			s.Type = parser.TryOptional(p, golang.Type(), comment.OrHorizontalWhitespace())
 		}
 
-		err := unexpected.UntilAnyRune(p, comment.OrHorizontalWhitespace(), '=', ';', ')')
-		if err != nil {
-			err.Message = "state spec: unexpected runes"
-			p.CaptureError(err)
-		}
-
-		s.EqualSign = parser.TryOptionalRuneAt(p, '=', comment.OrAnyWhitespace())
+		s.EqualSign = parser.TryRuneAt(p, '=')
 		if s.EqualSign == nil {
 			if s.Type == nil {
 				p.CaptureError(&fancyerr.Error{
@@ -122,8 +114,9 @@ func Spec() parser.Func[*ast.StateSpec] {
 			}
 			return &s, nil
 		}
+		parser.TrySkip(p, comment.OrAnyWhitespace())
 
-		s.Values = parser.Try(p, list.CommaList("state value", "state values", code.Expression()))
+		s.Values = parser.Try(p, list.CommaList("state value", "state values", code.Expression(code.Regular)))
 		if s.Values == nil {
 			if len(s.Names) == 1 {
 				p.CaptureError(&fancyerr.Error{

@@ -7,11 +7,12 @@ import (
 	"github.com/mavolin/corgi/v2/load/parse/internal/quickanno"
 )
 
-func Expression() parser.Func[*ast.Expression] {
+func Expression(o Options) parser.Func[*ast.Expression] {
+	o &= ^Statements
 	return func(p *parser.Parser) (*ast.Expression, *fancyerr.Error) {
 		var e ast.Expression
 
-		e.Code = parser.Try(p, Code(false))
+		e.Code = parser.Try(p, Code(o))
 		if e.Code == nil {
 			return nil, &fancyerr.Error{
 				Message: "missing expression",
@@ -23,11 +24,12 @@ func Expression() parser.Func[*ast.Expression] {
 	}
 }
 
-func NonZCExpression() parser.Func[*ast.Expression] {
+func NonZCExpression(o Options) parser.Func[*ast.Expression] {
+	o &= ^Statements
 	return func(p *parser.Parser) (*ast.Expression, *fancyerr.Error) {
 		var e ast.Expression
 
-		e.Code = parser.Try(p, NonZCCode(false))
+		e.Code = parser.Try(p, NonZCCode(o))
 		if e.Code == nil {
 			return nil, &fancyerr.Error{
 				Message: "missing expression",

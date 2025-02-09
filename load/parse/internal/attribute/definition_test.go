@@ -206,7 +206,7 @@ func TestDefinition(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			actual := testutil.ParsesFully(t, c.in+";", Definition())
+			actual := testutil.ParsesFully(t, c.in, Definition())
 			assert.Equal(t, c.expect, actual)
 		})
 	}
@@ -388,7 +388,7 @@ func TestRule(t *testing.T) {
 		},
 	}
 
-	actual := testutil.ParsesFully(t, in+";", Rule())
+	actual := testutil.ParsesFully(t, in, Rule())
 	assert.Equal(t, expect, actual)
 }
 

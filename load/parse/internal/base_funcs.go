@@ -59,6 +59,14 @@ func TryKeywordAt(p *Parser, k string, ws WhitespaceFunc) *ast.Position {
 	return &pos
 }
 
+func TryOptionalKeywordAt(p *Parser, k string, ws WhitespaceFunc) *ast.Position {
+	pos := p.Pos()
+	if !TryOptionalToken(p, k, nil) || (!MatchesAnyRune(p, '(', ';', '}', '\n', '\r') && !TrySkip(p, ws)) {
+		return nil
+	}
+	return &pos
+}
+
 func TryTokenAt(p *Parser, s string) *ast.Position {
 	pos := p.Pos()
 	if !TryToken(p, s) {

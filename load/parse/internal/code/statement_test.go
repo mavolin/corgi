@@ -14,7 +14,7 @@ func TestStatement(t *testing.T) {
 	t.Parallel()
 
 	testutil.AssertAlsoFulfils(t, ParsedStatement(), testParsedStatement)
-	testutil.AssertAlsoFulfils(t, Statement(), func(t *testing.T, f parser.Func[*ast.Statement]) {
+	testutil.AssertAlsoFulfils(t, Statement(Regular), func(t *testing.T, f parser.Func[*ast.Statement]) {
 		testSimpleStatement(t, func(p *parser.Parser) (*ast.SimpleStatement, *fancyerr.Error) {
 			s, err := f(p)
 			if err != nil {
@@ -76,7 +76,7 @@ func parsedStatementAsStatement[PS ast.ParsedStatement](subTest func(*testing.T,
 
 func TestSimpleStatement(t *testing.T) {
 	t.Parallel()
-	testSimpleStatement(t, SimpleStatement())
+	testSimpleStatement(t, SimpleStatement(Regular))
 }
 
 func testSimpleStatement(t *testing.T, f parser.Func[*ast.SimpleStatement]) {
@@ -154,7 +154,7 @@ func testReturn(t *testing.T, f parser.Func[*ast.Return]) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			actual := parsesCodeNodeFully(t, c.in+";", f)
+			actual := parsesCodeNodeFully(t, c.in, f)
 			assert.Equal(t, c.expect, actual)
 		})
 	}
@@ -194,7 +194,7 @@ func testBreak(t *testing.T, f parser.Func[*ast.Break]) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			actual := parsesCodeNodeFully(t, c.in+";", f)
+			actual := parsesCodeNodeFully(t, c.in, f)
 			assert.Equal(t, c.expect, actual)
 		})
 	}
@@ -234,7 +234,7 @@ func testContinue(t *testing.T, f parser.Func[*ast.Continue]) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			actual := parsesCodeNodeFully(t, c.in+";", f)
+			actual := parsesCodeNodeFully(t, c.in, f)
 			assert.Equal(t, c.expect, actual)
 		})
 	}
@@ -274,7 +274,7 @@ func testFallthrough(t *testing.T, f parser.Func[*ast.Fallthrough]) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			actual := parsesCodeNodeFully(t, c.in+";", f)
+			actual := parsesCodeNodeFully(t, c.in, f)
 			assert.Equal(t, c.expect, actual)
 		})
 	}
@@ -299,7 +299,7 @@ func testDefer(t *testing.T, f parser.Func[*ast.Defer]) {
 		},
 	}
 
-	actual := parsesCodeNodeFully(t, in+";", f)
+	actual := parsesCodeNodeFully(t, in, f)
 	assert.Equal(t, expect, actual)
 }
 
@@ -386,7 +386,7 @@ func testZeroCoalescingAssignment(t *testing.T, f parser.Func[*ast.ZeroCoalescin
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			actual := parsesCodeNodeFully(t, c.in+";", f)
+			actual := parsesCodeNodeFully(t, c.in, f)
 			assert.Equal(t, c.expect, actual)
 		})
 	}
@@ -432,7 +432,7 @@ func testIncDec(t *testing.T, f parser.Func[*ast.IncDec]) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			actual := parsesCodeNodeFully(t, c.in+";", f)
+			actual := parsesCodeNodeFully(t, c.in, f)
 			assert.Equal(t, c.expect, actual)
 		})
 	}
@@ -450,7 +450,7 @@ func testLabel(t *testing.T, f parser.Func[*ast.Label]) {
 		Colon: &ast.Position{Line: 1, Col: 8},
 	}
 
-	actual := parsesCodeNodeFully(t, in+";", f)
+	actual := parsesCodeNodeFully(t, in, f)
 	assert.Equal(t, expect, actual)
 }
 
@@ -608,7 +608,7 @@ func testConstDeclaration(t *testing.T, f parser.Func[*ast.ConstDeclaration]) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			actual := parsesCodeNodeFully(t, c.in+";", f)
+			actual := parsesCodeNodeFully(t, c.in, f)
 			assert.Equal(t, c.expect, actual)
 		})
 	}
@@ -789,7 +789,7 @@ func testVarDeclaration(t *testing.T, f parser.Func[*ast.VarDeclaration]) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			actual := parsesCodeNodeFully(t, c.in+";", f)
+			actual := parsesCodeNodeFully(t, c.in, f)
 			assert.Equal(t, c.expect, actual)
 		})
 	}
@@ -867,7 +867,7 @@ func testShortVarDeclaration(t *testing.T, f parser.Func[*ast.ShortVarDeclaratio
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			actual := parsesCodeNodeFully(t, c.in+";", f)
+			actual := parsesCodeNodeFully(t, c.in, f)
 			assert.Equal(t, c.expect, actual)
 		})
 	}
@@ -984,7 +984,7 @@ func testAssignment(t *testing.T, f parser.Func[*ast.Assignment]) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			actual := parsesCodeNodeFully(t, c.in+";", f)
+			actual := parsesCodeNodeFully(t, c.in, f)
 			assert.Equal(t, c.expect, actual)
 		})
 	}

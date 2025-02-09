@@ -19,7 +19,7 @@ import (
 )
 
 func init() {
-	interpolation.SetExpression(code.Expression())
+	interpolation.SetExpression(code.Expression(code.Regular))
 	interpolation.SetElementHeader(element.Header())
 	interpolation.SetComponentCallHeader(component.CallHeader())
 
@@ -28,6 +28,8 @@ func init() {
 }
 
 func scopeNode(p *parser.Parser) (ast.ScopeNode, *fancyerr.Error) {
+	// todo: detect invalid uses of doctype, import, package, component, else, and else if
+
 	panic("implement me")
 }
 
@@ -54,9 +56,9 @@ func TopLevel() parser.Func[[]ast.ScopeNode] {
 				scope = append(scope, c)
 			} else if ad := parser.TryOptional(p, attribute.Definition(), nil); ad != nil {
 				scope = append(scope, ad)
-			} else if ed := parser.TryOptional(p, element.Defintion(), nil); ed != nil {
+			} else if ed := parser.TryOptional(p, element.Definition(), nil); ed != nil {
 				scope = append(scope, ed)
-			} else if s := parser.TryOptional(p, code.Statement(), nil); s != nil {
+			} else if s := parser.TryOptional(p, code.Statement(code.Regular), nil); s != nil {
 				scope = append(scope, &ast.ImplicitCodeLine{Statement: s})
 			} else if imp := parser.TryOptional(p, Import(), nil); imp != nil {
 				scope = append(scope, &ast.BadScopeNode{

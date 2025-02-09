@@ -81,7 +81,7 @@ func TestDeclaration(t *testing.T) {
 	for _, c := range testCases {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
-			actual := testutil.ParsesFully(t, c.in+";", Declaration())
+			actual := testutil.ParsesFully(t, c.in, Declaration())
 			assert.Equal(t, c.expect, actual)
 		})
 	}

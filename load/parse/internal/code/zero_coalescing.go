@@ -73,7 +73,7 @@ func ZeroCoalescing() parser.Func[*ast.ZeroCoalescing] {
 		}
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 
-		zc.Default = parser.Try(p, NonZCExpression())
+		zc.Default = parser.Try(p, NonZCExpression(Regular))
 		if zc.Default == nil {
 			p.CaptureError(&fancyerr.Error{
 				Message: "zero coalescing: missing default value",
@@ -110,11 +110,11 @@ func ZeroCoalescing() parser.Func[*ast.ZeroCoalescing] {
 func zeroCoalescingRoot() parser.Func[*ast.Expression] {
 	return func(p *parser.Parser) (*ast.Expression, *fancyerr.Error) {
 		if parser.MatchesAnyRune(p, '(') {
-			c, err := parser.TryErr(p, goCode(true, false))
+			c, err := parser.TryErr(p, goCode(FirstParen))
 			if err != nil {
 				return nil, err
 			}
-			return &ast.Expression{Code: c}, err
+			return &ast.Expression{Code: c.Nodes}, err
 		}
 
 		ident := parser.Try(p, golang.Identifier())
@@ -177,7 +177,7 @@ func zcIndexExpression() parser.Func[*zeroCoalescingNodeData[*ast.ZCIndexExpress
 		}
 
 		parser.TrySkip(p, comment.OrAnyWhitespace())
-		ie.Index = parser.Must(p, NonZCExpression())
+		ie.Index = parser.Must(p, NonZCExpression(Regular))
 
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 		ie.CheckIndex = parser.TryOptionalRuneAt(p, '?', comment.OrHorizontalWhitespace())
@@ -256,7 +256,7 @@ func zcParenExpression() parser.Func[*zeroCoalescingNodeData[*ast.ZCParenExpress
 	return func(p *parser.Parser) (*zeroCoalescingNodeData[*ast.ZCParenExpression], *fancyerr.Error) {
 		var pe ast.ZCParenExpression
 
-		l := parser.Try(p, list.ParenList("arguments", NonZCExpression()))
+		l := parser.Try(p, list.ParenList("arguments", NonZCExpression(Regular)))
 		if l == nil {
 			return nil, &fancyerr.Error{
 				Message: "missing paren expression",

@@ -87,7 +87,7 @@ func (p *Parser) PosPtr() *ast.Position {
 	pos := p.Pos()
 	return &pos
 }
-func (p *Parser) Index() int { return p.state.index }
+func (p *Parser) Index() int { return p.state.Index() }
 func (p *Parser) Inline() bool {
 	return p.state.inline
 }

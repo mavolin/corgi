@@ -29,7 +29,7 @@ func Value() parser.Func[ast.AttributeValue] {
 
 func ExpressionValue() parser.Func[*ast.ExpressionAttributeValue] {
 	return func(p *parser.Parser) (*ast.ExpressionAttributeValue, *fancyerr.Error) {
-		expr := parser.Try(p, code.Expression())
+		expr := parser.Try(p, code.Expression(code.Regular))
 		if expr == nil {
 			return nil, &fancyerr.Error{
 				Message: "missing expression",

@@ -103,8 +103,7 @@ func Element() parser.Func[*ast.Element] {
 		}
 
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
-		e.Body, _ = parser.TryErr(p, body.Body())
-
+		e.Body = parser.Try(p, body.Body())
 		return &e, nil
 	}
 }

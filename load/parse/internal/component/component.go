@@ -130,7 +130,7 @@ func Parameter() parser.Func[*ast.ComponentParameter] {
 			}
 		}
 
-		param.Default = parser.Try(p, code.Expression())
+		param.Default = parser.Try(p, code.Expression(code.Regular))
 		if param.Default == nil {
 			if param.Colon != nil {
 				p.CaptureError(&fancyerr.Error{

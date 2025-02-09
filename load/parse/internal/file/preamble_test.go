@@ -17,7 +17,7 @@ func TestPackageDirective(t *testing.T) {
 		Name:    &ast.Ident{Ident: "foo", Position: &ast.Position{Line: 1, Col: 9}},
 	}
 
-	actual := testutil.ParsesFully(t, in+";", PackageDirective())
+	actual := testutil.ParsesFully(t, in, PackageDirective())
 	assert.Equal(t, expect, actual)
 }
 
@@ -80,7 +80,7 @@ func TestImport(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			actual := testutil.ParsesFully(t, c.in+";", Import())
+			actual := testutil.ParsesFully(t, c.in, Import())
 			assert.Equal(t, c.expect, actual)
 		})
 	}

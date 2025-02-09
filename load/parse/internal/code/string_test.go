@@ -11,10 +11,10 @@ import (
 
 func TestString(t *testing.T) {
 	t.Parallel()
-	testString(false)(t, String())
+	testString()(t, String())
 }
 
-func testString(withEOS bool) func(t *testing.T, f parser.Func[*ast.String]) {
+func testString() func(t *testing.T, f parser.Func[*ast.String]) {
 	return func(t *testing.T, f parser.Func[*ast.String]) {
 		t.Run("success", func(t *testing.T) {
 			t.Parallel()
@@ -89,9 +89,6 @@ func testString(withEOS bool) func(t *testing.T, f parser.Func[*ast.String]) {
 				t.Run(c.name, func(t *testing.T) {
 					t.Parallel()
 
-					if withEOS {
-						c.in += ";"
-					}
 					actual := parsesCodeNodeFully(t, c.in, f)
 					assert.Equal(t, c.expect, actual)
 				})
@@ -101,10 +98,9 @@ func testString(withEOS bool) func(t *testing.T, f parser.Func[*ast.String]) {
 			t.Parallel()
 
 			testCases := []struct {
-				name    string
-				in      string
-				expect  *ast.String
-				needEOS bool
+				name   string
+				in     string
+				expect *ast.String
 			}{
 				{
 					name: "missing closing quote",
@@ -126,9 +122,6 @@ func testString(withEOS bool) func(t *testing.T, f parser.Func[*ast.String]) {
 				t.Run(c.name, func(t *testing.T) {
 					t.Parallel()
 
-					if c.needEOS && withEOS {
-						c.in += ";"
-					}
 					actual := testutil.MatchesButError(t, c.in, f)
 					assert.Equal(t, c.expect, actual)
 				})

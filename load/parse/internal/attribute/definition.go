@@ -49,7 +49,6 @@ func Definition() parser.Func[*ast.AttributeDefinition] {
 			if s != nil {
 				def.Specs = []*ast.AttributeSpec{s}
 			}
-			parser.MustSkip(p, comment.AndMustEOS())
 			return &def, nil
 		}
 
@@ -88,7 +87,6 @@ func Definition() parser.Func[*ast.AttributeDefinition] {
 			})
 		}
 
-		parser.MustSkip(p, comment.AndMustEOS())
 		return &def, nil
 	}
 }
@@ -130,6 +128,7 @@ func Ruleset() parser.Func[*ast.AttributeRuleset] {
 			if r == nil {
 				break
 			}
+			parser.MustSkip(p, comment.AndMustEOS())
 			rs.Rules = append(rs.Rules, r)
 		}
 		rs.Rules = slices.Clip(rs.Rules)
@@ -160,7 +159,6 @@ func Rule() parser.Func[*ast.AttributeRule] {
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 
 		r.Type = parser.Must(p, TypeName())
-		parser.MustSkip(p, comment.AndMustEOS())
 		return &r, nil
 	}
 }

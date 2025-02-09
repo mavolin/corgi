@@ -54,7 +54,7 @@ func ComponentArgument() parser.Func[*ast.ComponentArgument] {
 
 		pos := p.Pos()
 		start := p.Index()
-		arg.Value = parser.Try(p, code.Expression())
+		arg.Value = parser.Try(p, code.Expression(code.Regular))
 		if arg.Value == nil {
 			if arg.Name == nil { // only a colon
 				return nil, &fancyerr.Error{
