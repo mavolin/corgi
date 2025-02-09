@@ -135,6 +135,7 @@ type (
 // It does not consume any input.
 func Matches[T any](p *Parser, f Func[T]) bool {
 	state := p.CloneState()
+	p.state.ws = nil
 	_, err := f(p)
 	p.RestoreState(state)
 	return err == nil

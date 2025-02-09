@@ -228,7 +228,7 @@ func goCode(o Options) parser.Func[*codeResult] {
 			}
 			if len(parenStack) == 0 {
 				if !o.statements() &&
-					(parser.MatchesAnyRune(p, ',') || parser.MatchesToken(p, ":=") ||
+					(parser.MatchesAnyRune(p, ',', ':') ||
 						(!parser.MatchesToken(p, "==") && parser.Matches(p, golang.AssignOp()))) {
 					p.RestoreState(state)
 					break
