@@ -7,6 +7,7 @@ import (
 	"github.com/mavolin/corgi/v2/file/ast"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/mavolin/corgi/v2/load/parse/internal/comment"
+	"github.com/mavolin/corgi/v2/load/parse/internal/golang"
 	"github.com/mavolin/corgi/v2/load/parse/internal/html"
 	"github.com/mavolin/corgi/v2/load/parse/internal/quickanno"
 	"github.com/mavolin/corgi/v2/load/parse/internal/unexpected"
@@ -56,7 +57,7 @@ func NamedAttribute() parser.Func[*ast.NamedAttribute] {
 	return func(p *parser.Parser) (*ast.NamedAttribute, *fancyerr.Error) {
 		var attr ast.NamedAttribute
 
-		attr.Name = parser.TryOptional(p, Name(), comment.OrHorizontalWhitespace())
+		attr.Name = parser.TryOptional(p, Reference(), comment.OrHorizontalWhitespace())
 		if attr.Name == nil {
 			// let this slide, as long as there is an equal sign following
 			p.CaptureError(&fancyerr.Error{
@@ -71,16 +72,19 @@ func NamedAttribute() parser.Func[*ast.NamedAttribute] {
 
 			// check if this could possibly be a component argument, i.e.
 			// if the name contains a colon and no parentheses
-			for i, r := range attr.Name.Name {
-				if r == '(' || r == ')' {
-					break
-				} else if r == ':' && i > 0 { // this could be a comp arg
-					err.Hints = append(err.Hints, fancyerr.Hint{
-						Hint:    "If this is supposed to be a component argument, add a space after the colon.",
-						Example: "`" + attr.Name.Name[:i] + ": ...`",
-					})
-					break
+			if attr.Name != nil && attr.Name.Package == nil && attr.Name.Dot == nil {
+				for i, r := range attr.Name.Name.Name {
+					if r == '(' || r == ')' {
+						break
+					} else if r == ':' && i > 0 { // this could be a comp arg
+						err.Hints = append(err.Hints, fancyerr.Hint{
+							Hint:    "If this is supposed to be a component argument, add a space after the colon.",
+							Example: "`" + attr.Name.Name.Name[:i] + ": ...`",
+						})
+						break
+					}
 				}
+
 			}
 
 			p.CaptureError(err)
@@ -104,6 +108,35 @@ func NamedAttribute() parser.Func[*ast.NamedAttribute] {
 
 		attr.Value = parser.Must(p, Value())
 		return &attr, nil
+	}
+}
+
+func Reference() parser.Func[*ast.AttributeReference] {
+	return func(p *parser.Parser) (*ast.AttributeReference, *fancyerr.Error) {
+		var ref ast.AttributeReference
+
+		state := p.CloneState()
+
+		ref.Package = parser.TryOptional(p, golang.Identifier(), comment.OrHorizontalWhitespace())
+		ref.Dot = parser.TryOptionalRuneAt(p, '.', comment.OrAnyWhitespace())
+		if ref.Dot == nil {
+			ref.Package = nil
+			p.RestoreState(state)
+		} else {
+			if ref.Package == nil {
+				p.CaptureError(&fancyerr.Error{
+					Message: "attribute reference: missing package name",
+					Primary: quickanno.Expected(p, p.Pos(), "a package name before the `.`"),
+				})
+			}
+		}
+
+		var err *fancyerr.Error
+		ref.Name, err = parser.TryErr(p, Name())
+		if err != nil {
+			return nil, err
+		}
+		return &ref, nil
 	}
 }
 

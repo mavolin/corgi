@@ -20,6 +20,7 @@ var (
 
 func (b *BadInterpolation) Start() Position { return b.From }
 func (b *BadInterpolation) End() Position   { return b.Until }
+func (b *BadInterpolation) Walk(func(Node)) {}
 
 func (*BadInterpolation) _node()          {}
 func (*BadInterpolation) _interpolation() {}
@@ -51,6 +52,7 @@ func (h *EscapedHash) End() Position {
 	}
 	return Position{}
 }
+func (h *EscapedHash) Walk(func(Node)) {}
 
 func (*EscapedHash) _node()          {}
 func (*EscapedHash) _interpolation() {}
@@ -79,6 +81,7 @@ func (h *HashSpace) End() Position {
 	}
 	return Position{}
 }
+func (h *HashSpace) Walk(func(Node)) {}
 
 func (*HashSpace) _node()          {}
 func (*HashSpace) _interpolation() {}
@@ -106,6 +109,7 @@ func (h *EscapedRBracket) End() Position {
 	}
 	return Position{}
 }
+func (h *EscapedRBracket) Walk(func(Node)) {}
 
 func (*EscapedRBracket) _node()          {}
 func (*EscapedRBracket) _interpolation() {}
@@ -155,6 +159,11 @@ func (interp *ExpressionInterpolation) End() Position {
 	}
 	return Position{}
 }
+func (interp *ExpressionInterpolation) Walk(w func(Node)) {
+	if interp.Expression != nil {
+		w(interp.Expression)
+	}
+}
 
 func (*ExpressionInterpolation) _node()          {}
 func (*ExpressionInterpolation) _interpolation() {}
@@ -187,6 +196,11 @@ func (interp *ElementInterpolation) End() Position {
 		return deltaPos(*interp.Hash, len("#"))
 	}
 	return Position{}
+}
+func (interp *ElementInterpolation) Walk(w func(Node)) {
+	if interp.Element != nil {
+		w(interp.Element)
+	}
 }
 
 func (*ElementInterpolation) _node()          {}
@@ -223,6 +237,11 @@ func (interp *ComponentCallInterpolation) End() Position {
 	}
 	return Position{}
 }
+func (interp *ComponentCallInterpolation) Walk(w func(Node)) {
+	if interp.ComponentCall != nil {
+		w(interp.ComponentCall)
+	}
+}
 
 func (*ComponentCallInterpolation) _node()          {}
 func (*ComponentCallInterpolation) _interpolation() {}
@@ -256,6 +275,7 @@ func (c *CharacterReference) End() Position {
 	}
 	return Position{}
 }
+func (c *CharacterReference) Walk(func(Node)) {}
 
 func (*CharacterReference) _node()          {}
 func (*CharacterReference) _interpolation() {}

@@ -287,7 +287,7 @@ func TestRuleset(t *testing.T) {
 						},
 					}, {
 						Selector: &ast.ListElementSelector{
-							Elements: []*ast.ListElementSelectorItem{
+							Elements: []*ast.ElementName{
 								{
 									Name:     "foo",
 									Position: &ast.Position{Line: 1, Col: 16},
@@ -344,7 +344,7 @@ func TestRuleset(t *testing.T) {
 						},
 					}, {
 						Selector: &ast.ListElementSelector{
-							Elements: []*ast.ListElementSelectorItem{
+							Elements: []*ast.ElementName{
 								{
 									Name:     "foo",
 									Position: &ast.Position{Line: 3, Col: 2},
@@ -490,7 +490,7 @@ func testListElementSelector(t *testing.T, f parser.Func[*ast.ListElementSelecto
 			name: "single",
 			in:   "foo",
 			expect: &ast.ListElementSelector{
-				Elements: []*ast.ListElementSelectorItem{
+				Elements: []*ast.ElementName{
 					{Name: "foo", Position: &ast.Position{Line: 1, Col: 1}},
 				},
 			},
@@ -499,7 +499,7 @@ func testListElementSelector(t *testing.T, f parser.Func[*ast.ListElementSelecto
 			in: "foo,\n" +
 				"\tbar, baz",
 			expect: &ast.ListElementSelector{
-				Elements: []*ast.ListElementSelectorItem{
+				Elements: []*ast.ElementName{
 					{Name: "foo", Position: &ast.Position{Line: 1, Col: 1}},
 					{Name: "bar", Position: &ast.Position{Line: 2, Col: 2}},
 					{Name: "baz", Position: &ast.Position{Line: 2, Col: 7}},
@@ -522,8 +522,8 @@ func TestListElementSelectorItem(t *testing.T) {
 	t.Parallel()
 
 	in := "foo"
-	expect := &ast.ListElementSelectorItem{Name: "foo", Position: &ast.Position{Line: 1, Col: 1}}
+	expect := &ast.ElementName{Name: "foo", Position: &ast.Position{Line: 1, Col: 1}}
 
-	actual := testutil.ParsesFully(t, in, ListElementSelectorItem())
+	actual := testutil.ParsesFully(t, in, elementName())
 	assert.Equal(t, expect, actual)
 }

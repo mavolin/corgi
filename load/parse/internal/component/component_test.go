@@ -38,9 +38,11 @@ func TestComponent(t *testing.T) {
 					Nodes: []ast.ScopeNode{
 						&ast.Element{
 							Header: &ast.ElementHeader{
-								Name: &ast.ElementName{
-									Name:     "br",
-									Position: &ast.Position{Line: 2, Col: 2},
+								Name: &ast.ElementReference{
+									Name: &ast.ElementName{
+										Name:     "br",
+										Position: &ast.Position{Line: 2, Col: 2},
+									},
 								},
 							},
 						},
@@ -81,9 +83,11 @@ func TestComponent(t *testing.T) {
 					Nodes: []ast.ScopeNode{
 						&ast.Element{
 							Header: &ast.ElementHeader{
-								Name: &ast.ElementName{
-									Name:     "br",
-									Position: &ast.Position{Line: 2, Col: 2},
+								Name: &ast.ElementReference{
+									Name: &ast.ElementName{
+										Name:     "br",
+										Position: &ast.Position{Line: 2, Col: 2},
+									},
 								},
 							},
 						},
@@ -487,9 +491,11 @@ func TestBlock(t *testing.T) {
 					Nodes: []ast.ScopeNode{
 						&ast.Element{
 							Header: &ast.ElementHeader{
-								Name: &ast.ElementName{
-									Name:     "br",
-									Position: &ast.Position{Line: 2, Col: 2},
+								Name: &ast.ElementReference{
+									Name: &ast.ElementName{
+										Name:     "br",
+										Position: &ast.Position{Line: 2, Col: 2},
+									},
 								},
 							},
 						},

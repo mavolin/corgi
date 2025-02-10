@@ -67,6 +67,13 @@ func (s *Scope) End() Position {
 	}
 	return Position{}
 }
+func (s *Scope) Walk(w func(Node)) {
+	for _, node := range s.Nodes {
+		if node != nil {
+			w(node)
+		}
+	}
+}
 
 func (*Scope) _node() {}
 func (*Scope) _body() {}
@@ -91,6 +98,7 @@ var _ ScopeNode = (*BadScopeNode)(nil)
 
 func (b *BadScopeNode) Start() Position { return b.From }
 func (b *BadScopeNode) End() Position   { return b.Until }
+func (b *BadScopeNode) Walk(func(Node)) {}
 
 func (*BadScopeNode) _node()      {}
 func (*BadScopeNode) _scopeNode() {}
@@ -126,6 +134,11 @@ func (t *BracketText) End() Position {
 		return deltaPos(*t.LBracket, len("["))
 	}
 	return Position{}
+}
+func (t *BracketText) Walk(w func(Node)) {
+	if t.Lines != nil {
+		w(t.Lines)
+	}
 }
 
 func (*BracketText) _node() {}
@@ -164,6 +177,11 @@ func (s *UnderscoreBlockShorthand) End() Position {
 		return deltaPos(*s.Position, len("_"))
 	}
 	return Position{}
+}
+func (s *UnderscoreBlockShorthand) Walk(w func(Node)) {
+	if s.Body != nil {
+		w(s.Body)
+	}
 }
 
 func (*UnderscoreBlockShorthand) _node() {}

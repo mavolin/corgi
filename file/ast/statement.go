@@ -26,8 +26,16 @@ func (s *Statement) End() Position {
 	}
 	return Position{}
 }
+func (s *Statement) Walk(w func(Node)) {
+	if s.Code != nil {
+		w(s.Code)
+	}
+	if s.Parsed != nil {
+		w(s.Parsed)
+	}
+}
 
-func (Statement) _node() {}
+func (*Statement) _node() {}
 
 // ============================================================================
 // Parsed Statement
@@ -87,7 +95,16 @@ func (s *SimpleStatement) End() Position {
 	}
 	return Position{}
 }
-func (SimpleStatement) _node() {}
+func (s *SimpleStatement) Walk(w func(Node)) {
+	if s.Code != nil {
+		w(s.Code)
+	}
+	if s.Parsed != nil {
+		w(s.Parsed)
+	}
+}
+
+func (*SimpleStatement) _node() {}
 
 // ParsedSimpleStatement is a subset of valid Go simple statements with corgi
 // enhancements that we have an AST representation for.
@@ -136,6 +153,11 @@ func (r *Return) End() Position {
 	}
 	return Position{}
 }
+func (r *Return) Walk(w func(Node)) {
+	if r.Error != nil {
+		w(r.Error)
+	}
+}
 
 func (*Return) _node()            {}
 func (*Return) _parsedStatement() {}
@@ -166,6 +188,11 @@ func (b *Break) End() Position {
 		return deltaPos(*b.Break, len("break"))
 	}
 	return Position{}
+}
+func (b *Break) Walk(w func(Node)) {
+	if b.Label != nil {
+		w(b.Label)
+	}
 }
 
 func (*Break) _node()            {}
@@ -198,6 +225,11 @@ func (c *Continue) End() Position {
 	}
 	return Position{}
 }
+func (c *Continue) Walk(w func(Node)) {
+	if c.Label != nil {
+		w(c.Label)
+	}
+}
 
 func (*Continue) _node()            {}
 func (*Continue) _parsedStatement() {}
@@ -229,6 +261,11 @@ func (f *Fallthrough) End() Position {
 	}
 	return Position{}
 }
+func (f *Fallthrough) Walk(w func(Node)) {
+	if f.Label != nil {
+		w(f.Label)
+	}
+}
 
 func (*Fallthrough) _node()            {}
 func (*Fallthrough) _parsedStatement() {}
@@ -257,6 +294,11 @@ func (d *Defer) End() Position {
 		return deltaPos(*d.Defer, len("defer"))
 	}
 	return Position{}
+}
+func (d *Defer) Walk(w func(Node)) {
+	if d.Expression != nil {
+		w(d.Expression)
+	}
 }
 
 func (*Defer) _node()            {}
@@ -306,6 +348,13 @@ func (c *ConstDeclaration) End() Position {
 		return deltaPos(*c.Const, len("const"))
 	}
 	return Position{}
+}
+func (c *ConstDeclaration) Walk(w func(Node)) {
+	for _, spec := range c.Specs {
+		if spec != nil {
+			w(spec)
+		}
+	}
 }
 
 func (*ConstDeclaration) _node()            {}
@@ -358,6 +407,21 @@ func (c *ConstSpec) End() Position {
 	}
 	return Position{}
 }
+func (c *ConstSpec) Walk(w func(Node)) {
+	for _, name := range c.Names {
+		if name != nil {
+			w(name)
+		}
+	}
+	if c.Type != nil {
+		w(c.Type)
+	}
+	for _, value := range c.Values {
+		if value != nil {
+			w(value)
+		}
+	}
+}
 
 func (*ConstSpec) _node() {}
 
@@ -405,6 +469,13 @@ func (c *VarDeclaration) End() Position {
 		return deltaPos(*c.Var, len("var"))
 	}
 	return Position{}
+}
+func (c *VarDeclaration) Walk(w func(Node)) {
+	for _, spec := range c.Specs {
+		if spec != nil {
+			w(spec)
+		}
+	}
 }
 
 func (*VarDeclaration) _node()            {}
@@ -456,6 +527,21 @@ func (c *VarSpec) End() Position {
 		}
 	}
 	return Position{}
+}
+func (c *VarSpec) Walk(w func(Node)) {
+	for _, name := range c.Names {
+		if name != nil {
+			w(name)
+		}
+	}
+	if c.Type != nil {
+		w(c.Type)
+	}
+	for _, value := range c.Values {
+		if value != nil {
+			w(value)
+		}
+	}
 }
 
 func (*VarSpec) _node() {}
@@ -510,6 +596,17 @@ func (a *ZeroCoalescingAssignment) End() Position {
 	}
 	return Position{}
 }
+func (a *ZeroCoalescingAssignment) Walk(w func(Node)) {
+	if a.ValueExpression != nil {
+		w(a.ValueExpression)
+	}
+	if a.OkExpression != nil {
+		w(a.OkExpression)
+	}
+	if a.Expression != nil {
+		w(a.Expression)
+	}
+}
 
 func (*ZeroCoalescingAssignment) _node()                  {}
 func (*ZeroCoalescingAssignment) _parsedStatement()       {}
@@ -545,6 +642,11 @@ func (i *IncDec) End() Position {
 		return i.Expression.End()
 	}
 	return Position{}
+}
+func (i *IncDec) Walk(w func(Node)) {
+	if i.Expression != nil {
+		w(i.Expression)
+	}
 }
 
 func (*IncDec) _node()                  {}
@@ -588,6 +690,18 @@ func (s *ShortVarDeclaration) End() Position {
 	}
 	return s.Names[len(s.Names)-1].End()
 }
+func (s *ShortVarDeclaration) Walk(w func(Node)) {
+	for _, name := range s.Names {
+		if name != nil {
+			w(name)
+		}
+	}
+	for _, value := range s.Values {
+		if value != nil {
+			w(value)
+		}
+	}
+}
 
 func (*ShortVarDeclaration) _node()                  {}
 func (*ShortVarDeclaration) _parsedStatement()       {}
@@ -619,6 +733,11 @@ func (l *Label) End() Position {
 		return l.Name.End()
 	}
 	return Position{}
+}
+func (l *Label) Walk(w func(Node)) {
+	if l.Name != nil {
+		w(l.Name)
+	}
 }
 
 func (*Label) _node()            {}
@@ -671,6 +790,18 @@ func (a *Assignment) End() Position {
 		}
 	}
 	return Position{}
+}
+func (a *Assignment) Walk(w func(Node)) {
+	for _, e := range a.LHS {
+		if e != nil {
+			w(e)
+		}
+	}
+	for _, e := range a.RHS {
+		if e != nil {
+			w(e)
+		}
+	}
 }
 
 func (*Assignment) _node()                  {}

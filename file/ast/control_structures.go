@@ -3,18 +3,75 @@ package ast
 import "slices"
 
 // ============================================================================
+// Conditional
+// ======================================================================================
+
+// Conditional is a wrapper around an if statement, for more straightforward
+// walking.
+type Conditional struct {
+	If      *If
+	ElseIfs []*ElseIf
+	Else    *Else
+}
+
+var _ ScopeNode = (*Conditional)(nil)
+
+func (c *Conditional) Start() Position {
+	if c.If != nil {
+		return c.If.Start()
+	}
+	for _, e := range c.ElseIfs {
+		if e != nil {
+			return e.Start()
+		}
+	}
+	if c.Else != nil {
+		return c.Else.Start()
+	}
+	return Position{}
+}
+func (c *Conditional) End() Position {
+	if c.Else != nil {
+		return c.Else.End()
+	}
+	for _, e := range slices.Backward(c.ElseIfs) {
+		if e != nil {
+			return e.End()
+		}
+	}
+	if c.If != nil {
+		return c.If.End()
+	}
+	return Position{}
+}
+func (c *Conditional) Walk(w func(Node)) {
+	if c.If != nil {
+		w(c.If)
+	}
+	for _, e := range c.ElseIfs {
+		if e != nil {
+			w(e)
+		}
+	}
+	if c.Else != nil {
+		w(c.Else)
+	}
+}
+
+func (*Conditional) _node()      {}
+func (*Conditional) _scopeNode() {}
+
+// ============================================================================
 // If
 // ======================================================================================
 
 type If struct {
-	If      *Position
-	Header  *IfHeader
-	Then    Body
-	ElseIfs []*ElseIf
-	Else    *Else // may be nil
+	If     *Position
+	Header *IfHeader
+	Then   Body
 }
 
-var _ ScopeNode = (*If)(nil)
+var _ Node = (*If)(nil)
 
 func (i *If) Start() Position {
 	if i.If != nil {
@@ -24,25 +81,10 @@ func (i *If) Start() Position {
 	} else if i.Then != nil {
 		return i.Then.Start()
 	}
-	for _, e := range i.ElseIfs {
-		if e != nil {
-			return e.Start()
-		}
-	}
-	if i.Else != nil {
-		return i.Else.Start()
-	}
+
 	return Position{}
 }
 func (i *If) End() Position {
-	if i.Else != nil {
-		return i.Else.End()
-	}
-	for _, e := range slices.Backward(i.ElseIfs) {
-		if e != nil {
-			return e.End()
-		}
-	}
 	if i.Then != nil {
 		return i.Then.End()
 	} else if i.Header != nil {
@@ -52,11 +94,20 @@ func (i *If) End() Position {
 	}
 	return Position{}
 }
+func (i *If) Walk(w func(Node)) {
+	if i.Header != nil {
+		w(i.Header)
+	}
+	if i.Then != nil {
+		w(i.Then)
+	}
+}
 
-func (*If) _node()      {}
-func (*If) _scopeNode() {}
+func (*If) _node() {}
 
-// ====================================== Else If =======================================
+// ============================================================================
+// Else If
+// ======================================================================================
 
 type ElseIf struct {
 	Else   *Position
@@ -91,10 +142,20 @@ func (e *ElseIf) End() Position {
 	}
 	return Position{}
 }
+func (e *ElseIf) Walk(w func(Node)) {
+	if e.Header != nil {
+		w(e.Header)
+	}
+	if e.Then != nil {
+		w(e.Then)
+	}
+}
 
 func (*ElseIf) _node() {}
 
-// ======================================== Else ========================================
+// ============================================================================
+// Else
+// ======================================================================================
 
 type Else struct {
 	Else *Position
@@ -118,6 +179,11 @@ func (e *Else) End() Position {
 		return deltaPos(*e.Else, len("else"))
 	}
 	return Position{}
+}
+func (e *Else) Walk(w func(Node)) {
+	if e.Then != nil {
+		w(e.Then)
+	}
 }
 
 func (*Else) _node() {}
@@ -148,6 +214,14 @@ func (e *IfHeader) End() Position {
 		return e.Statement.End()
 	}
 	return Position{}
+}
+func (e *IfHeader) Walk(w func(Node)) {
+	if e.Statement != nil {
+		w(e.Statement)
+	}
+	if e.Condition != nil {
+		w(e.Condition)
+	}
 }
 
 func (*IfHeader) _node() {}
@@ -202,6 +276,16 @@ func (s *Switch) End() Position {
 	}
 	return Position{}
 }
+func (s *Switch) Walk(w func(Node)) {
+	if s.Comparator != nil {
+		w(s.Comparator)
+	}
+	for _, c := range s.Cases {
+		if c != nil {
+			w(c)
+		}
+	}
+}
 
 func (*Switch) _node()      {}
 func (*Switch) _scopeNode() {}
@@ -252,6 +336,16 @@ func (c *Case) End() Position {
 	}
 	return Position{}
 }
+func (c *Case) Walk(w func(Node)) {
+	if c.Expression != nil {
+		w(c.Expression)
+	}
+	for _, n := range c.Then {
+		if n != nil {
+			w(n)
+		}
+	}
+}
 
 func (*Case) _node() {}
 
@@ -286,6 +380,14 @@ func (f *For) End() Position {
 		return deltaPos(*f.For, len("for"))
 	}
 	return Position{}
+}
+func (f *For) Walk(w func(Node)) {
+	if f.Header != nil {
+		w(f.Header)
+	}
+	if f.Body != nil {
+		w(f.Body)
+	}
 }
 
 func (*For) _node()      {}
@@ -328,6 +430,12 @@ func (h *ForConditionHeader) End() Position {
 	}
 	return Position{}
 }
+func (h *ForConditionHeader) Walk(w func(Node)) {
+	if h.Condition != nil {
+		w(h.Condition)
+	}
+}
+
 func (*ForConditionHeader) _node()      {}
 func (*ForConditionHeader) _forHeader() {}
 
@@ -361,6 +469,18 @@ func (h *ForClauseHeader) End() Position {
 	}
 	return Position{}
 }
+func (h *ForClauseHeader) Walk(w func(Node)) {
+	if h.Init != nil {
+		w(h.Init)
+	}
+	if h.Condition != nil {
+		w(h.Condition)
+	}
+	if h.Post != nil {
+		w(h.Post)
+	}
+}
+
 func (*ForClauseHeader) _node()      {}
 func (*ForClauseHeader) _forHeader() {}
 
@@ -417,6 +537,17 @@ func (h *ForRangeHeader) End() Position {
 		return h.Var1.End()
 	}
 	return Position{}
+}
+func (h *ForRangeHeader) Walk(w func(Node)) {
+	if h.Var1 != nil {
+		w(h.Var1)
+	}
+	if h.Var2 != nil {
+		w(h.Var2)
+	}
+	if h.Expression != nil {
+		w(h.Expression)
+	}
 }
 
 func (*ForRangeHeader) _node()      {}

@@ -163,7 +163,7 @@ func AliasType() parser.Func[*ast.AliasElementType] {
 		}
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 
-		t.Name = parser.Must(p, Name())
+		t.Name = parser.Must(p, Reference())
 		return &t, nil
 	}
 }

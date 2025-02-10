@@ -41,7 +41,7 @@ func scopeNode(p *parser.Parser) (ast.ScopeNode, *fancyerr.Error) {
 		return n, nil
 	} else if n := parser.Try(p, component.Block()); n != nil {
 		return n, nil
-	} else if n := parser.Try(p, code.If()); n != nil {
+	} else if n := parser.Try(p, code.Conditional()); n != nil {
 		return n, nil
 	} else if n := parser.Try(p, code.Switch()); n != nil {
 		return n, nil

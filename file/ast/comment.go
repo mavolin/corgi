@@ -42,7 +42,6 @@ func (g CommentGroup) Start() Position {
 	}
 	return Position{}
 }
-
 func (g CommentGroup) End() Position {
 	for _, c := range slices.Backward(g.Comments) {
 		if c != nil {
@@ -50,6 +49,13 @@ func (g CommentGroup) End() Position {
 		}
 	}
 	return Position{}
+}
+func (g CommentGroup) Walk(w func(Node)) {
+	for _, c := range g.Comments {
+		if c != nil {
+			w(c)
+		}
+	}
 }
 
 func (CommentGroup) _node() {}
@@ -78,5 +84,6 @@ func (c *Comment) Start() Position {
 func (c *Comment) End() Position {
 	return c.Until
 }
+func (c *Comment) Walk(func(Node)) {}
 
 func (*Comment) _node() {}

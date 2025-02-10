@@ -49,18 +49,22 @@ func testNamedAttribute(t *testing.T, f parser.Func[*ast.NamedAttribute]) {
 			name: "boolean",
 			in:   "async",
 			expect: &ast.NamedAttribute{
-				Name: &ast.AttributeName{
-					Name:     "async",
-					Position: &ast.Position{Line: 1, Col: 1},
+				Name: &ast.AttributeReference{
+					Name: &ast.AttributeName{
+						Name:     "async",
+						Position: &ast.Position{Line: 1, Col: 1},
+					},
 				},
 			},
 		}, {
 			name: "value",
 			in:   `value=woof`,
 			expect: &ast.NamedAttribute{
-				Name: &ast.AttributeName{
-					Name:     "value",
-					Position: &ast.Position{Line: 1, Col: 1},
+				Name: &ast.AttributeReference{
+					Name: &ast.AttributeName{
+						Name:     "value",
+						Position: &ast.Position{Line: 1, Col: 1},
+					},
 				},
 				EqualSign: &ast.Position{Line: 1, Col: 6},
 				Value: &ast.ExpressionAttributeValue{
@@ -84,6 +88,50 @@ func testNamedAttribute(t *testing.T, f parser.Func[*ast.NamedAttribute]) {
 			if assert.Equal(t, c.expect, actual) {
 				testutil.AssertPosition(t, p, c.expect.End().Line, c.expect.End().Col, len(c.in))
 			}
+		})
+	}
+}
+
+func TestReference(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name   string
+		in     string
+		expect *ast.AttributeReference
+	}{
+		{
+			name: "local",
+			in:   "name",
+			expect: &ast.AttributeReference{
+				Name: &ast.AttributeName{
+					Name:     "name",
+					Position: &ast.Position{Line: 1, Col: 1},
+				},
+			},
+		}, {
+			name: "external",
+			in:   "package1.Name",
+			expect: &ast.AttributeReference{
+				Package: &ast.Ident{
+					Ident:    "package1",
+					Position: &ast.Position{Line: 1, Col: 1},
+				},
+				Dot: &ast.Position{Line: 1, Col: 9},
+				Name: &ast.AttributeName{
+					Name:     "Name",
+					Position: &ast.Position{Line: 1, Col: 10},
+				},
+			},
+		},
+	}
+
+	for _, c := range testCases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+
+			actual := testutil.ParsesFully(t, c.in, Reference())
+			assert.Equal(t, c.expect, actual)
 		})
 	}
 }

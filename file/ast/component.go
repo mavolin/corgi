@@ -42,6 +42,17 @@ func (c *Component) End() Position {
 	}
 	return Position{}
 }
+func (c *Component) Walk(w func(Node)) {
+	if c.Header != nil {
+		w(c.Header)
+	}
+	if c.Extend != nil {
+		w(c.Extend)
+	}
+	if c.Body != nil {
+		w(c.Body)
+	}
+}
 
 func (*Component) _node()      {}
 func (*Component) _scopeNode() {}
@@ -77,6 +88,17 @@ func (h *ComponentHeader) End() Position {
 		return h.Name.End()
 	}
 	return Position{}
+}
+func (h *ComponentHeader) Walk(w func(Node)) {
+	if h.Name != nil {
+		w(h.Name)
+	}
+	if h.TypeParams != nil {
+		w(h.TypeParams)
+	}
+	if h.Params != nil {
+		w(h.Params)
+	}
 }
 
 func (*ComponentHeader) _node() {}
@@ -121,6 +143,13 @@ func (p *ComponentParameters) End() Position {
 	}
 	return Position{}
 }
+func (p *ComponentParameters) Walk(w func(Node)) {
+	for _, param := range p.Params {
+		if param != nil {
+			w(param)
+		}
+	}
+}
 
 func (*ComponentParameters) _node() {}
 
@@ -162,6 +191,17 @@ func (p *ComponentParameter) End() Position {
 	}
 	return Position{}
 }
+func (p *ComponentParameter) Walk(w func(Node)) {
+	if p.Name != nil {
+		w(p.Name)
+	}
+	if p.Type != nil {
+		w(p.Type)
+	}
+	if p.Default != nil {
+		w(p.Default)
+	}
+}
 
 func (*ComponentParameter) _node() {}
 
@@ -196,6 +236,14 @@ func (a *Alias) End() Position {
 		return deltaPos(*a.Alias, len("alias"))
 	}
 	return Position{}
+}
+func (a *Alias) Walk(w func(Node)) {
+	if a.Header != nil {
+		w(a.Header)
+	}
+	if a.ComponentCall != nil {
+		w(a.ComponentCall)
+	}
 }
 
 func (*Alias) _node()      {}
@@ -232,6 +280,14 @@ func (b *Block) End() Position {
 		return deltaPos(*b.Block, len("block"))
 	}
 	return Position{}
+}
+func (b *Block) Walk(w func(Node)) {
+	if b.Name != nil {
+		w(b.Name)
+	}
+	if b.Default != nil {
+		w(b.Default)
+	}
 }
 
 func (*Block) _node()      {}

@@ -36,6 +36,7 @@ func (d *Doctype) End() Position {
 	}
 	return Position{}
 }
+func (d *Doctype) Walk(func(Node)) {}
 
 func (*Doctype) _node()      {}
 func (*Doctype) _scopeNode() {}
@@ -68,6 +69,14 @@ func (e *Element) End() Position {
 	}
 	return Position{}
 }
+func (e *Element) Walk(w func(Node)) {
+	if e.Header != nil {
+		w(e.Header)
+	}
+	if e.Body != nil {
+		w(e.Body)
+	}
+}
 
 func (*Element) _node()      {}
 func (*Element) _scopeNode() {}
@@ -77,7 +86,7 @@ func (*Element) _scopeNode() {}
 // ======================================================================================
 
 type ElementHeader struct {
-	Name       *ElementName
+	Name       *ElementReference
 	Attributes *Arguments
 }
 
@@ -98,6 +107,14 @@ func (h *ElementHeader) End() Position {
 		return h.Name.End()
 	}
 	return Position{}
+}
+func (h *ElementHeader) Walk(w func(Node)) {
+	if h.Name != nil {
+		w(h.Name)
+	}
+	if h.Attributes != nil {
+		w(h.Attributes)
+	}
 }
 
 func (*ElementHeader) _node() {}
@@ -125,7 +142,48 @@ func (n *ElementName) End() Position {
 	}
 	return Position{}
 }
+func (n *ElementName) Walk(func(Node)) {}
+
 func (*ElementName) _node() {}
+
+// ============================================================================
+// Element Reference
+// ======================================================================================
+
+type ElementReference struct {
+	Package *Ident
+	Dot     *Position
+	Name    *ElementName
+}
+
+var _ Node = (*ElementReference)(nil)
+
+func (r *ElementReference) Start() Position {
+	if r.Package != nil {
+		return r.Package.Start()
+	} else if r.Name != nil {
+		return r.Name.Start()
+	}
+	return Position{}
+}
+func (r *ElementReference) End() Position {
+	if r.Name != nil {
+		return r.Name.End()
+	} else if r.Package != nil {
+		return r.Package.End()
+	}
+	return Position{}
+}
+func (r *ElementReference) Walk(w func(Node)) {
+	if r.Package != nil {
+		w(r.Package)
+	}
+	if r.Name != nil {
+		w(r.Name)
+	}
+}
+
+func (*ElementReference) _node() {}
 
 // ============================================================================
 // Raw Element
@@ -153,6 +211,11 @@ func (e *RawElement) End() Position {
 		return deltaPos(*e.Raw, len("!raw"))
 	}
 	return Position{}
+}
+func (e *RawElement) Walk(w func(Node)) {
+	if e.Body != nil {
+		w(e.Body)
+	}
 }
 
 func (*RawElement) _node()      {}
@@ -184,6 +247,11 @@ func (a *And) End() Position {
 		return deltaPos(*a.And, len("&"))
 	}
 	return Position{}
+}
+func (a *And) Walk(w func(Node)) {
+	if a.Attributes != nil {
+		w(a.Attributes)
+	}
 }
 
 func (*And) _node()      {}

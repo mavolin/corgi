@@ -55,6 +55,19 @@ func (c *ZeroCoalescing) End() Position {
 	}
 	return Position{}
 }
+func (c *ZeroCoalescing) Walk(w func(Node)) {
+	if c.Root != nil {
+		w(c.Root)
+	}
+	for _, node := range c.Chain {
+		if node != nil {
+			w(node)
+		}
+	}
+	if c.Default != nil {
+		w(c.Default)
+	}
+}
 
 func (*ZeroCoalescing) _node()     {}
 func (*ZeroCoalescing) _codeNode() {}
@@ -128,6 +141,11 @@ func (e *ZCIndexExpression) End() Position {
 	}
 	return Position{}
 }
+func (e *ZCIndexExpression) Walk(w func(Node)) {
+	if e.Index != nil {
+		w(e.Index)
+	}
+}
 
 func (*ZCIndexExpression) _node()               {}
 func (*ZCIndexExpression) _zeroCoalescingNode() {}
@@ -165,6 +183,12 @@ func (e *ZCSelectorExpression) End() Position {
 	}
 	return Position{}
 }
+func (e *ZCSelectorExpression) Walk(w func(Node)) {
+	if e.Ident != nil {
+		w(e.Ident)
+	}
+}
+
 func (*ZCSelectorExpression) _node()               {}
 func (*ZCSelectorExpression) _zeroCoalescingNode() {}
 
@@ -213,6 +237,13 @@ func (e *ZCParenExpression) End() Position {
 		return deltaPos(*e.LParen, len("("))
 	}
 	return Position{}
+}
+func (e *ZCParenExpression) Walk(w func(Node)) {
+	for _, arg := range e.Args {
+		if arg != nil {
+			w(arg)
+		}
+	}
 }
 
 func (*ZCParenExpression) _node()               {}
@@ -264,6 +295,11 @@ func (e *ZCTypeAssertionExpression) End() Position {
 		return deltaPos(*e.Dot, len("."))
 	}
 	return Position{}
+}
+func (e *ZCTypeAssertionExpression) Walk(w func(Node)) {
+	if e.Type != nil {
+		e.Type.Walk(w)
+	}
 }
 
 func (*ZCTypeAssertionExpression) _node()               {}

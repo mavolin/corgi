@@ -1,7 +1,7 @@
 package walk
 
 import (
-	"github.com/mavolin/corgi/file/ast"
+	"github.com/mavolin/corgi/v2/file/ast"
 )
 
 // IsTopLevel indicates whether an item with the passed parents would be
@@ -31,20 +31,12 @@ func ChildIsTopLevel(ctx *Context) bool {
 
 func isTopLevel(n ast.Node) bool {
 	switch n.(type) {
-	case *ast.If:
-	case *ast.ElseIf:
-	case *ast.Else:
-	case *ast.For:
-	case *ast.Switch:
-	case *ast.Case:
 	case *ast.ComponentCall:
-		return false
-	case *ast.Block:
-	case *ast.TextLine:
+	case *ast.Element:
 	default:
-		return false
+		return true
 	}
-	return true
+	return false
 }
 
 // Closest returns the closest parent of the passed type, or the zero value for

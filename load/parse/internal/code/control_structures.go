@@ -13,6 +13,24 @@ import (
 	"github.com/mavolin/corgi/v2/load/parse/internal/unexpected"
 )
 
+func Conditional() parser.Func[*ast.Conditional] {
+	return func(p *parser.Parser) (*ast.Conditional, *fancyerr.Error) {
+		var c ast.Conditional
+
+		var err *fancyerr.Error
+		c.If, err = parser.TryErr(p, If())
+		if err != nil {
+			return nil, err
+		}
+
+		c.ElseIfs = parser.Collect(p, ElseIf(), 24, comment.OrAnyWhitespace())
+		parser.TrySkip(p, comment.OrAnyWhitespace())
+		c.Else = parser.Try(p, Else())
+
+		return &c, nil
+	}
+}
+
 func If() parser.Func[*ast.If] {
 	return func(p *parser.Parser) (*ast.If, *fancyerr.Error) {
 		var i ast.If
@@ -34,10 +52,6 @@ func If() parser.Func[*ast.If] {
 				Primary: quickanno.Expected(p, p.Pos(), "a body"),
 			}
 		}
-
-		i.ElseIfs = parser.Collect(p, ElseIf(), 24, comment.OrAnyWhitespace())
-		parser.TrySkip(p, comment.OrAnyWhitespace())
-		i.Else = parser.Try(p, Else())
 
 		return &i, nil
 	}

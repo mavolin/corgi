@@ -40,6 +40,14 @@ func (a *Arguments) End() Position {
 	return Position{}
 }
 
+func (a *Arguments) Walk(w func(Node)) {
+	for _, arg := range a.Args {
+		if arg != nil {
+			w(arg)
+		}
+	}
+}
+
 func (*Arguments) _node() {}
 
 // ============================================================================
@@ -89,6 +97,15 @@ func (a *ComponentArgument) End() Position {
 		return a.Name.End()
 	}
 	return Position{}
+}
+
+func (a *ComponentArgument) Walk(w func(Node)) {
+	if a.Name != nil {
+		w(a.Name)
+	}
+	if a.Value != nil {
+		w(a.Value)
+	}
 }
 
 func (*ComponentArgument) _node()     {}

@@ -41,6 +41,10 @@ type Node interface {
 	Start() Position
 	// End returns the exclusive end position of the node.
 	End() Position
+
+	// Walk calls the passed function for each direct child node of the
+	// receiver in the order they appear in the source code.
+	Walk(func(Node))
 }
 
 // ============================================================================

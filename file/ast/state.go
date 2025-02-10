@@ -47,6 +47,13 @@ func (s *StateDeclaration) End() Position {
 	}
 	return Position{}
 }
+func (s *StateDeclaration) Walk(w func(Node)) {
+	for _, spec := range s.Specs {
+		if spec != nil {
+			w(spec)
+		}
+	}
+}
 
 func (*StateDeclaration) _node()      {}
 func (*StateDeclaration) _scopeNode() {}
@@ -100,6 +107,21 @@ func (v *StateSpec) End() Position {
 		}
 	}
 	return Position{}
+}
+func (v *StateSpec) Walk(w func(Node)) {
+	for _, name := range v.Names {
+		if name != nil {
+			w(name)
+		}
+	}
+	if v.Type != nil {
+		w(v.Type)
+	}
+	for _, value := range v.Values {
+		if value != nil {
+			w(value)
+		}
+	}
 }
 
 func (*StateSpec) _node()      {}

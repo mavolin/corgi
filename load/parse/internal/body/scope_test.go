@@ -44,9 +44,11 @@ func testScope(t *testing.T, f parser.Func[*ast.Scope]) {
 				Nodes: []ast.ScopeNode{
 					&ast.Element{
 						Header: &ast.ElementHeader{
-							Name: &ast.ElementName{
-								Name:     "br",
-								Position: &ast.Position{Line: 2, Col: 2},
+							Name: &ast.ElementReference{
+								Name: &ast.ElementName{
+									Name:     "br",
+									Position: &ast.Position{Line: 2, Col: 2},
+								},
 							},
 						},
 					},

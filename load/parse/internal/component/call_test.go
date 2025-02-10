@@ -46,9 +46,11 @@ func TestCall(t *testing.T) {
 					Nodes: []ast.ScopeNode{
 						&ast.Element{
 							Header: &ast.ElementHeader{
-								Name: &ast.ElementName{
-									Name:     "bar",
-									Position: &ast.Position{Line: 2, Col: 2},
+								Name: &ast.ElementReference{
+									Name: &ast.ElementName{
+										Name:     "bar",
+										Position: &ast.Position{Line: 2, Col: 2},
+									},
 								},
 							},
 						},
@@ -211,9 +213,11 @@ func TestWith(t *testing.T) {
 			Nodes: []ast.ScopeNode{
 				&ast.Element{
 					Header: &ast.ElementHeader{
-						Name: &ast.ElementName{
-							Name:     "br",
-							Position: &ast.Position{Line: 2, Col: 2},
+						Name: &ast.ElementReference{
+							Name: &ast.ElementName{
+								Name:     "br",
+								Position: &ast.Position{Line: 2, Col: 2},
+							},
 						},
 					},
 				},

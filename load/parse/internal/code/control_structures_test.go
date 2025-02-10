@@ -9,41 +9,45 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestIf(t *testing.T) {
+func TestConditional(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
 		name   string
 		in     string
-		expect *ast.If
+		expect *ast.Conditional
 	}{
 		{
 			name: "only if",
 			in: "if i < 10 {\n" +
 				"\tbr\n" +
 				"}",
-			expect: &ast.If{
-				If: &ast.Position{Line: 1, Col: 1},
-				Header: &ast.IfHeader{
-					Condition: &ast.Expression{
-						Code: ast.Code{
-							&ast.GoCode{Code: "i < 10", Position: &ast.Position{Line: 1, Col: 4}},
-						},
-					},
-				},
-				Then: &ast.Scope{
-					LBrace: &ast.Position{Line: 1, Col: 11},
-					Nodes: []ast.ScopeNode{
-						&ast.Element{
-							Header: &ast.ElementHeader{
-								Name: &ast.ElementName{
-									Name:     "br",
-									Position: &ast.Position{Line: 2, Col: 2},
-								},
+			expect: &ast.Conditional{
+				If: &ast.If{
+					If: &ast.Position{Line: 1, Col: 1},
+					Header: &ast.IfHeader{
+						Condition: &ast.Expression{
+							Code: ast.Code{
+								&ast.GoCode{Code: "i < 10", Position: &ast.Position{Line: 1, Col: 4}},
 							},
 						},
 					},
-					RBrace: &ast.Position{Line: 3, Col: 1},
+					Then: &ast.Scope{
+						LBrace: &ast.Position{Line: 1, Col: 11},
+						Nodes: []ast.ScopeNode{
+							&ast.Element{
+								Header: &ast.ElementHeader{
+									Name: &ast.ElementReference{
+										Name: &ast.ElementName{
+											Name:     "br",
+											Position: &ast.Position{Line: 2, Col: 2},
+										},
+									},
+								},
+							},
+						},
+						RBrace: &ast.Position{Line: 3, Col: 1},
+					},
 				},
 			},
 		}, {
@@ -53,28 +57,32 @@ func TestIf(t *testing.T) {
 				"} else {\n" +
 				"\tdiv\n" +
 				"}",
-			expect: &ast.If{
-				If: &ast.Position{Line: 1, Col: 1},
-				Header: &ast.IfHeader{
-					Condition: &ast.Expression{
-						Code: ast.Code{
-							&ast.GoCode{Code: "i < 10", Position: &ast.Position{Line: 1, Col: 4}},
-						},
-					},
-				},
-				Then: &ast.Scope{
-					LBrace: &ast.Position{Line: 1, Col: 11},
-					Nodes: []ast.ScopeNode{
-						&ast.Element{
-							Header: &ast.ElementHeader{
-								Name: &ast.ElementName{
-									Name:     "br",
-									Position: &ast.Position{Line: 2, Col: 2},
-								},
+			expect: &ast.Conditional{
+				If: &ast.If{
+					If: &ast.Position{Line: 1, Col: 1},
+					Header: &ast.IfHeader{
+						Condition: &ast.Expression{
+							Code: ast.Code{
+								&ast.GoCode{Code: "i < 10", Position: &ast.Position{Line: 1, Col: 4}},
 							},
 						},
 					},
-					RBrace: &ast.Position{Line: 3, Col: 1},
+					Then: &ast.Scope{
+						LBrace: &ast.Position{Line: 1, Col: 11},
+						Nodes: []ast.ScopeNode{
+							&ast.Element{
+								Header: &ast.ElementHeader{
+									Name: &ast.ElementReference{
+										Name: &ast.ElementName{
+											Name:     "br",
+											Position: &ast.Position{Line: 2, Col: 2},
+										},
+									},
+								},
+							},
+						},
+						RBrace: &ast.Position{Line: 3, Col: 1},
+					},
 				},
 				Else: &ast.Else{
 					Else: &ast.Position{Line: 3, Col: 3},
@@ -83,9 +91,11 @@ func TestIf(t *testing.T) {
 						Nodes: []ast.ScopeNode{
 							&ast.Element{
 								Header: &ast.ElementHeader{
-									Name: &ast.ElementName{
-										Name:     "div",
-										Position: &ast.Position{Line: 4, Col: 2},
+									Name: &ast.ElementReference{
+										Name: &ast.ElementName{
+											Name:     "div",
+											Position: &ast.Position{Line: 4, Col: 2},
+										},
 									},
 								},
 							},
@@ -103,28 +113,32 @@ func TestIf(t *testing.T) {
 				"} else {\n" +
 				"\tspan\n" +
 				"}",
-			expect: &ast.If{
-				If: &ast.Position{Line: 1, Col: 1},
-				Header: &ast.IfHeader{
-					Condition: &ast.Expression{
-						Code: ast.Code{
-							&ast.GoCode{Code: "i < 10", Position: &ast.Position{Line: 1, Col: 4}},
-						},
-					},
-				},
-				Then: &ast.Scope{
-					LBrace: &ast.Position{Line: 1, Col: 11},
-					Nodes: []ast.ScopeNode{
-						&ast.Element{
-							Header: &ast.ElementHeader{
-								Name: &ast.ElementName{
-									Name:     "br",
-									Position: &ast.Position{Line: 2, Col: 2},
-								},
+			expect: &ast.Conditional{
+				If: &ast.If{
+					If: &ast.Position{Line: 1, Col: 1},
+					Header: &ast.IfHeader{
+						Condition: &ast.Expression{
+							Code: ast.Code{
+								&ast.GoCode{Code: "i < 10", Position: &ast.Position{Line: 1, Col: 4}},
 							},
 						},
 					},
-					RBrace: &ast.Position{Line: 3, Col: 1},
+					Then: &ast.Scope{
+						LBrace: &ast.Position{Line: 1, Col: 11},
+						Nodes: []ast.ScopeNode{
+							&ast.Element{
+								Header: &ast.ElementHeader{
+									Name: &ast.ElementReference{
+										Name: &ast.ElementName{
+											Name:     "br",
+											Position: &ast.Position{Line: 2, Col: 2},
+										},
+									},
+								},
+							},
+						},
+						RBrace: &ast.Position{Line: 3, Col: 1},
+					},
 				},
 				ElseIfs: []*ast.ElseIf{
 					{
@@ -142,9 +156,11 @@ func TestIf(t *testing.T) {
 							Nodes: []ast.ScopeNode{
 								&ast.Element{
 									Header: &ast.ElementHeader{
-										Name: &ast.ElementName{
-											Name:     "div",
-											Position: &ast.Position{Line: 4, Col: 2},
+										Name: &ast.ElementReference{
+											Name: &ast.ElementName{
+												Name:     "div",
+												Position: &ast.Position{Line: 4, Col: 2},
+											},
 										},
 									},
 								},
@@ -160,9 +176,11 @@ func TestIf(t *testing.T) {
 						Nodes: []ast.ScopeNode{
 							&ast.Element{
 								Header: &ast.ElementHeader{
-									Name: &ast.ElementName{
-										Name:     "span",
-										Position: &ast.Position{Line: 6, Col: 2},
+									Name: &ast.ElementReference{
+										Name: &ast.ElementName{
+											Name:     "span",
+											Position: &ast.Position{Line: 6, Col: 2},
+										},
 									},
 								},
 							},
@@ -178,10 +196,47 @@ func TestIf(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			actual := parsesCodeNodeFully(t, c.in, If())
+			actual := parsesCodeNodeFully(t, c.in, Conditional())
 			assert.Equal(t, c.expect, actual)
 		})
 	}
+}
+
+func TestIf(t *testing.T) {
+	t.Parallel()
+
+	in := "if i < 10 {\n" +
+		"\tbr\n" +
+		"}"
+	expect := &ast.If{
+		If: &ast.Position{Line: 1, Col: 1},
+		Header: &ast.IfHeader{
+			Condition: &ast.Expression{
+				Code: ast.Code{
+					&ast.GoCode{Code: "i < 10", Position: &ast.Position{Line: 1, Col: 4}},
+				},
+			},
+		},
+		Then: &ast.Scope{
+			LBrace: &ast.Position{Line: 1, Col: 11},
+			Nodes: []ast.ScopeNode{
+				&ast.Element{
+					Header: &ast.ElementHeader{
+						Name: &ast.ElementReference{
+							Name: &ast.ElementName{
+								Name:     "br",
+								Position: &ast.Position{Line: 2, Col: 2},
+							},
+						},
+					},
+				},
+			},
+			RBrace: &ast.Position{Line: 3, Col: 1},
+		},
+	}
+
+	actual := parsesCodeNodeFully(t, in, If())
+	assert.Equal(t, expect, actual)
 }
 
 func TestElseIf(t *testing.T) {
@@ -205,9 +260,11 @@ func TestElseIf(t *testing.T) {
 			Nodes: []ast.ScopeNode{
 				&ast.Element{
 					Header: &ast.ElementHeader{
-						Name: &ast.ElementName{
-							Name:     "br",
-							Position: &ast.Position{Line: 2, Col: 2},
+						Name: &ast.ElementReference{
+							Name: &ast.ElementName{
+								Name:     "br",
+								Position: &ast.Position{Line: 2, Col: 2},
+							},
 						},
 					},
 				},
@@ -233,9 +290,11 @@ func TestElse(t *testing.T) {
 			Nodes: []ast.ScopeNode{
 				&ast.Element{
 					Header: &ast.ElementHeader{
-						Name: &ast.ElementName{
-							Name:     "br",
-							Position: &ast.Position{Line: 2, Col: 2},
+						Name: &ast.ElementReference{
+							Name: &ast.ElementName{
+								Name:     "br",
+								Position: &ast.Position{Line: 2, Col: 2},
+							},
 						},
 					},
 				},
@@ -347,9 +406,11 @@ func TestSwitch(t *testing.T) {
 						Then: []ast.ScopeNode{
 							&ast.Element{
 								Header: &ast.ElementHeader{
-									Name: &ast.ElementName{
-										Name:     "br",
-										Position: &ast.Position{Line: 3, Col: 2},
+									Name: &ast.ElementReference{
+										Name: &ast.ElementName{
+											Name:     "br",
+											Position: &ast.Position{Line: 3, Col: 2},
+										},
 									},
 								},
 							},
@@ -379,9 +440,11 @@ func TestSwitch(t *testing.T) {
 						Then: []ast.ScopeNode{
 							&ast.Element{
 								Header: &ast.ElementHeader{
-									Name: &ast.ElementName{
-										Name:     "br",
-										Position: &ast.Position{Line: 3, Col: 2},
+									Name: &ast.ElementReference{
+										Name: &ast.ElementName{
+											Name:     "br",
+											Position: &ast.Position{Line: 3, Col: 2},
+										},
 									},
 								},
 							},
@@ -428,9 +491,11 @@ func testCase(t *testing.T, f parser.Func[*ast.Case]) {
 		Then: []ast.ScopeNode{
 			&ast.Element{
 				Header: &ast.ElementHeader{
-					Name: &ast.ElementName{
-						Name:     "br",
-						Position: &ast.Position{Line: 2, Col: 2},
+					Name: &ast.ElementReference{
+						Name: &ast.ElementName{
+							Name:     "br",
+							Position: &ast.Position{Line: 2, Col: 2},
+						},
 					},
 				},
 			},
@@ -455,9 +520,11 @@ func testDefault(t *testing.T, f parser.Func[*ast.Case]) {
 		Then: []ast.ScopeNode{
 			&ast.Element{
 				Header: &ast.ElementHeader{
-					Name: &ast.ElementName{
-						Name:     "br",
-						Position: &ast.Position{Line: 2, Col: 2},
+					Name: &ast.ElementReference{
+						Name: &ast.ElementName{
+							Name:     "br",
+							Position: &ast.Position{Line: 2, Col: 2},
+						},
 					},
 				},
 			},
@@ -493,9 +560,11 @@ func TestCaseBody(t *testing.T) {
 			expect: []ast.ScopeNode{
 				&ast.Element{
 					Header: &ast.ElementHeader{
-						Name: &ast.ElementName{
-							Name:     "br",
-							Position: &ast.Position{Line: 1, Col: 1},
+						Name: &ast.ElementReference{
+							Name: &ast.ElementName{
+								Name:     "br",
+								Position: &ast.Position{Line: 1, Col: 1},
+							},
 						},
 					},
 				},
@@ -507,9 +576,11 @@ func TestCaseBody(t *testing.T) {
 			expect: []ast.ScopeNode{
 				&ast.Element{
 					Header: &ast.ElementHeader{
-						Name: &ast.ElementName{
-							Name:     "br",
-							Position: &ast.Position{Line: 1, Col: 1},
+						Name: &ast.ElementReference{
+							Name: &ast.ElementName{
+								Name:     "br",
+								Position: &ast.Position{Line: 1, Col: 1},
+							},
 						},
 					},
 				},
@@ -556,9 +627,11 @@ func TestFor(t *testing.T) {
 					Nodes: []ast.ScopeNode{
 						&ast.Element{
 							Header: &ast.ElementHeader{
-								Name: &ast.ElementName{
-									Name:     "br",
-									Position: &ast.Position{Line: 2, Col: 2},
+								Name: &ast.ElementReference{
+									Name: &ast.ElementName{
+										Name:     "br",
+										Position: &ast.Position{Line: 2, Col: 2},
+									},
 								},
 							},
 						},
@@ -585,9 +658,11 @@ func TestFor(t *testing.T) {
 					Nodes: []ast.ScopeNode{
 						&ast.Element{
 							Header: &ast.ElementHeader{
-								Name: &ast.ElementName{
-									Name:     "br",
-									Position: &ast.Position{Line: 2, Col: 2},
+								Name: &ast.ElementReference{
+									Name: &ast.ElementName{
+										Name:     "br",
+										Position: &ast.Position{Line: 2, Col: 2},
+									},
 								},
 							},
 						},
@@ -648,9 +723,11 @@ func TestFor(t *testing.T) {
 					Nodes: []ast.ScopeNode{
 						&ast.Element{
 							Header: &ast.ElementHeader{
-								Name: &ast.ElementName{
-									Name:     "br",
-									Position: &ast.Position{Line: 2, Col: 2},
+								Name: &ast.ElementReference{
+									Name: &ast.ElementName{
+										Name:     "br",
+										Position: &ast.Position{Line: 2, Col: 2},
+									},
 								},
 							},
 						},
@@ -685,9 +762,11 @@ func TestFor(t *testing.T) {
 					Nodes: []ast.ScopeNode{
 						&ast.Element{
 							Header: &ast.ElementHeader{
-								Name: &ast.ElementName{
-									Name:     "br",
-									Position: &ast.Position{Line: 2, Col: 2},
+								Name: &ast.ElementReference{
+									Name: &ast.ElementName{
+										Name:     "br",
+										Position: &ast.Position{Line: 2, Col: 2},
+									},
 								},
 							},
 						},

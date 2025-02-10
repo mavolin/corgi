@@ -78,7 +78,9 @@ func TestDefinition(t *testing.T) {
 						Name: &ast.ElementName{Name: "bar", Position: &ast.Position{Line: 3, Col: 2}},
 						Type: &ast.AliasElementType{
 							EqualSign: &ast.Position{Line: 3, Col: 6},
-							Name:      &ast.ElementName{Name: "div", Position: &ast.Position{Line: 3, Col: 8}},
+							Name: &ast.ElementReference{
+								Name: &ast.ElementName{Name: "div", Position: &ast.Position{Line: 3, Col: 8}},
+							},
 						},
 					},
 				},
@@ -108,7 +110,9 @@ func TestDefinition(t *testing.T) {
 						Name: &ast.ElementName{Name: "bar", Position: &ast.Position{Line: 3, Col: 2}},
 						Type: &ast.AliasElementType{
 							EqualSign: &ast.Position{Line: 3, Col: 6},
-							Name:      &ast.ElementName{Name: "div", Position: &ast.Position{Line: 3, Col: 8}},
+							Name: &ast.ElementReference{
+								Name: &ast.ElementName{Name: "div", Position: &ast.Position{Line: 3, Col: 8}},
+							},
 						},
 					},
 				},
@@ -154,7 +158,9 @@ func TestSpec(t *testing.T) {
 				Name: &ast.ElementName{Name: "foo", Position: &ast.Position{Line: 1, Col: 1}},
 				Type: &ast.AliasElementType{
 					EqualSign: &ast.Position{Line: 1, Col: 5},
-					Name:      &ast.ElementName{Name: "div", Position: &ast.Position{Line: 1, Col: 7}},
+					Name: &ast.ElementReference{
+						Name: &ast.ElementName{Name: "div", Position: &ast.Position{Line: 1, Col: 7}},
+					},
 				},
 			},
 		},
@@ -208,7 +214,9 @@ func testAliasType(t *testing.T, f parser.Func[*ast.AliasElementType]) {
 	in := "= div"
 	expect := &ast.AliasElementType{
 		EqualSign: &ast.Position{Line: 1, Col: 1},
-		Name:      &ast.ElementName{Name: "div", Position: &ast.Position{Line: 1, Col: 3}},
+		Name: &ast.ElementReference{
+			Name: &ast.ElementName{Name: "div", Position: &ast.Position{Line: 1, Col: 3}},
+		},
 	}
 
 	actual := testutil.ParsesFully(t, in, f)

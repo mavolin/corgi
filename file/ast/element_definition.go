@@ -52,6 +52,16 @@ func (d *ElementDefinition) End() Position {
 	}
 	return Position{}
 }
+func (d *ElementDefinition) Walk(w func(Node)) {
+	if d.Prefix != nil {
+		w(d.Prefix)
+	}
+	for _, spec := range d.Specs {
+		if spec != nil {
+			w(spec)
+		}
+	}
+}
 
 func (*ElementDefinition) _node()      {}
 func (*ElementDefinition) _scopeNode() {}
@@ -82,6 +92,14 @@ func (a *ElementSpec) End() Position {
 		return a.Name.End()
 	}
 	return Position{}
+}
+func (a *ElementSpec) Walk(w func(Node)) {
+	if a.Name != nil {
+		w(a.Name)
+	}
+	if a.Type != nil {
+		w(a.Type)
+	}
 }
 
 func (*ElementSpec) _node() {}
@@ -115,6 +133,12 @@ func (t *BasicElementType) End() Position {
 	}
 	return Position{}
 }
+func (t *BasicElementType) Walk(w func(Node)) {
+	if t.Type != nil {
+		w(t.Type)
+	}
+}
+
 func (t *BasicElementType) _node()        {}
 func (t *BasicElementType) _elementType() {}
 
@@ -122,7 +146,7 @@ func (t *BasicElementType) _elementType() {}
 
 type AliasElementType struct {
 	EqualSign *Position
-	Name      *ElementName
+	Name      *ElementReference
 }
 
 var _ ElementType = (*AliasElementType)(nil)
@@ -142,6 +166,11 @@ func (t *AliasElementType) End() Position {
 		return deltaPos(*t.EqualSign, len("="))
 	}
 	return Position{}
+}
+func (t *AliasElementType) Walk(w func(Node)) {
+	if t.Name != nil {
+		w(t.Name)
+	}
 }
 
 func (t *AliasElementType) _node()        {}
@@ -171,4 +200,6 @@ func (a *ElementTypeName) End() Position {
 	}
 	return Position{}
 }
+func (a *ElementTypeName) Walk(func(Node)) {}
+
 func (*ElementTypeName) _node() {}

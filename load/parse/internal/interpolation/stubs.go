@@ -28,9 +28,11 @@ func elementHeaderStub(p *parser.Parser) (*ast.ElementHeader, *fancyerr.Error) {
 		}
 	}
 	return &ast.ElementHeader{
-		Name: &ast.ElementName{
-			Name:     name,
-			Position: &pos,
+		Name: &ast.ElementReference{
+			Name: &ast.ElementName{
+				Name:     name,
+				Position: &pos,
+			},
 		},
 	}, nil
 }

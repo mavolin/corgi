@@ -46,6 +46,8 @@ func (p *AndPlaceholder) End() Position {
 	return Position{}
 }
 
+func (*AndPlaceholder) Walk(func(Node)) {}
+
 func (*AndPlaceholder) _node()      {}
 func (*AndPlaceholder) _argument()  {}
 func (*AndPlaceholder) _attribute() {}
@@ -74,6 +76,11 @@ func (s *IDShorthand) End() Position {
 		return deltaPos(*s.Hash, len("#"))
 	}
 	return Position{}
+}
+func (s *IDShorthand) Walk(w func(Node)) {
+	if s.ID != nil {
+		w(s.ID)
+	}
 }
 
 func (*IDShorthand) _node()      {}
@@ -113,6 +120,13 @@ func (s *ClassShorthand) End() Position {
 	}
 	return Position{}
 }
+func (s *ClassShorthand) Walk(w func(Node)) {
+	for _, name := range s.Names {
+		if name != nil {
+			w(name)
+		}
+	}
+}
 
 func (*ClassShorthand) _node()     {}
 func (*ClassShorthand) _argument() {}
@@ -142,6 +156,13 @@ func (s Shorthand) End() Position {
 		}
 	}
 	return Position{}
+}
+func (s Shorthand) Walk(w func(Node)) {
+	for _, node := range s {
+		if node != nil {
+			w(node)
+		}
+	}
 }
 
 func (Shorthand) _node() {}
@@ -183,6 +204,7 @@ func (t *ShorthandText) End() Position {
 	}
 	return Position{}
 }
+func (*ShorthandText) Walk(func(Node)) {}
 
 func (*ShorthandText) _node()          {}
 func (*ShorthandText) _shorthandNode() {}
@@ -199,6 +221,9 @@ func (interp *ShorthandInterpolation) Start() Position {
 	return (*ExpressionInterpolation)(interp).Start()
 }
 func (interp *ShorthandInterpolation) End() Position { return (*ExpressionInterpolation)(interp).End() }
+func (interp *ShorthandInterpolation) Walk(w func(Node)) {
+	w((*ExpressionInterpolation)(interp))
+}
 
 func (*ShorthandInterpolation) _node()          {}
 func (*ShorthandInterpolation) _shorthandNode() {}
@@ -208,7 +233,7 @@ func (*ShorthandInterpolation) _shorthandNode() {}
 // ======================================================================================
 
 type NamedAttribute struct {
-	Name      *AttributeName
+	Name      *AttributeReference
 	EqualSign *Position      // nil for boolean attributes
 	Value     AttributeValue // nil for boolean attributes
 }
@@ -234,6 +259,14 @@ func (a *NamedAttribute) End() Position {
 		return a.Name.End()
 	}
 	return Position{}
+}
+func (a *NamedAttribute) Walk(w func(Node)) {
+	if a.Name != nil {
+		w(a.Name)
+	}
+	if a.Value != nil {
+		w(a.Value)
+	}
 }
 
 func (*NamedAttribute) _node()      {}
@@ -263,8 +296,11 @@ type ExpressionAttributeValue Expression
 
 var _ AttributeValue = (*ExpressionAttributeValue)(nil)
 
-func (v ExpressionAttributeValue) Start() Position { return Expression(v).Start() }
-func (v ExpressionAttributeValue) End() Position   { return Expression(v).End() }
+func (v *ExpressionAttributeValue) Start() Position { return (*Expression)(v).Start() }
+func (v *ExpressionAttributeValue) End() Position   { return (*Expression)(v).End() }
+func (v *ExpressionAttributeValue) Walk(w func(Node)) {
+	w((*Expression)(v))
+}
 
 func (*ExpressionAttributeValue) _node()           {}
 func (*ExpressionAttributeValue) _attributeValue() {}
@@ -302,6 +338,14 @@ func (v *TypedAttributeValue) End() Position {
 	}
 	return Position{}
 }
+func (v *TypedAttributeValue) Walk(w func(Node)) {
+	if v.Type != nil {
+		w(v.Type)
+	}
+	if v.Value != nil {
+		w(v.Value)
+	}
+}
 
 func (*TypedAttributeValue) _node()           {}
 func (*TypedAttributeValue) _attributeValue() {}
@@ -329,4 +373,45 @@ func (n *AttributeName) End() Position {
 	}
 	return Position{}
 }
+func (*AttributeName) Walk(func(Node)) {}
+
 func (*AttributeName) _node() {}
+
+// ============================================================================
+// Attribute Reference
+// ======================================================================================
+
+type AttributeReference struct {
+	Package *Ident
+	Dot     *Position
+	Name    *AttributeName
+}
+
+var _ Node = (*AttributeReference)(nil)
+
+func (r *AttributeReference) Start() Position {
+	if r.Package != nil {
+		return r.Package.Start()
+	} else if r.Name != nil {
+		return r.Name.Start()
+	}
+	return Position{}
+}
+func (r *AttributeReference) End() Position {
+	if r.Name != nil {
+		return r.Name.End()
+	} else if r.Package != nil {
+		return r.Package.End()
+	}
+	return Position{}
+}
+func (r *AttributeReference) Walk(w func(Node)) {
+	if r.Package != nil {
+		w(r.Package)
+	}
+	if r.Name != nil {
+		w(r.Name)
+	}
+}
+
+func (*AttributeReference) _node() {}

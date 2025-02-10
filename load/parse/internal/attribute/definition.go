@@ -300,7 +300,7 @@ func ListElementSelector() parser.Func[*ast.ListElementSelector] {
 		var s ast.ListElementSelector
 
 		var err *fancyerr.Error
-		s.Elements, err = parser.TryErr(p, list.CommaList("element name", "element names", ListElementSelectorItem()))
+		s.Elements, err = parser.TryErr(p, list.CommaList("element name", "element names", elementName()))
 		if err != nil {
 			return nil, err
 		}
@@ -309,19 +309,19 @@ func ListElementSelector() parser.Func[*ast.ListElementSelector] {
 	}
 }
 
-func ListElementSelectorItem() parser.Func[*ast.ListElementSelectorItem] {
-	return func(p *parser.Parser) (*ast.ListElementSelectorItem, *fancyerr.Error) {
-		var itm ast.ListElementSelectorItem
-		itm.Position = p.PosPtr()
+func elementName() parser.Func[*ast.ElementName] {
+	return func(p *parser.Parser) (*ast.ElementName, *fancyerr.Error) {
+		var n ast.ElementName
+		n.Position = p.PosPtr()
 
-		itm.Name = parser.Try(p, html.TagName())
-		if itm.Name == "" {
+		n.Name = parser.Try(p, html.TagName())
+		if n.Name == "" {
 			return nil, &fancyerr.Error{
 				Message: "missing element name",
-				Primary: quickanno.Expected(p, *itm.Position, "an html element name"),
+				Primary: quickanno.Expected(p, *n.Position, "an html element name"),
 			}
 		}
 
-		return &itm, nil
+		return &n, nil
 	}
 }

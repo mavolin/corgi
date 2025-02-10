@@ -22,6 +22,11 @@ func (i *ImplicitCodeLine) End() Position {
 	}
 	return Position{}
 }
+func (i *ImplicitCodeLine) Walk(w func(Node)) {
+	if i.Statement != nil {
+		w(i.Statement)
+	}
+}
 
 func (*ImplicitCodeLine) _node()      {}
 func (*ImplicitCodeLine) _scopeNode() {}
@@ -52,6 +57,11 @@ func (e *ExplicitCodeLine) End() Position {
 		return *e.Minus
 	}
 	return Position{}
+}
+func (e *ExplicitCodeLine) Walk(w func(Node)) {
+	if e.Statement != nil {
+		w(e.Statement)
+	}
 }
 
 func (*ExplicitCodeLine) _node()      {}

@@ -64,9 +64,11 @@ func scopeNodeStub(p *parser.Parser) (ast.ScopeNode, *fancyerr.Error) {
 	}
 	return &ast.Element{
 		Header: &ast.ElementHeader{
-			Name: &ast.ElementName{
-				Name:     name,
-				Position: &pos,
+			Name: &ast.ElementReference{
+				Name: &ast.ElementName{
+					Name:     name,
+					Position: &pos,
+				},
 			},
 		},
 	}, nil

@@ -27,6 +27,11 @@ func (d *PackageDirective) End() Position {
 	}
 	return Position{}
 }
+func (d *PackageDirective) Walk(w func(Node)) {
+	if d.Name != nil {
+		w(d.Name)
+	}
+}
 
 func (*PackageDirective) _node() {}
 
@@ -75,6 +80,13 @@ func (i *Import) End() Position {
 	}
 	return Position{}
 }
+func (i *Import) Walk(w func(Node)) {
+	for _, spec := range i.Specs {
+		if spec != nil {
+			w(spec)
+		}
+	}
+}
 
 func (*Import) _node() {}
 
@@ -105,6 +117,14 @@ func (s *ImportSpec) End() Position {
 		return s.Alias.End()
 	}
 	return Position{}
+}
+func (s *ImportSpec) Walk(w func(Node)) {
+	if s.Alias != nil {
+		w(s.Alias)
+	}
+	if s.Path != nil {
+		w(s.Path)
+	}
 }
 
 func (*ImportSpec) _node() {}

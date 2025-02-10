@@ -47,6 +47,7 @@ func (ident *Ident) End() Position {
 	}
 	return Position{}
 }
+func (ident *Ident) Walk(func(Node)) {}
 
 func (*Ident) _node()      {}
 func (*Ident) _fullIdent() {}
@@ -81,6 +82,14 @@ func (ident *QualifiedIdent) End() Position {
 		return ident.Package.End()
 	}
 	return Position{}
+}
+func (ident *QualifiedIdent) Walk(w func(Node)) {
+	if ident.Package != nil {
+		w(ident.Package)
+	}
+	if ident.Name != nil {
+		w(ident.Name)
+	}
 }
 
 func (*QualifiedIdent) _node()      {}
@@ -131,6 +140,7 @@ func (s *StaticString) End() Position {
 
 	return Position{}
 }
+func (s *StaticString) Walk(func(Node)) {}
 
 func (s *StaticString) Quoted() string {
 	return string(s.Quote) + s.Contents + string(s.Quote)

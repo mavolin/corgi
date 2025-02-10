@@ -17,37 +17,47 @@ type AttributeDefinition struct {
 
 var _ ScopeNode = (*AttributeDefinition)(nil)
 
-func (a *AttributeDefinition) Start() Position {
-	if a.Attr != nil {
-		return *a.Attr
-	} else if a.Prefix != nil {
-		return a.Prefix.Start()
-	} else if a.LParen != nil {
-		return *a.LParen
+func (d *AttributeDefinition) Start() Position {
+	if d.Attr != nil {
+		return *d.Attr
+	} else if d.Prefix != nil {
+		return d.Prefix.Start()
+	} else if d.LParen != nil {
+		return *d.LParen
 	}
-	for _, s := range a.Specs {
+	for _, s := range d.Specs {
 		if s != nil {
 			return s.Start()
 		}
 	}
-	if a.RParen != nil {
-		return *a.RParen
+	if d.RParen != nil {
+		return *d.RParen
 	}
 	return Position{}
 }
-func (a *AttributeDefinition) End() Position {
-	if a.RParen != nil {
-		return deltaPos(*a.RParen, len(")"))
-	} else if len(a.Specs) > 0 {
-		return a.Specs[len(a.Specs)-1].End()
-	} else if a.LParen != nil {
-		return deltaPos(*a.LParen, len("("))
-	} else if a.Prefix != nil {
-		return a.Prefix.End()
-	} else if a.Attr != nil {
-		return deltaPos(*a.Attr, len("attr"))
+func (d *AttributeDefinition) End() Position {
+	if d.RParen != nil {
+		return deltaPos(*d.RParen, len(")"))
+	} else if len(d.Specs) > 0 {
+		return d.Specs[len(d.Specs)-1].End()
+	} else if d.LParen != nil {
+		return deltaPos(*d.LParen, len("("))
+	} else if d.Prefix != nil {
+		return d.Prefix.End()
+	} else if d.Attr != nil {
+		return deltaPos(*d.Attr, len("attr"))
 	}
 	return Position{}
+}
+func (d *AttributeDefinition) Walk(w func(Node)) {
+	if d.Prefix != nil {
+		w(d.Prefix)
+	}
+	for _, s := range d.Specs {
+		if s != nil {
+			w(s)
+		}
+	}
 }
 
 func (*AttributeDefinition) _node()      {}
@@ -79,6 +89,14 @@ func (a *AttributeSpec) End() Position {
 		return a.Name.End()
 	}
 	return Position{}
+}
+func (a *AttributeSpec) Walk(w func(Node)) {
+	if a.Name != nil {
+		w(a.Name)
+	}
+	if a.Ruleset != nil {
+		w(a.Ruleset)
+	}
 }
 
 func (*AttributeSpec) _node() {}
@@ -123,6 +141,13 @@ func (a *AttributeRuleset) End() Position {
 	}
 	return Position{}
 }
+func (a *AttributeRuleset) Walk(w func(Node)) {
+	for _, r := range a.Rules {
+		if r != nil {
+			w(r)
+		}
+	}
+}
 
 func (*AttributeRuleset) _node() {}
 
@@ -152,6 +177,14 @@ func (a *AttributeRule) End() Position {
 		return a.Selector.End()
 	}
 	return Position{}
+}
+func (a *AttributeRule) Walk(w func(Node)) {
+	if a.Selector != nil {
+		w(a.Selector)
+	}
+	if a.Type != nil {
+		w(a.Type)
+	}
 }
 
 func (*AttributeRule) _node() {}
@@ -192,6 +225,7 @@ func (b *BasicAttributeSelector) End() Position {
 	}
 	return deltaPos(*b.Position, len(b.Name))
 }
+func (b *BasicAttributeSelector) Walk(func(Node)) {}
 
 func (b *BasicAttributeSelector) Matches(s string) bool {
 	if !b.Wildcard {
@@ -240,6 +274,11 @@ func (r *RegexpAttributeSelector) End() Position {
 	}
 	return Position{}
 }
+func (r *RegexpAttributeSelector) Walk(w func(Node)) {
+	if r.Raw != nil {
+		w(r.Raw)
+	}
+}
 
 func (r *RegexpAttributeSelector) Matches(s string) bool {
 	return r.Compiled.MatchString(s)
@@ -277,25 +316,18 @@ func (w *WildcardElementSelector) End() Position {
 	}
 	return Position{}
 }
+func (w *WildcardElementSelector) Walk(func(Node)) {}
+
 func (w *WildcardElementSelector) _node()            {}
 func (w *WildcardElementSelector) _elementSelector() {}
 
 // =============================== Element List Selector ================================
 
-type (
-	ListElementSelector struct {
-		Elements []*ListElementSelectorItem
-	}
-	ListElementSelectorItem struct {
-		Name     string
-		Position *Position
-	}
-)
+type ListElementSelector struct {
+	Elements []*ElementName
+}
 
-var (
-	_ ElementSelector = (*ListElementSelector)(nil)
-	_ Node            = (*ListElementSelectorItem)(nil)
-)
+var _ ElementSelector = (*ListElementSelector)(nil)
 
 func (l *ListElementSelector) Start() Position {
 	for _, e := range l.Elements {
@@ -313,10 +345,17 @@ func (l *ListElementSelector) End() Position {
 	}
 	return Position{}
 }
+func (l *ListElementSelector) Walk(w func(Node)) {
+	for _, e := range l.Elements {
+		if e != nil {
+			w(e)
+		}
+	}
+}
 
 func (l *ListElementSelector) Matches(s string) bool {
 	for _, e := range l.Elements {
-		if e.Name == s {
+		if e != nil && e.Name == s {
 			return true
 		}
 	}
@@ -325,20 +364,6 @@ func (l *ListElementSelector) Matches(s string) bool {
 
 func (l *ListElementSelector) _node()            {}
 func (l *ListElementSelector) _elementSelector() {}
-
-func (l *ListElementSelectorItem) Start() Position {
-	if l.Position != nil {
-		return *l.Position
-	}
-	return Position{}
-}
-func (l *ListElementSelectorItem) End() Position {
-	if l.Position != nil {
-		return deltaPos(*l.Position, len(l.Name))
-	}
-	return Position{}
-}
-func (l *ListElementSelectorItem) _node() {}
 
 // ============================================================================
 // Attribute Type Name
@@ -364,4 +389,6 @@ func (a *AttributeTypeName) End() Position {
 	}
 	return Position{}
 }
+func (a *AttributeTypeName) Walk(func(Node)) {}
+
 func (*AttributeTypeName) _node() {}

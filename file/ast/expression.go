@@ -12,7 +12,7 @@ type Expression struct {
 
 var _ Node = (*Expression)(nil)
 
-func (e Expression) Start() Position {
+func (e *Expression) Start() Position {
 	for _, n := range e.Code {
 		if n != nil {
 			return n.Start()
@@ -20,7 +20,7 @@ func (e Expression) Start() Position {
 	}
 	return Position{}
 }
-func (e Expression) End() Position {
+func (e *Expression) End() Position {
 	for _, n := range slices.Backward(e.Code) {
 		if n != nil {
 			return n.End()
@@ -28,5 +28,10 @@ func (e Expression) End() Position {
 	}
 	return Position{}
 }
+func (e *Expression) Walk(w func(Node)) {
+	if e.Code != nil {
+		w(e.Code)
+	}
+}
 
-func (Expression) _node() {}
+func (*Expression) _node() {}

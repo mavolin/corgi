@@ -36,9 +36,11 @@ func TestElement(t *testing.T) {
 			in:   "br",
 			expect: &ast.Element{
 				Header: &ast.ElementHeader{
-					Name: &ast.ElementName{
-						Name:     "br",
-						Position: &ast.Position{Line: 1, Col: 1},
+					Name: &ast.ElementReference{
+						Name: &ast.ElementName{
+							Name:     "br",
+							Position: &ast.Position{Line: 1, Col: 1},
+						},
 					},
 				},
 			},
@@ -47,17 +49,21 @@ func TestElement(t *testing.T) {
 			in:   "br(foo=bar)",
 			expect: &ast.Element{
 				Header: &ast.ElementHeader{
-					Name: &ast.ElementName{
-						Name:     "br",
-						Position: &ast.Position{Line: 1, Col: 1},
+					Name: &ast.ElementReference{
+						Name: &ast.ElementName{
+							Name:     "br",
+							Position: &ast.Position{Line: 1, Col: 1},
+						},
 					},
 					Attributes: &ast.Arguments{
 						LParen: &ast.Position{Line: 1, Col: 3},
 						Args: []ast.Argument{
 							&ast.NamedAttribute{
-								Name: &ast.AttributeName{
-									Name:     "foo",
-									Position: &ast.Position{Line: 1, Col: 4},
+								Name: &ast.AttributeReference{
+									Name: &ast.AttributeName{
+										Name:     "foo",
+										Position: &ast.Position{Line: 1, Col: 4},
+									},
 								},
 								EqualSign: &ast.Position{Line: 1, Col: 7},
 								Value: &ast.ExpressionAttributeValue{
@@ -79,9 +85,11 @@ func TestElement(t *testing.T) {
 			in:   "div [ foo ]",
 			expect: &ast.Element{
 				Header: &ast.ElementHeader{
-					Name: &ast.ElementName{
-						Name:     "div",
-						Position: &ast.Position{Line: 1, Col: 1},
+					Name: &ast.ElementReference{
+						Name: &ast.ElementName{
+							Name:     "div",
+							Position: &ast.Position{Line: 1, Col: 1},
+						},
 					},
 				},
 				Body: &ast.BracketText{
@@ -121,26 +129,32 @@ func TestHeader(t *testing.T) {
 			name: "name",
 			in:   "br",
 			expect: &ast.ElementHeader{
-				Name: &ast.ElementName{
-					Name:     "br",
-					Position: &ast.Position{Line: 1, Col: 1},
+				Name: &ast.ElementReference{
+					Name: &ast.ElementName{
+						Name:     "br",
+						Position: &ast.Position{Line: 1, Col: 1},
+					},
 				},
 			},
 		}, {
 			name: "name with attributes",
 			in:   "br(foo=bar)",
 			expect: &ast.ElementHeader{
-				Name: &ast.ElementName{
-					Name:     "br",
-					Position: &ast.Position{Line: 1, Col: 1},
+				Name: &ast.ElementReference{
+					Name: &ast.ElementName{
+						Name:     "br",
+						Position: &ast.Position{Line: 1, Col: 1},
+					},
 				},
 				Attributes: &ast.Arguments{
 					LParen: &ast.Position{Line: 1, Col: 3},
 					Args: []ast.Argument{
 						&ast.NamedAttribute{
-							Name: &ast.AttributeName{
-								Name:     "foo",
-								Position: &ast.Position{Line: 1, Col: 4},
+							Name: &ast.AttributeReference{
+								Name: &ast.AttributeName{
+									Name:     "foo",
+									Position: &ast.Position{Line: 1, Col: 4},
+								},
 							},
 							EqualSign: &ast.Position{Line: 1, Col: 7},
 							Value: &ast.ExpressionAttributeValue{
@@ -163,6 +177,50 @@ func TestHeader(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 			actual := testutil.ParsesFully(t, c.in, Header())
+			assert.Equal(t, c.expect, actual)
+		})
+	}
+}
+
+func TestReference(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name   string
+		in     string
+		expect *ast.ElementReference
+	}{
+		{
+			name: "local",
+			in:   "name",
+			expect: &ast.ElementReference{
+				Name: &ast.ElementName{
+					Name:     "name",
+					Position: &ast.Position{Line: 1, Col: 1},
+				},
+			},
+		}, {
+			name: "external",
+			in:   "package1.Name",
+			expect: &ast.ElementReference{
+				Package: &ast.Ident{
+					Ident:    "package1",
+					Position: &ast.Position{Line: 1, Col: 1},
+				},
+				Dot: &ast.Position{Line: 1, Col: 9},
+				Name: &ast.ElementName{
+					Name:     "Name",
+					Position: &ast.Position{Line: 1, Col: 10},
+				},
+			},
+		},
+	}
+
+	for _, c := range testCases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+
+			actual := testutil.ParsesFully(t, c.in, Reference())
 			assert.Equal(t, c.expect, actual)
 		})
 	}
@@ -215,9 +273,11 @@ func TestAnd(t *testing.T) {
 			LParen: &ast.Position{Line: 1, Col: 2},
 			Args: []ast.Argument{
 				&ast.NamedAttribute{
-					Name: &ast.AttributeName{
-						Name:     "foo",
-						Position: &ast.Position{Line: 1, Col: 3},
+					Name: &ast.AttributeReference{
+						Name: &ast.AttributeName{
+							Name:     "foo",
+							Position: &ast.Position{Line: 1, Col: 3},
+						},
 					},
 				},
 			},

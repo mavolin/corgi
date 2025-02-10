@@ -190,9 +190,11 @@ func testElementInterpolation(t *testing.T, f parser.Func[*ast.ElementInterpolat
 			expect: &ast.ElementInterpolation{
 				Element: &ast.Element{
 					Header: &ast.ElementHeader{
-						Name: &ast.ElementName{
-							Name:     "br",
-							Position: &ast.Position{Line: 1, Col: 2},
+						Name: &ast.ElementReference{
+							Name: &ast.ElementName{
+								Name:     "br",
+								Position: &ast.Position{Line: 1, Col: 2},
+							},
 						},
 					},
 				},
@@ -204,9 +206,11 @@ func testElementInterpolation(t *testing.T, f parser.Func[*ast.ElementInterpolat
 			expect: &ast.ElementInterpolation{
 				Element: &ast.Element{
 					Header: &ast.ElementHeader{
-						Name: &ast.ElementName{
-							Name:     "strong",
-							Position: &ast.Position{Line: 1, Col: 2},
+						Name: &ast.ElementReference{
+							Name: &ast.ElementName{
+								Name:     "strong",
+								Position: &ast.Position{Line: 1, Col: 2},
+							},
 						},
 					},
 					Body: &ast.BracketText{

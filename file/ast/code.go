@@ -28,6 +28,13 @@ func (c Code) End() Position {
 	}
 	return Position{}
 }
+func (c Code) Walk(w func(Node)) {
+	for _, n := range c {
+		if n != nil {
+			w(n)
+		}
+	}
+}
 
 func (Code) _node() {}
 
@@ -60,6 +67,7 @@ func (c *GoCode) End() Position {
 	}
 	return Position{}
 }
+func (c *GoCode) Walk(func(Node)) {}
 
 func (*GoCode) _node()     {}
 func (*GoCode) _codeNode() {}
@@ -101,6 +109,11 @@ func (f *BlockFunction) End() Position {
 		return deltaPos(*f.Block, len("block"))
 	}
 	return Position{}
+}
+func (f *BlockFunction) Walk(w func(Node)) {
+	if f.BlockName != nil {
+		w(f.BlockName)
+	}
 }
 
 func (*BlockFunction) _node()     {}
@@ -153,6 +166,17 @@ func (t *Ternary) End() Position {
 	}
 	return Position{}
 }
+func (t *Ternary) Walk(w func(Node)) {
+	if t.Condition != nil {
+		w(t.Condition)
+	}
+	if t.TrueVal != nil {
+		w(t.TrueVal)
+	}
+	if t.FalseVal != nil {
+		w(t.FalseVal)
+	}
+}
 
 func (*Ternary) _node()     {}
 func (*Ternary) _codeNode() {}
@@ -200,6 +224,13 @@ func (s *String) End() Position {
 	}
 	return Position{}
 }
+func (s *String) Walk(w func(Node)) {
+	for _, n := range s.Contents {
+		if n != nil {
+			w(n)
+		}
+	}
+}
 
 func (*String) _node()     {}
 func (*String) _codeNode() {}
@@ -241,6 +272,7 @@ func (t *StringText) End() Position {
 	}
 	return Position{}
 }
+func (t *StringText) Walk(func(Node)) {}
 
 func (*StringText) _node()       {}
 func (*StringText) _stringNode() {}

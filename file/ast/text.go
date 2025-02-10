@@ -30,6 +30,11 @@ func (b *ArrowBlock) End() Position {
 	}
 	return Position{}
 }
+func (b *ArrowBlock) Walk(w func(Node)) {
+	if b.Lines != nil {
+		w(b.Lines)
+	}
+}
 
 func (*ArrowBlock) _node()      {}
 func (*ArrowBlock) _scopeNode() {}
@@ -74,6 +79,13 @@ func (b TextBlock) End() Position {
 	}
 	return Position{}
 }
+func (b TextBlock) Walk(w func(Node)) {
+	for _, l := range b {
+		if l != nil {
+			w(l)
+		}
+	}
+}
 
 func (TextBlock) _node() {}
 
@@ -89,6 +101,13 @@ func (l TextLine) End() Position {
 		return l[len(l)-1].End()
 	}
 	return Position{}
+}
+func (l TextLine) Walk(w func(Node)) {
+	for _, n := range l {
+		if n != nil {
+			w(n)
+		}
+	}
 }
 
 func (TextLine) _node() {}
@@ -118,6 +137,7 @@ func (t *Text) End() Position {
 	}
 	return Position{}
 }
+func (t *Text) Walk(func(Node)) {}
 
 func (t *Text) _node()   {}
 func (*Text) _textNode() {}

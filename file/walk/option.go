@@ -3,10 +3,10 @@ package walk
 import (
 	"reflect"
 
-	"github.com/mavolin/corgi/file/ast"
+	"github.com/mavolin/corgi/v2/file/ast"
 )
 
-// An Option is a functions that limits the scope of [Walk].
+// An Option is a function that can influence how/if a node is walked.
 //
 // If at least one Option returns [Ignore], the item will be ignored, i.e. the
 // walk function with that option will not be called.

@@ -10,6 +10,7 @@ import (
 	"github.com/mavolin/corgi/v2/load/parse/internal/argument"
 	"github.com/mavolin/corgi/v2/load/parse/internal/body"
 	"github.com/mavolin/corgi/v2/load/parse/internal/comment"
+	"github.com/mavolin/corgi/v2/load/parse/internal/golang"
 	"github.com/mavolin/corgi/v2/load/parse/internal/html"
 	"github.com/mavolin/corgi/v2/load/parse/internal/quickanno"
 )
@@ -55,8 +56,9 @@ func Doctype() parser.Func[*ast.Doctype] {
 					Examples: []fancyerr.Example{{Example: "`!doctype(html)`"}},
 				})
 			} else {
-				d.HTML = attr.Name.Position
-				if attr.Name.Name != "html" {
+				d.HTML = new(ast.Position)
+				*d.HTML = attr.Name.Start()
+				if attr.Name.Package != nil || attr.Name.Name.Name != "html" {
 					d.HTML = nil
 					p.CaptureError(&fancyerr.Error{
 						Message: "doctype: missing html attribute",
@@ -112,7 +114,7 @@ func Header() parser.Func[*ast.ElementHeader] {
 	return func(p *parser.Parser) (*ast.ElementHeader, *fancyerr.Error) {
 		var h ast.ElementHeader
 
-		h.Name = parser.Try(p, Name())
+		h.Name = parser.Try(p, Reference())
 		if h.Name == nil {
 			return nil, &fancyerr.Error{
 				Message: "missing element header",
@@ -125,6 +127,35 @@ func Header() parser.Func[*ast.ElementHeader] {
 
 		h.Attributes = parser.Try(p, argument.Arguments())
 		return &h, nil
+	}
+}
+
+func Reference() parser.Func[*ast.ElementReference] {
+	return func(p *parser.Parser) (*ast.ElementReference, *fancyerr.Error) {
+		var ref ast.ElementReference
+
+		state := p.CloneState()
+
+		ref.Package = parser.TryOptional(p, golang.Identifier(), comment.OrHorizontalWhitespace())
+		ref.Dot = parser.TryOptionalRuneAt(p, '.', comment.OrAnyWhitespace())
+		if ref.Dot == nil {
+			ref.Package = nil
+			p.RestoreState(state)
+		} else {
+			if ref.Package == nil {
+				p.CaptureError(&fancyerr.Error{
+					Message: "attribute reference: missing package name",
+					Primary: quickanno.Expected(p, p.Pos(), "a package name before the `.`"),
+				})
+			}
+		}
+
+		var err *fancyerr.Error
+		ref.Name, err = parser.TryErr(p, Name())
+		if err != nil {
+			return nil, err
+		}
+		return &ref, nil
 	}
 }
 

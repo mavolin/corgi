@@ -32,6 +32,14 @@ func (c *ComponentCall) End() Position {
 	}
 	return Position{}
 }
+func (c *ComponentCall) Walk(w func(Node)) {
+	if c.Header != nil {
+		w(c.Header)
+	}
+	if c.Body != nil {
+		w(c.Body)
+	}
+}
 
 func (*ComponentCall) _node()      {}
 func (*ComponentCall) _scopeNode() {}
@@ -68,6 +76,17 @@ func (h *ComponentCallHeader) End() Position {
 	}
 	return Position{}
 }
+func (h *ComponentCallHeader) Walk(w func(Node)) {
+	if h.Name != nil {
+		w(h.Name)
+	}
+	if h.TypeArguments != nil {
+		w(h.TypeArguments)
+	}
+	if h.Arguments != nil {
+		w(h.Arguments)
+	}
+}
 
 func (*ComponentCallHeader) _node() {}
 
@@ -102,6 +121,14 @@ func (w *With) End() Position {
 		return deltaPos(*w.With, len("with"))
 	}
 	return Position{}
+}
+func (w *With) Walk(f func(Node)) {
+	if w.Name != nil {
+		f(w.Name)
+	}
+	if w.Body != nil {
+		f(w.Body)
+	}
 }
 
 func (*With) _node()      {}
