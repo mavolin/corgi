@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/mavolin/corgi/file"
-	"github.com/mavolin/corgi/file/ast"
-	"github.com/mavolin/corgi/file/fileerr"
+	"github.com/mavolin/corgi/v2/file"
+	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/file/diagnostic"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -17,9 +17,8 @@ func TestAnno(t *testing.T) {
 
 		expectFile := new(file.File)
 		expectHighlight := Highlight{
-			Line:  2,
-			Start: 3,
-			End:   4,
+			Start: ast.Position{Line: 2, Col: 3},
+			End:   ast.Position{Line: 2, Col: 4},
 		}
 		expectContext := Context{
 			Start: 1,
@@ -37,7 +36,6 @@ func TestAnno(t *testing.T) {
 		assert.Equal(t, expectFile, anno.File)
 		assert.Equal(t, expectContext.Start, anno.ContextStart)
 		assert.Equal(t, expectContext.End, anno.ContextEnd)
-		assert.Equal(t, expectHighlight.Line, anno.Line)
 		assert.Equal(t, expectHighlight.Start, anno.Start)
 		assert.Equal(t, expectHighlight.End, anno.End)
 		assert.Equal(t, expectAnno, anno.Annotation)
@@ -47,9 +45,8 @@ func TestAnno(t *testing.T) {
 
 		expectFile := new(file.File)
 		expectHighlight := Highlight{
-			Line:  2,
-			Start: 3,
-			End:   4,
+			Start: ast.Position{Line: 2, Col: 3},
+			End:   ast.Position{Line: 2, Col: 4},
 		}
 		expectContext := Context{
 			Start: 1,
@@ -77,7 +74,6 @@ func TestAnno(t *testing.T) {
 		assert.Equal(t, expectFile, anno.File)
 		assert.Equal(t, expectContext.Start, anno.ContextStart)
 		assert.Equal(t, expectContext.End, anno.ContextEnd)
-		assert.Equal(t, expectHighlight.Line, anno.Line)
 		assert.Equal(t, expectHighlight.Start, anno.Start)
 		assert.Equal(t, expectHighlight.End, anno.End)
 		assert.Equal(t, expectAnno, anno.Annotation)
@@ -87,19 +83,16 @@ func TestAnno(t *testing.T) {
 func TestRange(t *testing.T) {
 	t.Parallel()
 
-	expect := fileerr.Annotation{
+	expect := diagnostic.Annotation{
 		File:         new(file.File),
 		ContextStart: 2,
 		ContextEnd:   3,
-		Line:         2,
-		Start:        3,
-		End:          5,
+		Start:        ast.Position{Line: 2, Col: 3},
+		End:          ast.Position{Line: 2, Col: 5},
 		Annotation:   "anno",
 	}
-	start := ast.Position{Line: expect.Line, Col: expect.Start}
-	end := ast.Position{Line: expect.Line, Col: expect.End}
 
-	anno := Range(expect.File, start, end, expect.Annotation)
+	anno := Range(expect.File, expect.Start, expect.End, expect.Annotation)
 	assert.Equal(t, expect, anno)
 	assert.Same(t, expect.File, anno.File)
 }
@@ -108,7 +101,7 @@ func TestToEOL(t *testing.T) {
 	t.Parallel()
 
 	expectFile := &file.File{
-		AST: &ast.AST{
+		File: &ast.File{
 			Lines: []string{
 				"foo",
 				"foobar",
@@ -116,18 +109,16 @@ func TestToEOL(t *testing.T) {
 			},
 		},
 	}
-	expect := fileerr.Annotation{
+	expect := diagnostic.Annotation{
 		File:         expectFile,
 		ContextStart: 2,
 		ContextEnd:   3,
-		Line:         2,
-		Start:        3,
-		End:          len(expectFile.Lines[1]) + 1,
+		Start:        ast.Position{Line: 2, Col: 3},
+		End:          ast.Position{Line: 2, Col: len(expectFile.Lines[1]) + 1},
 		Annotation:   "anno",
 	}
-	start := ast.Position{Line: expect.Line, Col: expect.Start}
 
-	anno := ToEOL(expect.File, start, expect.Annotation)
+	anno := ToEOL(expect.File, expect.Start, expect.Annotation)
 	assert.Equal(t, expect, anno)
 	assert.Same(t, expect.File, anno.File)
 }
@@ -135,18 +126,16 @@ func TestToEOL(t *testing.T) {
 func TestPosition(t *testing.T) {
 	t.Parallel()
 
-	expect := fileerr.Annotation{
+	expect := diagnostic.Annotation{
 		File:         new(file.File),
 		ContextStart: 2,
 		ContextEnd:   3,
-		Line:         2,
-		Start:        3,
-		End:          4,
+		Start:        ast.Position{Line: 2, Col: 3},
+		End:          ast.Position{Line: 2, Col: 4},
 		Annotation:   "anno",
 	}
-	start := ast.Position{Line: expect.Line, Col: expect.Start}
 
-	anno := Position(expect.File, start, expect.Annotation)
+	anno := Position(expect.File, expect.Start, expect.Annotation)
 	assert.Equal(t, expect, anno)
 	assert.Same(t, expect.File, anno.File)
 }
@@ -155,95 +144,82 @@ func TestNChars(t *testing.T) {
 	t.Parallel()
 
 	n := 3
-	expect := fileerr.Annotation{
+	expect := diagnostic.Annotation{
 		File:         new(file.File),
 		ContextStart: 2,
 		ContextEnd:   3,
-		Line:         2,
-		Start:        3,
-		End:          3 + n,
+		Start:        ast.Position{Line: 2, Col: 3},
+		End:          ast.Position{Line: 2, Col: 3 + n},
 		Annotation:   "anno",
 	}
-	start := ast.Position{Line: expect.Line, Col: expect.Start}
 
-	anno := NChars(expect.File, start, n, expect.Annotation)
+	anno := NChars(expect.File, expect.Start, n, expect.Annotation)
 	assert.Equal(t, expect, anno)
 	assert.Same(t, expect.File, anno.File)
 }
 
 func TestNode(t *testing.T) {
-
 	t.Parallel()
 
 	start := ast.Position{Line: 3, Col: 4} // to make things simpler
 
 	testCases := []struct {
 		node ast.Node
-		end  int
 	}{
-		// handpicked selection
 		{
 			node: &ast.Ident{
 				Ident:    "foo",
-				Position: start,
+				Position: &start,
 			},
-			end: start.Col + len("foo"),
-		},
-		{
+		}, {
 			node: &ast.String{
-				Open:  start,
+				Open:  &start,
 				Quote: '"',
 				Contents: []ast.StringNode{
 					&ast.StringText{
 						Text:     "foo",
-						Position: delta(start, 1),
+						Position: &ast.Position{Line: start.Line, Col: start.Col + len(`"`)},
 					},
 				},
 				Close: &ast.Position{Line: start.Line, Col: start.Col + len(`"foo`)},
 			},
-			end: start.Col + len(`"foo"`),
-		},
-		{
-			node: &ast.State{
+		}, {
+			node: &ast.StateDeclaration{
 				LParen: &ast.Position{Line: start.Line, Col: start.Col + len("state ")},
-				Vars: []ast.StateNode{
-					&ast.StateVar{
-						Names:  []*ast.Ident{{Ident: "foo", Position: ast.Position{Line: start.Line + 1, Col: 3}}},
-						Assign: &ast.Position{Line: start.Line + 1, Col: 3 + len("foo ")},
-						Values: []*ast.Code{
+				Specs: []*ast.StateSpec{
+					{
+						Names:     []*ast.Ident{{Ident: "foo", Position: &ast.Position{Line: start.Line + 1, Col: 3}}},
+						EqualSign: &ast.Position{Line: start.Line + 1, Col: 3 + len("foo ")},
+						Values: []*ast.Expression{
 							{
-								Expressions: []ast.CodeNode{
+								Code: ast.Code{
 									&ast.GoCode{
 										Code:     "bar",
-										Position: ast.Position{Line: start.Line + 1, Col: 3 + len("foo = ")},
+										Position: &ast.Position{Line: start.Line + 1, Col: 3 + len("foo = ")},
 									},
 								},
 							},
 						},
 					},
 				},
-				RParen:   &ast.Position{Line: start.Line + 2, Col: 3},
-				Position: start,
+				RParen: &ast.Position{Line: start.Line + 2, Col: 3},
 			},
-			end: start.Col + len("state"),
 		},
 	}
 
 	for _, c := range testCases {
 		t.Run(fmt.Sprintf("%T", c.node), func(t *testing.T) {
-			expect := fileerr.Annotation{
+			expect := diagnostic.Annotation{
 				File:         new(file.File),
-				ContextStart: start.Line,
-				ContextEnd:   start.Line + 1,
-				Line:         start.Line,
-				Start:        start.Col,
-				End:          c.end,
+				ContextStart: c.node.Start().Line,
+				ContextEnd:   c.node.End().Line + 1,
+				Start:        c.node.Start(),
+				End:          c.node.End(),
 				Annotation:   "anno",
 			}
 
 			anno := Node(expect.File, c.node, expect.Annotation)
 			assert.Equal(t, expect, anno)
-			assert.Same(t, expect.File, anno.File)
 		})
 	}
 }

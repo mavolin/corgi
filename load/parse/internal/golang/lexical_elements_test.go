@@ -3,8 +3,8 @@ package golang
 import (
 	"testing"
 
-	"github.com/mavolin/corgi/v2/fancyerr"
 	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/file/diagnostic"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/mavolin/corgi/v2/load/parse/internal/testutil"
 	"github.com/stretchr/testify/assert"
@@ -38,14 +38,14 @@ func TestUnicodeValue(t *testing.T) {
 	testutil.AssertAlsoFulfils(t, UnicodeValue('\''), testBigUValue)
 	testutil.AssertAlsoFulfils(t, UnicodeValue('\''), testEscapedChar('\''))
 	testutil.AssertAlsoFulfils(t, UnicodeValue('\''), func(t *testing.T, f parser.Func[string]) {
-		testUnicodeChar(t, '\'', func(p *parser.Parser) (rune, *fancyerr.Error) {
+		testUnicodeChar(t, '\'', func(p *parser.Parser) (rune, *diagnostic.Diagnostic) {
 			s, err := parser.TryErr(p, f)
 			if err != nil {
 				return 0, err
 			}
 			rs := []rune(s)
 			if len(rs) != 1 {
-				return 0, &fancyerr.Error{
+				return 0, &diagnostic.Diagnostic{
 					Message: "expected a single rune",
 				}
 			}
@@ -57,14 +57,14 @@ func TestUnicodeValue(t *testing.T) {
 	testutil.AssertAlsoFulfils(t, UnicodeValue('"'), testBigUValue)
 	testutil.AssertAlsoFulfils(t, UnicodeValue('"'), testEscapedChar('"'))
 	testutil.AssertAlsoFulfils(t, UnicodeValue('"'), func(t *testing.T, f parser.Func[string]) {
-		testUnicodeChar(t, '"', func(p *parser.Parser) (rune, *fancyerr.Error) {
+		testUnicodeChar(t, '"', func(p *parser.Parser) (rune, *diagnostic.Diagnostic) {
 			s, err := parser.TryErr(p, f)
 			if err != nil {
 				return 0, err
 			}
 			rs := []rune(s)
 			if len(rs) != 1 {
-				return 0, &fancyerr.Error{
+				return 0, &diagnostic.Diagnostic{
 					Message: "expected a single rune",
 				}
 			}

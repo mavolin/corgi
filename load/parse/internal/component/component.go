@@ -1,9 +1,9 @@
 package component
 
 import (
-	"github.com/mavolin/corgi/v2/fancyerr"
-	"github.com/mavolin/corgi/v2/fancyerr/anno"
 	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/file/diagnostic"
+	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/mavolin/corgi/v2/load/parse/internal/body"
 	"github.com/mavolin/corgi/v2/load/parse/internal/code"
@@ -14,12 +14,12 @@ import (
 )
 
 func Component() parser.Func[*ast.Component] {
-	return func(p *parser.Parser) (*ast.Component, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.Component, *diagnostic.Diagnostic) {
 		var c ast.Component
 
 		c.Comp = parser.TryKeywordAt(p, "comp", comment.OrAnyWhitespace())
 		if c.Comp == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing component",
 				Primary: quickanno.Expected(p, p.Pos(), "a component"),
 			}
@@ -27,10 +27,10 @@ func Component() parser.Func[*ast.Component] {
 
 		c.Header = parser.TryOptional(p, Header(), comment.OrHorizontalWhitespace())
 		if c.Header == nil {
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "component: missing header",
 				Primary: quickanno.Expected(p, p.Pos(), "a component header"),
-				Examples: []fancyerr.Example{
+				Examples: []diagnostic.Example{
 					{Example: "comp Hello(name string)"},
 				},
 			})
@@ -39,18 +39,18 @@ func Component() parser.Func[*ast.Component] {
 		c.Colon = parser.TryOptionalRuneAt(p, ':', comment.OrAnyWhitespace())
 		c.Extend = parser.TryOptional(p, CallHeader(), comment.OrHorizontalWhitespace())
 		if c.Extend != nil && c.Colon == nil {
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "component: missing colon before extend",
 				Primary: quickanno.Expected(p, c.Extend.Start(), "a colon before the component call header"),
 			})
 		} else if c.Extend == nil && c.Colon != nil {
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "component: missing extend",
 				Primary: quickanno.Expected(p, p.Pos(), "a component call header"),
-				Secondary: []fancyerr.Annotation{
+				Secondary: []diagnostic.Annotation{
 					anno.Position(p.File, *c.Colon, "because of this colon, indicating a following component call header"),
 				},
-				Hints: []fancyerr.Hint{
+				Hints: []diagnostic.Hint{
 					{Hint: "If you don't want to extend another component, remove the colon."},
 				},
 			})
@@ -62,12 +62,12 @@ func Component() parser.Func[*ast.Component] {
 }
 
 func Header() parser.Func[*ast.ComponentHeader] {
-	return func(p *parser.Parser) (*ast.ComponentHeader, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.ComponentHeader, *diagnostic.Diagnostic) {
 		var h ast.ComponentHeader
 
 		h.Name = parser.TryOptional(p, golang.Identifier(), comment.OrHorizontalWhitespace())
 		if h.Name == nil {
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "component header: missing name",
 				Primary: quickanno.Expected(p, p.Pos(), "an identifier"),
 			})
@@ -75,17 +75,17 @@ func Header() parser.Func[*ast.ComponentHeader] {
 		h.TypeParams = parser.TryOptional(p, golang.TypeParameters(), comment.OrHorizontalWhitespace())
 		h.Params = parser.TryOptional(p, Parameters(), nil)
 		if h.Params == nil {
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "component header: missing parameters",
 				Primary: quickanno.Expected(p, p.Pos(), "a parameter list"),
-				Examples: []fancyerr.Example{
+				Examples: []diagnostic.Example{
 					{Example: "Hello(name string)"},
 				},
 			})
 		}
 
 		if h.Name == nil && h.Params == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing component header",
 				Primary: quickanno.Expected(p, h.Start(), "an identifier and a list of parameters"),
 			}
@@ -96,7 +96,7 @@ func Header() parser.Func[*ast.ComponentHeader] {
 }
 
 func Parameters() parser.Func[*ast.ComponentParameters] {
-	return func(p *parser.Parser) (*ast.ComponentParameters, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.ComponentParameters, *diagnostic.Diagnostic) {
 		l, err := parser.TryErr(p, list.ParenList("component parameters", Parameter()))
 		if err != nil {
 			return nil, err
@@ -110,12 +110,12 @@ func Parameters() parser.Func[*ast.ComponentParameters] {
 }
 
 func Parameter() parser.Func[*ast.ComponentParameter] {
-	return func(p *parser.Parser) (*ast.ComponentParameter, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.ComponentParameter, *diagnostic.Diagnostic) {
 		var param ast.ComponentParameter
 
 		param.Name = parser.TryOptional(p, golang.Identifier(), comment.OrHorizontalWhitespace())
 		if param.Name == nil {
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "component parameter: missing name",
 				Primary: quickanno.Expected(p, param.Type.Start(), "a parameter name"),
 			})
@@ -124,7 +124,7 @@ func Parameter() parser.Func[*ast.ComponentParameter] {
 		param.Colon = parser.TryOptionalRuneAt(p, ':', comment.OrAnyWhitespace())
 
 		if param.Name == nil && param.Type == nil && param.Colon == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing component parameter",
 				Primary: quickanno.Expected(p, p.Pos(), "a parameter name"),
 			}
@@ -133,13 +133,13 @@ func Parameter() parser.Func[*ast.ComponentParameter] {
 		param.Default = parser.Try(p, code.Expression(code.Regular))
 		if param.Default == nil {
 			if param.Colon != nil {
-				p.CaptureError(&fancyerr.Error{
+				p.CaptureError(&diagnostic.Diagnostic{
 					Message: "component parameter: missing default value",
 					Primary: quickanno.Expected(p, p.Pos(), "a default value"),
-					Secondary: []fancyerr.Annotation{
+					Secondary: []diagnostic.Annotation{
 						anno.Position(p.File, *param.Colon, "because of this colon"),
 					},
-					Hints: []fancyerr.Hint{
+					Hints: []diagnostic.Hint{
 						{
 							Hint: "I'm only expecting a default value because of the colon. " +
 								"If you don't want to provide a default value, remove the colon and provide a type instead.",
@@ -148,14 +148,14 @@ func Parameter() parser.Func[*ast.ComponentParameter] {
 				})
 			}
 			if param.Type == nil {
-				p.CaptureError(&fancyerr.Error{
+				p.CaptureError(&diagnostic.Diagnostic{
 					Message: "component parameter: missing type/default",
 					Primary: quickanno.Expected(p, p.Pos(), "either a type or a colon followed by a default value"),
 					Explanation: "Every parameter must have a type. " +
 						"That type can either be specified explicitly behind the parameter name, " +
 						"just like for function parameters, " +
 						"or implicitly by providing a default value.",
-					Examples: []fancyerr.Example{
+					Examples: []diagnostic.Example{
 						{Example: "bark: string", Title: "explicit type"},
 						{Example: "bark: \"woof\"", Title: "implicit type"},
 					},
@@ -163,7 +163,7 @@ func Parameter() parser.Func[*ast.ComponentParameter] {
 			}
 		} else {
 			if param.Colon == nil {
-				p.CaptureError(&fancyerr.Error{
+				p.CaptureError(&diagnostic.Diagnostic{
 					Message: "component parameter: missing colon before default",
 					Primary: quickanno.Expected(p, param.Default.Start(), "a colon here"),
 				})
@@ -175,12 +175,12 @@ func Parameter() parser.Func[*ast.ComponentParameter] {
 }
 
 func Alias() parser.Func[*ast.Alias] {
-	return func(p *parser.Parser) (*ast.Alias, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.Alias, *diagnostic.Diagnostic) {
 		var a ast.Alias
 
 		a.Alias = parser.TryKeywordAt(p, "alias", comment.OrAnyWhitespace())
 		if a.Alias == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing alias",
 				Primary: quickanno.Expected(p, p.Pos(), "an alias"),
 			}
@@ -191,7 +191,7 @@ func Alias() parser.Func[*ast.Alias] {
 			a.Header = parser.TryOptional(p, Header(), comment.OrAnyWhitespace())
 		}
 		if colon || a.Header == nil {
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "alias: missing component header",
 				Primary: quickanno.Expected(p, p.Pos(), "a component header for the alias"),
 			})
@@ -199,7 +199,7 @@ func Alias() parser.Func[*ast.Alias] {
 
 		a.ComponentCall = parser.Try(p, Call())
 		if a.ComponentCall == nil {
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "alias: missing component call",
 				Primary: quickanno.Expected(p, p.Pos(), "a component call to alias"),
 			})
@@ -210,12 +210,12 @@ func Alias() parser.Func[*ast.Alias] {
 }
 
 func Block() parser.Func[*ast.Block] {
-	return func(p *parser.Parser) (*ast.Block, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.Block, *diagnostic.Diagnostic) {
 		var b ast.Block
 
 		b.Block = parser.TryKeywordAt(p, "block", comment.OrAnyWhitespace())
 		if b.Block == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing block",
 				Primary: quickanno.Expected(p, p.Pos(), "a block"),
 			}
@@ -223,7 +223,7 @@ func Block() parser.Func[*ast.Block] {
 
 		b.Name = parser.Try(p, golang.Identifier())
 		if b.Name == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "block: missing name",
 				Primary: quickanno.Expected(p, *b.Block, "a name of a block"),
 			}

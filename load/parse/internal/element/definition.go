@@ -4,9 +4,9 @@ import (
 	"slices"
 
 	"github.com/mavolin/corgi/v2/escape/elemtype"
-	"github.com/mavolin/corgi/v2/fancyerr"
-	"github.com/mavolin/corgi/v2/fancyerr/anno"
 	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/file/diagnostic"
+	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/mavolin/corgi/v2/load/parse/internal/comment"
 	"github.com/mavolin/corgi/v2/load/parse/internal/golang"
@@ -15,12 +15,12 @@ import (
 )
 
 func Definition() parser.Func[*ast.ElementDefinition] {
-	return func(p *parser.Parser) (*ast.ElementDefinition, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.ElementDefinition, *diagnostic.Diagnostic) {
 		var def ast.ElementDefinition
 
 		def.Elem = parser.TryKeywordAt(p, "elem", comment.OrAnyWhitespace())
 		if def.Elem == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing element definition",
 				Primary: quickanno.Expected(p, p.Pos(), "an element definition"),
 			}
@@ -76,7 +76,7 @@ func Definition() parser.Func[*ast.ElementDefinition] {
 
 		def.RParen = parser.TryOptionalRuneAt(p, ')', nil)
 		if def.RParen == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing closing parenthesis",
 				Primary: quickanno.Expected(p, p.Pos(), "a closing parenthesis"),
 			}
@@ -87,29 +87,29 @@ func Definition() parser.Func[*ast.ElementDefinition] {
 }
 
 func Spec() parser.Func[*ast.ElementSpec] {
-	return func(p *parser.Parser) (*ast.ElementSpec, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.ElementSpec, *diagnostic.Diagnostic) {
 		var s ast.ElementSpec
 
 		s.Name = parser.TryOptional(p, Name(), comment.OrHorizontalWhitespace())
 		if s.Name == nil {
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "element spec: missing element name",
 				Primary: quickanno.Expected(p, p.Pos(), "an element name"),
 			})
 		}
 		s.Type = parser.Try(p, Type())
 		if s.Type == nil {
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "element spec: missing element type",
 				Primary: quickanno.Expected(p, p.Pos(), "an element type"),
 			})
 		}
 
 		if s.Name == nil && s.Type == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing element spec",
 				Primary: quickanno.Expected(p, p.Pos(), "an element spec"),
-				Examples: []fancyerr.Example{
+				Examples: []diagnostic.Example{
 					{Title: "element spec", Example: "div normal"},
 				},
 			}
@@ -119,16 +119,16 @@ func Spec() parser.Func[*ast.ElementSpec] {
 }
 
 func Type() parser.Func[ast.ElementType] {
-	return func(p *parser.Parser) (ast.ElementType, *fancyerr.Error) {
+	return func(p *parser.Parser) (ast.ElementType, *diagnostic.Diagnostic) {
 		if bt := parser.Try(p, BasicType()); bt != nil {
 			return bt, nil
 		} else if at := parser.Try(p, AliasType()); at != nil {
 			return at, nil
 		}
-		return nil, &fancyerr.Error{
+		return nil, &diagnostic.Diagnostic{
 			Message: "missing element type",
 			Primary: quickanno.Expected(p, p.Pos(), "an element type"),
-			Examples: []fancyerr.Example{
+			Examples: []diagnostic.Example{
 				{Title: "named type", Example: "text"},
 				{Title: "alias", Example: "= div"},
 			},
@@ -137,10 +137,10 @@ func Type() parser.Func[ast.ElementType] {
 }
 
 func BasicType() parser.Func[*ast.BasicElementType] {
-	return func(p *parser.Parser) (*ast.BasicElementType, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.BasicElementType, *diagnostic.Diagnostic) {
 		typ := parser.Try(p, TypeName())
 		if typ == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing basic element type",
 				Primary: quickanno.Expected(p, p.Pos(), "an element type name"),
 			}
@@ -151,12 +151,12 @@ func BasicType() parser.Func[*ast.BasicElementType] {
 }
 
 func AliasType() parser.Func[*ast.AliasElementType] {
-	return func(p *parser.Parser) (*ast.AliasElementType, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.AliasElementType, *diagnostic.Diagnostic) {
 		var t ast.AliasElementType
 
 		t.EqualSign = parser.TryRuneAt(p, '=')
 		if t.EqualSign == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing alias element type",
 				Primary: quickanno.Expected(p, p.Pos(), "expected an `=` here"),
 			}
@@ -169,13 +169,13 @@ func AliasType() parser.Func[*ast.AliasElementType] {
 }
 
 func TypeName() parser.Func[*ast.ElementTypeName] {
-	return func(p *parser.Parser) (*ast.ElementTypeName, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.ElementTypeName, *diagnostic.Diagnostic) {
 		var n ast.ElementTypeName
 		n.Position = p.PosPtr()
 
 		name := parser.Try(p, golang.Identifier())
 		if name == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing type name",
 				Primary: quickanno.Expected(p, *n.Position, "a type name"),
 			}
@@ -195,12 +195,12 @@ func TypeName() parser.Func[*ast.ElementTypeName] {
 		case "js":
 			n.Type = elemtype.JS
 		default:
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "invalid type name",
-				Primary: []fancyerr.Annotation{
+				Primary: []diagnostic.Annotation{
 					anno.Range(p.File, name.Start(), name.End(), "not a valid type name"),
 				},
-				Hints: []fancyerr.Hint{
+				Hints: []diagnostic.Hint{
 					{Hint: "Valid type names are: `void`, `nothing`, `text`, `css`, `js`"},
 				},
 			})

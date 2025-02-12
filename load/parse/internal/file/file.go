@@ -3,9 +3,9 @@ package file
 import (
 	"slices"
 
-	"github.com/mavolin/corgi/v2/fancyerr"
-	"github.com/mavolin/corgi/v2/fancyerr/anno"
 	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/file/diagnostic"
+	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/mavolin/corgi/v2/load/parse/internal/attribute"
 	"github.com/mavolin/corgi/v2/load/parse/internal/body"
@@ -28,7 +28,7 @@ func init() {
 	body.SetScopeNode(scopeNode)
 }
 
-func scopeNode(p *parser.Parser) (ast.ScopeNode, *fancyerr.Error) {
+func scopeNode(p *parser.Parser) (ast.ScopeNode, *diagnostic.Diagnostic) {
 	if n := parser.Try(p, attribute.Definition()); n != nil {
 		return n, nil
 	} else if n := parser.Try(p, code.ImplicitCodeLine()); n != nil {
@@ -62,9 +62,9 @@ func scopeNode(p *parser.Parser) (ast.ScopeNode, *fancyerr.Error) {
 	}
 
 	if b := parser.Try(p, code.Else()); b != nil {
-		p.CaptureError(&fancyerr.Error{
+		p.CaptureError(&diagnostic.Diagnostic{
 			Message: "unexpected `else`",
-			Primary: []fancyerr.Annotation{
+			Primary: []diagnostic.Annotation{
 				anno.Range(p.File, *b.Else, quickanno.DeltaPos(*b.Else, 0, len("else")), "unexpected `else`"),
 			},
 			Explanation: "This `else` is not part of an if statement.",
@@ -74,9 +74,9 @@ func scopeNode(p *parser.Parser) (ast.ScopeNode, *fancyerr.Error) {
 			Until: b.End(),
 		}, nil
 	} else if b := parser.Try(p, code.ElseIf()); b != nil {
-		p.CaptureError(&fancyerr.Error{
+		p.CaptureError(&diagnostic.Diagnostic{
 			Message: "unexpected `else if`",
-			Primary: []fancyerr.Annotation{
+			Primary: []diagnostic.Annotation{
 				anno.Range(p.File, *b.Else, quickanno.DeltaPos(*b.If, 0, len("if")), "unexpected `else if`"),
 			},
 			Explanation: "This `else if` is not part of an if statement.",
@@ -91,14 +91,14 @@ func scopeNode(p *parser.Parser) (ast.ScopeNode, *fancyerr.Error) {
 		return n, nil
 	}
 
-	return nil, &fancyerr.Error{
+	return nil, &diagnostic.Diagnostic{
 		Message: "missing scope node",
 		Primary: quickanno.Expected(p, p.Pos(), "a scope node"),
 	}
 }
 
 func File() parser.Func[struct{}] {
-	return func(p *parser.Parser) (struct{}, *fancyerr.Error) {
+	return func(p *parser.Parser) (struct{}, *diagnostic.Diagnostic) {
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 		p.File.File.Package = parser.Must(p, PackageDirective())
 		p.File.File.Imports = parser.Collect(p, Import(), 8, comment.OrAnyWhitespace())
@@ -113,7 +113,7 @@ func File() parser.Func[struct{}] {
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 		p.File.Comments = p.CloneState().Comments()
 		if !parser.MatchesAnyRune(p, parser.EOF) {
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "unexpected tokens",
 				Primary: quickanno.Expected(p, p.Pos(), "end of file"),
 			})
@@ -123,7 +123,7 @@ func File() parser.Func[struct{}] {
 }
 
 func TopLevel() parser.Func[[]ast.ScopeNode] {
-	return func(p *parser.Parser) ([]ast.ScopeNode, *fancyerr.Error) {
+	return func(p *parser.Parser) ([]ast.ScopeNode, *diagnostic.Diagnostic) {
 		scope := make([]ast.ScopeNode, 0, 36)
 
 		for {
@@ -142,22 +142,22 @@ func TopLevel() parser.Func[[]ast.ScopeNode] {
 					From:  imp.Start(),
 					Until: imp.End(),
 				})
-				p.CaptureError(&fancyerr.Error{
+				p.CaptureError(&diagnostic.Diagnostic{
 					Message: "unexpected import",
-					Primary: []fancyerr.Annotation{
+					Primary: []diagnostic.Annotation{
 						anno.Range(p.File, imp.Start(), imp.End(), "cannot place import here"),
 					},
-					Hints: []fancyerr.Hint{
+					Hints: []diagnostic.Hint{
 						{Hint: "Imports must be placed at the top of the file, right below the package directive."},
 					},
 				})
 			} else if bn := parser.Try(p, body.BadScopeNode()); bn != nil {
-				p.CaptureError(&fancyerr.Error{
+				p.CaptureError(&diagnostic.Diagnostic{
 					Message: "bad scope node",
-					Primary: []fancyerr.Annotation{
+					Primary: []diagnostic.Annotation{
 						anno.Range(p.File, bn.From, bn.Until, "unexpected tokens"),
 					},
-					Hints: []fancyerr.Hint{
+					Hints: []diagnostic.Hint{
 						{Hint: "Expected a state declaration, a component, or code"},
 					},
 				})

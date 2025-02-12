@@ -3,8 +3,8 @@ package code
 import (
 	"testing"
 
-	"github.com/mavolin/corgi/v2/fancyerr"
 	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/file/diagnostic"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/mavolin/corgi/v2/load/parse/internal/testutil"
 	"github.com/stretchr/testify/assert"
@@ -13,7 +13,7 @@ import (
 func TestImplicitCodeLine(t *testing.T) {
 	t.Parallel()
 	testutil.AssertAlsoFulfils(t, ImplicitCodeLine(), func(t *testing.T, f parser.Func[*ast.ImplicitCodeLine]) {
-		testParsedStatement(t, func(p *parser.Parser) (*ast.Statement, *fancyerr.Error) {
+		testParsedStatement(t, func(p *parser.Parser) (*ast.Statement, *diagnostic.Diagnostic) {
 			f, err := f(p)
 			if err != nil {
 				return nil, err

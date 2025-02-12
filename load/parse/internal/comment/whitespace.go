@@ -3,9 +3,9 @@ package comment
 import (
 	"slices"
 
-	"github.com/mavolin/corgi/v2/fancyerr"
-	"github.com/mavolin/corgi/v2/fancyerr/anno"
 	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/file/diagnostic"
+	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/mavolin/corgi/v2/load/parse/internal/quickanno"
 	"github.com/mavolin/corgi/v2/load/parse/internal/whitespace"
@@ -14,11 +14,11 @@ import (
 // OrHorizontalWhitespace parses and captures inline comments and horizontal
 // whitespace.
 func OrHorizontalWhitespace() parser.WhitespaceFunc {
-	return func(p *parser.Parser) *fancyerr.Error {
+	return func(p *parser.Parser) *diagnostic.Diagnostic {
 		hasWS := parser.TrySkip(p, whitespace.Horizontal())
 		c := parser.Try(p, GeneralComment())
 		if !hasWS && c == nil {
-			return &fancyerr.Error{
+			return &diagnostic.Diagnostic{
 				Message: "missing horizontal whitespace",
 				Primary: quickanno.Expected(p, p.Pos(), "a space, tab, or a block comment"),
 			}
@@ -43,7 +43,7 @@ func OrHorizontalWhitespace() parser.WhitespaceFunc {
 // If the line ends with a line comment, AndEOS accepts, but does not consume
 // it.
 func AndEOS() parser.WhitespaceFunc {
-	return func(p *parser.Parser) *fancyerr.Error {
+	return func(p *parser.Parser) *diagnostic.Diagnostic {
 		pos := p.Pos()
 		for {
 			parser.TrySkip(p, whitespace.Horizontal())
@@ -65,7 +65,7 @@ func AndEOS() parser.WhitespaceFunc {
 			return nil
 		}
 
-		return &fancyerr.Error{
+		return &diagnostic.Diagnostic{
 			Message: "expected end of statement",
 			Primary: quickanno.Expected(p, pos, "a semicolon, EOL, or a line comment"),
 		}
@@ -73,7 +73,7 @@ func AndEOS() parser.WhitespaceFunc {
 }
 
 func AndMustEOS() parser.WhitespaceFunc {
-	return func(p *parser.Parser) *fancyerr.Error {
+	return func(p *parser.Parser) *diagnostic.Diagnostic {
 		parser.TrySkip(p, OrHorizontalWhitespace())
 		if parser.TrySkip(p, AndEOS()) { // fast path
 			return nil
@@ -83,9 +83,9 @@ func AndMustEOS() parser.WhitespaceFunc {
 		parser.TokenWhile(p, func() bool {
 			return !parser.MatchesWS(p, AndEOS())
 		})
-		p.CaptureError(&fancyerr.Error{
+		p.CaptureError(&diagnostic.Diagnostic{
 			Message: "end of statement: unexpected tokens",
-			Primary: []fancyerr.Annotation{
+			Primary: []diagnostic.Annotation{
 				anno.Range(p.File, start, p.Pos(), "unexpected tokens, expected end of statement"),
 			},
 		})
@@ -97,7 +97,7 @@ func AndMustEOS() parser.WhitespaceFunc {
 
 // AndEOL captures the comments until and including the first EOL.
 func AndEOL() parser.WhitespaceFunc {
-	return func(p *parser.Parser) *fancyerr.Error {
+	return func(p *parser.Parser) *diagnostic.Diagnostic {
 		for {
 			parser.TrySkip(p, whitespace.Horizontal())
 			c := parser.Try(p, GeneralComment())
@@ -117,7 +117,7 @@ func AndEOL() parser.WhitespaceFunc {
 			return nil
 		}
 
-		return &fancyerr.Error{
+		return &diagnostic.Diagnostic{
 			Message: "expected EOL",
 			Primary: quickanno.Expected(p, p.Pos(), "the end of line, end of file, or a line comment"),
 		}
@@ -126,7 +126,7 @@ func AndEOL() parser.WhitespaceFunc {
 
 // OrAnyWhitespace parses and captures comments and any whitespace.
 func OrAnyWhitespace() parser.WhitespaceFunc {
-	return func(p *parser.Parser) *fancyerr.Error {
+	return func(p *parser.Parser) *diagnostic.Diagnostic {
 		pos := p.Pos()
 		for {
 			parser.TrySkip(p, whitespace.Horizontal())
@@ -145,7 +145,7 @@ func OrAnyWhitespace() parser.WhitespaceFunc {
 
 		parser.TrySkip(p, OrLoneWS())
 		if pos == p.Pos() {
-			return &fancyerr.Error{
+			return &diagnostic.Diagnostic{
 				Message: "missing whitespace",
 				Primary: quickanno.Expected(p, p.Pos(), "a space, tab, newline, or a comment"),
 			}
@@ -155,7 +155,7 @@ func OrAnyWhitespace() parser.WhitespaceFunc {
 }
 
 func OrLoneWS() parser.WhitespaceFunc {
-	return func(p *parser.Parser) *fancyerr.Error {
+	return func(p *parser.Parser) *diagnostic.Diagnostic {
 		hasWS := parser.TrySkip(p, whitespace.Any())
 
 		c := parser.Try(p, GeneralComment())
@@ -170,7 +170,7 @@ func OrLoneWS() parser.WhitespaceFunc {
 			if hasWS {
 				return nil
 			}
-			return &fancyerr.Error{
+			return &diagnostic.Diagnostic{
 				Message: "missing whitespace",
 				Primary: quickanno.Expected(p, p.Pos(), "a space, tab, newline, or a comment"),
 			}

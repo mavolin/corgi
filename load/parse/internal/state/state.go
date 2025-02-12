@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/mavolin/corgi/v2/fancyerr"
-	"github.com/mavolin/corgi/v2/fancyerr/anno"
 	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/file/diagnostic"
+	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/mavolin/corgi/v2/load/parse/internal/code"
 	"github.com/mavolin/corgi/v2/load/parse/internal/comment"
@@ -17,12 +17,12 @@ import (
 )
 
 func Declaration() parser.Func[*ast.StateDeclaration] {
-	return func(p *parser.Parser) (*ast.StateDeclaration, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.StateDeclaration, *diagnostic.Diagnostic) {
 		var d ast.StateDeclaration
 
 		d.State = parser.TryTokenAt(p, "state")
 		if d.State == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing state declaration",
 				Primary: quickanno.Expected(p, d.Start(), "a state declaration"),
 			}
@@ -33,7 +33,7 @@ func Declaration() parser.Func[*ast.StateDeclaration] {
 		d.LParen = parser.TryOptionalRuneAt(p, '(', nil)
 		if d.LParen == nil {
 			if !hasWS {
-				return nil, &fancyerr.Error{
+				return nil, &diagnostic.Diagnostic{
 					Message: "missing state declaration",
 					Primary: quickanno.Expected(p, d.Start(), "a state declaration"),
 				}
@@ -73,7 +73,7 @@ func Declaration() parser.Func[*ast.StateDeclaration] {
 
 		d.RParen = parser.TryOptionalRuneAt(p, ')', nil)
 		if d.RParen == nil {
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "state declaration: missing ')'",
 				Primary: quickanno.Expected(p, *d.LParen, "a closing ')' for the '(' here"),
 			})
@@ -84,15 +84,15 @@ func Declaration() parser.Func[*ast.StateDeclaration] {
 }
 
 func Spec() parser.Func[*ast.StateSpec] {
-	return func(p *parser.Parser) (*ast.StateSpec, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.StateSpec, *diagnostic.Diagnostic) {
 		var s ast.StateSpec
 
 		s.Names = parser.Try(p, list.CommaList("state name", "state names", golang.Identifier()))
 		if s.Names == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing state spec",
 				Primary: quickanno.Expected(p, p.Pos(), "one or more identifiers"),
-				Examples: []fancyerr.Example{
+				Examples: []diagnostic.Example{
 					{Example: "`bark = \"woof\"`"},
 				},
 			}
@@ -107,7 +107,7 @@ func Spec() parser.Func[*ast.StateSpec] {
 		s.EqualSign = parser.TryRuneAt(p, '=')
 		if s.EqualSign == nil {
 			if s.Type == nil {
-				p.CaptureError(&fancyerr.Error{
+				p.CaptureError(&diagnostic.Diagnostic{
 					Message: "state spec: missing type or value",
 					Primary: quickanno.Expected(p, pos, "either a type or an equal sign"),
 				})
@@ -119,12 +119,12 @@ func Spec() parser.Func[*ast.StateSpec] {
 		s.Values = parser.Try(p, list.CommaList("state value", "state values", code.Expression(code.Regular)))
 		if s.Values == nil {
 			if len(s.Names) == 1 {
-				p.CaptureError(&fancyerr.Error{
+				p.CaptureError(&diagnostic.Diagnostic{
 					Message: "state spec: missing values",
 					Primary: quickanno.Expected(p, p.Pos(), "an expression"),
 				})
 			} else {
-				p.CaptureError(&fancyerr.Error{
+				p.CaptureError(&diagnostic.Diagnostic{
 					Message: "state spec: missing values",
 					Primary: quickanno.Expected(p, p.Pos(), fmt.Sprint("one or a list of ", len(s.Names), " expressions")),
 				})
@@ -133,17 +133,17 @@ func Spec() parser.Func[*ast.StateSpec] {
 
 		if len(s.Values) > 1 && len(s.Names) != len(s.Values) {
 			if len(s.Names) == 1 {
-				p.CaptureError(&fancyerr.Error{
+				p.CaptureError(&diagnostic.Diagnostic{
 					Message: "state spec: mismatched number of values and variables",
-					Primary: []fancyerr.Annotation{
+					Primary: []diagnostic.Annotation{
 						anno.Range(p.File, s.Values[0].Start(), s.Values[len(s.Values)-1].End(),
 							fmt.Sprint("expected a single expression, but found ", len(s.Values))),
 					},
 				})
 			} else {
-				p.CaptureError(&fancyerr.Error{
+				p.CaptureError(&diagnostic.Diagnostic{
 					Message: "state spec: mismatched number of values and variables",
-					Primary: []fancyerr.Annotation{
+					Primary: []diagnostic.Annotation{
 						anno.Range(p.File, s.Values[0].Start(), s.Values[len(s.Values)-1].End(),
 							fmt.Sprint("a single or ", len(s.Names), " expressions, but found ", len(s.Values))),
 					},

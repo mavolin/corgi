@@ -1,8 +1,8 @@
 package golang
 
 import (
-	"github.com/mavolin/corgi/v2/fancyerr"
 	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/file/diagnostic"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/mavolin/corgi/v2/load/parse/internal/comment"
 	"github.com/mavolin/corgi/v2/load/parse/internal/quickanno"
@@ -15,28 +15,28 @@ import (
 // ======================================================================================
 
 func QualifiedIdent() parser.Func[*ast.QualifiedIdent] { // https://go.dev/ref/spec#QualifiedIdent
-	return func(p *parser.Parser) (*ast.QualifiedIdent, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.QualifiedIdent, *diagnostic.Diagnostic) {
 		var ident ast.QualifiedIdent
 
 		ident.Package = parser.Try(p, PackageName())
 		if ident.Package == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message:  "missing qualified identifier",
 				Primary:  quickanno.Expected(p, p.Pos(), "an identifier"),
-				Examples: []fancyerr.Example{{Example: "`woof.Bark`"}},
+				Examples: []diagnostic.Example{{Example: "`woof.Bark`"}},
 			}
 		}
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 
 		ident.Dot = parser.TryRuneAt(p, '.')
 		if ident.Dot == nil {
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "qualified identifier: missing dot and name in package",
 				Primary: quickanno.Expected(p, p.Pos(), "a dot"),
 				Explanation: "A qualified identifier consists of a package name, " +
 					"and the name of a symbol in that package separated by a dot. " +
 					"You are missing the dot and the name of the symbol.",
-				Examples: []fancyerr.Example{{Example: "`" + ident.Package.Ident + ".Woof`"}},
+				Examples: []diagnostic.Example{{Example: "`" + ident.Package.Ident + ".Woof`"}},
 			})
 			return &ident, nil
 		}
@@ -44,7 +44,7 @@ func QualifiedIdent() parser.Func[*ast.QualifiedIdent] { // https://go.dev/ref/s
 
 		ident.Name = parser.Try(p, Identifier())
 		if ident.Name == nil {
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "qualified identifier: missing name in package",
 				Primary: quickanno.Expected(p, *ident.Dot, "an identifier"),
 			})
@@ -59,10 +59,10 @@ func QualifiedIdent() parser.Func[*ast.QualifiedIdent] { // https://go.dev/ref/s
 // ======================================================================================
 
 func AddOp() parser.Func[string] {
-	return func(p *parser.Parser) (string, *fancyerr.Error) {
+	return func(p *parser.Parser) (string, *diagnostic.Diagnostic) {
 		r := parser.TryAnyRune(p, '+', '-', '|', '^')
 		if r < 0 {
-			return "", &fancyerr.Error{
+			return "", &diagnostic.Diagnostic{
 				Message: "missing add op",
 				Primary: quickanno.Expected(p, p.Pos(), "`+`, `-`, `|`, `^`"),
 			}
@@ -73,7 +73,7 @@ func AddOp() parser.Func[string] {
 }
 
 func MulOp() parser.Func[string] {
-	return func(p *parser.Parser) (string, *fancyerr.Error) {
+	return func(p *parser.Parser) (string, *diagnostic.Diagnostic) {
 		if parser.TryToken(p, "<<") {
 			return "<<", nil
 		} else if parser.TryToken(p, ">>") {
@@ -84,7 +84,7 @@ func MulOp() parser.Func[string] {
 
 		r := parser.TryAnyRune(p, '*', '/', '%', '&')
 		if r < 0 {
-			return "", &fancyerr.Error{
+			return "", &diagnostic.Diagnostic{
 				Message: "missing mul op",
 				Primary: quickanno.Expected(p, p.Pos(), "`*`, `/`, `%`, `<<`, `>>`, `&`, `&^`"),
 			}

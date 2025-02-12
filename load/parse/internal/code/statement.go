@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/mavolin/corgi/v2/fancyerr"
-	"github.com/mavolin/corgi/v2/fancyerr/anno"
 	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/file/diagnostic"
+	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/mavolin/corgi/v2/load/parse/internal/comment"
 	"github.com/mavolin/corgi/v2/load/parse/internal/golang"
@@ -16,7 +16,7 @@ import (
 )
 
 func Statement(o Options) parser.Func[*ast.Statement] {
-	return func(p *parser.Parser) (*ast.Statement, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.Statement, *diagnostic.Diagnostic) {
 		s := parser.Try(p, parsedStatement(o))
 		if s != nil && s.Parsed != nil {
 			return s, nil
@@ -25,7 +25,7 @@ func Statement(o Options) parser.Func[*ast.Statement] {
 		c := parser.Try(p, NonZCCode(o|Statements))
 		if s == nil || s.Code == nil {
 			if len(c) == 0 {
-				return nil, &fancyerr.Error{
+				return nil, &diagnostic.Diagnostic{
 					Message: "missing simple statement",
 					Primary: quickanno.Expected(p, p.Pos(), "a simple statement"),
 				}
@@ -44,12 +44,12 @@ func Statement(o Options) parser.Func[*ast.Statement] {
 }
 
 func ParsedStatement() parser.Func[*ast.Statement] {
-	return func(p *parser.Parser) (*ast.Statement, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.Statement, *diagnostic.Diagnostic) {
 		s, err := parser.TryErr(p, parsedStatement(Regular))
 		if err != nil {
 			return nil, err
 		} else if s.Parsed == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing parsed statement",
 				Primary: quickanno.Expected(p, p.Pos(), "a parsed statement"),
 			}
@@ -59,7 +59,7 @@ func ParsedStatement() parser.Func[*ast.Statement] {
 }
 
 func parsedStatement(o Options) parser.Func[*ast.Statement] {
-	return func(p *parser.Parser) (*ast.Statement, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.Statement, *diagnostic.Diagnostic) {
 		if r := parser.Try(p, Return()); r != nil {
 			return &ast.Statement{
 				Code:   ReturnAsCode(r),
@@ -105,7 +105,7 @@ func parsedStatement(o Options) parser.Func[*ast.Statement] {
 		beforeExpr := p.CloneState()
 		e := parser.Try(p, Expression(o))
 		if e == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing statement",
 				Primary: quickanno.Expected(p, p.Pos(), "a statement"),
 			}
@@ -148,7 +148,7 @@ func parsedStatement(o Options) parser.Func[*ast.Statement] {
 }
 
 func SimpleStatement(o Options) parser.Func[*ast.SimpleStatement] {
-	return func(p *parser.Parser) (*ast.SimpleStatement, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.SimpleStatement, *diagnostic.Diagnostic) {
 		ss := parser.Try(p, parsedSimpleStatement(o))
 		if ss != nil && ss.Parsed != nil {
 			return ss, nil
@@ -157,7 +157,7 @@ func SimpleStatement(o Options) parser.Func[*ast.SimpleStatement] {
 		c := parser.Try(p, NonZCCode(o|Statements))
 		if ss == nil || ss.Code == nil {
 			if len(c) == 0 {
-				return nil, &fancyerr.Error{
+				return nil, &diagnostic.Diagnostic{
 					Message: "missing simple statement",
 					Primary: quickanno.Expected(p, p.Pos(), "a simple statement"),
 				}
@@ -176,12 +176,12 @@ func SimpleStatement(o Options) parser.Func[*ast.SimpleStatement] {
 }
 
 func ParsedSimpleStatement() parser.Func[*ast.SimpleStatement] {
-	return func(p *parser.Parser) (*ast.SimpleStatement, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.SimpleStatement, *diagnostic.Diagnostic) {
 		ss, err := parser.TryErr(p, parsedSimpleStatement(Regular))
 		if err != nil {
 			return nil, err
 		} else if ss.Parsed == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing parsed simple statement",
 				Primary: quickanno.Expected(p, p.Pos(), "a parsed simple statement"),
 			}
@@ -191,12 +191,12 @@ func ParsedSimpleStatement() parser.Func[*ast.SimpleStatement] {
 }
 
 func parsedSimpleStatement(o Options) parser.Func[*ast.SimpleStatement] {
-	return func(p *parser.Parser) (*ast.SimpleStatement, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.SimpleStatement, *diagnostic.Diagnostic) {
 		beforeExpr := p.CloneState()
 
 		e := parser.Try(p, Expression(o))
 		if e == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing simple statement",
 				Primary: quickanno.Expected(p, p.Pos(), "a simple statement"),
 			}
@@ -239,12 +239,12 @@ func parsedSimpleStatement(o Options) parser.Func[*ast.SimpleStatement] {
 }
 
 func Return() parser.Func[*ast.Return] {
-	return func(p *parser.Parser) (*ast.Return, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.Return, *diagnostic.Diagnostic) {
 		var r ast.Return
 
 		r.Return = parser.TryKeywordAt(p, "return", comment.OrHorizontalWhitespace())
 		if r.Return == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing return statement",
 				Primary: quickanno.Expected(p, p.Pos(), "a return statement"),
 			}
@@ -267,12 +267,12 @@ func ReturnAsCode(r *ast.Return) ast.Code {
 }
 
 func Break() parser.Func[*ast.Break] {
-	return func(p *parser.Parser) (*ast.Break, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.Break, *diagnostic.Diagnostic) {
 		var b ast.Break
 
 		b.Break = parser.TryKeywordAt(p, "break", comment.OrHorizontalWhitespace())
 		if b.Break == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing break statement",
 				Primary: quickanno.Expected(p, p.Pos(), "a break statement"),
 			}
@@ -294,12 +294,12 @@ func BreakAsCode(b *ast.Break) ast.Code {
 }
 
 func Continue() parser.Func[*ast.Continue] {
-	return func(p *parser.Parser) (*ast.Continue, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.Continue, *diagnostic.Diagnostic) {
 		var c ast.Continue
 
 		c.Continue = parser.TryKeywordAt(p, "continue", comment.OrHorizontalWhitespace())
 		if c.Continue == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing continue statement",
 				Primary: quickanno.Expected(p, p.Pos(), "a continue statement"),
 			}
@@ -321,12 +321,12 @@ func ContinueAsCode(c *ast.Continue) ast.Code {
 }
 
 func Fallthrough() parser.Func[*ast.Fallthrough] {
-	return func(p *parser.Parser) (*ast.Fallthrough, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.Fallthrough, *diagnostic.Diagnostic) {
 		var f ast.Fallthrough
 
 		f.Fallthrough = parser.TryKeywordAt(p, "fallthrough", comment.OrHorizontalWhitespace())
 		if f.Fallthrough == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing fallthrough statement",
 				Primary: quickanno.Expected(p, p.Pos(), "a fallthrough statement"),
 			}
@@ -348,12 +348,12 @@ func FallthroughAsCode(f *ast.Fallthrough) ast.Code {
 }
 
 func Defer() parser.Func[*ast.Defer] {
-	return func(p *parser.Parser) (*ast.Defer, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.Defer, *diagnostic.Diagnostic) {
 		var d ast.Defer
 
 		d.Defer = parser.TryKeywordAt(p, "defer", comment.OrAnyWhitespace())
 		if d.Defer == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing defer statement",
 				Primary: quickanno.Expected(p, p.Pos(), "a defer statement"),
 			}
@@ -376,10 +376,10 @@ func DeferAsCode(d *ast.Defer) ast.Code {
 }
 
 func ZeroCoalescingAssignment() parser.Func[*ast.ZeroCoalescingAssignment] {
-	return func(p *parser.Parser) (*ast.ZeroCoalescingAssignment, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.ZeroCoalescingAssignment, *diagnostic.Diagnostic) {
 		valueExpr := parser.Try(p, Expression(Regular))
 		if valueExpr == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing zero coalescing assignment",
 				Primary: quickanno.Expected(p, p.Pos(), "a variable name or expression"),
 			}
@@ -392,7 +392,7 @@ func ZeroCoalescingAssignment() parser.Func[*ast.ZeroCoalescingAssignment] {
 }
 
 func zeroCoalescingAssignment(valueExpr *ast.Expression) parser.Func[*ast.ZeroCoalescingAssignment] {
-	return func(p *parser.Parser) (*ast.ZeroCoalescingAssignment, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.ZeroCoalescingAssignment, *diagnostic.Diagnostic) {
 		var zca ast.ZeroCoalescingAssignment
 		zca.ValueExpression = valueExpr
 
@@ -408,7 +408,7 @@ func zeroCoalescingAssignment(valueExpr *ast.Expression) parser.Func[*ast.ZeroCo
 
 		zca.EqualSign = parser.TryRuneAt(p, '=')
 		if zca.EqualSign == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing zero coalescing assignment",
 				Primary: quickanno.Expected(p, p.Pos(), "an equal sign"),
 			}
@@ -418,7 +418,7 @@ func zeroCoalescingAssignment(valueExpr *ast.Expression) parser.Func[*ast.ZeroCo
 
 		zca.Expression = parser.Try(p, ZeroCoalescing())
 		if zca.Expression == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing zero coalescing assignment",
 				Primary: quickanno.Expected(p, p.Pos(), "a zero coalescing expression"),
 			}
@@ -471,10 +471,10 @@ func ZeroCoalescingAssignmentAsCode(zca *ast.ZeroCoalescingAssignment) ast.Code 
 }
 
 func IncDec() parser.Func[*ast.IncDec] {
-	return func(p *parser.Parser) (*ast.IncDec, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.IncDec, *diagnostic.Diagnostic) {
 		expr := parser.Try(p, Expression(Regular))
 		if expr == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing inc/dec",
 				Primary: quickanno.Expected(p, p.Pos(), "an expression followed by `++` or `--`"),
 			}
@@ -486,7 +486,7 @@ func IncDec() parser.Func[*ast.IncDec] {
 }
 
 func incDec(expr *ast.Expression) parser.Func[*ast.IncDec] {
-	return func(p *parser.Parser) (*ast.IncDec, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.IncDec, *diagnostic.Diagnostic) {
 		var incDec ast.IncDec
 		incDec.Expression = expr
 
@@ -498,7 +498,7 @@ func incDec(expr *ast.Expression) parser.Func[*ast.IncDec] {
 		} else if parser.TryToken(p, "--") {
 			incDec.DecrPos = &pos
 		} else {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing inc/dec",
 				Primary: quickanno.Expected(p, pos, "`++` or `--`"),
 			}
@@ -524,12 +524,12 @@ func IncDecAsCode(incDec *ast.IncDec) ast.Code {
 }
 
 func ConstDeclaration() parser.Func[*ast.ConstDeclaration] {
-	return func(p *parser.Parser) (*ast.ConstDeclaration, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.ConstDeclaration, *diagnostic.Diagnostic) {
 		var d ast.ConstDeclaration
 
 		d.Const = parser.TryKeywordAt(p, "const", comment.OrAnyWhitespace())
 		if d.Const == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing const declaration",
 				Primary: quickanno.Expected(p, d.Start(), "a const declaration"),
 			}
@@ -573,7 +573,7 @@ func ConstDeclaration() parser.Func[*ast.ConstDeclaration] {
 		d.RParen = p.PosPtr()
 		if !parser.TryRune(p, ')') {
 			d.RParen = nil
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "const declaration: missing ')'",
 				Primary: quickanno.Expected(p, *d.LParen, "a closing ')' for the '(' here"),
 			})
@@ -584,15 +584,15 @@ func ConstDeclaration() parser.Func[*ast.ConstDeclaration] {
 }
 
 func ConstSpec() parser.Func[*ast.ConstSpec] {
-	return func(p *parser.Parser) (*ast.ConstSpec, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.ConstSpec, *diagnostic.Diagnostic) {
 		var s ast.ConstSpec
 
 		s.Names = parser.Try(p, list.CommaList("const name", "const names", golang.Identifier()))
 		if s.Names == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing const spec",
 				Primary: quickanno.Expected(p, p.Pos(), "one or more identifiers"),
-				Examples: []fancyerr.Example{
+				Examples: []diagnostic.Example{
 					{Example: "`bark = \"woof\"`"},
 				},
 			}
@@ -610,7 +610,7 @@ func ConstSpec() parser.Func[*ast.ConstSpec] {
 
 		s.EqualSign = parser.TryRuneAt(p, '=')
 		if s.EqualSign == nil {
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "const spec: missing equal sign",
 				Primary: quickanno.Expected(p, p.Pos(), "an equal sign"),
 			})
@@ -622,12 +622,12 @@ func ConstSpec() parser.Func[*ast.ConstSpec] {
 		s.Values = parser.Try(p, list.CommaList("const value", "const values", Expression(Regular)))
 		if s.Values == nil {
 			if len(s.Names) == 1 {
-				p.CaptureError(&fancyerr.Error{
+				p.CaptureError(&diagnostic.Diagnostic{
 					Message: "const spec: missing values",
 					Primary: quickanno.Expected(p, p.Pos(), "an expression"),
 				})
 			} else {
-				p.CaptureError(&fancyerr.Error{
+				p.CaptureError(&diagnostic.Diagnostic{
 					Message: "const spec: missing values",
 					Primary: quickanno.Expected(p, p.Pos(), fmt.Sprint("one or a list of ", len(s.Names), " expressions")),
 				})
@@ -636,17 +636,17 @@ func ConstSpec() parser.Func[*ast.ConstSpec] {
 
 		if len(s.Values) > 1 && len(s.Names) != len(s.Values) {
 			if len(s.Names) == 1 {
-				p.CaptureError(&fancyerr.Error{
+				p.CaptureError(&diagnostic.Diagnostic{
 					Message: "var spec: mismatched number of values and constants",
-					Primary: []fancyerr.Annotation{
+					Primary: []diagnostic.Annotation{
 						anno.Range(p.File, s.Values[0].Start(), s.Values[len(s.Values)-1].End(),
 							fmt.Sprint("expected a single expression, but found ", len(s.Values))),
 					},
 				})
 			} else {
-				p.CaptureError(&fancyerr.Error{
+				p.CaptureError(&diagnostic.Diagnostic{
 					Message: "var spec: mismatched number of values and constants",
-					Primary: []fancyerr.Annotation{
+					Primary: []diagnostic.Annotation{
 						anno.Range(p.File, s.Values[0].Start(), s.Values[len(s.Values)-1].End(),
 							fmt.Sprint("a single or ", len(s.Names), " expressions, but found ", len(s.Values))),
 					},
@@ -714,12 +714,12 @@ func ConstDeclarationAsCode(d *ast.ConstDeclaration) ast.Code {
 }
 
 func VarDeclaration() parser.Func[*ast.VarDeclaration] {
-	return func(p *parser.Parser) (*ast.VarDeclaration, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.VarDeclaration, *diagnostic.Diagnostic) {
 		var d ast.VarDeclaration
 
 		d.Var = parser.TryKeywordAt(p, "var", comment.OrAnyWhitespace())
 		if d.Var == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing var declaration",
 				Primary: quickanno.Expected(p, d.Start(), "a var declaration"),
 			}
@@ -763,7 +763,7 @@ func VarDeclaration() parser.Func[*ast.VarDeclaration] {
 		d.RParen = p.PosPtr()
 		if !parser.TryRune(p, ')') {
 			d.RParen = nil
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "var declaration: missing ')'",
 				Primary: quickanno.Expected(p, *d.LParen, "a closing ')' for the '(' here"),
 			})
@@ -774,15 +774,15 @@ func VarDeclaration() parser.Func[*ast.VarDeclaration] {
 }
 
 func VarSpec() parser.Func[*ast.VarSpec] {
-	return func(p *parser.Parser) (*ast.VarSpec, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.VarSpec, *diagnostic.Diagnostic) {
 		var s ast.VarSpec
 
 		s.Names = parser.Try(p, list.CommaList("var name", "var names", golang.Identifier()))
 		if s.Names == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing var spec",
 				Primary: quickanno.Expected(p, p.Pos(), "one or more identifiers"),
-				Examples: []fancyerr.Example{
+				Examples: []diagnostic.Example{
 					{Example: "`bark = \"woof\"`"},
 				},
 			}
@@ -802,7 +802,7 @@ func VarSpec() parser.Func[*ast.VarSpec] {
 		s.EqualSign = parser.TryRuneAt(p, '=')
 		if s.EqualSign == nil {
 			if s.Type == nil {
-				p.CaptureError(&fancyerr.Error{
+				p.CaptureError(&diagnostic.Diagnostic{
 					Message: "var spec: missing type or value",
 					Primary: quickanno.Expected(p, pos, "either a type or an equal sign"),
 				})
@@ -815,12 +815,12 @@ func VarSpec() parser.Func[*ast.VarSpec] {
 		s.Values = parser.Try(p, list.CommaList("var value", "var values", Expression(Regular)))
 		if s.Values == nil {
 			if len(s.Names) == 1 {
-				p.CaptureError(&fancyerr.Error{
+				p.CaptureError(&diagnostic.Diagnostic{
 					Message: "var spec: missing values",
 					Primary: quickanno.Expected(p, p.Pos(), "an expression"),
 				})
 			} else {
-				p.CaptureError(&fancyerr.Error{
+				p.CaptureError(&diagnostic.Diagnostic{
 					Message: "var spec: missing values",
 					Primary: quickanno.Expected(p, p.Pos(), fmt.Sprint("one or a list of ", len(s.Names), " expressions")),
 				})
@@ -829,17 +829,17 @@ func VarSpec() parser.Func[*ast.VarSpec] {
 
 		if len(s.Values) > 1 && len(s.Names) != len(s.Values) {
 			if len(s.Names) == 1 {
-				p.CaptureError(&fancyerr.Error{
+				p.CaptureError(&diagnostic.Diagnostic{
 					Message: "var spec: mismatched number of values and variables",
-					Primary: []fancyerr.Annotation{
+					Primary: []diagnostic.Annotation{
 						anno.Range(p.File, s.Values[0].Start(), s.Values[len(s.Values)-1].End(),
 							fmt.Sprint("expected a single expression, but found ", len(s.Values))),
 					},
 				})
 			} else {
-				p.CaptureError(&fancyerr.Error{
+				p.CaptureError(&diagnostic.Diagnostic{
 					Message: "var spec: mismatched number of values and variables",
-					Primary: []fancyerr.Annotation{
+					Primary: []diagnostic.Annotation{
 						anno.Range(p.File, s.Values[0].Start(), s.Values[len(s.Values)-1].End(),
 							fmt.Sprint("a single or ", len(s.Names), " expressions, but found ", len(s.Values))),
 					},
@@ -907,12 +907,12 @@ func VarDeclarationAsCode(d *ast.VarDeclaration) ast.Code {
 }
 
 func ShortVarDeclaration() parser.Func[*ast.ShortVarDeclaration] {
-	return func(p *parser.Parser) (*ast.ShortVarDeclaration, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.ShortVarDeclaration, *diagnostic.Diagnostic) {
 		var d ast.ShortVarDeclaration
 
 		d.Names = parser.Try(p, list.CommaList("identifier", "identifiers", golang.Identifier()))
 		if d.Names == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing short var declaration",
 				Primary: quickanno.Expected(p, p.Pos(), "one or more identifiers"),
 			}
@@ -922,7 +922,7 @@ func ShortVarDeclaration() parser.Func[*ast.ShortVarDeclaration] {
 
 		d.ColonEqualSign = parser.TryTokenAt(p, ":=")
 		if d.ColonEqualSign == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing short var declaration",
 				Primary: quickanno.Expected(p, p.Pos(), "a `:=`"),
 			}
@@ -933,12 +933,12 @@ func ShortVarDeclaration() parser.Func[*ast.ShortVarDeclaration] {
 		d.Values = parser.Try(p, list.CommaList("value", "values", Expression(Regular)))
 		if d.Values == nil {
 			if len(d.Names) == 1 {
-				p.CaptureError(&fancyerr.Error{
+				p.CaptureError(&diagnostic.Diagnostic{
 					Message: "short var declaration: missing values",
 					Primary: quickanno.Expected(p, p.Pos(), "an expression"),
 				})
 			} else {
-				p.CaptureError(&fancyerr.Error{
+				p.CaptureError(&diagnostic.Diagnostic{
 					Message: "short var declaration: missing values",
 					Primary: quickanno.Expected(p, p.Pos(), fmt.Sprint("one or a list of ", len(d.Names), " expressions")),
 				})
@@ -947,17 +947,17 @@ func ShortVarDeclaration() parser.Func[*ast.ShortVarDeclaration] {
 
 		if len(d.Values) > 1 && len(d.Names) != len(d.Values) {
 			if len(d.Names) == 1 {
-				p.CaptureError(&fancyerr.Error{
+				p.CaptureError(&diagnostic.Diagnostic{
 					Message: "short var declaration: mismatched number of values and variables",
-					Primary: []fancyerr.Annotation{
+					Primary: []diagnostic.Annotation{
 						anno.Range(p.File, d.Values[0].Start(), d.Values[len(d.Values)-1].End(),
 							fmt.Sprint("expected a single expression, but found ", len(d.Values))),
 					},
 				})
 			} else {
-				p.CaptureError(&fancyerr.Error{
+				p.CaptureError(&diagnostic.Diagnostic{
 					Message: "short var declaration: mismatched number of values and variables",
-					Primary: []fancyerr.Annotation{
+					Primary: []diagnostic.Annotation{
 						anno.Range(p.File, d.Values[0].Start(), d.Values[len(d.Values)-1].End(),
 							fmt.Sprint("a single or ", len(d.Names), " expressions, but found ", len(d.Values))),
 					},
@@ -1007,12 +1007,12 @@ func ShortVarDeclarationAsCode(d *ast.ShortVarDeclaration) ast.Code {
 }
 
 func Label() parser.Func[*ast.Label] {
-	return func(p *parser.Parser) (*ast.Label, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.Label, *diagnostic.Diagnostic) {
 		var l ast.Label
 
 		l.Name = parser.Try(p, golang.Identifier())
 		if l.Name == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing label",
 				Primary: quickanno.Expected(p, p.Pos(), "an identifier followed by a colon"),
 			}
@@ -1022,7 +1022,7 @@ func Label() parser.Func[*ast.Label] {
 
 		l.Colon = parser.TryRuneAt(p, ':')
 		if l.Colon == nil || parser.MatchesAnyRune(p, '=') {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing label",
 				Primary: quickanno.Expected(p, p.Pos(), "a colon and the end of the statement"),
 			}
@@ -1047,7 +1047,7 @@ func Assignment() parser.Func[*ast.Assignment] {
 }
 
 func assignment(e *ast.Expression) parser.Func[*ast.Assignment] {
-	return func(p *parser.Parser) (*ast.Assignment, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.Assignment, *diagnostic.Diagnostic) {
 		var a ast.Assignment
 		if e != nil {
 			parser.TrySkip(p, comment.OrHorizontalWhitespace())
@@ -1062,7 +1062,7 @@ func assignment(e *ast.Expression) parser.Func[*ast.Assignment] {
 		} else {
 			a.LHS = parser.Try(p, list.CommaList("expression", "expressions", Expression(Regular)))
 			if a.LHS == nil {
-				return nil, &fancyerr.Error{
+				return nil, &diagnostic.Diagnostic{
 					Message: "missing assignment",
 					Primary: quickanno.Expected(p, p.Pos(), "one or more expressions being assigned to"),
 				}
@@ -1074,7 +1074,7 @@ func assignment(e *ast.Expression) parser.Func[*ast.Assignment] {
 		a.OperatorPosition = p.PosPtr()
 		a.SpecialOperator = parser.Try(p, golang.AssignOp())
 		if a.SpecialOperator == "" {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing assignment",
 				Primary: quickanno.Expected(p, p.Pos(), "an assignment operator, e.g. `=` or `+=`"),
 			}
@@ -1087,17 +1087,17 @@ func assignment(e *ast.Expression) parser.Func[*ast.Assignment] {
 		if len(a.RHS) > 0 {
 			if len(a.RHS) > 1 && len(a.LHS) != len(a.RHS) {
 				if len(a.LHS) == 1 {
-					p.CaptureError(&fancyerr.Error{
+					p.CaptureError(&diagnostic.Diagnostic{
 						Message: "assigment: mismatched number of values and assignees",
-						Primary: []fancyerr.Annotation{
+						Primary: []diagnostic.Annotation{
 							anno.Range(p.File, a.RHS[0].Start(), a.RHS[len(a.RHS)-1].End(),
 								fmt.Sprint("expected a single expression, but found ", len(a.RHS))),
 						},
 					})
 				} else {
-					p.CaptureError(&fancyerr.Error{
+					p.CaptureError(&diagnostic.Diagnostic{
 						Message: "assigment: mismatched number of values and assignees",
-						Primary: []fancyerr.Annotation{
+						Primary: []diagnostic.Annotation{
 							anno.Range(p.File, a.RHS[0].Start(), a.RHS[len(a.RHS)-1].End(),
 								fmt.Sprint("a single or ", len(a.LHS), " expressions, but found ", len(a.RHS))),
 						},

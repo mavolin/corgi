@@ -3,8 +3,8 @@ package attribute
 import (
 	"fmt"
 
-	"github.com/mavolin/corgi/v2/fancyerr"
 	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/file/diagnostic"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/mavolin/corgi/v2/load/parse/internal/comment"
 	"github.com/mavolin/corgi/v2/load/parse/internal/golang"
@@ -14,7 +14,7 @@ import (
 )
 
 func Attribute() parser.Func[ast.Attribute] {
-	return func(p *parser.Parser) (ast.Attribute, *fancyerr.Error) {
+	return func(p *parser.Parser) (ast.Attribute, *diagnostic.Diagnostic) {
 		if a := parser.Try(p, AndPlaceholder()); a != nil {
 			return a, nil
 		} else if a := parser.Try(p, IDShorthand()); a != nil {
@@ -25,10 +25,10 @@ func Attribute() parser.Func[ast.Attribute] {
 			return a, nil
 		}
 
-		return nil, &fancyerr.Error{
+		return nil, &diagnostic.Diagnostic{
 			Message: "missing attribute",
 			Primary: quickanno.Expected(p, p.Pos(), "an attribute"),
-			Examples: []fancyerr.Example{
+			Examples: []diagnostic.Example{
 				{Title: "value attribute", Example: "`class=\"woof\"`"},
 				{Title: "boolean attribute", Example: "`async`"},
 				{Title: "class shorthand", Example: "`.bark`"},
@@ -38,12 +38,12 @@ func Attribute() parser.Func[ast.Attribute] {
 }
 
 func AndPlaceholder() parser.Func[*ast.AndPlaceholder] {
-	return func(p *parser.Parser) (*ast.AndPlaceholder, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.AndPlaceholder, *diagnostic.Diagnostic) {
 		var ap ast.AndPlaceholder
 
 		ap.And = parser.TryRuneAt(p, '&')
 		if ap.And == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing `&`",
 				Primary: quickanno.Expected(p, p.Pos(), "an and placeholder (`&`)"),
 			}
@@ -54,16 +54,16 @@ func AndPlaceholder() parser.Func[*ast.AndPlaceholder] {
 }
 
 func NamedAttribute() parser.Func[*ast.NamedAttribute] {
-	return func(p *parser.Parser) (*ast.NamedAttribute, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.NamedAttribute, *diagnostic.Diagnostic) {
 		var attr ast.NamedAttribute
 
 		attr.Name = parser.TryOptional(p, Reference(), comment.OrHorizontalWhitespace())
 		if attr.Name == nil {
 			// let this slide, as long as there is an equal sign following
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message:  "missing attribute name",
 				Primary:  quickanno.Expected(p, p.Pos(), "an attribute name before the `=`"),
-				Examples: []fancyerr.Example{{Example: "`class=\"woof\"`"}},
+				Examples: []diagnostic.Example{{Example: "`class=\"woof\"`"}},
 			})
 		}
 		err := unexpected.UntilAnyRune(p, comment.OrHorizontalWhitespace(), '=', ',', ')')
@@ -77,7 +77,7 @@ func NamedAttribute() parser.Func[*ast.NamedAttribute] {
 					if r == '(' || r == ')' {
 						break
 					} else if r == ':' && i > 0 { // this could be a comp arg
-						err.Hints = append(err.Hints, fancyerr.Hint{
+						err.Hints = append(err.Hints, diagnostic.Hint{
 							Hint:    "If this is supposed to be a component argument, add a space after the colon.",
 							Example: "`" + attr.Name.Name.Name[:i] + ": ...`",
 						})
@@ -93,10 +93,10 @@ func NamedAttribute() parser.Func[*ast.NamedAttribute] {
 		attr.EqualSign = parser.TryOptionalRuneAt(p, '=', comment.OrAnyWhitespace())
 		if attr.EqualSign == nil {
 			if attr.Name == nil { // we have neither a name nor a =, this is not an attr
-				return nil, &fancyerr.Error{
+				return nil, &diagnostic.Diagnostic{
 					Message: "missing named attribute",
 					Primary: quickanno.Expected(p, attr.Start(), "an attribute"),
-					Examples: []fancyerr.Example{
+					Examples: []diagnostic.Example{
 						{Title: "value attribute", Example: "`class=\"woof\"`"},
 						{Title: "boolean attribute", Example: "`async`"},
 					},
@@ -112,7 +112,7 @@ func NamedAttribute() parser.Func[*ast.NamedAttribute] {
 }
 
 func Reference() parser.Func[*ast.AttributeReference] {
-	return func(p *parser.Parser) (*ast.AttributeReference, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.AttributeReference, *diagnostic.Diagnostic) {
 		var ref ast.AttributeReference
 
 		state := p.CloneState()
@@ -124,14 +124,14 @@ func Reference() parser.Func[*ast.AttributeReference] {
 			p.RestoreState(state)
 		} else {
 			if ref.Package == nil {
-				p.CaptureError(&fancyerr.Error{
+				p.CaptureError(&diagnostic.Diagnostic{
 					Message: "attribute reference: missing package name",
 					Primary: quickanno.Expected(p, p.Pos(), "a package name before the `.`"),
 				})
 			}
 		}
 
-		var err *fancyerr.Error
+		var err *diagnostic.Diagnostic
 		ref.Name, err = parser.TryErr(p, Name())
 		if err != nil {
 			return nil, err
@@ -141,7 +141,7 @@ func Reference() parser.Func[*ast.AttributeReference] {
 }
 
 func Name() parser.Func[*ast.AttributeName] {
-	return func(p *parser.Parser) (*ast.AttributeName, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.AttributeName, *diagnostic.Diagnostic) {
 		var name ast.AttributeName
 		name.Position = p.PosPtr()
 
@@ -163,12 +163,12 @@ func Name() parser.Func[*ast.AttributeName] {
 		})
 
 		if name.Name == "" {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing attribute name",
 				Primary: quickanno.Expected(p, name.Start(), "an attribute name"),
 			}
 		} else if parenCount > 0 {
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "unbalanced parentheses",
 				Primary: quickanno.Expected(p, name.Start(), fmt.Sprintf("%d closing parenthesis", parenCount)),
 				Explanation: fmt.Sprint("Attributes may contain parentheses, but they must be balanced to "+

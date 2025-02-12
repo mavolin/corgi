@@ -1,9 +1,9 @@
 package unexpected
 
 import (
-	"github.com/mavolin/corgi/v2/fancyerr"
-	"github.com/mavolin/corgi/v2/fancyerr/anno"
 	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/file/diagnostic"
+	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/mavolin/corgi/v2/load/parse/internal/whitespace"
 )
@@ -22,7 +22,7 @@ import (
 //
 // It is assumed that wsFunc captures all consecutive whitespace and that upon
 // returning, the next rune is a non-whitespace rune.
-func UntilAnyRune(p *parser.Parser, wsFunc parser.WhitespaceFunc, runes ...rune) *fancyerr.Error {
+func UntilAnyRune(p *parser.Parser, wsFunc parser.WhitespaceFunc, runes ...rune) *diagnostic.Diagnostic {
 	var start, end ast.Position
 
 	if wsFunc == nil {
@@ -57,9 +57,9 @@ func UntilAnyRune(p *parser.Parser, wsFunc parser.WhitespaceFunc, runes ...rune)
 		}
 	}
 
-	return &fancyerr.Error{
+	return &diagnostic.Diagnostic{
 		Message: "unexpected runes",
-		Primary: []fancyerr.Annotation{
+		Primary: []diagnostic.Annotation{
 			anno.Range(p.File, start, end, "remove this"),
 		},
 	}

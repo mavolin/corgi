@@ -1,8 +1,8 @@
 package parser
 
 import (
-	"github.com/mavolin/corgi/v2/fancyerr"
 	"github.com/mavolin/corgi/v2/file/ast"
+	diagnostic2 "github.com/mavolin/corgi/v2/file/diagnostic"
 )
 
 type (
@@ -10,7 +10,7 @@ type (
 		line, col int
 		index     int
 
-		errs     fancyerr.List
+		errs     diagnostic2.List
 		comments []*ast.CommentGroup
 
 		ws *State
@@ -25,7 +25,7 @@ func newState() *State {
 		line:     1,
 		col:      1,
 		index:    0,
-		errs:     make(fancyerr.List, 0, 48),
+		errs:     make(diagnostic2.List, 0, 48),
 		comments: make([]*ast.CommentGroup, 0, 128),
 	}
 }
@@ -48,7 +48,7 @@ func (s *State) advance(size int, isNL bool) {
 	s.index += size
 }
 
-func (s *State) Errors() fancyerr.List {
+func (s *State) Errors() diagnostic2.List {
 	return s.errs
 }
 
@@ -56,7 +56,7 @@ func (s *State) Comments() []*ast.CommentGroup {
 	return s.comments
 }
 
-func (s *State) CaptureError(err *fancyerr.Error) {
+func (s *State) CaptureError(err *diagnostic2.Diagnostic) {
 	s.errs = append(s.errs, err)
 }
 

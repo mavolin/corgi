@@ -4,8 +4,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/mavolin/corgi/v2/fancyerr"
 	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/file/diagnostic"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/mavolin/corgi/v2/load/parse/internal/interpolation"
 	"github.com/mavolin/corgi/v2/load/parse/internal/quickanno"
@@ -13,13 +13,13 @@ import (
 )
 
 func ArrowBlock() parser.Func[*ast.ArrowBlock] {
-	return func(p *parser.Parser) (*ast.ArrowBlock, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.ArrowBlock, *diagnostic.Diagnostic) {
 		var b ast.ArrowBlock
 		refCol := p.Col()
 
 		b.Arrow = parser.TryRuneAt(p, '>')
 		if b.Arrow == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing arrow block",
 				Primary: quickanno.Expected(p, p.Pos(), "an arrow block"),
 			}
@@ -52,10 +52,10 @@ func ArrowBlock() parser.Func[*ast.ArrowBlock] {
 
 // Line parses a text line until the terminator rune or the EOL.
 func Line(term rune) parser.Func[ast.TextLine] {
-	return func(p *parser.Parser) (ast.TextLine, *fancyerr.Error) {
+	return func(p *parser.Parser) (ast.TextLine, *diagnostic.Diagnostic) {
 		l := parser.Collect(p, Node(term), 8, nil)
 		if len(l) == 0 {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing text line",
 				Primary: quickanno.Expected(p, p.Pos(), "text"),
 			}
@@ -65,7 +65,7 @@ func Line(term rune) parser.Func[ast.TextLine] {
 }
 
 func Node(term rune) parser.Func[ast.TextNode] {
-	return func(p *parser.Parser) (ast.TextNode, *fancyerr.Error) {
+	return func(p *parser.Parser) (ast.TextNode, *diagnostic.Diagnostic) {
 		if t := parser.Try(p, Text(term)); t != nil {
 			return t, nil
 		} else if interp := parser.Try(p, interpolation.TextInterpolation()); interp != nil {
@@ -74,7 +74,7 @@ func Node(term rune) parser.Func[ast.TextNode] {
 			return bi, nil
 		}
 
-		return nil, &fancyerr.Error{
+		return nil, &diagnostic.Diagnostic{
 			Message: "missing text node",
 			Primary: quickanno.Expected(p, p.Pos(), "text or interpolation"),
 		}
@@ -82,7 +82,7 @@ func Node(term rune) parser.Func[ast.TextNode] {
 }
 
 func Text(term rune) parser.Func[*ast.Text] {
-	return func(p *parser.Parser) (*ast.Text, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.Text, *diagnostic.Diagnostic) {
 		var t ast.Text
 		t.Position = p.PosPtr()
 
@@ -92,7 +92,7 @@ func Text(term rune) parser.Func[*ast.Text] {
 		})
 		t.Text = strings.TrimRight(t.Text, " \t")
 		if t.Text == "" {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing text",
 				Primary: quickanno.Expected(p, p.Pos(), "text"),
 			}

@@ -1,8 +1,8 @@
 package component
 
 import (
-	"github.com/mavolin/corgi/v2/fancyerr"
 	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/file/diagnostic"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/mavolin/corgi/v2/load/parse/internal/argument"
 	"github.com/mavolin/corgi/v2/load/parse/internal/body"
@@ -12,12 +12,12 @@ import (
 )
 
 func Call() parser.Func[*ast.ComponentCall] {
-	return func(p *parser.Parser) (*ast.ComponentCall, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.ComponentCall, *diagnostic.Diagnostic) {
 		var c ast.ComponentCall
 
 		c.Colon = parser.TryRuneAt(p, ':')
 		if c.Colon == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing component call",
 				Primary: quickanno.Expected(p, p.Pos(), "a colon"),
 			}
@@ -29,7 +29,7 @@ func Call() parser.Func[*ast.ComponentCall] {
 
 		c.Header = parser.Try(p, CallHeader())
 		if c.Header == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing component call",
 				Primary: quickanno.Expected(p, p.Pos(), "a component call header"),
 			}
@@ -43,7 +43,7 @@ func Call() parser.Func[*ast.ComponentCall] {
 }
 
 func CallHeader() parser.Func[*ast.ComponentCallHeader] {
-	return func(p *parser.Parser) (*ast.ComponentCallHeader, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.ComponentCallHeader, *diagnostic.Diagnostic) {
 		var h ast.ComponentCallHeader
 
 		h.Name = parser.Try(p, golang.FullIdent())
@@ -58,7 +58,7 @@ func CallHeader() parser.Func[*ast.ComponentCallHeader] {
 
 		h.Arguments = parser.Try(p, argument.Arguments())
 		if h.Name == nil && h.Arguments == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing component call header",
 				Primary: quickanno.Expected(p, p.Pos(), "a name of a component"),
 			}
@@ -69,12 +69,12 @@ func CallHeader() parser.Func[*ast.ComponentCallHeader] {
 }
 
 func With() parser.Func[*ast.With] {
-	return func(p *parser.Parser) (*ast.With, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.With, *diagnostic.Diagnostic) {
 		var w ast.With
 
 		w.With = parser.TryKeywordAt(p, "with", comment.OrAnyWhitespace())
 		if w.With == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing with",
 				Primary: quickanno.Expected(p, *w.With, "a `with` here"),
 			}
@@ -82,7 +82,7 @@ func With() parser.Func[*ast.With] {
 
 		w.Name = parser.Try(p, golang.Identifier())
 		if w.Name == nil {
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "with: missing block name",
 				Primary: quickanno.Expected(p, *w.With, "a name of a block"),
 			})

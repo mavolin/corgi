@@ -2,14 +2,14 @@
 package quickanno
 
 import (
-	"github.com/mavolin/corgi/v2/fancyerr"
-	"github.com/mavolin/corgi/v2/fancyerr/anno"
 	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/file/diagnostic"
+	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 )
 
-func Expected(p *parser.Parser, pos ast.Position, expected string) []fancyerr.Annotation {
-	return []fancyerr.Annotation{anno.Position(p.File, pos, "expected "+expected)}
+func Expected(p *parser.Parser, pos ast.Position, expected string) []diagnostic.Annotation {
+	return []diagnostic.Annotation{anno.Position(p.File, pos, "expected "+expected)}
 }
 
 func DeltaPos(p ast.Position, dLine, dCol int) ast.Position {

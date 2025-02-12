@@ -3,8 +3,8 @@ package golang
 import (
 	"fmt"
 
-	"github.com/mavolin/corgi/v2/fancyerr"
 	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/file/diagnostic"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/mavolin/corgi/v2/load/parse/internal/quickanno"
 	"github.com/mavolin/corgi/v2/load/parse/internal/unexpected"
@@ -18,9 +18,9 @@ import (
 // ======================================================================================
 
 func RuneLit() parser.Func[string] {
-	return func(p *parser.Parser) (string, *fancyerr.Error) {
+	return func(p *parser.Parser) (string, *diagnostic.Diagnostic) {
 		if !parser.TryRune(p, '\'') {
-			return "", &fancyerr.Error{
+			return "", &diagnostic.Diagnostic{
 				Message: "missing rune literal",
 				Primary: quickanno.Expected(p, p.Pos(), "a rune literal"),
 			}
@@ -28,7 +28,7 @@ func RuneLit() parser.Func[string] {
 
 		v := parser.TryInOrder(p, ByteValue(), UnicodeValue('\''))
 		if v == "" {
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "rune literal: missing rune",
 				Primary: quickanno.Expected(p, p.Pos(), "a rune"),
 			})
@@ -43,7 +43,7 @@ func RuneLit() parser.Func[string] {
 
 		if !parser.TryRune(p, '\'') {
 			p.RestoreState(state)
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "rune literal: missing closing quote",
 				Primary: quickanno.Expected(p, p.Pos(), "a closing quote for the opening quote here"),
 			})
@@ -54,7 +54,7 @@ func RuneLit() parser.Func[string] {
 }
 
 func UnicodeValue(term rune) parser.Func[string] {
-	return func(p *parser.Parser) (string, *fancyerr.Error) {
+	return func(p *parser.Parser) (string, *diagnostic.Diagnostic) {
 		if parser.MatchesAnyRune(p, '\\') {
 			s := parser.TryInOrder(p, LittleUValue(), BigUValue(), EscapedChar(term))
 			if s != "" {
@@ -67,7 +67,7 @@ func UnicodeValue(term rune) parser.Func[string] {
 			}
 		}
 
-		return "", &fancyerr.Error{
+		return "", &diagnostic.Diagnostic{
 			Message: "missing unicode value",
 			Primary: quickanno.Expected(p, p.Pos(), "a unicode value"),
 		}
@@ -75,13 +75,13 @@ func UnicodeValue(term rune) parser.Func[string] {
 }
 
 func ByteValue() parser.Func[string] {
-	return func(p *parser.Parser) (string, *fancyerr.Error) {
+	return func(p *parser.Parser) (string, *diagnostic.Diagnostic) {
 		s := parser.TryInOrder(p, OctalByteValue(), HexByteValue())
 		if s == "" {
-			return "", &fancyerr.Error{
+			return "", &diagnostic.Diagnostic{
 				Message:  "missing byte value",
 				Primary:  quickanno.Expected(p, p.Pos(), "a byte value"),
-				Examples: []fancyerr.Example{{Example: "`\\x12` or `\\123`"}},
+				Examples: []diagnostic.Example{{Example: "`\\x12` or `\\123`"}},
 			}
 		}
 		return s, nil
@@ -89,9 +89,9 @@ func ByteValue() parser.Func[string] {
 }
 
 func OctalByteValue() parser.Func[string] {
-	return func(p *parser.Parser) (string, *fancyerr.Error) {
+	return func(p *parser.Parser) (string, *diagnostic.Diagnostic) {
 		if !parser.TryRune(p, '\\') {
-			return "", &fancyerr.Error{
+			return "", &diagnostic.Diagnostic{
 				Message: "missing octal byte value",
 				Primary: quickanno.Expected(p, p.Pos(), "an octal byte value"),
 			}
@@ -104,10 +104,10 @@ func OctalByteValue() parser.Func[string] {
 			return i <= 3 && parser.MatchesRunePredicate(p, Octal_Digit)
 		})
 		if len(s) < 4 {
-			return "", &fancyerr.Error{
+			return "", &diagnostic.Diagnostic{
 				Message:  "octal byte value: missing digits",
 				Primary:  quickanno.Expected(p, octalStart, fmt.Sprint("3 octal digits, found ", len(s)-1)),
-				Examples: []fancyerr.Example{{Example: `\123`}},
+				Examples: []diagnostic.Example{{Example: `\123`}},
 			}
 		}
 		return s, nil
@@ -115,9 +115,9 @@ func OctalByteValue() parser.Func[string] {
 }
 
 func HexByteValue() parser.Func[string] {
-	return func(p *parser.Parser) (string, *fancyerr.Error) {
+	return func(p *parser.Parser) (string, *diagnostic.Diagnostic) {
 		if !parser.TryToken(p, `\x`) {
-			return "", &fancyerr.Error{
+			return "", &diagnostic.Diagnostic{
 				Message: "missing hex byte value",
 				Primary: quickanno.Expected(p, p.Pos(), "a hex byte value"),
 			}
@@ -130,10 +130,10 @@ func HexByteValue() parser.Func[string] {
 			return i <= 2 && parser.MatchesRunePredicate(p, Hex_Digit)
 		})
 		if len(s) < 4 {
-			return "", &fancyerr.Error{
+			return "", &diagnostic.Diagnostic{
 				Message:  "hex byte value: missing digits",
 				Primary:  quickanno.Expected(p, hexStart, fmt.Sprint("2 hexadecimal digits, found ", len(s)-2)),
-				Examples: []fancyerr.Example{{Example: `\x12`}},
+				Examples: []diagnostic.Example{{Example: `\x12`}},
 			}
 		}
 
@@ -142,12 +142,12 @@ func HexByteValue() parser.Func[string] {
 }
 
 func UnicodeChar(except rune) parser.Func[rune] {
-	return func(p *parser.Parser) (rune, *fancyerr.Error) {
+	return func(p *parser.Parser) (rune, *diagnostic.Diagnostic) {
 		r := parser.TryRunePredicate(p, func(r rune) bool {
 			return r != except && Unicode_Char(r)
 		})
 		if r < 0 {
-			return 0, &fancyerr.Error{
+			return 0, &diagnostic.Diagnostic{
 				Message: "missing unicode character, except newline",
 				Primary: quickanno.Expected(p, p.Pos(), "a unicode character except a newline"),
 			}
@@ -157,9 +157,9 @@ func UnicodeChar(except rune) parser.Func[rune] {
 }
 
 func LittleUValue() parser.Func[string] {
-	return func(p *parser.Parser) (string, *fancyerr.Error) {
+	return func(p *parser.Parser) (string, *diagnostic.Diagnostic) {
 		if !parser.TryToken(p, `\u`) {
-			return "", &fancyerr.Error{
+			return "", &diagnostic.Diagnostic{
 				Message: "missing little u value",
 				Primary: quickanno.Expected(p, p.Pos(), "a little u value"),
 			}
@@ -172,10 +172,10 @@ func LittleUValue() parser.Func[string] {
 			return i <= 4 && parser.MatchesRunePredicate(p, Hex_Digit)
 		})
 		if len(s) < 6 {
-			return "", &fancyerr.Error{
+			return "", &diagnostic.Diagnostic{
 				Message:  "little u value: missing digits",
 				Primary:  quickanno.Expected(p, hexStart, fmt.Sprint("4 hexadecimal digits, found ", len(s)-2)),
-				Examples: []fancyerr.Example{{Example: `\u1234`}},
+				Examples: []diagnostic.Example{{Example: `\u1234`}},
 			}
 		}
 		return s, nil
@@ -183,9 +183,9 @@ func LittleUValue() parser.Func[string] {
 }
 
 func BigUValue() parser.Func[string] {
-	return func(p *parser.Parser) (string, *fancyerr.Error) {
+	return func(p *parser.Parser) (string, *diagnostic.Diagnostic) {
 		if !parser.TryToken(p, `\U`) {
-			return "", &fancyerr.Error{
+			return "", &diagnostic.Diagnostic{
 				Message: "missing big u value",
 				Primary: quickanno.Expected(p, p.Pos(), "a big u value"),
 			}
@@ -198,10 +198,10 @@ func BigUValue() parser.Func[string] {
 			return i <= 8 && parser.MatchesRunePredicate(p, Hex_Digit)
 		})
 		if len(s) < 10 {
-			return "", &fancyerr.Error{
+			return "", &diagnostic.Diagnostic{
 				Message:  "big u value: missing digits",
 				Primary:  quickanno.Expected(p, hexStart, fmt.Sprint("8 hexadecimal digits, found ", len(s)-2)),
-				Examples: []fancyerr.Example{{Example: `\U12345678`}},
+				Examples: []diagnostic.Example{{Example: `\U12345678`}},
 			}
 		}
 		return s, nil
@@ -209,18 +209,18 @@ func BigUValue() parser.Func[string] {
 }
 
 func EscapedChar(term rune) parser.Func[string] {
-	return func(p *parser.Parser) (string, *fancyerr.Error) {
+	return func(p *parser.Parser) (string, *diagnostic.Diagnostic) {
 		if !parser.TryRune(p, '\\') {
-			return "", &fancyerr.Error{
+			return "", &diagnostic.Diagnostic{
 				Message:  "missing escaped character",
 				Primary:  quickanno.Expected(p, p.Pos(), "an escaped character"),
-				Examples: []fancyerr.Example{{Example: "`\\n` or `\\t`"}},
+				Examples: []diagnostic.Example{{Example: "`\\n` or `\\t`"}},
 			}
 		}
 
 		r := parser.TryAnyRune(p, 'a', 'b', 'f', 'n', 'r', 't', 'v', '\\', term)
 		if r < 0 {
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "invalid escaped character",
 				Primary: quickanno.Expected(p, p.Pos(), "a valid escaped character"),
 			})
@@ -236,13 +236,13 @@ func EscapedChar(term rune) parser.Func[string] {
 // ======================================================================================
 
 func StringLit() parser.Func[*ast.StaticString] {
-	return func(p *parser.Parser) (*ast.StaticString, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.StaticString, *diagnostic.Diagnostic) {
 		s := parser.TryInOrder(p, RawStringLit(), InterpretedStringLit())
 		if s == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message:  "missing string literal",
 				Primary:  quickanno.Expected(p, p.Pos(), "a string literal"),
-				Examples: []fancyerr.Example{{Example: "`\"woof\"`"}},
+				Examples: []diagnostic.Example{{Example: "`\"woof\"`"}},
 			}
 		}
 		return s, nil
@@ -250,13 +250,13 @@ func StringLit() parser.Func[*ast.StaticString] {
 }
 
 func RawStringLit() parser.Func[*ast.StaticString] {
-	return func(p *parser.Parser) (*ast.StaticString, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.StaticString, *diagnostic.Diagnostic) {
 		var s ast.StaticString
 		s.Quote = '`'
 
 		s.Open = parser.TryRuneAt(p, '`')
 		if s.Open == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing raw string literal",
 				Primary: quickanno.Expected(p, p.Pos(), "a raw string literal"),
 			}
@@ -268,7 +268,7 @@ func RawStringLit() parser.Func[*ast.StaticString] {
 
 		s.Close = parser.TryRuneAt(p, '`')
 		if s.Close == nil {
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "raw string literal: missing closing backtick",
 				Primary: quickanno.Expected(p, *s.Open, "a closing backtick for the opening backtick here"),
 			})
@@ -278,16 +278,16 @@ func RawStringLit() parser.Func[*ast.StaticString] {
 }
 
 func InterpretedStringLit() parser.Func[*ast.StaticString] {
-	return func(p *parser.Parser) (*ast.StaticString, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.StaticString, *diagnostic.Diagnostic) {
 		var s ast.StaticString
 		s.Quote = '"'
 
 		s.Open = parser.TryRuneAt(p, '"')
 		if s.Open == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message:  "missing interpreted string literal",
 				Primary:  quickanno.Expected(p, p.Pos(), "an interpreted string literal"),
-				Examples: []fancyerr.Example{{Example: "`\"woof\"`"}},
+				Examples: []diagnostic.Example{{Example: "`\"woof\"`"}},
 			}
 		}
 
@@ -299,7 +299,7 @@ func InterpretedStringLit() parser.Func[*ast.StaticString] {
 		s.Close = parser.TryRuneAt(p, '"')
 		if s.Close == nil {
 			s.Close = nil
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "interpreted string literal: missing closing quote",
 				Primary: quickanno.Expected(p, *s.Open, "a closing quote for the opening quote here"),
 			})

@@ -3,9 +3,9 @@ package code
 import (
 	"slices"
 
-	"github.com/mavolin/corgi/v2/fancyerr"
-	"github.com/mavolin/corgi/v2/fancyerr/anno"
 	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/file/diagnostic"
+	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/mavolin/corgi/v2/load/parse/internal/body"
 	"github.com/mavolin/corgi/v2/load/parse/internal/comment"
@@ -14,10 +14,10 @@ import (
 )
 
 func Conditional() parser.Func[*ast.Conditional] {
-	return func(p *parser.Parser) (*ast.Conditional, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.Conditional, *diagnostic.Diagnostic) {
 		var c ast.Conditional
 
-		var err *fancyerr.Error
+		var err *diagnostic.Diagnostic
 		c.If, err = parser.TryErr(p, If())
 		if err != nil {
 			return nil, err
@@ -32,12 +32,12 @@ func Conditional() parser.Func[*ast.Conditional] {
 }
 
 func If() parser.Func[*ast.If] {
-	return func(p *parser.Parser) (*ast.If, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.If, *diagnostic.Diagnostic) {
 		var i ast.If
 
 		i.If = parser.TryKeywordAt(p, "if", comment.OrAnyWhitespace())
 		if i.If == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing if",
 				Primary: quickanno.Expected(p, p.Pos(), "the `if` keyword"),
 			}
@@ -47,7 +47,7 @@ func If() parser.Func[*ast.If] {
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 		i.Then = parser.Try(p, body.Body())
 		if i.Then == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "if: missing body",
 				Primary: quickanno.Expected(p, p.Pos(), "a body"),
 			}
@@ -58,13 +58,13 @@ func If() parser.Func[*ast.If] {
 }
 
 func ElseIf() parser.Func[*ast.ElseIf] {
-	return func(p *parser.Parser) (*ast.ElseIf, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.ElseIf, *diagnostic.Diagnostic) {
 		var ei ast.ElseIf
 
 		ei.Else = parser.TryKeywordAt(p, "else", comment.OrAnyWhitespace())
 		ei.If = parser.TryKeywordAt(p, "if", comment.OrAnyWhitespace())
 		if ei.Else == nil || ei.If == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing else if",
 				Primary: quickanno.Expected(p, p.Pos(), "the `else if` keywords"),
 			}
@@ -74,7 +74,7 @@ func ElseIf() parser.Func[*ast.ElseIf] {
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 		ei.Then = parser.Try(p, body.Body())
 		if ei.Then == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "else if: missing body",
 				Primary: quickanno.Expected(p, p.Pos(), "a body"),
 			}
@@ -85,12 +85,12 @@ func ElseIf() parser.Func[*ast.ElseIf] {
 }
 
 func Else() parser.Func[*ast.Else] {
-	return func(p *parser.Parser) (*ast.Else, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.Else, *diagnostic.Diagnostic) {
 		var e ast.Else
 
 		e.Else = parser.TryKeywordAt(p, "else", comment.OrAnyWhitespace())
 		if e.Else == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing else",
 				Primary: quickanno.Expected(p, p.Pos(), "the `else` keyword"),
 			}
@@ -98,7 +98,7 @@ func Else() parser.Func[*ast.Else] {
 
 		e.Then = parser.Try(p, body.Body())
 		if e.Then == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "else: missing body",
 				Primary: quickanno.Expected(p, p.Pos(), "a body"),
 			}
@@ -108,7 +108,7 @@ func Else() parser.Func[*ast.Else] {
 }
 
 func IfHeader() parser.Func[*ast.IfHeader] {
-	return func(p *parser.Parser) (*ast.IfHeader, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.IfHeader, *diagnostic.Diagnostic) {
 		var h ast.IfHeader
 
 		state := p.CloneState()
@@ -128,7 +128,7 @@ func IfHeader() parser.Func[*ast.IfHeader] {
 		}
 
 		if h.Condition == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing if header",
 				Primary: quickanno.Expected(p, p.Pos(), "an expression"),
 			}
@@ -139,12 +139,12 @@ func IfHeader() parser.Func[*ast.IfHeader] {
 }
 
 func Switch() parser.Func[*ast.Switch] {
-	return func(p *parser.Parser) (*ast.Switch, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.Switch, *diagnostic.Diagnostic) {
 		var s ast.Switch
 
 		s.Switch = parser.TryKeywordAt(p, "switch", comment.OrAnyWhitespace())
 		if s.Switch == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing switch",
 				Primary: quickanno.Expected(p, p.Pos(), "the `switch` keyword"),
 			}
@@ -154,7 +154,7 @@ func Switch() parser.Func[*ast.Switch] {
 
 		s.LBrace = parser.TryRuneAt(p, '{')
 		if s.LBrace == nil {
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "switch: missing body",
 				Primary: quickanno.Expected(p, p.Pos(), "an opening brace"),
 			})
@@ -163,7 +163,7 @@ func Switch() parser.Func[*ast.Switch] {
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 		s.Cases = parser.Collect(p, SwitchCase(), 24, comment.OrAnyWhitespace())
 
-		annos := make([]fancyerr.Annotation, 0, len(s.Cases))
+		annos := make([]diagnostic.Annotation, 0, len(s.Cases))
 		for _, c := range s.Cases {
 			if c.Default == nil {
 				continue
@@ -178,7 +178,7 @@ func Switch() parser.Func[*ast.Switch] {
 			}
 		}
 		if len(annos) > 0 {
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "switch: multiple default cases",
 				Primary: slices.Clip(annos),
 				Explanation: "A switch statement can only have one default case. " +
@@ -194,7 +194,7 @@ func Switch() parser.Func[*ast.Switch] {
 
 		s.RBrace = parser.TryRuneAt(p, '}')
 		if s.RBrace == nil {
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "switch: missing closing brace",
 				Primary: quickanno.Expected(p, *s.LBrace, "expected a `}` for the opening `{` here"),
 			})
@@ -205,13 +205,13 @@ func Switch() parser.Func[*ast.Switch] {
 }
 
 func SwitchCase() parser.Func[*ast.Case] {
-	return func(p *parser.Parser) (*ast.Case, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.Case, *diagnostic.Diagnostic) {
 		if c := parser.Try(p, Case()); c != nil {
 			return c, nil
 		} else if d := parser.Try(p, Default()); d != nil {
 			return d, nil
 		}
-		return nil, &fancyerr.Error{
+		return nil, &diagnostic.Diagnostic{
 			Message: "missing case",
 			Primary: quickanno.Expected(p, p.Pos(), "a case or default"),
 		}
@@ -219,12 +219,12 @@ func SwitchCase() parser.Func[*ast.Case] {
 }
 
 func Case() parser.Func[*ast.Case] {
-	return func(p *parser.Parser) (*ast.Case, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.Case, *diagnostic.Diagnostic) {
 		var c ast.Case
 
 		c.Case = parser.TryKeywordAt(p, "case", comment.OrAnyWhitespace())
 		if c.Case == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing case",
 				Primary: quickanno.Expected(p, p.Pos(), "the `case` keyword"),
 			}
@@ -232,7 +232,7 @@ func Case() parser.Func[*ast.Case] {
 
 		c.Expression = parser.Try(p, Expression(Regular))
 		if c.Expression == nil {
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "case: missing expression",
 				Primary: quickanno.Expected(p, p.Pos(), "an expression"),
 			})
@@ -240,7 +240,7 @@ func Case() parser.Func[*ast.Case] {
 
 		c.Colon = parser.TryOptionalRuneAt(p, ':', comment.OrAnyWhitespace())
 		if c.Colon == nil {
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "case: missing colon",
 				Primary: quickanno.Expected(p, p.Pos(), "a colon"),
 			})
@@ -252,12 +252,12 @@ func Case() parser.Func[*ast.Case] {
 }
 
 func Default() parser.Func[*ast.Case] {
-	return func(p *parser.Parser) (*ast.Case, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.Case, *diagnostic.Diagnostic) {
 		var c ast.Case
 
 		c.Default = parser.TryKeywordAt(p, "default", comment.OrAnyWhitespace())
 		if c.Default == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing default",
 				Primary: quickanno.Expected(p, p.Pos(), "the `default` keyword"),
 			}
@@ -265,7 +265,7 @@ func Default() parser.Func[*ast.Case] {
 
 		c.Colon = parser.TryOptionalRuneAt(p, ':', comment.OrAnyWhitespace())
 		if c.Colon == nil {
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "default: missing colon",
 				Primary: quickanno.Expected(p, p.Pos(), "a colon"),
 			})
@@ -277,16 +277,16 @@ func Default() parser.Func[*ast.Case] {
 }
 
 func CaseBody() parser.Func[[]ast.ScopeNode] {
-	return func(p *parser.Parser) ([]ast.ScopeNode, *fancyerr.Error) {
+	return func(p *parser.Parser) ([]ast.ScopeNode, *diagnostic.Diagnostic) {
 		ns := make([]ast.ScopeNode, 0, 64)
 		for {
-			stop := parser.Matches(p, func(p *parser.Parser) (struct{}, *fancyerr.Error) {
+			stop := parser.Matches(p, func(p *parser.Parser) (struct{}, *diagnostic.Diagnostic) {
 				if parser.TryKeywordAt(p, "case", comment.OrAnyWhitespace()) != nil {
 					return struct{}{}, nil
 				} else if parser.TryKeywordAt(p, "default", comment.OrAnyWhitespace()) != nil {
 					return struct{}{}, nil
 				}
-				return struct{}{}, new(fancyerr.Error)
+				return struct{}{}, new(diagnostic.Diagnostic)
 			})
 			if stop {
 				parser.RestoreWS(p)
@@ -308,12 +308,12 @@ func CaseBody() parser.Func[[]ast.ScopeNode] {
 }
 
 func For() parser.Func[*ast.For] {
-	return func(p *parser.Parser) (*ast.For, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.For, *diagnostic.Diagnostic) {
 		var f ast.For
 
 		f.For = parser.TryKeywordAt(p, "for", comment.OrAnyWhitespace())
 		if f.For == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing for loop",
 				Primary: quickanno.Expected(p, p.Pos(), "the `for` keyword"),
 			}
@@ -328,7 +328,7 @@ func For() parser.Func[*ast.For] {
 
 		f.Body = parser.Try(p, body.Body())
 		if f.Body == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "for loop: missing body",
 				Primary: quickanno.Expected(p, p.Pos(), "a body"),
 			}
@@ -338,7 +338,7 @@ func For() parser.Func[*ast.For] {
 }
 
 func ForHeader() parser.Func[ast.ForHeader] {
-	return func(p *parser.Parser) (ast.ForHeader, *fancyerr.Error) {
+	return func(p *parser.Parser) (ast.ForHeader, *diagnostic.Diagnostic) {
 		if frh := parser.Try(p, ForRangeHeader()); frh != nil {
 			return frh, nil
 		} else if fch := parser.Try(p, ForClauseHeader()); fch != nil {
@@ -346,7 +346,7 @@ func ForHeader() parser.Func[ast.ForHeader] {
 		} else if fch := parser.Try(p, ForConditionHeader()); fch != nil {
 			return fch, nil
 		}
-		return nil, &fancyerr.Error{
+		return nil, &diagnostic.Diagnostic{
 			Message: "missing for header",
 			Primary: quickanno.Expected(p, p.Pos(), "a for-clause, for-range, or for-condition header"),
 		}
@@ -354,12 +354,12 @@ func ForHeader() parser.Func[ast.ForHeader] {
 }
 
 func ForConditionHeader() parser.Func[*ast.ForConditionHeader] {
-	return func(p *parser.Parser) (*ast.ForConditionHeader, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.ForConditionHeader, *diagnostic.Diagnostic) {
 		var h ast.ForConditionHeader
 
 		h.Condition = parser.Try(p, Expression(BodyFollows))
 		if h.Condition == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "for-condition header: missing condition",
 				Primary: quickanno.Expected(p, p.Pos(), "an expression"),
 			}
@@ -370,11 +370,11 @@ func ForConditionHeader() parser.Func[*ast.ForConditionHeader] {
 }
 
 func ForClauseHeader() parser.Func[*ast.ForClauseHeader] {
-	return func(p *parser.Parser) (*ast.ForClauseHeader, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.ForClauseHeader, *diagnostic.Diagnostic) {
 		var h ast.ForClauseHeader
 
 		if parser.MatchesAnyRune(p, '{', '[') {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing for-clause header",
 				Primary: quickanno.Expected(p, p.Pos(), "a for-clause header"),
 			}
@@ -382,7 +382,7 @@ func ForClauseHeader() parser.Func[*ast.ForClauseHeader] {
 
 		h.Init = parser.TryOptional(p, SimpleStatement(BodyFollows), nil)
 		if !parser.TrySkip(p, comment.AndEOS()) {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "for-clause header: missing init clause",
 				Primary: quickanno.Expected(p, p.Pos(), "a simple statement or a semicolon"),
 			}
@@ -390,7 +390,7 @@ func ForClauseHeader() parser.Func[*ast.ForClauseHeader] {
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 		h.Condition = parser.TryOptional(p, Expression(BodyFollows), nil)
 		if !parser.TrySkip(p, comment.AndEOS()) {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "for-clause header: missing condition clause",
 				Primary: quickanno.Expected(p, p.Pos(), "an expression or a semicolon"),
 			}
@@ -403,24 +403,24 @@ func ForClauseHeader() parser.Func[*ast.ForClauseHeader] {
 }
 
 func ForRangeHeader() parser.Func[*ast.ForRangeHeader] {
-	return func(p *parser.Parser) (*ast.ForRangeHeader, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.ForRangeHeader, *diagnostic.Diagnostic) {
 		var h ast.ForRangeHeader
 
 		pos := p.Pos()
 		var comma *ast.Position
-		if !parser.Matches(p, func(p *parser.Parser) (struct{}, *fancyerr.Error) {
+		if !parser.Matches(p, func(p *parser.Parser) (struct{}, *diagnostic.Diagnostic) {
 			if parser.TryKeywordAt(p, "range", comment.OrAnyWhitespace()) != nil {
 				return struct{}{}, nil
 			} else if parser.TryKeywordAt(p, "ordered", comment.OrHorizontalWhitespace()) != nil {
 				return struct{}{}, nil
 			}
-			return struct{}{}, new(fancyerr.Error)
+			return struct{}{}, new(diagnostic.Diagnostic)
 		}) {
 			h.Var1 = parser.TryOptional(p, Expression(BodyFollows), comment.OrHorizontalWhitespace())
 			comma = parser.TryOptionalRuneAt(p, ',', comment.OrAnyWhitespace())
 			if comma != nil {
 				if h.Var1 == nil {
-					p.CaptureError(&fancyerr.Error{
+					p.CaptureError(&diagnostic.Diagnostic{
 						Message: "for-range header: missing first variable",
 						Primary: quickanno.Expected(p, pos, "a variable"),
 					})
@@ -428,10 +428,10 @@ func ForRangeHeader() parser.Func[*ast.ForRangeHeader] {
 
 				h.Var2 = parser.TryOptional(p, Expression(BodyFollows), comment.OrHorizontalWhitespace())
 				if h.Var2 == nil {
-					p.CaptureError(&fancyerr.Error{
+					p.CaptureError(&diagnostic.Diagnostic{
 						Message: "for-range header: missing second variable",
 						Primary: quickanno.Expected(p, p.Pos(), "a variable"),
-						Secondary: []fancyerr.Annotation{
+						Secondary: []diagnostic.Annotation{
 							anno.Position(p.File, *comma, "because of the comma here"),
 						},
 					})
@@ -442,22 +442,22 @@ func ForRangeHeader() parser.Func[*ast.ForRangeHeader] {
 		h.Colon = parser.TryOptionalRuneAt(p, ':', nil)
 		h.EqualSign = parser.TryOptionalRuneAt(p, '=', comment.OrAnyWhitespace())
 		if h.Colon != nil && h.EqualSign == nil {
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "for-range header: missing equal sign",
 				Primary: quickanno.Expected(p, p.Pos(), "an equal sign"),
-				Secondary: []fancyerr.Annotation{
+				Secondary: []diagnostic.Annotation{
 					anno.Position(p.File, *h.Colon, "because of the colon here"),
 				},
 			})
 		}
 		if h.Var1 == nil && comma == nil && h.EqualSign != nil {
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "for-range header: missing first variable",
 				Primary: quickanno.Expected(p, pos, "a variable"),
-				Secondary: []fancyerr.Annotation{
+				Secondary: []diagnostic.Annotation{
 					anno.Position(p.File, *h.EqualSign, "because of the equal sign here"),
 				},
-				Hints: []fancyerr.Hint{
+				Hints: []diagnostic.Hint{
 					{Hint: "If you don't want to declare/set any variables, remove the equal sign."},
 				},
 			})
@@ -469,12 +469,12 @@ func ForRangeHeader() parser.Func[*ast.ForRangeHeader] {
 		h.Range = parser.TryKeywordAt(p, "range", comment.OrAnyWhitespace())
 		if h.Range == nil {
 			if h.Ordered == nil {
-				return nil, &fancyerr.Error{
+				return nil, &diagnostic.Diagnostic{
 					Message: "missing for-range header",
 					Primary: quickanno.Expected(p, pos, "a for-range header"),
 				}
 			}
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "for-range header: missing range keyword",
 				Primary: quickanno.Expected(p, rangePos, "the `range` keyword"),
 			})
@@ -482,7 +482,7 @@ func ForRangeHeader() parser.Func[*ast.ForRangeHeader] {
 
 		h.Expression = parser.Try(p, Expression(BodyFollows))
 		if h.Expression == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "for-range header: missing expression",
 				Primary: quickanno.Expected(p, p.Pos(), "an expression"),
 			}

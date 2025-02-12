@@ -1,21 +1,21 @@
 package golang
 
 import (
-	"github.com/mavolin/corgi/v2/fancyerr"
 	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/file/diagnostic"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/mavolin/corgi/v2/load/parse/internal/comment"
 	"github.com/mavolin/corgi/v2/load/parse/internal/quickanno"
 )
 
 func FullIdent() parser.Func[ast.FullIdent] {
-	return func(p *parser.Parser) (ast.FullIdent, *fancyerr.Error) {
+	return func(p *parser.Parser) (ast.FullIdent, *diagnostic.Diagnostic) {
 		ident1 := parser.Try(p, Identifier())
 		if ident1 == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message:  "missing identifier",
 				Primary:  quickanno.Expected(p, p.Pos(), "an identifier"),
-				Examples: []fancyerr.Example{{Example: "`bark` or `woof.Bark`"}},
+				Examples: []diagnostic.Example{{Example: "`bark` or `woof.Bark`"}},
 			}
 		}
 
@@ -29,7 +29,7 @@ func FullIdent() parser.Func[ast.FullIdent] {
 
 		ident2 := parser.Try(p, Identifier())
 		if ident2 == nil {
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "qualified identifier: missing name in package",
 				Primary: quickanno.Expected(p, *dot, "an identifier"),
 			})

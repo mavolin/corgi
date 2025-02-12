@@ -3,9 +3,9 @@ package code
 import (
 	"slices"
 
-	"github.com/mavolin/corgi/v2/fancyerr"
-	"github.com/mavolin/corgi/v2/fancyerr/anno"
 	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/file/diagnostic"
+	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/mavolin/corgi/v2/load/parse/internal/comment"
 	"github.com/mavolin/corgi/v2/load/parse/internal/golang"
@@ -33,7 +33,7 @@ func (o Options) bodyFollows() bool { return o&BodyFollows != 0 }
 func (o Options) firstParen() bool  { return o&FirstParen != 0 }
 
 func Code(o Options) parser.Func[ast.Code] {
-	return func(p *parser.Parser) (ast.Code, *fancyerr.Error) {
+	return func(p *parser.Parser) (ast.Code, *diagnostic.Diagnostic) {
 		if zc := parser.Try(p, ZeroCoalescing()); zc != nil {
 			return ast.Code{zc}, nil
 		}
@@ -43,7 +43,7 @@ func Code(o Options) parser.Func[ast.Code] {
 }
 
 func NonZCCode(o Options) parser.Func[ast.Code] {
-	return func(p *parser.Parser) (ast.Code, *fancyerr.Error) {
+	return func(p *parser.Parser) (ast.Code, *diagnostic.Diagnostic) {
 		c := make(ast.Code, 0, 24)
 		for {
 			n := parser.Try(p, nonZCNode(o))
@@ -57,7 +57,7 @@ func NonZCCode(o Options) parser.Func[ast.Code] {
 			parser.TrySkip(p, comment.OrHorizontalWhitespace())
 		}
 		if len(c) == 0 {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing code node",
 				Primary: quickanno.Expected(p, p.Pos(), "a code node"),
 			}
@@ -76,7 +76,7 @@ type codeResult struct {
 // nonZCNode tries to capture as few as possible []ast.CodeNode.
 // See the doc of [GoCode] on why it may return more than one node.
 func nonZCNode(o Options) parser.Func[*codeResult] {
-	return func(p *parser.Parser) (*codeResult, *fancyerr.Error) {
+	return func(p *parser.Parser) (*codeResult, *diagnostic.Diagnostic) {
 		if gc := parser.Try(p, goCode(o)); gc != nil {
 			return gc, nil
 		} else if bf := parser.Try(p, BlockFunction()); bf != nil {
@@ -86,7 +86,7 @@ func nonZCNode(o Options) parser.Func[*codeResult] {
 		} else if t := parser.Try(p, Ternary()); t != nil {
 			return &codeResult{Nodes: []ast.CodeNode{t}}, nil
 		}
-		return nil, &fancyerr.Error{
+		return nil, &diagnostic.Diagnostic{
 			Message: "missing code node",
 			Primary: quickanno.Expected(p, p.Pos(), "a code node"),
 		}
@@ -98,7 +98,7 @@ func nonZCNode(o Options) parser.Func[*codeResult] {
 // The only case in which more than one ExpressionNode is returned, is when
 // the parsed code contains corgi language extensions within parenthesis.
 func GoCode(o Options) parser.Func[[]ast.CodeNode] {
-	return func(p *parser.Parser) ([]ast.CodeNode, *fancyerr.Error) {
+	return func(p *parser.Parser) ([]ast.CodeNode, *diagnostic.Diagnostic) {
 		res, err := parser.TryErr(p, goCode(o))
 		if err != nil {
 			return nil, err
@@ -108,7 +108,7 @@ func GoCode(o Options) parser.Func[[]ast.CodeNode] {
 }
 
 func goCode(o Options) parser.Func[*codeResult] {
-	return func(p *parser.Parser) (*codeResult, *fancyerr.Error) {
+	return func(p *parser.Parser) (*codeResult, *diagnostic.Diagnostic) {
 		c := &ast.GoCode{Position: p.PosPtr()}
 
 		exps := make([]ast.CodeNode, 0, 8)
@@ -166,23 +166,23 @@ func goCode(o Options) parser.Func[*codeResult] {
 						break
 					}
 				case close == ')':
-					p.CaptureError(&fancyerr.Error{
+					p.CaptureError(&diagnostic.Diagnostic{
 						Message: "go code: mismatched parentheses",
-						Primary: []fancyerr.Annotation{
+						Primary: []diagnostic.Annotation{
 							anno.Position(p.File, pos, "this closing parenthesis does not have a matching opening parenthesis"),
 						},
 					})
 				case close == '}':
-					p.CaptureError(&fancyerr.Error{
+					p.CaptureError(&diagnostic.Diagnostic{
 						Message: "go code: mismatched braces",
-						Primary: []fancyerr.Annotation{
+						Primary: []diagnostic.Annotation{
 							anno.Position(p.File, pos, "this closing brace does not have a matching opening brace"),
 						},
 					})
 				case close == ']':
-					p.CaptureError(&fancyerr.Error{
+					p.CaptureError(&diagnostic.Diagnostic{
 						Message: "go code: mismatched brackets",
-						Primary: []fancyerr.Annotation{
+						Primary: []diagnostic.Annotation{
 							anno.Position(p.File, pos, "this closing bracket does not have a matching opening bracket"),
 						},
 					})
@@ -257,7 +257,7 @@ func goCode(o Options) parser.Func[*codeResult] {
 			p.RestoreState(bodyState)
 			exps = exps[:bodyEnd]
 			if len(exps) == 0 {
-				return nil, &fancyerr.Error{
+				return nil, &diagnostic.Diagnostic{
 					Message: "missing go code",
 					Primary: quickanno.Expected(p, p.Pos(), "go code"),
 				}
@@ -268,7 +268,7 @@ func goCode(o Options) parser.Func[*codeResult] {
 		p.RestoreState(state)
 		if start == p.Index() {
 			if len(exps) == 0 {
-				return nil, &fancyerr.Error{
+				return nil, &diagnostic.Diagnostic{
 					Message: "missing go code",
 					Primary: quickanno.Expected(p, p.Pos(), "go code"),
 				}
@@ -282,17 +282,17 @@ func goCode(o Options) parser.Func[*codeResult] {
 		for _, open := range slices.Backward(parenStack) {
 			switch open.open {
 			case '(':
-				p.CaptureError(&fancyerr.Error{
+				p.CaptureError(&diagnostic.Diagnostic{
 					Message: "go code: unclosed parenthesis",
 					Primary: quickanno.Expected(p, open.pos, "expected a `)` for the opening `(` here"),
 				})
 			case '{':
-				p.CaptureError(&fancyerr.Error{
+				p.CaptureError(&diagnostic.Diagnostic{
 					Message: "go code: unclosed brace",
 					Primary: quickanno.Expected(p, open.pos, "expected a `}` for the opening `{` here"),
 				})
 			case '[':
-				p.CaptureError(&fancyerr.Error{
+				p.CaptureError(&diagnostic.Diagnostic{
 					Message: "go code: unclosed bracket",
 					Primary: quickanno.Expected(p, open.pos, "expected a `]` for the opening `[` here"),
 				})
@@ -304,12 +304,12 @@ func goCode(o Options) parser.Func[*codeResult] {
 }
 
 func BlockFunction() parser.Func[*ast.BlockFunction] {
-	return func(p *parser.Parser) (*ast.BlockFunction, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.BlockFunction, *diagnostic.Diagnostic) {
 		var bf ast.BlockFunction
 
 		bf.Block = parser.TryTokenAt(p, "block")
 		if bf.Block == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing block function",
 				Primary: quickanno.Expected(p, p.Pos(), "a block function"),
 			}
@@ -325,16 +325,16 @@ func BlockFunction() parser.Func[*ast.BlockFunction] {
 		bf.LParen, bf.RParen = l.Open, l.Close
 
 		if len(l.Elems) == 0 {
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "block function: missing block name",
 				Primary: quickanno.Expected(p, *l.Open, "a block name"),
 			})
 		} else {
 			bf.BlockName = l.Elems[0]
 			if len(l.Elems) > 1 {
-				p.CaptureError(&fancyerr.Error{
+				p.CaptureError(&diagnostic.Diagnostic{
 					Message: "block function: too many arguments",
-					Primary: []fancyerr.Annotation{
+					Primary: []diagnostic.Annotation{
 						anno.Range(p.File, l.Elems[1].Start(), l.Elems[len(l.Elems)-1].End(),
 							"unexpected arguments, expected only a single block name"),
 					},
@@ -347,15 +347,15 @@ func BlockFunction() parser.Func[*ast.BlockFunction] {
 }
 
 func Ternary() parser.Func[*ast.Ternary] {
-	return func(p *parser.Parser) (*ast.Ternary, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.Ternary, *diagnostic.Diagnostic) {
 		var t ast.Ternary
 
 		t.QuestionMark = parser.TryRuneAt(p, '?')
 		if t.QuestionMark == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message:  "missing ternary function",
 				Primary:  quickanno.Expected(p, p.Pos(), "a ternary function"),
-				Examples: []fancyerr.Example{{Example: "?(condition, ifTrue, ifFalse)"}},
+				Examples: []diagnostic.Example{{Example: "?(condition, ifTrue, ifFalse)"}},
 			}
 		}
 
@@ -363,21 +363,21 @@ func Ternary() parser.Func[*ast.Ternary] {
 
 		l, err := parser.TryErr(p, list.ParenList("ternary function arguments", NonZCExpression(Regular)))
 		if err != nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message:  "missing ternary function",
 				Primary:  quickanno.Expected(p, p.Pos(), "a ternary function"),
-				Examples: []fancyerr.Example{{Example: "?(condition, ifTrue, ifFalse)"}},
+				Examples: []diagnostic.Example{{Example: "?(condition, ifTrue, ifFalse)"}},
 			}
 		}
 
 		t.LParen, t.RParen = l.Open, l.Close
 		switch {
 		case len(l.Elems) == 0:
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "ternary function: missing arguments",
 				Primary: quickanno.Expected(p, *l.Open,
 					"a condition, a value for if the condition is true, and a value for if the condition is false"),
-				Examples: []fancyerr.Example{{Example: "?(condition, ifTrue, ifFalse)"}},
+				Examples: []diagnostic.Example{{Example: "?(condition, ifTrue, ifFalse)"}},
 			})
 		case len(l.Elems) == 1:
 			t.Condition = l.Elems[0]
@@ -387,11 +387,11 @@ func Ternary() parser.Func[*ast.Ternary] {
 				pos = *l.Close
 			}
 
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "ternary function: missing if-true and if-false values",
 				Primary: quickanno.Expected(p, pos,
 					"a value for if the condition is true and a value for if the condition is false, after the condition"),
-				Examples: []fancyerr.Example{{Example: "?(condition, ifTrue, ifFalse)"}},
+				Examples: []diagnostic.Example{{Example: "?(condition, ifTrue, ifFalse)"}},
 			})
 		case len(l.Elems) == 2:
 			t.Condition, t.TrueVal = l.Elems[0], l.Elems[1]
@@ -400,19 +400,19 @@ func Ternary() parser.Func[*ast.Ternary] {
 			if l.Close != nil {
 				pos = *l.Close
 			}
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message:  "ternary function: missing if-false value",
 				Primary:  quickanno.Expected(p, pos, "a value for if the condition is false"),
-				Examples: []fancyerr.Example{{Example: "?(condition, ifTrue, ifFalse)"}},
+				Examples: []diagnostic.Example{{Example: "?(condition, ifTrue, ifFalse)"}},
 			})
 		default:
 			t.Condition, t.TrueVal, t.FalseVal = l.Elems[0], l.Elems[1], l.Elems[2]
 		}
 
 		if len(l.Elems) > 3 {
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "ternary function: too many arguments",
-				Primary: []fancyerr.Annotation{
+				Primary: []diagnostic.Annotation{
 					anno.Range(p.File, l.Elems[3].Start(), l.Elems[len(l.Elems)-1].End(),
 						"unexpected arguments: expected only a condition, "+
 							"a value for if the condition is true, and a value for if the condition is false"),

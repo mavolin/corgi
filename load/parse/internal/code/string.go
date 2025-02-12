@@ -3,21 +3,21 @@ package code
 import (
 	"slices"
 
-	"github.com/mavolin/corgi/v2/fancyerr"
 	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/file/diagnostic"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/mavolin/corgi/v2/load/parse/internal/interpolation"
 	"github.com/mavolin/corgi/v2/load/parse/internal/quickanno"
 )
 
 func String() parser.Func[*ast.String] {
-	return func(p *parser.Parser) (*ast.String, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.String, *diagnostic.Diagnostic) {
 		var s ast.String
 		s.Open = p.PosPtr()
 
 		q := parser.TryAnyRune(p, '"', '`')
 		if q < 0 {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing string",
 				Primary: quickanno.Expected(p, p.Pos(), "a string"),
 			}
@@ -45,7 +45,7 @@ func stringContents(p *parser.Parser, s *ast.String) {
 
 		node, err := parser.TryErr(p, StringNode(s.Quote))
 		if err != nil {
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "string: missing closing quote",
 				Primary: quickanno.Expected(p, p.Pos(), "a closing quote for the opening quote here"),
 			})
@@ -62,13 +62,13 @@ func stringContents(p *parser.Parser, s *ast.String) {
 }
 
 func StringNode(quote byte) parser.Func[ast.StringNode] {
-	return func(p *parser.Parser) (ast.StringNode, *fancyerr.Error) {
+	return func(p *parser.Parser) (ast.StringNode, *diagnostic.Diagnostic) {
 		if txt := parser.Try(p, StringText(quote)); txt != nil {
 			return txt, nil
 		} else if interp := parser.Try(p, interpolation.StringInterpolation()); interp != nil {
 			return interp, nil
 		}
-		return nil, &fancyerr.Error{
+		return nil, &diagnostic.Diagnostic{
 			Message: "missing string node",
 			Primary: quickanno.Expected(p, p.Pos(), "text or interpolation"),
 		}
@@ -76,7 +76,7 @@ func StringNode(quote byte) parser.Func[ast.StringNode] {
 }
 
 func StringText(quote byte) parser.Func[*ast.StringText] {
-	return func(p *parser.Parser) (*ast.StringText, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.StringText, *diagnostic.Diagnostic) {
 		var t ast.StringText
 		t.Position = p.PosPtr()
 
@@ -92,7 +92,7 @@ func StringText(quote byte) parser.Func[*ast.StringText] {
 			})
 		}
 		if t.Text == "" {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing string text",
 				Primary: quickanno.Expected(p, *t.Position, "string text"),
 			}

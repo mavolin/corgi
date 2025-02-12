@@ -2,21 +2,21 @@ package attribute
 
 import (
 	"github.com/mavolin/corgi/v2/escape/attrtype"
-	"github.com/mavolin/corgi/v2/fancyerr"
-	"github.com/mavolin/corgi/v2/fancyerr/anno"
 	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/file/diagnostic"
+	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/mavolin/corgi/v2/load/parse/internal/golang"
 	"github.com/mavolin/corgi/v2/load/parse/internal/quickanno"
 )
 
 func Type() parser.Func[*ast.AttributeType] {
-	return func(p *parser.Parser) (*ast.AttributeType, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.AttributeType, *diagnostic.Diagnostic) {
 		var t ast.AttributeType
 
 		t.Quote = parser.TryRuneAt(p, '\'')
 		if t.Quote == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing attribute type",
 				Primary: quickanno.Expected(p, p.Pos(), "a single quote and then an attribute type"),
 			}
@@ -24,7 +24,7 @@ func Type() parser.Func[*ast.AttributeType] {
 
 		t.Name = parser.Try(p, TypeName())
 		if t.Name == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing attribute type name",
 				Primary: quickanno.Expected(p, p.Pos(), "an attribute type name"),
 			}
@@ -32,9 +32,9 @@ func Type() parser.Func[*ast.AttributeType] {
 
 		// make sure this isn't actually a rune literal
 		if parser.MatchesToken(p, "'") {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing attribute type",
-				Primary: []fancyerr.Annotation{
+				Primary: []diagnostic.Annotation{
 					anno.Range(p.File, *t.Quote, p.Pos(),
 						"expected a single quote and then an attribute type, but found a rune literal instead"),
 				},
@@ -45,13 +45,13 @@ func Type() parser.Func[*ast.AttributeType] {
 }
 
 func TypeName() parser.Func[*ast.AttributeTypeName] {
-	return func(p *parser.Parser) (*ast.AttributeTypeName, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.AttributeTypeName, *diagnostic.Diagnostic) {
 		var n ast.AttributeTypeName
 		n.Position = p.PosPtr()
 
 		ident := parser.Try(p, golang.Identifier())
 		if ident == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing attribute type name",
 				Primary: quickanno.Expected(p, *n.Position, "an attribute type name"),
 			}
@@ -82,12 +82,12 @@ func TypeName() parser.Func[*ast.AttributeTypeName] {
 		case "srcset":
 			n.Type = attrtype.Srcset
 		default:
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "unknown attribute type",
-				Primary: []fancyerr.Annotation{
+				Primary: []diagnostic.Annotation{
 					anno.Range(p.File, ident.Start(), ident.End(), "not a known attribute type"),
 				},
-				Hints: []fancyerr.Hint{
+				Hints: []diagnostic.Hint{
 					{
 						Hint: "Valid attribute types are: " +
 							"`unsafe`, `unsafeBool`, `bool`, `text`, `innocuous`," +

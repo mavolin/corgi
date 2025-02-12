@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mavolin/corgi/v2/fancyerr"
 	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/file/diagnostic"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/mavolin/corgi/v2/load/parse/internal/quickanno"
 	"github.com/mavolin/corgi/v2/load/parse/internal/testutil"
@@ -24,14 +24,14 @@ func TestBracketList(t *testing.T) {
 }
 
 func testList(t *testing.T, name string, open, close rune) {
-	elemFunc := func(p *parser.Parser) (string, *fancyerr.Error) {
+	elemFunc := func(p *parser.Parser) (string, *diagnostic.Diagnostic) {
 		s := parser.TokenWhile(p, func() bool {
 			return parser.MatchesRunePredicate(p, func(r rune) bool {
 				return r >= 'a' && r <= 'z'
 			})
 		})
 		if s == "" {
-			return "", &fancyerr.Error{
+			return "", &diagnostic.Diagnostic{
 				Message: "missing test element",
 				Primary: quickanno.Expected(p, p.Pos(), "a test element"),
 			}
@@ -156,14 +156,14 @@ func testList(t *testing.T, name string, open, close rune) {
 }
 
 func TestCommaList(t *testing.T) {
-	elemFunc := func(p *parser.Parser) (string, *fancyerr.Error) {
+	elemFunc := func(p *parser.Parser) (string, *diagnostic.Diagnostic) {
 		s := parser.TokenWhile(p, func() bool {
 			return parser.MatchesRunePredicate(p, func(r rune) bool {
 				return r >= 'a' && r <= 'z'
 			})
 		})
 		if s == "" {
-			return "", &fancyerr.Error{
+			return "", &diagnostic.Diagnostic{
 				Message: "missing test element",
 				Primary: quickanno.Expected(p, p.Pos(), "a test element"),
 			}

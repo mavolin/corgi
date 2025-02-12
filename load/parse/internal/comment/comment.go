@@ -1,16 +1,16 @@
 package comment
 
 import (
-	"github.com/mavolin/corgi/v2/fancyerr"
-	"github.com/mavolin/corgi/v2/fancyerr/anno"
 	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/file/diagnostic"
+	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/mavolin/corgi/v2/load/parse/internal/quickanno"
 	"github.com/mavolin/corgi/v2/load/parse/internal/whitespace"
 )
 
 func Comment() parser.Func[*ast.Comment] {
-	return func(p *parser.Parser) (*ast.Comment, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.Comment, *diagnostic.Diagnostic) {
 		if p.Inline() {
 			return GeneralComment()(p)
 		}
@@ -20,7 +20,7 @@ func Comment() parser.Func[*ast.Comment] {
 			return c, nil
 		}
 
-		return nil, &fancyerr.Error{
+		return nil, &diagnostic.Diagnostic{
 			Message: "missing comment",
 			Primary: quickanno.Expected(p, p.Pos(), "a block or line comment"),
 		}
@@ -28,7 +28,7 @@ func Comment() parser.Func[*ast.Comment] {
 }
 
 func LineComment() parser.Func[*ast.Comment] {
-	return func(p *parser.Parser) (*ast.Comment, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.Comment, *diagnostic.Diagnostic) {
 		c, err := parser.TryErr(p, lineCommentWithoutEOL())
 		if err != nil {
 			return nil, err
@@ -39,12 +39,12 @@ func LineComment() parser.Func[*ast.Comment] {
 }
 
 func lineCommentWithoutEOL() parser.Func[*ast.Comment] {
-	return func(p *parser.Parser) (*ast.Comment, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.Comment, *diagnostic.Diagnostic) {
 		var c ast.Comment
 
 		c.Open = parser.TryTokenAt(p, "//")
 		if c.Open == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing line comment",
 				Primary: quickanno.Expected(p, p.Pos(), "a line comment"),
 			}
@@ -60,13 +60,13 @@ func lineCommentWithoutEOL() parser.Func[*ast.Comment] {
 }
 
 func GeneralComment() parser.Func[*ast.Comment] {
-	return func(p *parser.Parser) (*ast.Comment, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.Comment, *diagnostic.Diagnostic) {
 		var c ast.Comment
 		c.General = true
 
 		c.Open = parser.TryTokenAt(p, "/*")
 		if c.Open == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing block comment",
 				Primary: quickanno.Expected(p, p.Pos(), "a general comment"),
 			}
@@ -77,9 +77,9 @@ func GeneralComment() parser.Func[*ast.Comment] {
 		})
 		c.Close = parser.TryTokenAt(p, "*/")
 		if c.Close == nil {
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "unclosed block comment",
-				Primary: []fancyerr.Annotation{
+				Primary: []diagnostic.Annotation{
 					anno.NChars(p.File, *c.Open, len("/*"), "this comment is never closed"),
 				},
 				Explanation: "Unlike line comments, general comments must be closed using `*/`.\n" +
@@ -93,9 +93,9 @@ func GeneralComment() parser.Func[*ast.Comment] {
 			// only capture this if we didn't accidentally capture the rest of
 			// the file, just because of the missing `*/`
 			if p.Inline() && c.Open.Line != c.Close.Line {
-				p.CaptureError(&fancyerr.Error{
+				p.CaptureError(&diagnostic.Diagnostic{
 					Message: "illegal placement of multiline block comment",
-					Primary: []fancyerr.Annotation{
+					Primary: []diagnostic.Annotation{
 						anno.Anno(p.File, anno.Annotation{
 							Context:    anno.ContextLines(*c.Open, c.Until),
 							Highlight:  anno.HighlightToEOL(*c.Open),

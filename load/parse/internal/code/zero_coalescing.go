@@ -3,9 +3,9 @@ package code
 import (
 	"slices"
 
-	"github.com/mavolin/corgi/v2/fancyerr"
-	"github.com/mavolin/corgi/v2/fancyerr/anno"
 	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/file/diagnostic"
+	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/mavolin/corgi/v2/load/parse/internal/comment"
 	"github.com/mavolin/corgi/v2/load/parse/internal/golang"
@@ -14,7 +14,7 @@ import (
 )
 
 func ZeroCoalescing() parser.Func[*ast.ZeroCoalescing] {
-	return func(p *parser.Parser) (*ast.ZeroCoalescing, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.ZeroCoalescing, *diagnostic.Diagnostic) {
 		var zc ast.ZeroCoalescing
 
 		zc.DerefPosition = p.PosPtr()
@@ -29,10 +29,10 @@ func ZeroCoalescing() parser.Func[*ast.ZeroCoalescing] {
 
 		zc.Root = parser.Try(p, zeroCoalescingRoot())
 		if zc.Root == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing zero coalescing",
 				Primary: quickanno.Expected(p, p.Pos(), "a root"),
-				Examples: []fancyerr.Example{
+				Examples: []diagnostic.Example{
 					{Example: "`foo?`"},
 				},
 			}
@@ -61,10 +61,10 @@ func ZeroCoalescing() parser.Func[*ast.ZeroCoalescing] {
 		zc.Tilde = parser.TryRuneAt(p, '~')
 		if zc.Tilde == nil {
 			if zc.CheckRoot == nil && !chainHasCheck {
-				return nil, &fancyerr.Error{
+				return nil, &diagnostic.Diagnostic{
 					Message: "zero coalescing: just regular GoCode",
 					Primary: quickanno.Expected(p, p.Pos(), "a zero coalescing"),
-					Hints: []fancyerr.Hint{
+					Hints: []diagnostic.Hint{
 						{Hint: "This is a sentinel error that you shouldn't see, please open an issue."},
 					},
 				}
@@ -75,26 +75,26 @@ func ZeroCoalescing() parser.Func[*ast.ZeroCoalescing] {
 
 		zc.Default = parser.Try(p, NonZCExpression(Regular))
 		if zc.Default == nil {
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "zero coalescing: missing default value",
 				Primary: quickanno.Expected(p, p.Pos(), "a default value"),
-				Secondary: []fancyerr.Annotation{
+				Secondary: []diagnostic.Annotation{
 					anno.Position(p.File, *zc.Tilde, "because of the tilde here"),
 				},
-				Hints: []fancyerr.Hint{
+				Hints: []diagnostic.Hint{
 					{Hint: "If you don't want a default value, remove the tilde."},
 				},
 			})
 		}
 
 		if zc.CheckRoot == nil && !chainHasCheck {
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "zero coalescing: redundant default value",
-				Primary: []fancyerr.Annotation{
+				Primary: []diagnostic.Annotation{
 					anno.Range(p.File, *zc.Tilde, zc.End(),
 						"this default value is never used, because no element of the zero coalescing has a check"),
 				},
-				Hints: []fancyerr.Hint{
+				Hints: []diagnostic.Hint{
 					{
 						Hint:    "You can add a check to a node by appending a '?' to it.",
 						Example: "`foo.bar?.baz` or `foo[1?]?`",
@@ -108,7 +108,7 @@ func ZeroCoalescing() parser.Func[*ast.ZeroCoalescing] {
 }
 
 func zeroCoalescingRoot() parser.Func[*ast.Expression] {
-	return func(p *parser.Parser) (*ast.Expression, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.Expression, *diagnostic.Diagnostic) {
 		if parser.MatchesAnyRune(p, '(') {
 			c, err := parser.TryErr(p, goCode(FirstParen))
 			if err != nil {
@@ -126,7 +126,7 @@ func zeroCoalescingRoot() parser.Func[*ast.Expression] {
 			}, nil
 		}
 
-		return nil, &fancyerr.Error{
+		return nil, &diagnostic.Diagnostic{
 			Message: "missing root",
 			Primary: quickanno.Expected(p, p.Pos(), "a root"),
 		}
@@ -139,7 +139,7 @@ type zeroCoalescingNodeData[T ast.ZeroCoalescingNode] struct {
 }
 
 func zeroCoalescingNode() parser.Func[*zeroCoalescingNodeData[ast.ZeroCoalescingNode]] {
-	return func(p *parser.Parser) (*zeroCoalescingNodeData[ast.ZeroCoalescingNode], *fancyerr.Error) {
+	return func(p *parser.Parser) (*zeroCoalescingNodeData[ast.ZeroCoalescingNode], *diagnostic.Diagnostic) {
 		if ie := parser.Try(p, zcIndexExpression()); ie != nil {
 			return &zeroCoalescingNodeData[ast.ZeroCoalescingNode]{ie.node, ie.hasCheck}, nil
 		} else if se := parser.Try(p, zcSelectorExpression()); se != nil {
@@ -150,7 +150,7 @@ func zeroCoalescingNode() parser.Func[*zeroCoalescingNodeData[ast.ZeroCoalescing
 			return &zeroCoalescingNodeData[ast.ZeroCoalescingNode]{tae.node, tae.hasCheck}, nil
 		}
 
-		return nil, &fancyerr.Error{
+		return nil, &diagnostic.Diagnostic{
 			Message: "missing zero coalescing node",
 			Primary: quickanno.Expected(p, p.Pos(), "a zero coalescing node"),
 		}
@@ -158,19 +158,19 @@ func zeroCoalescingNode() parser.Func[*zeroCoalescingNodeData[ast.ZeroCoalescing
 }
 
 func ZCIndexExpression() parser.Func[*ast.ZCIndexExpression] {
-	return func(p *parser.Parser) (*ast.ZCIndexExpression, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.ZCIndexExpression, *diagnostic.Diagnostic) {
 		d, err := parser.TryErr(p, zcIndexExpression())
 		return d.node, err
 	}
 }
 
 func zcIndexExpression() parser.Func[*zeroCoalescingNodeData[*ast.ZCIndexExpression]] {
-	return func(p *parser.Parser) (*zeroCoalescingNodeData[*ast.ZCIndexExpression], *fancyerr.Error) {
+	return func(p *parser.Parser) (*zeroCoalescingNodeData[*ast.ZCIndexExpression], *diagnostic.Diagnostic) {
 		var ie ast.ZCIndexExpression
 
 		ie.LBracket = parser.TryRuneAt(p, '[')
 		if ie.LBracket == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing '['",
 				Primary: quickanno.Expected(p, p.Pos(), "["),
 			}
@@ -186,7 +186,7 @@ func zcIndexExpression() parser.Func[*zeroCoalescingNodeData[*ast.ZCIndexExpress
 
 		ie.RBracket = parser.TryOptionalRuneAt(p, ']', comment.OrHorizontalWhitespace())
 		if ie.RBracket == nil {
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "index expression: missing ']'",
 				Primary: quickanno.Expected(p, *ie.LBracket, "a closing ']' for the opening '[' here"),
 			})
@@ -202,7 +202,7 @@ func zcIndexExpression() parser.Func[*zeroCoalescingNodeData[*ast.ZCIndexExpress
 }
 
 func ZCSelectorExpression() parser.Func[*ast.ZCSelectorExpression] {
-	return func(p *parser.Parser) (*ast.ZCSelectorExpression, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.ZCSelectorExpression, *diagnostic.Diagnostic) {
 		d, err := parser.TryErr(p, zcSelectorExpression())
 		if err != nil {
 			return nil, err
@@ -212,12 +212,12 @@ func ZCSelectorExpression() parser.Func[*ast.ZCSelectorExpression] {
 }
 
 func zcSelectorExpression() parser.Func[*zeroCoalescingNodeData[*ast.ZCSelectorExpression]] {
-	return func(p *parser.Parser) (*zeroCoalescingNodeData[*ast.ZCSelectorExpression], *fancyerr.Error) {
+	return func(p *parser.Parser) (*zeroCoalescingNodeData[*ast.ZCSelectorExpression], *diagnostic.Diagnostic) {
 		var se ast.ZCSelectorExpression
 
 		se.Dot = parser.TryRuneAt(p, '.')
 		if se.Dot == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing selector expression",
 				Primary: quickanno.Expected(p, p.Pos(), "a selector expression"),
 			}
@@ -226,7 +226,7 @@ func zcSelectorExpression() parser.Func[*zeroCoalescingNodeData[*ast.ZCSelectorE
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 		se.Ident = parser.Try(p, golang.Identifier())
 		if se.Ident == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "selector expression: missing identifier",
 				Primary: quickanno.Expected(p, p.Pos(), "an identifier"),
 			}
@@ -243,7 +243,7 @@ func zcSelectorExpression() parser.Func[*zeroCoalescingNodeData[*ast.ZCSelectorE
 }
 
 func ZCParenExpression() parser.Func[*ast.ZCParenExpression] {
-	return func(p *parser.Parser) (*ast.ZCParenExpression, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.ZCParenExpression, *diagnostic.Diagnostic) {
 		d, err := parser.TryErr(p, zcParenExpression())
 		if err != nil {
 			return nil, err
@@ -253,12 +253,12 @@ func ZCParenExpression() parser.Func[*ast.ZCParenExpression] {
 }
 
 func zcParenExpression() parser.Func[*zeroCoalescingNodeData[*ast.ZCParenExpression]] {
-	return func(p *parser.Parser) (*zeroCoalescingNodeData[*ast.ZCParenExpression], *fancyerr.Error) {
+	return func(p *parser.Parser) (*zeroCoalescingNodeData[*ast.ZCParenExpression], *diagnostic.Diagnostic) {
 		var pe ast.ZCParenExpression
 
 		l := parser.Try(p, list.ParenList("arguments", NonZCExpression(Regular)))
 		if l == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing paren expression",
 				Primary: quickanno.Expected(p, p.Pos(), "a paren expression"),
 			}
@@ -276,7 +276,7 @@ func zcParenExpression() parser.Func[*zeroCoalescingNodeData[*ast.ZCParenExpress
 }
 
 func ZCTypeAssertionExpression() parser.Func[*ast.ZCTypeAssertionExpression] {
-	return func(p *parser.Parser) (*ast.ZCTypeAssertionExpression, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.ZCTypeAssertionExpression, *diagnostic.Diagnostic) {
 		d, err := parser.TryErr(p, zcTypeAssertionExpression())
 		if err != nil {
 			return nil, err
@@ -286,12 +286,12 @@ func ZCTypeAssertionExpression() parser.Func[*ast.ZCTypeAssertionExpression] {
 }
 
 func zcTypeAssertionExpression() parser.Func[*zeroCoalescingNodeData[*ast.ZCTypeAssertionExpression]] {
-	return func(p *parser.Parser) (*zeroCoalescingNodeData[*ast.ZCTypeAssertionExpression], *fancyerr.Error) {
+	return func(p *parser.Parser) (*zeroCoalescingNodeData[*ast.ZCTypeAssertionExpression], *diagnostic.Diagnostic) {
 		var tae ast.ZCTypeAssertionExpression
 
 		tae.Dot = parser.TryRuneAt(p, '.')
 		if tae.Dot == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing type assertion expression",
 				Primary: quickanno.Expected(p, p.Pos(), "a type assertion expression"),
 			}
@@ -301,7 +301,7 @@ func zcTypeAssertionExpression() parser.Func[*zeroCoalescingNodeData[*ast.ZCType
 
 		tae.LParen = parser.TryRuneAt(p, '(')
 		if tae.LParen == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "type assertion expression: missing '('",
 				Primary: quickanno.Expected(p, *tae.Dot, "a '(' after here"),
 			}
@@ -315,7 +315,7 @@ func zcTypeAssertionExpression() parser.Func[*zeroCoalescingNodeData[*ast.ZCType
 
 		tae.Type = parser.Try(p, golang.FullIdent())
 		if tae.Type == nil {
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "type assertion expression: missing type",
 				Primary: quickanno.Expected(p, p.Pos(), "a type"),
 			})
@@ -326,7 +326,7 @@ func zcTypeAssertionExpression() parser.Func[*zeroCoalescingNodeData[*ast.ZCType
 
 		tae.RParen = parser.TryOptionalRuneAt(p, ')', comment.OrHorizontalWhitespace())
 		if tae.RParen == nil {
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "type assertion expression: missing ')'",
 				Primary: quickanno.Expected(p, *tae.LParen, "a closing ')' for the opening '(' here"),
 			})

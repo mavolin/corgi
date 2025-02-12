@@ -3,8 +3,8 @@ package file
 import (
 	"slices"
 
-	"github.com/mavolin/corgi/v2/fancyerr"
 	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/file/diagnostic"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/mavolin/corgi/v2/load/parse/internal/comment"
 	"github.com/mavolin/corgi/v2/load/parse/internal/golang"
@@ -13,12 +13,12 @@ import (
 )
 
 func PackageDirective() parser.Func[*ast.PackageDirective] {
-	return func(p *parser.Parser) (*ast.PackageDirective, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.PackageDirective, *diagnostic.Diagnostic) {
 		var d ast.PackageDirective
 
 		d.Package = parser.TryKeywordAt(p, "package", comment.OrAnyWhitespace())
 		if d.Package == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing package directive",
 				Primary: quickanno.Expected(p, p.Pos(), "a package directive"),
 			}
@@ -30,12 +30,12 @@ func PackageDirective() parser.Func[*ast.PackageDirective] {
 }
 
 func Import() parser.Func[*ast.Import] {
-	return func(p *parser.Parser) (*ast.Import, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.Import, *diagnostic.Diagnostic) {
 		var imp ast.Import
 
 		imp.Import = p.PosPtr()
 		if !parser.TryToken(p, "import") {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing import directive",
 				Primary: quickanno.Expected(p, p.Pos(), "an import directive"),
 			}
@@ -46,7 +46,7 @@ func Import() parser.Func[*ast.Import] {
 		imp.LParen = parser.TryOptionalRuneAt(p, '(', nil)
 		if imp.LParen == nil {
 			if !hasWS {
-				return nil, &fancyerr.Error{
+				return nil, &diagnostic.Diagnostic{
 					Message: "missing import directive",
 					Primary: quickanno.Expected(p, *imp.Import, "an import directive"),
 				}
@@ -86,7 +86,7 @@ func Import() parser.Func[*ast.Import] {
 
 		imp.RParen = parser.TryOptionalRuneAt(p, ')', nil)
 		if imp.RParen == nil {
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "import: missing ')'",
 				Primary: quickanno.Expected(p, *imp.LParen, "a closing ')' for the '(' here"),
 			})
@@ -97,19 +97,19 @@ func Import() parser.Func[*ast.Import] {
 }
 
 func ImportSpec() parser.Func[*ast.ImportSpec] {
-	return func(p *parser.Parser) (*ast.ImportSpec, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.ImportSpec, *diagnostic.Diagnostic) {
 		var spec ast.ImportSpec
 
 		spec.Alias = parser.TryOptional(p, golang.Identifier(), comment.OrHorizontalWhitespace())
 		spec.Path = parser.Try(p, golang.StringLit())
 		if spec.Path == nil {
 			if spec.Alias == nil {
-				return nil, &fancyerr.Error{
+				return nil, &diagnostic.Diagnostic{
 					Message: "missing import spec",
 					Primary: quickanno.Expected(p, p.Pos(), "an import path"),
 				}
 			} else {
-				p.CaptureError(&fancyerr.Error{
+				p.CaptureError(&diagnostic.Diagnostic{
 					Message: "import spec: missing path",
 					Primary: quickanno.Expected(p, p.Pos(), "an import path"),
 				})

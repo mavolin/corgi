@@ -3,8 +3,8 @@
 package body
 
 import (
-	"github.com/mavolin/corgi/v2/fancyerr"
 	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/file/diagnostic"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/mavolin/corgi/v2/load/parse/internal/quickanno"
 	"github.com/mavolin/corgi/v2/load/parse/internal/whitespace"
@@ -16,13 +16,13 @@ func init() {
 }
 
 func textLineStub(term rune) parser.Func[ast.TextLine] {
-	return func(p *parser.Parser) (ast.TextLine, *fancyerr.Error) {
+	return func(p *parser.Parser) (ast.TextLine, *diagnostic.Diagnostic) {
 		pos := p.Pos()
 		line := parser.TokenWhile(p, func() bool {
 			return !parser.Matches(p, textLineEnd(term))
 		})
 		if line == "" {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing text line",
 				Primary: quickanno.Expected(p, p.Pos(), "a text line"),
 			}
@@ -37,19 +37,19 @@ func textLineStub(term rune) parser.Func[ast.TextLine] {
 }
 
 func textLineEnd(term rune) parser.Func[struct{}] {
-	return func(p *parser.Parser) (struct{}, *fancyerr.Error) {
+	return func(p *parser.Parser) (struct{}, *diagnostic.Diagnostic) {
 		parser.TrySkip(p, whitespace.Horizontal())
 		if parser.MatchesAnyRune(p, term, '\n') {
 			return struct{}{}, nil
 		}
 
-		return struct{}{}, &fancyerr.Error{
+		return struct{}{}, &diagnostic.Diagnostic{
 			Message: "missing text line end",
 		}
 	}
 }
 
-func scopeNodeStub(p *parser.Parser) (ast.ScopeNode, *fancyerr.Error) {
+func scopeNodeStub(p *parser.Parser) (ast.ScopeNode, *diagnostic.Diagnostic) {
 	pos := p.Pos()
 	name := parser.TokenWhile(p, func() bool {
 		return parser.MatchesRunePredicate(p, func(r rune) bool {
@@ -57,7 +57,7 @@ func scopeNodeStub(p *parser.Parser) (ast.ScopeNode, *fancyerr.Error) {
 		})
 	})
 	if name == "" {
-		return nil, &fancyerr.Error{
+		return nil, &diagnostic.Diagnostic{
 			Message: "missing scope node",
 			Primary: quickanno.Expected(p, p.Pos(), "a scope node"),
 		}

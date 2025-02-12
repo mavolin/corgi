@@ -1,9 +1,9 @@
 package body
 
 import (
-	"github.com/mavolin/corgi/v2/fancyerr"
-	"github.com/mavolin/corgi/v2/fancyerr/anno"
 	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/file/diagnostic"
+	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/mavolin/corgi/v2/load/parse/internal/comment"
 	"github.com/mavolin/corgi/v2/load/parse/internal/quickanno"
@@ -11,12 +11,12 @@ import (
 )
 
 func Scope() parser.Func[*ast.Scope] {
-	return func(p *parser.Parser) (*ast.Scope, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.Scope, *diagnostic.Diagnostic) {
 		var s ast.Scope
 
 		s.LBrace = parser.TryRuneAt(p, '{')
 		if s.LBrace == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing scope",
 				Primary: quickanno.Expected(p, p.Pos(), "a opening brace"),
 			}
@@ -27,7 +27,7 @@ func Scope() parser.Func[*ast.Scope] {
 
 		s.RBrace = parser.TryRuneAt(p, '}')
 		if s.RBrace == nil {
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "unclosed scope",
 				Primary: quickanno.Expected(p, *s.LBrace, "expected a `}` for the opening `{` here"),
 			})
@@ -44,16 +44,16 @@ func SetScopeNode(f parser.Func[ast.ScopeNode]) {
 }
 
 func ScopeNode() parser.Func[ast.ScopeNode] {
-	return func(p *parser.Parser) (ast.ScopeNode, *fancyerr.Error) {
+	return func(p *parser.Parser) (ast.ScopeNode, *diagnostic.Diagnostic) {
 		n, err := parser.TryErr(p, scopeNode)
 		if err == nil {
 			return n, nil
 		}
 
 		if n := parser.Try(p, BadScopeNode()); n != nil {
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "bad scope node",
-				Primary: []fancyerr.Annotation{
+				Primary: []diagnostic.Annotation{
 					anno.Range(p.File, n.From, n.Until, "unexpected tokens"),
 				},
 			})
@@ -65,7 +65,7 @@ func ScopeNode() parser.Func[ast.ScopeNode] {
 }
 
 func BadScopeNode() parser.Func[*ast.BadScopeNode] {
-	return func(p *parser.Parser) (*ast.BadScopeNode, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.BadScopeNode, *diagnostic.Diagnostic) {
 		var b ast.BadScopeNode
 		b.From = p.Pos()
 
@@ -102,7 +102,7 @@ func BadScopeNode() parser.Func[*ast.BadScopeNode] {
 		parser.RestoreWS(p)
 		b.Until = p.Pos()
 		if b.Until == b.From {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "empty bad scope node",
 				Primary: quickanno.Expected(p, b.From, "a scope node"),
 			}

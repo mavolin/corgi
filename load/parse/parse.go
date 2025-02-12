@@ -3,9 +3,9 @@ package parse
 import (
 	"strings"
 
-	"github.com/mavolin/corgi/v2/fancyerr"
 	"github.com/mavolin/corgi/v2/file"
 	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/file/diagnostic"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	fileparser "github.com/mavolin/corgi/v2/load/parse/internal/file"
 )
@@ -32,7 +32,7 @@ type Options struct {
 // syntax errors.
 // Therefore, Parse may return both a non-nil file and an error, indicating
 // that the passed input is erroneous, but could be recovered from.
-func Parse(input string, o Options) (*file.File, fancyerr.List) {
+func Parse(input string, o Options) (*file.File, diagnostic.List) {
 	lines := strings.Split(input, "\n")
 	for i, line := range lines {
 		last := len(line) - 1

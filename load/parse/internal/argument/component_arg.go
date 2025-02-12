@@ -1,8 +1,8 @@
 package argument
 
 import (
-	"github.com/mavolin/corgi/v2/fancyerr"
 	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/file/diagnostic"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/mavolin/corgi/v2/load/parse/internal/code"
 	"github.com/mavolin/corgi/v2/load/parse/internal/comment"
@@ -12,12 +12,12 @@ import (
 )
 
 func ComponentArgument() parser.Func[*ast.ComponentArgument] {
-	return func(p *parser.Parser) (*ast.ComponentArgument, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.ComponentArgument, *diagnostic.Diagnostic) {
 		var arg ast.ComponentArgument
 
 		arg.Name = parser.TryOptional(p, golang.Identifier(), nil)
 		if arg.Name == nil {
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "component argument: missing name",
 				Primary: quickanno.Expected(p, p.Pos(), "an argument name"),
 			})
@@ -25,7 +25,7 @@ func ComponentArgument() parser.Func[*ast.ComponentArgument] {
 		hasPreColonWS := parser.TrySkip(p, comment.OrHorizontalWhitespace())
 		arg.Colon = parser.TryOptionalRuneAt(p, ':', nil)
 		if arg.Colon == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "component argument: missing colon",
 				Primary: quickanno.Expected(p, p.Pos(), "a colon separating the argument name and value"),
 			}
@@ -33,14 +33,14 @@ func ComponentArgument() parser.Func[*ast.ComponentArgument] {
 		hasPostColonWS := parser.TrySkip(p, comment.OrAnyWhitespace())
 
 		if arg.Name == nil && !hasPostColonWS {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing component argument",
 				Primary: quickanno.Expected(p, p.Pos(), "an argument name"),
 			}
 		}
 
 		if !hasPostColonWS {
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "missing whitespace after colon",
 				Primary: quickanno.Expected(p, *arg.Colon, "a space, tab, or an inline block comment"),
 			})
@@ -57,7 +57,7 @@ func ComponentArgument() parser.Func[*ast.ComponentArgument] {
 		arg.Value = parser.Try(p, code.Expression(code.Regular))
 		if arg.Value == nil {
 			if arg.Name == nil { // only a colon
-				return nil, &fancyerr.Error{
+				return nil, &diagnostic.Diagnostic{
 					Message: "missing component argument",
 					Primary: quickanno.Expected(p, arg.Start(), "a valid component argument"),
 				}
@@ -65,12 +65,12 @@ func ComponentArgument() parser.Func[*ast.ComponentArgument] {
 
 			// just as likely a named argument with a trailing colon
 			if !hasPreColonWS && (parser.MatchesWS(p, whitespace.EOL()) || parser.MatchesAnyRune(p, ',', ')')) {
-				return nil, &fancyerr.Error{
+				return nil, &diagnostic.Diagnostic{
 					Message: "missing component argument",
 					Primary: quickanno.Expected(p, arg.Start(), "a valid component argument"),
 				}
 			}
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "component argument: missing value",
 				Primary: quickanno.Expected(p, pos, "a value for the argument"),
 			})
@@ -88,10 +88,10 @@ func ComponentArgument() parser.Func[*ast.ComponentArgument] {
 					switch prev {
 					case '!', '<', '>', '=':
 					default:
-						return nil, &fancyerr.Error{
+						return nil, &diagnostic.Diagnostic{
 							Message: "missing component argument",
 							Primary: quickanno.Expected(p, arg.Start(), "an argument name"),
-							Hints: []fancyerr.Hint{
+							Hints: []diagnostic.Hint{
 								{Hint: "If this is supposed to be a named attribute, add a space after the colon."},
 							},
 						}

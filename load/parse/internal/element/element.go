@@ -3,9 +3,9 @@ package element
 import (
 	"fmt"
 
-	"github.com/mavolin/corgi/v2/fancyerr"
-	"github.com/mavolin/corgi/v2/fancyerr/anno"
 	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/file/diagnostic"
+	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/mavolin/corgi/v2/load/parse/internal/argument"
 	"github.com/mavolin/corgi/v2/load/parse/internal/body"
@@ -16,12 +16,12 @@ import (
 )
 
 func Doctype() parser.Func[*ast.Doctype] {
-	return func(p *parser.Parser) (*ast.Doctype, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.Doctype, *diagnostic.Diagnostic) {
 		var d ast.Doctype
 
 		d.Doctype = parser.TryTokenAt(p, "!doctype")
 		if d.Doctype == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing doctype",
 				Primary: quickanno.Expected(p, p.Pos(), "a doctype"),
 			}
@@ -31,59 +31,59 @@ func Doctype() parser.Func[*ast.Doctype] {
 		args := parser.Try(p, argument.Arguments())
 		d.LParen, d.RParen = args.LParen, args.RParen
 		if args == nil {
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "doctype: missing html attribute",
 				Primary: quickanno.Expected(p, p.Pos(), "`(html)`"),
-				Examples: []fancyerr.Example{
+				Examples: []diagnostic.Example{
 					{Example: "`!doctype(html)`"},
 				},
 			})
 			return &d, nil
 		}
 		if len(args.Args) == 0 {
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "doctype: missing html attribute",
 				Primary: quickanno.Expected(p, *args.LParen, "an html attribute"),
 			})
 		} else if len(args.Args) == 1 {
 			attr, ok := args.Args[0].(*ast.NamedAttribute)
 			if !ok {
-				p.CaptureError(&fancyerr.Error{
+				p.CaptureError(&diagnostic.Diagnostic{
 					Message: "doctype: invalid html attribute",
-					Primary: []fancyerr.Annotation{
+					Primary: []diagnostic.Annotation{
 						anno.Range(p.File, args.Args[0].Start(), args.Args[0].End(), "expected `html`, not this"),
 					},
-					Examples: []fancyerr.Example{{Example: "`!doctype(html)`"}},
+					Examples: []diagnostic.Example{{Example: "`!doctype(html)`"}},
 				})
 			} else {
 				d.HTML = new(ast.Position)
 				*d.HTML = attr.Name.Start()
 				if attr.Name.Package != nil || attr.Name.Name.Name != "html" {
 					d.HTML = nil
-					p.CaptureError(&fancyerr.Error{
+					p.CaptureError(&diagnostic.Diagnostic{
 						Message: "doctype: missing html attribute",
-						Primary: []fancyerr.Annotation{
+						Primary: []diagnostic.Annotation{
 							anno.Range(p.File, attr.Name.Start(), attr.Name.End(), "expected `html`, not this"),
 						},
-						Examples: []fancyerr.Example{{Example: "`!doctype(html)`"}},
+						Examples: []diagnostic.Example{{Example: "`!doctype(html)`"}},
 					})
 				} else if attr.EqualSign != nil {
-					p.CaptureError(&fancyerr.Error{
+					p.CaptureError(&diagnostic.Diagnostic{
 						Message: "doctype: html attribute: unexpected value",
-						Primary: []fancyerr.Annotation{
+						Primary: []diagnostic.Annotation{
 							anno.Range(p.File, *attr.EqualSign, attr.End(), "remove this invalid value"),
 						},
-						Examples: []fancyerr.Example{{Example: "`!doctype(html)`"}},
+						Examples: []diagnostic.Example{{Example: "`!doctype(html)`"}},
 					})
 				}
 			}
 		} else {
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "doctype: too many attributes",
-				Primary: []fancyerr.Annotation{
+				Primary: []diagnostic.Annotation{
 					anno.Range(p.File, args.Args[0].Start(), args.Args[len(args.Args)-1].End(), "only a single `html` attribute"),
 				},
-				Examples: []fancyerr.Example{{Example: "`!doctype(html)`"}},
+				Examples: []diagnostic.Example{{Example: "`!doctype(html)`"}},
 			})
 		}
 		d.RParen = args.RParen
@@ -93,12 +93,12 @@ func Doctype() parser.Func[*ast.Doctype] {
 }
 
 func Element() parser.Func[*ast.Element] {
-	return func(p *parser.Parser) (*ast.Element, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.Element, *diagnostic.Diagnostic) {
 		var e ast.Element
 
 		e.Header = parser.Try(p, Header())
 		if e.Header == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing element",
 				Primary: quickanno.Expected(p, p.Pos(), "an element"),
 			}
@@ -111,12 +111,12 @@ func Element() parser.Func[*ast.Element] {
 }
 
 func Header() parser.Func[*ast.ElementHeader] {
-	return func(p *parser.Parser) (*ast.ElementHeader, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.ElementHeader, *diagnostic.Diagnostic) {
 		var h ast.ElementHeader
 
 		h.Name = parser.Try(p, Reference())
 		if h.Name == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing element header",
 				Primary: quickanno.Expected(p, p.Pos(), "an element name"),
 			}
@@ -131,7 +131,7 @@ func Header() parser.Func[*ast.ElementHeader] {
 }
 
 func Reference() parser.Func[*ast.ElementReference] {
-	return func(p *parser.Parser) (*ast.ElementReference, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.ElementReference, *diagnostic.Diagnostic) {
 		var ref ast.ElementReference
 
 		state := p.CloneState()
@@ -143,14 +143,14 @@ func Reference() parser.Func[*ast.ElementReference] {
 			p.RestoreState(state)
 		} else {
 			if ref.Package == nil {
-				p.CaptureError(&fancyerr.Error{
+				p.CaptureError(&diagnostic.Diagnostic{
 					Message: "attribute reference: missing package name",
 					Primary: quickanno.Expected(p, p.Pos(), "a package name before the `.`"),
 				})
 			}
 		}
 
-		var err *fancyerr.Error
+		var err *diagnostic.Diagnostic
 		ref.Name, err = parser.TryErr(p, Name())
 		if err != nil {
 			return nil, err
@@ -160,13 +160,13 @@ func Reference() parser.Func[*ast.ElementReference] {
 }
 
 func Name() parser.Func[*ast.ElementName] {
-	return func(p *parser.Parser) (*ast.ElementName, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.ElementName, *diagnostic.Diagnostic) {
 		var n ast.ElementName
 		n.Position = p.PosPtr()
 
 		n.Name = parser.Try(p, html.TagName())
 		if n.Name == "" {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing element name",
 				Primary: quickanno.Expected(p, *n.Position, "an html element name"),
 			}
@@ -177,12 +177,12 @@ func Name() parser.Func[*ast.ElementName] {
 }
 
 func Raw() parser.Func[*ast.RawElement] {
-	return func(p *parser.Parser) (*ast.RawElement, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.RawElement, *diagnostic.Diagnostic) {
 		var e ast.RawElement
 
 		e.Raw = parser.TryTokenAt(p, "!raw")
 		if e.Raw == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing raw element",
 				Primary: quickanno.Expected(p, p.Pos(), "a raw element"),
 			}
@@ -191,9 +191,9 @@ func Raw() parser.Func[*ast.RawElement] {
 
 		args := parser.TryOptional(p, argument.Arguments(), comment.OrHorizontalWhitespace())
 		if args != nil {
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "raw element: unexpected attributes",
-				Primary: []fancyerr.Annotation{
+				Primary: []diagnostic.Annotation{
 					anno.Range(p.File, args.Start(), args.End(), "remove these attributes"),
 				},
 				Explanation: "Only the body of a `!raw` element is rendered, but not the `!raw` element itself. " +
@@ -206,16 +206,16 @@ func Raw() parser.Func[*ast.RawElement] {
 		if e.Body == nil {
 			b := parser.Try(p, body.Body())
 			if b != nil {
-				p.CaptureError(&fancyerr.Error{
+				p.CaptureError(&diagnostic.Diagnostic{
 					Message: "raw element: non-bracket-text body",
-					Primary: []fancyerr.Annotation{
+					Primary: []diagnostic.Annotation{
 						anno.Range(p.File, b.Start(), b.End(), fmt.Sprintf("expected bracket text, not %T", b)),
 					},
 					Explanation: "Because of their nature, `!raw` elements only support bracket text bodies.`",
 					Docs:        "!raw-element",
 				})
 			} else {
-				p.CaptureError(&fancyerr.Error{
+				p.CaptureError(&diagnostic.Diagnostic{
 					Message: "raw element: missing body",
 					Primary: quickanno.Expected(p, *e.Raw, "brace text"),
 				})
@@ -227,12 +227,12 @@ func Raw() parser.Func[*ast.RawElement] {
 }
 
 func And() parser.Func[*ast.And] {
-	return func(p *parser.Parser) (*ast.And, *fancyerr.Error) {
+	return func(p *parser.Parser) (*ast.And, *diagnostic.Diagnostic) {
 		var a ast.And
 
 		a.And = parser.TryTokenAt(p, "&")
 		if a.And == nil {
-			return nil, &fancyerr.Error{
+			return nil, &diagnostic.Diagnostic{
 				Message: "missing &-attributes",
 				Primary: quickanno.Expected(p, p.Pos(), "&"),
 			}
@@ -241,10 +241,10 @@ func And() parser.Func[*ast.And] {
 
 		a.Attributes = parser.Try(p, argument.Arguments())
 		if a.Attributes == nil {
-			p.CaptureError(&fancyerr.Error{
+			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "&-attributes: missing attributes",
 				Primary: quickanno.Expected(p, p.Pos(), "attributes"),
-				Examples: []fancyerr.Example{
+				Examples: []diagnostic.Example{
 					{Example: "`&(aria-label=\"woof\")`"},
 				},
 			})

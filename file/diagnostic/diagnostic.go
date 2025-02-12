@@ -1,14 +1,18 @@
-// Package fancyerr produces preformatted errors/warnings/etc
-package fancyerr
+// Package diagnostic produces preformatted errors/warnings/etc
+package diagnostic
 
 import (
 	"fmt"
 
-	"github.com/mavolin/corgi/file"
+	"github.com/mavolin/corgi/v2/file"
+	"github.com/mavolin/corgi/v2/file/ast"
 )
 
 type (
-	// Error is an optionally annotated error.
+	line = int
+	col  = int
+
+	// Diagnostic is an optionally annotated error.
 	//
 	// It must have a message.
 	//
@@ -24,9 +28,9 @@ type (
 	// new paragraph or to separate different thoughts.
 	//
 	// Wrap code in backticks, e.g. `code`.
-	Error struct {
-		// Type of error, used in the header, e.g. "error", "warning", "lint"
-		// etc.
+	Diagnostic struct {
+		// Type of diagnostic, used in the header, e.g. "error", "warning",
+		// "lint" etc.
 		// The empty string is equivalent to "error".
 		Type    Type
 		Message string // e.g. "missing type"
@@ -47,7 +51,7 @@ type (
 		// Cause is the optional cause of the error.
 		//
 		// Rendered as:
-		//  Cause: #{err.Cause.Error()}
+		//  Cause: #{diagnostic.Cause.Error()}
 		Cause error
 
 		// Explanation is a longer explanation of the error.
@@ -113,7 +117,7 @@ type (
 		// We can expect common sense.
 		//
 		// Rendered as:
-		//  See: #{baseURL}/#{err.Docs}
+		//  See: #{baseURL}/#{diagnostic.Docs}
 		Docs string
 	}
 
@@ -128,10 +132,7 @@ type (
 		// the component was called.
 		//
 		// ContextStart is inclusive and ContextEnd is exclusive.
-		ContextStart, ContextEnd int
-		// Line is the line of the annotation.
-		// It must lie between ContextStart and ContextEnd.
-		Line int
+		ContextStart, ContextEnd line
 		// Start and End specify the col range to be highlighted.
 		//
 		// Note that Start and End may exceed the actual line length.
@@ -140,7 +141,7 @@ type (
 		// a line.
 		//
 		// Start is inclusive and End is exclusive.
-		Start, End int
+		Start, End ast.Position
 		Annotation string // optional
 	}
 
@@ -158,16 +159,24 @@ type (
 type Type string
 
 const (
-	TypeError   Type = "error"
-	TypeWarning Type = "warning"
-	TypeLint    Type = "lint"
+	Error   Type = "error"
+	Warning Type = "warning"
+	Lint    Type = "lint"
 )
 
-func (err *Error) Error() string {
-	if len(err.Primary) > 0 {
-		f := err.Primary[0]
-		return fmt.Sprint(f.File.PathInModule, ":", f.Line, ":", f.Start, ": ", err.Message)
+func (d *Diagnostic) Short() string {
+	typ := d.Type
+	if typ == "" {
+		typ = Error
+	}
+	return fmt.Sprint(typ, ": ", d.Message)
+}
+
+func (d *Diagnostic) Error() string {
+	if len(d.Primary) > 0 {
+		f := d.Primary[0]
+		return fmt.Sprint(f.File.PathInModule, ":", f.Start, ": ", d.Message)
 	}
 
-	return err.Message
+	return d.Message
 }

@@ -1,7 +1,7 @@
 package golang
 
 import (
-	"github.com/mavolin/corgi/v2/fancyerr"
+	"github.com/mavolin/corgi/v2/file/diagnostic"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/mavolin/corgi/v2/load/parse/internal/comment"
 	"github.com/mavolin/corgi/v2/load/parse/internal/quickanno"
@@ -42,7 +42,7 @@ func IsKeyword(s string) bool { // https://go.dev/ref/spec#Keywords
 }
 
 func Keyword() parser.Func[string] {
-	return func(p *parser.Parser) (string, *fancyerr.Error) {
+	return func(p *parser.Parser) (string, *diagnostic.Diagnostic) {
 		switch {
 		case parser.TryToken(p, "break") && parser.MatchesWS(p, comment.OrHorizontalWhitespace()):
 			return "break", nil
@@ -95,7 +95,7 @@ func Keyword() parser.Func[string] {
 		case parser.TryToken(p, "var") && parser.MatchesWS(p, comment.OrAnyWhitespace()):
 			return "var", nil
 		default:
-			return "", &fancyerr.Error{
+			return "", &diagnostic.Diagnostic{
 				Message: "missing keyword",
 				Primary: quickanno.Expected(p, p.Pos(), "a keyword"),
 			}

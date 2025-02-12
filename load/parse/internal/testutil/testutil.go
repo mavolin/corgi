@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mavolin/corgi/v2/fancyerr"
 	"github.com/mavolin/corgi/v2/file"
 	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/file/diagnostic"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/stretchr/testify/assert"
 )
@@ -119,7 +119,7 @@ func AssertPosition(t *testing.T, p *parser.Parser, line, col, index int) {
 }
 
 func CoerceFunc[I, O any](t *testing.T, in parser.Func[I]) parser.Func[O] {
-	return func(p *parser.Parser) (O, *fancyerr.Error) {
+	return func(p *parser.Parser) (O, *diagnostic.Diagnostic) {
 		var zero O
 
 		v, err := in(p)
@@ -129,7 +129,7 @@ func CoerceFunc[I, O any](t *testing.T, in parser.Func[I]) parser.Func[O] {
 
 		t, ok := any(v).(O)
 		if !ok {
-			return zero, &fancyerr.Error{
+			return zero, &diagnostic.Diagnostic{
 				Message: fmt.Sprintf("expected %T, found %T", zero, v),
 			}
 		}

@@ -3,8 +3,8 @@ package code
 import (
 	"testing"
 
-	"github.com/mavolin/corgi/v2/fancyerr"
 	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/file/diagnostic"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/mavolin/corgi/v2/load/parse/internal/testutil"
 	"github.com/stretchr/testify/assert"
@@ -15,7 +15,7 @@ func TestStatement(t *testing.T) {
 
 	testutil.AssertAlsoFulfils(t, ParsedStatement(), testParsedStatement)
 	testutil.AssertAlsoFulfils(t, Statement(Regular), func(t *testing.T, f parser.Func[*ast.Statement]) {
-		testSimpleStatement(t, func(p *parser.Parser) (*ast.SimpleStatement, *fancyerr.Error) {
+		testSimpleStatement(t, func(p *parser.Parser) (*ast.SimpleStatement, *diagnostic.Diagnostic) {
 			s, err := f(p)
 			if err != nil {
 				return nil, err
@@ -55,7 +55,7 @@ func testParsedStatement(t *testing.T, f parser.Func[*ast.Statement]) {
 
 func parsedStatementAsStatement[PS ast.ParsedStatement](subTest func(*testing.T, parser.Func[PS])) func(*testing.T, parser.Func[*ast.Statement]) {
 	return func(t *testing.T, f parser.Func[*ast.Statement]) {
-		subTest(t, func(p *parser.Parser) (PS, *fancyerr.Error) {
+		subTest(t, func(p *parser.Parser) (PS, *diagnostic.Diagnostic) {
 			var zero PS
 
 			s, err := f(p)
@@ -64,7 +64,7 @@ func parsedStatementAsStatement[PS ast.ParsedStatement](subTest func(*testing.T,
 			}
 
 			if s.Parsed == nil {
-				return zero, &fancyerr.Error{
+				return zero, &diagnostic.Diagnostic{
 					Message: "missing parsed statement",
 				}
 			}
@@ -97,7 +97,7 @@ func testParsedSimpleStatement(t *testing.T, f parser.Func[*ast.SimpleStatement]
 
 func parsedSimpleStatementAsSimpleStatement[PS ast.ParsedSimpleStatement](subTest func(*testing.T, parser.Func[PS])) func(*testing.T, parser.Func[*ast.SimpleStatement]) {
 	return func(t *testing.T, f parser.Func[*ast.SimpleStatement]) {
-		subTest(t, func(p *parser.Parser) (PS, *fancyerr.Error) {
+		subTest(t, func(p *parser.Parser) (PS, *diagnostic.Diagnostic) {
 			var zero PS
 
 			s, err := f(p)
@@ -106,7 +106,7 @@ func parsedSimpleStatementAsSimpleStatement[PS ast.ParsedSimpleStatement](subTes
 			}
 
 			if s.Parsed == nil {
-				return zero, &fancyerr.Error{
+				return zero, &diagnostic.Diagnostic{
 					Message: "missing parsed statement",
 				}
 			}
