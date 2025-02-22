@@ -195,15 +195,10 @@ func (p *prettyPrinter) printFiles() {
 		if i == 0 {
 			p.box("╭─ ")
 		} else {
-			p.box("│\n")
 			p.skip(p.nDigits + 1)
 			p.box("├─ ")
 		}
 		p.colored(p.o.FileNamePrinter(f.file)+":"+f.annos[0].Start.String(), color.FgWhite, color.Bold)
-		p.uncolored("\n")
-		p.skip(p.nDigits + 1)
-		p.box("│")
-
 		p.printFile(f)
 	}
 }

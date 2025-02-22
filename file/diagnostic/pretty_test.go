@@ -110,9 +110,7 @@ func TestDiagnostic_Pretty(t *testing.T) {
 			},
 			expectShort: "error: foo",
 			expectPretty: "error: foo\n" +
-				"\n" +
 				"  ╭─ ./foo.corgi:1:1\n" +
-				"  │\n" +
 				"1 │ package foo\n" +
 				"  │ ^^^^^^^^^^^ package",
 		}, {
@@ -126,9 +124,7 @@ func TestDiagnostic_Pretty(t *testing.T) {
 			},
 			expectShort: "error: foo",
 			expectPretty: "error: foo\n" +
-				"\n" +
 				"  ╭─ ./foo.corgi:1:1\n" +
-				"  │\n" +
 				"1 │ package foo\n" +
 				"  │ ^^^^^^^ ^^^ package name\n" +
 				"  │ ╰ package word",
@@ -149,9 +145,7 @@ func TestDiagnostic_Pretty(t *testing.T) {
 			},
 			expectShort: "error: foo",
 			expectPretty: "error: foo\n" +
-				"\n" +
 				"  ╭─ ./foo.corgi:1:1\n" +
-				"  │\n" +
 				"1 │ package foo\n" +
 				"  │ ^^^^^^^^^^^\n" +
 				"  │ ╰ bar\n" +
@@ -161,7 +155,7 @@ func TestDiagnostic_Pretty(t *testing.T) {
 			diag: &Diagnostic{
 				Message: "foo",
 				Primary: []Annotation{
-					Annotation{
+					{
 						File:         f,
 						ContextStart: 1,
 						ContextEnd:   4,
@@ -173,9 +167,7 @@ func TestDiagnostic_Pretty(t *testing.T) {
 			},
 			expectShort: "error: foo",
 			expectPretty: "error: foo\n" +
-				"\n" +
 				"  ╭─ ./foo.corgi:1:1\n" +
-				"  │\n" +
 				"1 │ package foo\n" +
 				"  │ ^^^^^^^^^^^ package\n" +
 				"2 │ \n" +
@@ -189,9 +181,7 @@ func TestDiagnostic_Pretty(t *testing.T) {
 			},
 			expectShort: "error: foo",
 			expectPretty: "error: foo\n" +
-				"\n" +
 				"  ╭─ ./foo.corgi:1:1\n" +
-				"  │\n" +
 				"1 │ package foo\n" +
 				"  │ ^^^^^^^^^^^ package\n" +
 				"2 │ \n" +
@@ -351,9 +341,7 @@ func TestDiagnostic_Pretty(t *testing.T) {
 			},
 			expectShort: "error: foo",
 			expectPretty: "error: foo\n" +
-				"\n" +
 				"  ╭─ ./foo.corgi:1:1\n" +
-				"  │\n" +
 				"1 │ package foo\n" +
 				"  │ ^^^^^^^^^^^ package\n" +
 				"2 │ \n" +
