@@ -180,7 +180,7 @@ func (p *prettyPrinter) printMessage() {
 	}
 	p.colored(string(typ)+":", color.Bold, p.o.typeColor(typ))
 	p.uncolored(" ")
-	p.colored(p.diagnostic.Message, color.Bold)
+	p.printText(p.diagnostic.Message, len(typ)+len(": "), false, color.Bold)
 }
 
 func (p *prettyPrinter) printFiles() {
@@ -198,7 +198,7 @@ func (p *prettyPrinter) printFiles() {
 			p.skip(p.nDigits + 1)
 			p.box("├─ ")
 		}
-		p.colored(p.o.FileNamePrinter(f.file)+":"+f.annos[0].Start.String(), color.FgWhite, color.Bold)
+		p.colored(p.o.FileNamePrinter(f.file)+":"+f.annos[0].Start.String(), color.Bold)
 		p.printFile(f)
 	}
 }
@@ -209,7 +209,7 @@ func (p *prettyPrinter) printFile(f *fileAnnos) {
 			p.uncolored("\n")
 			p.skip(p.nDigits + 1)
 			p.box("┆ ")
-			p.colored("...", color.FgWhite)
+			p.colored("...", color.FgWhite, color.Faint)
 		}
 
 		p.printLineRange(f, lr)
@@ -325,7 +325,7 @@ func (p *prettyPrinter) printAnnotations(as []annotation) {
 		p.printLineStart(-1)
 		p.skip(start - 1 - offset)
 		p.colored("╰ ", p.annoColor(current))
-		p.printText(current.Annotation.Annotation, start-1-offset+len("| "), true, color.Bold, p.annoColor(current))
+		p.printText(current.Annotation.Annotation, p.nDigits+len(" |")+start-offset+len("| "), true, color.Bold, p.annoColor(current))
 	}
 }
 
@@ -335,7 +335,7 @@ func (p *prettyPrinter) shouldInline(lnNo line, a annotation) bool {
 	}
 
 	markerEnd := p.nDigits + len(" | ") + a.End.Col
-	return markerEnd+len(" ")+p.renderedTextLength(a.Annotation.Annotation) < p.o.Width
+	return markerEnd+len(" ")+p.renderedTextLength(a.Annotation.Annotation) <= p.o.Width
 }
 
 func (p *prettyPrinter) printCause() {
@@ -416,7 +416,7 @@ func (p *prettyPrinter) printExamples() {
 		p.printText(example.Example, indent, false)
 		if !needHeadline && hasTitle {
 			p.skip(titleIndent - indent - p.renderedTextLength(example.Example))
-			p.colored("("+example.Title+")", color.FgWhite, color.Bold)
+			p.colored("("+example.Title+")", color.Bold)
 		}
 	}
 }
@@ -478,7 +478,7 @@ func (p *prettyPrinter) colored(text string, attrs ...color.Attribute) {
 }
 
 func (p *prettyPrinter) box(b string) {
-	p.colored(b, color.FgWhite)
+	p.colored(b, color.FgWhite, color.Faint)
 }
 
 func (p *prettyPrinter) printLineStart(ln line) {
@@ -490,7 +490,7 @@ func (p *prettyPrinter) printLineStart(ln line) {
 
 	n := numDigits(ln)
 	p.skip(p.nDigits - n)
-	p.colored(fmt.Sprint(ln), color.FgWhite)
+	p.colored(fmt.Sprint(ln), color.FgWhite, color.Faint)
 	p.box(" │ ")
 }
 
@@ -527,9 +527,12 @@ func (p *prettyPrinter) printText(text string, indent int, needLineStart bool, s
 
 	var inCode bool
 	var forceWrite bool
-	col := 1
+	col := indent + 1
 	for i, r := range text {
 		wordEnd := strings.IndexAny(text[i:], " \n")
+		if wordEnd < 0 {
+			wordEnd = len(text) - i
+		}
 		if col+wordEnd > p.o.Width && !forceWrite || r == '\n' {
 			if inCode {
 				code.UnsetWriter(p.sb)
@@ -546,11 +549,11 @@ func (p *prettyPrinter) printText(text string, indent int, needLineStart bool, s
 			} else {
 				regular.SetWriter(p.sb)
 			}
-			col = 1
+			col = indent + 1
 			if r == '\n' {
 				continue
 			}
-			forceWrite = true
+			// forceWrite = true
 		} else {
 			forceWrite = false
 		}
