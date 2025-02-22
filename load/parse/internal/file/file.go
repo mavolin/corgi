@@ -109,6 +109,7 @@ func File() parser.Func[struct{}] {
 				}
 			}
 		}
+		parser.TrySkip(p, comment.OrAnyWhitespace())
 		p.File.TopLevel = parser.Must(p, TopLevel())
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 		p.File.Comments = p.CloneState().Comments()

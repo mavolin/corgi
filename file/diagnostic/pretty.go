@@ -188,7 +188,7 @@ func (p *prettyPrinter) printFiles() {
 		return
 	}
 
-	p.uncolored("\n\n")
+	p.uncolored("\n")
 
 	for i, f := range p.files {
 		p.skip(p.nDigits + 1)
@@ -199,7 +199,7 @@ func (p *prettyPrinter) printFiles() {
 			p.skip(p.nDigits + 1)
 			p.box("├─ ")
 		}
-		p.colored(p.o.FileNamePrinter(f.file)+":"+f.annos[0].Start.String(), color.Bold, color.Faint)
+		p.colored(p.o.FileNamePrinter(f.file)+":"+f.annos[0].Start.String(), color.FgWhite, color.Bold)
 		p.uncolored("\n")
 		p.skip(p.nDigits + 1)
 		p.box("│")
@@ -214,7 +214,7 @@ func (p *prettyPrinter) printFile(f *fileAnnos) {
 			p.uncolored("\n")
 			p.skip(p.nDigits + 1)
 			p.box("┆ ")
-			p.colored("...", color.Faint)
+			p.colored("...", color.FgWhite)
 		}
 
 		p.printLineRange(f, lr)
@@ -421,7 +421,7 @@ func (p *prettyPrinter) printExamples() {
 		p.printText(example.Example, indent, false)
 		if !needHeadline && hasTitle {
 			p.skip(titleIndent - indent - p.renderedTextLength(example.Example))
-			p.colored("("+example.Title+")", color.Faint, color.Bold)
+			p.colored("("+example.Title+")", color.FgWhite, color.Bold)
 		}
 	}
 }
@@ -483,7 +483,7 @@ func (p *prettyPrinter) colored(text string, attrs ...color.Attribute) {
 }
 
 func (p *prettyPrinter) box(b string) {
-	p.colored(b, color.Faint)
+	p.colored(b, color.FgWhite)
 }
 
 func (p *prettyPrinter) printLineStart(ln line) {
@@ -495,7 +495,7 @@ func (p *prettyPrinter) printLineStart(ln line) {
 
 	n := numDigits(ln)
 	p.skip(p.nDigits - n)
-	p.colored(fmt.Sprint(ln), color.Faint)
+	p.colored(fmt.Sprint(ln), color.FgWhite)
 	p.box(" │ ")
 }
 

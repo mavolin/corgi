@@ -1,0 +1,196 @@
+package command
+
+import (
+	"flag"
+	"fmt"
+	"io"
+	"os"
+	"slices"
+	"strings"
+)
+
+type (
+	Cmd struct {
+		Parent *Cmd
+		Meta
+		Commands []*Cmd
+		flags    *flag.FlagSet
+		run      func(args []string)
+	}
+
+	Meta struct {
+		Name             string
+		ArgUsages        []string
+		ShortDescription string
+		LongDescription  string
+	}
+
+	Flags interface {
+		comparable
+		Bind(s *flag.FlagSet)
+	}
+)
+
+type NoFlags struct{}
+
+func (NoFlags) Bind(*flag.FlagSet) {}
+
+func Group(meta Meta, cmds ...*Cmd) *Cmd {
+	c := &Cmd{
+		Meta:     meta,
+		Commands: cmds,
+	}
+	for _, sub := range cmds {
+		sub.Parent = c
+	}
+	return c
+}
+
+func Command[F Flags](meta Meta, flags F, run func(cmd *Cmd, flags F, args []string)) *Cmd {
+	c := &Cmd{Meta: meta}
+	var flagZero F
+	if flags != flagZero {
+		c.flags = flag.NewFlagSet(meta.Name, flag.ExitOnError)
+		c.flags.Usage = func() {
+			c.Usage(os.Stderr)
+		}
+		flags.Bind(c.flags)
+	}
+
+	c.run = func(args []string) {
+		if c.flags != nil {
+			if err := c.flags.Parse(args); err != nil {
+				fmt.Fprintln(os.Stderr, err.Error())
+				os.Exit(2)
+			}
+		}
+		run(c, flags, c.flags.Args())
+	}
+	return c
+}
+
+func (c *Cmd) Run(args []string) {
+	if c.run != nil {
+		c.run(args)
+		return
+	}
+
+	if len(args) == 0 {
+		c.Usage(os.Stderr)
+		return
+	}
+
+	for _, cmd := range c.Commands {
+		if args[0] == cmd.Name {
+			cmd.Run(args[1:])
+			return
+		}
+	}
+
+	c.Usage(os.Stderr)
+}
+
+func (c *Cmd) FullName() string {
+	var n int
+
+	cmds := make([]*Cmd, 0, 8)
+	cmd := c
+	for cmd != nil {
+		cmds = append(cmds, cmd)
+		n += len(cmd.Name)
+		cmd = cmd.Parent
+	}
+	n += len(cmds) - 1
+
+	var sb strings.Builder
+	sb.Grow(n)
+
+	for i, cmd := range slices.Backward(cmds) {
+		if i > 0 {
+			sb.WriteByte(' ')
+		}
+		sb.WriteString(cmd.Name)
+	}
+	return sb.String()
+}
+
+var indent = strings.Repeat(" ", 3)
+
+func (c *Cmd) Usage(w io.Writer) {
+	fmt.Fprintln(w, c.LongDescription)
+	fmt.Fprintln(w)
+
+	name := c.FullName()
+
+	if len(c.Commands) > 0 {
+		fmt.Fprintln(w, "Usage:")
+		fmt.Fprintln(w, indent, name, " <command> [arguments...]")
+		fmt.Fprintln(w)
+		fmt.Fprintln(w, "Commands:")
+
+		var maxCmdWidth int
+		for _, c := range c.Commands {
+			if len(c.Name) > maxCmdWidth {
+				maxCmdWidth = len(c.Name)
+			}
+		}
+
+		for _, c := range c.Commands {
+			fmt.Fprintln(w, indent, c.Name, "  ", strings.Repeat(" ", maxCmdWidth-len(c.Name)), c.ShortDescription)
+		}
+		return
+	}
+
+	if len(c.ArgUsages) == 1 {
+		fmt.Fprintln(w, "Usage:")
+	} else {
+		fmt.Fprintln(w, "Usages:")
+	}
+	for _, u := range c.ArgUsages {
+		fmt.Fprint(w, indent)
+		if c.flags == nil {
+			fmt.Fprintln(w, name, " ", u)
+		} else {
+			fmt.Fprintln(w, name, " [flags] ", u)
+		}
+	}
+
+	var maxWidth int
+	c.flags.VisitAll(func(f *flag.Flag) {
+		h, _ := flagHeader(f)
+		if len(h) > maxWidth {
+			maxWidth = len(h)
+		}
+	})
+
+	if maxWidth == 0 {
+		return
+	}
+
+	fmt.Fprintln(w)
+	fmt.Fprintln(w, "Flags:")
+	c.flags.VisitAll(func(f *flag.Flag) {
+		header, usage := flagHeader(f)
+		fmt.Fprintln(w, indent, header, "  ", strings.Repeat(" ", maxWidth-len(header)), indented(len(indent)+maxWidth+len("  "), usage))
+	})
+}
+
+func flagHeader(f *flag.Flag) (string, string) {
+	var b strings.Builder
+
+	b.WriteByte('-')
+	b.WriteString(f.Name)
+
+	name, usage := flag.UnquoteUsage(f)
+	if len(name) > 0 {
+		b.WriteByte(' ')
+		b.WriteString(strings.ToLower(name))
+	}
+
+	return b.String(), usage
+}
+
+func indented(indent int, s string) string {
+	idt := strings.Repeat(" ", indent)
+	return strings.ReplaceAll(s, "\n", "\n"+idt)
+}

@@ -16,6 +16,7 @@ import (
 // Not actually in the Go spec, but for our convenience.
 type FullIdent interface {
 	Node
+	Full() string
 	_fullIdent()
 }
 
@@ -48,6 +49,7 @@ func (ident *Ident) End() Position {
 	return Position{}
 }
 func (ident *Ident) Walk(func(Node)) {}
+func (ident *Ident) Full() string    { return ident.Ident }
 
 func (*Ident) _node()      {}
 func (*Ident) _fullIdent() {}
@@ -90,6 +92,30 @@ func (ident *QualifiedIdent) Walk(w func(Node)) {
 	if ident.Name != nil {
 		w(ident.Name)
 	}
+}
+func (ident *QualifiedIdent) Full() string {
+	if ident.Package != nil {
+		if ident.Dot != nil {
+			if ident.Name != nil {
+				return ident.Package.Ident + "." + ident.Name.Ident
+			}
+			return ident.Package.Ident + "."
+		}
+		if ident.Name != nil {
+			return ident.Package.Ident + " " + ident.Name.Ident
+		}
+		return ident.Package.Ident
+	}
+	if ident.Dot != nil {
+		if ident.Name != nil {
+			return "." + ident.Name.Ident
+		}
+		return "."
+	}
+	if ident.Name != nil {
+		return ident.Name.Ident
+	}
+	return ""
 }
 
 func (*QualifiedIdent) _node()      {}

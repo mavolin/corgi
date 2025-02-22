@@ -57,10 +57,7 @@ type Position struct {
 	Col  int
 }
 
-func (p *Position) String() string {
-	if p == nil {
-		return "<no position>"
-	}
+func (p Position) String() string {
 	return fmt.Sprintf("%d:%d", p.Line, p.Col)
 }
 

@@ -28,7 +28,7 @@ func (l List) Pretty(o PrettyOptions) string {
 	sb.Grow(len(l) * 1024)
 	for i, d := range l {
 		if i > 0 {
-			sb.WriteString("\n\n\n\n")
+			sb.WriteString("\n\n\n")
 		}
 
 		d.pretty(&sb, o)
