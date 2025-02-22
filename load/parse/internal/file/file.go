@@ -59,6 +59,8 @@ func scopeNode(p *parser.Parser) (ast.ScopeNode, *diagnostic.Diagnostic) {
 		return n, nil
 	} else if n := parser.Try(p, element.Raw()); n != nil {
 		return n, nil
+	} else if n := parser.Try(p, component.Call()); n != nil {
+		return n, nil
 	}
 
 	if b := parser.Try(p, code.Else()); b != nil {
