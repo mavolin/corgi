@@ -201,7 +201,7 @@ func TypeName() parser.Func[*ast.ElementTypeName] {
 					anno.Range(p.File, name.Start(), name.End(), "not a valid type name"),
 				},
 				Hints: []diagnostic.Hint{
-					{Hint: "Valid type names are: `void`, `nothing`, `text`, `css`, `js`"},
+					{Hint: "Valid type names are: `void`, `nothing`, `normal`, `text`, `css`, `js`"},
 				},
 			})
 		}
