@@ -223,13 +223,14 @@ func goCode(o Options) parser.Func[*codeResult] {
 					}
 				}
 				break
+			} else if parser.TryAnyToken(p, "==", "!=", ">=", "<=") != "" {
+				continue
 			} else if parser.MatchesAnyRune(p, parser.EOF) {
 				break
 			}
 			if len(parenStack) == 0 {
 				if !o.statements() &&
-					(parser.MatchesAnyRune(p, ',', ':') ||
-						(!parser.MatchesToken(p, "==") && parser.Matches(p, golang.AssignOp()))) {
+					(parser.MatchesAnyRune(p, ',', ':') || parser.Matches(p, golang.AssignOp())) {
 					p.RestoreState(state)
 					break
 				} else if parser.MatchesAnyRune(p, ';', '?') || parser.MatchesToken(p, "--") || parser.MatchesToken(p, "++") {

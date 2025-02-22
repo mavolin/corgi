@@ -124,7 +124,7 @@ func parsedStatement(o Options) parser.Func[*ast.Statement] {
 				Code:   IncDecAsCode(incDec),
 				Parsed: incDec,
 			}, nil
-		} else if a := parser.Try(p, assignment(e)); a != nil {
+		} else if a := parser.Try(p, assignment(e, o)); a != nil {
 			return &ast.Statement{
 				Code:   AssignmentAsCode(a),
 				Parsed: a,
@@ -215,7 +215,7 @@ func parsedSimpleStatement(o Options) parser.Func[*ast.SimpleStatement] {
 				Code:   IncDecAsCode(incDec),
 				Parsed: incDec,
 			}, nil
-		} else if a := parser.Try(p, assignment(e)); a != nil {
+		} else if a := parser.Try(p, assignment(e, o)); a != nil {
 			return &ast.SimpleStatement{
 				Code:   AssignmentAsCode(a),
 				Parsed: a,
@@ -1043,10 +1043,10 @@ func LabelAsCode(l *ast.Label) ast.Code {
 }
 
 func Assignment() parser.Func[*ast.Assignment] {
-	return assignment(nil)
+	return assignment(nil, Regular)
 }
 
-func assignment(e *ast.Expression) parser.Func[*ast.Assignment] {
+func assignment(e *ast.Expression, o Options) parser.Func[*ast.Assignment] {
 	return func(p *parser.Parser) (*ast.Assignment, *diagnostic.Diagnostic) {
 		var a ast.Assignment
 		if e != nil {
@@ -1083,7 +1083,7 @@ func assignment(e *ast.Expression) parser.Func[*ast.Assignment] {
 
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 
-		a.RHS = parser.Must(p, list.CommaList("expression", "expressions", Expression(Regular)))
+		a.RHS = parser.Must(p, list.CommaList("expression", "expressions", Expression(o)))
 		if len(a.RHS) > 0 {
 			if len(a.RHS) > 1 && len(a.LHS) != len(a.RHS) {
 				if len(a.LHS) == 1 {
