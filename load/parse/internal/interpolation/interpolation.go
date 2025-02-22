@@ -412,7 +412,7 @@ func ExpressionInterpolation() parser.Func[*ast.ExpressionInterpolation] {
 		if ei.RBrace == nil {
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "expression interpolation: missing closing brace",
-				Primary: quickanno.Expected(p, *ei.Hash, "a closing brace `}`"),
+				Primary: quickanno.Expected(p, ei.End(), "a closing brace `}`"),
 			})
 			return &ei, nil
 		}
