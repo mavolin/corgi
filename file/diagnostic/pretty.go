@@ -368,7 +368,7 @@ func (p *prettyPrinter) printExamples() {
 	case 1:
 		indent = len("Example: ")
 		p.colored("\n\nExample: ", color.Bold)
-	case 2:
+	default:
 		indent = len("Examples: ")
 		p.colored("\n\nExamples: ", color.Bold)
 	}
@@ -531,9 +531,11 @@ func (p *prettyPrinter) printText(text string, indent int, needLineStart bool, s
 	defer regular.UnsetWriter(p.sb)
 
 	var inCode bool
+	var forceWrite bool
 	col := 1
-	for _, r := range text {
-		if col > p.o.Width || r == '\n' {
+	for i, r := range text {
+		wordEnd := strings.IndexAny(text[i:], " \n")
+		if col+wordEnd > p.o.Width && !forceWrite || r == '\n' {
 			if inCode {
 				code.UnsetWriter(p.sb)
 			} else {
@@ -553,6 +555,9 @@ func (p *prettyPrinter) printText(text string, indent int, needLineStart bool, s
 			if r == '\n' {
 				continue
 			}
+			forceWrite = true
+		} else {
+			forceWrite = false
 		}
 
 		if r == '`' {
