@@ -12,17 +12,27 @@ import (
 )
 
 func Call() parser.Func[*ast.ComponentCall] {
+	return call(false)
+}
+
+func call(must bool) parser.Func[*ast.ComponentCall] {
 	return func(p *parser.Parser) (*ast.ComponentCall, *diagnostic.Diagnostic) {
 		var c ast.ComponentCall
 
 		c.Colon = parser.TryRuneAt(p, ':')
 		if c.Colon == nil {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing component call",
-				Primary: quickanno.Expected(p, p.Pos(), "a colon"),
+			if must {
+				p.CaptureError(&diagnostic.Diagnostic{
+					Message: "component call: missing colon",
+					Primary: quickanno.Expected(p, p.Pos(), "a colon"),
+				})
+			} else {
+				return nil, &diagnostic.Diagnostic{
+					Message: "missing component call",
+					Primary: quickanno.Expected(p, p.Pos(), "a colon"),
+				}
 			}
 		}
-
 		if !p.Inline() {
 			parser.TrySkip(p, comment.OrHorizontalWhitespace())
 		}

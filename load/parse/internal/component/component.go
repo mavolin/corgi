@@ -197,7 +197,7 @@ func Alias() parser.Func[*ast.Alias] {
 			})
 		}
 
-		a.ComponentCall = parser.Try(p, Call())
+		a.ComponentCall = parser.Try(p, call(true))
 		if a.ComponentCall == nil {
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "alias: missing component call",
