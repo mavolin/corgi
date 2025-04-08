@@ -196,7 +196,7 @@ func (*AttributeRule) _node() {}
 type AttributeSelector interface {
 	Node
 	Matches(s string) bool
-	_nameMatcher()
+	_attributeSelector()
 }
 
 // ============================== Basic Attribute Matcher ===============================
@@ -235,8 +235,8 @@ func (b *BasicAttributeSelector) Matches(s string) bool {
 	return len(s) > len(b.Name) && s[:len(b.Name)] == b.Name
 }
 
-func (b *BasicAttributeSelector) _node()        {}
-func (b *BasicAttributeSelector) _nameMatcher() {}
+func (b *BasicAttributeSelector) _node()              {}
+func (b *BasicAttributeSelector) _attributeSelector() {}
 
 // ============================== Regexp Attribute Matcher ==============================
 
@@ -284,8 +284,8 @@ func (r *RegexpAttributeSelector) Matches(s string) bool {
 	return r.Compiled.MatchString(s)
 }
 
-func (r *RegexpAttributeSelector) _node()        {}
-func (r *RegexpAttributeSelector) _nameMatcher() {}
+func (r *RegexpAttributeSelector) _node()              {}
+func (r *RegexpAttributeSelector) _attributeSelector() {}
 
 // ============================================================================
 // Element Selector
