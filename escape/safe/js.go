@@ -19,7 +19,7 @@ type (
 	//
 	// Using JSLiteral to include valid but untrusted JSON is not safe.
 	// A safe alternative is to parse the JSON with json.Unmarshal and then
-	// pass the resultant object into the runtime, where it will be
+	// pass the resultant object into the template, where it will be
 	// converted to sanitized JSON when presented in a JavaScript context.
 	//
 	// See also:

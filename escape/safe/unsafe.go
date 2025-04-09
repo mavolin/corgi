@@ -10,7 +10,7 @@ type (
 	// Use this type with special care.
 	// Unsafe attributes are marked unsafe for a reason.
 	// If you don't understand why a value is marked as unsafe, simply wrapping
-	// it in this type to still include it in the runtime output is _not_ the
+	// it in this type to still include it in the template output is _not_ the
 	// solution.
 	// If you do need to use this type, place special care in ensuring that the
 	// value you are using is safe, e.g. through validation.
@@ -25,7 +25,7 @@ type (
 	// Use this type with special care.
 	// Unsafe attributes are marked unsafe for a reason.
 	// If you don't understand why a value is marked as unsafe, simply wrapping
-	// it in this type to still include it in the runtime output is _not_ the
+	// it in this type to still include it in the template output is _not_ the
 	// solution.
 	// If you need to use this type, place special care in ensuring that the
 	// value you are using is safe and doesn't pose any security implications.
