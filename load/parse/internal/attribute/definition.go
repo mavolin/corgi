@@ -75,7 +75,7 @@ func Definition() parser.Func[*ast.AttributeDefinition] {
 
 		err := unexpected.UntilAnyRune(p, comment.OrAnyWhitespace(), ')')
 		if err != nil {
-			err.Message = "attribute definition: unexpected runes"
+			err.Message = "attribute definition: unexpected runes before closing parenthesis"
 			p.CaptureError(err)
 		}
 

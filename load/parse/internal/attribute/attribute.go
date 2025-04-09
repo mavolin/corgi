@@ -5,6 +5,7 @@ import (
 
 	"github.com/mavolin/corgi/v2/file/ast"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
+	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/mavolin/corgi/v2/load/parse/internal/comment"
 	"github.com/mavolin/corgi/v2/load/parse/internal/golang"
@@ -170,7 +171,9 @@ func Name() parser.Func[*ast.AttributeName] {
 		} else if parenCount > 0 {
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "unbalanced parentheses",
-				Primary: quickanno.Expected(p, name.Start(), fmt.Sprintf("%d closing parenthesis", parenCount)),
+				Primary: []diagnostic.Annotation{
+					anno.Position(p.File, name.End(), fmt.Sprintf("expected %d closing parenthesis", parenCount)),
+				},
 				Explanation: fmt.Sprint("Attributes may contain parentheses, but they must be balanced to "+
 					"help the parser distinguish between the end of an attribute list and an "+
 					"attribute name. You currently have an excess of ", parenCount, " opening parentheses, "+
