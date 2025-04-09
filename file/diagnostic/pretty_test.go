@@ -317,7 +317,7 @@ func TestDiagnostic_Pretty(t *testing.T) {
 			name: "docs",
 			diag: &Diagnostic{
 				Message: "foo",
-				Docs:    "!bar",
+				Docs:    "bar",
 			},
 			expectShort: "error: foo",
 			expectPretty: "error: foo\n" +
@@ -337,7 +337,7 @@ func TestDiagnostic_Pretty(t *testing.T) {
 				Hints: []Hint{
 					{Hint: "quux"},
 				},
-				Docs: "!corgi",
+				Docs: "corgi",
 			},
 			expectShort: "error: foo",
 			expectPretty: "error: foo\n" +

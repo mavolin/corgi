@@ -455,7 +455,7 @@ func (p *prettyPrinter) printDocs() {
 	}
 	p.uncolored("\n\n")
 	p.colored("Docs: ", color.Bold)
-	p.uncolored(path.Join(p.o.DocsBaseURL, p.diagnostic.Docs))
+	p.uncolored(path.Join(p.o.DocsBaseURL, "!"+p.diagnostic.Docs))
 }
 
 // ============================================================================
@@ -553,7 +553,7 @@ func (p *prettyPrinter) printText(text string, indent int, needLineStart bool, s
 			if r == '\n' {
 				continue
 			}
-			// forceWrite = true
+			forceWrite = true
 		} else {
 			forceWrite = false
 		}

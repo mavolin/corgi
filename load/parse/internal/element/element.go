@@ -198,7 +198,7 @@ func Raw() parser.Func[*ast.RawElement] {
 				},
 				Explanation: "Only the body of a `!raw` element is rendered, but not the `!raw` element itself. " +
 					"Thus, there is no point in placing attributes on a `!raw` element.",
-				Docs: "!raw-element",
+				Docs: "raw-element",
 			})
 		}
 
@@ -212,7 +212,7 @@ func Raw() parser.Func[*ast.RawElement] {
 						anno.Range(p.File, b.Start(), b.End(), fmt.Sprintf("expected bracket text, not %T", b)),
 					},
 					Explanation: "Because of their nature, `!raw` elements only support bracket text bodies.`",
-					Docs:        "!raw-element",
+					Docs:        "raw-element",
 				})
 			} else {
 				p.CaptureError(&diagnostic.Diagnostic{

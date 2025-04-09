@@ -116,7 +116,7 @@ type (
 		// We can expect common sense.
 		//
 		// Rendered as:
-		//  See: #{baseURL}/#{diagnostic.Docs}
+		//  See: #{baseURL}/!#{diagnostic.Docs}
 		Docs string
 	}
 

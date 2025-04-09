@@ -100,7 +100,7 @@ func ZeroCoalescing() parser.Func[*ast.ZeroCoalescing] {
 						Example: "`foo.bar?.baz` or `foo[1?]?`",
 					},
 				},
-				Docs: "!zero-coalescing",
+				Docs: "zero-coalescing",
 			})
 		}
 		return &zc, nil
