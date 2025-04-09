@@ -1,8 +1,5 @@
 # Contributing
 
-We would love to see the ideas you want to bring in to improve this project.
-Before you get started, make sure to read the guidelines below.
-
 ## Code Contributions
 
 ### Committing
@@ -21,10 +18,6 @@ We use the following types:
 - **refactor**: a code change that neither fixes a bug nor adds a feature
 - **style**: a change that does not affect the meaning of the code
 - **test**: a change to an existing test, or a new test
-
-### Fixing a Bug
-
-If you're fixing a bug, if possible, add a test case for that bug to ensure it's gone for good.
 
 ### Code Style
 
