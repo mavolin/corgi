@@ -36,7 +36,7 @@ type PrettyOptions struct {
 	// DocsBaseURL is the base URL to the documentation.
 	// No documentation link is added if this is empty.
 	//
-	// Default: corgi.mavolin.co
+	// Default: https://corgi.mavolin.co
 	DocsBaseURL string
 }
 
@@ -59,7 +59,7 @@ func (o *PrettyOptions) applyDefaults() {
 		}
 	}
 	if o.DocsBaseURL == "" {
-		o.DocsBaseURL = "corgi.mavolin.co"
+		o.DocsBaseURL = "https://corgi.mavolin.co"
 	}
 }
 
