@@ -163,7 +163,7 @@ func TopLevel() parser.Func[[]ast.ScopeNode] {
 						anno.Range(p.File, bn.From, bn.Until, "unexpected tokens"),
 					},
 					Hints: []diagnostic.Hint{
-						{Hint: "Expected a state declaration, a component, or code"},
+						{Hint: "Expected a state declaration, a component, component alias, an attribute or element definition, or code"},
 					},
 				})
 				scope = append(scope, bn)
