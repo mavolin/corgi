@@ -76,7 +76,7 @@ func loadCharacterReferences() ([]characterReference, error) {
 func genMap(charRefs []characterReference) error {
 	const (
 		packageName = "charref"
-		outFile     = "../../../escape/charref/chars.go"
+		outFile     = "chars.go"
 	)
 
 	f, err := os.Create(outFile)
