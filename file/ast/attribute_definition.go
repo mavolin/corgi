@@ -3,6 +3,7 @@ package ast
 import (
 	"regexp"
 	"slices"
+	"strings"
 
 	"github.com/mavolin/corgi/v2/escape/attrtype"
 )
@@ -68,15 +69,15 @@ func (*AttributeDefinition) _scopeNode() {}
 // ======================================================================================
 
 type AttributeSpec struct {
-	Name    AttributeSelector
-	Ruleset *AttributeRuleset
+	Selector AttributeSelector
+	Ruleset  *AttributeRuleset
 }
 
 var _ Node = (*AttributeSpec)(nil)
 
 func (a *AttributeSpec) Start() Position {
-	if a.Name != nil {
-		return a.Name.Start()
+	if a.Selector != nil {
+		return a.Selector.Start()
 	} else if a.Ruleset != nil {
 		return a.Ruleset.Start()
 	}
@@ -85,14 +86,14 @@ func (a *AttributeSpec) Start() Position {
 func (a *AttributeSpec) End() Position {
 	if a.Ruleset != nil {
 		return a.Ruleset.End()
-	} else if a.Name != nil {
-		return a.Name.End()
+	} else if a.Selector != nil {
+		return a.Selector.End()
 	}
 	return Position{}
 }
 func (a *AttributeSpec) Walk(w func(Node)) {
-	if a.Name != nil {
-		w(a.Name)
+	if a.Selector != nil {
+		w(a.Selector)
 	}
 	if a.Ruleset != nil {
 		w(a.Ruleset)
@@ -190,7 +191,7 @@ func (a *AttributeRule) Walk(w func(Node)) {
 func (*AttributeRule) _node() {}
 
 // ============================================================================
-// Name Matcher
+// Attribute Selector
 // ======================================================================================
 
 type AttributeSelector interface {
@@ -228,11 +229,13 @@ func (b *BasicAttributeSelector) End() Position {
 func (b *BasicAttributeSelector) Walk(func(Node)) {}
 
 func (b *BasicAttributeSelector) Matches(s string) bool {
+	name := strings.ToLower(b.Name)
+	s = strings.ToLower(s)
 	if !b.Wildcard {
-		return b.Name == s
+		return name == s
 	}
 	// at least one rune longer than b.Name
-	return len(s) > len(b.Name) && s[:len(b.Name)] == b.Name
+	return len(s) > len(name) && s[:len(name)] == b.Name
 }
 
 func (b *BasicAttributeSelector) _node()              {}
@@ -281,6 +284,7 @@ func (r *RegexpAttributeSelector) Walk(w func(Node)) {
 }
 
 func (r *RegexpAttributeSelector) Matches(s string) bool {
+	s = strings.ToLower(s)
 	return r.Compiled.MatchString(s)
 }
 

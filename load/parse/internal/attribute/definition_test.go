@@ -25,7 +25,7 @@ func TestDefinition(t *testing.T) {
 			expect: &ast.AttributeDefinition{
 				Specs: []*ast.AttributeSpec{
 					{
-						Name: &ast.BasicAttributeSelector{
+						Selector: &ast.BasicAttributeSelector{
 							Name:     "foo",
 							Position: &ast.Position{Line: 1, Col: 6},
 						},
@@ -59,7 +59,7 @@ func TestDefinition(t *testing.T) {
 				},
 				Specs: []*ast.AttributeSpec{
 					{
-						Name: &ast.BasicAttributeSelector{
+						Selector: &ast.BasicAttributeSelector{
 							Name:     "foo",
 							Position: &ast.Position{Line: 1, Col: 10},
 						},
@@ -93,7 +93,7 @@ func TestDefinition(t *testing.T) {
 				LParen: &ast.Position{Line: 1, Col: 6},
 				Specs: []*ast.AttributeSpec{
 					{
-						Name: &ast.BasicAttributeSelector{
+						Selector: &ast.BasicAttributeSelector{
 							Name:     "foo",
 							Position: &ast.Position{Line: 2, Col: 2},
 						},
@@ -114,7 +114,7 @@ func TestDefinition(t *testing.T) {
 							RBrace: &ast.Position{Line: 2, Col: 20},
 						},
 					}, {
-						Name: &ast.BasicAttributeSelector{
+						Selector: &ast.BasicAttributeSelector{
 							Name:     "bar",
 							Position: &ast.Position{Line: 3, Col: 2},
 						},
@@ -153,7 +153,7 @@ func TestDefinition(t *testing.T) {
 				LParen: &ast.Position{Line: 1, Col: 10},
 				Specs: []*ast.AttributeSpec{
 					{
-						Name: &ast.BasicAttributeSelector{
+						Selector: &ast.BasicAttributeSelector{
 							Name:     "foo",
 							Position: &ast.Position{Line: 2, Col: 2},
 						},
@@ -174,7 +174,7 @@ func TestDefinition(t *testing.T) {
 							RBrace: &ast.Position{Line: 2, Col: 20},
 						},
 					}, {
-						Name: &ast.BasicAttributeSelector{
+						Selector: &ast.BasicAttributeSelector{
 							Name:     "bar",
 							Position: &ast.Position{Line: 3, Col: 2},
 						},
@@ -217,7 +217,7 @@ func TestSpec(t *testing.T) {
 
 	in := `foo { * innocuous }`
 	expect := &ast.AttributeSpec{
-		Name: &ast.BasicAttributeSelector{
+		Selector: &ast.BasicAttributeSelector{
 			Name:     "foo",
 			Position: &ast.Position{Line: 1, Col: 1},
 		},

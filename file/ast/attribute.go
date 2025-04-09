@@ -351,7 +351,7 @@ func (*TypedAttributeValue) _node()           {}
 func (*TypedAttributeValue) _attributeValue() {}
 
 // ============================================================================
-// Attribute Name
+// Attribute Selector
 // ======================================================================================
 
 type AttributeName struct {

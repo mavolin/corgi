@@ -95,8 +95,8 @@ func Spec() parser.Func[*ast.AttributeSpec] {
 	return func(p *parser.Parser) (*ast.AttributeSpec, *diagnostic.Diagnostic) {
 		var spec ast.AttributeSpec
 
-		spec.Name = parser.Try(p, Selector())
-		if spec.Name == nil {
+		spec.Selector = parser.Try(p, Selector())
+		if spec.Selector == nil {
 			return nil, &diagnostic.Diagnostic{
 				Message: "missing attribute spec",
 				Primary: quickanno.Expected(p, p.Pos(), "an attribute selector"),
@@ -117,7 +117,7 @@ func Ruleset() parser.Func[*ast.AttributeRuleset] {
 		if rs.LBrace == nil {
 			return nil, &diagnostic.Diagnostic{
 				Message: "missing attribute ruleset",
-				Primary: quickanno.Expected(p, *rs.LBrace, "an opening brace"),
+				Primary: quickanno.Expected(p, p.Pos(), "an opening brace"),
 			}
 		}
 

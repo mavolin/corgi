@@ -104,7 +104,7 @@ func BadScopeNode() parser.Func[*ast.BadScopeNode] {
 		if b.Until == b.From {
 			return nil, &diagnostic.Diagnostic{
 				Message: "empty bad scope node",
-				Primary: quickanno.Expected(p, b.From, "a scope node"),
+				Primary: quickanno.Expected(p, b.From, "a bad scope node"),
 			}
 		}
 		return &b, nil
