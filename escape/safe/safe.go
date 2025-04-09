@@ -15,19 +15,6 @@
 // full control over.
 //
 // To create instances of these types, use the Trusted* functions.
-// The [Concat] helper can be used to concatenate multiple safe fragments into
-// one.
-//
-// If a content type can appear both in the body/root of a document and as an
-// attribute value, it is represented by two different types with different
-// requirements.
-//
-// Since corgi writes all attributes using double quotes, attribute types
-// needn't escape single quotes.
-//
-// Characters that must be escaped are specified in regular expression
-// character classes like [<&], which requires the characters '<' and '&' to be
-// escaped, but not the character '[' or ']'.
 //
 // This package follows some of the design proposals from here:
 // https://github.com/golang/go/issues/27926
@@ -66,56 +53,12 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-import "strings"
-
 // UnsafeReplacement is the string to be used as replacement for an unsafe
 // fragment.
 const UnsafeReplacement = "ZcorgiZ"
 
-type (
-	Escaped interface {
-		Escaped() string
-	}
-
-	// Fragment is an interface fulfilled by all safe types.
-	Fragment interface {
-		bodyFragment | attrFragment
-		Escaped() string
-	}
-
-	BodyFragment interface {
-		bodyFragment
-		Escaped() string
-	}
-	bodyFragment interface {
-		CSSValue | HTML | JS
-	}
-
-	AttrFragment interface {
-		attrFragment
-		Escaped() string
-	}
-	attrFragment interface {
-		CSSValueAttr | PlainAttr | JSAttr | SrcsetAttr | UnsafeAttr |
-			URLAttr | ResourceURLAttr | URLListAttr
-	}
-)
-
-// Concat concatenates multiple fragments of the same type into one.
-func Concat[T Fragment](fs ...T) T {
-	var n int
-	for _, f := range fs {
-		n += len(f.Escaped())
-	}
-
-	var b strings.Builder
-	b.Grow(n)
-
-	for _, f := range fs {
-		b.WriteString(f.Escaped())
-	}
-
-	return T{val: b.String()}
+type Value interface {
+	Get() string
 }
 
 // DevelopmentMode enables development mode for the remainder of the program.

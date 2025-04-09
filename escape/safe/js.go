@@ -1,51 +1,49 @@
 package safe
 
 type (
-	// JS encapsulates a known safe EcmaScript5 Expression, for example,
-	// `(x + y * z())`.
-	// Template authors are responsible for ensuring that typed expressions
-	// do not break the intended precedence and that there is no
-	// statement/expression ambiguity as when passing an expression like
-	// "{ foo: bar() }\n['foo']()", which is both a valid Expression and a
-	// valid Program with a very different meaning.
+	// JSLiteral encapsulates a known safe EcmaScript5 Literal, for example,
+	// `5`, `"foo"`, or `{foo: "bar"}`.
 	//
-	// A JS value must not contain the case-insensitive string "</script" to
-	// prevent the premature end of the script element.
+	// A valid JSLiteral must not contain the sequence "</", to prevent the
+	// premature end of the element containing it.
+	// You should instead escape either character.
+	// You must always adhere to this requirement, even if you only plan to use
+	// the value in an attribute.
+	// Corgi allows the use of a JSLiteral in custom elements marked as scripts,
+	// therefore it is NOT enough to only escape the string "</script": you must
+	// always escape "</" regardless of what follows!
+	// It is also not enough to escape "</" only if it is eventually followed by
+	// a ">": The HTML specification expressively forbids any occurrence of "</"
+	// followed by the tag name, if it is followed by a rune from a character set
+	// much bigger than just ">".
 	//
-	// Using JS to include valid but untrusted JSON is not safe.
+	// Using JSLiteral to include valid but untrusted JSON is not safe.
 	// A safe alternative is to parse the JSON with json.Unmarshal and then
-	// pass the resultant object into the template, where it will be
+	// pass the resultant object into the runtime, where it will be
 	// converted to sanitized JSON when presented in a JavaScript context.
-	JS struct{ val string }
+	//
+	// See also:
+	// https://html.spec.whatwg.org/multipage/scripting.html#restrictions-for-contents-of-script-elements
+	JSLiteral struct{ val string }
 
-	// JSAttr is a js attribute safe to be embedded in double quotes and used
-	// as an attribute value.
+	// A Script encapsulates a known safe EcmaScript5 script.
 	//
-	// It differs from JS only in that it may contain the case-insensitive
-	// string "</script" without further escaping and that it must escape
-	// double quotes.
+	// A valid Script must not contain the sequence "</", to prevent the
+	// premature end of the element containing it.
+	// See [JSLiteral] for more information.
 	//
-	// Due to the difference in requirements between JS and JSAttr, a JSAttr
-	// value cannot be interpolated in a style element.
+	// Using Script to include valid but untrusted JSON is not safe.
+	// See [JSLiteral] for more information.
 	//
-	// Using JS to include valid but untrusted JSON is not safe.
-	// A safe alternative is to parse the JSON with json.Unmarshal and then
-	// pass the resultant object into the template, where it will be
-	// converted to sanitized JSON when presented in a JavaScript context.
-	JSAttr struct{ val string }
+	// Concatenating Scripts is not safe, as the combined script might behave
+	// differently than the separate scripts.
+	Script struct{ val string }
 )
 
-// TrustedJS creates a new JS from the given trusted string.
+// TrustedJSLiteral creates a new JSLiteral from the given trusted string.
 //
 // Only use this function if you have read the package documentation and are
-// sure that the passed string satisfies the requirements for a JS.
-func TrustedJS(s string) JS { return JS{val: s} }
+// sure that the passed string satisfies the requirements for a JSLiteral.
+func TrustedJSLiteral(s string) JSLiteral { return JSLiteral{val: s} }
 
-// TrustedJSAttr creates a new JSAttr from the given trusted string.
-//
-// Only use this function if you have read the package documentation and are
-// sure that the passed string satisfies the requirements for a JSAttr.
-func TrustedJSAttr(s string) JSAttr { return JSAttr{val: s} }
-
-func (j JS) Escaped() string     { return j.val }
-func (a JSAttr) Escaped() string { return a.val }
+func (j JSLiteral) Get() string { return j.val }

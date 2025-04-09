@@ -4,8 +4,9 @@ import "strings"
 
 var (
 	// URLSchemes is a list of trusted URL schemes.
-	URLSchemes = []string{"http", "https", "mailto", "tel"}
+	URLSchemes = []string{"http", "https", "ws", "wss", "mailto", "tel"}
 	// ResourceURLSchemes is a list of trusted schemes for resource URLs.
+	// It must be a subset of URLSchemes.
 	ResourceURLSchemes = []string{"https", "wss"}
 	// DevelopmentResourceURLSchemes is a list of trusted schemes for resource URLs
 	// that is more permissive than ResourceURLSchemes and allows http.
@@ -17,14 +18,14 @@ var (
 	DevelopmentResourceURLSchemes = []string{"http", "https", "ws", "wss"}
 )
 
-// IsSafeURLScheme returns whether the given scheme is a known safe URLAttr scheme
+// IsSafeURLScheme returns whether the given scheme is a known safe URL scheme
 // as defined by the [URLSchemes] global variable.
 func IsSafeURLScheme(probe string) bool {
 	return isSafeURLScheme(probe, URLSchemes)
 }
 
 // IsSafeResourceURLScheme returns whether the given scheme is a known safe
-// ResourceURLAttr scheme as defined by the [ResourceURLSchemes] global variable.
+// ResourceURL scheme as defined by the [ResourceURLSchemes] global variable.
 func IsSafeResourceURLScheme(probe string) bool {
 	return isSafeURLScheme(probe, ResourceURLSchemes)
 }
@@ -38,66 +39,54 @@ func isSafeURLScheme(probe string, safeSchemes []string) bool {
 	return false
 }
 
-// URLAttr represents a known safe URL attribute fragment, safe to be embedded
+// URL represents a known safe URL attribute fragment, safe to be embedded
 // between double quotes.
 //
 // As such, it must escape any raw double quotes.
 type (
-	// URLAttr represents a known safe URL attribute fragment, safe to be embedded
-	// between double quotes.
+	// URL represents a known safe URL.
+	// It must be complete, not just a part, and as such cannot be
+	// embedded or concatenated to another partial URL.
 	//
-	// As such, it must escape any raw double quotes.
+	// It is allowed to interpolate a URL in a URL list attribute.
+	// If needed, the escaper will add a leading/trailing space to make sure
+	// that the URL is not accidentally concatenated to another URL.
 	//
-	// A URLAttr cannot be used as part of a resource URL, however, it may
+	// A URL cannot be used as part of a resource URL, however, it may
 	// very well be used as part of a URLList.
-	URLAttr struct{ val string }
+	URL struct{ val string }
 
-	// ResourceURLAttr only differs semantically from URLAttr it fulfills a
+	// URLList is a list of URLs for use in URL list attributes.
+	URLList []URL
+
+	// ResourceURL only differs semantically from URL, fulfilling a
 	// higher security requirement.
-	// ResourceURLAttrs are attributes that are used as part of a URL that
-	// loads a sensitive resource, such as a script or stylesheet.
+	// ResourceURL are URLs that load a sensitive resource, such as a script or
+	// stylesheet.
 	//
-	// ResourceURLAttrs escaped by package escape only allow https URLs,
-	// deeming http URLs unsafe.
+	// A ResourceURL escaped by package escape only allows "https" and "wss"
+	// URLs, deeming "http" and "ws" unsafe.
 	// This can be changed for dynamically interpolated values during
 	// development by calling [github.com/mavolin/corgi.DevelopmentMode()]
 	// (Also see [DevelopmentResourceURLSchemes]).
 	// Relative URLs are always allowed.
 	//
-	// It must escape double quotes.
-	//
-	// A ResourceURLAttr can be used as part of a regular URLAttr, but not
-	// vice versa.
-	ResourceURLAttr struct{ val string }
-
-	// URLListAttr represents a space-separated list of URLs.
-	//
-	// If multiple URLListAttrs are used as part of the same attribute, corgi
-	// will ensure that they are separated by at least one space.
-	//
-	// The same rules as for URLAttr apply.
-	URLListAttr struct{ val string }
+	// A ResourceURL can be used as a regular URL, but not vice versa.
+	ResourceURL struct{ val string }
 )
 
-// TrustedURLAttr creates a new URLAttr from the given trusted string.
+// TrustedURL creates a new URL from the given trusted string.
 //
 // Only use this function if you have read the package documentation and are
-// sure that the passed string satisfies the requirements for an URLAttr.
-func TrustedURLAttr(s string) URLAttr { return URLAttr{val: s} }
+// sure that the passed string satisfies the requirements for a URL.
+func TrustedURL(s string) URL { return URL{val: s} }
 
-// TrustedResourceURLAttr creates a new ResourceURLAttr from the given trusted
+// TrustedResourceURL creates a new ResourceURL from the given trusted
 // string.
 //
 // Only use this function if you have read the package documentation and are
-// sure that the passed string satisfies the requirements for a ResourceURLAttr.
-func TrustedResourceURLAttr(s string) ResourceURLAttr { return ResourceURLAttr{val: s} }
+// sure that the passed string satisfies the requirements for a ResourceURL.
+func TrustedResourceURL(s string) ResourceURL { return ResourceURL{val: s} }
 
-// TrustedURLListAttr creates a new URLListAttr from the given trusted string.
-//
-// Only use this function if you have read the package documentation and are
-// sure that the passed string satisfies the requirements for an URLListAttr.
-func TrustedURLListAttr(s string) URLListAttr { return URLListAttr{val: s} }
-
-func (a URLAttr) Escaped() string         { return a.val }
-func (a URLListAttr) Escaped() string     { return a.val }
-func (a ResourceURLAttr) Escaped() string { return a.val }
+func (a URL) Get() string         { return a.val }
+func (a ResourceURL) Get() string { return a.val }
