@@ -2,21 +2,70 @@ package flags
 
 import (
 	"flag"
+	"log/slog"
+	"os"
 	"os/exec"
+	"strconv"
 
 	"github.com/fatih/color"
+	"github.com/lmittmann/tint"
+	"github.com/mavolin/corgi/v2/internal/nopslog"
+	"golang.org/x/term"
 )
+
+var Width = func() int {
+	width, _, err := term.GetSize(int(os.Stdout.Fd()))
+	if err != nil {
+		return 100
+	}
+	return max(min(width, 120), 40)
+}()
 
 type ParseFlags struct {
 	Color   bool
-	Verbose bool
+	Verbose int
+	Logger  *slog.Logger
 }
 
 func (f *ParseFlags) Bind(s *flag.FlagSet) {
+	f.Logger = nopslog.Logger
+
 	s.BoolVar(&f.Color, "color", !color.NoColor,
 		"Whether to colorize error output.\n"+
 			"Enabled by default, if stdout is a terminal, $NO_COLOR == \"\", and $TERM != \"dumb\".")
-	s.BoolVar(&f.Verbose, "verbose", false, "Print verbose output explaining what is currently being done.")
+	s.BoolFunc("verbose",
+		"Print verbose output explaining what is currently being done. Specify twice or set to 2, to enable debug logging.",
+		func(s string) error {
+			switch s {
+			case "1":
+				f.Verbose = 1
+			case "2":
+				f.Verbose = 2
+			default:
+				v, err := strconv.ParseBool(s)
+				if err != nil {
+					return err
+				}
+				if v {
+					f.Verbose++
+				} else {
+					f.Verbose = 0
+				}
+			}
+
+			if f.Verbose == 1 {
+				f.Logger = slog.New(tint.NewHandler(os.Stderr, &tint.Options{
+					Level:   slog.LevelInfo,
+					NoColor: !f.Color,
+				}))
+			} else if f.Verbose >= 2 {
+				f.Logger = slog.New(tint.NewHandler(os.Stderr, &tint.Options{
+					Level:   slog.LevelDebug,
+					NoColor: !f.Color,
+				}))
+			}
+			return nil
+		})
 }
 
 type LoadFlags struct {

@@ -3,51 +3,145 @@
 package link
 
 import (
-	"github.com/mavolin/corgi/file"
-	"github.com/mavolin/corgi/file/fileerr"
+	"context"
+	"log/slog"
+	"slices"
+
+	"github.com/mavolin/corgi/v2/file"
+	"github.com/mavolin/corgi/v2/file/diagnostic"
+	"github.com/mavolin/corgi/v2/internal/nopslog"
+	"github.com/mavolin/corgi/v2/internal/set"
 )
 
-type Linker struct {
-	importer Importer
+type linker struct {
+	p           *file.Package
+	logger      *slog.Logger
+	importer    Importer
+	builtin     *file.Package
+	diagnostics diagnostic.List
+
+	stringSet *set.SliceSet[string]
+
+	reportedMissingImports map[*file.File]*set.SliceSet[importPath]
 }
 
-type Importer func(path string) (*file.Package, error)
+type (
+	importPath      = string
+	componentName   = string
+	elementName     = string
+	fullElementName = string
+)
 
-// New creates a new *Linker that uses the passed load.
-func New(imp Importer) *Linker {
-	return &Linker{importer: imp}
+type (
+	Options struct {
+		// Logger is the logger used by the linker.
+		//
+		// Default: no logging
+		Logger *slog.Logger
+
+		// Importer loads imports.
+		// If not specified, the linker will run in local-only mode, where only
+		// local component calls are allowed.
+		// For every external component call, the linker will return an error.
+		//
+		// Default: nil
+		Importer Importer
+
+		// Builtin is the builtin package of the corgi standard library.
+		//
+		// All symbols in this package are always available, even if not
+		// imported, but can be shadowed by local or dot-imported symbols.
+		//
+		// If a builtin package is specified, the linker will report an error
+		// if that same package is explicitly imported.
+		//
+		// Default: nil
+		Builtin *file.Package
+	}
+
+	Importer func(ctx context.Context, path importPath) (*file.Package, diagnostic.List)
+)
+
+func (o *Options) applyDefaults() {
+	if o.Logger == nil {
+		o.Logger = nopslog.Logger
+	}
 }
 
-// Link concurrently links the passed package, filling the p's Components,
-// ComponentCalls, and each of p's File's Imports.
+// Link links the given package, linking all component calls, element
+// references, and attribute references.
 //
-// It only sets File, Source, and Component fields of the
-// Component/ComponentCall.
-//
-// The returned error is always of type [fileerr.List].
-func (l *Linker) Link(p *file.Package) error {
-	ctx := &context{errs: make(fileerr.List, 0, 128)}
+// It loads the minimal set of imports required to link the package and detect
+// all collisions of corgi symbols.
+func Link(ctx context.Context, p *file.Package, o Options) diagnostic.List {
+	o.applyDefaults()
 
-	imports := collectImports(ctx, p)
-	checkDuplicateImports(ctx, p)
-	collectComponents(ctx, p)
-	collectComponentCalls(ctx, p)
+	logger := o.Logger.With(
+		slog.String("module", p.Module),
+		slog.String("path_in_module", p.PathInModule),
+	)
 
-	linkLocalComponentCalls(ctx, p)
-	loadImports(ctx, p, l.importer, imports)
-	linkExternalComponentCalls(ctx, p)
+	file.BuildSymbols(p)
 
-	return ctx.error()
+	l := &linker{
+		p:                      p,
+		logger:                 logger,
+		importer:               o.Importer,
+		builtin:                o.Builtin,
+		diagnostics:            make(diagnostic.List, 0, 128),
+		stringSet:              set.NewSliceSet[importPath](32),
+		reportedMissingImports: make(map[*file.File]*set.SliceSet[importPath], len(p.Files)),
+	}
+	for _, f := range p.Files {
+		l.reportedMissingImports[f] = set.NewSliceSet[importPath](len(f.Symbols.Imports))
+	}
+
+	l.checkImportCycles(ctx)
+	ctx = addToImportersGraph(ctx, p)
+	l.checkImportNamespaceCollisions(ctx)
+	l.checkDuplicateDotImports(ctx)
+	l.checkExplicitBuiltinImport(ctx)
+	l.loadImports(ctx)
+	l.checkDotImportCollisions(ctx)
+	l.checkLocalDotImportCollisions(ctx)
+
+	l.checkDuplicateComponents(ctx)
+	l.linkComponentCalls(ctx)
+
+	l.checkDuplicateAttributeDefinitions(ctx)
+	l.checkDuplicateAttributeDefinitionElementTypes(ctx)
+	l.checkDuplicateAttributeDefinitionElementSelectors(ctx)
+	l.linkAttributeReferences(ctx)
+
+	l.checkDuplicateElementDefinitions(ctx)
+	l.linkElementReferences(ctx)
+
+	if len(l.diagnostics) > 0 {
+		return slices.Clip(l.diagnostics)
+	}
+	return nil
 }
 
-type context struct {
-	errs fileerr.List
+func (l *linker) report(d ...*diagnostic.Diagnostic) {
+	l.diagnostics = append(l.diagnostics, d...)
 }
 
-func (ctx *context) err(err *fileerr.Error) {
-	ctx.errs = append(ctx.errs, err)
+func (l *linker) takeStringSet() *set.SliceSet[string] {
+	l.stringSet.Clear()
+	return l.stringSet
 }
 
-func (ctx *context) error() error {
-	return ctx.errs.AsError()
+type importersGraphKey struct{}
+
+func addToImportersGraph(ctx context.Context, p *file.Package) context.Context {
+	importers, _ := ctx.Value(importersGraphKey{}).([]*file.Package)
+	return context.WithValue(ctx, importersGraphKey{}, append(importers, p))
+}
+
+// importersGraph returns the linear graph outlining the importers of a package,
+// the last node being the package itself and the first node being the root
+// package.
+func importersGraph(ctx context.Context) []*file.Package {
+	importers, _ := ctx.Value(importersGraphKey{}).([]*file.Package)
+	return importers
 }

@@ -1,15 +1,17 @@
 package ast
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"io"
 	"os"
 
-	"github.com/k0kubun/pp"
 	"github.com/mavolin/corgi/v2/cmd/corgi/command"
 	"github.com/mavolin/corgi/v2/cmd/corgi/flags"
+	"github.com/mavolin/corgi/v2/file"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
+	"github.com/mavolin/corgi/v2/load/link"
 	"github.com/mavolin/corgi/v2/load/parse"
 )
 
@@ -24,10 +26,14 @@ var (
 
 type Flags struct {
 	flags.ParseFlags
+
+	Link bool
 }
 
 func (f *Flags) Bind(s *flag.FlagSet) {
 	f.ParseFlags.Bind(s)
+
+	s.BoolVar(&f.Link, "link", false, "link the AST")
 }
 
 func run(_ *command.Cmd, f *Flags, args []string) {
@@ -51,13 +57,40 @@ func run(_ *command.Cmd, f *Flags, args []string) {
 		os.Exit(2)
 	}
 
-	fi, dl := parse.Parse(string(data), parse.Options{})
-	if len(dl) > 0 {
-		fmt.Fprintln(os.Stderr, dl.Pretty(diagnostic.PrettyOptions{
-			Color: f.Color,
-		}))
-		fmt.Fprintln(os.Stderr)
+	fi, parseErrs := parse.Parse(string(data), parse.Options{})
+
+	var linkErrs []*diagnostic.Diagnostic
+	if f.Link {
+		p := &file.Package{
+			PathInModule: "stdin",
+			Files:        []*file.File{fi},
+		}
+		fi.Package = p
+		linkErrs = link.Link(context.Background(), p, link.Options{
+			Logger: f.Logger,
+		})
 	}
 
-	pp.Println(fi)
+	if fi != nil {
+		// pp.Println(fi)
+	}
+
+	_ = os.Stdout.Close() // so that errs appear at the bottom
+
+	if len(parseErrs) > 0 {
+		fmt.Fprintln(os.Stderr)
+		fmt.Fprintln(os.Stderr, "=== Parse Errors ===")
+		fmt.Fprintln(os.Stderr, parseErrs.Pretty(diagnostic.PrettyOptions{
+			Color: f.Color,
+			Width: flags.Width,
+		}))
+	}
+	if len(linkErrs) > 0 {
+		fmt.Fprintln(os.Stderr)
+		fmt.Fprintln(os.Stderr, "=== Link Errors ===")
+		fmt.Fprintln(os.Stderr, diagnostic.List(linkErrs).Pretty(diagnostic.PrettyOptions{
+			Color: f.Color,
+			Width: flags.Width,
+		}))
+	}
 }
