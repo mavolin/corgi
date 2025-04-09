@@ -134,7 +134,7 @@ func TopLevel() parser.Func[[]ast.ScopeNode] {
 				scope = append(scope, sd)
 			} else if c := parser.TryOptional(p, component.Component(), nil); c != nil {
 				scope = append(scope, c)
-			} else if n := parser.Try(p, component.Alias()); n != nil {
+			} else if n := parser.TryOptional(p, component.Alias(), nil); n != nil {
 				scope = append(scope, n)
 			} else if ad := parser.TryOptional(p, attribute.Definition(), nil); ad != nil {
 				scope = append(scope, ad)
