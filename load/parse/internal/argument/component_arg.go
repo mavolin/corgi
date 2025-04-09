@@ -82,8 +82,8 @@ func ComponentArgument() parser.Func[*ast.ComponentArgument] {
 			// whitespace.
 			var haveWS bool
 			for i := start; i < p.Index(); i++ {
-				prev := p.File.Raw[i-1] // safe because we know start > 0
-				switch p.File.Raw[i] {
+				prev := p.AST.Raw[i-1] // safe because we know start > 0
+				switch p.AST.Raw[i] {
 				case '=':
 					switch prev {
 					case '!', '<', '>', '=':

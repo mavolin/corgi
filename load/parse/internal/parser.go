@@ -62,21 +62,21 @@ func New(f *file.File) *Parser {
 }
 
 func (p *Parser) next() rune {
-	if p.Index() >= len(p.File.Raw) {
+	if p.Index() >= len(p.AST.Raw) {
 		return EOF
 	}
 
-	r, size := utf8.DecodeRuneInString(p.File.Raw[p.Index():])
+	r, size := utf8.DecodeRuneInString(p.AST.Raw[p.Index():])
 	p.state.advance(size, r == '\n')
 	return r
 }
 
 func (p *Parser) peek() rune {
-	if p.Index() >= len(p.File.Raw) {
+	if p.Index() >= len(p.AST.Raw) {
 		return EOF
 	}
 
-	r, _ := utf8.DecodeRuneInString(p.File.Raw[p.Index():])
+	r, _ := utf8.DecodeRuneInString(p.AST.Raw[p.Index():])
 	return r
 }
 
@@ -152,7 +152,7 @@ func MatchesWS(p *Parser, f WhitespaceFunc) bool {
 func MatchesToken(p *Parser, s string) bool {
 	start := p.Index()
 	end := start + len(s)
-	return end <= len(p.File.Raw) && p.Raw[start:end] == s
+	return end <= len(p.AST.Raw) && p.AST.Raw[start:end] == s
 }
 
 func MatchesAnyRune(p *Parser, rs ...rune) bool {

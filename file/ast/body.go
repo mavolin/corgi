@@ -24,6 +24,35 @@ var (
 )
 
 // ============================================================================
+// Top Level
+// ======================================================================================
+
+type TopLevel []ScopeNode
+
+var _ Node = (*TopLevel)(nil)
+
+func (t TopLevel) Start() Position {
+	if len(t) == 0 {
+		return Position{}
+	}
+	return t[0].Start()
+}
+func (t TopLevel) End() Position {
+	if len(t) == 0 {
+		return Position{}
+	}
+	return t[len(t)-1].End()
+}
+func (t TopLevel) Walk(w func(Node)) {
+	for _, node := range t {
+		if node != nil {
+			w(node)
+		}
+	}
+}
+func (TopLevel) _node() {}
+
+// ============================================================================
 // Scope
 // ======================================================================================
 
@@ -96,9 +125,9 @@ type BadScopeNode struct {
 
 var _ ScopeNode = (*BadScopeNode)(nil)
 
-func (b *BadScopeNode) Start() Position { return b.From }
-func (b *BadScopeNode) End() Position   { return b.Until }
-func (b *BadScopeNode) Walk(func(Node)) {}
+func (b *BadScopeNode) Start() Position   { return b.From }
+func (b *BadScopeNode) End() Position     { return b.Until }
+func (b *BadScopeNode) Walk(_ func(Node)) {}
 
 func (*BadScopeNode) _node()      {}
 func (*BadScopeNode) _scopeNode() {}

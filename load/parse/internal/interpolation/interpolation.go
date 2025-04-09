@@ -454,7 +454,7 @@ func formatDirective() parser.Func[string] {
 		// verb
 		if parser.TryAnyRune(p, 'v', 'T', 't', 'b', 'c', 'd', 'o', 'O', 'x', 'X', 'U', 'e', 'E', 'f', 'F', 'g', 'G', 's', 'p') < 0 {
 			if parser.TryRunePredicate(p, isInRange('a', 'z')) > 0 || parser.TryRunePredicate(p, isInRange('A', 'Z')) > 0 {
-				return p.Raw[startIndex:p.Index()], &diagnostic.Diagnostic{
+				return p.AST.Raw[startIndex:p.Index()], &diagnostic.Diagnostic{
 					Message: "invalid format verb",
 					Primary: quickanno.Expected(p, p.Pos(), "a valid format verb"),
 					Examples: []diagnostic.Example{
@@ -465,7 +465,7 @@ func formatDirective() parser.Func[string] {
 				}
 			}
 
-			return p.Raw[startIndex:p.Index()], &diagnostic.Diagnostic{
+			return p.AST.Raw[startIndex:p.Index()], &diagnostic.Diagnostic{
 				Message: "missing format verb",
 				Primary: quickanno.Expected(p, p.Pos(), "a format verb"),
 				Examples: []diagnostic.Example{
@@ -474,7 +474,7 @@ func formatDirective() parser.Func[string] {
 			}
 		}
 
-		return p.Raw[startIndex:p.Index()], nil
+		return p.AST.Raw[startIndex:p.Index()], nil
 	}
 }
 

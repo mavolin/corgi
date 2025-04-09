@@ -17,9 +17,7 @@
 // to be broken between versions.
 package ast
 
-import (
-	"fmt"
-)
+import "fmt"
 
 // A File holds the abstract syntax tree for a corgi file.
 type File struct {
@@ -31,9 +29,32 @@ type File struct {
 	Package *PackageDirective
 	Imports []*Import
 
-	TopLevel []ScopeNode
+	TopLevel TopLevel
 	Comments []*CommentGroup
 }
+
+var _ Node = (*File)(nil)
+
+func (f *File) Start() Position {
+	return Position{Line: 1, Col: 1}
+}
+func (f *File) End() Position {
+	return Position{Line: len(f.Lines), Col: len(f.Lines[len(f.Lines)-1]) + 1}
+}
+func (f *File) Walk(w func(Node)) {
+	if f.Package != nil {
+		w(f.Package)
+	}
+	for _, imp := range f.Imports {
+		if imp != nil {
+			w(imp)
+		}
+	}
+	if f.TopLevel != nil {
+		w(f.TopLevel)
+	}
+}
+func (f *File) _node() {}
 
 type Node interface {
 	_node()

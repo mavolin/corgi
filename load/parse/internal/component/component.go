@@ -182,7 +182,7 @@ func ParameterType() parser.Func[*ast.Type] {
 		at := parser.Try(p, attribute.Type())
 		if at != nil {
 			return &ast.Type{
-				Type:   p.Raw[startI:p.Index()],
+				Type:   p.AST.Raw[startI:p.Index()],
 				Parsed: at,
 				From:   startPos,
 				Until:  p.Pos(),

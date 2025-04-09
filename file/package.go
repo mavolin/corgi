@@ -13,16 +13,18 @@ type Package struct {
 	// Module is the path/name of the Go module providing this directory.
 	//
 	// Empty for Go stdlib.
-	Module string
+	Module string // load
 	// PathInModule is the path to the directory in the Go module, relative
 	// to the module root.
 	//
 	// Always specified as a forward slash separated path.
-	PathInModule string
+	PathInModule string // load
 	// ImportPath is the actual import path of the package.
 	//
 	// Only differs from Module/PathInModule if the package is a stdlib package.
-	ImportPath string
+	ImportPath string // load
+
+	Name string // analyze
 
 	*PackageSymbols
 
@@ -237,7 +239,7 @@ func BuildSymbols(p *Package) {
 	for _, f := range p.Files {
 		buildSymbols(f)
 
-		for _, n := range f.TopLevel {
+		for _, n := range f.AST.TopLevel {
 			switch n := n.(type) {
 			case *ast.Component:
 				nComponents++
@@ -261,7 +263,7 @@ func BuildSymbols(p *Package) {
 	}
 
 	for _, f := range p.Files {
-		for _, n := range f.TopLevel {
+		for _, n := range f.AST.TopLevel {
 			switch n := n.(type) {
 			case *ast.Component:
 				c := &Component{AST: n, File: f}

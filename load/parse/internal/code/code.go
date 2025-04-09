@@ -141,7 +141,7 @@ func goCode(o Options) parser.Func[*codeResult] {
 			if r := parser.TryAnyRune(p, '(', '{', '['); r > 0 {
 				parenStack = append(parenStack, paren{open: byte(r), pos: pos})
 				if o.bodyFollows() && len(parenStack) == 1 {
-					c.Code = p.Raw[start:state.Index()]
+					c.Code = p.AST.Raw[start:state.Index()]
 					if c.Code != "" {
 						exps = append(exps, c)
 						bodyEnd = len(exps)
@@ -192,7 +192,7 @@ func goCode(o Options) parser.Func[*codeResult] {
 				continue
 			} else if parser.MatchesToken(p, "block") && parser.Matches(p, BlockFunction()) {
 				if len(parenStack) > 0 {
-					c.Code = p.Raw[start:state.Index()]
+					c.Code = p.AST.Raw[start:state.Index()]
 					exps = append(exps, c, parser.Must(p, BlockFunction()))
 					parser.TrySkip(p, comment.OrHorizontalWhitespace())
 					start = p.Index()
@@ -202,7 +202,7 @@ func goCode(o Options) parser.Func[*codeResult] {
 				break
 			} else if parser.MatchesAnyRune(p, '"', '`') {
 				if len(parenStack) > 0 {
-					c.Code = p.Raw[start:state.Index()]
+					c.Code = p.AST.Raw[start:state.Index()]
 					exps = append(exps, c, parser.Must(p, String()))
 					parser.TrySkip(p, comment.OrHorizontalWhitespace())
 					start = p.Index()
@@ -212,7 +212,7 @@ func goCode(o Options) parser.Func[*codeResult] {
 				break
 			} else if parser.MatchesAnyRune(p, '?') {
 				if len(parenStack) > 0 {
-					c.Code = p.Raw[start:state.Index()]
+					c.Code = p.AST.Raw[start:state.Index()]
 					t := parser.Try(p, Ternary())
 					if t != nil {
 						exps = append(exps, c, t)
@@ -275,7 +275,7 @@ func goCode(o Options) parser.Func[*codeResult] {
 				}
 			}
 		} else {
-			c.Code = p.Raw[start:p.Index()]
+			c.Code = p.AST.Raw[start:p.Index()]
 			exps = append(exps, c)
 		}
 		exps = slices.Clip(exps)

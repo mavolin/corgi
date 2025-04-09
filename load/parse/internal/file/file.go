@@ -102,9 +102,9 @@ func scopeNode(p *parser.Parser) (ast.ScopeNode, *diagnostic.Diagnostic) {
 func File() parser.Func[struct{}] {
 	return func(p *parser.Parser) (struct{}, *diagnostic.Diagnostic) {
 		parser.TrySkip(p, comment.OrAnyWhitespace())
-		p.File.File.Package = parser.Must(p, PackageDirective())
-		p.File.File.Imports = parser.Collect(p, Import(), 8, comment.OrAnyWhitespace())
-		for _, imp := range p.File.File.Imports {
+		p.File.AST.Package = parser.Must(p, PackageDirective())
+		p.File.AST.Imports = parser.Collect(p, Import(), 8, comment.OrAnyWhitespace())
+		for _, imp := range p.File.AST.Imports {
 			for _, spec := range imp.Specs {
 				if spec.Path != nil {
 					p.Preload(spec.Path.Unquote())
@@ -112,9 +112,9 @@ func File() parser.Func[struct{}] {
 			}
 		}
 		parser.TrySkip(p, comment.OrAnyWhitespace())
-		p.File.TopLevel = parser.Must(p, TopLevel())
+		p.AST.TopLevel = parser.Must(p, TopLevel())
 		parser.TrySkip(p, comment.OrAnyWhitespace())
-		p.File.Comments = p.CloneState().Comments()
+		p.AST.Comments = p.CloneState().Comments()
 		if !parser.MatchesAnyRune(p, parser.EOF) {
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "unexpected tokens",
@@ -125,9 +125,9 @@ func File() parser.Func[struct{}] {
 	}
 }
 
-func TopLevel() parser.Func[[]ast.ScopeNode] {
-	return func(p *parser.Parser) ([]ast.ScopeNode, *diagnostic.Diagnostic) {
-		scope := make([]ast.ScopeNode, 0, 36)
+func TopLevel() parser.Func[ast.TopLevel] {
+	return func(p *parser.Parser) (ast.TopLevel, *diagnostic.Diagnostic) {
+		scope := make(ast.TopLevel, 0, 36)
 
 		for {
 			if sd := parser.TryOptional(p, state.Declaration(), nil); sd != nil {

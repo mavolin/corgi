@@ -90,7 +90,7 @@ func AssertNoError[T any](t *testing.T, p *parser.Parser, f parser.Func[T]) T {
 }
 
 func AssertEOF(t *testing.T, p *parser.Parser) {
-	line, col, index := CalcEnd(1, 1, 0, p.Raw)
+	line, col, index := CalcEnd(1, 1, 0, p.AST.Raw)
 	AssertPosition(t, p, line, col, index)
 }
 

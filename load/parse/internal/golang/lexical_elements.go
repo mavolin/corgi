@@ -294,7 +294,7 @@ func InterpretedStringLit() parser.Func[*ast.StaticString] {
 		index := p.Index()
 		for parser.TryInOrder(p, ByteValue(), UnicodeValue('"')) != "" {
 		}
-		s.Contents = p.File.Raw[index:p.Index()]
+		s.Contents = p.AST.Raw[index:p.Index()]
 
 		s.Close = parser.TryRuneAt(p, '"')
 		if s.Close == nil {

@@ -30,8 +30,8 @@ type File struct {
 	// It is always specified as a forward slash separated path.
 	PathInModule string
 
+	AST *ast.File
 	*Symbols
-	*ast.File
 }
 
 type (
@@ -108,7 +108,7 @@ func (r *ElementReference) Type() elemtype.Type {
 
 func buildSymbols(f *File) {
 	var nImports int
-	for _, imp := range f.File.Imports {
+	for _, imp := range f.AST.Imports {
 		nImports += len(imp.Specs)
 	}
 
@@ -126,7 +126,7 @@ func buildSymbols(f *File) {
 		attributeReferencesByNode: make(map[*ast.AttributeReference]*AttributeReference, 512),
 	}
 
-	for _, impStmt := range f.File.Imports {
+	for _, impStmt := range f.AST.Imports {
 		for _, spec := range impStmt.Specs {
 			imp := &Import{AST: spec}
 			f.Symbols.Imports = append(f.Symbols.Imports, imp)
@@ -154,7 +154,7 @@ func buildSymbols(f *File) {
 		}
 		n.Walk(walk)
 	}
-	for _, n := range f.File.TopLevel {
+	for _, n := range f.AST.TopLevel {
 		walk(n)
 	}
 

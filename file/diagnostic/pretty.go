@@ -624,7 +624,7 @@ func lineRanges(f *fileAnnos) []lineRange {
 	}
 
 	for i, l := range merged {
-		merged[i].lines = f.file.Lines[l.start-1 : l.end-1]
+		merged[i].lines = f.file.AST.Lines[l.start-1 : l.end-1]
 	}
 
 	return merged

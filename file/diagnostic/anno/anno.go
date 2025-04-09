@@ -123,7 +123,7 @@ func ContextDelta(dStart, dEnd int) ContextFunc {
 	return func(f *file.File, c Context, _ Highlight) Context {
 		s := max(1, c.Start+dStart)
 		e := c.End + dEnd
-		return Context{min(s, len(f.Lines)), min(max(e, s), len(f.Lines)+1)}
+		return Context{min(s, len(f.AST.Lines)), min(max(e, s), len(f.AST.Lines)+1)}
 	}
 }
 
@@ -166,11 +166,11 @@ func HighlightToEOL(start ast.Position) HighlightFunc {
 }
 
 func toEOL(f *file.File, p ast.Position) Highlight {
-	if p.Line < 1 || p.Line > len(f.Lines) {
+	if p.Line < 1 || p.Line > len(f.AST.Lines) {
 		return InvalidHighlight
 	}
 
-	e := max(len(f.Lines[p.Line-1])+1, p.Col+1)
+	e := max(len(f.AST.Lines[p.Line-1])+1, p.Col+1)
 	return Highlight{p, ast.Position{Line: p.Line, Col: e}}
 }
 
@@ -218,6 +218,6 @@ func normalizePos(f *file.File, pos ast.Position) ast.Position {
 		return pos
 	}
 	pos.Line--
-	pos.Col = len(f.Lines[pos.Line-1]) + 1
+	pos.Col = len(f.AST.Lines[pos.Line-1]) + 1
 	return pos
 }
