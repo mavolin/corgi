@@ -325,7 +325,7 @@ func (p *prettyPrinter) printAnnotations(as []annotation) {
 		p.printLineStart(-1)
 		p.skip(start - 1 - offset)
 		p.colored("╰ ", p.annoColor(current))
-		p.printText(current.Annotation.Annotation, p.nDigits+len(" |")+start-offset+len("| "), true, color.Bold, p.annoColor(current))
+		p.printText(current.Annotation.Annotation, (start-1-offset)+len("| "), true, color.Bold, p.annoColor(current))
 	}
 }
 
