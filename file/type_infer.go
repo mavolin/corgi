@@ -12,12 +12,12 @@ import (
 // and type assertions.
 //
 // If InferType returns the empty string, it could not identify the type.
-func InferType(expr *ast.Expression) string {
-	typ, _ := inferType(expr)
+func InferType(f *File, expr *ast.Expression) string {
+	typ, _ := inferType(f, expr)
 	return typ
 }
 
-func inferType(expr *ast.Expression) (typ string, sure bool) {
+func inferType(f *File, expr *ast.Expression) (typ string, sure bool) {
 	if expr == nil {
 		return "", false
 	} else if len(expr.Code) == 0 {
@@ -28,13 +28,13 @@ func inferType(expr *ast.Expression) (typ string, sure bool) {
 	case *ast.BlockFunction:
 		return "bool", true
 	case *ast.GoCode:
-		return inferGoCodeType(n)
+		return inferGoCodeType(f, n)
 	case *ast.String:
 		return "string", true
 	case *ast.Ternary:
-		return inferTernaryType(n)
+		return inferTernaryType(f, n)
 	case *ast.ZeroCoalescing:
-		return inferZeroCoalescingType(n)
+		return inferZeroCoalescingType(f, n)
 	}
 
 	if len(expr.Code) == 1 {
@@ -49,23 +49,23 @@ func inferType(expr *ast.Expression) (typ string, sure bool) {
 	case *ast.String:
 		return "string", true
 	case *ast.Ternary:
-		return inferTernaryType(n)
+		return inferTernaryType(nil, n)
 	default:
 		return "", false
 	}
 }
 
-func inferTernaryType(expr *ast.Ternary) (typ string, sure bool) {
+func inferTernaryType(f *File, expr *ast.Ternary) (typ string, sure bool) {
 	if expr == nil || (expr.TrueVal == nil && expr.FalseVal == nil) {
 		return "", false
 	}
 
-	trueType, trueSure := inferType(expr.TrueVal)
+	trueType, trueSure := inferType(f, expr.TrueVal)
 	if trueSure {
 		return trueType, trueSure
 	}
 
-	falseType, falseSure := inferType(expr.FalseVal)
+	falseType, falseSure := inferType(f, expr.FalseVal)
 	if falseSure {
 		return falseType, falseSure
 	}
@@ -82,14 +82,14 @@ func inferTernaryType(expr *ast.Ternary) (typ string, sure bool) {
 	return "", false
 }
 
-func inferZeroCoalescingType(expr *ast.ZeroCoalescing) (typ string, sure bool) {
+func inferZeroCoalescingType(f *File, expr *ast.ZeroCoalescing) (typ string, sure bool) {
 	if expr == nil {
 		return "", false
 	}
 
 	if len(expr.Chain) == 0 {
 		if expr.Default != nil {
-			return inferType(expr.Default)
+			return inferType(f, expr.Default)
 		}
 		return "", false
 	}
@@ -101,19 +101,21 @@ func inferZeroCoalescingType(expr *ast.ZeroCoalescing) (typ string, sure bool) {
 	}
 
 	if expr.Default != nil {
-		return InferType(expr.Default), false
+		return InferType(f, expr.Default), false
 	}
 	return "", false
 }
 
-func inferGoCodeType(expr *ast.GoCode) (typ string, sure bool) {
+func inferGoCodeType(f *File, expr *ast.GoCode) (typ string, sure bool) {
 	if expr == nil {
 		return "", false
 	}
 
-	if t := inferLit(expr); t != "" {
+	if t := inferStateVariableType(f, expr); t != "" {
+		return t, true
+	} else if t = inferLit(expr); t != "" {
 		return t, false
-	} else if t := inferMakeNewType(expr); t != "" {
+	} else if t = inferMakeNewType(expr); t != "" {
 		return t, true
 	}
 
@@ -205,6 +207,24 @@ func inferMakeNewType(expr *ast.GoCode) string {
 	}
 
 	return t[1]
+}
+
+var stateRegexp = regexp.MustCompile(`^state[ \t]*\.\s*([a-zA-Z_][a-zA-Z0-9_]*)`)
+
+func inferStateVariableType(f *File, expr *ast.GoCode) string {
+	c := expr.Code
+	t := stateRegexp.FindStringSubmatch(c)
+	if len(t) != 2 {
+		return ""
+	}
+
+	name := t[1]
+	state := f.Package.StateByName(name)
+	if state == nil {
+		return ""
+	}
+
+	return state.ResolvedType()
 }
 
 func inferLastGoCodeType(expr *ast.GoCode) (typ string, sure bool) {
