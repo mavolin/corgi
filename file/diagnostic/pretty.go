@@ -2,7 +2,7 @@ package diagnostic
 
 import (
 	"fmt"
-	"path"
+	"net/url"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -455,7 +455,11 @@ func (p *prettyPrinter) printDocs() {
 	}
 	p.uncolored("\n\n")
 	p.colored("Docs: ", color.Bold)
-	p.uncolored(path.Join(p.o.DocsBaseURL, "!"+p.diagnostic.Docs))
+	link, err := url.JoinPath(p.o.DocsBaseURL, "!"+p.diagnostic.Docs)
+	if err != nil {
+		link = p.o.DocsBaseURL + "/!" + p.diagnostic.Docs
+	}
+	p.uncolored(link)
 }
 
 // ============================================================================
