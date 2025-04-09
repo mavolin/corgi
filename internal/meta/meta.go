@@ -6,6 +6,8 @@ import (
 	"strings"
 )
 
+const Module = "github.com/mavolin/corgi/v2"
+
 // Version is the version of the binary.
 //
 // This should be set during compilation using
