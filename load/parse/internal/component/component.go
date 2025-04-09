@@ -5,6 +5,7 @@ import (
 	"github.com/mavolin/corgi/v2/file/diagnostic"
 	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
+	"github.com/mavolin/corgi/v2/load/parse/internal/attribute"
 	"github.com/mavolin/corgi/v2/load/parse/internal/body"
 	"github.com/mavolin/corgi/v2/load/parse/internal/code"
 	"github.com/mavolin/corgi/v2/load/parse/internal/comment"
@@ -120,7 +121,7 @@ func Parameter() parser.Func[*ast.ComponentParameter] {
 				Primary: quickanno.Expected(p, param.Type.Start(), "a parameter name"),
 			})
 		}
-		param.Type = parser.TryOptional(p, golang.Type(), comment.OrHorizontalWhitespace())
+		param.Type = parser.TryOptional(p, ParameterType(), comment.OrHorizontalWhitespace())
 		param.Colon = parser.TryOptionalRuneAt(p, ':', comment.OrAnyWhitespace())
 
 		if param.Name == nil && param.Type == nil && param.Colon == nil {
@@ -171,6 +172,24 @@ func Parameter() parser.Func[*ast.ComponentParameter] {
 		}
 
 		return &param, nil
+	}
+}
+
+func ParameterType() parser.Func[*ast.Type] {
+	return func(p *parser.Parser) (*ast.Type, *diagnostic.Diagnostic) {
+		startI := p.Index()
+		startPos := p.Pos()
+		at := parser.Try(p, attribute.Type())
+		if at != nil {
+			return &ast.Type{
+				Type:   p.Raw[startI:p.Index()],
+				Parsed: at,
+				From:   startPos,
+				Until:  p.Pos(),
+			}, nil
+		}
+
+		return parser.TryErr(p, golang.Type())
 	}
 }
 
