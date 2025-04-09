@@ -64,7 +64,7 @@ func (CommentGroup) _node() {}
 // Comment
 // ======================================================================================
 
-// Comment is a comment not included in the output of the runtime.
+// Comment is a comment not included in the output of the template.
 type Comment struct {
 	Open    *Position
 	Comment string
