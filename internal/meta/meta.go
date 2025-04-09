@@ -35,10 +35,12 @@ func init() {
 		return
 	}
 
+	// not a tagged release, try to find the commit hash, so we can set version
+	// to 'devel-{commit}'
 	for _, s := range i.Settings {
 		if s.Key == "vcs.revision" {
 			if s.Value != "" {
-				Version += "-" + s.Value
+				Version += DevelopVersion + "-" + s.Value
 			}
 			return
 		}
