@@ -1,0 +1,178 @@
+package builtin
+
+elem (
+	//
+	// 4.1 The document element
+
+	html normal
+
+	//
+	// 4.2 Document metadata
+
+	head  normal
+	title text
+	base  void
+	link  void
+	meta  void
+	style css
+
+	//
+	// 4.3 Sections
+
+	body    normal
+	article normal
+	section normal
+	nav     normal
+	aside   normal
+	h1      normal
+	h2      normal
+	h3      normal
+	h4      normal
+	h5      normal
+	h6      normal
+	hgroup  normal
+	header  normal
+	footer  normal
+	address normal
+
+	//
+	// 4.4 Grouping content
+
+	p          normal
+	hr         void
+	pre        normal
+	blockquote normal
+	ol         normal
+	ul         normal
+	menu       normal
+	li         normal
+	dl         normal
+	dt         normal
+	dd         normal
+	figure     normal
+	figcaption normal
+	main       normal
+	search     normal
+	div        normal
+
+	//
+	// 4.5 Text-level semantics
+
+	a      normal
+	em     normal
+	strong normal
+	small  normal
+	s      normal
+	cite   normal
+	q      normal
+	dfn    normal
+	abbr   normal
+	ruby   normal
+	rt     normal
+	rp     text
+	data   normal
+	time   normal
+	code   normal
+	var    normal
+	samp   normal
+	kbd    normal
+	sub    normal
+	sup    normal
+	i      normal
+	b      normal
+	u      normal
+	mark   normal
+	bdi    normal
+	bdo    normal
+	span   normal
+	br     void
+	wbr    void
+
+	//
+	// 4.6 Links
+
+	// irrelevant
+
+	//
+	// 4.7 Edits
+
+	ins normal
+	del normal
+
+	//
+	// 4.8 Embedded content
+
+	picture normal
+	source  void
+	img     void
+	iframe  nothing
+	embed   void
+	object  normal
+	video   normal
+	audio   normal
+	track   void
+	map     normal
+	area    void
+	// Excluding support for math and svg elements, simply because they add a
+	// plethora of elements (sometimes even in conflict with HTML5 elements,
+	// e.g. "title" has a different content model in SVG).
+	// While those alone are still manageable, the additional amount of
+	// attributes is not.
+	// I expect most SVG images to be static, usually already in XML form,
+	// so !raw is a better choice for those anyway.
+	// As for MathML, I have never used it myself, but I'm going to speculate
+	// that most people wouldn't bother writing MathML by hand (which seems
+	// rather tedious), but use something like MathJax or a server-side
+	// converter from TeX to MathML instead, so excluding MathML is probably
+	// not a big deal either.
+	// math normal
+	// svg  normal
+
+	//
+	// 4.9 Tabular data
+
+	table    normal
+	caption  normal
+	colgroup normal
+	col      void
+	tbody    normal
+	thead    normal
+	tfoot    normal
+	tr       normal
+	td       normal
+	th       normal
+
+	//
+	// 4.10 Forms
+
+	form     normal
+	label    normal
+	input    void
+	button   normal
+	select   normal
+	datalist normal
+	optgroup normal
+	option   text
+	textarea text
+	output   normal
+	progress normal
+	meter    normal
+	fieldset normal
+	legend   normal
+
+	//
+	// 4.11 Interactive elements
+
+	details normal
+	summary normal
+	dialog  normal
+
+	//
+	// 4.12 Scripting
+
+	script   js
+	noscript normal
+	template normal
+	slot     normal
+	canvas   normal
+)

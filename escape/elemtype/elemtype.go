@@ -1,23 +1,5 @@
 package elemtype
 
-// Func is a function that returns the type for a given element.
-//
-// If the Func cannot determine the type, it should return Unknown.
-type Func func(element string) Type
-
-// Combine combines multiple Funcs into a single Func.
-func Combine(fs ...Func) Func {
-	return func(element string) Type {
-		for _, f := range fs {
-			t := f(element)
-			if t.IsValid() {
-				return t
-			}
-		}
-		return Unknown
-	}
-}
-
 // Type represents the content type of an element, roughly equivalent to the
 // HTML spec's content model.
 //
@@ -32,9 +14,9 @@ const (
 	// A Nothing element is akin to a void element: It has a closing tag, but
 	// must have an empty body.
 	Nothing
-	// An HTML element is the most common element type and can hold other HTML
-	// elements.
-	HTML
+	// A Normal element is the most common element type and can hold text or
+	// other elements.
+	Normal
 	// A Text element can only contain text, but no child elements.
 	// Ampersand escapes are allowed in text elements.
 	Text
@@ -66,8 +48,8 @@ func (t Type) String() string {
 		return "void"
 	case Nothing:
 		return "nothing"
-	case HTML:
-		return "html"
+	case Normal:
+		return "normal"
 	case Text:
 		return "text"
 	case CSS:
