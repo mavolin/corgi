@@ -531,7 +531,11 @@ func (p *prettyPrinter) printText(text string, indent int, needLineStart bool, s
 
 	var inCode bool
 	var forceWrite bool
-	col := indent + 1
+	baseCol := indent + 1
+	if needLineStart {
+		baseCol += p.nDigits + len(" | ")
+	}
+	col := baseCol
 	for i, r := range text {
 		wordEnd := strings.IndexAny(text[i:], " \n")
 		if wordEnd < 0 {
@@ -553,7 +557,7 @@ func (p *prettyPrinter) printText(text string, indent int, needLineStart bool, s
 			} else {
 				regular.SetWriter(p.sb)
 			}
-			col = indent + 1
+			col = baseCol
 			if r == '\n' {
 				continue
 			}
