@@ -156,7 +156,7 @@ func TopLevel() parser.Func[[]ast.ScopeNode] {
 						{Hint: "Imports must be placed at the top of the file, right below the package directive."},
 					},
 				})
-			} else if bn := parser.Try(p, body.BadScopeNode()); bn != nil {
+			} else if bn := parser.TryOptional(p, body.BadScopeNode(), nil); bn != nil {
 				p.CaptureError(&diagnostic.Diagnostic{
 					Message: "bad scope node",
 					Primary: []diagnostic.Annotation{
@@ -167,6 +167,21 @@ func TopLevel() parser.Func[[]ast.ScopeNode] {
 					},
 				})
 				scope = append(scope, bn)
+			} else if parser.MatchesToken(p, "}") {
+				from := p.Pos()
+				parser.TryRune(p, '}')
+				until := p.Pos()
+				scope = append(scope, &ast.BadScopeNode{
+					From:  from,
+					Until: until,
+				})
+
+				p.CaptureError(&diagnostic.Diagnostic{
+					Message: "unexpected closing brace",
+					Primary: []diagnostic.Annotation{
+						anno.Position(p.File, from, "this `}` belongs to no opening `{`"),
+					},
+				})
 			} else {
 				break
 			}
