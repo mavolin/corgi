@@ -12,7 +12,7 @@ import (
 	"github.com/mavolin/corgi/v2/internal/set"
 )
 
-func (l *linker) checkImportCycles(ctx context.Context) {
+func (l *linker) CheckImportCycles(ctx context.Context) {
 	(&importCycleChecker{
 		importersGraph: importersGraph(ctx),
 		reported:       l.takeStringSet(),

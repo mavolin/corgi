@@ -10,7 +10,7 @@ import (
 	"github.com/mavolin/corgi/v2/internal/set"
 )
 
-func (l *linker) checkDuplicateComponents(_ context.Context) {
+func (l *linker) CheckDuplicateComponents(_ context.Context) {
 	(&duplicateComponentChecker{
 		duplComps: make([]*file.Component, 0, 8),
 		checked:   l.takeStringSet(),

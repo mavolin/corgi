@@ -12,7 +12,7 @@ import (
 	"github.com/mavolin/corgi/v2/internal/set"
 )
 
-func (l *linker) checkLocalDotImportCollisions(_ context.Context) {
+func (l *linker) CheckLocalDotImportCollisions(_ context.Context) {
 	logger := l.logger.WithGroup("check.local_dot_import_collisions")
 	logger.Info("Checking for collisions between local symbols and dot imports")
 

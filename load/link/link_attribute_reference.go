@@ -16,7 +16,7 @@ const ambiguousAttributeReferenceExplanation = "There are multiple regular expre
 	"therefore it is unclear which one to use. " +
 	"Refine your regular expressions so that only matches to resolve this ambiguity."
 
-func (l *linker) linkAttributeReferences(ctx context.Context) {
+func (l *linker) LinkAttributeReferences(ctx context.Context) {
 	logger := l.logger.WithGroup("attribute_references")
 	logger.Info("Linking attribute references")
 

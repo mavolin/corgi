@@ -78,8 +78,7 @@ func Link(ctx context.Context, p *file.Package, o Options) diagnostic.List {
 
 	logger := o.Logger.With(
 		slog.String("module", p.Module),
-		slog.String("path_in_module", p.PathInModule),
-	)
+		slog.String("path_in_module", p.PathInModule))
 
 	file.BuildSymbols(p)
 
@@ -96,25 +95,25 @@ func Link(ctx context.Context, p *file.Package, o Options) diagnostic.List {
 		l.reportedMissingImports[f] = set.NewSliceSet[importPath](len(f.Symbols.Imports))
 	}
 
-	l.checkImportCycles(ctx)
+	l.CheckImportCycles(ctx)
 	ctx = addToImportersGraph(ctx, p)
-	l.checkImportNamespaceCollisions(ctx)
-	l.checkDuplicateDotImports(ctx)
-	l.checkExplicitBuiltinImport(ctx)
-	l.loadImports(ctx)
-	l.checkDotImportCollisions(ctx)
-	l.checkLocalDotImportCollisions(ctx)
+	l.CheckImportNamespaceCollisions(ctx)
+	l.CheckDuplicateDotImports(ctx)
+	l.CheckExplicitBuiltinImport(ctx)
+	l.LoadImports(ctx)
+	l.CheckDotImportCollisions(ctx)
+	l.CheckLocalDotImportCollisions(ctx)
 
-	l.checkDuplicateComponents(ctx)
-	l.linkComponentCalls(ctx)
+	l.CheckDuplicateComponents(ctx)
+	l.LinkComponentCalls(ctx)
 
-	l.checkDuplicateAttributeDefinitions(ctx)
-	l.checkDuplicateAttributeDefinitionElementTypes(ctx)
-	l.checkDuplicateAttributeDefinitionElementSelectors(ctx)
-	l.linkAttributeReferences(ctx)
+	l.CheckDuplicateAttributeDefinitions(ctx)
+	l.CheckDuplicateAttributeDefinitionElementTypes(ctx)
+	l.CheckDuplicateAttributeDefinitionElementSelectors(ctx)
+	l.LinkAttributeReferences(ctx)
 
-	l.checkDuplicateElementDefinitions(ctx)
-	l.linkElementReferences(ctx)
+	l.CheckDuplicateElementDefinitions(ctx)
+	l.LinkElementReferences(ctx)
 
 	if len(l.diagnostics) > 0 {
 		return slices.Clip(l.diagnostics)

@@ -10,7 +10,7 @@ import (
 	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
 )
 
-func (l *linker) linkComponentCalls(ctx context.Context) {
+func (l *linker) LinkComponentCalls(ctx context.Context) {
 	logger := l.logger.WithGroup("component_calls")
 	logger.Info("Linking component calls")
 	if l.builtin == nil {

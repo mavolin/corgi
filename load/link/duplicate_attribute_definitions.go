@@ -12,7 +12,7 @@ import (
 	"github.com/mavolin/corgi/v2/internal/set"
 )
 
-func (l *linker) checkDuplicateAttributeDefinitions(_ context.Context) {
+func (l *linker) CheckDuplicateAttributeDefinitions(_ context.Context) {
 	(&duplicateAttributeDefinitionChecker{
 		reported:          set.NewSliceSet[*file.AttributeDefinition](max(len(l.p.AttributeDefinitions)-1, 0)),
 		duplDefs:          make([]*file.AttributeDefinition, 0, 8),

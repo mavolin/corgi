@@ -11,7 +11,7 @@ import (
 	"github.com/mavolin/corgi/v2/internal/set"
 )
 
-func (l *linker) checkDotImportCollisions(_ context.Context) {
+func (l *linker) CheckDotImportCollisions(_ context.Context) {
 	logger := l.logger.WithGroup("check.dot_import_collisions")
 	logger.Info("Checking for dot import collisions")
 
@@ -351,7 +351,7 @@ func (c *dotImportAttributeDefinitionCollisionChecker) checkFile(l *linker, logg
 					}
 
 					// only report collisions for attribute definitions with
-					// the same specitivity
+					// the same specificity
 					if aInfo.fullSelector() == bInfo.fullSelector() {
 						c.recordDuplicate(bImp, bAttrDef, bInfo.fullSelector())
 						c.reported.Add(bAttrDef)

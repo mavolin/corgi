@@ -10,7 +10,7 @@ import (
 	"github.com/mavolin/corgi/v2/internal/set"
 )
 
-func (l *linker) checkDuplicateDotImports(_ context.Context) {
+func (l *linker) CheckDuplicateDotImports(_ context.Context) {
 	logger := l.logger.WithGroup("check.duplicate_dot_imports")
 	logger.Info("Checking for duplicate dot imports")
 

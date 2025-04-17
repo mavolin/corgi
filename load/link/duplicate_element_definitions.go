@@ -11,7 +11,7 @@ import (
 	"github.com/mavolin/corgi/v2/internal/set"
 )
 
-func (l *linker) checkDuplicateElementDefinitions(_ context.Context) {
+func (l *linker) CheckDuplicateElementDefinitions(_ context.Context) {
 	(&duplicateElementDefinitionChecker{
 		duplDefs: make([]*file.ElementDefinition, 0, 8),
 		reported: set.NewSliceSet[*file.ElementDefinition](max(len(l.p.ElementDefinitions)-1, 0)),

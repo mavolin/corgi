@@ -9,7 +9,7 @@ import (
 	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
 )
 
-func (l *linker) linkElementReferences(ctx context.Context) {
+func (l *linker) LinkElementReferences(ctx context.Context) {
 	logger := l.logger.WithGroup("element_references")
 	logger.Info("Linking element references")
 

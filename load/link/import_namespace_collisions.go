@@ -10,7 +10,7 @@ import (
 	"github.com/mavolin/corgi/v2/internal/set"
 )
 
-func (l *linker) checkImportNamespaceCollisions(_ context.Context) {
+func (l *linker) CheckImportNamespaceCollisions(_ context.Context) {
 	logger := l.logger.WithGroup("check.import_namespace_collisions")
 	logger.Info("Checking for import collisions")
 

@@ -12,7 +12,7 @@ import (
 	"github.com/mavolin/corgi/v2/internal/set"
 )
 
-func (l *linker) checkDuplicateAttributeDefinitionElementSelectors(_ context.Context) {
+func (l *linker) CheckDuplicateAttributeDefinitionElementSelectors(_ context.Context) {
 	logger := l.logger.WithGroup("check.duplicate_attribute_definition_element_selectors")
 	logger.Info("Checking for duplicate elements within attribute definitions within the same selector")
 

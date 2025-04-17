@@ -12,7 +12,7 @@ import (
 	"github.com/sourcegraph/conc"
 )
 
-func (l *linker) loadImports(ctx context.Context) {
+func (l *linker) LoadImports(ctx context.Context) {
 	(&importLoader{
 		marked: make(map[importPath]*markedImport),
 	}).load(ctx, l, l.logger)
@@ -69,7 +69,7 @@ func (loader *importLoader) collectImportsFromFile(l *linker, logger *slog.Logge
 	loader.collectImportsForAttributeReferences(l, logger, f)
 }
 
-func (loader *importLoader) collectImportsForComponentCalls(l *linker, logger *slog.Logger, f *file.File) {
+func (loader *importLoader) collectImportsForComponentCalls(_ *linker, logger *slog.Logger, f *file.File) {
 	logger = logger.WithGroup("component_calls")
 	logger.Debug("Processing component calls")
 
@@ -124,7 +124,7 @@ func (loader *importLoader) collectImportsForComponentCalls(l *linker, logger *s
 	}
 }
 
-func (loader *importLoader) collectImportsForElementReferences(l *linker, logger *slog.Logger, f *file.File) {
+func (loader *importLoader) collectImportsForElementReferences(_ *linker, logger *slog.Logger, f *file.File) {
 	logger = logger.WithGroup("element_references")
 	logger.Debug("Processing element references")
 
@@ -171,7 +171,7 @@ func (loader *importLoader) collectImportsForElementReferences(l *linker, logger
 	}
 }
 
-func (loader *importLoader) collectImportsForAttributeReferences(l *linker, logger *slog.Logger, f *file.File) {
+func (loader *importLoader) collectImportsForAttributeReferences(_ *linker, logger *slog.Logger, f *file.File) {
 	logger = logger.WithGroup("attribute_references")
 	logger.Debug("Processing attribute references")
 
