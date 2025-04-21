@@ -14,7 +14,7 @@ import (
 
 const ambiguousAttributeReferenceExplanation = "There are multiple regular expression selectors that all match this attribute and " +
 	"therefore it is unclear which one to use. " +
-	"Refine your regular expressions so that only matches to resolve this ambiguity."
+	"Refine your regular expressions so that only one matches to resolve this ambiguity."
 
 func (l *linker) LinkAttributeReferences(ctx context.Context) {
 	logger := l.logger.WithGroup("attribute_references")
