@@ -110,5 +110,5 @@ func TestFile(t *testing.T) {
 		require.Fail(t, "unexpected error: %v", err)
 	}
 
-	assert.Equal(t, expect, p.File.File)
+	assert.Equal(t, expect, p.File.AST)
 }

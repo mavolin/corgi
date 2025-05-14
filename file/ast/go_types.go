@@ -113,6 +113,10 @@ func (*NamedType) _type() {}
 type AttributeType struct {
 	Quote *Position
 	Name  *AttributeTypeName
+
+	LBracket  *Position      // optional
+	Attribute *AttributeName // optional, only needed for unsafe attributes
+	RBracket  *Position      // optional
 }
 
 var _ ParsedType = (*AttributeType)(nil)
@@ -126,7 +130,13 @@ func (t *AttributeType) Start() Position {
 	return Position{}
 }
 func (t *AttributeType) End() Position {
-	if t.Name != nil {
+	if t.RBracket != nil {
+		return deltaPos(*t.RBracket, len("]"))
+	} else if t.Attribute != nil {
+		return t.Attribute.End()
+	} else if t.LBracket != nil {
+		return deltaPos(*t.LBracket, len("["))
+	} else if t.Name != nil {
 		return t.Name.End()
 	} else if t.Quote != nil {
 		return deltaPos(*t.Quote, len("'"))
@@ -136,6 +146,9 @@ func (t *AttributeType) End() Position {
 func (t *AttributeType) Walk(w func(Node)) {
 	if t.Name != nil {
 		w(t.Name)
+	}
+	if t.Attribute != nil {
+		w(t.Attribute)
 	}
 }
 

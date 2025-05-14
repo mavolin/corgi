@@ -152,10 +152,10 @@ func Name() parser.Func[*ast.AttributeName] {
 				return false
 			}
 
-			if parser.MatchesToken(p, "(") {
+			if parser.MatchesAnyRune(p, '(', '[') {
 				parenCount++
 				return true
-			} else if parser.MatchesToken(p, ")") {
+			} else if parser.MatchesAnyRune(p, ')', ']') {
 				parenCount--
 				return parenCount >= 0
 			}
@@ -170,11 +170,11 @@ func Name() parser.Func[*ast.AttributeName] {
 			}
 		} else if parenCount > 0 {
 			p.CaptureError(&diagnostic.Diagnostic{
-				Message: "unbalanced parentheses",
+				Message: "attribute name: unbalanced parentheses/brackets",
 				Primary: []diagnostic.Annotation{
-					anno.Position(p.File, name.End(), fmt.Sprintf("expected %d closing parenthesis", parenCount)),
+					anno.Position(p.File, name.End(), fmt.Sprintf("expected %d closing parenthesis/brackets", parenCount)),
 				},
-				Explanation: fmt.Sprint("Attributes may contain parentheses, but they must be balanced to "+
+				Explanation: fmt.Sprint("Attributes may contain parentheses/brackets, but they must be balanced to "+
 					"help the parser distinguish between the end of an attribute list and an "+
 					"attribute name. You currently have an excess of ", parenCount, " opening parentheses, "+
 					"which need to be closed to make this a valid attribute name."),

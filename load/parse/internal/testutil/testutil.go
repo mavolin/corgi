@@ -26,7 +26,7 @@ func NewParser(t *testing.T, input string) *parser.Parser {
 
 	return parser.New(&file.File{
 		Name: t.Name(),
-		File: &ast.File{
+		AST: &ast.File{
 			Raw:   input,
 			Lines: lines,
 		},

@@ -6,6 +6,7 @@ import (
 	"github.com/mavolin/corgi/v2/file/diagnostic"
 	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
+	"github.com/mavolin/corgi/v2/load/parse/internal/comment"
 	"github.com/mavolin/corgi/v2/load/parse/internal/golang"
 	"github.com/mavolin/corgi/v2/load/parse/internal/quickanno"
 )
@@ -30,6 +31,8 @@ func Type() parser.Func[*ast.AttributeType] {
 			}
 		}
 
+		parser.TrySkip(p, comment.OrHorizontalWhitespace())
+
 		// make sure this isn't actually a rune literal
 		if parser.MatchesToken(p, "'") {
 			return nil, &diagnostic.Diagnostic{
@@ -40,6 +43,28 @@ func Type() parser.Func[*ast.AttributeType] {
 				},
 			}
 		}
+
+		t.LBracket = parser.TryRuneAt(p, '[')
+		if t.LBracket == nil {
+			return &t, nil
+		}
+
+		parser.TrySkip(p, comment.OrAnyWhitespace())
+		t.Attribute = parser.Must(p, Name())
+
+		parser.TrySkip(p, comment.OrAnyWhitespace())
+		t.RBracket = parser.TryRuneAt(p, ']')
+		if t.RBracket == nil {
+			p.CaptureError(&diagnostic.Diagnostic{
+				Message: "missing closing bracket",
+				Primary: quickanno.Expected(p, p.Pos(), "a closing bracket"),
+				Secondary: []diagnostic.Annotation{
+					anno.Position(p.File, *t.LBracket, "because of this opening bracket"),
+				},
+			})
+			return &t, nil
+		}
+
 		return &t, nil
 	}
 }

@@ -12,9 +12,12 @@ import (
 var attrTypes = []struct {
 	name string
 	typ  attrtype.Type
+	attr string
 }{
 	{name: "unsafeBool", typ: attrtype.UnsafeBool},
 	{name: "unsafe", typ: attrtype.Unsafe},
+	{name: "unsafeBool", typ: attrtype.UnsafeBool, attr: "woof"},
+	{name: "unsafe", typ: attrtype.Unsafe, attr: "woof"},
 	{name: "bool", typ: attrtype.Bool},
 	{name: "text", typ: attrtype.Text},
 	{name: "innocuous", typ: attrtype.Innocuous},
@@ -32,19 +35,34 @@ func TestType(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		for _, c := range attrTypes {
-			t.Run(c.name, func(t *testing.T) {
+		for _, at := range attrTypes {
+			s := at.name
+			if at.attr != "" {
+				s += "[" + at.attr + "]"
+			}
+			t.Run(s, func(t *testing.T) {
 				t.Parallel()
 
 				expect := &ast.AttributeType{
 					Quote: &ast.Position{Line: 1, Col: 1},
 					Name: &ast.AttributeTypeName{
-						Name:     c.name,
-						Type:     c.typ,
-						Position: &ast.Position{Line: 1, Col: 2},
+						Name:     at.name,
+						Type:     at.typ,
+						Position: &ast.Position{Line: 1, Col: 1 + len("'")},
 					},
 				}
-				actual := testutil.ParsesFully(t, "'"+c.name, Type())
+				if at.attr != "" {
+					expect.LBracket = &ast.Position{Line: 1, Col: 1 + len("'") + len(at.name)}
+					expect.Attribute = &ast.AttributeName{
+						Name:     at.attr,
+						Position: &ast.Position{Line: 1, Col: 1 + len("'") + len(at.name) + len("[")},
+					}
+					expect.RBracket = &ast.Position{
+						Line: 1,
+						Col:  1 + len("'") + len(at.name) + len("[") + len(at.attr),
+					}
+				}
+				actual := testutil.ParsesFully(t, "'"+s, Type())
 				assert.Equal(t, expect, actual)
 			})
 		}
