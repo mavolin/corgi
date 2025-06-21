@@ -77,3 +77,67 @@ func testBracketText(t *testing.T, f parser.Func[*ast.BracketText]) {
 		})
 	}
 }
+
+func TestVerbatimBracketText(t *testing.T) {
+	testCases := []struct {
+		name   string
+		in     string
+		expect *ast.BracketText
+	}{
+		{
+			name: "empty",
+			in:   "[]",
+			expect: &ast.BracketText{
+				LBracket: &ast.Position{Line: 1, Col: 1},
+				RBracket: &ast.Position{Line: 1, Col: 2},
+			},
+		}, {
+			name: "single line",
+			in:   "[ foo #bar ]",
+			expect: &ast.BracketText{
+				LBracket: &ast.Position{Line: 1, Col: 1},
+				Lines: ast.TextBlock{
+					ast.TextLine{
+						&ast.Text{
+							Text:     "foo #bar",
+							Position: &ast.Position{Line: 1, Col: 3},
+						},
+					},
+				},
+				RBracket: &ast.Position{Line: 1, Col: 7},
+			},
+		}, {
+			name: "multi line",
+			in: "[\n" +
+				"\tfoo #bar \n" +
+				"\tbar #:baz()\n" +
+				"]",
+			expect: &ast.BracketText{
+				LBracket: &ast.Position{Line: 1, Col: 1},
+				Lines: ast.TextBlock{
+					ast.TextLine{
+						&ast.Text{
+							Text:     "foo #bar",
+							Position: &ast.Position{Line: 2, Col: 2},
+						},
+					}, ast.TextLine{
+						&ast.Text{
+							Text:     "bar #:baz()",
+							Position: &ast.Position{Line: 3, Col: 2},
+						},
+					},
+				},
+				RBracket: &ast.Position{Line: 4, Col: 1},
+			},
+		},
+	}
+
+	for _, c := range testCases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+
+			actual := testutil.ParsesFully(t, c.in, VerbatimBracketText())
+			assert.Equal(t, c.expect, actual)
+		})
+	}
+}

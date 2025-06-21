@@ -104,6 +104,21 @@ func TestLine(t *testing.T) {
 	assert.Equal(t, expect, actual)
 }
 
+func TestVerbatimLine(t *testing.T) {
+	t.Parallel()
+
+	in := "foo #{bar}##baz #? #_"
+	expect := ast.TextLine{
+		&ast.Text{
+			Text:     "foo #{bar}##baz #? #_",
+			Position: &ast.Position{Line: 1, Col: 1},
+		},
+	}
+
+	actual := parsesTextFully(t, in, VerbatimLine('\n'))
+	assert.Equal(t, expect, actual)
+}
+
 func TestText(t *testing.T) {
 	t.Parallel()
 

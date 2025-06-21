@@ -64,6 +64,29 @@ func Line(term rune) parser.Func[ast.TextLine] {
 	}
 }
 
+// VerbatimLine parses a text line consisting only of text nodes.
+// Sequences that when calling the regular [Line] would normally yield
+// other nodes, such as interpolation, will be included in text nodes.
+func VerbatimLine(term rune) parser.Func[ast.TextLine] {
+	return func(p *parser.Parser) (ast.TextLine, *diagnostic.Diagnostic) {
+		var t ast.Text
+		t.Position = p.PosPtr()
+
+		t.Text = parser.TokenWhile(p, func() bool {
+			return !parser.MatchesAnyRune(p, term, '\r', '\n')
+		})
+		t.Text = strings.TrimRight(t.Text, " \t")
+		if t.Text == "" {
+			return nil, &diagnostic.Diagnostic{
+				Message: "missing text line",
+				Primary: quickanno.Expected(p, p.Pos(), "text"),
+			}
+		}
+
+		return ast.TextLine{&t}, nil
+	}
+}
+
 func Node(term rune) parser.Func[ast.TextNode] {
 	return func(p *parser.Parser) (ast.TextNode, *diagnostic.Diagnostic) {
 		if t := parser.Try(p, Text(term)); t != nil {

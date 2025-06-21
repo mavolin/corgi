@@ -202,7 +202,7 @@ func Raw() parser.Func[*ast.RawElement] {
 			})
 		}
 
-		e.Body = parser.TryOptional(p, body.BracketText(), nil)
+		e.Body = parser.TryOptional(p, body.VerbatimBracketText(), nil)
 		if e.Body == nil {
 			b := parser.Try(p, body.Body())
 			if b != nil {

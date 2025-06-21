@@ -12,6 +12,8 @@ import (
 
 func init() {
 	SetTextLine(textLineStub)
+	// doesn't make the VerbatimBracketText very effective, but whatever
+	SetVerbatimTextLine(textLineStub)
 	SetScopeNode(scopeNodeStub)
 }
 

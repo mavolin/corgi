@@ -25,6 +25,7 @@ func init() {
 	interpolation.SetComponentCallHeader(component.CallHeader())
 
 	body.SetTextLine(text.Line)
+	body.SetVerbatimTextLine(text.VerbatimLine)
 	body.SetScopeNode(scopeNode)
 }
 
