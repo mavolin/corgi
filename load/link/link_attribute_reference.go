@@ -131,7 +131,7 @@ func (l *linker) linkUnqualifiedAttributeReference(_ context.Context, logger *sl
 		return
 	}
 
-	logger.Debug("Not defined implicitly, analyzer needs to determine whether there is an explicit type")
+	logger.Debug("Not defined explicitly, analyzer needs to determine whether there is explicit typing")
 }
 
 func (l *linker) linkQualifiedAttributeReference(_ context.Context, logger *slog.Logger, f *file.File, ref *file.AttributeReference) {
