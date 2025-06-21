@@ -87,7 +87,7 @@ func Text(term rune) parser.Func[*ast.Text] {
 		t.Position = p.PosPtr()
 
 		t.Text = parser.TokenWhile(p, func() bool {
-			return !parser.MatchesAnyRune(p, term, term, '\r', '\n') &&
+			return !parser.MatchesAnyRune(p, term, '\r', '\n') &&
 				(parser.Matches(p, interpolation.UnambiguousHash()) || !parser.MatchesAnyRune(p, '#'))
 		})
 		t.Text = strings.TrimRight(t.Text, " \t")
