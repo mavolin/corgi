@@ -260,7 +260,6 @@ func (p *prettyPrinter) printLineRange(f *fileAnnos, lr lineRange) {
 		}
 
 		p.printAnnotations(lineAnnotations)
-
 	}
 }
 
@@ -292,7 +291,11 @@ func (p *prettyPrinter) printAnnotationMarker(lnNo line, ln string, a annotation
 		end = len(ln) + 1
 	}
 	repeatCount := end - start
-	p.colored(strings.Repeat("^", repeatCount), p.annoColor(a))
+	if a.primary {
+		p.colored(strings.Repeat("^", repeatCount), p.annoColor(a))
+	} else {
+		p.colored(strings.Repeat("~", repeatCount), p.annoColor(a))
+	}
 	return repeatCount
 }
 

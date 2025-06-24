@@ -186,7 +186,7 @@ func TestDiagnostic_Pretty(t *testing.T) {
 				"  │ ^^^^^^^^^^^ package\n" +
 				"2 │ \n" +
 				`3 │ import "bar"` + "\n" +
-				"  │ ^^^^^^^^^^^^ import",
+				"  │ ~~~~~~~~~~~~ import",
 		}, {
 			name: "cause",
 			diag: &Diagnostic{
@@ -346,7 +346,7 @@ func TestDiagnostic_Pretty(t *testing.T) {
 				"  │ ^^^^^^^^^^^ package\n" +
 				"2 │ \n" +
 				`3 │ import "bar"` + "\n" +
-				"  │ ^^^^^^^^^^^^ import\n" +
+				"  │ ~~~~~~~~~~~~ import\n" +
 				"\n" +
 				"Cause: bar\n" +
 				"\n" +
