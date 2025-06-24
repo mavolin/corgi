@@ -28,7 +28,7 @@ func TestDiagnostic_Pretty(t *testing.T) {
 
 	f := &file.File{
 		PathInModule: "foo.corgi",
-		File: &ast.File{
+		AST: &ast.File{
 			Raw: "package foo\n" +
 				"\n" +
 				"import \"bar\"",
@@ -322,7 +322,7 @@ func TestDiagnostic_Pretty(t *testing.T) {
 			expectShort: "error: foo",
 			expectPretty: "error: foo\n" +
 				"\n" +
-				"Docs: corgi.mavolin.co/!bar",
+				"Docs: https://corgi.mavolin.co/!bar",
 		}, {
 			name: "full",
 			diag: &Diagnostic{
@@ -356,7 +356,7 @@ func TestDiagnostic_Pretty(t *testing.T) {
 				"\n" +
 				"Hint: quux\n" +
 				"\n" +
-				"Docs: corgi.mavolin.co/!corgi",
+				"Docs: https://corgi.mavolin.co/!corgi",
 		},
 	}
 

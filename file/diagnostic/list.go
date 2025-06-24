@@ -4,11 +4,6 @@ import "strings"
 
 type List []*Diagnostic
 
-func (l List) ToError() error {
-	// todo: implement
-	panic("implement me")
-}
-
 func (l List) Short() string {
 	var sb strings.Builder
 	sb.Grow(len(l) * 128)

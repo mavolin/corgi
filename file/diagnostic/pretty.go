@@ -123,7 +123,7 @@ func (d *Diagnostic) pretty(sb *strings.Builder, o PrettyOptions) {
 		}
 	}
 	for _, a := range d.Secondary {
-		p.insertAnno(a, true, len(d.Primary))
+		p.insertAnno(a, false, len(d.Primary))
 		if n := numDigits(a.ContextEnd - 1); n > p.nDigits {
 			p.nDigits = n
 		}
