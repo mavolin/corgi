@@ -16,11 +16,12 @@ type ZeroCoalescing struct {
 var _ CodeNode = (*ZeroCoalescing)(nil)
 
 func (c *ZeroCoalescing) Start() Position {
-	if c.DerefPosition != nil {
+	switch {
+	case c.DerefPosition != nil:
 		return *c.DerefPosition
-	} else if c.Root != nil {
+	case c.Root != nil:
 		return c.Root.Start()
-	} else if c.CheckRoot != nil {
+	case c.CheckRoot != nil:
 		return *c.CheckRoot
 	}
 	for _, node := range c.Chain {
@@ -35,6 +36,7 @@ func (c *ZeroCoalescing) Start() Position {
 	}
 	return Position{}
 }
+
 func (c *ZeroCoalescing) End() Position {
 	if c.Default != nil {
 		return c.Default.End()
@@ -46,15 +48,17 @@ func (c *ZeroCoalescing) End() Position {
 			return node.End()
 		}
 	}
-	if c.CheckRoot != nil {
+	switch {
+	case c.CheckRoot != nil:
 		return deltaPos(*c.CheckRoot, len("?"))
-	} else if c.Root != nil {
+	case c.Root != nil:
 		return c.Root.End()
-	} else if c.DerefPosition != nil {
+	case c.DerefPosition != nil:
 		return deltaPos(*c.DerefPosition, c.DerefCount)
 	}
 	return Position{}
 }
+
 func (c *ZeroCoalescing) Walk(w func(Node)) {
 	if c.Root != nil {
 		w(c.Root)
@@ -110,37 +114,41 @@ type ZCIndexExpression struct {
 var _ ZeroCoalescingNode = (*ZCIndexExpression)(nil)
 
 func (e *ZCIndexExpression) Start() Position {
-	if e.LBracket != nil {
+	switch {
+	case e.LBracket != nil:
 		return *e.LBracket
-	} else if e.Index != nil {
+	case e.Index != nil:
 		return e.Index.Start()
-	} else if e.CheckIndex != nil {
+	case e.CheckIndex != nil:
 		return *e.CheckIndex
-	} else if e.Comma != nil {
+	case e.Comma != nil:
 		return *e.Comma
-	} else if e.RBracket != nil {
+	case e.RBracket != nil:
 		return *e.RBracket
-	} else if e.CheckValue != nil {
+	case e.CheckValue != nil:
 		return *e.CheckValue
 	}
 	return Position{}
 }
+
 func (e *ZCIndexExpression) End() Position {
-	if e.CheckValue != nil {
+	switch {
+	case e.CheckValue != nil:
 		return deltaPos(*e.CheckValue, len("?"))
-	} else if e.RBracket != nil {
+	case e.RBracket != nil:
 		return deltaPos(*e.RBracket, len("]"))
-	} else if e.Comma != nil {
+	case e.Comma != nil:
 		return deltaPos(*e.Comma, len(","))
-	} else if e.CheckIndex != nil {
+	case e.CheckIndex != nil:
 		return deltaPos(*e.CheckIndex, len("?"))
-	} else if e.Index != nil {
+	case e.Index != nil:
 		return e.Index.End()
-	} else if e.LBracket != nil {
+	case e.LBracket != nil:
 		return deltaPos(*e.LBracket, len("["))
 	}
 	return Position{}
 }
+
 func (e *ZCIndexExpression) Walk(w func(Node)) {
 	if e.Index != nil {
 		w(e.Index)
@@ -164,25 +172,29 @@ type ZCSelectorExpression struct {
 var _ ZeroCoalescingNode = (*ZCSelectorExpression)(nil)
 
 func (e *ZCSelectorExpression) Start() Position {
-	if e.Dot != nil {
+	switch {
+	case e.Dot != nil:
 		return *e.Dot
-	} else if e.Ident != nil {
+	case e.Ident != nil:
 		return e.Ident.Start()
-	} else if e.Check != nil {
+	case e.Check != nil:
 		return *e.Check
 	}
 	return Position{}
 }
+
 func (e *ZCSelectorExpression) End() Position {
-	if e.Check != nil {
+	switch {
+	case e.Check != nil:
 		return deltaPos(*e.Check, len("?"))
-	} else if e.Ident != nil {
+	case e.Ident != nil:
 		return e.Ident.End()
-	} else if e.Dot != nil {
+	case e.Dot != nil:
 		return deltaPos(*e.Dot, len("."))
 	}
 	return Position{}
 }
+
 func (e *ZCSelectorExpression) Walk(w func(Node)) {
 	if e.Ident != nil {
 		w(e.Ident)
@@ -222,6 +234,7 @@ func (e *ZCParenExpression) Start() Position {
 	}
 	return Position{}
 }
+
 func (e *ZCParenExpression) End() Position {
 	if e.Check != nil {
 		return deltaPos(*e.Check, len("?"))
@@ -238,6 +251,7 @@ func (e *ZCParenExpression) End() Position {
 	}
 	return Position{}
 }
+
 func (e *ZCParenExpression) Walk(w func(Node)) {
 	for _, arg := range e.Args {
 		if arg != nil {
@@ -267,35 +281,39 @@ type ZCTypeAssertionExpression struct {
 var _ ZeroCoalescingNode = (*ZCTypeAssertionExpression)(nil)
 
 func (e *ZCTypeAssertionExpression) Start() Position {
-	if e.Dot != nil {
+	switch {
+	case e.Dot != nil:
 		return *e.Dot
-	} else if e.LParen != nil {
+	case e.LParen != nil:
 		return *e.LParen
-	} else if e.CheckType != nil {
+	case e.CheckType != nil:
 		return *e.CheckType
-	} else if e.Type != nil {
+	case e.Type != nil:
 		return e.Type.Start()
-	} else if e.CheckValue != nil {
+	case e.CheckValue != nil:
 		return *e.CheckValue
 	}
 	return Position{}
 }
+
 func (e *ZCTypeAssertionExpression) End() Position {
-	if e.CheckValue != nil {
+	switch {
+	case e.CheckValue != nil:
 		return deltaPos(*e.CheckValue, len("?"))
-	} else if e.RParen != nil {
+	case e.RParen != nil:
 		return deltaPos(*e.RParen, len(")"))
-	} else if e.CheckType != nil {
+	case e.CheckType != nil:
 		return deltaPos(*e.CheckType, len("?"))
-	} else if e.Type != nil {
+	case e.Type != nil:
 		return e.Type.End()
-	} else if e.LParen != nil {
+	case e.LParen != nil:
 		return deltaPos(*e.LParen, len("("))
-	} else if e.Dot != nil {
+	case e.Dot != nil:
 		return deltaPos(*e.Dot, len("."))
 	}
 	return Position{}
 }
+
 func (e *ZCTypeAssertionExpression) Walk(w func(Node)) {
 	if e.Type != nil {
 		e.Type.Walk(w)

@@ -17,11 +17,12 @@ type ElementDefinition struct {
 var _ ScopeNode = (*ElementDefinition)(nil)
 
 func (d *ElementDefinition) Start() Position {
-	if d.Elem != nil {
+	switch {
+	case d.Elem != nil:
 		return *d.Elem
-	} else if d.Prefix != nil {
+	case d.Prefix != nil:
 		return d.Prefix.Start()
-	} else if d.LParen != nil {
+	case d.LParen != nil:
 		return *d.LParen
 	}
 	for _, spec := range d.Specs {
@@ -34,6 +35,7 @@ func (d *ElementDefinition) Start() Position {
 	}
 	return Position{}
 }
+
 func (d *ElementDefinition) End() Position {
 	if d.RParen != nil {
 		return deltaPos(*d.RParen, len(")"))
@@ -43,15 +45,17 @@ func (d *ElementDefinition) End() Position {
 			return spec.End()
 		}
 	}
-	if d.LParen != nil {
+	switch {
+	case d.LParen != nil:
 		return deltaPos(*d.LParen, len("("))
-	} else if d.Prefix != nil {
+	case d.Prefix != nil:
 		return d.Prefix.End()
-	} else if d.Elem != nil {
+	case d.Elem != nil:
 		return deltaPos(*d.Elem, len("elem"))
 	}
 	return Position{}
 }
+
 func (d *ElementDefinition) Walk(w func(Node)) {
 	if d.Prefix != nil {
 		w(d.Prefix)
@@ -85,6 +89,7 @@ func (a *ElementSpec) Start() Position {
 	}
 	return Position{}
 }
+
 func (a *ElementSpec) End() Position {
 	if a.Type != nil {
 		return a.Type.End()
@@ -93,6 +98,7 @@ func (a *ElementSpec) End() Position {
 	}
 	return Position{}
 }
+
 func (a *ElementSpec) Walk(w func(Node)) {
 	if a.Name != nil {
 		w(a.Name)
@@ -127,12 +133,14 @@ func (t *BasicElementType) Start() Position {
 	}
 	return Position{}
 }
+
 func (t *BasicElementType) End() Position {
 	if t.Type != nil {
 		return t.Type.End()
 	}
 	return Position{}
 }
+
 func (t *BasicElementType) Walk(w func(Node)) {
 	if t.Type != nil {
 		w(t.Type)
@@ -159,6 +167,7 @@ func (t *AliasElementType) Start() Position {
 	}
 	return Position{}
 }
+
 func (t *AliasElementType) End() Position {
 	if t.Name != nil {
 		return t.Name.End()
@@ -167,6 +176,7 @@ func (t *AliasElementType) End() Position {
 	}
 	return Position{}
 }
+
 func (t *AliasElementType) Walk(w func(Node)) {
 	if t.Name != nil {
 		w(t.Name)
@@ -194,6 +204,7 @@ func (a *ElementTypeName) Start() Position {
 	}
 	return Position{}
 }
+
 func (a *ElementTypeName) End() Position {
 	if a.Position != nil {
 		return deltaPos(*a.Position, len(a.Name))

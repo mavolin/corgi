@@ -10,7 +10,7 @@ import "slices"
 //
 // If a CommentGroup contains a /* General Comment */, it will be the only
 // element in the group.
-// Line Comments that are on the same line as another node, are also
+// Line comments which are on the same line as another node, are also
 // grouped alone.
 //
 // This means
@@ -42,6 +42,7 @@ func (g CommentGroup) Start() Position {
 	}
 	return Position{}
 }
+
 func (g CommentGroup) End() Position {
 	for _, c := range slices.Backward(g.Comments) {
 		if c != nil {
@@ -50,6 +51,7 @@ func (g CommentGroup) End() Position {
 	}
 	return Position{}
 }
+
 func (g CommentGroup) Walk(w func(Node)) {
 	for _, c := range g.Comments {
 		if c != nil {
@@ -81,6 +83,7 @@ func (c *Comment) Start() Position {
 	}
 	return c.Until
 }
+
 func (c *Comment) End() Position {
 	return c.Until
 }

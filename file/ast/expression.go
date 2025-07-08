@@ -20,6 +20,7 @@ func (e *Expression) Start() Position {
 	}
 	return Position{}
 }
+
 func (e *Expression) End() Position {
 	for _, n := range slices.Backward(e.Code) {
 		if n != nil {
@@ -28,6 +29,7 @@ func (e *Expression) End() Position {
 	}
 	return Position{}
 }
+
 func (e *Expression) Walk(w func(Node)) {
 	if e.Code != nil {
 		w(e.Code)

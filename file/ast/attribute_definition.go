@@ -19,11 +19,12 @@ type AttributeDefinition struct {
 var _ ScopeNode = (*AttributeDefinition)(nil)
 
 func (d *AttributeDefinition) Start() Position {
-	if d.Attr != nil {
+	switch {
+	case d.Attr != nil:
 		return *d.Attr
-	} else if d.Prefix != nil {
+	case d.Prefix != nil:
 		return d.Prefix.Start()
-	} else if d.LParen != nil {
+	case d.LParen != nil:
 		return *d.LParen
 	}
 	for _, s := range d.Specs {
@@ -36,20 +37,23 @@ func (d *AttributeDefinition) Start() Position {
 	}
 	return Position{}
 }
+
 func (d *AttributeDefinition) End() Position {
-	if d.RParen != nil {
+	switch {
+	case d.RParen != nil:
 		return deltaPos(*d.RParen, len(")"))
-	} else if len(d.Specs) > 0 {
+	case len(d.Specs) > 0:
 		return d.Specs[len(d.Specs)-1].End()
-	} else if d.LParen != nil {
+	case d.LParen != nil:
 		return deltaPos(*d.LParen, len("("))
-	} else if d.Prefix != nil {
+	case d.Prefix != nil:
 		return d.Prefix.End()
-	} else if d.Attr != nil {
+	case d.Attr != nil:
 		return deltaPos(*d.Attr, len("attr"))
 	}
 	return Position{}
 }
+
 func (d *AttributeDefinition) Walk(w func(Node)) {
 	if d.Prefix != nil {
 		w(d.Prefix)
@@ -83,6 +87,7 @@ func (a *AttributeSpec) Start() Position {
 	}
 	return Position{}
 }
+
 func (a *AttributeSpec) End() Position {
 	if a.Ruleset != nil {
 		return a.Ruleset.End()
@@ -91,6 +96,7 @@ func (a *AttributeSpec) End() Position {
 	}
 	return Position{}
 }
+
 func (a *AttributeSpec) Walk(w func(Node)) {
 	if a.Selector != nil {
 		w(a.Selector)
@@ -128,6 +134,7 @@ func (a *AttributeRuleset) Start() Position {
 	}
 	return Position{}
 }
+
 func (a *AttributeRuleset) End() Position {
 	if a.RBrace != nil {
 		return deltaPos(*a.RBrace, len("}"))
@@ -142,6 +149,7 @@ func (a *AttributeRuleset) End() Position {
 	}
 	return Position{}
 }
+
 func (a *AttributeRuleset) Walk(w func(Node)) {
 	for _, r := range a.Rules {
 		if r != nil {
@@ -171,6 +179,7 @@ func (a *AttributeRule) Start() Position {
 	}
 	return Position{}
 }
+
 func (a *AttributeRule) End() Position {
 	if a.Type != nil {
 		return a.Type.End()
@@ -179,6 +188,7 @@ func (a *AttributeRule) End() Position {
 	}
 	return Position{}
 }
+
 func (a *AttributeRule) Walk(w func(Node)) {
 	if a.Selector != nil {
 		w(a.Selector)
@@ -216,6 +226,7 @@ func (b *BasicAttributeSelector) Start() Position {
 	}
 	return Position{}
 }
+
 func (b *BasicAttributeSelector) End() Position {
 	if b.Position == nil {
 		return Position{}
@@ -254,29 +265,33 @@ type RegexpAttributeSelector struct {
 var _ AttributeSelector = (*RegexpAttributeSelector)(nil)
 
 func (r *RegexpAttributeSelector) Start() Position {
-	if r.Regexp != nil {
+	switch {
+	case r.Regexp != nil:
 		return *r.Regexp
-	} else if r.LParen != nil {
+	case r.LParen != nil:
 		return *r.LParen
-	} else if r.Raw != nil {
+	case r.Raw != nil:
 		return r.Raw.Start()
-	} else if r.RParen != nil {
+	case r.RParen != nil:
 		return *r.RParen
 	}
 	return Position{}
 }
+
 func (r *RegexpAttributeSelector) End() Position {
-	if r.RParen != nil {
+	switch {
+	case r.RParen != nil:
 		return deltaPos(*r.RParen, len(")"))
-	} else if r.Raw != nil {
+	case r.Raw != nil:
 		return r.Raw.End()
-	} else if r.LParen != nil {
+	case r.LParen != nil:
 		return deltaPos(*r.LParen, len("("))
-	} else if r.Regexp != nil {
+	case r.Regexp != nil:
 		return deltaPos(*r.Regexp, len("regexp"))
 	}
 	return Position{}
 }
+
 func (r *RegexpAttributeSelector) Walk(w func(Node)) {
 	if r.Raw != nil {
 		w(r.Raw)
@@ -314,6 +329,7 @@ func (w *WildcardElementSelector) Start() Position {
 	}
 	return Position{}
 }
+
 func (w *WildcardElementSelector) End() Position {
 	if w.Asterisk != nil {
 		return deltaPos(*w.Asterisk, len("*"))
@@ -341,6 +357,7 @@ func (l *ListElementSelector) Start() Position {
 	}
 	return Position{}
 }
+
 func (l *ListElementSelector) End() Position {
 	for _, e := range slices.Backward(l.Elements) {
 		if e != nil {
@@ -349,6 +366,7 @@ func (l *ListElementSelector) End() Position {
 	}
 	return Position{}
 }
+
 func (l *ListElementSelector) Walk(w func(Node)) {
 	for _, e := range l.Elements {
 		if e != nil {
@@ -387,6 +405,7 @@ func (a *AttributeTypeName) Start() Position {
 	}
 	return Position{}
 }
+
 func (a *AttributeTypeName) End() Position {
 	if a.Position != nil {
 		return deltaPos(*a.Position, len(a.Name))

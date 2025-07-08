@@ -39,6 +39,7 @@ func (p *AndPlaceholder) Start() Position {
 	}
 	return Position{}
 }
+
 func (p *AndPlaceholder) End() Position {
 	if p.And != nil {
 		return deltaPos(*p.And, len("&"))
@@ -69,6 +70,7 @@ func (s *IDShorthand) Start() Position {
 	}
 	return Position{}
 }
+
 func (s *IDShorthand) End() Position {
 	if len(s.ID) > 0 {
 		return s.ID[len(s.ID)-1].End()
@@ -77,6 +79,7 @@ func (s *IDShorthand) End() Position {
 	}
 	return Position{}
 }
+
 func (s *IDShorthand) Walk(w func(Node)) {
 	if s.ID != nil {
 		w(s.ID)
@@ -109,6 +112,7 @@ func (s *ClassShorthand) Start() Position {
 	}
 	return Position{}
 }
+
 func (s *ClassShorthand) End() Position {
 	for _, name := range slices.Backward(s.Names) {
 		if len(name) > 0 {
@@ -120,6 +124,7 @@ func (s *ClassShorthand) End() Position {
 	}
 	return Position{}
 }
+
 func (s *ClassShorthand) Walk(w func(Node)) {
 	for _, name := range s.Names {
 		if name != nil {
@@ -149,6 +154,7 @@ func (s Shorthand) Start() Position {
 	}
 	return Position{}
 }
+
 func (s Shorthand) End() Position {
 	for _, node := range slices.Backward(s) {
 		if node != nil {
@@ -157,6 +163,7 @@ func (s Shorthand) End() Position {
 	}
 	return Position{}
 }
+
 func (s Shorthand) Walk(w func(Node)) {
 	for _, node := range s {
 		if node != nil {
@@ -198,6 +205,7 @@ func (t *ShorthandText) Start() Position {
 	}
 	return Position{}
 }
+
 func (t *ShorthandText) End() Position {
 	if t.Position != nil {
 		return deltaPos(*t.Position, len(t.Text))
@@ -241,25 +249,29 @@ type NamedAttribute struct {
 var _ Attribute = (*NamedAttribute)(nil)
 
 func (a *NamedAttribute) Start() Position {
-	if a.Name != nil {
+	switch {
+	case a.Name != nil:
 		return a.Name.Start()
-	} else if a.EqualSign != nil {
+	case a.EqualSign != nil:
 		return *a.EqualSign
-	} else if a.Value != nil {
+	case a.Value != nil:
 		return a.Value.Start()
 	}
 	return Position{}
 }
+
 func (a *NamedAttribute) End() Position {
-	if a.Value != nil {
+	switch {
+	case a.Value != nil:
 		return a.Value.End()
-	} else if a.EqualSign != nil {
+	case a.EqualSign != nil:
 		return deltaPos(*a.EqualSign, len("="))
-	} else if a.Name != nil {
+	case a.Name != nil:
 		return a.Name.End()
 	}
 	return Position{}
 }
+
 func (a *NamedAttribute) Walk(w func(Node)) {
 	if a.Name != nil {
 		w(a.Name)
@@ -317,27 +329,31 @@ type TypedAttributeValue struct {
 var _ AttributeValue = (*TypedAttributeValue)(nil)
 
 func (v *TypedAttributeValue) Start() Position {
-	if v.Type != nil {
+	switch {
+	case v.Type != nil:
 		return v.Type.Start()
-	} else if v.LParen != nil {
+	case v.LParen != nil:
 		return *v.LParen
-	} else if v.Value != nil {
+	case v.Value != nil:
 		return v.Value.Start()
 	}
 	return Position{}
 }
+
 func (v *TypedAttributeValue) End() Position {
-	if v.RParen != nil {
+	switch {
+	case v.RParen != nil:
 		return deltaPos(*v.RParen, len(")"))
-	} else if v.Value != nil {
+	case v.Value != nil:
 		return v.Value.End()
-	} else if v.LParen != nil {
+	case v.LParen != nil:
 		return deltaPos(*v.LParen, len("("))
-	} else if v.Type != nil {
+	case v.Type != nil:
 		return v.Type.End()
 	}
 	return Position{}
 }
+
 func (v *TypedAttributeValue) Walk(w func(Node)) {
 	if v.Type != nil {
 		w(v.Type)
@@ -367,6 +383,7 @@ func (n *AttributeName) Start() Position {
 	}
 	return Position{}
 }
+
 func (n *AttributeName) End() Position {
 	if n.Position != nil {
 		return deltaPos(*n.Position, len(n.Name))
@@ -397,6 +414,7 @@ func (r *AttributeReference) Start() Position {
 	}
 	return Position{}
 }
+
 func (r *AttributeReference) End() Position {
 	if r.Name != nil {
 		return r.Name.End()
@@ -405,6 +423,7 @@ func (r *AttributeReference) End() Position {
 	}
 	return Position{}
 }
+
 func (r *AttributeReference) Walk(w func(Node)) {
 	if r.Package != nil {
 		w(r.Package)

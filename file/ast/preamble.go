@@ -19,6 +19,7 @@ func (d *PackageDirective) Start() Position {
 	}
 	return d.Name.Start()
 }
+
 func (d *PackageDirective) End() Position {
 	if d.Name != nil {
 		return d.Name.End()
@@ -27,6 +28,7 @@ func (d *PackageDirective) End() Position {
 	}
 	return Position{}
 }
+
 func (d *PackageDirective) Walk(w func(Node)) {
 	if d.Name != nil {
 		w(d.Name)
@@ -64,6 +66,7 @@ func (i *Import) Start() Position {
 	}
 	return Position{}
 }
+
 func (i *Import) End() Position {
 	if i.RParen != nil {
 		return deltaPos(*i.RParen, len(")"))
@@ -80,6 +83,7 @@ func (i *Import) End() Position {
 	}
 	return Position{}
 }
+
 func (i *Import) Walk(w func(Node)) {
 	for _, spec := range i.Specs {
 		if spec != nil {
@@ -110,6 +114,7 @@ func (s *ImportSpec) Start() Position {
 	}
 	return Position{}
 }
+
 func (s *ImportSpec) End() Position {
 	if s.Path != nil {
 		return s.Path.End()
@@ -118,6 +123,7 @@ func (s *ImportSpec) End() Position {
 	}
 	return Position{}
 }
+
 func (s *ImportSpec) Walk(w func(Node)) {
 	if s.Alias != nil {
 		w(s.Alias)

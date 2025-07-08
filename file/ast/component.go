@@ -17,31 +17,35 @@ type Component struct {
 var _ ScopeNode = (*Component)(nil)
 
 func (c *Component) Start() Position {
-	if c.Comp != nil {
+	switch {
+	case c.Comp != nil:
 		return *c.Comp
-	} else if c.Header != nil {
+	case c.Header != nil:
 		return c.Header.Start()
-	} else if c.Colon != nil {
+	case c.Colon != nil:
 		return *c.Colon
-	} else if c.Extend != nil {
+	case c.Extend != nil:
 		return c.Extend.Start()
 	}
 	return Position{}
 }
+
 func (c *Component) End() Position {
-	if c.Body != nil {
+	switch {
+	case c.Body != nil:
 		return c.Body.End()
-	} else if c.Extend != nil {
+	case c.Extend != nil:
 		return c.Extend.End()
-	} else if c.Colon != nil {
+	case c.Colon != nil:
 		return deltaPos(*c.Colon, len(":"))
-	} else if c.Header != nil {
+	case c.Header != nil:
 		return c.Header.End()
-	} else if c.Comp != nil {
-		deltaPos(*c.Comp, len("comp"))
+	case c.Comp != nil:
+		return deltaPos(*c.Comp, len("comp"))
 	}
 	return Position{}
 }
+
 func (c *Component) Walk(w func(Node)) {
 	if c.Header != nil {
 		w(c.Header)
@@ -64,31 +68,35 @@ func (*Component) _scopeNode() {}
 type ComponentHeader struct {
 	Name       *Ident
 	TypeParams *TypeParameters // optional
-	Params     *ComponentParameters
+	Parameters *ComponentParameters
 }
 
 var _ Node = (*ComponentHeader)(nil)
 
 func (h *ComponentHeader) Start() Position {
-	if h.Name != nil {
+	switch {
+	case h.Name != nil:
 		return h.Name.Start()
-	} else if h.TypeParams != nil {
+	case h.TypeParams != nil:
 		return h.TypeParams.Start()
-	} else if h.Params != nil {
-		return h.Params.Start()
+	case h.Parameters != nil:
+		return h.Parameters.Start()
 	}
 	return Position{}
 }
+
 func (h *ComponentHeader) End() Position {
-	if h.Params != nil {
-		return h.Params.End()
-	} else if h.TypeParams != nil {
+	switch {
+	case h.Parameters != nil:
+		return h.Parameters.End()
+	case h.TypeParams != nil:
 		return h.TypeParams.End()
-	} else if h.Name != nil {
+	case h.Name != nil:
 		return h.Name.End()
 	}
 	return Position{}
 }
+
 func (h *ComponentHeader) Walk(w func(Node)) {
 	if h.Name != nil {
 		w(h.Name)
@@ -96,15 +104,15 @@ func (h *ComponentHeader) Walk(w func(Node)) {
 	if h.TypeParams != nil {
 		w(h.TypeParams)
 	}
-	if h.Params != nil {
-		w(h.Params)
+	if h.Parameters != nil {
+		w(h.Parameters)
 	}
 }
 
 func (*ComponentHeader) _node() {}
 
 // ============================================================================
-// Component Params
+// Component Parameters
 // ======================================================================================
 
 type ComponentParameters struct {
@@ -129,6 +137,7 @@ func (p *ComponentParameters) Start() Position {
 	}
 	return Position{}
 }
+
 func (p *ComponentParameters) End() Position {
 	if p.RParen != nil {
 		return deltaPos(*p.RParen, len(")"))
@@ -143,6 +152,7 @@ func (p *ComponentParameters) End() Position {
 	}
 	return Position{}
 }
+
 func (p *ComponentParameters) Walk(w func(Node)) {
 	for _, param := range p.Params {
 		if param != nil {
@@ -168,29 +178,33 @@ type ComponentParameter struct {
 var _ Node = (*ComponentParameter)(nil)
 
 func (p *ComponentParameter) Start() Position {
-	if p.Name != nil {
+	switch {
+	case p.Name != nil:
 		return p.Name.Start()
-	} else if p.Type != nil {
+	case p.Type != nil:
 		return p.Type.Start()
-	} else if p.Colon != nil {
+	case p.Colon != nil:
 		return *p.Colon
-	} else if p.Default != nil {
+	case p.Default != nil:
 		return p.Default.Start()
 	}
 	return Position{}
 }
+
 func (p *ComponentParameter) End() Position {
-	if p.Default != nil {
+	switch {
+	case p.Default != nil:
 		return p.Default.End()
-	} else if p.Colon != nil {
+	case p.Colon != nil:
 		return deltaPos(*p.Colon, len(":"))
-	} else if p.Type != nil {
+	case p.Type != nil:
 		return p.Type.End()
-	} else if p.Name != nil {
+	case p.Name != nil:
 		return p.Name.End()
 	}
 	return Position{}
 }
+
 func (p *ComponentParameter) Walk(w func(Node)) {
 	if p.Name != nil {
 		w(p.Name)
@@ -218,25 +232,29 @@ type Alias struct {
 var _ ScopeNode = (*Alias)(nil)
 
 func (a *Alias) Start() Position {
-	if a.Alias != nil {
+	switch {
+	case a.Alias != nil:
 		return *a.Alias
-	} else if a.Header != nil {
+	case a.Header != nil:
 		return a.Header.Start()
-	} else if a.ComponentCall != nil {
+	case a.ComponentCall != nil:
 		return a.ComponentCall.Start()
 	}
 	return Position{}
 }
+
 func (a *Alias) End() Position {
-	if a.ComponentCall != nil {
+	switch {
+	case a.ComponentCall != nil:
 		return a.ComponentCall.End()
-	} else if a.Header != nil {
+	case a.Header != nil:
 		return a.Header.End()
-	} else if a.Alias != nil {
+	case a.Alias != nil:
 		return deltaPos(*a.Alias, len("alias"))
 	}
 	return Position{}
 }
+
 func (a *Alias) Walk(w func(Node)) {
 	if a.Header != nil {
 		w(a.Header)
@@ -262,25 +280,29 @@ type Block struct {
 var _ ScopeNode = (*Block)(nil)
 
 func (b *Block) Start() Position {
-	if b.Block != nil {
+	switch {
+	case b.Block != nil:
 		return *b.Block
-	} else if b.Name != nil {
+	case b.Name != nil:
 		return b.Name.Start()
-	} else if b.Default != nil {
+	case b.Default != nil:
 		return b.Default.Start()
 	}
 	return Position{}
 }
+
 func (b *Block) End() Position {
-	if b.Default != nil {
+	switch {
+	case b.Default != nil:
 		return b.Default.End()
-	} else if b.Name != nil {
+	case b.Name != nil:
 		return b.Name.End()
-	} else if b.Block != nil {
+	case b.Block != nil:
 		return deltaPos(*b.Block, len("block"))
 	}
 	return Position{}
 }
+
 func (b *Block) Walk(w func(Node)) {
 	if b.Name != nil {
 		w(b.Name)

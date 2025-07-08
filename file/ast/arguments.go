@@ -54,7 +54,7 @@ func (*Arguments) _node() {}
 // Argument
 // ======================================================================================
 
-// Argument is either a [ComponentArgument], or an [Attribute].
+// Argument is either a [ComponentArgument] or an [Attribute].
 type Argument interface {
 	Node
 	_argument()
@@ -79,21 +79,24 @@ type ComponentArgument struct {
 var _ Node = (*ComponentArgument)(nil)
 
 func (a *ComponentArgument) Start() Position {
-	if a.Name != nil {
+	switch {
+	case a.Name != nil:
 		return a.Name.Start()
-	} else if a.Colon != nil {
+	case a.Colon != nil:
 		return *a.Colon
-	} else if a.Value != nil {
+	case a.Value != nil:
 		return a.Value.Start()
 	}
 	return Position{}
 }
+
 func (a *ComponentArgument) End() Position {
-	if a.Value != nil {
+	switch {
+	case a.Value != nil:
 		return a.Value.End()
-	} else if a.Colon != nil {
+	case a.Colon != nil:
 		return deltaPos(*a.Colon, len(":"))
-	} else if a.Name != nil {
+	case a.Name != nil:
 		return a.Name.End()
 	}
 	return Position{}

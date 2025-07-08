@@ -30,6 +30,7 @@ func (c *Conditional) Start() Position {
 	}
 	return Position{}
 }
+
 func (c *Conditional) End() Position {
 	if c.Else != nil {
 		return c.Else.End()
@@ -44,6 +45,7 @@ func (c *Conditional) End() Position {
 	}
 	return Position{}
 }
+
 func (c *Conditional) Walk(w func(Node)) {
 	if c.If != nil {
 		w(c.If)
@@ -74,26 +76,30 @@ type If struct {
 var _ Node = (*If)(nil)
 
 func (i *If) Start() Position {
-	if i.If != nil {
+	switch {
+	case i.If != nil:
 		return *i.If
-	} else if i.Header != nil {
+	case i.Header != nil:
 		return i.Header.Start()
-	} else if i.Then != nil {
+	case i.Then != nil:
 		return i.Then.Start()
 	}
 
 	return Position{}
 }
+
 func (i *If) End() Position {
-	if i.Then != nil {
+	switch {
+	case i.Then != nil:
 		return i.Then.End()
-	} else if i.Header != nil {
+	case i.Header != nil:
 		return i.Header.Start()
-	} else if i.If != nil {
+	case i.If != nil:
 		return deltaPos(*i.If, len("if"))
 	}
 	return Position{}
 }
+
 func (i *If) Walk(w func(Node)) {
 	if i.Header != nil {
 		w(i.Header)
@@ -119,29 +125,33 @@ type ElseIf struct {
 var _ Node = (*ElseIf)(nil)
 
 func (e *ElseIf) Start() Position {
-	if e.If != nil {
+	switch {
+	case e.If != nil:
 		return *e.If
-	} else if e.Else != nil {
+	case e.Else != nil:
 		return *e.Else
-	} else if e.Header != nil {
+	case e.Header != nil:
 		return e.Header.Start()
-	} else if e.Then != nil {
+	case e.Then != nil:
 		return e.Then.Start()
 	}
 	return Position{}
 }
+
 func (e *ElseIf) End() Position {
-	if e.Then != nil {
+	switch {
+	case e.Then != nil:
 		return e.Then.End()
-	} else if e.Header != nil {
+	case e.Header != nil:
 		return e.Header.Start()
-	} else if e.Else != nil {
+	case e.Else != nil:
 		return deltaPos(*e.Else, len("else"))
-	} else if e.If != nil {
+	case e.If != nil:
 		return deltaPos(*e.If, len("if"))
 	}
 	return Position{}
 }
+
 func (e *ElseIf) Walk(w func(Node)) {
 	if e.Header != nil {
 		w(e.Header)
@@ -172,6 +182,7 @@ func (e *Else) Start() Position {
 	}
 	return Position{}
 }
+
 func (e *Else) End() Position {
 	if e.Then != nil {
 		return e.Then.End()
@@ -180,6 +191,7 @@ func (e *Else) End() Position {
 	}
 	return Position{}
 }
+
 func (e *Else) Walk(w func(Node)) {
 	if e.Then != nil {
 		w(e.Then)
@@ -207,6 +219,7 @@ func (e *IfHeader) Start() Position {
 	}
 	return Position{}
 }
+
 func (e *IfHeader) End() Position {
 	if e.Condition != nil {
 		return e.Condition.End()
@@ -215,6 +228,7 @@ func (e *IfHeader) End() Position {
 	}
 	return Position{}
 }
+
 func (e *IfHeader) Walk(w func(Node)) {
 	if e.Statement != nil {
 		w(e.Statement)
@@ -241,11 +255,12 @@ type Switch struct {
 var _ ScopeNode = (*Switch)(nil)
 
 func (s *Switch) Start() Position {
-	if s.Switch != nil {
+	switch {
+	case s.Switch != nil:
 		return *s.Switch
-	} else if s.Comparator != nil {
+	case s.Comparator != nil:
 		return s.Comparator.Start()
-	} else if s.LBrace != nil {
+	case s.LBrace != nil:
 		return *s.LBrace
 	}
 	for _, c := range s.Cases {
@@ -258,6 +273,7 @@ func (s *Switch) Start() Position {
 	}
 	return Position{}
 }
+
 func (s *Switch) End() Position {
 	if s.RBrace != nil {
 		return deltaPos(*s.RBrace, len("}"))
@@ -267,15 +283,17 @@ func (s *Switch) End() Position {
 			return c.End()
 		}
 	}
-	if s.LBrace != nil {
+	switch {
+	case s.LBrace != nil:
 		return deltaPos(*s.LBrace, len("{"))
-	} else if s.Comparator != nil {
+	case s.Comparator != nil:
 		return s.Comparator.End()
-	} else if s.Switch != nil {
+	case s.Switch != nil:
 		return deltaPos(*s.Switch, len("switch"))
 	}
 	return Position{}
 }
+
 func (s *Switch) Walk(w func(Node)) {
 	if s.Comparator != nil {
 		w(s.Comparator)
@@ -294,8 +312,8 @@ func (*Switch) _scopeNode() {}
 
 type Case struct {
 	Case       *Position   // either this or Default is set
-	Default    *Position   // nil if not default
-	Expression *Expression // nil for default case
+	Default    *Position   // nil, if not default
+	Expression *Expression // nil for the default case
 	Colon      *Position
 	Then       []ScopeNode
 }
@@ -303,13 +321,14 @@ type Case struct {
 var _ Node = (*Case)(nil)
 
 func (c *Case) Start() Position {
-	if c.Case != nil {
+	switch {
+	case c.Case != nil:
 		return *c.Case
-	} else if c.Default != nil {
+	case c.Default != nil:
 		return *c.Default
-	} else if c.Expression != nil {
+	case c.Expression != nil:
 		return c.Expression.Start()
-	} else if c.Colon != nil {
+	case c.Colon != nil:
 		return *c.Colon
 	}
 	for _, n := range c.Then {
@@ -319,23 +338,26 @@ func (c *Case) Start() Position {
 	}
 	return Position{}
 }
+
 func (c *Case) End() Position {
 	for _, n := range slices.Backward(c.Then) {
 		if n != nil {
 			return n.End()
 		}
 	}
-	if c.Colon != nil {
+	switch {
+	case c.Colon != nil:
 		return deltaPos(*c.Colon, len(":"))
-	} else if c.Expression != nil {
+	case c.Expression != nil:
 		return c.Expression.End()
-	} else if c.Default != nil {
+	case c.Default != nil:
 		return deltaPos(*c.Default, len("default"))
-	} else if c.Case != nil {
+	case c.Case != nil:
 		return deltaPos(*c.Case, len("case"))
 	}
 	return Position{}
 }
+
 func (c *Case) Walk(w func(Node)) {
 	if c.Expression != nil {
 		w(c.Expression)
@@ -362,25 +384,29 @@ type For struct {
 var _ ScopeNode = (*For)(nil)
 
 func (f *For) Start() Position {
-	if f.For != nil {
+	switch {
+	case f.For != nil:
 		return *f.For
-	} else if f.Header != nil {
+	case f.Header != nil:
 		return f.Header.Start()
-	} else if f.Body != nil {
+	case f.Body != nil:
 		return f.Body.Start()
 	}
 	return Position{}
 }
+
 func (f *For) End() Position {
-	if f.Body != nil {
+	switch {
+	case f.Body != nil:
 		return f.Body.End()
-	} else if f.Header != nil {
+	case f.Header != nil:
 		return f.Header.Start()
-	} else if f.For != nil {
+	case f.For != nil:
 		return deltaPos(*f.For, len("for"))
 	}
 	return Position{}
 }
+
 func (f *For) Walk(w func(Node)) {
 	if f.Header != nil {
 		w(f.Header)
@@ -424,12 +450,14 @@ func (h *ForConditionHeader) Start() Position {
 	}
 	return Position{}
 }
+
 func (h *ForConditionHeader) End() Position {
 	if h.Condition != nil {
 		return h.Condition.End()
 	}
 	return Position{}
 }
+
 func (h *ForConditionHeader) Walk(w func(Node)) {
 	if h.Condition != nil {
 		w(h.Condition)
@@ -450,25 +478,29 @@ type ForClauseHeader struct {
 var _ ForHeader = (*ForClauseHeader)(nil)
 
 func (h *ForClauseHeader) Start() Position {
-	if h.Init != nil {
+	switch {
+	case h.Init != nil:
 		return h.Init.Start()
-	} else if h.Condition != nil {
+	case h.Condition != nil:
 		return h.Condition.Start()
-	} else if h.Post != nil {
+	case h.Post != nil:
 		return h.Post.Start()
 	}
 	return Position{}
 }
+
 func (h *ForClauseHeader) End() Position {
-	if h.Post != nil {
+	switch {
+	case h.Post != nil:
 		return h.Post.End()
-	} else if h.Condition != nil {
+	case h.Condition != nil:
 		return h.Condition.End()
-	} else if h.Init != nil {
+	case h.Init != nil:
 		return h.Init.End()
 	}
 	return Position{}
 }
+
 func (h *ForClauseHeader) Walk(w func(Node)) {
 	if h.Init != nil {
 		w(h.Init)
@@ -503,41 +535,45 @@ type ForRangeHeader struct {
 var _ ForHeader = (*ForRangeHeader)(nil)
 
 func (h *ForRangeHeader) Start() Position {
-	if h.Var1 != nil {
+	switch {
+	case h.Var1 != nil:
 		return h.Var1.Start()
-	} else if h.Var2 != nil {
+	case h.Var2 != nil:
 		return h.Var2.Start()
-	} else if h.Colon != nil {
+	case h.Colon != nil:
 		return *h.Colon
-	} else if h.EqualSign != nil {
+	case h.EqualSign != nil:
 		return *h.EqualSign
-	} else if h.Ordered != nil {
+	case h.Ordered != nil:
 		return *h.Ordered
-	} else if h.Range != nil {
+	case h.Range != nil:
 		return *h.Range
-	} else if h.Expression != nil {
+	case h.Expression != nil:
 		return h.Expression.Start()
 	}
 	return Position{}
 }
+
 func (h *ForRangeHeader) End() Position {
-	if h.Expression != nil {
+	switch {
+	case h.Expression != nil:
 		return h.Expression.End()
-	} else if h.Range != nil {
+	case h.Range != nil:
 		return deltaPos(*h.Range, len("range"))
-	} else if h.Ordered != nil {
+	case h.Ordered != nil:
 		return deltaPos(*h.Ordered, len("ordered"))
-	} else if h.Colon != nil {
+	case h.Colon != nil:
 		return deltaPos(*h.Colon, len(":"))
-	} else if h.EqualSign != nil {
+	case h.EqualSign != nil:
 		return deltaPos(*h.EqualSign, len("="))
-	} else if h.Var2 != nil {
+	case h.Var2 != nil:
 		return h.Var2.End()
-	} else if h.Var1 != nil {
+	case h.Var1 != nil:
 		return h.Var1.End()
 	}
 	return Position{}
 }
+
 func (h *ForRangeHeader) Walk(w func(Node)) {
 	if h.Var1 != nil {
 		w(h.Var1)

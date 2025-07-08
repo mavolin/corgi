@@ -10,7 +10,7 @@ import "slices"
 // It is a pointer to either a [Scope], [BracketText], or
 // [UnderscoreBlockShorthand].
 //
-// The Go spec calls this a "block", but obviously that name is already taken.
+// The Go spec calls this a "block", but that name is already taken.
 type Body interface {
 	Node
 	_body()
@@ -37,12 +37,14 @@ func (t TopLevel) Start() Position {
 	}
 	return t[0].Start()
 }
+
 func (t TopLevel) End() Position {
 	if len(t) == 0 {
 		return Position{}
 	}
 	return t[len(t)-1].End()
 }
+
 func (t TopLevel) Walk(w func(Node)) {
 	for _, node := range t {
 		if node != nil {
@@ -82,6 +84,7 @@ func (s *Scope) Start() Position {
 	}
 	return Position{}
 }
+
 func (s *Scope) End() Position {
 	if s.RBrace != nil {
 		return deltaPos(*s.RBrace, len("}"))
@@ -96,6 +99,7 @@ func (s *Scope) End() Position {
 	}
 	return Position{}
 }
+
 func (s *Scope) Walk(w func(Node)) {
 	for _, node := range s.Nodes {
 		if node != nil {
@@ -145,25 +149,29 @@ type BracketText struct {
 var _ Body = (*BracketText)(nil)
 
 func (t *BracketText) Start() Position {
-	if t.LBracket != nil {
+	switch {
+	case t.LBracket != nil:
 		return *t.LBracket
-	} else if len(t.Lines) > 0 {
+	case len(t.Lines) > 0:
 		return t.Lines.Start()
-	} else if t.RBracket != nil {
+	case t.RBracket != nil:
 		return *t.RBracket
 	}
 	return Position{}
 }
+
 func (t *BracketText) End() Position {
-	if t.RBracket != nil {
+	switch {
+	case t.RBracket != nil:
 		return deltaPos(*t.RBracket, len("]"))
-	} else if len(t.Lines) > 0 {
+	case len(t.Lines) > 0:
 		return t.Lines.End()
-	} else if t.LBracket != nil {
+	case t.LBracket != nil:
 		return deltaPos(*t.LBracket, len("["))
 	}
 	return Position{}
 }
+
 func (t *BracketText) Walk(w func(Node)) {
 	if t.Lines != nil {
 		w(t.Lines)
@@ -196,6 +204,7 @@ func (s *UnderscoreBlockShorthand) Start() Position {
 	}
 	return Position{}
 }
+
 func (s *UnderscoreBlockShorthand) End() Position {
 	if s.Body != nil {
 		return s.Body.End()
@@ -207,6 +216,7 @@ func (s *UnderscoreBlockShorthand) End() Position {
 	}
 	return Position{}
 }
+
 func (s *UnderscoreBlockShorthand) Walk(w func(Node)) {
 	if s.Body != nil {
 		w(s.Body)

@@ -22,6 +22,7 @@ func (b *ArrowBlock) Start() Position {
 	}
 	return Position{}
 }
+
 func (b *ArrowBlock) End() Position {
 	if len(b.Lines) > 0 {
 		return b.Lines.End()
@@ -30,6 +31,7 @@ func (b *ArrowBlock) End() Position {
 	}
 	return Position{}
 }
+
 func (b *ArrowBlock) Walk(w func(Node)) {
 	if b.Lines != nil {
 		w(b.Lines)
@@ -58,7 +60,7 @@ var (
 	_ Node = (TextBlock)(nil)
 	_ Node = (TextLine)(nil)
 
-	// change above comment if this changes
+	// change the above comment if this changes
 	_ TextNode = (*Text)(nil)
 	_ TextNode = (TextInterpolation)(nil)
 )
@@ -71,6 +73,7 @@ func (b TextBlock) Start() Position {
 	}
 	return Position{}
 }
+
 func (b TextBlock) End() Position {
 	for _, l := range slices.Backward(b) {
 		if len(l) > 0 {
@@ -79,6 +82,7 @@ func (b TextBlock) End() Position {
 	}
 	return Position{}
 }
+
 func (b TextBlock) Walk(w func(Node)) {
 	for _, l := range b {
 		if l != nil {
@@ -96,12 +100,14 @@ func (l TextLine) Start() Position {
 
 	return l[0].Start()
 }
+
 func (l TextLine) End() Position {
 	if len(l) > 0 {
 		return l[len(l)-1].End()
 	}
 	return Position{}
 }
+
 func (l TextLine) Walk(w func(Node)) {
 	for _, n := range l {
 		if n != nil {
@@ -131,6 +137,7 @@ func (t *Text) Start() Position {
 	}
 	return Position{}
 }
+
 func (t *Text) End() Position {
 	if t.Position != nil {
 		return deltaPos(*t.Position, len(t.Text))

@@ -31,6 +31,7 @@ func (s *StateDeclaration) Start() Position {
 	}
 	return Position{}
 }
+
 func (s *StateDeclaration) End() Position {
 	if s.RParen != nil {
 		return deltaPos(*s.RParen, len(")"))
@@ -47,6 +48,7 @@ func (s *StateDeclaration) End() Position {
 	}
 	return Position{}
 }
+
 func (s *StateDeclaration) Walk(w func(Node)) {
 	for _, spec := range s.Specs {
 		if spec != nil {
@@ -90,6 +92,7 @@ func (v *StateSpec) Start() Position {
 	}
 	return Position{}
 }
+
 func (v *StateSpec) End() Position {
 	for _, value := range slices.Backward(v.Values) {
 		if value != nil {
@@ -108,6 +111,7 @@ func (v *StateSpec) End() Position {
 	}
 	return Position{}
 }
+
 func (v *StateSpec) Walk(w func(Node)) {
 	for _, name := range v.Names {
 		if name != nil {
@@ -124,5 +128,4 @@ func (v *StateSpec) Walk(w func(Node)) {
 	}
 }
 
-func (*StateSpec) _node()      {}
-func (*StateSpec) _stateNode() {}
+func (*StateSpec) _node() {}

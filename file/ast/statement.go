@@ -20,12 +20,14 @@ func (s *Statement) Start() Position {
 	}
 	return Position{}
 }
+
 func (s *Statement) End() Position {
 	if s.Code != nil {
 		return s.Code.End()
 	}
 	return Position{}
 }
+
 func (s *Statement) Walk(w func(Node)) {
 	if s.Code != nil {
 		w(s.Code)
@@ -42,7 +44,7 @@ func (*Statement) _node() {}
 // ======================================================================================
 
 // ParsedStatement is a subset of valid Go statements with corgi enhancements
-// that we have an AST representation for.
+// that we have an ComponentAST representation for.
 // This is usually for the subset of statements that we need to properly
 // identify later on.
 //
@@ -89,12 +91,14 @@ func (s *SimpleStatement) Start() Position {
 	}
 	return Position{}
 }
+
 func (s *SimpleStatement) End() Position {
 	if s.Code != nil {
 		return s.Code.End()
 	}
 	return Position{}
 }
+
 func (s *SimpleStatement) Walk(w func(Node)) {
 	if s.Code != nil {
 		w(s.Code)
@@ -107,7 +111,7 @@ func (s *SimpleStatement) Walk(w func(Node)) {
 func (*SimpleStatement) _node() {}
 
 // ParsedSimpleStatement is a subset of valid Go simple statements with corgi
-// enhancements that we have an AST representation for.
+// enhancements that we have an ComponentAST representation for.
 // This is usually for the subset of statements that we need to properly
 // identify later on.
 //
@@ -145,6 +149,7 @@ func (r *Return) Start() Position {
 	}
 	return Position{}
 }
+
 func (r *Return) End() Position {
 	if r.Error != nil {
 		return r.Error.End()
@@ -153,6 +158,7 @@ func (r *Return) End() Position {
 	}
 	return Position{}
 }
+
 func (r *Return) Walk(w func(Node)) {
 	if r.Error != nil {
 		w(r.Error)
@@ -181,6 +187,7 @@ func (b *Break) Start() Position {
 	}
 	return Position{}
 }
+
 func (b *Break) End() Position {
 	if b.Label != nil {
 		return b.Label.End()
@@ -189,6 +196,7 @@ func (b *Break) End() Position {
 	}
 	return Position{}
 }
+
 func (b *Break) Walk(w func(Node)) {
 	if b.Label != nil {
 		w(b.Label)
@@ -217,6 +225,7 @@ func (c *Continue) Start() Position {
 	}
 	return Position{}
 }
+
 func (c *Continue) End() Position {
 	if c.Label != nil {
 		return c.Label.End()
@@ -225,6 +234,7 @@ func (c *Continue) End() Position {
 	}
 	return Position{}
 }
+
 func (c *Continue) Walk(w func(Node)) {
 	if c.Label != nil {
 		w(c.Label)
@@ -253,6 +263,7 @@ func (f *Fallthrough) Start() Position {
 	}
 	return Position{}
 }
+
 func (f *Fallthrough) End() Position {
 	if f.Label != nil {
 		return f.Label.End()
@@ -261,6 +272,7 @@ func (f *Fallthrough) End() Position {
 	}
 	return Position{}
 }
+
 func (f *Fallthrough) Walk(w func(Node)) {
 	if f.Label != nil {
 		w(f.Label)
@@ -287,6 +299,7 @@ func (d *Defer) Start() Position {
 	}
 	return *d.Defer
 }
+
 func (d *Defer) End() Position {
 	if d.Expression != nil {
 		return d.Expression.End()
@@ -295,6 +308,7 @@ func (d *Defer) End() Position {
 	}
 	return Position{}
 }
+
 func (d *Defer) Walk(w func(Node)) {
 	if d.Expression != nil {
 		w(d.Expression)
@@ -333,6 +347,7 @@ func (c *ConstDeclaration) Start() Position {
 	}
 	return Position{}
 }
+
 func (c *ConstDeclaration) End() Position {
 	if c.RParen != nil {
 		return deltaPos(*c.RParen, len(")"))
@@ -349,6 +364,7 @@ func (c *ConstDeclaration) End() Position {
 	}
 	return Position{}
 }
+
 func (c *ConstDeclaration) Walk(w func(Node)) {
 	for _, spec := range c.Specs {
 		if spec != nil {
@@ -389,6 +405,7 @@ func (c *ConstSpec) Start() Position {
 	}
 	return Position{}
 }
+
 func (c *ConstSpec) End() Position {
 	for _, value := range slices.Backward(c.Values) {
 		if value != nil {
@@ -407,6 +424,7 @@ func (c *ConstSpec) End() Position {
 	}
 	return Position{}
 }
+
 func (c *ConstSpec) Walk(w func(Node)) {
 	for _, name := range c.Names {
 		if name != nil {
@@ -454,6 +472,7 @@ func (c *VarDeclaration) Start() Position {
 	}
 	return Position{}
 }
+
 func (c *VarDeclaration) End() Position {
 	if c.RParen != nil {
 		return deltaPos(*c.RParen, len(")"))
@@ -470,6 +489,7 @@ func (c *VarDeclaration) End() Position {
 	}
 	return Position{}
 }
+
 func (c *VarDeclaration) Walk(w func(Node)) {
 	for _, spec := range c.Specs {
 		if spec != nil {
@@ -510,6 +530,7 @@ func (c *VarSpec) Start() Position {
 	}
 	return Position{}
 }
+
 func (c *VarSpec) End() Position {
 	for _, value := range slices.Backward(c.Values) {
 		if value != nil {
@@ -528,6 +549,7 @@ func (c *VarSpec) End() Position {
 	}
 	return Position{}
 }
+
 func (c *VarSpec) Walk(w func(Node)) {
 	for _, name := range c.Names {
 		if name != nil {
@@ -565,37 +587,41 @@ var (
 )
 
 func (a *ZeroCoalescingAssignment) Start() Position {
-	if a.ValueExpression != nil {
+	switch {
+	case a.ValueExpression != nil:
 		return a.ValueExpression.Start()
-	} else if a.VarComma != nil {
+	case a.VarComma != nil:
 		return *a.VarComma
-	} else if a.OkExpression != nil {
+	case a.OkExpression != nil:
 		return a.OkExpression.Start()
-	} else if a.Colon != nil {
+	case a.Colon != nil:
 		return *a.Colon
-	} else if a.EqualSign != nil {
+	case a.EqualSign != nil:
 		return *a.EqualSign
-	} else if a.Expression != nil {
+	case a.Expression != nil:
 		return a.Expression.Start()
 	}
 	return Position{}
 }
+
 func (a *ZeroCoalescingAssignment) End() Position {
-	if a.Expression != nil {
+	switch {
+	case a.Expression != nil:
 		return a.Expression.End()
-	} else if a.EqualSign != nil {
+	case a.EqualSign != nil:
 		return deltaPos(*a.EqualSign, len("="))
-	} else if a.Colon != nil {
+	case a.Colon != nil:
 		return deltaPos(*a.Colon, len(":"))
-	} else if a.OkExpression != nil {
+	case a.OkExpression != nil:
 		return a.OkExpression.End()
-	} else if a.VarComma != nil {
+	case a.VarComma != nil:
 		return deltaPos(*a.VarComma, len(","))
-	} else if a.ValueExpression != nil {
+	case a.ValueExpression != nil:
 		return a.ValueExpression.End()
 	}
 	return Position{}
 }
+
 func (a *ZeroCoalescingAssignment) Walk(w func(Node)) {
 	if a.ValueExpression != nil {
 		w(a.ValueExpression)
@@ -633,16 +659,19 @@ func (i *IncDec) Start() Position {
 	}
 	return *i.IncrPos
 }
+
 func (i *IncDec) End() Position {
-	if i.DecrPos != nil {
+	switch {
+	case i.DecrPos != nil:
 		return deltaPos(*i.DecrPos, len("--"))
-	} else if i.IncrPos != nil {
+	case i.IncrPos != nil:
 		return deltaPos(*i.IncrPos, len("++"))
-	} else if i.Expression != nil {
+	case i.Expression != nil:
 		return i.Expression.End()
 	}
 	return Position{}
 }
+
 func (i *IncDec) Walk(w func(Node)) {
 	if i.Expression != nil {
 		w(i.Expression)
@@ -684,12 +713,14 @@ func (s *ShortVarDeclaration) Start() Position {
 	}
 	return Position{}
 }
+
 func (s *ShortVarDeclaration) End() Position {
 	if len(s.Values) > 0 {
 		return s.Values[len(s.Values)-1].End()
 	}
 	return s.Names[len(s.Names)-1].End()
 }
+
 func (s *ShortVarDeclaration) Walk(w func(Node)) {
 	for _, name := range s.Names {
 		if name != nil {
@@ -726,6 +757,7 @@ func (l *Label) Start() Position {
 	}
 	return Position{}
 }
+
 func (l *Label) End() Position {
 	if l.Colon != nil {
 		return deltaPos(*l.Colon, len(":"))
@@ -734,6 +766,7 @@ func (l *Label) End() Position {
 	}
 	return Position{}
 }
+
 func (l *Label) Walk(w func(Node)) {
 	if l.Name != nil {
 		w(l.Name)
@@ -775,6 +808,7 @@ func (a *Assignment) Start() Position {
 	}
 	return Position{}
 }
+
 func (a *Assignment) End() Position {
 	for _, e := range slices.Backward(a.RHS) {
 		if e != nil {
@@ -791,6 +825,7 @@ func (a *Assignment) End() Position {
 	}
 	return Position{}
 }
+
 func (a *Assignment) Walk(w func(Node)) {
 	for _, e := range a.LHS {
 		if e != nil {

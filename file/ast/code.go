@@ -20,6 +20,7 @@ func (c Code) Start() Position {
 	}
 	return Position{}
 }
+
 func (c Code) End() Position {
 	for _, n := range slices.Backward(c) {
 		if n != nil {
@@ -28,6 +29,7 @@ func (c Code) End() Position {
 	}
 	return Position{}
 }
+
 func (c Code) Walk(w func(Node)) {
 	for _, n := range c {
 		if n != nil {
@@ -47,7 +49,7 @@ type CodeNode interface {
 // Go Code
 // ======================================================================================
 
-// GoCode is actual Go code, i.e. without any corgi language extensions.
+// GoCode is actual Go code, i.e., without any corgi language extensions.
 type GoCode struct {
 	Code     string
 	Position *Position
@@ -61,6 +63,7 @@ func (c *GoCode) Start() Position {
 	}
 	return Position{}
 }
+
 func (c *GoCode) End() Position {
 	if c.Position != nil {
 		return deltaPos(*c.Position, len(c.Code))
@@ -87,29 +90,33 @@ type BlockFunction struct {
 var _ CodeNode = (*BlockFunction)(nil)
 
 func (f *BlockFunction) Start() Position {
-	if f.Block != nil {
+	switch {
+	case f.Block != nil:
 		return *f.Block
-	} else if f.LParen != nil {
+	case f.LParen != nil:
 		return *f.LParen
-	} else if f.BlockName != nil {
+	case f.BlockName != nil:
 		return f.BlockName.Start()
-	} else if f.RParen != nil {
+	case f.RParen != nil:
 		return *f.RParen
 	}
 	return Position{}
 }
+
 func (f *BlockFunction) End() Position {
-	if f.RParen != nil {
+	switch {
+	case f.RParen != nil:
 		return deltaPos(*f.RParen, len(")"))
-	} else if f.BlockName != nil {
+	case f.BlockName != nil:
 		return f.BlockName.End()
-	} else if f.LParen != nil {
+	case f.LParen != nil:
 		return deltaPos(*f.LParen, len("("))
-	} else if f.Block != nil {
+	case f.Block != nil:
 		return deltaPos(*f.Block, len("block"))
 	}
 	return Position{}
 }
+
 func (f *BlockFunction) Walk(w func(Node)) {
 	if f.BlockName != nil {
 		w(f.BlockName)
@@ -135,37 +142,41 @@ type Ternary struct {
 var _ CodeNode = (*Ternary)(nil)
 
 func (t *Ternary) Start() Position {
-	if t.QuestionMark != nil {
+	switch {
+	case t.QuestionMark != nil:
 		return *t.QuestionMark
-	} else if t.LParen != nil {
+	case t.LParen != nil:
 		return *t.LParen
-	} else if t.Condition != nil {
+	case t.Condition != nil:
 		return t.Condition.Start()
-	} else if t.TrueVal != nil {
+	case t.TrueVal != nil:
 		return t.TrueVal.Start()
-	} else if t.FalseVal != nil {
+	case t.FalseVal != nil:
 		return t.FalseVal.Start()
-	} else if t.RParen != nil {
+	case t.RParen != nil:
 		return *t.RParen
 	}
 	return Position{}
 }
+
 func (t *Ternary) End() Position {
-	if t.RParen != nil {
+	switch {
+	case t.RParen != nil:
 		return deltaPos(*t.RParen, len(")"))
-	} else if t.FalseVal != nil {
+	case t.FalseVal != nil:
 		return t.FalseVal.End()
-	} else if t.TrueVal != nil {
+	case t.TrueVal != nil:
 		return t.TrueVal.End()
-	} else if t.Condition != nil {
+	case t.Condition != nil:
 		return t.Condition.End()
-	} else if t.LParen != nil {
+	case t.LParen != nil:
 		return deltaPos(*t.LParen, len("("))
-	} else if t.QuestionMark != nil {
+	case t.QuestionMark != nil:
 		return deltaPos(*t.QuestionMark, len("?"))
 	}
 	return Position{}
 }
+
 func (t *Ternary) Walk(w func(Node)) {
 	if t.Condition != nil {
 		w(t.Condition)
@@ -210,6 +221,7 @@ func (s *String) Start() Position {
 	}
 	return Position{}
 }
+
 func (s *String) End() Position {
 	if s.Close != nil {
 		return deltaPos(*s.Close, len(`"`))
@@ -224,6 +236,7 @@ func (s *String) End() Position {
 	}
 	return Position{}
 }
+
 func (s *String) Walk(w func(Node)) {
 	for _, n := range s.Contents {
 		if n != nil {
@@ -266,6 +279,7 @@ func (t *StringText) Start() Position {
 	}
 	return Position{}
 }
+
 func (t *StringText) End() Position {
 	if t.Position != nil {
 		return deltaPos(*t.Position, len(t.Text))

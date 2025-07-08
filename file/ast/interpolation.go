@@ -46,6 +46,7 @@ func (h *EscapedHash) Start() Position {
 	}
 	return Position{}
 }
+
 func (h *EscapedHash) End() Position {
 	if h.Hash != nil {
 		return deltaPos(*h.Hash, len("##"))
@@ -75,6 +76,7 @@ func (h *HashSpace) Start() Position {
 	}
 	return Position{}
 }
+
 func (h *HashSpace) End() Position {
 	if h.Hash != nil {
 		return deltaPos(*h.Hash, len("#_"))
@@ -103,6 +105,7 @@ func (h *EscapedRBracket) Start() Position {
 	}
 	return Position{}
 }
+
 func (h *EscapedRBracket) End() Position {
 	if h.Hash != nil {
 		return deltaPos(*h.Hash, len("#]"))
@@ -133,25 +136,28 @@ var (
 )
 
 func (interp *ExpressionInterpolation) Start() Position {
-	if interp.Hash != nil {
+	switch {
+	case interp.Hash != nil:
 		return *interp.Hash
-	} else if interp.LBrace != nil {
+	case interp.LBrace != nil:
 		return *interp.LBrace
-	} else if interp.Expression != nil {
+	case interp.Expression != nil:
 		return interp.Expression.Start()
-	} else if interp.RBrace != nil {
+	case interp.RBrace != nil:
 		return *interp.RBrace
 	}
 	return Position{}
 }
+
 func (interp *ExpressionInterpolation) End() Position {
-	if interp.RBrace != nil {
+	switch {
+	case interp.RBrace != nil:
 		return deltaPos(*interp.RBrace, len("}"))
-	} else if interp.Expression != nil {
+	case interp.Expression != nil:
 		return interp.Expression.End()
-	} else if interp.LBrace != nil {
+	case interp.LBrace != nil:
 		return deltaPos(*interp.LBrace, len("{"))
-	} else if interp.Hash != nil {
+	case interp.Hash != nil:
 		if interp.FormatDirective != "" {
 			return deltaPos(*interp.Hash, len("#%")+len(interp.FormatDirective))
 		}
@@ -159,6 +165,7 @@ func (interp *ExpressionInterpolation) End() Position {
 	}
 	return Position{}
 }
+
 func (interp *ExpressionInterpolation) Walk(w func(Node)) {
 	if interp.Expression != nil {
 		w(interp.Expression)
@@ -189,6 +196,7 @@ func (interp *ElementInterpolation) Start() Position {
 	}
 	return Position{}
 }
+
 func (interp *ElementInterpolation) End() Position {
 	if interp.Element != nil {
 		return interp.Element.End()
@@ -197,6 +205,7 @@ func (interp *ElementInterpolation) End() Position {
 	}
 	return Position{}
 }
+
 func (interp *ElementInterpolation) Walk(w func(Node)) {
 	if interp.Element != nil {
 		w(interp.Element)
@@ -229,6 +238,7 @@ func (interp *ComponentCallInterpolation) Start() Position {
 	}
 	return Position{}
 }
+
 func (interp *ComponentCallInterpolation) End() Position {
 	if interp.ComponentCall != nil {
 		return interp.ComponentCall.End()
@@ -237,6 +247,7 @@ func (interp *ComponentCallInterpolation) End() Position {
 	}
 	return Position{}
 }
+
 func (interp *ComponentCallInterpolation) Walk(w func(Node)) {
 	if interp.ComponentCall != nil {
 		w(interp.ComponentCall)
@@ -269,6 +280,7 @@ func (c *CharacterReference) Start() Position {
 	}
 	return Position{}
 }
+
 func (c *CharacterReference) End() Position {
 	if c.Hash != nil {
 		return deltaPos(*c.Hash, len("#")+len(c.Name)+len(";"))

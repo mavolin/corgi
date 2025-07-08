@@ -15,23 +15,26 @@ type Doctype struct {
 var _ ScopeNode = (*Doctype)(nil)
 
 func (d *Doctype) Start() Position {
-	if d.Doctype != nil {
+	switch {
+	case d.Doctype != nil:
 		return *d.Doctype
-	} else if d.HTML != nil {
+	case d.HTML != nil:
 		return *d.HTML
-	} else if d.LParen != nil {
+	case d.LParen != nil:
 		return *d.LParen
 	}
 	return Position{}
 }
+
 func (d *Doctype) End() Position {
-	if d.RParen != nil {
+	switch {
+	case d.RParen != nil:
 		return *d.RParen
-	} else if d.HTML != nil {
+	case d.HTML != nil:
 		return *d.HTML
-	} else if d.LParen != nil {
+	case d.LParen != nil:
 		return *d.LParen
-	} else if d.Doctype != nil {
+	case d.Doctype != nil:
 		return deltaPos(*d.Doctype, len("!doctype"))
 	}
 	return Position{}
@@ -61,6 +64,7 @@ func (e *Element) Start() Position {
 	}
 	return Position{}
 }
+
 func (e *Element) End() Position {
 	if e.Body != nil {
 		return e.Body.End()
@@ -69,6 +73,7 @@ func (e *Element) End() Position {
 	}
 	return Position{}
 }
+
 func (e *Element) Walk(w func(Node)) {
 	if e.Header != nil {
 		w(e.Header)
@@ -100,6 +105,7 @@ func (h *ElementHeader) Start() Position {
 	}
 	return Position{}
 }
+
 func (h *ElementHeader) End() Position {
 	if h.Attributes != nil {
 		return h.Attributes.End()
@@ -108,6 +114,7 @@ func (h *ElementHeader) End() Position {
 	}
 	return Position{}
 }
+
 func (h *ElementHeader) Walk(w func(Node)) {
 	if h.Name != nil {
 		w(h.Name)
@@ -136,6 +143,7 @@ func (n *ElementName) Start() Position {
 	}
 	return Position{}
 }
+
 func (n *ElementName) End() Position {
 	if n.Position != nil {
 		return deltaPos(*n.Position, len(n.Name))
@@ -166,6 +174,7 @@ func (r *ElementReference) Start() Position {
 	}
 	return Position{}
 }
+
 func (r *ElementReference) End() Position {
 	if r.Name != nil {
 		return r.Name.End()
@@ -174,6 +183,7 @@ func (r *ElementReference) End() Position {
 	}
 	return Position{}
 }
+
 func (r *ElementReference) Walk(w func(Node)) {
 	if r.Package != nil {
 		w(r.Package)
@@ -190,10 +200,10 @@ func (*ElementReference) _node() {}
 // ======================================================================================
 
 // RawElement is the special !raw element, which includes all of its
-// contents verbatim into the generated HTML.
+// contents verbatim in the generated HTML.
 type RawElement struct {
 	Raw  *Position
-	Body *BracketText // not nil
+	Body *BracketText // should only contain text nodes, not nil
 }
 
 var _ ScopeNode = (*RawElement)(nil)
@@ -204,6 +214,7 @@ func (e *RawElement) Start() Position {
 	}
 	return e.Body.Start()
 }
+
 func (e *RawElement) End() Position {
 	if e.Body != nil {
 		return e.Body.End()
@@ -212,6 +223,7 @@ func (e *RawElement) End() Position {
 	}
 	return Position{}
 }
+
 func (e *RawElement) Walk(w func(Node)) {
 	if e.Body != nil {
 		w(e.Body)
@@ -240,6 +252,7 @@ func (a *And) Start() Position {
 	}
 	return Position{}
 }
+
 func (a *And) End() Position {
 	if a.Attributes != nil {
 		return a.Attributes.End()
@@ -248,6 +261,7 @@ func (a *And) End() Position {
 	}
 	return Position{}
 }
+
 func (a *And) Walk(w func(Node)) {
 	if a.Attributes != nil {
 		w(a.Attributes)

@@ -42,6 +42,7 @@ func (ident *Ident) Start() Position {
 	}
 	return Position{}
 }
+
 func (ident *Ident) End() Position {
 	if ident.Position != nil {
 		return deltaPos(*ident.Position, len(ident.Ident))
@@ -66,25 +67,29 @@ type QualifiedIdent struct {
 var _ FullIdent = (*QualifiedIdent)(nil)
 
 func (ident *QualifiedIdent) Start() Position {
-	if ident.Package != nil {
+	switch {
+	case ident.Package != nil:
 		return ident.Package.Start()
-	} else if ident.Dot != nil {
+	case ident.Dot != nil:
 		return *ident.Dot
-	} else if ident.Name != nil {
+	case ident.Name != nil:
 		return ident.Name.Start()
 	}
 	return Position{}
 }
+
 func (ident *QualifiedIdent) End() Position {
-	if ident.Name != nil {
+	switch {
+	case ident.Name != nil:
 		return ident.Name.End()
-	} else if ident.Dot != nil {
+	case ident.Dot != nil:
 		return deltaPos(*ident.Dot, len("."))
-	} else if ident.Package != nil {
+	case ident.Package != nil:
 		return ident.Package.End()
 	}
 	return Position{}
 }
+
 func (ident *QualifiedIdent) Walk(w func(Node)) {
 	if ident.Package != nil {
 		w(ident.Package)
@@ -93,6 +98,7 @@ func (ident *QualifiedIdent) Walk(w func(Node)) {
 		w(ident.Name)
 	}
 }
+
 func (ident *QualifiedIdent) Full() string {
 	if ident.Package != nil {
 		if ident.Dot != nil {
@@ -144,10 +150,11 @@ func (s *StaticString) Start() Position {
 	}
 	return Position{}
 }
+
 func (s *StaticString) End() Position {
 	if s.Close != nil {
 		return deltaPos(*s.Close, len(`"`))
-	} else if s.Close != nil {
+	} else if s.Open != nil {
 		if s.Quote == '"' {
 			return deltaPos(*s.Open, len(`"`)+len(s.Contents))
 		}
@@ -171,6 +178,7 @@ func (s *StaticString) Walk(func(Node)) {}
 func (s *StaticString) Quoted() string {
 	return string(s.Quote) + s.Contents + string(s.Quote)
 }
+
 func (s *StaticString) Unquote() string {
 	if s.Quote == '`' {
 		return s.Contents
