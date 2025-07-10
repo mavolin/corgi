@@ -12,12 +12,10 @@ func NewSliceSet[K comparable](cap int) *SliceSet[K] {
 	return &SliceSet[K]{s: make([]K, 0, cap)}
 }
 
-func (s *SliceSet[K]) Add(k K) bool {
+func (s *SliceSet[K]) Add(k K) {
 	if !slices.Contains(s.s, k) {
 		s.s = append(s.s, k)
-		return true
 	}
-	return false
 }
 
 func (s *SliceSet[K]) Contains(k K) bool {
