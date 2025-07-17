@@ -6,6 +6,10 @@ import (
 	"github.com/mavolin/corgi/v2/file/ast"
 )
 
+func NextRune(p *Parser) rune {
+	return p.next()
+}
+
 // TryToken attempts to match the given token verbatim.
 func TryToken(p *Parser, s string) (ok bool) {
 	restore := p.state.takeWSStart()

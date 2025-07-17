@@ -260,7 +260,7 @@ func testExpressionInterpolation(t *testing.T, f parser.Func[*ast.ExpressionInte
 				expect: &ast.ExpressionInterpolation{
 					LBrace: &ast.Position{Line: 1, Col: 2},
 					Expression: &ast.Expression{
-						Code: ast.Code{
+						Nodes: ast.Code{
 							&ast.GoCode{
 								Code:     "1 + 1",
 								Position: &ast.Position{Line: 1, Col: 3},
@@ -277,7 +277,7 @@ func testExpressionInterpolation(t *testing.T, f parser.Func[*ast.ExpressionInte
 					FormatDirective: "1.2f",
 					LBrace:          &ast.Position{Line: 1, Col: 7},
 					Expression: &ast.Expression{
-						Code: ast.Code{
+						Nodes: ast.Code{
 							&ast.GoCode{
 								Code:     "2.3",
 								Position: &ast.Position{Line: 1, Col: 8},

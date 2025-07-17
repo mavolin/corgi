@@ -67,7 +67,7 @@ func testString() func(t *testing.T, f parser.Func[*ast.String]) {
 								FormatDirective: "1.2f",
 								LBrace:          &ast.Position{Line: 1, Col: 12},
 								Expression: &ast.Expression{
-									Code: ast.Code{
+									Nodes: ast.Code{
 										&ast.GoCode{
 											Code:     "bar",
 											Position: &ast.Position{Line: 1, Col: 13},

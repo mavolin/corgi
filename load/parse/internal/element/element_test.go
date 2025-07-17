@@ -67,7 +67,7 @@ func TestElement(t *testing.T) {
 								},
 								EqualSign: &ast.Position{Line: 1, Col: 7},
 								Value: &ast.ExpressionAttributeValue{
-									Code: ast.Code{
+									Nodes: ast.Code{
 										&ast.GoCode{
 											Code:     "bar",
 											Position: &ast.Position{Line: 1, Col: 8},
@@ -158,7 +158,7 @@ func TestHeader(t *testing.T) {
 							},
 							EqualSign: &ast.Position{Line: 1, Col: 7},
 							Value: &ast.ExpressionAttributeValue{
-								Code: ast.Code{
+								Nodes: ast.Code{
 									&ast.GoCode{
 										Code:     "bar",
 										Position: &ast.Position{Line: 1, Col: 8},

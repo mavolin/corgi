@@ -159,17 +159,17 @@ func testTernary() func(t *testing.T, f parser.Func[*ast.Ternary]) {
 				QuestionMark: &ast.Position{Line: 1, Col: 1},
 				LParen:       &ast.Position{Line: 1, Col: 2},
 				Condition: &ast.Expression{
-					Code: ast.Code{
+					Nodes: ast.Code{
 						&ast.GoCode{Code: "condition", Position: &ast.Position{Line: 1, Col: 3}},
 					},
 				},
 				TrueVal: &ast.Expression{
-					Code: ast.Code{
+					Nodes: ast.Code{
 						&ast.GoCode{Code: "ifTrue", Position: &ast.Position{Line: 1, Col: 14}},
 					},
 				},
 				FalseVal: &ast.Expression{
-					Code: ast.Code{
+					Nodes: ast.Code{
 						&ast.GoCode{Code: "ifFalse", Position: &ast.Position{Line: 1, Col: 22}},
 					},
 				},
@@ -203,7 +203,7 @@ func testTernary() func(t *testing.T, f parser.Func[*ast.Ternary]) {
 						QuestionMark: &ast.Position{Line: 1, Col: 1},
 						LParen:       &ast.Position{Line: 1, Col: 2},
 						Condition: &ast.Expression{
-							Code: ast.Code{
+							Nodes: ast.Code{
 								&ast.GoCode{Code: "condition", Position: &ast.Position{Line: 1, Col: 3}},
 							},
 						},
@@ -216,12 +216,12 @@ func testTernary() func(t *testing.T, f parser.Func[*ast.Ternary]) {
 						QuestionMark: &ast.Position{Line: 1, Col: 1},
 						LParen:       &ast.Position{Line: 1, Col: 2},
 						Condition: &ast.Expression{
-							Code: ast.Code{
+							Nodes: ast.Code{
 								&ast.GoCode{Code: "condition", Position: &ast.Position{Line: 1, Col: 3}},
 							},
 						},
 						TrueVal: &ast.Expression{
-							Code: ast.Code{
+							Nodes: ast.Code{
 								&ast.GoCode{Code: "ifTrue", Position: &ast.Position{Line: 1, Col: 14}},
 							},
 						},
@@ -234,17 +234,17 @@ func testTernary() func(t *testing.T, f parser.Func[*ast.Ternary]) {
 						QuestionMark: &ast.Position{Line: 1, Col: 1},
 						LParen:       &ast.Position{Line: 1, Col: 2},
 						Condition: &ast.Expression{
-							Code: ast.Code{
+							Nodes: ast.Code{
 								&ast.GoCode{Code: "condition", Position: &ast.Position{Line: 1, Col: 3}},
 							},
 						},
 						TrueVal: &ast.Expression{
-							Code: ast.Code{
+							Nodes: ast.Code{
 								&ast.GoCode{Code: "ifTrue", Position: &ast.Position{Line: 1, Col: 14}},
 							},
 						},
 						FalseVal: &ast.Expression{
-							Code: ast.Code{
+							Nodes: ast.Code{
 								&ast.GoCode{Code: "ifFalse", Position: &ast.Position{Line: 1, Col: 22}},
 							},
 						},

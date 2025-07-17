@@ -328,7 +328,7 @@ func TestParameter(t *testing.T) {
 				},
 				Colon: &ast.Position{Line: 1, Col: 6},
 				Default: &ast.Expression{
-					Code: ast.Code{
+					Nodes: ast.Code{
 						&ast.String{
 							Open:  &ast.Position{Line: 1, Col: 8},
 							Quote: '"',
@@ -364,7 +364,7 @@ func TestParameter(t *testing.T) {
 				},
 				Colon: &ast.Position{Line: 1, Col: 13},
 				Default: &ast.Expression{
-					Code: ast.Code{
+					Nodes: ast.Code{
 						&ast.String{
 							Open:  &ast.Position{Line: 1, Col: 15},
 							Quote: '"',
@@ -448,7 +448,7 @@ func TestAlias(t *testing.T) {
 							},
 							Colon: &ast.Position{Line: 1, Col: 30},
 							Value: &ast.Expression{
-								Code: ast.Code{
+								Nodes: ast.Code{
 									&ast.GoCode{
 										Code:     "s",
 										Position: &ast.Position{Line: 1, Col: 32},

@@ -21,14 +21,14 @@ func TestExpression(t *testing.T) {
 				return nil, err
 			}
 
-			if len(e.Code) != 1 {
+			if len(e.Nodes) != 1 {
 				return nil, &diagnostic.Diagnostic{
 					Message: "expected exactly one expression node",
 					Primary: quickanno.Expected(p, p.Pos(), "an expression node"),
 				}
 			}
 
-			return e.Code[0].(*ast.ZeroCoalescing), nil
+			return e.Nodes[0].(*ast.ZeroCoalescing), nil
 		})
 	})
 	testutil.AssertAlsoFulfils(t, Expression(Regular), testNonZCExpression)
@@ -38,7 +38,7 @@ func TestExpression(t *testing.T) {
 
 		in := "func() { return block(foo) }()"
 		expect := &ast.Expression{
-			Code: ast.Code{
+			Nodes: ast.Code{
 				&ast.GoCode{
 					Code:     "func",
 					Position: &ast.Position{Line: 1, Col: 1},
@@ -126,7 +126,7 @@ func testNonZCExpression(t *testing.T, f parser.Func[*ast.Expression]) {
 
 		in := `foo(bar, "baz #{woof}") || block(myBlock) || ?(cond, ifT, ifF)`
 		expect := &ast.Expression{
-			Code: ast.Code{
+			Nodes: ast.Code{
 				&ast.GoCode{
 					Code:     "foo(bar,",
 					Position: &ast.Position{Line: 1, Col: 1},
@@ -141,7 +141,7 @@ func testNonZCExpression(t *testing.T, f parser.Func[*ast.Expression]) {
 							Hash:   &ast.Position{Line: 1, Col: 15},
 							LBrace: &ast.Position{Line: 1, Col: 16},
 							Expression: &ast.Expression{
-								Code: ast.Code{
+								Nodes: ast.Code{
 									&ast.GoCode{
 										Code:     "woof",
 										Position: &ast.Position{Line: 1, Col: 17},
@@ -167,7 +167,7 @@ func testNonZCExpression(t *testing.T, f parser.Func[*ast.Expression]) {
 					QuestionMark: &ast.Position{Line: 1, Col: 46},
 					LParen:       &ast.Position{Line: 1, Col: 47},
 					Condition: &ast.Expression{
-						Code: ast.Code{
+						Nodes: ast.Code{
 							&ast.GoCode{
 								Code:     "cond",
 								Position: &ast.Position{Line: 1, Col: 48},
@@ -175,7 +175,7 @@ func testNonZCExpression(t *testing.T, f parser.Func[*ast.Expression]) {
 						},
 					},
 					TrueVal: &ast.Expression{
-						Code: ast.Code{
+						Nodes: ast.Code{
 							&ast.GoCode{
 								Code:     "ifT",
 								Position: &ast.Position{Line: 1, Col: 54},
@@ -183,7 +183,7 @@ func testNonZCExpression(t *testing.T, f parser.Func[*ast.Expression]) {
 						},
 					},
 					FalseVal: &ast.Expression{
-						Code: ast.Code{
+						Nodes: ast.Code{
 							&ast.GoCode{
 								Code:     "ifF",
 								Position: &ast.Position{Line: 1, Col: 59},
@@ -207,8 +207,8 @@ func nodesAsExpression(subTest func(t *testing.T, f parser.Func[[]ast.CodeNode])
 			if err != nil {
 				return nil, err
 			}
-			ns := make([]ast.CodeNode, len(e.Code))
-			for i, n := range e.Code {
+			ns := make([]ast.CodeNode, len(e.Nodes))
+			for i, n := range e.Nodes {
 				ns[i] = n.(ast.CodeNode)
 			}
 			return ns, err

@@ -68,7 +68,7 @@ func testNamedAttribute(t *testing.T, f parser.Func[*ast.NamedAttribute]) {
 				},
 				EqualSign: &ast.Position{Line: 1, Col: 6},
 				Value: &ast.ExpressionAttributeValue{
-					Code: ast.Code{
+					Nodes: ast.Code{
 						&ast.GoCode{
 							Code:     "woof",
 							Position: &ast.Position{Line: 1, Col: 7},

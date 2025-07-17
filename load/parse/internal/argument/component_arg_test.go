@@ -27,7 +27,7 @@ func testComponentArgument(t *testing.T, f parser.Func[*ast.ComponentArgument]) 
 			},
 			Colon: &ast.Position{Line: 1, Col: 5},
 			Value: &ast.Expression{
-				Code: ast.Code{
+				Nodes: ast.Code{
 					&ast.GoCode{
 						Code:     "value",
 						Position: &ast.Position{Line: 1, Col: 7},
@@ -62,7 +62,7 @@ func testComponentArgument(t *testing.T, f parser.Func[*ast.ComponentArgument]) 
 					},
 					Colon: &ast.Position{Line: 1, Col: 5},
 					Value: &ast.Expression{
-						Code: ast.Code{
+						Nodes: ast.Code{
 							&ast.GoCode{
 								Code:     "value 2",
 								Position: &ast.Position{Line: 1, Col: 6},
@@ -80,7 +80,7 @@ func testComponentArgument(t *testing.T, f parser.Func[*ast.ComponentArgument]) 
 					},
 					Colon: &ast.Position{Line: 1, Col: 5},
 					Value: &ast.Expression{
-						Code: ast.Code{
+						Nodes: ast.Code{
 							&ast.String{
 								Open:  &ast.Position{Line: 1, Col: 6},
 								Quote: '"',

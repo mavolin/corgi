@@ -31,7 +31,7 @@ func TestExplicitCodeLine(t *testing.T) {
 	expect := &ast.ExplicitCodeLine{
 		Minus: &ast.Position{Line: 1, Col: 1},
 		Statement: &ast.Statement{
-			Code: ast.Code{
+			Nodes: ast.Code{
 				&ast.GoCode{Code: "foo()", Position: &ast.Position{Line: 1, Col: 3}},
 			},
 		},

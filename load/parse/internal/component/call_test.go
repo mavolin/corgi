@@ -128,7 +128,7 @@ func TestCallHeader(t *testing.T) {
 							Name:  &ast.Ident{Ident: "bar", Position: &ast.Position{Line: 1, Col: 5}},
 							Colon: &ast.Position{Line: 1, Col: 8},
 							Value: &ast.Expression{
-								Code: ast.Code{
+								Nodes: ast.Code{
 									&ast.GoCode{
 										Code:     "baz",
 										Position: &ast.Position{Line: 1, Col: 10},
@@ -172,7 +172,7 @@ func TestCallHeader(t *testing.T) {
 							Name:  &ast.Ident{Ident: "baz", Position: &ast.Position{Line: 1, Col: 10}},
 							Colon: &ast.Position{Line: 1, Col: 13},
 							Value: &ast.Expression{
-								Code: ast.Code{
+								Nodes: ast.Code{
 									&ast.GoCode{
 										Code:     "qux",
 										Position: &ast.Position{Line: 1, Col: 15},

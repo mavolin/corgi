@@ -19,7 +19,7 @@ func testZeroCoalescing(t *testing.T, f parser.Func[*ast.ZeroCoalescing]) {
 	expect := &ast.ZeroCoalescing{
 		DerefCount: 2,
 		Root: &ast.Expression{
-			Code: ast.Code{
+			Nodes: ast.Code{
 				&ast.GoCode{
 					Code:     "foo",
 					Position: &ast.Position{Line: 1, Col: 3},
@@ -36,14 +36,14 @@ func testZeroCoalescing(t *testing.T, f parser.Func[*ast.ZeroCoalescing]) {
 				LParen: &ast.Position{Line: 1, Col: 12},
 				Args: []*ast.Expression{
 					{
-						Code: ast.Code{
+						Nodes: ast.Code{
 							&ast.GoCode{
 								Code:     "baz",
 								Position: &ast.Position{Line: 1, Col: 13},
 							},
 						},
 					}, {
-						Code: ast.Code{
+						Nodes: ast.Code{
 							&ast.GoCode{
 								Code:     "faz",
 								Position: &ast.Position{Line: 1, Col: 18},
@@ -56,7 +56,7 @@ func testZeroCoalescing(t *testing.T, f parser.Func[*ast.ZeroCoalescing]) {
 			}, &ast.ZCIndexExpression{
 				LBracket: &ast.Position{Line: 1, Col: 23},
 				Index: &ast.Expression{
-					Code: ast.Code{
+					Nodes: ast.Code{
 						&ast.GoCode{
 							Code:     "1",
 							Position: &ast.Position{Line: 1, Col: 24},
@@ -100,7 +100,7 @@ func TestZCIndexExpression(t *testing.T) {
 			expect: &ast.ZCIndexExpression{
 				LBracket: &ast.Position{Line: 1, Col: 1},
 				Index: &ast.Expression{
-					Code: ast.Code{
+					Nodes: ast.Code{
 						&ast.GoCode{
 							Code:     "1",
 							Position: &ast.Position{Line: 1, Col: 2},
@@ -115,7 +115,7 @@ func TestZCIndexExpression(t *testing.T) {
 			expect: &ast.ZCIndexExpression{
 				LBracket: &ast.Position{Line: 1, Col: 1},
 				Index: &ast.Expression{
-					Code: ast.Code{
+					Nodes: ast.Code{
 						&ast.GoCode{
 							Code:     "1",
 							Position: &ast.Position{Line: 1, Col: 2},
@@ -131,7 +131,7 @@ func TestZCIndexExpression(t *testing.T) {
 			expect: &ast.ZCIndexExpression{
 				LBracket: &ast.Position{Line: 1, Col: 1},
 				Index: &ast.Expression{
-					Code: ast.Code{
+					Nodes: ast.Code{
 						&ast.GoCode{
 							Code:     "1",
 							Position: &ast.Position{Line: 1, Col: 2},
@@ -147,7 +147,7 @@ func TestZCIndexExpression(t *testing.T) {
 			expect: &ast.ZCIndexExpression{
 				LBracket: &ast.Position{Line: 1, Col: 1},
 				Index: &ast.Expression{
-					Code: ast.Code{
+					Nodes: ast.Code{
 						&ast.GoCode{
 							Code:     "1",
 							Position: &ast.Position{Line: 1, Col: 2},
@@ -229,7 +229,7 @@ func TestZCParenExpression(t *testing.T) {
 				LParen: &ast.Position{Line: 1, Col: 1},
 				Args: []*ast.Expression{
 					{
-						Code: ast.Code{
+						Nodes: ast.Code{
 							&ast.GoCode{
 								Code:     "foo",
 								Position: &ast.Position{Line: 1, Col: 2},
@@ -246,14 +246,14 @@ func TestZCParenExpression(t *testing.T) {
 				LParen: &ast.Position{Line: 1, Col: 1},
 				Args: []*ast.Expression{
 					{
-						Code: ast.Code{
+						Nodes: ast.Code{
 							&ast.GoCode{
 								Code:     "foo",
 								Position: &ast.Position{Line: 1, Col: 2},
 							},
 						},
 					}, {
-						Code: ast.Code{
+						Nodes: ast.Code{
 							&ast.GoCode{
 								Code:     "bar",
 								Position: &ast.Position{Line: 1, Col: 7},
@@ -270,7 +270,7 @@ func TestZCParenExpression(t *testing.T) {
 				LParen: &ast.Position{Line: 1, Col: 1},
 				Args: []*ast.Expression{
 					{
-						Code: ast.Code{
+						Nodes: ast.Code{
 							&ast.GoCode{
 								Code:     "foo",
 								Position: &ast.Position{Line: 1, Col: 2},

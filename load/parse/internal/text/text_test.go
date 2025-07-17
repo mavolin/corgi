@@ -83,7 +83,7 @@ func TestLine(t *testing.T) {
 			Hash:   &ast.Position{Line: 1, Col: 5},
 			LBrace: &ast.Position{Line: 1, Col: 6},
 			Expression: &ast.Expression{
-				Code: ast.Code{
+				Nodes: ast.Code{
 					&ast.GoCode{
 						Code:     "bar",
 						Position: &ast.Position{Line: 1, Col: 7},

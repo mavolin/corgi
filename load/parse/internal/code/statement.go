@@ -23,23 +23,23 @@ func Statement(o Options) parser.Func[*ast.Statement] {
 		}
 
 		c := parser.Try(p, NonZCCode(o|Statements))
-		if s == nil || s.Code == nil {
+		if s == nil || s.Nodes == nil {
 			if len(c) == 0 {
 				return nil, &diagnostic.Diagnostic{
 					Message: "missing simple statement",
 					Primary: quickanno.Expected(p, p.Pos(), "a simple statement"),
 				}
 			}
-			return &ast.Statement{Code: c}, nil
+			return &ast.Statement{Nodes: c}, nil
 		}
 
 		if len(c) == 0 {
 			return s, nil
 		}
-		c2 := make(ast.Code, len(s.Code)+len(c))
-		copy(c2, s.Code)
-		copy(c2[len(s.Code):], c)
-		return &ast.Statement{Code: c2}, nil
+		c2 := make(ast.Code, len(s.Nodes)+len(c))
+		copy(c2, s.Nodes)
+		copy(c2[len(s.Nodes):], c)
+		return &ast.Statement{Nodes: c2}, nil
 	}
 }
 
@@ -62,42 +62,42 @@ func parsedStatement(o Options) parser.Func[*ast.Statement] {
 	return func(p *parser.Parser) (*ast.Statement, *diagnostic.Diagnostic) {
 		if r := parser.Try(p, Return()); r != nil {
 			return &ast.Statement{
-				Code:   ReturnAsCode(r),
+				Nodes:  ReturnAsCode(r),
 				Parsed: r,
 			}, nil
 		} else if b := parser.Try(p, Break()); b != nil {
 			return &ast.Statement{
-				Code:   BreakAsCode(b),
+				Nodes:  BreakAsCode(b),
 				Parsed: b,
 			}, nil
 		} else if c := parser.Try(p, Continue()); c != nil {
 			return &ast.Statement{
-				Code:   ContinueAsCode(c),
+				Nodes:  ContinueAsCode(c),
 				Parsed: c,
 			}, nil
 		} else if f := parser.Try(p, Fallthrough()); f != nil {
 			return &ast.Statement{
-				Code:   FallthroughAsCode(f),
+				Nodes:  FallthroughAsCode(f),
 				Parsed: f,
 			}, nil
 		} else if d := parser.Try(p, Defer()); d != nil {
 			return &ast.Statement{
-				Code:   DeferAsCode(d),
+				Nodes:  DeferAsCode(d),
 				Parsed: d,
 			}, nil
 		} else if cd := parser.Try(p, ConstDeclaration()); cd != nil {
 			return &ast.Statement{
-				Code:   ConstDeclarationAsCode(cd),
+				Nodes:  ConstDeclarationAsCode(cd),
 				Parsed: cd,
 			}, nil
 		} else if vd := parser.Try(p, VarDeclaration()); vd != nil {
 			return &ast.Statement{
-				Code:   VarDeclarationAsCode(vd),
+				Nodes:  VarDeclarationAsCode(vd),
 				Parsed: vd,
 			}, nil
 		} else if l := parser.Try(p, Label()); l != nil {
 			return &ast.Statement{
-				Code:   LabelAsCode(l),
+				Nodes:  LabelAsCode(l),
 				Parsed: l,
 			}, nil
 		}
@@ -116,17 +116,17 @@ func parsedStatement(o Options) parser.Func[*ast.Statement] {
 
 		if zca := parser.TryOptional(p, zeroCoalescingAssignment(e), nil); zca != nil {
 			return &ast.Statement{
-				Code:   ZeroCoalescingAssignmentAsCode(zca),
+				Nodes:  ZeroCoalescingAssignmentAsCode(zca),
 				Parsed: zca,
 			}, nil
 		} else if incDec := parser.TryOptional(p, incDec(e), nil); incDec != nil {
 			return &ast.Statement{
-				Code:   IncDecAsCode(incDec),
+				Nodes:  IncDecAsCode(incDec),
 				Parsed: incDec,
 			}, nil
 		} else if a := parser.Try(p, assignment(e, o)); a != nil {
 			return &ast.Statement{
-				Code:   AssignmentAsCode(a),
+				Nodes:  AssignmentAsCode(a),
 				Parsed: a,
 			}, nil
 		}
@@ -134,7 +134,7 @@ func parsedStatement(o Options) parser.Func[*ast.Statement] {
 		p.RestoreState(beforeExpr)
 		if svd := parser.Try(p, ShortVarDeclaration()); svd != nil {
 			return &ast.Statement{
-				Code:   ShortVarDeclarationAsCode(svd),
+				Nodes:  ShortVarDeclarationAsCode(svd),
 				Parsed: svd,
 			}, nil
 		}
@@ -143,7 +143,7 @@ func parsedStatement(o Options) parser.Func[*ast.Statement] {
 			return new(ast.Statement), nil
 		}
 		p.RestoreState(afterExpr)
-		return &ast.Statement{Code: e.Code}, nil
+		return &ast.Statement{Nodes: e.Nodes}, nil
 	}
 }
 
@@ -155,23 +155,23 @@ func SimpleStatement(o Options) parser.Func[*ast.SimpleStatement] {
 		}
 
 		c := parser.Try(p, NonZCCode(o|Statements))
-		if ss == nil || ss.Code == nil {
+		if ss == nil || ss.Nodes == nil {
 			if len(c) == 0 {
 				return nil, &diagnostic.Diagnostic{
 					Message: "missing simple statement",
 					Primary: quickanno.Expected(p, p.Pos(), "a simple statement"),
 				}
 			}
-			return &ast.SimpleStatement{Code: c}, nil
+			return &ast.SimpleStatement{Nodes: c}, nil
 		}
 
 		if len(c) == 0 {
 			return ss, nil
 		}
-		c2 := make(ast.Code, len(ss.Code)+len(c))
-		copy(c2, ss.Code)
-		copy(c2[len(ss.Code):], c)
-		return &ast.SimpleStatement{Code: c2}, nil
+		c2 := make(ast.Code, len(ss.Nodes)+len(c))
+		copy(c2, ss.Nodes)
+		copy(c2[len(ss.Nodes):], c)
+		return &ast.SimpleStatement{Nodes: c2}, nil
 	}
 }
 
@@ -207,17 +207,17 @@ func parsedSimpleStatement(o Options) parser.Func[*ast.SimpleStatement] {
 
 		if zca := parser.TryOptional(p, zeroCoalescingAssignment(e), nil); zca != nil {
 			return &ast.SimpleStatement{
-				Code:   ZeroCoalescingAssignmentAsCode(zca),
+				Nodes:  ZeroCoalescingAssignmentAsCode(zca),
 				Parsed: zca,
 			}, nil
 		} else if incDec := parser.TryOptional(p, incDec(e), nil); incDec != nil {
 			return &ast.SimpleStatement{
-				Code:   IncDecAsCode(incDec),
+				Nodes:  IncDecAsCode(incDec),
 				Parsed: incDec,
 			}, nil
 		} else if a := parser.Try(p, assignment(e, o)); a != nil {
 			return &ast.SimpleStatement{
-				Code:   AssignmentAsCode(a),
+				Nodes:  AssignmentAsCode(a),
 				Parsed: a,
 			}, nil
 		}
@@ -225,7 +225,7 @@ func parsedSimpleStatement(o Options) parser.Func[*ast.SimpleStatement] {
 		p.RestoreState(beforeExpr)
 		if svd := parser.Try(p, ShortVarDeclaration()); svd != nil {
 			return &ast.SimpleStatement{
-				Code:   ShortVarDeclarationAsCode(svd),
+				Nodes:  ShortVarDeclarationAsCode(svd),
 				Parsed: svd,
 			}, nil
 		}
@@ -234,7 +234,7 @@ func parsedSimpleStatement(o Options) parser.Func[*ast.SimpleStatement] {
 			return new(ast.SimpleStatement), nil
 		}
 		p.RestoreState(afterExpr)
-		return &ast.SimpleStatement{Code: e.Code}, nil
+		return &ast.SimpleStatement{Nodes: e.Nodes}, nil
 	}
 }
 
@@ -260,9 +260,9 @@ func ReturnAsCode(r *ast.Return) ast.Code {
 		return ast.Code{&ast.GoCode{Code: "return", Position: r.Return}}
 	}
 
-	c := make(ast.Code, 1+len(r.Error.Code))
+	c := make(ast.Code, 1+len(r.Error.Nodes))
 	c[0] = &ast.GoCode{Code: "return", Position: r.Return}
-	copy(c[1:], r.Error.Code)
+	copy(c[1:], r.Error.Nodes)
 	return c
 }
 
@@ -369,9 +369,9 @@ func DeferAsCode(d *ast.Defer) ast.Code {
 		return ast.Code{&ast.GoCode{Code: "defer", Position: d.Defer}}
 	}
 
-	c := make(ast.Code, 1+len(d.Expression.Code))
+	c := make(ast.Code, 1+len(d.Expression.Nodes))
 	c[0] = &ast.GoCode{Code: "defer", Position: d.Defer}
-	copy(c[1:], d.Expression.Code)
+	copy(c[1:], d.Expression.Nodes)
 	return c
 }
 
@@ -430,12 +430,12 @@ func zeroCoalescingAssignment(valueExpr *ast.Expression) parser.Func[*ast.ZeroCo
 }
 
 func ZeroCoalescingAssignmentAsCode(zca *ast.ZeroCoalescingAssignment) ast.Code {
-	n := len(zca.ValueExpression.Code)
+	n := len(zca.ValueExpression.Nodes)
 	if zca.VarComma != nil {
 		n++
 	}
 	if zca.OkExpression != nil {
-		n += len(zca.OkExpression.Code)
+		n += len(zca.OkExpression.Nodes)
 	}
 	if zca.Colon != nil || zca.EqualSign != nil {
 		n++
@@ -445,13 +445,13 @@ func ZeroCoalescingAssignmentAsCode(zca *ast.ZeroCoalescingAssignment) ast.Code 
 	}
 
 	c := make(ast.Code, n)
-	i := copy(c, zca.ValueExpression.Code)
+	i := copy(c, zca.ValueExpression.Nodes)
 	if zca.VarComma != nil {
 		c[i] = &ast.GoCode{Code: ",", Position: zca.VarComma}
 		i++
 	}
 	if zca.OkExpression != nil {
-		i += copy(c[i:], zca.OkExpression.Code)
+		i += copy(c[i:], zca.OkExpression.Nodes)
 	}
 	if zca.EqualSign != nil {
 		if zca.Colon != nil {
@@ -510,11 +510,11 @@ func incDec(expr *ast.Expression) parser.Func[*ast.IncDec] {
 
 func IncDecAsCode(incDec *ast.IncDec) ast.Code {
 	if incDec.IncrPos == nil && incDec.DecrPos == nil {
-		return incDec.Expression.Code
+		return incDec.Expression.Nodes
 	}
 
-	c := make(ast.Code, len(incDec.Expression.Code)+1)
-	copy(c, incDec.Expression.Code)
+	c := make(ast.Code, len(incDec.Expression.Nodes)+1)
+	copy(c, incDec.Expression.Nodes)
 	if incDec.IncrPos != nil {
 		c[len(c)-1] = &ast.GoCode{Code: "++", Position: incDec.IncrPos}
 	} else {
@@ -669,7 +669,7 @@ func ConstDeclarationAsCode(d *ast.ConstDeclaration) ast.Code {
 			n++
 		}
 		for _, val := range spec.Values {
-			n += len(val.Code)
+			n += len(val.Nodes)
 		}
 		n += max(0, len(spec.Values)-1)
 	}
@@ -697,7 +697,7 @@ func ConstDeclarationAsCode(d *ast.ConstDeclaration) ast.Code {
 			c[i] = &ast.GoCode{Code: "=", Position: spec.EqualSign}
 		}
 		for valueI, value := range spec.Values {
-			i += copy(c[i:], value.Code)
+			i += copy(c[i:], value.Nodes)
 			if valueI < len(spec.Values)-1 {
 				comma := value.End()
 				comma.Col++
@@ -862,7 +862,7 @@ func VarDeclarationAsCode(d *ast.VarDeclaration) ast.Code {
 			n++
 		}
 		for _, val := range spec.Values {
-			n += len(val.Code)
+			n += len(val.Nodes)
 		}
 		n += max(0, len(spec.Values)-1)
 	}
@@ -890,7 +890,7 @@ func VarDeclarationAsCode(d *ast.VarDeclaration) ast.Code {
 			c[i] = &ast.GoCode{Code: "=", Position: spec.EqualSign}
 		}
 		for valueI, value := range spec.Values {
-			i += copy(c[i:], value.Code)
+			i += copy(c[i:], value.Nodes)
 			if valueI < len(spec.Values)-1 {
 				comma := value.End()
 				comma.Col++
@@ -975,7 +975,7 @@ func ShortVarDeclarationAsCode(d *ast.ShortVarDeclaration) ast.Code {
 		n++
 	}
 	for _, val := range d.Values {
-		n += len(val.Code)
+		n += len(val.Nodes)
 	}
 	n += max(0, len(d.Values)-1)
 
@@ -994,7 +994,7 @@ func ShortVarDeclarationAsCode(d *ast.ShortVarDeclaration) ast.Code {
 		i++
 	}
 	for valueI, value := range d.Values {
-		i += copy(c[i:], value.Code)
+		i += copy(c[i:], value.Nodes)
 		if valueI < len(d.Values)-1 {
 			comma := value.End()
 			comma.Col++
@@ -1120,7 +1120,7 @@ func AssignmentAsCode(a *ast.Assignment) ast.Code {
 	c := make(ast.Code, n)
 	var i int
 	for eI, e := range a.LHS {
-		i += copy(c[i:], e.Code)
+		i += copy(c[i:], e.Nodes)
 		if eI < len(a.LHS)-1 {
 			p := e.End()
 			p.Col++
@@ -1133,7 +1133,7 @@ func AssignmentAsCode(a *ast.Assignment) ast.Code {
 		i++
 	}
 	for eI, e := range a.RHS {
-		i += copy(c[i:], e.Code)
+		i += copy(c[i:], e.Nodes)
 		if eI < len(a.RHS)-1 {
 			p := e.End()
 			p.Col++

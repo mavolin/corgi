@@ -8,29 +8,29 @@ import "slices"
 
 // A Statement represents a line of Go code with corgi enhancements.
 type Statement struct {
-	Code   Code
+	Nodes  Code
 	Parsed ParsedStatement // may be nil; see doc of ParsedStatement
 }
 
 var _ Node = (*Statement)(nil)
 
 func (s *Statement) Start() Position {
-	if s.Code != nil {
-		return s.Code.Start()
+	if s.Nodes != nil {
+		return s.Nodes.Start()
 	}
 	return Position{}
 }
 
 func (s *Statement) End() Position {
-	if s.Code != nil {
-		return s.Code.End()
+	if s.Nodes != nil {
+		return s.Nodes.End()
 	}
 	return Position{}
 }
 
 func (s *Statement) Walk(w func(Node)) {
-	if s.Code != nil {
-		w(s.Code)
+	if s.Nodes != nil {
+		w(s.Nodes)
 	}
 	if s.Parsed != nil {
 		w(s.Parsed)
@@ -79,29 +79,29 @@ var (
 
 // A SimpleStatement represents the Go spec equivalent with corgi enhancements.
 type SimpleStatement struct {
-	Code   Code
+	Nodes  Code
 	Parsed ParsedSimpleStatement // may be nil; see doc of ParsedStatement
 }
 
 var _ Node = (*SimpleStatement)(nil)
 
 func (s *SimpleStatement) Start() Position {
-	if s.Code != nil {
-		return s.Code.Start()
+	if s.Nodes != nil {
+		return s.Nodes.Start()
 	}
 	return Position{}
 }
 
 func (s *SimpleStatement) End() Position {
-	if s.Code != nil {
-		return s.Code.End()
+	if s.Nodes != nil {
+		return s.Nodes.End()
 	}
 	return Position{}
 }
 
 func (s *SimpleStatement) Walk(w func(Node)) {
-	if s.Code != nil {
-		w(s.Code)
+	if s.Nodes != nil {
+		w(s.Nodes)
 	}
 	if s.Parsed != nil {
 		w(s.Parsed)

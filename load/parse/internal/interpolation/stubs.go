@@ -79,7 +79,7 @@ func expressionStub(p *parser.Parser) (*ast.Expression, *diagnostic.Diagnostic) 
 		}
 	}
 	return &ast.Expression{
-		Code: ast.Code{
+		Nodes: ast.Code{
 			&ast.GoCode{
 				Code:     code,
 				Position: &pos,

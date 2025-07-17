@@ -54,7 +54,7 @@ func TestDeclaration(t *testing.T) {
 						EqualSign: &ast.Position{Line: 2, Col: 6},
 						Values: []*ast.Expression{
 							{
-								Code: ast.Code{
+								Nodes: ast.Code{
 									&ast.GoCode{Code: "42", Position: &ast.Position{Line: 2, Col: 8}},
 								},
 							},
@@ -121,7 +121,7 @@ func TestSpec(t *testing.T) {
 				EqualSign: &ast.Position{Line: 1, Col: 5},
 				Values: []*ast.Expression{
 					{
-						Code: ast.Code{
+						Nodes: ast.Code{
 							&ast.GoCode{Code: "42", Position: &ast.Position{Line: 1, Col: 7}},
 						},
 					},
@@ -145,7 +145,7 @@ func TestSpec(t *testing.T) {
 				EqualSign: &ast.Position{Line: 1, Col: 9},
 				Values: []*ast.Expression{
 					{
-						Code: ast.Code{
+						Nodes: ast.Code{
 							&ast.GoCode{Code: "42", Position: &ast.Position{Line: 1, Col: 11}},
 						},
 					},
@@ -179,11 +179,11 @@ func TestSpec(t *testing.T) {
 				EqualSign: &ast.Position{Line: 1, Col: 10},
 				Values: []*ast.Expression{
 					{
-						Code: ast.Code{
+						Nodes: ast.Code{
 							&ast.GoCode{Code: "42", Position: &ast.Position{Line: 1, Col: 12}},
 						},
 					}, {
-						Code: ast.Code{
+						Nodes: ast.Code{
 							&ast.GoCode{Code: "43", Position: &ast.Position{Line: 1, Col: 16}},
 						},
 					},
@@ -208,11 +208,11 @@ func TestSpec(t *testing.T) {
 				EqualSign: &ast.Position{Line: 1, Col: 14},
 				Values: []*ast.Expression{
 					{
-						Code: ast.Code{
+						Nodes: ast.Code{
 							&ast.GoCode{Code: "42", Position: &ast.Position{Line: 1, Col: 16}},
 						},
 					}, {
-						Code: ast.Code{
+						Nodes: ast.Code{
 							&ast.GoCode{Code: "43", Position: &ast.Position{Line: 1, Col: 20}},
 						},
 					},
@@ -229,7 +229,7 @@ func TestSpec(t *testing.T) {
 				EqualSign: &ast.Position{Line: 1, Col: 10},
 				Values: []*ast.Expression{
 					{
-						Code: ast.Code{
+						Nodes: ast.Code{
 							&ast.GoCode{Code: "baz()", Position: &ast.Position{Line: 1, Col: 12}},
 						},
 					},

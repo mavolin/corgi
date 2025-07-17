@@ -21,9 +21,9 @@ func TestStatement(t *testing.T) {
 				return nil, err
 			}
 
-			ss := &ast.SimpleStatement{Code: make(ast.Code, len(s.Code))}
-			for i, sn := range s.Code {
-				ss.Code[i] = sn.(ast.CodeNode)
+			ss := &ast.SimpleStatement{Nodes: make(ast.Code, len(s.Nodes))}
+			for i, sn := range s.Nodes {
+				ss.Nodes[i] = sn.(ast.CodeNode)
 			}
 			ss.Parsed = s.Parsed.(ast.ParsedSimpleStatement)
 
@@ -139,7 +139,7 @@ func testReturn(t *testing.T, f parser.Func[*ast.Return]) {
 			expect: &ast.Return{
 				Return: &ast.Position{Line: 1, Col: 1},
 				Error: &ast.Expression{
-					Code: ast.Code{
+					Nodes: ast.Code{
 						&ast.GoCode{
 							Code:     "err",
 							Position: &ast.Position{Line: 1, Col: 8},
@@ -290,7 +290,7 @@ func testDefer(t *testing.T, f parser.Func[*ast.Defer]) {
 	expect := &ast.Defer{
 		Defer: &ast.Position{Line: 1, Col: 1},
 		Expression: &ast.Expression{
-			Code: ast.Code{
+			Nodes: ast.Code{
 				&ast.GoCode{
 					Code:     "foo(bar, baz)",
 					Position: &ast.Position{Line: 1, Col: 7},
@@ -319,14 +319,14 @@ func testZeroCoalescingAssignment(t *testing.T, f parser.Func[*ast.ZeroCoalescin
 			in:   "foo = bar?",
 			expect: &ast.ZeroCoalescingAssignment{
 				ValueExpression: &ast.Expression{
-					Code: ast.Code{
+					Nodes: ast.Code{
 						&ast.GoCode{Code: "foo", Position: &ast.Position{Line: 1, Col: 1}},
 					},
 				},
 				EqualSign: &ast.Position{Line: 1, Col: 5},
 				Expression: &ast.ZeroCoalescing{
 					Root: &ast.Expression{
-						Code: ast.Code{
+						Nodes: ast.Code{
 							&ast.GoCode{Code: "bar", Position: &ast.Position{Line: 1, Col: 7}},
 						},
 					},
@@ -338,7 +338,7 @@ func testZeroCoalescingAssignment(t *testing.T, f parser.Func[*ast.ZeroCoalescin
 			in:   "foo := bar?",
 			expect: &ast.ZeroCoalescingAssignment{
 				ValueExpression: &ast.Expression{
-					Code: ast.Code{
+					Nodes: ast.Code{
 						&ast.GoCode{Code: "foo", Position: &ast.Position{Line: 1, Col: 1}},
 					},
 				},
@@ -346,7 +346,7 @@ func testZeroCoalescingAssignment(t *testing.T, f parser.Func[*ast.ZeroCoalescin
 				EqualSign: &ast.Position{Line: 1, Col: 6},
 				Expression: &ast.ZeroCoalescing{
 					Root: &ast.Expression{
-						Code: ast.Code{
+						Nodes: ast.Code{
 							&ast.GoCode{Code: "bar", Position: &ast.Position{Line: 1, Col: 8}},
 						},
 					},
@@ -358,13 +358,13 @@ func testZeroCoalescingAssignment(t *testing.T, f parser.Func[*ast.ZeroCoalescin
 			in:   "foo, ok = bar?",
 			expect: &ast.ZeroCoalescingAssignment{
 				ValueExpression: &ast.Expression{
-					Code: ast.Code{
+					Nodes: ast.Code{
 						&ast.GoCode{Code: "foo", Position: &ast.Position{Line: 1, Col: 1}},
 					},
 				},
 				VarComma: &ast.Position{Line: 1, Col: 4},
 				OkExpression: &ast.Expression{
-					Code: ast.Code{
+					Nodes: ast.Code{
 						&ast.GoCode{Code: "ok", Position: &ast.Position{Line: 1, Col: 6}},
 					},
 				},
@@ -372,7 +372,7 @@ func testZeroCoalescingAssignment(t *testing.T, f parser.Func[*ast.ZeroCoalescin
 				Expression: &ast.ZeroCoalescing{
 					DerefCount: 0,
 					Root: &ast.Expression{
-						Code: ast.Code{
+						Nodes: ast.Code{
 							&ast.GoCode{Code: "bar", Position: &ast.Position{Line: 1, Col: 11}},
 						},
 					},
@@ -408,7 +408,7 @@ func testIncDec(t *testing.T, f parser.Func[*ast.IncDec]) {
 			in:   "foo++",
 			expect: &ast.IncDec{
 				Expression: &ast.Expression{
-					Code: ast.Code{
+					Nodes: ast.Code{
 						&ast.GoCode{Code: "foo", Position: &ast.Position{Line: 1, Col: 1}},
 					},
 				},
@@ -419,7 +419,7 @@ func testIncDec(t *testing.T, f parser.Func[*ast.IncDec]) {
 			in:   "foo--",
 			expect: &ast.IncDec{
 				Expression: &ast.Expression{
-					Code: ast.Code{
+					Nodes: ast.Code{
 						&ast.GoCode{Code: "foo", Position: &ast.Position{Line: 1, Col: 1}},
 					},
 				},
@@ -478,7 +478,7 @@ func testConstDeclaration(t *testing.T, f parser.Func[*ast.ConstDeclaration]) {
 						EqualSign: &ast.Position{Line: 1, Col: 11},
 						Values: []*ast.Expression{
 							{
-								Code: ast.Code{
+								Nodes: ast.Code{
 									&ast.GoCode{Code: "42", Position: &ast.Position{Line: 1, Col: 13}},
 								},
 							},
@@ -507,7 +507,7 @@ func testConstDeclaration(t *testing.T, f parser.Func[*ast.ConstDeclaration]) {
 						EqualSign: &ast.Position{Line: 1, Col: 15},
 						Values: []*ast.Expression{
 							{
-								Code: ast.Code{
+								Nodes: ast.Code{
 									&ast.GoCode{Code: "42", Position: &ast.Position{Line: 1, Col: 17}},
 								},
 							},
@@ -529,11 +529,11 @@ func testConstDeclaration(t *testing.T, f parser.Func[*ast.ConstDeclaration]) {
 						EqualSign: &ast.Position{Line: 1, Col: 16},
 						Values: []*ast.Expression{
 							{
-								Code: ast.Code{
+								Nodes: ast.Code{
 									&ast.GoCode{Code: "42", Position: &ast.Position{Line: 1, Col: 18}},
 								},
 							}, {
-								Code: ast.Code{
+								Nodes: ast.Code{
 									&ast.GoCode{Code: "43", Position: &ast.Position{Line: 1, Col: 22}},
 								},
 							},
@@ -555,7 +555,7 @@ func testConstDeclaration(t *testing.T, f parser.Func[*ast.ConstDeclaration]) {
 						EqualSign: &ast.Position{Line: 1, Col: 16},
 						Values: []*ast.Expression{
 							{
-								Code: ast.Code{
+								Nodes: ast.Code{
 									&ast.GoCode{Code: "baz()", Position: &ast.Position{Line: 1, Col: 18}},
 								},
 							},
@@ -580,7 +580,7 @@ func testConstDeclaration(t *testing.T, f parser.Func[*ast.ConstDeclaration]) {
 						EqualSign: &ast.Position{Line: 2, Col: 6},
 						Values: []*ast.Expression{
 							{
-								Code: ast.Code{
+								Nodes: ast.Code{
 									&ast.GoCode{Code: "42", Position: &ast.Position{Line: 2, Col: 8}},
 								},
 							},
@@ -592,7 +592,7 @@ func testConstDeclaration(t *testing.T, f parser.Func[*ast.ConstDeclaration]) {
 						EqualSign: &ast.Position{Line: 3, Col: 6},
 						Values: []*ast.Expression{
 							{
-								Code: ast.Code{
+								Nodes: ast.Code{
 									&ast.GoCode{Code: "43", Position: &ast.Position{Line: 3, Col: 8}},
 								},
 							},
@@ -638,7 +638,7 @@ func testVarDeclaration(t *testing.T, f parser.Func[*ast.VarDeclaration]) {
 						EqualSign: &ast.Position{Line: 1, Col: 9},
 						Values: []*ast.Expression{
 							{
-								Code: ast.Code{
+								Nodes: ast.Code{
 									&ast.GoCode{Code: "42", Position: &ast.Position{Line: 1, Col: 11}},
 								},
 							},
@@ -667,7 +667,7 @@ func testVarDeclaration(t *testing.T, f parser.Func[*ast.VarDeclaration]) {
 						EqualSign: &ast.Position{Line: 1, Col: 13},
 						Values: []*ast.Expression{
 							{
-								Code: ast.Code{
+								Nodes: ast.Code{
 									&ast.GoCode{Code: "42", Position: &ast.Position{Line: 1, Col: 15}},
 								},
 							},
@@ -710,11 +710,11 @@ func testVarDeclaration(t *testing.T, f parser.Func[*ast.VarDeclaration]) {
 						EqualSign: &ast.Position{Line: 1, Col: 14},
 						Values: []*ast.Expression{
 							{
-								Code: ast.Code{
+								Nodes: ast.Code{
 									&ast.GoCode{Code: "42", Position: &ast.Position{Line: 1, Col: 16}},
 								},
 							}, {
-								Code: ast.Code{
+								Nodes: ast.Code{
 									&ast.GoCode{Code: "43", Position: &ast.Position{Line: 1, Col: 20}},
 								},
 							},
@@ -736,7 +736,7 @@ func testVarDeclaration(t *testing.T, f parser.Func[*ast.VarDeclaration]) {
 						EqualSign: &ast.Position{Line: 1, Col: 14},
 						Values: []*ast.Expression{
 							{
-								Code: ast.Code{
+								Nodes: ast.Code{
 									&ast.GoCode{Code: "baz()", Position: &ast.Position{Line: 1, Col: 16}},
 								},
 							},
@@ -761,7 +761,7 @@ func testVarDeclaration(t *testing.T, f parser.Func[*ast.VarDeclaration]) {
 						EqualSign: &ast.Position{Line: 2, Col: 6},
 						Values: []*ast.Expression{
 							{
-								Code: ast.Code{
+								Nodes: ast.Code{
 									&ast.GoCode{Code: "42", Position: &ast.Position{Line: 2, Col: 8}},
 								},
 							},
@@ -773,7 +773,7 @@ func testVarDeclaration(t *testing.T, f parser.Func[*ast.VarDeclaration]) {
 						EqualSign: &ast.Position{Line: 3, Col: 6},
 						Values: []*ast.Expression{
 							{
-								Code: ast.Code{
+								Nodes: ast.Code{
 									&ast.GoCode{Code: "43", Position: &ast.Position{Line: 3, Col: 8}},
 								},
 							},
@@ -816,7 +816,7 @@ func testShortVarDeclaration(t *testing.T, f parser.Func[*ast.ShortVarDeclaratio
 				ColonEqualSign: &ast.Position{Line: 1, Col: 5},
 				Values: []*ast.Expression{
 					{
-						Code: ast.Code{
+						Nodes: ast.Code{
 							&ast.GoCode{Code: "42", Position: &ast.Position{Line: 1, Col: 8}},
 						},
 					},
@@ -833,11 +833,11 @@ func testShortVarDeclaration(t *testing.T, f parser.Func[*ast.ShortVarDeclaratio
 				ColonEqualSign: &ast.Position{Line: 1, Col: 10},
 				Values: []*ast.Expression{
 					{
-						Code: ast.Code{
+						Nodes: ast.Code{
 							&ast.GoCode{Code: "42", Position: &ast.Position{Line: 1, Col: 13}},
 						},
 					}, {
-						Code: ast.Code{
+						Nodes: ast.Code{
 							&ast.GoCode{Code: "43", Position: &ast.Position{Line: 1, Col: 17}},
 						},
 					},
@@ -854,7 +854,7 @@ func testShortVarDeclaration(t *testing.T, f parser.Func[*ast.ShortVarDeclaratio
 				ColonEqualSign: &ast.Position{Line: 1, Col: 10},
 				Values: []*ast.Expression{
 					{
-						Code: ast.Code{
+						Nodes: ast.Code{
 							&ast.GoCode{Code: "baz()", Position: &ast.Position{Line: 1, Col: 13}},
 						},
 					},
@@ -890,7 +890,7 @@ func testAssignment(t *testing.T, f parser.Func[*ast.Assignment]) {
 			expect: &ast.Assignment{
 				LHS: []*ast.Expression{
 					{
-						Code: ast.Code{
+						Nodes: ast.Code{
 							&ast.GoCode{Code: "foo", Position: &ast.Position{Line: 1, Col: 1}},
 						},
 					},
@@ -898,7 +898,7 @@ func testAssignment(t *testing.T, f parser.Func[*ast.Assignment]) {
 				OperatorPosition: &ast.Position{Line: 1, Col: 5},
 				RHS: []*ast.Expression{
 					{
-						Code: ast.Code{
+						Nodes: ast.Code{
 							&ast.GoCode{Code: "42", Position: &ast.Position{Line: 1, Col: 7}},
 						},
 					},
@@ -910,11 +910,11 @@ func testAssignment(t *testing.T, f parser.Func[*ast.Assignment]) {
 			expect: &ast.Assignment{
 				LHS: []*ast.Expression{
 					{
-						Code: ast.Code{
+						Nodes: ast.Code{
 							&ast.GoCode{Code: "foo", Position: &ast.Position{Line: 1, Col: 1}},
 						},
 					}, {
-						Code: ast.Code{
+						Nodes: ast.Code{
 							&ast.GoCode{Code: "bar", Position: &ast.Position{Line: 1, Col: 6}},
 						},
 					},
@@ -922,11 +922,11 @@ func testAssignment(t *testing.T, f parser.Func[*ast.Assignment]) {
 				OperatorPosition: &ast.Position{Line: 1, Col: 10},
 				RHS: []*ast.Expression{
 					{
-						Code: ast.Code{
+						Nodes: ast.Code{
 							&ast.GoCode{Code: "42", Position: &ast.Position{Line: 1, Col: 12}},
 						},
 					}, {
-						Code: ast.Code{
+						Nodes: ast.Code{
 							&ast.GoCode{Code: "43", Position: &ast.Position{Line: 1, Col: 16}},
 						},
 					},
@@ -938,11 +938,11 @@ func testAssignment(t *testing.T, f parser.Func[*ast.Assignment]) {
 			expect: &ast.Assignment{
 				LHS: []*ast.Expression{
 					{
-						Code: ast.Code{
+						Nodes: ast.Code{
 							&ast.GoCode{Code: "foo", Position: &ast.Position{Line: 1, Col: 1}},
 						},
 					}, {
-						Code: ast.Code{
+						Nodes: ast.Code{
 							&ast.GoCode{Code: "bar", Position: &ast.Position{Line: 1, Col: 6}},
 						},
 					},
@@ -950,7 +950,7 @@ func testAssignment(t *testing.T, f parser.Func[*ast.Assignment]) {
 				OperatorPosition: &ast.Position{Line: 1, Col: 10},
 				RHS: []*ast.Expression{
 					{
-						Code: ast.Code{
+						Nodes: ast.Code{
 							&ast.GoCode{Code: "baz()", Position: &ast.Position{Line: 1, Col: 12}},
 						},
 					},
@@ -962,7 +962,7 @@ func testAssignment(t *testing.T, f parser.Func[*ast.Assignment]) {
 			expect: &ast.Assignment{
 				LHS: []*ast.Expression{
 					{
-						Code: ast.Code{
+						Nodes: ast.Code{
 							&ast.GoCode{Code: "foo", Position: &ast.Position{Line: 1, Col: 1}},
 						},
 					},
@@ -971,7 +971,7 @@ func testAssignment(t *testing.T, f parser.Func[*ast.Assignment]) {
 				SpecialOperator:  "+",
 				RHS: []*ast.Expression{
 					{
-						Code: ast.Code{
+						Nodes: ast.Code{
 							&ast.GoCode{Code: "42", Position: &ast.Position{Line: 1, Col: 8}},
 						},
 					},

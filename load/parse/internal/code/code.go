@@ -155,7 +155,7 @@ func goCode(o Options) parser.Func[*codeResult] {
 				if len(parenStack) == 0 {
 					break
 				}
-				close := parser.TryRunePredicate(p, func(rune) bool { return true })
+				close := parser.NextRune(p)
 				open := parenStack[len(parenStack)-1]
 				switch {
 				case open.open == '(' && close == ')',
@@ -245,7 +245,7 @@ func goCode(o Options) parser.Func[*codeResult] {
 			if parser.MatchesAnyRune(p, whitespace.Runes...) {
 				break
 			}
-			r := parser.TryRunePredicate(p, func(r rune) bool { return true })
+			r := parser.NextRune(p)
 			if r == '.' {
 				canSkipAnyWS = true
 			}

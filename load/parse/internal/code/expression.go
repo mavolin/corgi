@@ -12,8 +12,8 @@ func Expression(o Options) parser.Func[*ast.Expression] {
 	return func(p *parser.Parser) (*ast.Expression, *diagnostic.Diagnostic) {
 		var e ast.Expression
 
-		e.Code = parser.Try(p, Code(o))
-		if e.Code == nil {
+		e.Nodes = parser.Try(p, Code(o))
+		if e.Nodes == nil {
 			return nil, &diagnostic.Diagnostic{
 				Message: "missing expression",
 				Primary: quickanno.Expected(p, p.Pos(), "an expression"),
@@ -29,8 +29,8 @@ func NonZCExpression(o Options) parser.Func[*ast.Expression] {
 	return func(p *parser.Parser) (*ast.Expression, *diagnostic.Diagnostic) {
 		var e ast.Expression
 
-		e.Code = parser.Try(p, NonZCCode(o))
-		if e.Code == nil {
+		e.Nodes = parser.Try(p, NonZCCode(o))
+		if e.Nodes == nil {
 			return nil, &diagnostic.Diagnostic{
 				Message: "missing expression",
 				Primary: quickanno.Expected(p, p.Pos(), "an expression"),

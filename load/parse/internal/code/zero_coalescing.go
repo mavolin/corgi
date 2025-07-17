@@ -114,13 +114,13 @@ func zeroCoalescingRoot() parser.Func[*ast.Expression] {
 			if err != nil {
 				return nil, err
 			}
-			return &ast.Expression{Code: c.Nodes}, err
+			return &ast.Expression{Nodes: c.Nodes}, err
 		}
 
 		ident := parser.Try(p, golang.Identifier())
 		if ident != nil {
 			return &ast.Expression{
-				Code: ast.Code{
+				Nodes: ast.Code{
 					&ast.GoCode{Code: ident.Ident, Position: ident.Position},
 				},
 			}, nil

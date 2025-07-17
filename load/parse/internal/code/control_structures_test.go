@@ -27,7 +27,7 @@ func TestConditional(t *testing.T) {
 					If: &ast.Position{Line: 1, Col: 1},
 					Header: &ast.IfHeader{
 						Condition: &ast.Expression{
-							Code: ast.Code{
+							Nodes: ast.Code{
 								&ast.GoCode{Code: "i < 10", Position: &ast.Position{Line: 1, Col: 4}},
 							},
 						},
@@ -62,7 +62,7 @@ func TestConditional(t *testing.T) {
 					If: &ast.Position{Line: 1, Col: 1},
 					Header: &ast.IfHeader{
 						Condition: &ast.Expression{
-							Code: ast.Code{
+							Nodes: ast.Code{
 								&ast.GoCode{Code: "i < 10", Position: &ast.Position{Line: 1, Col: 4}},
 							},
 						},
@@ -118,7 +118,7 @@ func TestConditional(t *testing.T) {
 					If: &ast.Position{Line: 1, Col: 1},
 					Header: &ast.IfHeader{
 						Condition: &ast.Expression{
-							Code: ast.Code{
+							Nodes: ast.Code{
 								&ast.GoCode{Code: "i < 10", Position: &ast.Position{Line: 1, Col: 4}},
 							},
 						},
@@ -146,7 +146,7 @@ func TestConditional(t *testing.T) {
 						If:   &ast.Position{Line: 3, Col: 8},
 						Header: &ast.IfHeader{
 							Condition: &ast.Expression{
-								Code: ast.Code{
+								Nodes: ast.Code{
 									&ast.GoCode{Code: "i < 20", Position: &ast.Position{Line: 3, Col: 11}},
 								},
 							},
@@ -212,7 +212,7 @@ func TestIf(t *testing.T) {
 		If: &ast.Position{Line: 1, Col: 1},
 		Header: &ast.IfHeader{
 			Condition: &ast.Expression{
-				Code: ast.Code{
+				Nodes: ast.Code{
 					&ast.GoCode{Code: "i < 10", Position: &ast.Position{Line: 1, Col: 4}},
 				},
 			},
@@ -250,7 +250,7 @@ func TestElseIf(t *testing.T) {
 		If:   &ast.Position{Line: 1, Col: 6},
 		Header: &ast.IfHeader{
 			Condition: &ast.Expression{
-				Code: ast.Code{
+				Nodes: ast.Code{
 					&ast.GoCode{Code: "i < 10", Position: &ast.Position{Line: 1, Col: 9}},
 				},
 			},
@@ -320,7 +320,7 @@ func TestIfHeader(t *testing.T) {
 			in:   "i < 10",
 			expect: &ast.IfHeader{
 				Condition: &ast.Expression{
-					Code: ast.Code{
+					Nodes: ast.Code{
 						&ast.GoCode{Code: "i < 10", Position: &ast.Position{Line: 1, Col: 1}},
 					},
 				},
@@ -337,20 +337,20 @@ func TestIfHeader(t *testing.T) {
 						ColonEqualSign: &ast.Position{Line: 1, Col: 3},
 						Values: []*ast.Expression{
 							{
-								Code: ast.Code{
+								Nodes: ast.Code{
 									&ast.GoCode{Code: "0", Position: &ast.Position{Line: 1, Col: 6}},
 								},
 							},
 						},
 					},
-					Code: ast.Code{
+					Nodes: ast.Code{
 						&ast.GoCode{Code: "i", Position: &ast.Position{Line: 1, Col: 1}},
 						&ast.GoCode{Code: ":=", Position: &ast.Position{Line: 1, Col: 3}},
 						&ast.GoCode{Code: "0", Position: &ast.Position{Line: 1, Col: 6}},
 					},
 				},
 				Condition: &ast.Expression{
-					Code: ast.Code{
+					Nodes: ast.Code{
 						&ast.GoCode{Code: "i < 10", Position: &ast.Position{Line: 1, Col: 9}},
 					},
 				},
@@ -389,7 +389,7 @@ func TestSwitch(t *testing.T) {
 			expect: &ast.Switch{
 				Switch: &ast.Position{Line: 1, Col: 1},
 				Comparator: &ast.SimpleStatement{
-					Code: ast.Code{
+					Nodes: ast.Code{
 						&ast.GoCode{Code: "i", Position: &ast.Position{Line: 1, Col: 8}},
 					},
 				},
@@ -398,7 +398,7 @@ func TestSwitch(t *testing.T) {
 					{
 						Case: &ast.Position{Line: 2, Col: 1},
 						Expression: &ast.Expression{
-							Code: ast.Code{
+							Nodes: ast.Code{
 								&ast.GoCode{Code: "1", Position: &ast.Position{Line: 2, Col: 6}},
 							},
 						},
@@ -432,7 +432,7 @@ func TestSwitch(t *testing.T) {
 					{
 						Case: &ast.Position{Line: 2, Col: 1},
 						Expression: &ast.Expression{
-							Code: ast.Code{
+							Nodes: ast.Code{
 								&ast.GoCode{Code: "1", Position: &ast.Position{Line: 2, Col: 6}},
 							},
 						},
@@ -483,7 +483,7 @@ func testCase(t *testing.T, f parser.Func[*ast.Case]) {
 	expect := &ast.Case{
 		Case: &ast.Position{Line: 1, Col: 1},
 		Expression: &ast.Expression{
-			Code: ast.Code{
+			Nodes: ast.Code{
 				&ast.GoCode{Code: "1", Position: &ast.Position{Line: 1, Col: 6}},
 			},
 		},
@@ -648,7 +648,7 @@ func TestFor(t *testing.T) {
 				For: &ast.Position{Line: 1, Col: 1},
 				Header: &ast.ForConditionHeader{
 					Condition: &ast.Expression{
-						Code: ast.Code{
+						Nodes: ast.Code{
 							&ast.GoCode{Code: "i < 10", Position: &ast.Position{Line: 1, Col: 5}},
 						},
 					},
@@ -686,33 +686,33 @@ func TestFor(t *testing.T) {
 							ColonEqualSign: &ast.Position{Line: 1, Col: 7},
 							Values: []*ast.Expression{
 								{
-									Code: ast.Code{
+									Nodes: ast.Code{
 										&ast.GoCode{Code: "0", Position: &ast.Position{Line: 1, Col: 10}},
 									},
 								},
 							},
 						},
-						Code: ast.Code{
+						Nodes: ast.Code{
 							&ast.GoCode{Code: "i", Position: &ast.Position{Line: 1, Col: 5}},
 							&ast.GoCode{Code: ":=", Position: &ast.Position{Line: 1, Col: 7}},
 							&ast.GoCode{Code: "0", Position: &ast.Position{Line: 1, Col: 10}},
 						},
 					},
 					Condition: &ast.Expression{
-						Code: ast.Code{
+						Nodes: ast.Code{
 							&ast.GoCode{Code: "i < 10", Position: &ast.Position{Line: 1, Col: 13}},
 						},
 					},
 					Post: &ast.SimpleStatement{
 						Parsed: &ast.IncDec{
 							Expression: &ast.Expression{
-								Code: ast.Code{
+								Nodes: ast.Code{
 									&ast.GoCode{Code: "i", Position: &ast.Position{Line: 1, Col: 21}},
 								},
 							},
 							IncrPos: &ast.Position{Line: 1, Col: 22},
 						},
-						Code: ast.Code{
+						Nodes: ast.Code{
 							&ast.GoCode{Code: "i", Position: &ast.Position{Line: 1, Col: 21}},
 							&ast.GoCode{Code: "++", Position: &ast.Position{Line: 1, Col: 22}},
 						},
@@ -744,7 +744,7 @@ func TestFor(t *testing.T) {
 				For: &ast.Position{Line: 1, Col: 1},
 				Header: &ast.ForRangeHeader{
 					Var1: &ast.Expression{
-						Code: ast.Code{
+						Nodes: ast.Code{
 							&ast.GoCode{Code: "i", Position: &ast.Position{Line: 1, Col: 5}},
 						},
 					},
@@ -752,7 +752,7 @@ func TestFor(t *testing.T) {
 					EqualSign: &ast.Position{Line: 1, Col: 8},
 					Range:     &ast.Position{Line: 1, Col: 10},
 					Expression: &ast.Expression{
-						Code: ast.Code{
+						Nodes: ast.Code{
 							&ast.GoCode{Code: "s", Position: &ast.Position{Line: 1, Col: 16}},
 						},
 					},
@@ -803,7 +803,7 @@ func testForConditionHeader(t *testing.T, f parser.Func[*ast.ForConditionHeader]
 	in := "i < 10"
 	expect := &ast.ForConditionHeader{
 		Condition: &ast.Expression{
-			Code: ast.Code{
+			Nodes: ast.Code{
 				&ast.GoCode{Code: "i < 10", Position: &ast.Position{Line: 1, Col: 1}},
 			},
 		},
@@ -844,13 +844,13 @@ func testForClauseHeader(t *testing.T, f parser.Func[*ast.ForClauseHeader]) {
 						ColonEqualSign: &ast.Position{Line: 1, Col: 3},
 						Values: []*ast.Expression{
 							{
-								Code: ast.Code{
+								Nodes: ast.Code{
 									&ast.GoCode{Code: "0", Position: &ast.Position{Line: 1, Col: 6}},
 								},
 							},
 						},
 					},
-					Code: ast.Code{
+					Nodes: ast.Code{
 						&ast.GoCode{Code: "i", Position: &ast.Position{Line: 1, Col: 1}},
 						&ast.GoCode{Code: ":=", Position: &ast.Position{Line: 1, Col: 3}},
 						&ast.GoCode{Code: "0", Position: &ast.Position{Line: 1, Col: 6}},
@@ -862,7 +862,7 @@ func testForClauseHeader(t *testing.T, f parser.Func[*ast.ForClauseHeader]) {
 			in:   "; i < 10;",
 			expect: &ast.ForClauseHeader{
 				Condition: &ast.Expression{
-					Code: ast.Code{
+					Nodes: ast.Code{
 						&ast.GoCode{Code: "i < 10", Position: &ast.Position{Line: 1, Col: 3}},
 					},
 				},
@@ -874,13 +874,13 @@ func testForClauseHeader(t *testing.T, f parser.Func[*ast.ForClauseHeader]) {
 				Post: &ast.SimpleStatement{
 					Parsed: &ast.IncDec{
 						Expression: &ast.Expression{
-							Code: ast.Code{
+							Nodes: ast.Code{
 								&ast.GoCode{Code: "i", Position: &ast.Position{Line: 1, Col: 4}},
 							},
 						},
 						IncrPos: &ast.Position{Line: 1, Col: 5},
 					},
-					Code: ast.Code{
+					Nodes: ast.Code{
 						&ast.GoCode{Code: "i", Position: &ast.Position{Line: 1, Col: 4}},
 						&ast.GoCode{Code: "++", Position: &ast.Position{Line: 1, Col: 5}},
 					},
@@ -898,33 +898,33 @@ func testForClauseHeader(t *testing.T, f parser.Func[*ast.ForClauseHeader]) {
 						ColonEqualSign: &ast.Position{Line: 1, Col: 3},
 						Values: []*ast.Expression{
 							{
-								Code: ast.Code{
+								Nodes: ast.Code{
 									&ast.GoCode{Code: "0", Position: &ast.Position{Line: 1, Col: 6}},
 								},
 							},
 						},
 					},
-					Code: ast.Code{
+					Nodes: ast.Code{
 						&ast.GoCode{Code: "i", Position: &ast.Position{Line: 1, Col: 1}},
 						&ast.GoCode{Code: ":=", Position: &ast.Position{Line: 1, Col: 3}},
 						&ast.GoCode{Code: "0", Position: &ast.Position{Line: 1, Col: 6}},
 					},
 				},
 				Condition: &ast.Expression{
-					Code: ast.Code{
+					Nodes: ast.Code{
 						&ast.GoCode{Code: "i < 10", Position: &ast.Position{Line: 1, Col: 9}},
 					},
 				},
 				Post: &ast.SimpleStatement{
 					Parsed: &ast.IncDec{
 						Expression: &ast.Expression{
-							Code: ast.Code{
+							Nodes: ast.Code{
 								&ast.GoCode{Code: "i", Position: &ast.Position{Line: 1, Col: 17}},
 							},
 						},
 						IncrPos: &ast.Position{Line: 1, Col: 18},
 					},
-					Code: ast.Code{
+					Nodes: ast.Code{
 						&ast.GoCode{Code: "i", Position: &ast.Position{Line: 1, Col: 17}},
 						&ast.GoCode{Code: "++", Position: &ast.Position{Line: 1, Col: 18}},
 					},
@@ -960,7 +960,7 @@ func testForRangeHeader(t *testing.T, f parser.Func[*ast.ForRangeHeader]) {
 			expect: &ast.ForRangeHeader{
 				Range: &ast.Position{Line: 1, Col: 1},
 				Expression: &ast.Expression{
-					Code: ast.Code{
+					Nodes: ast.Code{
 						&ast.GoCode{Code: "s", Position: &ast.Position{Line: 1, Col: 7}},
 					},
 				},
@@ -972,7 +972,7 @@ func testForRangeHeader(t *testing.T, f parser.Func[*ast.ForRangeHeader]) {
 				Ordered: &ast.Position{Line: 1, Col: 1},
 				Range:   &ast.Position{Line: 1, Col: 9},
 				Expression: &ast.Expression{
-					Code: ast.Code{
+					Nodes: ast.Code{
 						&ast.GoCode{Code: "s", Position: &ast.Position{Line: 1, Col: 15}},
 					},
 				},
@@ -982,14 +982,14 @@ func testForRangeHeader(t *testing.T, f parser.Func[*ast.ForRangeHeader]) {
 			in:   "i = range s",
 			expect: &ast.ForRangeHeader{
 				Var1: &ast.Expression{
-					Code: ast.Code{
+					Nodes: ast.Code{
 						&ast.GoCode{Code: "i", Position: &ast.Position{Line: 1, Col: 1}},
 					},
 				},
 				EqualSign: &ast.Position{Line: 1, Col: 3},
 				Range:     &ast.Position{Line: 1, Col: 5},
 				Expression: &ast.Expression{
-					Code: ast.Code{
+					Nodes: ast.Code{
 						&ast.GoCode{Code: "s", Position: &ast.Position{Line: 1, Col: 11}},
 					},
 				},
@@ -999,19 +999,19 @@ func testForRangeHeader(t *testing.T, f parser.Func[*ast.ForRangeHeader]) {
 			in:   "i, v = range s",
 			expect: &ast.ForRangeHeader{
 				Var1: &ast.Expression{
-					Code: ast.Code{
+					Nodes: ast.Code{
 						&ast.GoCode{Code: "i", Position: &ast.Position{Line: 1, Col: 1}},
 					},
 				},
 				Var2: &ast.Expression{
-					Code: ast.Code{
+					Nodes: ast.Code{
 						&ast.GoCode{Code: "v", Position: &ast.Position{Line: 1, Col: 4}},
 					},
 				},
 				EqualSign: &ast.Position{Line: 1, Col: 6},
 				Range:     &ast.Position{Line: 1, Col: 8},
 				Expression: &ast.Expression{
-					Code: ast.Code{
+					Nodes: ast.Code{
 						&ast.GoCode{Code: "s", Position: &ast.Position{Line: 1, Col: 14}},
 					},
 				},
@@ -1021,12 +1021,12 @@ func testForRangeHeader(t *testing.T, f parser.Func[*ast.ForRangeHeader]) {
 			in:   "i, v := range s",
 			expect: &ast.ForRangeHeader{
 				Var1: &ast.Expression{
-					Code: ast.Code{
+					Nodes: ast.Code{
 						&ast.GoCode{Code: "i", Position: &ast.Position{Line: 1, Col: 1}},
 					},
 				},
 				Var2: &ast.Expression{
-					Code: ast.Code{
+					Nodes: ast.Code{
 						&ast.GoCode{Code: "v", Position: &ast.Position{Line: 1, Col: 4}},
 					},
 				},
@@ -1034,7 +1034,7 @@ func testForRangeHeader(t *testing.T, f parser.Func[*ast.ForRangeHeader]) {
 				EqualSign: &ast.Position{Line: 1, Col: 7},
 				Range:     &ast.Position{Line: 1, Col: 9},
 				Expression: &ast.Expression{
-					Code: ast.Code{
+					Nodes: ast.Code{
 						&ast.GoCode{Code: "s", Position: &ast.Position{Line: 1, Col: 15}},
 					},
 				},

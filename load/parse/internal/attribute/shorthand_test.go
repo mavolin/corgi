@@ -22,7 +22,7 @@ func testIDShorthand(t *testing.T, f parser.Func[*ast.IDShorthand]) {
 			&ast.ShorthandInterpolation{
 				LBrace: &ast.Position{Line: 1, Col: 6},
 				Expression: &ast.Expression{
-					Code: ast.Code{
+					Nodes: ast.Code{
 						&ast.GoCode{
 							Code:     "bar",
 							Position: &ast.Position{Line: 1, Col: 7},
@@ -70,7 +70,7 @@ func testClassShorthand(t *testing.T, f parser.Func[*ast.ClassShorthand]) {
 						&ast.ShorthandInterpolation{
 							LBrace: &ast.Position{Line: 1, Col: 6},
 							Expression: &ast.Expression{
-								Code: ast.Code{
+								Nodes: ast.Code{
 									&ast.GoCode{
 										Code:     "bar",
 										Position: &ast.Position{Line: 1, Col: 7},
@@ -97,7 +97,7 @@ func testClassShorthand(t *testing.T, f parser.Func[*ast.ClassShorthand]) {
 						&ast.ShorthandInterpolation{
 							LBrace: &ast.Position{Line: 1, Col: 10},
 							Expression: &ast.Expression{
-								Code: ast.Code{
+								Nodes: ast.Code{
 									&ast.GoCode{
 										Code:     "bar",
 										Position: &ast.Position{Line: 1, Col: 11},
@@ -151,7 +151,7 @@ func testShorthand(t *testing.T, f parser.Func[ast.Shorthand]) {
 				&ast.ShorthandInterpolation{
 					LBrace: &ast.Position{Line: 1, Col: 2},
 					Expression: &ast.Expression{
-						Code: ast.Code{
+						Nodes: ast.Code{
 							&ast.GoCode{Code: "bar", Position: &ast.Position{Line: 1, Col: 3}},
 						},
 					},
@@ -167,7 +167,7 @@ func testShorthand(t *testing.T, f parser.Func[ast.Shorthand]) {
 				&ast.ShorthandInterpolation{
 					LBrace: &ast.Position{Line: 1, Col: 5},
 					Expression: &ast.Expression{
-						Code: ast.Code{
+						Nodes: ast.Code{
 							&ast.GoCode{Code: "bar", Position: &ast.Position{Line: 1, Col: 6}},
 						},
 					},
@@ -225,7 +225,7 @@ func testShorthandInterpolation(t *testing.T, f parser.Func[*ast.ShorthandInterp
 		expect := &ast.ShorthandInterpolation{
 			LBrace: &ast.Position{Line: 1, Col: 2},
 			Expression: &ast.Expression{
-				Code: ast.Code{
+				Nodes: ast.Code{
 					&ast.GoCode{Code: "foo", Position: &ast.Position{Line: 1, Col: 3}},
 				},
 			},
