@@ -9,7 +9,6 @@ import (
 
 	"github.com/mavolin/corgi/v2/file"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
-	"github.com/mavolin/corgi/v2/internal/nopslog"
 	"github.com/mavolin/corgi/v2/internal/set"
 )
 
@@ -64,7 +63,7 @@ type (
 
 func (o *Options) applyDefaults() {
 	if o.Logger == nil {
-		o.Logger = nopslog.Logger
+		o.Logger = slog.New(slog.DiscardHandler)
 	}
 }
 
