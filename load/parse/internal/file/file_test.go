@@ -61,7 +61,7 @@ func TestFile(t *testing.T) {
 				Comp: &ast.Position{Line: 8, Col: 1},
 				Header: &ast.ComponentHeader{
 					Name: &ast.Ident{Ident: "foo", Position: &ast.Position{Line: 8, Col: 6}},
-					Params: &ast.ComponentParameters{
+					Parameters: &ast.ComponentParameters{
 						LParen: &ast.Position{Line: 8, Col: 9},
 						RParen: &ast.Position{Line: 8, Col: 10},
 					},

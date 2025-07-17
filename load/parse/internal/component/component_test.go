@@ -28,7 +28,7 @@ func TestComponent(t *testing.T) {
 						Ident:    "foo",
 						Position: &ast.Position{Line: 1, Col: 6},
 					},
-					Params: &ast.ComponentParameters{
+					Parameters: &ast.ComponentParameters{
 						LParen: &ast.Position{Line: 1, Col: 9},
 						RParen: &ast.Position{Line: 1, Col: 10},
 					},
@@ -62,7 +62,7 @@ func TestComponent(t *testing.T) {
 						Ident:    "foo",
 						Position: &ast.Position{Line: 1, Col: 6},
 					},
-					Params: &ast.ComponentParameters{
+					Parameters: &ast.ComponentParameters{
 						LParen: &ast.Position{Line: 1, Col: 9},
 						RParen: &ast.Position{Line: 1, Col: 10},
 					},
@@ -123,7 +123,7 @@ func TestHeader(t *testing.T) {
 					Ident:    "foo",
 					Position: &ast.Position{Line: 1, Col: 1},
 				},
-				Params: &ast.ComponentParameters{
+				Parameters: &ast.ComponentParameters{
 					LParen: &ast.Position{Line: 1, Col: 4},
 					RParen: &ast.Position{Line: 1, Col: 5},
 				},
@@ -158,7 +158,7 @@ func TestHeader(t *testing.T) {
 					},
 					RBracket: &ast.Position{Line: 1, Col: 10},
 				},
-				Params: &ast.ComponentParameters{
+				Parameters: &ast.ComponentParameters{
 					LParen: &ast.Position{Line: 1, Col: 11},
 					Params: []*ast.ComponentParameter{
 						{
@@ -407,7 +407,7 @@ func TestAlias(t *testing.T) {
 				Ident:    "foo",
 				Position: &ast.Position{Line: 1, Col: 7},
 			},
-			Params: &ast.ComponentParameters{
+			Parameters: &ast.ComponentParameters{
 				LParen: &ast.Position{Line: 1, Col: 10},
 				Params: []*ast.ComponentParameter{
 					{

@@ -74,8 +74,8 @@ func Header() parser.Func[*ast.ComponentHeader] {
 			})
 		}
 		h.TypeParams = parser.TryOptional(p, golang.TypeParameters(), comment.OrHorizontalWhitespace())
-		h.Params = parser.TryOptional(p, Parameters(), nil)
-		if h.Params == nil {
+		h.Parameters = parser.TryOptional(p, Parameters(), nil)
+		if h.Parameters == nil {
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "component header: missing parameters",
 				Primary: quickanno.Expected(p, p.Pos(), "a parameter list"),
@@ -85,7 +85,7 @@ func Header() parser.Func[*ast.ComponentHeader] {
 			})
 		}
 
-		if h.Name == nil && h.Params == nil {
+		if h.Name == nil && h.Parameters == nil {
 			return nil, &diagnostic.Diagnostic{
 				Message: "missing component header",
 				Primary: quickanno.Expected(p, h.Start(), "an identifier and a list of parameters"),
