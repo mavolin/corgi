@@ -16,7 +16,7 @@ import "slices"
 // If a future version of the parser is able to parse types more accurately,
 // the set of accepted, but invalid types may decrease.
 // As such, users should not rely on type objects for invalid types to be
-// placed into the ComponentAST by future versions of the parser.
+// placed into the AST by future versions of the parser.
 //
 // In fact, invalid types are specifically exempt from compatibility
 // guarantees, and you should not expect a future version of corgi to continue
@@ -51,12 +51,12 @@ func (*Type) _typeTerm() {}
 // Parsed Type
 // ======================================================================================
 
-// ParsedType represents a type that we actually have an ComponentAST representation
+// ParsedType represents a type that we actually have an AST representation
 // for.
 // This is usually for the subset of types that we need to properly identify
 // later on.
 //
-// Parsing all Go Types would add a huge bloat of ComponentAST nodes, which we currently
+// Parsing all Go Types would add a huge bloat of AST nodes, which we currently
 // have no need for, and as such would only add to our maintenance burden.
 // Solving the problem this way, allows us to incrementally expand the list of
 // types as we need, without introducing breaking changes.

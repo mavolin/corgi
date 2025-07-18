@@ -57,12 +57,18 @@ type (
 		// Where annotations should give you the facts, the explanation should
 		// give the required context to deeper understand the problem.
 		//
-		// Explanations are, however, not the place to give additional
-		// information about the context surrounding the error.
-		// After once reading the explanation, users should not have to read it
-		// again if they encounter the same error elsewhere.
-		// That, of course, doesn't mean an explanation can't restate
-		// information from message and annotations to adapt it to the context.
+		// Explanations are, however, not the place to give dynamically
+		// generated information regarding the error.
+		// After once reading the explanation of a diagnostic with the same
+		// message, a user should not have to read it again if they encounter
+		// the same error elsewhere.
+		// That, of course, doesn't mean an explanation can't include
+		// information from message and annotations to make it easier to
+		// make the connection between the error and the explanation.
+		// What it does mean, however, is that the explanation should remain
+		// the same in its essence, for every error of the same type.
+		// If you are in a situation where there are different explanations,
+		// you should probably also use different error messages.
 		//
 		// A good explanation is succinct and only present when necessary.
 		// Suddenly seeing a huge block of text, for a missing semicolon is

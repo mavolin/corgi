@@ -44,7 +44,7 @@ func (*Statement) _node() {}
 // ======================================================================================
 
 // ParsedStatement is a subset of valid Go statements with corgi enhancements
-// that we have an ComponentAST representation for.
+// that we have an AST representation for.
 // This is usually for the subset of statements that we need to properly
 // identify later on.
 //
@@ -111,7 +111,7 @@ func (s *SimpleStatement) Walk(w func(Node)) {
 func (*SimpleStatement) _node() {}
 
 // ParsedSimpleStatement is a subset of valid Go simple statements with corgi
-// enhancements that we have an ComponentAST representation for.
+// enhancements that we have an AST representation for.
 // This is usually for the subset of statements that we need to properly
 // identify later on.
 //

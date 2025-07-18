@@ -192,7 +192,7 @@ func TestNode(t *testing.T) {
 						EqualSign: &ast.Position{Line: start.Line + 1, Col: 3 + len("foo ")},
 						Values: []*ast.Expression{
 							{
-								Code: ast.Code{
+								Nodes: ast.Code{
 									&ast.GoCode{
 										Code:     "bar",
 										Position: &ast.Position{Line: start.Line + 1, Col: 3 + len("foo = ")},

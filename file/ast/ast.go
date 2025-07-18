@@ -12,7 +12,7 @@
 // the sets of the sum types this package defines may expand in the future.
 // It should also be said, that fields with comments narrowing the set of
 // possible types may, therefore, eventually be broadened in future versions.
-// They exist to facilitate understanding of the ComponentAST, not to set a contract.
+// They exist to facilitate understanding of the AST, not to set a contract.
 // This goes against the usual precedent that a comment's contract is not
 // to be broken between versions.
 package ast
