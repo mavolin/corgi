@@ -25,7 +25,7 @@ func (i attrDefinitionInfo) fullSelector() string {
 	return i.fullName
 }
 
-func attrDefInfo(attr *file.AttributeDefinition) *attrDefinitionInfo {
+func attrDefInfo(attr *file.AttributeSpec) *attrDefinitionInfo {
 	if attr.AST.Selector == nil {
 		return nil
 	}

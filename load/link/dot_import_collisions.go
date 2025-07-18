@@ -19,7 +19,7 @@ func (l *linker) CheckDotImportCollisions(_ context.Context) {
 
 	for _, f := range l.p.Files {
 		dotImports = dotImports[:0]
-		for _, imp := range f.Symbols.Imports {
+		for _, imp := range f.Imports {
 			if imp == nil || imp.AST == nil || imp.AST.Alias == nil || imp.AST.Alias.Ident != "." || imp.Package == nil {
 				continue
 			}
@@ -57,7 +57,7 @@ func (c *dotImportCollisionChecker) checkFile(l *linker, logger *slog.Logger, f 
 	}).checkFile(l, logger, f)
 	(&dotImportAttributeDefinitionCollisionChecker{
 		dotImportCollisionChecker: c,
-		reported:                  set.NewSliceSet[*file.AttributeDefinition](32),
+		reported:                  set.NewSliceSet[*file.AttributeSpec](32),
 		duplAttrDefs:              make([]dotImportAttributeDefinitionCollision, 0, 8),
 	}).checkFile(l, logger, f)
 }
@@ -92,9 +92,9 @@ func (c *dotImportComponentCollisionChecker) checkFile(l *linker, logger *slog.L
 				continue
 			}
 
-			aCompName := aComp.AST.Header.Name.Ident
+			aCompName := aComp.Header().Name.Ident
 			logger := logger.With(
-				slog.String("component_pos", aComp.AST.Start().String()),
+				slog.String("component_pos", aComp.Start().String()),
 				slog.String("component", aCompName))
 			logger.Debug("Checking component")
 			if c.checked.Contains(aCompName) {
@@ -127,7 +127,7 @@ func (c *dotImportComponentCollisionChecker) checkFile(l *linker, logger *slog.L
 }
 
 func (c *dotImportComponentCollisionChecker) reportCollision(l *linker, logger *slog.Logger, f *file.File, first dotImportComponentCollision, dupls []dotImportComponentCollision) {
-	collisionName := first.comp.AST.Header.Name.Ident
+	collisionName := first.comp.Header().Name.Ident
 	logger.Error("Component collision", slog.String("name", collisionName))
 
 	primaries := make([]diagnostic.Annotation, 1, len(dupls)+1)
@@ -138,14 +138,14 @@ func (c *dotImportComponentCollisionChecker) reportCollision(l *linker, logger *
 
 	secondaries := make([]diagnostic.Annotation, 1, len(dupls)+1)
 	secondaries[0] = anno.Anno(first.comp.File, anno.Annotation{
-		Highlight:  anno.HighlightNode(first.comp.AST.Header.Name),
-		Context:    anno.ContextLines(first.comp.AST.Start(), first.comp.AST.End()),
+		Highlight:  anno.HighlightNode(first.comp.Header().Name),
+		Context:    anno.ContextLines(first.comp.Start(), first.comp.End()),
 		Annotation: "defined here",
 	})
 	for _, dupl := range dupls {
 		secondaries = append(secondaries, anno.Anno(dupl.comp.File, anno.Annotation{
-			Highlight:  anno.HighlightNode(dupl.comp.AST.Header.Name),
-			Context:    anno.ContextLines(dupl.comp.AST.Start(), dupl.comp.AST.End()),
+			Highlight:  anno.HighlightNode(dupl.comp.Header().Name),
+			Context:    anno.ContextLines(dupl.comp.Start(), dupl.comp.End()),
 			Annotation: "defined here",
 		}))
 	}
@@ -172,11 +172,11 @@ func (c *dotImportComponentCollisionChecker) recordDuplicate(comp *file.Componen
 }
 
 func (c dotImportComponentCollisionChecker) shouldCheck(comp *file.Component) bool {
-	return comp != nil && comp.AST.Header != nil && comp.AST.Header.Name != nil && file.IsExported(comp.AST.Header.Name.Ident)
+	return comp != nil && comp.Header() != nil && comp.Header().Name != nil && file.IsExported(comp.Header().Name.Ident)
 }
 
 // ============================================================================
-// Element Definition Collisions
+// Element Spec Collisions
 // ======================================================================================
 
 type (
@@ -187,7 +187,7 @@ type (
 	}
 	dotImportElementDefinitionCollision struct {
 		imp  *file.Import
-		elem *file.ElementDefinition
+		elem *file.ElementSpec
 	}
 )
 
@@ -273,9 +273,9 @@ func (c dotImportElementDefinitionCollisionChecker) appendCollisionDiagnosticSec
 			anno.Range(dupl.elem.File, dupl.elem.Definition.Prefix.Start(), dupl.elem.AST.Name.End(), "defined here"))
 	}
 
-	if dupl.elem.Definition.Prefix != nil && reportedPrefixes.Add(dupl.elem.Definition) {
-		secondaries = append(secondaries,
-			anno.Node(dupl.elem.File, dupl.elem.Definition.Prefix, "with this prefix"))
+	if dupl.elem.Definition.Prefix != nil && reportedPrefixes.Contains(dupl.elem.Definition) {
+		reportedPrefixes.Add(dupl.elem.Definition)
+		secondaries = append(secondaries, anno.Node(dupl.elem.File, dupl.elem.Definition.Prefix, "with this prefix"))
 	}
 	return append(secondaries, anno.Node(dupl.elem.File, dupl.elem.AST.Name, "defined here"))
 }
@@ -284,30 +284,30 @@ func (c *dotImportElementDefinitionCollisionChecker) resetDuplicates() {
 	c.duplElemDefs = c.duplElemDefs[:0]
 }
 
-func (c *dotImportElementDefinitionCollisionChecker) recordDuplicate(elem *file.ElementDefinition, imp *file.Import) {
+func (c *dotImportElementDefinitionCollisionChecker) recordDuplicate(elem *file.ElementSpec, imp *file.Import) {
 	c.duplElemDefs = append(c.duplElemDefs, dotImportElementDefinitionCollision{
 		imp:  imp,
 		elem: elem,
 	})
 }
 
-func (c dotImportElementDefinitionCollisionChecker) shouldCheck(elem *file.ElementDefinition) bool {
+func (c dotImportElementDefinitionCollisionChecker) shouldCheck(elem *file.ElementSpec) bool {
 	return elem != nil && elem.AST != nil && elem.FullName() != ""
 }
 
 // ============================================================================
-// Attribute Definition Collisions
+// Attribute Spec Collisions
 // ======================================================================================
 
 type (
 	dotImportAttributeDefinitionCollisionChecker struct { // file level
 		*dotImportCollisionChecker
-		reported     set.Set[*file.AttributeDefinition]
+		reported     set.Set[*file.AttributeSpec]
 		duplAttrDefs []dotImportAttributeDefinitionCollision
 	}
 	dotImportAttributeDefinitionCollision struct {
 		imp      *file.Import
-		attr     *file.AttributeDefinition
+		attr     *file.AttributeSpec
 		selector string
 	}
 )
@@ -415,7 +415,7 @@ func (c *dotImportAttributeDefinitionCollisionChecker) resetDuplicates() {
 	c.duplAttrDefs = c.duplAttrDefs[:0]
 }
 
-func (c *dotImportAttributeDefinitionCollisionChecker) recordDuplicate(imp *file.Import, attr *file.AttributeDefinition, selector string) {
+func (c *dotImportAttributeDefinitionCollisionChecker) recordDuplicate(imp *file.Import, attr *file.AttributeSpec, selector string) {
 	c.duplAttrDefs = append(c.duplAttrDefs, dotImportAttributeDefinitionCollision{
 		imp:      imp,
 		attr:     attr,

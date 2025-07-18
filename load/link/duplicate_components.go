@@ -36,10 +36,10 @@ func (c *duplicateComponentChecker) check(l *linker, logger *slog.Logger) {
 			continue
 		}
 
-		aName := a.AST.Header.Name.Ident
+		aName := a.Header().Name.Ident
 		logger := logger.With(
 			slog.String("file", a.File.Name),
-			slog.String("component_pos", a.AST.Start().String()),
+			slog.String("component_pos", a.Start().String()),
 			slog.String("component", aName))
 		logger.Debug("Checking component")
 
@@ -54,7 +54,7 @@ func (c *duplicateComponentChecker) check(l *linker, logger *slog.Logger) {
 			if c.shouldCheck(b) {
 				continue
 			}
-			bName := b.AST.Header.Name.Ident
+			bName := b.Header().Name.Ident
 
 			if aName == bName {
 				c.recordDuplicate(b)
@@ -71,9 +71,9 @@ func (c *duplicateComponentChecker) reportDuplicate(l *linker, logger *slog.Logg
 	logger.Error("Found duplicate components")
 
 	primaries := make([]diagnostic.Annotation, 1, len(dupls)+1)
-	primaries[0] = anno.Node(first.File, first.AST.Header.Name, "first defined here")
+	primaries[0] = anno.Node(first.File, first.Header().Name, "first defined here")
 	for _, b := range dupls {
-		primaries = append(primaries, anno.Node(b.File, b.AST.Header.Name, "then again here"))
+		primaries = append(primaries, anno.Node(b.File, b.Header().Name, "then again here"))
 	}
 
 	l.report(&diagnostic.Diagnostic{
@@ -83,7 +83,7 @@ func (c *duplicateComponentChecker) reportDuplicate(l *linker, logger *slog.Logg
 }
 
 func (c duplicateComponentChecker) shouldCheck(comp *file.Component) bool {
-	return comp != nil && comp.AST.Header != nil && comp.AST.Header.Name != nil
+	return comp != nil && comp.Header() != nil && comp.Header().Name != nil
 }
 
 func (c *duplicateComponentChecker) resetDuplicates() {

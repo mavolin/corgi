@@ -58,7 +58,7 @@ type duplicateAttributeDefinitionElementSelectorChecker struct { // attribute de
 	reported  set.Set[elementName]
 }
 
-func (c *duplicateAttributeDefinitionElementSelectorChecker) checkRule(l *linker, logger *slog.Logger, def *file.AttributeDefinition, rule *ast.AttributeRule, sel *ast.ListElementSelector) {
+func (c *duplicateAttributeDefinitionElementSelectorChecker) checkRule(l *linker, logger *slog.Logger, def *file.AttributeSpec, rule *ast.AttributeRule, sel *ast.ListElementSelector) {
 	for ai, a := range sel.Elements[:len(sel.Elements)-1] {
 		if a == nil || a.Name == "" {
 			continue
@@ -97,7 +97,7 @@ func (c *duplicateAttributeDefinitionElementSelectorChecker) checkRule(l *linker
 	}
 }
 
-func (c *duplicateAttributeDefinitionElementSelectorChecker) reportDuplicate(l *linker, logger *slog.Logger, def *file.AttributeDefinition, rule *ast.AttributeRule, first *ast.ElementName, duplElems []*ast.ElementName) {
+func (c *duplicateAttributeDefinitionElementSelectorChecker) reportDuplicate(l *linker, logger *slog.Logger, def *file.AttributeSpec, rule *ast.AttributeRule, first *ast.ElementName, duplElems []*ast.ElementName) {
 	logger.Error("Found duplicate element")
 
 	primaries := make([]diagnostic.Annotation, 1, len(duplElems))

@@ -14,17 +14,17 @@ import (
 
 func (l *linker) CheckDuplicateAttributeDefinitions(_ context.Context) {
 	(&duplicateAttributeDefinitionChecker{
-		reported:          set.NewSliceSet[*file.AttributeDefinition](max(len(l.p.AttributeDefinitions)-1, 0)),
-		duplDefs:          make([]*file.AttributeDefinition, 0, 8),
-		duplQualifiedDefs: make([]*file.AttributeDefinition, 0, 8),
+		reported:          set.NewSliceSet[*file.AttributeSpec](max(len(l.p.AttributeDefinitions)-1, 0)),
+		duplDefs:          make([]*file.AttributeSpec, 0, 8),
+		duplQualifiedDefs: make([]*file.AttributeSpec, 0, 8),
 	}).check(l, l.logger)
 }
 
 type (
 	duplicateAttributeDefinitionChecker struct { // package-level
-		reported          set.Set[*file.AttributeDefinition]
-		duplDefs          []*file.AttributeDefinition
-		duplQualifiedDefs []*file.AttributeDefinition
+		reported          set.Set[*file.AttributeSpec]
+		duplDefs          []*file.AttributeSpec
+		duplQualifiedDefs []*file.AttributeSpec
 	}
 )
 
@@ -77,7 +77,7 @@ func (c *duplicateAttributeDefinitionChecker) check(l *linker, logger *slog.Logg
 	}
 }
 
-func (c *duplicateAttributeDefinitionChecker) reportDuplicate(l *linker, logger *slog.Logger, first *file.AttributeDefinition, duplDefs []*file.AttributeDefinition) {
+func (c *duplicateAttributeDefinitionChecker) reportDuplicate(l *linker, logger *slog.Logger, first *file.AttributeSpec, duplDefs []*file.AttributeSpec) {
 	logger.Error("Found duplicate attribute definitions")
 
 	primaries := make([]diagnostic.Annotation, 0, 2*(len(duplDefs)+1))
@@ -96,7 +96,7 @@ func (c *duplicateAttributeDefinitionChecker) reportDuplicate(l *linker, logger 
 	})
 }
 
-func (c *duplicateAttributeDefinitionChecker) appendDuplicateAnnotation(as []diagnostic.Annotation, def *file.AttributeDefinition, reportedPrefixes *set.SliceSet[*ast.AttributeDefinition]) []diagnostic.Annotation {
+func (c *duplicateAttributeDefinitionChecker) appendDuplicateAnnotation(as []diagnostic.Annotation, def *file.AttributeSpec, reportedPrefixes *set.SliceSet[*ast.AttributeDefinition]) []diagnostic.Annotation {
 	txt := "first defined here"
 	if len(as) > 0 {
 		txt = "then again here"
@@ -107,9 +107,9 @@ func (c *duplicateAttributeDefinitionChecker) appendDuplicateAnnotation(as []dia
 			anno.Range(def.File, def.Definition.Prefix.Start(), def.AST.Selector.End(), txt))
 	}
 
-	if def.Definition.Prefix != nil && reportedPrefixes.Add(def.Definition) {
-		as = append(as,
-			anno.Node(def.File, def.Definition.Prefix, "with this prefix"))
+	if def.Definition.Prefix != nil && reportedPrefixes.Contains(def.Definition) {
+		reportedPrefixes.Add(def.Definition)
+		as = append(as, anno.Node(def.File, def.Definition.Prefix, "with this prefix"))
 	}
 	return append(as, anno.Node(def.File, def.AST.Selector, txt))
 }
@@ -118,6 +118,6 @@ func (c *duplicateAttributeDefinitionChecker) resetDuplicates() {
 	c.duplDefs = c.duplDefs[:0]
 }
 
-func (c *duplicateAttributeDefinitionChecker) recordDuplicate(def *file.AttributeDefinition) {
+func (c *duplicateAttributeDefinitionChecker) recordDuplicate(def *file.AttributeSpec) {
 	c.duplDefs = append(c.duplDefs, def)
 }

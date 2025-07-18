@@ -53,6 +53,7 @@ func (l *linker) linkUnqualifiedComponentCall(_ context.Context, logger *slog.Lo
 	if c := l.p.ComponentByName(ident.Ident); c != nil {
 		logger.Debug("Found component within package")
 		cc.Component = c
+		return
 	}
 
 	if !file.IsExported(ident.Ident) {
@@ -124,7 +125,8 @@ func (l *linker) linkQualifiedComponentCall(_ context.Context, logger *slog.Logg
 	if imp == nil {
 		logger.Error("Could not find import for package")
 
-		if l.reportedMissingImports[f].Add(ident.Package.Ident) {
+		if l.reportedMissingImports[f].Contains(ident.Package.Ident) {
+			l.reportedMissingImports[f].Add(ident.Package.Ident)
 			l.report(&diagnostic.Diagnostic{
 				Message: "component call: unresolved reference to package",
 				Primary: []diagnostic.Annotation{

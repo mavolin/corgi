@@ -57,7 +57,7 @@ func (l *linker) linkUnqualifiedAttributeReference(_ context.Context, logger *sl
 
 	var (
 		bestMatchImport         string
-		equalSpecificityMatches []*file.AttributeDefinition
+		equalSpecificityMatches []*file.AttributeSpec
 	)
 
 	packageMatches := f.Package.AttributeDefinitionByFullName(name)
@@ -78,7 +78,7 @@ func (l *linker) linkUnqualifiedAttributeReference(_ context.Context, logger *sl
 	}
 
 	if len(equalSpecificityMatches) == 1 {
-		ref.Definition = equalSpecificityMatches[0]
+		ref.Spec = equalSpecificityMatches[0]
 		if bestMatchImport == "" {
 			logger.Debug("Found attribute definition within package")
 		} else {
@@ -108,7 +108,7 @@ func (l *linker) linkUnqualifiedAttributeReference(_ context.Context, logger *sl
 		packageMatches = l.builtin.AttributeDefinitionByFullName(name)
 		if len(packageMatches) == 1 {
 			logger.Debug("Found attribute definition within builtin package")
-			ref.Definition = packageMatches[0]
+			ref.Spec = packageMatches[0]
 		} else if len(packageMatches) > 1 {
 			logger.Error("Found multiple attribute definitions with same specificity in builtin package")
 			l.report(&diagnostic.Diagnostic{
@@ -141,7 +141,8 @@ func (l *linker) linkQualifiedAttributeReference(_ context.Context, logger *slog
 	if imp == nil {
 		logger.Error("Could not find import for package")
 
-		if l.reportedMissingImports[f].Add(ref.AST.Package.Ident) {
+		if l.reportedMissingImports[f].Contains(ref.AST.Package.Ident) {
+			l.reportedMissingImports[f].Add(ref.AST.Package.Ident)
 			l.report(&diagnostic.Diagnostic{
 				Message: "attribute: unresolved reference to package",
 				Primary: []diagnostic.Annotation{
@@ -157,7 +158,8 @@ func (l *linker) linkQualifiedAttributeReference(_ context.Context, logger *slog
 	}
 
 	matches := imp.Package.AttributeDefinitionByQualifiedName(ref.AST.Name.Name)
-	if len(matches) == 0 {
+	switch {
+	case len(matches) == 0:
 		logger.Error("Could not resolve reference")
 		l.report(&diagnostic.Diagnostic{
 			Message: "attribute: unresolved reference",
@@ -165,14 +167,13 @@ func (l *linker) linkQualifiedAttributeReference(_ context.Context, logger *slog
 				anno.Node(f, ref.AST, "attribute is not defined in package"),
 			},
 		})
-	} else if len(matches) == 1 {
+	case len(matches) == 1:
 		logger.Debug("Found attribute")
-		ref.Definition = matches[0]
-	} else {
+		ref.Spec = matches[0]
+	default:
 		logger.Error("Found multiple attribute definitions with same specificity",
 			slog.Int("count", len(matches)),
 			slog.Int("specificity", matches[0].Specificity))
-
 		l.report(&diagnostic.Diagnostic{
 			Message: "attribute: ambiguous reference",
 			Primary: []diagnostic.Annotation{
@@ -186,11 +187,12 @@ func (l *linker) linkQualifiedAttributeReference(_ context.Context, logger *slog
 	}
 }
 
-func equalSpecificityAnnotations(defs []*file.AttributeDefinition) []diagnostic.Annotation {
+func equalSpecificityAnnotations(defs []*file.AttributeSpec) []diagnostic.Annotation {
 	reportedPrefixes := set.NewSliceSet[*ast.AttributeDefinition](len(defs))
 	as := make([]diagnostic.Annotation, 0, 2*len(defs))
 	for _, def := range defs {
-		if def.Definition.Prefix != nil && reportedPrefixes.Add(def.Definition) {
+		if def.Definition.Prefix != nil && reportedPrefixes.Contains(def.Definition) {
+			reportedPrefixes.Add(def.Definition)
 			as = append(as, anno.Node(def.File, def.Definition.Prefix, "with this prefix"))
 		}
 		as = append(as,

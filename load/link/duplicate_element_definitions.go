@@ -13,14 +13,14 @@ import (
 
 func (l *linker) CheckDuplicateElementDefinitions(_ context.Context) {
 	(&duplicateElementDefinitionChecker{
-		duplDefs: make([]*file.ElementDefinition, 0, 8),
-		reported: set.NewSliceSet[*file.ElementDefinition](max(len(l.p.ElementDefinitions)-1, 0)),
+		duplDefs: make([]*file.ElementSpec, 0, 8),
+		reported: set.NewSliceSet[*file.ElementSpec](max(len(l.p.ElementDefinitions)-1, 0)),
 	}).check(l, l.logger)
 }
 
 type duplicateElementDefinitionChecker struct { // package level
-	duplDefs []*file.ElementDefinition
-	reported set.Set[*file.ElementDefinition]
+	duplDefs []*file.ElementSpec
+	reported set.Set[*file.ElementSpec]
 }
 
 func (c *duplicateElementDefinitionChecker) check(l *linker, logger *slog.Logger) {
@@ -82,7 +82,7 @@ func (c *duplicateElementDefinitionChecker) check(l *linker, logger *slog.Logger
 	}
 }
 
-func (c *duplicateElementDefinitionChecker) reportDuplicate(l *linker, logger *slog.Logger, first *file.ElementDefinition, dupls []*file.ElementDefinition) {
+func (c *duplicateElementDefinitionChecker) reportDuplicate(l *linker, logger *slog.Logger, first *file.ElementSpec, dupls []*file.ElementSpec) {
 	logger.Error("Found duplicate element definitions")
 
 	primaries := make([]diagnostic.Annotation, 1, len(dupls)+1)
@@ -97,7 +97,7 @@ func (c *duplicateElementDefinitionChecker) reportDuplicate(l *linker, logger *s
 	})
 }
 
-func (c duplicateElementDefinitionChecker) shouldCheck(def *file.ElementDefinition) bool {
+func (c duplicateElementDefinitionChecker) shouldCheck(def *file.ElementSpec) bool {
 	return def.AST != nil && def.Definition != nil && def.AST.Name != nil
 }
 
@@ -105,6 +105,6 @@ func (c *duplicateElementDefinitionChecker) resetDuplicates() {
 	c.duplDefs = c.duplDefs[:0]
 }
 
-func (c *duplicateElementDefinitionChecker) recordDuplicate(def *file.ElementDefinition) {
+func (c *duplicateElementDefinitionChecker) recordDuplicate(def *file.ElementSpec) {
 	c.duplDefs = append(c.duplDefs, def)
 }

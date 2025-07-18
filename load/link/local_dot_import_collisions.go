@@ -85,9 +85,9 @@ func (c *localDotImportComponentCollisionChecker) checkFile(l *linker, logger *s
 			continue
 		}
 
-		localCompName := localComp.AST.Header.Name.Ident
+		localCompName := localComp.Header().Name.Ident
 		logger := logger.With(
-			slog.String("pos", localComp.AST.Start().String()),
+			slog.String("pos", localComp.Start().String()),
 			slog.String("component", localCompName))
 		logger.Debug("Checking component")
 		c.resetDuplicates()
@@ -106,11 +106,11 @@ func (c *localDotImportComponentCollisionChecker) checkFile(l *linker, logger *s
 }
 
 func (c *localDotImportComponentCollisionChecker) reportCollision(l *linker, logger *slog.Logger, f *file.File, local *file.Component, dupls []localDotImportComponentCollision) {
-	collisionName := local.AST.Header.Name.Ident
+	collisionName := local.Header().Name.Ident
 	logger.Error("Component collision", slog.String("name", collisionName))
 
 	primaries := make([]diagnostic.Annotation, 1, len(dupls)+1)
-	primaries[0] = anno.Node(f, local.AST.Header.Name, "defined here")
+	primaries[0] = anno.Node(f, local.Header().Name, "defined here")
 	for _, dupl := range dupls {
 		primaries = append(primaries, anno.Node(f, dupl.imp.AST, "also defines `"+collisionName+"`"))
 	}
@@ -118,8 +118,8 @@ func (c *localDotImportComponentCollisionChecker) reportCollision(l *linker, log
 	secondaries := make([]diagnostic.Annotation, 0, len(dupls))
 	for _, dupl := range dupls {
 		secondaries = append(secondaries, anno.Anno(dupl.comp.File, anno.Annotation{
-			Highlight:  anno.HighlightNode(dupl.comp.AST.Header.Name),
-			Context:    anno.ContextLines(dupl.comp.AST.Start(), dupl.comp.AST.End()),
+			Highlight:  anno.HighlightNode(dupl.comp.Header().Name),
+			Context:    anno.ContextLines(dupl.comp.Start(), dupl.comp.End()),
 			Annotation: "defined here",
 		}))
 	}
@@ -147,10 +147,10 @@ func (c *localDotImportComponentCollisionChecker) recordDuplicate(comp *file.Com
 }
 
 func (c localDotImportComponentCollisionChecker) shouldCheck(comp *file.Component) bool {
-	return comp != nil && comp.AST.Header != nil && comp.AST.Header.Name != nil && file.IsExported(comp.AST.Header.Name.Ident)
+	return comp != nil && comp.Header() != nil && comp.Header().Name != nil && file.IsExported(comp.Header().Name.Ident)
 }
 
-// =========================== Element Definition Collisions ============================
+// =========================== Element Spec Collisions ============================
 
 type (
 	localDotImportElementDefinitionCollisionChecker struct { // file level
@@ -159,7 +159,7 @@ type (
 	}
 	localDotImportElementDefinitionCollision struct {
 		imp  *file.Import
-		elem *file.ElementDefinition
+		elem *file.ElementSpec
 	}
 )
 
@@ -188,7 +188,7 @@ func (c *localDotImportElementDefinitionCollisionChecker) checkFile(l *linker, l
 	}
 }
 
-func (c *localDotImportElementDefinitionCollisionChecker) reportCollision(l *linker, logger *slog.Logger, f *file.File, local *file.ElementDefinition, dupls []localDotImportElementDefinitionCollision) {
+func (c *localDotImportElementDefinitionCollisionChecker) reportCollision(l *linker, logger *slog.Logger, f *file.File, local *file.ElementSpec, dupls []localDotImportElementDefinitionCollision) {
 	collisionName := local.FullName()
 	logger.Error("Element definition collision", slog.String("name", collisionName))
 
@@ -214,15 +214,15 @@ func (c *localDotImportElementDefinitionCollisionChecker) reportCollision(l *lin
 	})
 }
 
-func (c localDotImportElementDefinitionCollisionChecker) appendCollisionDiagnostic(as []diagnostic.Annotation, dupl *file.ElementDefinition, reportedPrefixes *set.SliceSet[*ast.ElementDefinition]) []diagnostic.Annotation {
+func (c localDotImportElementDefinitionCollisionChecker) appendCollisionDiagnostic(as []diagnostic.Annotation, dupl *file.ElementSpec, reportedPrefixes *set.SliceSet[*ast.ElementDefinition]) []diagnostic.Annotation {
 	if dupl.Definition.LParen == nil && dupl.Definition.Prefix != nil {
 		return append(as,
 			anno.Range(dupl.File, dupl.Definition.Prefix.Start(), dupl.AST.Name.End(), "defined here"))
 	}
 
-	if dupl.Definition.Prefix != nil && reportedPrefixes.Add(dupl.Definition) {
-		as = append(as,
-			anno.Node(dupl.File, dupl.Definition.Prefix, "with this prefix"))
+	if dupl.Definition.Prefix != nil && reportedPrefixes.Contains(dupl.Definition) {
+		reportedPrefixes.Add(dupl.Definition)
+		as = append(as, anno.Node(dupl.File, dupl.Definition.Prefix, "with this prefix"))
 	}
 	return append(as, anno.Node(dupl.File, dupl.AST.Name, "defined here"))
 }
@@ -231,18 +231,18 @@ func (c *localDotImportElementDefinitionCollisionChecker) resetDuplicates() {
 	c.duplElemDefs = c.duplElemDefs[:0]
 }
 
-func (c *localDotImportElementDefinitionCollisionChecker) recordDuplicate(elem *file.ElementDefinition, imp *file.Import) {
+func (c *localDotImportElementDefinitionCollisionChecker) recordDuplicate(elem *file.ElementSpec, imp *file.Import) {
 	c.duplElemDefs = append(c.duplElemDefs, localDotImportElementDefinitionCollision{
 		imp:  imp,
 		elem: elem,
 	})
 }
 
-func (c localDotImportElementDefinitionCollisionChecker) shouldCheck(elem *file.ElementDefinition) bool {
+func (c localDotImportElementDefinitionCollisionChecker) shouldCheck(elem *file.ElementSpec) bool {
 	return elem != nil && elem.AST != nil && elem.FullName() != ""
 }
 
-// ========================== Attribute Definition Collisions ===========================
+// ========================== Attribute Spec Collisions ===========================
 
 type (
 	localDotImportAttributeDefinitionCollisionChecker struct { // file level
@@ -251,7 +251,7 @@ type (
 	}
 	localDotImportAttributeDefinitionCollision struct {
 		imp      *file.Import
-		attr     *file.AttributeDefinition
+		attr     *file.AttributeSpec
 		selector string
 	}
 )
@@ -346,15 +346,15 @@ func (c *localDotImportAttributeDefinitionCollisionChecker) reportCollision(l *l
 	})
 }
 
-func (c localDotImportAttributeDefinitionCollisionChecker) appendCollisionDiagnostic(secondaries []diagnostic.Annotation, attr *file.AttributeDefinition, reportedPrefixes *set.SliceSet[*ast.AttributeDefinition]) []diagnostic.Annotation {
+func (c localDotImportAttributeDefinitionCollisionChecker) appendCollisionDiagnostic(secondaries []diagnostic.Annotation, attr *file.AttributeSpec, reportedPrefixes *set.SliceSet[*ast.AttributeDefinition]) []diagnostic.Annotation {
 	if attr.Definition.LParen == nil && attr.Definition.Prefix != nil {
 		return append(secondaries,
 			anno.Range(attr.File, attr.Definition.Prefix.Start(), attr.AST.Selector.End(), "defined here"))
 	}
 
-	if attr.Definition.Prefix != nil && reportedPrefixes.Add(attr.Definition) {
-		secondaries = append(secondaries,
-			anno.Node(attr.File, attr.Definition.Prefix, "with this prefix"))
+	if attr.Definition.Prefix != nil && reportedPrefixes.Contains(attr.Definition) {
+		reportedPrefixes.Add(attr.Definition)
+		secondaries = append(secondaries, anno.Node(attr.File, attr.Definition.Prefix, "with this prefix"))
 	}
 	return append(secondaries, anno.Node(attr.File, attr.AST.Selector, "defined here"))
 }
@@ -363,7 +363,7 @@ func (c *localDotImportAttributeDefinitionCollisionChecker) resetDuplicates() {
 	c.duplAttrDefs = c.duplAttrDefs[:0]
 }
 
-func (c *localDotImportAttributeDefinitionCollisionChecker) recordDuplicate(imp *file.Import, attr *file.AttributeDefinition, selector string) {
+func (c *localDotImportAttributeDefinitionCollisionChecker) recordDuplicate(imp *file.Import, attr *file.AttributeSpec, selector string) {
 	c.duplAttrDefs = append(c.duplAttrDefs, localDotImportAttributeDefinitionCollision{
 		imp:      imp,
 		attr:     attr,
@@ -371,7 +371,7 @@ func (c *localDotImportAttributeDefinitionCollisionChecker) recordDuplicate(imp 
 	})
 }
 
-func (c localDotImportAttributeDefinitionCollisionChecker) basicSelector(attr *file.AttributeDefinition) *ast.BasicAttributeSelector {
+func (c localDotImportAttributeDefinitionCollisionChecker) basicSelector(attr *file.AttributeSpec) *ast.BasicAttributeSelector {
 	if attr == nil || attr.AST == nil {
 		return nil
 	}
@@ -382,7 +382,7 @@ func (c localDotImportAttributeDefinitionCollisionChecker) basicSelector(attr *f
 	return sel
 }
 
-func (c localDotImportAttributeDefinitionCollisionChecker) attrName(attr *file.AttributeDefinition) (name, selector string) {
+func (c localDotImportAttributeDefinitionCollisionChecker) attrName(attr *file.AttributeSpec) (name, selector string) {
 	sel := attr.AST.Selector.(*ast.BasicAttributeSelector)
 	if attr.Definition != nil && attr.Definition.Prefix != nil {
 		name = attr.Definition.Prefix.Name + sel.Name

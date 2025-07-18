@@ -48,7 +48,7 @@ func (l *linker) linkUnqualifiedElementReference(_ context.Context, logger *slog
 
 	name := ref.AST.Name.Name
 	if def := f.Package.ElementDefinitionByFullName(name); def != nil {
-		ref.Definition = def
+		ref.Spec = def
 		logger.Debug("Found element definition within package")
 		return
 	}
@@ -75,7 +75,7 @@ func (l *linker) linkUnqualifiedElementReference(_ context.Context, logger *slog
 
 	if l.builtin != nil {
 		if def := l.builtin.ElementDefinitionByFullName(name); def != nil {
-			ref.Definition = def
+			ref.Spec = def
 			logger.Debug("Found element definition within builtin package")
 			return
 		}
@@ -102,7 +102,8 @@ func (l *linker) linkQualifiedElementReference(_ context.Context, logger *slog.L
 	if imp == nil {
 		logger.Error("Could not find import for package")
 
-		if l.reportedMissingImports[f].Add(ref.AST.Package.Ident) {
+		if l.reportedMissingImports[f].Contains(ref.AST.Package.Ident) {
+			l.reportedMissingImports[f].Add(ref.AST.Package.Ident)
 			l.report(&diagnostic.Diagnostic{
 				Message: "element: unresolved reference to package",
 				Primary: []diagnostic.Annotation{
@@ -117,8 +118,8 @@ func (l *linker) linkQualifiedElementReference(_ context.Context, logger *slog.L
 		return
 	}
 
-	ref.Definition = imp.Package.ElementDefinitionByQualifiedName(ref.AST.Name.Name)
-	if ref.Definition == nil {
+	ref.Spec = imp.Package.ElementDefinitionByQualifiedName(ref.AST.Name.Name)
+	if ref.Spec == nil {
 		logger.Error("Could not resolve reference")
 		l.report(&diagnostic.Diagnostic{
 			Message: "element: unresolved reference",

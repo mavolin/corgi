@@ -52,7 +52,7 @@ type (
 	}
 )
 
-func (c *duplicateAttributeDefinitionElementTypeChecker) checkDefinition(l *linker, logger *slog.Logger, def *file.AttributeDefinition) {
+func (c *duplicateAttributeDefinitionElementTypeChecker) checkDefinition(l *linker, logger *slog.Logger, def *file.AttributeSpec) {
 	for ai, a := range def.AST.Ruleset.Rules[:len(def.AST.Ruleset.Rules)-1] {
 		if a == nil || a.Selector == nil {
 			continue
