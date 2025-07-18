@@ -1,10 +1,14 @@
 package walk
 
 import (
+	"fmt"
 	"reflect"
 
+	"github.com/mavolin/corgi/v2/file"
 	"github.com/mavolin/corgi/v2/file/ast"
 )
+
+// todo: test
 
 // An Option is a function that can influence how/if a node is walked.
 //
@@ -18,105 +22,34 @@ import (
 // is typed.
 type Option func(*Context) error
 
-// ChildOf asserts that the visited item must be a child of the passed sequence
-// of types.
-// Other nodes may appear in between or in front/after the types.
-func ChildOf(types ...ast.Node) Option {
-	rTypes := make([]reflect.Type, len(types))
-	for i, t := range types {
-		rTypes[i] = reflect.TypeOf(t)
-	}
-
-	return func(wctx *Context) error {
-		var typI int
-		for _, p := range wctx.Parents {
-			pt := reflect.TypeOf(p.Node)
-			if pt != rTypes[typI] {
-				continue
+// TopLevel prevents the function from diving into:
+//   - Elements
+//   - Component call withs that are not top-level.
+//
+// Requires component calls to be analyzed and therefore, transitively, the
+// file's symbols to be built.
+//
+// Ignores withs not linked to a block.
+func TopLevel(f *file.File) Option {
+	return func(ctx *Context) error {
+		switch n := ctx.Node.(type) {
+		case *ast.Element:
+			return Skip
+		case *ast.With:
+			astCC := Closest[*ast.ComponentCall](ctx.Parents)
+			cc := f.ComponentCallByNode(astCC)
+			if cc == nil {
+				panic(fmt.Sprintf("walk.TopLevel called without building symbols: %s/%s:%s: file.ComponentCall not found for ast node", f.Module, f.PathInModule, cc.AST.Start()))
 			}
-
-			typI++
-			if typI == len(rTypes) {
-				return nil
+			with := cc.WithByName(n.Name.Ident)
+			if with == nil {
+				panic(fmt.Sprintf("walk.TopLevel called without analyzing component calls: %s/%s:%s: file.With not found for ast node", f.Module, f.PathInModule, n.Start()))
 			}
-		}
-
-		return Ignore
-	}
-}
-
-// ChildOfAny asserts that the visited item must be a child of an item of
-// the passed types.
-func ChildOfAny(types ...ast.Node) Option {
-	rTypes := make([]reflect.Type, len(types))
-	for i, t := range types {
-		rTypes[i] = reflect.TypeOf(t)
-	}
-
-	return func(wctx *Context) error {
-		for _, p := range wctx.Parents {
-			pt := reflect.TypeOf(p.Node)
-			for _, rType := range rTypes {
-				if pt == rType {
-					return nil
-				}
-			}
-		}
-
-		return Ignore
-	}
-}
-
-// NotChildOf asserts that the visited item must not be a child of exactly the
-// passed sequence of types.
-// Other nodes may appear in between or in front/after the types and the
-// assertion will still fail.
-func NotChildOf(types ...ast.Node) Option {
-	rTypes := make([]reflect.Type, len(types))
-	for i, t := range types {
-		rTypes[i] = reflect.TypeOf(t)
-	}
-
-	return func(wctx *Context) error {
-		var typI int
-		for _, p := range wctx.Parents {
-			pt := reflect.TypeOf(p.Node)
-			if pt != rTypes[typI] {
-				continue
-			}
-
-			typI++
-			if typI == len(rTypes) {
+			if with.Block == nil || !with.Block.TopLevel(file.AtLeastOne) {
 				return Skip
 			}
+			return nil
 		}
-
-		if typI == len(rTypes)-1 && reflect.TypeOf(wctx.Node) == rTypes[typI] {
-			return NoDive
-		}
-
-		return nil
-	}
-}
-
-// NotChildOfAny asserts that the visited item must not be a child of the
-// passed types.
-func NotChildOfAny(types ...ast.Node) Option {
-	rTypes := make([]reflect.Type, len(types))
-	for i, t := range types {
-		rTypes[i] = reflect.TypeOf(t)
-	}
-
-	return func(wctx *Context) error {
-		for _, p := range wctx.Parents {
-			pt := reflect.TypeOf(p.Node)
-			for _, rType := range rTypes {
-				if pt == rType {
-					return Skip
-				}
-			}
-		}
-
 		return nil
 	}
 }
@@ -138,22 +71,5 @@ func DontDiveAny(types ...ast.Node) Option {
 		}
 
 		return nil
-	}
-}
-
-// TopLevel asserts that the visited item must be a top-level item, as defined
-// by [IsTopLevel].
-func TopLevel() Option {
-	return func(wctx *Context) error {
-		topLevel := IsTopLevel(wctx)
-		childTopLevel := topLevel && isTopLevel(wctx.Node)
-		if topLevel {
-			if !childTopLevel {
-				return NoDive
-			}
-			return nil
-		}
-
-		return SkipIf
 	}
 }

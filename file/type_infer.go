@@ -12,36 +12,39 @@ import (
 // and type assertions.
 //
 // If InferType returns the empty string, it could not identify the type.
-func InferType(f *File, expr *ast.Expression) string {
-	typ, _ := inferType(f, expr)
-	return typ
-}
-
-func inferType(f *File, expr *ast.Expression) (typ string, sure bool) {
+//
+// The 'sure' return value indicates if this prediction is certain, i.e., that
+// the expression will exactly yield the type returned.
+// If 'sure' is false, InferType encountered an untyped literal:
+// While the expression can be cast to the type returned, in the context of the
+// expression it might also be used to yield a different, more concrete type.
+func InferType(f *File, expr *ast.Expression) (typ string, sure bool) {
 	if expr == nil {
 		return "", false
-	} else if len(expr.Code) == 0 {
+	} else if len(expr.Nodes) == 0 {
 		return "", false
 	}
 
-	switch n := expr.Code[0].(type) {
+	switch n := expr.Nodes[0].(type) {
 	case *ast.BlockFunction:
 		return "bool", true
 	case *ast.GoCode:
 		return inferGoCodeType(f, n)
 	case *ast.String:
-		return "string", true
+		return "string", false
 	case *ast.Ternary:
-		return inferTernaryType(f, n)
+		if len(expr.Nodes) == 1 {
+			return inferTernaryType(f, n)
+		}
 	case *ast.ZeroCoalescing:
 		return inferZeroCoalescingType(f, n)
 	}
 
-	if len(expr.Code) == 1 {
+	if len(expr.Nodes) == 1 {
 		return "", false
 	}
 
-	switch n := expr.Code[len(expr.Code)-1].(type) {
+	switch n := expr.Nodes[len(expr.Nodes)-1].(type) {
 	case *ast.BlockFunction:
 		return "bool", true
 	case *ast.GoCode:
@@ -60,21 +63,19 @@ func inferTernaryType(f *File, expr *ast.Ternary) (typ string, sure bool) {
 		return "", false
 	}
 
-	trueType, trueSure := inferType(f, expr.TrueVal)
+	trueType, trueSure := InferType(f, expr.TrueVal)
 	if trueSure {
 		return trueType, trueSure
 	}
 
-	falseType, falseSure := inferType(f, expr.FalseVal)
+	falseType, falseSure := InferType(f, expr.FalseVal)
 	if falseSure {
-		return falseType, falseSure
+		return falseType, true
 	}
 
 	if trueType == falseType {
 		return trueType, false
-	}
-
-	if expr.TrueVal == nil {
+	} else if expr.TrueVal == nil {
 		return falseType, falseSure
 	} else if expr.FalseVal == nil {
 		return trueType, trueSure
@@ -89,7 +90,7 @@ func inferZeroCoalescingType(f *File, expr *ast.ZeroCoalescing) (typ string, sur
 
 	if len(expr.Chain) == 0 {
 		if expr.Default != nil {
-			return inferType(f, expr.Default)
+			return InferType(f, expr.Default)
 		}
 		return "", false
 	}
@@ -101,7 +102,7 @@ func inferZeroCoalescingType(f *File, expr *ast.ZeroCoalescing) (typ string, sur
 	}
 
 	if expr.Default != nil {
-		return InferType(f, expr.Default), false
+		return InferType(f, expr.Default)
 	}
 	return "", false
 }

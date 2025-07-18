@@ -12,6 +12,17 @@ import (
 	"github.com/mavolin/corgi/v2/file/ast"
 )
 
+type permanentImport struct {
+	Alias string
+	Path  string
+}
+
+var (
+	EscapeImport  = &permanentImport{"__corgi_escape", "github.com/mavolin/corgi/v2/escape"}
+	SafeImport    = &permanentImport{"__corgi_safe", "github.com/mavolin/corgi/v2/escape/safe"}
+	RuntimeImport = &permanentImport{"__corgi_runtime", "github.com/mavolin/corgi/v2/runtime"}
+)
+
 // File represents a parsed corgi file.
 type File struct {
 	Package *Package
@@ -30,80 +41,30 @@ type File struct {
 	// It is always specified as a forward slash separated path.
 	PathInModule string
 
+	// NeedsSafeImport indicates whether this file needs to import the safe
+	// package.
+	NeedsSafeImport bool
+	// NeedsEscapeImport indicates whether this file needs to import the
+	// escape package.
+	NeedsEscapeImport bool
+
 	AST *ast.File
+
 	*Symbols
 }
 
-type (
-	Symbols struct {
-		Imports            []*Import
-		importsByNamespace map[string]*Import
+type Symbols struct {
+	Imports            []*Import
+	importsByNamespace map[string]*Import
 
-		ComponentCalls       []*ComponentCall
-		componentCallsByNode map[*ast.ComponentCall]*ComponentCall
+	ComponentCalls       []*ComponentCall
+	componentCallsByNode map[*ast.ComponentCall]*ComponentCall
 
-		ElementReferences       []*ElementReference
-		elementReferencesByNode map[*ast.ElementReference]*ElementReference
+	ElementReferences       []*ElementReference
+	elementReferencesByNode map[*ast.ElementReference]*ElementReference
 
-		AttributeReferences       []*AttributeReference
-		attributeReferencesByNode map[*ast.AttributeReference]*AttributeReference
-	}
-
-	Import struct {
-		AST *ast.ImportSpec // buildSymbols
-
-		// Package is the package this import resolves to.
-		//
-		// This may be nil, if no components are imported from the package.
-		Package *Package // linker
-	}
-
-	ElementReference struct {
-		AST *ast.ElementReference // buildSymbols
-
-		// Definition is the definition providing the type of the Element.
-		Definition *ElementDefinition // linker
-	}
-
-	AttributeReference struct {
-		AST *ast.AttributeReference // buildSymbols
-
-		// Definition is the definition declaring the attribute.
-		//
-		// Since attributes can also be explicitly typed, this field may be
-		// nil.
-		// Hence, linker implementations should not report errors if they
-		// cannot resolve the definition that belongs to the reference.
-		Definition *AttributeDefinition // linker, may be nil
-
-		Element *ElementDefinition // analyze, nil if not attached to an element
-		// Rule is the rule that is relevant for the element/attribute pair.
-		Rule *ast.AttributeRule // analyze, nil if not attached to an element
-		Type attrtype.Type      // analyze
-	}
-)
-
-func (i *Import) ImportPath() string {
-	if i.AST.Path == nil {
-		return ""
-	}
-	return i.AST.Path.Unquote()
-}
-
-// Namespace returns the namespace of the import.
-// For dot imports, it returns ".".
-func (i *Import) Namespace() string {
-	if i.AST.Alias != nil {
-		return i.AST.Alias.Ident
-	}
-	return path.Base(i.ImportPath())
-}
-
-func (r *ElementReference) Type() elemtype.Type {
-	if r.Definition != nil {
-		return r.Definition.Type
-	}
-	return elemtype.Unknown
+	AttributeReferences       []*AttributeReference
+	attributeReferencesByNode map[*ast.AttributeReference]*AttributeReference
 }
 
 func buildSymbols(f *File) {
@@ -116,8 +77,8 @@ func buildSymbols(f *File) {
 		Imports:            make([]*Import, 0, nImports),
 		importsByNamespace: make(map[string]*Import, nImports),
 
-		ComponentCalls:       make([]*ComponentCall, 0, 128),
-		componentCallsByNode: make(map[*ast.ComponentCall]*ComponentCall, 128),
+		ComponentCalls:       make([]*ComponentCall, 0, 256),
+		componentCallsByNode: make(map[*ast.ComponentCall]*ComponentCall, 256),
 
 		ElementReferences:       make([]*ElementReference, 0, 256),
 		elementReferencesByNode: make(map[*ast.ElementReference]*ElementReference, 256),
@@ -129,33 +90,61 @@ func buildSymbols(f *File) {
 	for _, impStmt := range f.AST.Imports {
 		for _, spec := range impStmt.Specs {
 			imp := &Import{AST: spec}
-			f.Symbols.Imports = append(f.Symbols.Imports, imp)
+			f.Imports = append(f.Imports, imp)
 			if ns := imp.Namespace(); ns != "" {
-				f.Symbols.importsByNamespace[ns] = imp
+				f.importsByNamespace[ns] = imp
 			}
 		}
 	}
 
-	f.Symbols.componentCallsByNode = make(map[*ast.ComponentCall]*ComponentCall)
 	var walk func(n ast.Node)
 	walk = func(n ast.Node) {
-		if cc, _ := n.(*ast.ComponentCall); cc != nil {
-			ccw := &ComponentCall{AST: cc}
-			f.Symbols.ComponentCalls = append(f.Symbols.ComponentCalls, ccw)
-			f.Symbols.componentCallsByNode[cc] = ccw
-		} else if r, _ := n.(*ast.ElementReference); r != nil {
-			rw := &ElementReference{AST: r}
-			f.Symbols.ElementReferences = append(f.Symbols.ElementReferences, rw)
-			f.Symbols.elementReferencesByNode[r] = rw
-		} else if r, _ := n.(*ast.AttributeReference); r != nil {
-			rw := &AttributeReference{AST: r}
-			f.Symbols.AttributeReferences = append(f.Symbols.AttributeReferences, rw)
-			f.Symbols.attributeReferencesByNode[r] = rw
+		switch n := n.(type) {
+		case *ast.ComponentCall:
+			ccw := &ComponentCall{AST: n, File: f}
+			f.ComponentCalls = append(f.ComponentCalls, ccw)
+			f.componentCallsByNode[n] = ccw
+		case *ast.ElementReference:
+			rw := &ElementReference{AST: n}
+			f.ElementReferences = append(f.ElementReferences, rw)
+			f.elementReferencesByNode[n] = rw
+		case *ast.AttributeReference:
+			rw := &AttributeReference{AST: n}
+			f.AttributeReferences = append(f.AttributeReferences, rw)
+			f.attributeReferencesByNode[n] = rw
 		}
 		n.Walk(walk)
 	}
 	for _, n := range f.AST.TopLevel {
-		walk(n)
+		switch n := n.(type) {
+		case *ast.Component:
+			ccsStart := len(f.Symbols.ComponentCalls)
+			n.Walk(walk)
+			ccEnd := len(f.Symbols.ComponentCalls)
+			if ccEnd > ccsStart {
+				f.Package.ComponentByNode(n).ComponentCalls = f.Symbols.ComponentCalls[ccsStart:ccEnd:ccEnd]
+			}
+		case *ast.Alias:
+			ccsStart := len(f.Symbols.ComponentCalls)
+			if n.Header != nil {
+				n.Header.Walk(walk)
+			}
+			ccw := &ComponentCall{
+				AST:      n.ComponentCall,
+				AliasFor: f.Package.AliasByNode(n),
+				File:     f,
+			}
+			f.Symbols.ComponentCalls = append(f.Symbols.ComponentCalls, ccw)
+			f.Symbols.componentCallsByNode[n.ComponentCall] = ccw
+			if n.ComponentCall.Header != nil {
+				n.ComponentCall.Header.Walk(walk)
+			}
+			if n.ComponentCall.Body != nil {
+				n.ComponentCall.Body.Walk(walk)
+			}
+			ccsEnd := len(f.Symbols.ComponentCalls)
+			ccw.AliasFor.ComponentCalls = f.Symbols.ComponentCalls[ccsStart:ccsEnd:ccsEnd]
+		}
 	}
 
 	f.ComponentCalls = slices.Clip(f.Symbols.ComponentCalls)
@@ -188,9 +177,113 @@ func (s *Symbols) AttributeReferenceByNode(node *ast.AttributeReference) *Attrib
 	return s.attributeReferencesByNode[node]
 }
 
-func IsExported(s string) bool {
-	if len(s) == 0 {
-		return false
+type Import struct {
+	// BUILD SYMBOLS
+	//
+
+	AST *ast.ImportSpec
+
+	// LINKER
+	//
+
+	// Package is the package this import resolves to.
+	//
+	// This may be nil, if no components are imported from the package.
+	Package *Package
+}
+
+func (i *Import) ImportPath() string {
+	if i.AST.Path == nil {
+		return ""
 	}
-	return 'A' <= s[0] && s[0] <= 'Z'
+	return i.AST.Path.Unquote()
+}
+
+// Namespace returns the namespace of the import.
+// For dot imports, it returns ".".
+func (i *Import) Namespace() string {
+	if i.AST.Alias != nil {
+		return i.AST.Alias.Ident
+	}
+	return path.Base(i.ImportPath())
+}
+
+type ElementReference struct {
+	// BUILD SYMBOLS
+	//
+
+	AST *ast.ElementReference
+
+	// LINKER
+	//
+
+	// Spec is the spec providing the type of the Element.
+	Spec *ElementSpec
+}
+
+// Type returns the type of the element.
+//
+// Only returns a valid type after linking.
+// Returns [elemtype.Unknown] if there was a linker error, or if called before
+// linking.
+func (r *ElementReference) Type() elemtype.Type {
+	if r.Spec != nil {
+		return r.Spec.Type
+	}
+	return elemtype.Unknown
+}
+
+type AttributeReference struct {
+	// BUILD SYMBOLS
+	//
+
+	AST *ast.AttributeReference
+
+	// LINKER
+	//
+
+	// Spec is the spec declaring the attribute.
+	//
+	// Since attributes can also be explicitly typed, this field may be
+	// nil.
+	// Hence, linker implementations should not report errors if they
+	// cannot resolve the spec that belongs to the reference.
+	Spec *AttributeSpec // may be nil
+
+	// ANALYZER
+	//
+
+	AnalyzedWithErrors bool
+
+	Element *ElementSpec // nil if not attached to an element
+	// Rule is the rule that is relevant for the element/attribute pair.
+	Rule *ast.AttributeRule // nil if not attached to an element
+	Type attrtype.Type
+}
+
+// Name returns the name of the attribute.
+//
+// Can only be called after successful linking.
+func (r *AttributeReference) Name() string {
+	// possibly has a prefix
+	if r.AST.Package != nil {
+		if r.Spec == nil { // externally defined attribute, but no spec?
+			// Every attribute reference with a package name set, will have its
+			// spec set by the linker, because the package name alone means
+			// that the attribute is defined in the package, making it a linker
+			// issue.
+			// Ergo, someone called this method before linking, or there are
+			// linker errors.
+			panic("AttributeReference.Name called before linking or with linker errors")
+		}
+
+		// prepend the prefix
+		if r.Spec.Definition.Prefix != nil {
+			return r.Spec.Definition.Prefix.Name + r.AST.Name.Name
+		}
+
+		// fallthrough, no prefix
+	}
+
+	return r.AST.Name.Name
 }

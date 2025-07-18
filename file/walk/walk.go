@@ -11,12 +11,10 @@ import (
 var (
 	// Stop is a sentinel error used to signal that Walk should return without
 	// an error.
-	//nolint:revive,errname
-	Stop = errors.New("stop walk")
+	Stop = errors.New("stop walk") //nolint:staticcheck,revive,errname
 	// NoDive is a sentinel error used to signal that Walk should not dive into
 	// the current node's body.
-	//nolint:revive,errname
-	NoDive = errors.New("no dive")
+	NoDive = errors.New("no dive") //nolint:staticcheck,revive,errname
 	// Ignore is a sentinel error available to [Option] functions to signal
 	// that Walk should not call the [Func] for the current node, but it should
 	// still dive it, if possible.
@@ -24,15 +22,14 @@ var (
 	// It has no effect if returned by a [Func].
 	//
 	// It may still be dived.
-	//nolint:revive,errname
-	Ignore = errors.New("ignore")
+	Ignore = errors.New("ignore") //nolint:staticcheck,revive,errname
 	// Skip is a sentinel error available to [Option] functions to signal
 	// to skip over the current node, i.e. ignore it and don't dive into it.
 	//
 	// Skip is essentially the combination of [Ignore] and [NoDive].
 	//
 	// If returned by a [Func], it behaves like [NoDive].
-	Skip = errors.New("ignore no dive")
+	Skip = errors.New("ignore no dive") //nolint:staticcheck,revive,errname
 )
 
 type (
@@ -112,8 +109,8 @@ func Walk(n ast.Node, f Func, opts ...Option) error {
 	}
 
 	err := walk(ctx, f, opts)
-	if //goland:noinspection GoDirectComparisonOfErrors
-	err == Stop {
+	if            //goland:noinspection GoDirectComparisonOfErrors
+	err == Stop { //nolint:errorlint
 		return nil
 	}
 	return err
@@ -122,34 +119,31 @@ func Walk(n ast.Node, f Func, opts ...Option) error {
 func walk(ctx *Context, f Func, opts []Option) error {
 	var noDive, ignore bool
 
-	var i int
-	for i < len(opts) && (!noDive || !ignore) {
+	for i := 0; i < len(opts) && (!noDive || !ignore); i++ {
 		opt := opts[i]
 
 		err := opt(ctx)
 		if err != nil {
-			if //goland:noinspection GoDirectComparisonOfErrors
-			err == NoDive {
+			//nolint:errorlint
+			switch //goland:noinspection GoDirectComparisonOfErrors
+			err {
+			case NoDive:
 				noDive = true
-			} else if //goland:noinspection GoDirectComparisonOfErrors
-			err == Ignore {
+			case Ignore:
 				ignore = true
-			} else //goland:noinspection GoDirectComparisonOfErrors
-			if err == Skip {
+			case Skip:
 				noDive, ignore = true, true
-			} else {
+			default:
 				return err
 			}
 		}
-
-		i++
 	}
 
 	if !ignore {
 		err := f(ctx)
 		if err != nil {
-			if //goland:noinspection GoDirectComparisonOfErrors
-			err == NoDive {
+			if              //goland:noinspection GoDirectComparisonOfErrors
+			err == NoDive { //nolint:errorlint
 				noDive = true
 			} else {
 				return err
@@ -157,7 +151,7 @@ func walk(ctx *Context, f Func, opts []Option) error {
 		}
 	}
 	if !noDive {
-		parents := append(ctx.Parents, ctx)
+		parents := append(ctx.Parents, ctx) //nolint:gocritic
 
 		var err error
 		ctx.Node.Walk(func(n ast.Node) {
@@ -177,7 +171,9 @@ func walk(ctx *Context, f Func, opts []Option) error {
 }
 
 // WalkT is the same as [Walk] but only calls f for nodes of type T.
-func WalkT[T ast.Node](n ast.Node, f FuncT[T], opts ...Option) error {
+//
+//goland:noinspection GoNameStartsWithPackageName
+func WalkT[T ast.Node](n ast.Node, f FuncT[T], opts ...Option) error { //nolint:revive
 	return Walk(n, func(wctx *Context) error {
 		t, ok := wctx.Node.(T)
 		if !ok {
