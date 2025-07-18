@@ -15,7 +15,7 @@ func (e *Expression) Start() Position {
 
 func (e *Expression) End() Position {
 	if e.Nodes != nil {
-		return e.End()
+		return e.Nodes.End()
 	}
 	return Position{}
 }
