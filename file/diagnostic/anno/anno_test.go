@@ -101,7 +101,7 @@ func TestToEOL(t *testing.T) {
 	t.Parallel()
 
 	expectFile := &file.File{
-		File: &ast.File{
+		AST: &ast.File{
 			Lines: []string{
 				"foo",
 				"foobar",
@@ -114,7 +114,7 @@ func TestToEOL(t *testing.T) {
 		ContextStart: 2,
 		ContextEnd:   3,
 		Start:        ast.Position{Line: 2, Col: 3},
-		End:          ast.Position{Line: 2, Col: len(expectFile.Lines[1]) + 1},
+		End:          ast.Position{Line: 2, Col: len(expectFile.AST.Lines[1]) + 1},
 		Annotation:   "anno",
 	}
 
