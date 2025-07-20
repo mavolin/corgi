@@ -36,7 +36,7 @@ func (c *duplicateComponentChecker) check(l *linker, logger *slog.Logger) {
 			continue
 		}
 
-		aName := a.Header().Name.Ident
+		aName := a.Header().Name.Name
 		logger := logger.With(
 			slog.String("file", a.File.Name),
 			slog.String("component_pos", a.Start().String()),
@@ -54,7 +54,7 @@ func (c *duplicateComponentChecker) check(l *linker, logger *slog.Logger) {
 			if c.shouldCheck(b) {
 				continue
 			}
-			bName := b.Header().Name.Ident
+			bName := b.Header().Name.Name
 
 			if aName == bName {
 				c.recordDuplicate(b)

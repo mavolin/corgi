@@ -180,8 +180,8 @@ func TypeName() parser.Func[*ast.ElementTypeName] {
 				Primary: quickanno.Expected(p, *n.Position, "a type name"),
 			}
 		}
-		n.Name = name.Ident
-		switch name.Ident {
+		n.Name = name.Name
+		switch name.Name {
 		case "void":
 			n.Type = elemtype.Void
 		case "nothing":

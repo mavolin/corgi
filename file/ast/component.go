@@ -66,7 +66,7 @@ func (*Component) _scopeNode() {}
 // ======================================================================================
 
 type ComponentHeader struct {
-	Name       *Ident
+	Name       *Identifier
 	TypeParams *TypeParameters // optional
 	Parameters *ComponentParameters
 }
@@ -169,7 +169,7 @@ func (*ComponentParameters) _node() {}
 
 // ComponentParameter is a parameter of a Component.
 type ComponentParameter struct {
-	Name    *Ident
+	Name    *Identifier
 	Type    *Type       // nil if inferred from default, set if Default is nil
 	Colon   *Position   // optional, set if Default
 	Default *Expression // optional, set if Type is nil
@@ -273,15 +273,15 @@ func (*Alias) _scopeNode() {}
 
 type Block struct {
 	Block      *Position
-	Identifier *Ident // optional for default block
-	Default    Body   // may be nil
+	Identifier *Identifier // optional for default block
+	Default    Body        // may be nil
 }
 
 var _ ScopeNode = (*Block)(nil)
 
 func (b *Block) Name() string {
 	if b.Identifier != nil {
-		return b.Identifier.Ident
+		return b.Identifier.Name
 	}
 	return ""
 }

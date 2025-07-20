@@ -37,7 +37,7 @@ func TestFile(t *testing.T) {
 		Lines: lines,
 		Package: &ast.PackageDirective{
 			Package: &ast.Position{Line: 1, Col: 1},
-			Name:    &ast.Ident{Ident: "foo", Position: &ast.Position{Line: 1, Col: 9}},
+			Name:    &ast.Identifier{Name: "foo", Position: &ast.Position{Line: 1, Col: 9}},
 		},
 		Imports: []*ast.Import{
 			{
@@ -60,7 +60,7 @@ func TestFile(t *testing.T) {
 			&ast.Component{
 				Comp: &ast.Position{Line: 8, Col: 1},
 				Header: &ast.ComponentHeader{
-					Name: &ast.Ident{Ident: "foo", Position: &ast.Position{Line: 8, Col: 6}},
+					Name: &ast.Identifier{Name: "foo", Position: &ast.Position{Line: 8, Col: 6}},
 					Parameters: &ast.ComponentParameters{
 						LParen: &ast.Position{Line: 8, Col: 9},
 						RParen: &ast.Position{Line: 8, Col: 10},

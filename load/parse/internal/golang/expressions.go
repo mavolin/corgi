@@ -14,9 +14,9 @@ import (
 // Qualified identifiers
 // ======================================================================================
 
-func QualifiedIdent() parser.Func[*ast.QualifiedIdent] { // https://go.dev/ref/spec#QualifiedIdent
-	return func(p *parser.Parser) (*ast.QualifiedIdent, *diagnostic.Diagnostic) {
-		var ident ast.QualifiedIdent
+func QualifiedIdent() parser.Func[*ast.QualifiedIdentifier] { // https://go.dev/ref/spec#QualifiedIdent
+	return func(p *parser.Parser) (*ast.QualifiedIdentifier, *diagnostic.Diagnostic) {
+		var ident ast.QualifiedIdentifier
 
 		ident.Package = parser.Try(p, PackageName())
 		if ident.Package == nil {
@@ -36,7 +36,7 @@ func QualifiedIdent() parser.Func[*ast.QualifiedIdent] { // https://go.dev/ref/s
 				Explanation: "A qualified identifier consists of a package name, " +
 					"and the name of a symbol in that package separated by a dot. " +
 					"You are missing the dot and the name of the symbol.",
-				Examples: []diagnostic.Example{{Example: "`" + ident.Package.Ident + ".Woof`"}},
+				Examples: []diagnostic.Example{{Example: "`" + ident.Package.Name + ".Woof`"}},
 			})
 			return &ident, nil
 		}

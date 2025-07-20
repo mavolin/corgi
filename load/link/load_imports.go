@@ -82,25 +82,25 @@ func (loader *importLoader) collectImportsForComponentCalls(_ *linker, logger *s
 		logger := logger.With(slog.String("pos", cc.AST.Start().String()))
 
 		switch ident := cc.AST.Header.Name.(type) {
-		case *ast.Ident:
+		case *ast.Identifier:
 			if ident != nil {
-				logger.Debug("Processing component call", slog.String("name", ident.Ident))
-				needDotImports = needDotImports || file.IsExported(ident.Ident)
+				logger.Debug("Processing component call", slog.String("name", ident.Name))
+				needDotImports = needDotImports || file.IsExported(ident.Name)
 			}
-		case *ast.QualifiedIdent:
+		case *ast.QualifiedIdentifier:
 			if ident.Package != nil {
 				logger := logger.With(slog.String("pos", cc.AST.Start().String()))
 				if ident.Name != nil {
-					logger = logger.With(slog.String("name", ident.Package.Ident+"."+ident.Name.Ident))
+					logger = logger.With(slog.String("name", ident.Package.Name+"."+ident.Name.Name))
 					logger.Debug("Processing component call")
 				} else {
-					logger = logger.With(slog.String("name", ident.Package.Ident+"."))
+					logger = logger.With(slog.String("name", ident.Package.Name+"."))
 					logger.Warn("Processing component call with malformed qualified ident: package readable, marking for loading regardless")
 				}
 
-				imp := f.ImportByNamespace(ident.Package.Ident)
+				imp := f.ImportByNamespace(ident.Package.Name)
 				if imp == nil {
-					logger.Warn("Component call references unknown package", slog.String("package", ident.Package.Ident))
+					logger.Warn("Component call references unknown package", slog.String("package", ident.Package.Name))
 					continue
 				}
 
@@ -108,7 +108,7 @@ func (loader *importLoader) collectImportsForComponentCalls(_ *linker, logger *s
 					logger.Debug("Marking package for loading", slog.String("import", impPath))
 					loader.markImport(impPath, false)
 				} else {
-					logger.Warn("Have no import path for package, due to syntax error", slog.String("package", ident.Package.Ident))
+					logger.Warn("Have no import path for package, due to syntax error", slog.String("package", ident.Package.Name))
 				}
 			}
 		}
@@ -116,7 +116,7 @@ func (loader *importLoader) collectImportsForComponentCalls(_ *linker, logger *s
 	if needDotImports {
 		logger.Info("Found at least one non-qualified call to an exported component, loading dot imports, if there are any")
 		for _, imp := range f.Symbols.Imports {
-			if imp.AST != nil && imp.AST.Alias != nil && imp.AST.Alias.Ident == "." {
+			if imp.AST != nil && imp.AST.Alias != nil && imp.AST.Alias.Name == "." {
 				logger.Debug("Marking package for loading", slog.String("import", imp.ImportPath()))
 				loader.markImport(imp.ImportPath(), true)
 			}
@@ -140,16 +140,16 @@ func (loader *importLoader) collectImportsForElementReferences(_ *linker, logger
 
 		logger := logger.With(slog.String("pos", ref.AST.Start().String()))
 		if ref.AST.Name != nil {
-			logger = logger.With(slog.String("element", ref.AST.Package.Ident+"."+ref.AST.Name.Name))
+			logger = logger.With(slog.String("element", ref.AST.Package.Name+"."+ref.AST.Name.Name))
 			logger.Debug("Processing element reference")
 		} else {
-			logger = logger.With(slog.String("element", ref.AST.Package.Ident+"."))
+			logger = logger.With(slog.String("element", ref.AST.Package.Name+"."))
 			logger.Warn("Processing element reference with malformed qualified ident: package readable, marking for loading regardless")
 		}
 
-		imp := f.ImportByNamespace(ref.AST.Package.Ident)
+		imp := f.ImportByNamespace(ref.AST.Package.Name)
 		if imp == nil {
-			logger.Warn("Element reference references unknown package", slog.String("package", ref.AST.Package.Ident))
+			logger.Warn("Element reference references unknown package", slog.String("package", ref.AST.Package.Name))
 			continue
 		}
 
@@ -157,13 +157,13 @@ func (loader *importLoader) collectImportsForElementReferences(_ *linker, logger
 			logger.Debug("Marking package for loading", slog.String("import", p))
 			loader.markImport(p, false)
 		} else {
-			logger.Warn("Have no import path for package, due to syntax error", slog.String("package", ref.AST.Package.Ident))
+			logger.Warn("Have no import path for package, due to syntax error", slog.String("package", ref.AST.Package.Name))
 		}
 	}
 	if needDotImports {
 		logger.Info("Found at least one non-qualified reference to an element, loading dot imports, if there are any")
 		for _, imp := range f.Symbols.Imports {
-			if imp.AST != nil && imp.AST.Alias != nil && imp.AST.Alias.Ident == "." {
+			if imp.AST != nil && imp.AST.Alias != nil && imp.AST.Alias.Name == "." {
 				logger.Debug("Marking package for loading", slog.String("import", imp.ImportPath()))
 				loader.markImport(imp.ImportPath(), true)
 			}
@@ -189,16 +189,16 @@ func (loader *importLoader) collectImportsForAttributeReferences(_ *linker, logg
 
 		logger := logger.With(slog.String("pos", ref.AST.Start().String()))
 		if ref.AST.Name != nil {
-			logger = logger.With(slog.String("attribute", ref.AST.Package.Ident+"."+ref.AST.Name.Name))
+			logger = logger.With(slog.String("attribute", ref.AST.Package.Name+"."+ref.AST.Name.Name))
 			logger.Debug("Processing attribute reference")
 		} else {
-			logger = logger.With(slog.String("attribute", ref.AST.Package.Ident+"."))
+			logger = logger.With(slog.String("attribute", ref.AST.Package.Name+"."))
 			logger.Warn("Processing attribute reference with malformed qualified ident: package readable, marking for loading regardless")
 		}
 
-		imp := f.ImportByNamespace(ref.AST.Package.Ident)
+		imp := f.ImportByNamespace(ref.AST.Package.Name)
 		if imp == nil {
-			logger.Warn("Attribute reference references unknown package", slog.String("package", ref.AST.Package.Ident))
+			logger.Warn("Attribute reference references unknown package", slog.String("package", ref.AST.Package.Name))
 			continue
 		}
 
@@ -206,13 +206,13 @@ func (loader *importLoader) collectImportsForAttributeReferences(_ *linker, logg
 			logger.Debug("Marking package for loading", slog.String("import", p))
 			loader.markImport(p, false)
 		} else {
-			logger.Warn("Have no import path for package, due to syntax error", slog.String("package", ref.AST.Package.Ident))
+			logger.Warn("Have no import path for package, due to syntax error", slog.String("package", ref.AST.Package.Name))
 		}
 	}
 	if needDotImports {
 		logger.Info("Found at least one non-qualified reference to an attribute, loading dot imports, if there are any")
 		for _, imp := range f.Symbols.Imports {
-			if imp.AST != nil && imp.AST.Alias != nil && imp.AST.Alias.Ident == "." {
+			if imp.AST != nil && imp.AST.Alias != nil && imp.AST.Alias.Name == "." {
 				logger.Debug("Marking package for loading", slog.String("import", imp.ImportPath()))
 				loader.markImport(imp.ImportPath(), true)
 			}

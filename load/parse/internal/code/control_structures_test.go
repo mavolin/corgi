@@ -331,8 +331,8 @@ func TestIfHeader(t *testing.T) {
 			expect: &ast.IfHeader{
 				Statement: &ast.SimpleStatement{
 					Parsed: &ast.ShortVarDeclaration{
-						Names: []*ast.Ident{
-							{Ident: "i", Position: &ast.Position{Line: 1, Col: 1}},
+						Names: []*ast.Identifier{
+							{Name: "i", Position: &ast.Position{Line: 1, Col: 1}},
 						},
 						ColonEqualSign: &ast.Position{Line: 1, Col: 3},
 						Values: []*ast.Expression{
@@ -680,8 +680,8 @@ func TestFor(t *testing.T) {
 				Header: &ast.ForClauseHeader{
 					Init: &ast.SimpleStatement{
 						Parsed: &ast.ShortVarDeclaration{
-							Names: []*ast.Ident{
-								{Ident: "i", Position: &ast.Position{Line: 1, Col: 5}},
+							Names: []*ast.Identifier{
+								{Name: "i", Position: &ast.Position{Line: 1, Col: 5}},
 							},
 							ColonEqualSign: &ast.Position{Line: 1, Col: 7},
 							Values: []*ast.Expression{
@@ -838,8 +838,8 @@ func testForClauseHeader(t *testing.T, f parser.Func[*ast.ForClauseHeader]) {
 			expect: &ast.ForClauseHeader{
 				Init: &ast.SimpleStatement{
 					Parsed: &ast.ShortVarDeclaration{
-						Names: []*ast.Ident{
-							{Ident: "i", Position: &ast.Position{Line: 1, Col: 1}},
+						Names: []*ast.Identifier{
+							{Name: "i", Position: &ast.Position{Line: 1, Col: 1}},
 						},
 						ColonEqualSign: &ast.Position{Line: 1, Col: 3},
 						Values: []*ast.Expression{
@@ -892,8 +892,8 @@ func testForClauseHeader(t *testing.T, f parser.Func[*ast.ForClauseHeader]) {
 			expect: &ast.ForClauseHeader{
 				Init: &ast.SimpleStatement{
 					Parsed: &ast.ShortVarDeclaration{
-						Names: []*ast.Ident{
-							{Ident: "i", Position: &ast.Position{Line: 1, Col: 1}},
+						Names: []*ast.Identifier{
+							{Name: "i", Position: &ast.Position{Line: 1, Col: 1}},
 						},
 						ColonEqualSign: &ast.Position{Line: 1, Col: 3},
 						Values: []*ast.Expression{

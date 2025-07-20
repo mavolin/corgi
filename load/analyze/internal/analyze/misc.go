@@ -103,7 +103,7 @@ func (z *analyzer) AnalyzeNeedsEscapeImport() {
 
 		for _, cc := range f.ComponentCalls {
 			logger := logger.With(
-				slog.String("call_name", cc.Component.Header().Name.Ident),
+				slog.String("call_name", cc.Component.Header().Name.Name),
 				slog.String("call_pos", cc.AST.Start().String()))
 			logger.Debug("Checking component call")
 
@@ -116,7 +116,7 @@ func (z *analyzer) AnalyzeNeedsEscapeImport() {
 
 	for _, c := range z.P.Components {
 		logger := logger.With(
-			slog.String("comp_name", c.Header().Name.Ident),
+			slog.String("comp_name", c.Header().Name.Name),
 			slog.String("comp_pos", c.Start().String()))
 		logger.Debug("Checking component")
 
@@ -144,7 +144,7 @@ func (z *analyzer) analyzeComponentCallArgNeedsEscapeImport(logger *slog.Logger,
 			continue
 		}
 
-		param := cc.Component.ParameterByName(carg.Name.Ident)
+		param := cc.Component.ParameterByName(carg.Name.Name)
 		if param == nil {
 			// this is reported by another analysis
 			continue
@@ -156,7 +156,7 @@ func (z *analyzer) analyzeComponentCallArgNeedsEscapeImport(logger *slog.Logger,
 
 		cc.File.NeedsEscapeImport = true
 		logger.Debug("Component call argument needs escape import",
-			slog.String("arg", carg.Name.Ident),
+			slog.String("arg", carg.Name.Name),
 			slog.String("arg_pos", carg.Name.Start().String()))
 		return
 	}

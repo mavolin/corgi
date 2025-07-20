@@ -53,7 +53,7 @@ func (*ComponentCall) _scopeNode() {}
 // ======================================================================================
 
 type ComponentCallHeader struct {
-	Name          FullIdent
+	Name          FullIdentifier
 	TypeArguments *TypeArguments // optional
 	Arguments     *Arguments     // optional
 }
@@ -104,7 +104,7 @@ func (*ComponentCallHeader) _node() {}
 
 type With struct {
 	With       *Position
-	Identifier *Ident // optional for default block
+	Identifier *Identifier // optional for default block
 	Body       Body
 }
 
@@ -113,7 +113,7 @@ var _ ScopeNode = (*With)(nil)
 // Block returns the name of the block, "" for the default block.
 func (w *With) Block() string {
 	if w.Identifier != nil {
-		return w.Identifier.Ident
+		return w.Identifier.Name
 	}
 	return ""
 }

@@ -32,7 +32,7 @@ func (z *analyzer) TrivialAnalyzeComponentCalls() {
 		for _, cc := range f.ComponentCalls {
 			logger := logger.With(
 				slog.String("call_package", cc.Component.File.Package.Module+"/"+cc.Component.File.Package.PathInModule),
-				slog.String("call_name", cc.Component.Header().Name.Ident),
+				slog.String("call_name", cc.Component.Header().Name.Name),
 				slog.String("call_pos", cc.AST.Start().String()))
 			logger.Debug("Analyzing component call")
 

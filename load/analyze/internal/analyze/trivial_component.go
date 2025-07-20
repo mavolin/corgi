@@ -26,7 +26,7 @@ func (z *analyzer) TrivialAnalyzeComponents() {
 	for _, c := range z.P.Components {
 		logger := logger.With(
 			slog.String("file", c.File.Name),
-			slog.String("comp", c.Header().Name.Ident),
+			slog.String("comp", c.Header().Name.Name),
 			slog.String("comp_pos", c.Start().String()))
 		logger.Debug("Checking component")
 
@@ -69,7 +69,7 @@ func (z *analyzer) checkComponentCallCycles(root *file.Component, ccs []*file.Co
 			secondaries := make([]diagnostic.Annotation, len(ccs))
 			prev := root
 			for i, cc := range ccs {
-				annotation := fmt.Sprint(i+1, ": `"+prev.Header().Name.Ident+"` calls `"+cc.AST.Header.Name.Full()+"`")
+				annotation := fmt.Sprint(i+1, ": `"+prev.Header().Name.Name+"` calls `"+cc.AST.Header.Name.Full()+"`")
 				secondaries[i] = anno.Node(cc.File, cc.AST.Header.Name, annotation)
 				prev = cc.Component
 			}

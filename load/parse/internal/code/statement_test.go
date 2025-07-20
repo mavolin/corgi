@@ -182,8 +182,8 @@ func testBreak(t *testing.T, f parser.Func[*ast.Break]) {
 			in:   "break myLabel",
 			expect: &ast.Break{
 				Break: &ast.Position{Line: 1, Col: 1},
-				Label: &ast.Ident{
-					Ident:    "myLabel",
+				Label: &ast.Identifier{
+					Name:     "myLabel",
 					Position: &ast.Position{Line: 1, Col: 7},
 				},
 			},
@@ -222,8 +222,8 @@ func testContinue(t *testing.T, f parser.Func[*ast.Continue]) {
 			in:   "continue myLabel",
 			expect: &ast.Continue{
 				Continue: &ast.Position{Line: 1, Col: 1},
-				Label: &ast.Ident{
-					Ident:    "myLabel",
+				Label: &ast.Identifier{
+					Name:     "myLabel",
 					Position: &ast.Position{Line: 1, Col: 10},
 				},
 			},
@@ -262,8 +262,8 @@ func testFallthrough(t *testing.T, f parser.Func[*ast.Fallthrough]) {
 			in:   "fallthrough myLabel",
 			expect: &ast.Fallthrough{
 				Fallthrough: &ast.Position{Line: 1, Col: 1},
-				Label: &ast.Ident{
-					Ident:    "myLabel",
+				Label: &ast.Identifier{
+					Name:     "myLabel",
 					Position: &ast.Position{Line: 1, Col: 13},
 				},
 			},
@@ -446,7 +446,7 @@ func TestLabel(t *testing.T) {
 func testLabel(t *testing.T, f parser.Func[*ast.Label]) {
 	in := "myLabel:"
 	expect := &ast.Label{
-		Name:  &ast.Ident{Ident: "myLabel", Position: &ast.Position{Line: 1, Col: 1}},
+		Name:  &ast.Identifier{Name: "myLabel", Position: &ast.Position{Line: 1, Col: 1}},
 		Colon: &ast.Position{Line: 1, Col: 8},
 	}
 
@@ -472,8 +472,8 @@ func testConstDeclaration(t *testing.T, f parser.Func[*ast.ConstDeclaration]) {
 				Const: &ast.Position{Line: 1, Col: 1},
 				Specs: []*ast.ConstSpec{
 					{
-						Names: []*ast.Ident{
-							{Ident: "foo", Position: &ast.Position{Line: 1, Col: 7}},
+						Names: []*ast.Identifier{
+							{Name: "foo", Position: &ast.Position{Line: 1, Col: 7}},
 						},
 						EqualSign: &ast.Position{Line: 1, Col: 11},
 						Values: []*ast.Expression{
@@ -493,12 +493,12 @@ func testConstDeclaration(t *testing.T, f parser.Func[*ast.ConstDeclaration]) {
 				Const: &ast.Position{Line: 1, Col: 1},
 				Specs: []*ast.ConstSpec{
 					{
-						Names: []*ast.Ident{
-							{Ident: "foo", Position: &ast.Position{Line: 1, Col: 7}},
+						Names: []*ast.Identifier{
+							{Name: "foo", Position: &ast.Position{Line: 1, Col: 7}},
 						},
 						Type: &ast.Type{
 							Parsed: &ast.NamedType{
-								Name: &ast.Ident{Ident: "int", Position: &ast.Position{Line: 1, Col: 11}},
+								Name: &ast.Identifier{Name: "int", Position: &ast.Position{Line: 1, Col: 11}},
 							},
 							Type:  "int",
 							From:  ast.Position{Line: 1, Col: 11},
@@ -522,9 +522,9 @@ func testConstDeclaration(t *testing.T, f parser.Func[*ast.ConstDeclaration]) {
 				Const: &ast.Position{Line: 1, Col: 1},
 				Specs: []*ast.ConstSpec{
 					{
-						Names: []*ast.Ident{
-							{Ident: "foo", Position: &ast.Position{Line: 1, Col: 7}},
-							{Ident: "bar", Position: &ast.Position{Line: 1, Col: 12}},
+						Names: []*ast.Identifier{
+							{Name: "foo", Position: &ast.Position{Line: 1, Col: 7}},
+							{Name: "bar", Position: &ast.Position{Line: 1, Col: 12}},
 						},
 						EqualSign: &ast.Position{Line: 1, Col: 16},
 						Values: []*ast.Expression{
@@ -548,9 +548,9 @@ func testConstDeclaration(t *testing.T, f parser.Func[*ast.ConstDeclaration]) {
 				Const: &ast.Position{Line: 1, Col: 1},
 				Specs: []*ast.ConstSpec{
 					{
-						Names: []*ast.Ident{
-							{Ident: "foo", Position: &ast.Position{Line: 1, Col: 7}},
-							{Ident: "bar", Position: &ast.Position{Line: 1, Col: 12}},
+						Names: []*ast.Identifier{
+							{Name: "foo", Position: &ast.Position{Line: 1, Col: 7}},
+							{Name: "bar", Position: &ast.Position{Line: 1, Col: 12}},
 						},
 						EqualSign: &ast.Position{Line: 1, Col: 16},
 						Values: []*ast.Expression{
@@ -574,8 +574,8 @@ func testConstDeclaration(t *testing.T, f parser.Func[*ast.ConstDeclaration]) {
 				LParen: &ast.Position{Line: 1, Col: 7},
 				Specs: []*ast.ConstSpec{
 					{
-						Names: []*ast.Ident{
-							{Ident: "foo", Position: &ast.Position{Line: 2, Col: 2}},
+						Names: []*ast.Identifier{
+							{Name: "foo", Position: &ast.Position{Line: 2, Col: 2}},
 						},
 						EqualSign: &ast.Position{Line: 2, Col: 6},
 						Values: []*ast.Expression{
@@ -586,8 +586,8 @@ func testConstDeclaration(t *testing.T, f parser.Func[*ast.ConstDeclaration]) {
 							},
 						},
 					}, {
-						Names: []*ast.Ident{
-							{Ident: "bar", Position: &ast.Position{Line: 3, Col: 2}},
+						Names: []*ast.Identifier{
+							{Name: "bar", Position: &ast.Position{Line: 3, Col: 2}},
 						},
 						EqualSign: &ast.Position{Line: 3, Col: 6},
 						Values: []*ast.Expression{
@@ -632,8 +632,8 @@ func testVarDeclaration(t *testing.T, f parser.Func[*ast.VarDeclaration]) {
 				Var: &ast.Position{Line: 1, Col: 1},
 				Specs: []*ast.VarSpec{
 					{
-						Names: []*ast.Ident{
-							{Ident: "foo", Position: &ast.Position{Line: 1, Col: 5}},
+						Names: []*ast.Identifier{
+							{Name: "foo", Position: &ast.Position{Line: 1, Col: 5}},
 						},
 						EqualSign: &ast.Position{Line: 1, Col: 9},
 						Values: []*ast.Expression{
@@ -653,12 +653,12 @@ func testVarDeclaration(t *testing.T, f parser.Func[*ast.VarDeclaration]) {
 				Var: &ast.Position{Line: 1, Col: 1},
 				Specs: []*ast.VarSpec{
 					{
-						Names: []*ast.Ident{
-							{Ident: "foo", Position: &ast.Position{Line: 1, Col: 5}},
+						Names: []*ast.Identifier{
+							{Name: "foo", Position: &ast.Position{Line: 1, Col: 5}},
 						},
 						Type: &ast.Type{
 							Parsed: &ast.NamedType{
-								Name: &ast.Ident{Ident: "int", Position: &ast.Position{Line: 1, Col: 9}},
+								Name: &ast.Identifier{Name: "int", Position: &ast.Position{Line: 1, Col: 9}},
 							},
 							Type:  "int",
 							From:  ast.Position{Line: 1, Col: 9},
@@ -682,12 +682,12 @@ func testVarDeclaration(t *testing.T, f parser.Func[*ast.VarDeclaration]) {
 				Var: &ast.Position{Line: 1, Col: 1},
 				Specs: []*ast.VarSpec{
 					{
-						Names: []*ast.Ident{
-							{Ident: "foo", Position: &ast.Position{Line: 1, Col: 5}},
+						Names: []*ast.Identifier{
+							{Name: "foo", Position: &ast.Position{Line: 1, Col: 5}},
 						},
 						Type: &ast.Type{
 							Parsed: &ast.NamedType{
-								Name: &ast.Ident{Ident: "int", Position: &ast.Position{Line: 1, Col: 9}},
+								Name: &ast.Identifier{Name: "int", Position: &ast.Position{Line: 1, Col: 9}},
 							},
 							Type:  "int",
 							From:  ast.Position{Line: 1, Col: 9},
@@ -703,9 +703,9 @@ func testVarDeclaration(t *testing.T, f parser.Func[*ast.VarDeclaration]) {
 				Var: &ast.Position{Line: 1, Col: 1},
 				Specs: []*ast.VarSpec{
 					{
-						Names: []*ast.Ident{
-							{Ident: "foo", Position: &ast.Position{Line: 1, Col: 5}},
-							{Ident: "bar", Position: &ast.Position{Line: 1, Col: 10}},
+						Names: []*ast.Identifier{
+							{Name: "foo", Position: &ast.Position{Line: 1, Col: 5}},
+							{Name: "bar", Position: &ast.Position{Line: 1, Col: 10}},
 						},
 						EqualSign: &ast.Position{Line: 1, Col: 14},
 						Values: []*ast.Expression{
@@ -729,9 +729,9 @@ func testVarDeclaration(t *testing.T, f parser.Func[*ast.VarDeclaration]) {
 				Var: &ast.Position{Line: 1, Col: 1},
 				Specs: []*ast.VarSpec{
 					{
-						Names: []*ast.Ident{
-							{Ident: "foo", Position: &ast.Position{Line: 1, Col: 5}},
-							{Ident: "bar", Position: &ast.Position{Line: 1, Col: 10}},
+						Names: []*ast.Identifier{
+							{Name: "foo", Position: &ast.Position{Line: 1, Col: 5}},
+							{Name: "bar", Position: &ast.Position{Line: 1, Col: 10}},
 						},
 						EqualSign: &ast.Position{Line: 1, Col: 14},
 						Values: []*ast.Expression{
@@ -755,8 +755,8 @@ func testVarDeclaration(t *testing.T, f parser.Func[*ast.VarDeclaration]) {
 				LParen: &ast.Position{Line: 1, Col: 5},
 				Specs: []*ast.VarSpec{
 					{
-						Names: []*ast.Ident{
-							{Ident: "foo", Position: &ast.Position{Line: 2, Col: 2}},
+						Names: []*ast.Identifier{
+							{Name: "foo", Position: &ast.Position{Line: 2, Col: 2}},
 						},
 						EqualSign: &ast.Position{Line: 2, Col: 6},
 						Values: []*ast.Expression{
@@ -767,8 +767,8 @@ func testVarDeclaration(t *testing.T, f parser.Func[*ast.VarDeclaration]) {
 							},
 						},
 					}, {
-						Names: []*ast.Ident{
-							{Ident: "bar", Position: &ast.Position{Line: 3, Col: 2}},
+						Names: []*ast.Identifier{
+							{Name: "bar", Position: &ast.Position{Line: 3, Col: 2}},
 						},
 						EqualSign: &ast.Position{Line: 3, Col: 6},
 						Values: []*ast.Expression{
@@ -810,8 +810,8 @@ func testShortVarDeclaration(t *testing.T, f parser.Func[*ast.ShortVarDeclaratio
 			name: "single",
 			in:   "foo := 42",
 			expect: &ast.ShortVarDeclaration{
-				Names: []*ast.Ident{
-					{Ident: "foo", Position: &ast.Position{Line: 1, Col: 1}},
+				Names: []*ast.Identifier{
+					{Name: "foo", Position: &ast.Position{Line: 1, Col: 1}},
 				},
 				ColonEqualSign: &ast.Position{Line: 1, Col: 5},
 				Values: []*ast.Expression{
@@ -826,9 +826,9 @@ func testShortVarDeclaration(t *testing.T, f parser.Func[*ast.ShortVarDeclaratio
 			name: "multiple",
 			in:   "foo, bar := 42, 43",
 			expect: &ast.ShortVarDeclaration{
-				Names: []*ast.Ident{
-					{Ident: "foo", Position: &ast.Position{Line: 1, Col: 1}},
-					{Ident: "bar", Position: &ast.Position{Line: 1, Col: 6}},
+				Names: []*ast.Identifier{
+					{Name: "foo", Position: &ast.Position{Line: 1, Col: 1}},
+					{Name: "bar", Position: &ast.Position{Line: 1, Col: 6}},
 				},
 				ColonEqualSign: &ast.Position{Line: 1, Col: 10},
 				Values: []*ast.Expression{
@@ -847,9 +847,9 @@ func testShortVarDeclaration(t *testing.T, f parser.Func[*ast.ShortVarDeclaratio
 			name: "multiple, single value",
 			in:   "foo, bar := baz()",
 			expect: &ast.ShortVarDeclaration{
-				Names: []*ast.Ident{
-					{Ident: "foo", Position: &ast.Position{Line: 1, Col: 1}},
-					{Ident: "bar", Position: &ast.Position{Line: 1, Col: 6}},
+				Names: []*ast.Identifier{
+					{Name: "foo", Position: &ast.Position{Line: 1, Col: 1}},
+					{Name: "bar", Position: &ast.Position{Line: 1, Col: 6}},
 				},
 				ColonEqualSign: &ast.Position{Line: 1, Col: 10},
 				Values: []*ast.Expression{

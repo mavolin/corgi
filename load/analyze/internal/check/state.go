@@ -17,7 +17,7 @@ func (ch *checker) CheckState() {
 	for _, s := range ch.P.State {
 		logger := logger.With(
 			slog.String("file", s.File.Name),
-			slog.String("name", s.Name().Ident))
+			slog.String("name", s.Name().Name))
 		logger.Debug("Checking state variable")
 
 		ch.CheckStateUnexported(logger, s)
@@ -39,10 +39,10 @@ func (ch *checker) CheckStateDuplicates(logger *slog.Logger) {
 	for ai, a := range ch.P.State[:len(ch.P.State)-1] {
 		logger := logger.With(
 			slog.String("file", a.File.Name),
-			slog.String("name", a.Name().Ident))
+			slog.String("name", a.Name().Name))
 		logger.Debug("Checking state variable")
 
-		if reported.Contains(a.Name().Ident) {
+		if reported.Contains(a.Name().Name) {
 			logger.Debug("Already reported, skipping")
 			continue
 		}
@@ -50,12 +50,12 @@ func (ch *checker) CheckStateDuplicates(logger *slog.Logger) {
 		dupls = dupls[:0]
 
 		for _, b := range ch.P.State[ai:] {
-			if a.Name().Ident != b.Name().Ident {
+			if a.Name().Name != b.Name().Name {
 				continue
 			}
 
 			dupls = append(dupls, b)
-			reported.Add(b.Name().Ident)
+			reported.Add(b.Name().Name)
 		}
 
 		if len(dupls) > 0 {
@@ -79,7 +79,7 @@ func (ch *checker) CheckStateUnexported(logger *slog.Logger, s *file.State) {
 	logger = logger.WithGroup("unexported")
 	logger.Debug("Checking that state variable is unexported")
 
-	if file.IsExported(s.Name().Ident) {
+	if file.IsExported(s.Name().Name) {
 		logger.Error("state variable is exported")
 		ch.Report(&diagnostic.Diagnostic{
 			Message: "exported state variable",

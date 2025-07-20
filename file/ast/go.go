@@ -11,10 +11,10 @@ import (
 // Identifier
 // ======================================================================================
 
-// FullIdent is a pointer to either an [Ident] or a [QualifiedIdent].
+// FullIdentifier is a pointer to either an [Identifier] or a [QualifiedIdentifier].
 //
 // Not actually in the Go spec, but for our convenience.
-type FullIdent interface {
+type FullIdentifier interface {
 	Node
 	Full() string
 	_fullIdent()
@@ -22,51 +22,55 @@ type FullIdent interface {
 
 // if this is changed, change the comment above
 var (
-	_ FullIdent = (*Ident)(nil)
-	_ FullIdent = (*QualifiedIdent)(nil)
+	_ FullIdentifier = (*Identifier)(nil)
+	_ FullIdentifier = (*QualifiedIdentifier)(nil)
 )
 
-// ======================================= Ident ========================================
+// ============================================================================
+// Identifier
+// ======================================================================================
 
-// Ident is a Go identifier.
-type Ident struct {
-	Ident    string
+// Identifier is a Go identifier.
+type Identifier struct {
+	Name     string
 	Position *Position
 }
 
-var _ FullIdent = (*Ident)(nil)
+var _ FullIdentifier = (*Identifier)(nil)
 
-func (ident *Ident) Start() Position {
+func (ident *Identifier) Start() Position {
 	if ident.Position != nil {
 		return *ident.Position
 	}
 	return Position{}
 }
 
-func (ident *Ident) End() Position {
+func (ident *Identifier) End() Position {
 	if ident.Position != nil {
-		return deltaPos(*ident.Position, len(ident.Ident))
+		return deltaPos(*ident.Position, len(ident.Name))
 	}
 	return Position{}
 }
-func (ident *Ident) Walk(func(Node)) {}
-func (ident *Ident) Full() string    { return ident.Ident }
+func (ident *Identifier) Walk(func(Node)) {}
+func (ident *Identifier) Full() string    { return ident.Name }
 
-func (*Ident) _node()      {}
-func (*Ident) _fullIdent() {}
+func (*Identifier) _node()      {}
+func (*Identifier) _fullIdent() {}
 
-// ================================== Qualified Ident ===================================
+// ============================================================================
+// Qualified Identifier
+// ======================================================================================
 
-// QualifiedIdent is a qualified Go identifier.
-type QualifiedIdent struct {
-	Package *Ident
+// QualifiedIdentifier is a qualified Go identifier.
+type QualifiedIdentifier struct {
+	Package *Identifier
 	Dot     *Position
-	Name    *Ident
+	Name    *Identifier
 }
 
-var _ FullIdent = (*QualifiedIdent)(nil)
+var _ FullIdentifier = (*QualifiedIdentifier)(nil)
 
-func (ident *QualifiedIdent) Start() Position {
+func (ident *QualifiedIdentifier) Start() Position {
 	switch {
 	case ident.Package != nil:
 		return ident.Package.Start()
@@ -78,7 +82,7 @@ func (ident *QualifiedIdent) Start() Position {
 	return Position{}
 }
 
-func (ident *QualifiedIdent) End() Position {
+func (ident *QualifiedIdentifier) End() Position {
 	switch {
 	case ident.Name != nil:
 		return ident.Name.End()
@@ -90,7 +94,7 @@ func (ident *QualifiedIdent) End() Position {
 	return Position{}
 }
 
-func (ident *QualifiedIdent) Walk(w func(Node)) {
+func (ident *QualifiedIdentifier) Walk(w func(Node)) {
 	if ident.Package != nil {
 		w(ident.Package)
 	}
@@ -99,33 +103,33 @@ func (ident *QualifiedIdent) Walk(w func(Node)) {
 	}
 }
 
-func (ident *QualifiedIdent) Full() string {
+func (ident *QualifiedIdentifier) Full() string {
 	if ident.Package != nil {
 		if ident.Dot != nil {
 			if ident.Name != nil {
-				return ident.Package.Ident + "." + ident.Name.Ident
+				return ident.Package.Name + "." + ident.Name.Name
 			}
-			return ident.Package.Ident + "."
+			return ident.Package.Name + "."
 		}
 		if ident.Name != nil {
-			return ident.Package.Ident + " " + ident.Name.Ident
+			return ident.Package.Name + " " + ident.Name.Name
 		}
-		return ident.Package.Ident
+		return ident.Package.Name
 	}
 	if ident.Dot != nil {
 		if ident.Name != nil {
-			return "." + ident.Name.Ident
+			return "." + ident.Name.Name
 		}
 		return "."
 	}
 	if ident.Name != nil {
-		return ident.Name.Ident
+		return ident.Name.Name
 	}
 	return ""
 }
 
-func (*QualifiedIdent) _node()      {}
-func (*QualifiedIdent) _fullIdent() {}
+func (*QualifiedIdentifier) _node()      {}
+func (*QualifiedIdentifier) _fullIdent() {}
 
 // ============================================================================
 // Static String

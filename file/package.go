@@ -141,7 +141,7 @@ func (s *PackageSymbols) AliasByNode(a *ast.Alias) *Component {
 func (s *PackageSymbols) ComponentByName(name string) *Component {
 	for _, comp := range s.Components {
 		h := comp.Header()
-		if h != nil && h.Name != nil && h.Name.Ident == name {
+		if h != nil && h.Name != nil && h.Name.Name == name {
 			return comp
 		}
 	}
@@ -161,7 +161,7 @@ func (s *PackageSymbols) StateByNode(spec *ast.StateSpec, index int) *State {
 
 func (s *PackageSymbols) StateByName(name string) *State {
 	for _, state := range s.State {
-		if state.AST.Names[state.Index] != nil && state.AST.Names[state.Index].Ident == name {
+		if state.AST.Names[state.Index] != nil && state.AST.Names[state.Index].Name == name {
 			return state
 		}
 	}
@@ -269,7 +269,7 @@ type State struct {
 	InferredType string
 }
 
-func (s *State) Name() *ast.Ident {
+func (s *State) Name() *ast.Identifier {
 	return s.AST.Names[s.Index]
 }
 

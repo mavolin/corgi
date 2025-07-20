@@ -26,7 +26,7 @@ func (z *analyzer) AggregateComponentData() {
 	for _, c := range z.P.Components {
 		logger := logger.With(
 			slog.String("file", c.File.Name),
-			slog.String("comp", c.Header().Name.Ident),
+			slog.String("comp", c.Header().Name.Name),
 			slog.String("comp_pos", c.Start().String()))
 		logger.Debug("Aggregating component data")
 
@@ -113,7 +113,7 @@ func (z *analyzer) CheckCircularAlias(logger *slog.Logger, c *file.Component) {
 					anno.Anno(c.File, anno.Annotation{
 						Context:    anno.ContextLines(c.AliasAST.Start(), c.AliasAST.ComponentCall.Header.Name.End()),
 						Highlight:  anno.HighlightNode(c.AliasAST.Header.Name),
-						Annotation: fmt.Sprint(i+2, ": `"+c.AliasAST.Header.Name.Ident+"` is an alias of `"+c.AliasAST.ComponentCall.Header.Name.Full()+"`"),
+						Annotation: fmt.Sprint(i+2, ": `"+c.AliasAST.Header.Name.Name+"` is an alias of `"+c.AliasAST.ComponentCall.Header.Name.Full()+"`"),
 					}))
 			}
 		} else {
@@ -123,7 +123,7 @@ func (z *analyzer) CheckCircularAlias(logger *slog.Logger, c *file.Component) {
 		}
 
 		logger.Error("Found circular alias")
-		name := c.Header().Name.Ident
+		name := c.Header().Name.Name
 		z.Report(&diagnostic.Diagnostic{
 			Message: "circular alias",
 			Primary: []diagnostic.Annotation{
@@ -194,7 +194,7 @@ func (z *analyzer) AggregateParameters(logger *slog.Logger) {
 
 			logger := logger.With(
 				slog.String("file", c.File.Name),
-				slog.String("component", c.Header().Name.Ident),
+				slog.String("component", c.Header().Name.Name),
 				slog.String("pos", c.Start().String()))
 			logger.Debug("Trying to aggregate component parameters")
 
@@ -252,7 +252,7 @@ func (z *analyzer) AggregateParameters(logger *slog.Logger) {
 
 		logger := logger.With(
 			slog.String("file", c.File.Name),
-			slog.String("component", c.Header().Name.Ident),
+			slog.String("component", c.Header().Name.Name),
 			slog.String("pos", c.Start().String()))
 
 		logger.Error("Failed to aggregate component parameters")
@@ -296,14 +296,14 @@ Params:
 		if cc.AST.Header.Arguments != nil {
 			for _, arg := range cc.AST.Header.Arguments.Args {
 				carg, _ := arg.(*ast.ComponentArgument)
-				if carg != nil && carg.Name.Ident == parentParam.AST.Name.Ident {
+				if carg != nil && carg.Name.Name == parentParam.AST.Name.Name {
 					continue Params // skip this parameter, not inherited by c
 				}
 			}
 		}
 		if c.AliasAST.Header.Parameters != nil {
 			for _, childParam := range c.AliasAST.Header.Parameters.Params {
-				if childParam.Name.Ident == parentParam.AST.Name.Ident {
+				if childParam.Name.Name == parentParam.AST.Name.Name {
 					continue Params // skip this parameter, overridden by c
 				}
 			}
@@ -386,7 +386,7 @@ func (z *analyzer) AggregateBlocks(logger *slog.Logger) {
 
 			logger := logger.With(
 				slog.String("file", c.File.Name),
-				slog.String("comp", c.Header().Name.Ident),
+				slog.String("comp", c.Header().Name.Name),
 				slog.String("comp_pos", c.Start().String()))
 			logger.Debug("Trying to aggregate component blocks")
 
@@ -443,7 +443,7 @@ func (z *analyzer) AggregateBlocks(logger *slog.Logger) {
 
 		logger := logger.With(
 			slog.String("file", c.File.Name),
-			slog.String("comp", c.Header().Name.Ident),
+			slog.String("comp", c.Header().Name.Name),
 			slog.String("comp_pos", c.Start().String()))
 
 		logger.Error("Failed to aggregate component blocks")

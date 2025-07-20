@@ -9,8 +9,8 @@ import (
 
 // https://go.dev/ref/spec#Packages
 
-func PackageName() parser.Func[*ast.Ident] { // https://go.dev/ref/spec#PackageName
-	return func(p *parser.Parser) (*ast.Ident, *diagnostic.Diagnostic) {
+func PackageName() parser.Func[*ast.Identifier] { // https://go.dev/ref/spec#PackageName
+	return func(p *parser.Parser) (*ast.Identifier, *diagnostic.Diagnostic) {
 		ident := parser.Try(p, Identifier())
 		if ident == nil {
 			return nil, &diagnostic.Diagnostic{

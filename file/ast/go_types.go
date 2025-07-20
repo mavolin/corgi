@@ -74,7 +74,7 @@ type ParsedType interface {
 // ==================================== Named Type =====================================
 
 type NamedType struct {
-	Name     FullIdent
+	Name     FullIdentifier
 	TypeArgs *TypeArguments // nil if no type args
 }
 
@@ -347,7 +347,7 @@ func (*TypeParameters) _node() {}
 // ======================================================================================
 
 type TypeParameter struct {
-	Names []*Ident
+	Names []*Identifier
 	Type  TypeTerm
 }
 

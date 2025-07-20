@@ -71,7 +71,7 @@ var (
 // ======================================================================================
 
 type ComponentArgument struct {
-	Name  *Ident
+	Name  *Identifier
 	Colon *Position
 	Value *Expression
 }

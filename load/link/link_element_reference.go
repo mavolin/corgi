@@ -24,7 +24,7 @@ func (l *linker) LinkElementReferences(ctx context.Context) {
 
 			var name string
 			if ref.AST.Package != nil {
-				name = ref.AST.Package.Ident + "." + ref.AST.Name.Name
+				name = ref.AST.Package.Name + "." + ref.AST.Name.Name
 			} else {
 				name = ref.AST.Name.Name
 			}
@@ -98,12 +98,12 @@ func (l *linker) linkUnqualifiedElementReference(_ context.Context, logger *slog
 func (l *linker) linkQualifiedElementReference(_ context.Context, logger *slog.Logger, f *file.File, ref *file.ElementReference) {
 	slog.Debug("Qualified element reference: external element definition")
 
-	imp := f.ImportByNamespace(ref.AST.Package.Ident)
+	imp := f.ImportByNamespace(ref.AST.Package.Name)
 	if imp == nil {
 		logger.Error("Could not find import for package")
 
-		if l.reportedMissingImports[f].Contains(ref.AST.Package.Ident) {
-			l.reportedMissingImports[f].Add(ref.AST.Package.Ident)
+		if l.reportedMissingImports[f].Contains(ref.AST.Package.Name) {
+			l.reportedMissingImports[f].Add(ref.AST.Package.Name)
 			l.report(&diagnostic.Diagnostic{
 				Message: "element: unresolved reference to package",
 				Primary: []diagnostic.Annotation{

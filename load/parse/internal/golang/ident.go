@@ -7,9 +7,9 @@ import (
 	"github.com/mavolin/corgi/v2/load/parse/internal/quickanno"
 )
 
-func Identifier() parser.Func[*ast.Ident] { // https://go.dev/ref/spec#Identifiers
-	return func(p *parser.Parser) (*ast.Ident, *diagnostic.Diagnostic) {
-		var ident ast.Ident
+func Identifier() parser.Func[*ast.Identifier] { // https://go.dev/ref/spec#Identifiers
+	return func(p *parser.Parser) (*ast.Identifier, *diagnostic.Diagnostic) {
+		var ident ast.Identifier
 		ident.Position = p.PosPtr()
 
 		r := parser.TryRunePredicate(p, Letter)
@@ -22,14 +22,14 @@ func Identifier() parser.Func[*ast.Ident] { // https://go.dev/ref/spec#Identifie
 		}
 
 		trail := parser.Try(p, identTrail())
-		ident.Ident = string(r) + trail
-		if IsKeyword(ident.Ident) {
+		ident.Name = string(r) + trail
+		if IsKeyword(ident.Name) {
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "keyword used as identifier",
 				Primary: quickanno.Expected(p, p.Pos(), "an identifier"),
 				Explanation: "Go reserves certain words as keywords with a special meaning, " +
 					"for example `if` and `else`. Because of their special meaning, you can't " +
-					"use them as identifiers. `" + ident.Ident + "` is one of those keywords.",
+					"use them as identifiers. `" + ident.Name + "` is one of those keywords.",
 				Hints: []diagnostic.Hint{{Hint: "Use a different identifier."}},
 			})
 		}

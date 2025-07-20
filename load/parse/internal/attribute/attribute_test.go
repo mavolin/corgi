@@ -113,8 +113,8 @@ func TestReference(t *testing.T) {
 			name: "external",
 			in:   "package1.Name",
 			expect: &ast.AttributeReference{
-				Package: &ast.Ident{
-					Ident:    "package1",
+				Package: &ast.Identifier{
+					Name:     "package1",
 					Position: &ast.Position{Line: 1, Col: 1},
 				},
 				Dot: &ast.Position{Line: 1, Col: 9},

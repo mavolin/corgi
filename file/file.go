@@ -203,7 +203,7 @@ func (i *Import) ImportPath() string {
 // For dot imports, it returns ".".
 func (i *Import) Namespace() string {
 	if i.AST.Alias != nil {
-		return i.AST.Alias.Ident
+		return i.AST.Alias.Name
 	}
 	return path.Base(i.ImportPath())
 }

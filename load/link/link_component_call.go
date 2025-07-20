@@ -31,12 +31,12 @@ func (l *linker) LinkComponentCalls(ctx context.Context) {
 			logger.Debug("Linking component call")
 
 			switch ident := cc.AST.Header.Name.(type) {
-			case *ast.Ident:
+			case *ast.Identifier:
 				if ident == nil {
 					continue
 				}
 				l.linkUnqualifiedComponentCall(ctx, logger, f, cc)
-			case *ast.QualifiedIdent:
+			case *ast.QualifiedIdentifier:
 				if ident == nil {
 					continue
 				}
@@ -49,14 +49,14 @@ func (l *linker) LinkComponentCalls(ctx context.Context) {
 func (l *linker) linkUnqualifiedComponentCall(_ context.Context, logger *slog.Logger, f *file.File, cc *file.ComponentCall) {
 	logger.Debug("Unqualified call: local, builtin, or dot import component")
 
-	ident := cc.AST.Header.Name.(*ast.Ident)
-	if c := l.p.ComponentByName(ident.Ident); c != nil {
+	ident := cc.AST.Header.Name.(*ast.Identifier)
+	if c := l.p.ComponentByName(ident.Name); c != nil {
 		logger.Debug("Found component within package")
 		cc.Component = c
 		return
 	}
 
-	if !file.IsExported(ident.Ident) {
+	if !file.IsExported(ident.Name) {
 		return
 	}
 
@@ -69,7 +69,7 @@ func (l *linker) linkUnqualifiedComponentCall(_ context.Context, logger *slog.Lo
 			continue
 		}
 
-		if c := imp.Package.ComponentByName(ident.Ident); c != nil {
+		if c := imp.Package.ComponentByName(ident.Name); c != nil {
 			logger.Debug("Found component within dot import",
 				slog.String("import", imp.ImportPath()))
 			cc.Component = c
@@ -82,7 +82,7 @@ func (l *linker) linkUnqualifiedComponentCall(_ context.Context, logger *slog.Lo
 	}
 
 	if l.builtin != nil {
-		if c := l.builtin.ComponentByName(ident.Ident); c != nil {
+		if c := l.builtin.ComponentByName(ident.Name); c != nil {
 			logger.Debug("Found component within builtin package")
 			cc.Component = c
 		}
@@ -100,14 +100,14 @@ func (l *linker) linkUnqualifiedComponentCall(_ context.Context, logger *slog.Lo
 func (l *linker) linkQualifiedComponentCall(_ context.Context, logger *slog.Logger, f *file.File, cc *file.ComponentCall) {
 	logger.Debug("Qualified call: external component")
 
-	ident := cc.AST.Header.Name.(*ast.QualifiedIdent)
+	ident := cc.AST.Header.Name.(*ast.QualifiedIdentifier)
 	if ident.Package == nil {
 		logger.Warn("Qualified call with nil package, skipping")
 		return
 	} else if ident.Name == nil {
 		logger.Warn("Qualified call with nil name, skipping")
 		return
-	} else if !file.IsExported(ident.Name.Ident) {
+	} else if !file.IsExported(ident.Name.Name) {
 		logger.Error("Qualified call to unexported component")
 		l.report(&diagnostic.Diagnostic{
 			Message: "component call: cannot call unexported component",
@@ -121,12 +121,12 @@ func (l *linker) linkQualifiedComponentCall(_ context.Context, logger *slog.Logg
 		return
 	}
 
-	imp := f.ImportByNamespace(ident.Package.Ident)
+	imp := f.ImportByNamespace(ident.Package.Name)
 	if imp == nil {
 		logger.Error("Could not find import for package")
 
-		if l.reportedMissingImports[f].Contains(ident.Package.Ident) {
-			l.reportedMissingImports[f].Add(ident.Package.Ident)
+		if l.reportedMissingImports[f].Contains(ident.Package.Name) {
+			l.reportedMissingImports[f].Add(ident.Package.Name)
 			l.report(&diagnostic.Diagnostic{
 				Message: "component call: unresolved reference to package",
 				Primary: []diagnostic.Annotation{
@@ -142,7 +142,7 @@ func (l *linker) linkQualifiedComponentCall(_ context.Context, logger *slog.Logg
 		return
 	}
 
-	cc.Component = imp.Package.ComponentByName(ident.Name.Ident)
+	cc.Component = imp.Package.ComponentByName(ident.Name.Name)
 	if cc.Component == nil {
 		logger.Error("Could not resolve reference")
 		l.report(&diagnostic.Diagnostic{

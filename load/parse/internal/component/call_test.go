@@ -22,8 +22,8 @@ func TestCall(t *testing.T) {
 			expect: &ast.ComponentCall{
 				Colon: &ast.Position{Line: 1, Col: 1},
 				Header: &ast.ComponentCallHeader{
-					Name: &ast.Ident{
-						Ident:    "foo",
+					Name: &ast.Identifier{
+						Name:     "foo",
 						Position: &ast.Position{Line: 1, Col: 2},
 					},
 				},
@@ -36,8 +36,8 @@ func TestCall(t *testing.T) {
 			expect: &ast.ComponentCall{
 				Colon: &ast.Position{Line: 1, Col: 1},
 				Header: &ast.ComponentCallHeader{
-					Name: &ast.Ident{
-						Ident:    "foo",
+					Name: &ast.Identifier{
+						Name:     "foo",
 						Position: &ast.Position{Line: 1, Col: 2},
 					},
 				},
@@ -82,8 +82,8 @@ func TestCallHeader(t *testing.T) {
 			name: "only name",
 			in:   "foo",
 			expect: &ast.ComponentCallHeader{
-				Name: &ast.Ident{
-					Ident:    "foo",
+				Name: &ast.Identifier{
+					Name:     "foo",
 					Position: &ast.Position{Line: 1, Col: 1},
 				},
 			},
@@ -91,8 +91,8 @@ func TestCallHeader(t *testing.T) {
 			name: "with type arguments",
 			in:   "foo[bar]",
 			expect: &ast.ComponentCallHeader{
-				Name: &ast.Ident{
-					Ident:    "foo",
+				Name: &ast.Identifier{
+					Name:     "foo",
 					Position: &ast.Position{Line: 1, Col: 1},
 				},
 				TypeArguments: &ast.TypeArguments{
@@ -100,8 +100,8 @@ func TestCallHeader(t *testing.T) {
 					Types: []*ast.Type{
 						{
 							Parsed: &ast.NamedType{
-								Name: &ast.Ident{
-									Ident:    "bar",
+								Name: &ast.Identifier{
+									Name:     "bar",
 									Position: &ast.Position{Line: 1, Col: 5},
 								},
 							},
@@ -117,15 +117,15 @@ func TestCallHeader(t *testing.T) {
 			name: "with arguments",
 			in:   "foo(bar: baz)",
 			expect: &ast.ComponentCallHeader{
-				Name: &ast.Ident{
-					Ident:    "foo",
+				Name: &ast.Identifier{
+					Name:     "foo",
 					Position: &ast.Position{Line: 1, Col: 1},
 				},
 				Arguments: &ast.Arguments{
 					LParen: &ast.Position{Line: 1, Col: 4},
 					Args: []ast.Argument{
 						&ast.ComponentArgument{
-							Name:  &ast.Ident{Ident: "bar", Position: &ast.Position{Line: 1, Col: 5}},
+							Name:  &ast.Identifier{Name: "bar", Position: &ast.Position{Line: 1, Col: 5}},
 							Colon: &ast.Position{Line: 1, Col: 8},
 							Value: &ast.Expression{
 								Nodes: ast.Code{
@@ -144,8 +144,8 @@ func TestCallHeader(t *testing.T) {
 			name: "with type arguments and arguments",
 			in:   "foo[bar](baz: qux)",
 			expect: &ast.ComponentCallHeader{
-				Name: &ast.Ident{
-					Ident:    "foo",
+				Name: &ast.Identifier{
+					Name:     "foo",
 					Position: &ast.Position{Line: 1, Col: 1},
 				},
 				TypeArguments: &ast.TypeArguments{
@@ -153,8 +153,8 @@ func TestCallHeader(t *testing.T) {
 					Types: []*ast.Type{
 						{
 							Parsed: &ast.NamedType{
-								Name: &ast.Ident{
-									Ident:    "bar",
+								Name: &ast.Identifier{
+									Name:     "bar",
 									Position: &ast.Position{Line: 1, Col: 5},
 								},
 							},
@@ -169,7 +169,7 @@ func TestCallHeader(t *testing.T) {
 					LParen: &ast.Position{Line: 1, Col: 9},
 					Args: []ast.Argument{
 						&ast.ComponentArgument{
-							Name:  &ast.Ident{Ident: "baz", Position: &ast.Position{Line: 1, Col: 10}},
+							Name:  &ast.Identifier{Name: "baz", Position: &ast.Position{Line: 1, Col: 10}},
 							Colon: &ast.Position{Line: 1, Col: 13},
 							Value: &ast.Expression{
 								Nodes: ast.Code{
@@ -235,8 +235,8 @@ func TestWith(t *testing.T) {
 				"}",
 			expect: &ast.With{
 				With: &ast.Position{Line: 1, Col: 1},
-				Identifier: &ast.Ident{
-					Ident:    "foo",
+				Identifier: &ast.Identifier{
+					Name:     "foo",
 					Position: &ast.Position{Line: 1, Col: len("with ") + 1},
 				},
 				Body: &ast.Scope{

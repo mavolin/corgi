@@ -20,7 +20,7 @@ func (l *linker) CheckDotImportCollisions(_ context.Context) {
 	for _, f := range l.p.Files {
 		dotImports = dotImports[:0]
 		for _, imp := range f.Imports {
-			if imp == nil || imp.AST == nil || imp.AST.Alias == nil || imp.AST.Alias.Ident != "." || imp.Package == nil {
+			if imp == nil || imp.AST == nil || imp.AST.Alias == nil || imp.AST.Alias.Name != "." || imp.Package == nil {
 				continue
 			}
 			dotImports = append(dotImports, imp)
@@ -92,7 +92,7 @@ func (c *dotImportComponentCollisionChecker) checkFile(l *linker, logger *slog.L
 				continue
 			}
 
-			aCompName := aComp.Header().Name.Ident
+			aCompName := aComp.Header().Name.Name
 			logger := logger.With(
 				slog.String("component_pos", aComp.Start().String()),
 				slog.String("component", aCompName))
@@ -127,7 +127,7 @@ func (c *dotImportComponentCollisionChecker) checkFile(l *linker, logger *slog.L
 }
 
 func (c *dotImportComponentCollisionChecker) reportCollision(l *linker, logger *slog.Logger, f *file.File, first dotImportComponentCollision, dupls []dotImportComponentCollision) {
-	collisionName := first.comp.Header().Name.Ident
+	collisionName := first.comp.Header().Name.Name
 	logger.Error("Component collision", slog.String("name", collisionName))
 
 	primaries := make([]diagnostic.Annotation, 1, len(dupls)+1)
@@ -172,7 +172,7 @@ func (c *dotImportComponentCollisionChecker) recordDuplicate(comp *file.Componen
 }
 
 func (c dotImportComponentCollisionChecker) shouldCheck(comp *file.Component) bool {
-	return comp != nil && comp.Header() != nil && comp.Header().Name != nil && file.IsExported(comp.Header().Name.Ident)
+	return comp != nil && comp.Header() != nil && comp.Header().Name != nil && file.IsExported(comp.Header().Name.Name)
 }
 
 // ============================================================================

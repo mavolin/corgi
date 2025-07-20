@@ -85,12 +85,12 @@ func (c *Component) End() ast.Position {
 }
 
 func (c *Component) QualifiedName() string {
-	return c.File.Package.Name + "." + c.Header().Name.Ident
+	return c.File.Package.Name + "." + c.Header().Name.Name
 }
 
 func (c *Component) ParameterByName(name string) *ComponentParameter {
 	for _, p := range c.Parameters {
-		if p.AST.Name.Ident == name {
+		if p.AST.Name.Name == name {
 			return p
 		}
 	}
@@ -138,7 +138,7 @@ func (c *Component) BlockInstanceByNode(b *ast.Block) *BlockInstance {
 }
 
 func (c *Component) Exported() bool {
-	return IsExported(c.Header().Name.Ident)
+	return IsExported(c.Header().Name.Name)
 }
 
 // HasAndPlaceholder returns whether the component has an &-placeholder that is

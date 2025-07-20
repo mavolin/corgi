@@ -8,8 +8,8 @@ import (
 	"github.com/mavolin/corgi/v2/load/parse/internal/quickanno"
 )
 
-func FullIdent() parser.Func[ast.FullIdent] {
-	return func(p *parser.Parser) (ast.FullIdent, *diagnostic.Diagnostic) {
+func FullIdent() parser.Func[ast.FullIdentifier] {
+	return func(p *parser.Parser) (ast.FullIdentifier, *diagnostic.Diagnostic) {
 		ident1 := parser.Try(p, Identifier())
 		if ident1 == nil {
 			return nil, &diagnostic.Diagnostic{
@@ -36,7 +36,7 @@ func FullIdent() parser.Func[ast.FullIdent] {
 			return ident1, nil
 		}
 
-		return &ast.QualifiedIdent{
+		return &ast.QualifiedIdentifier{
 			Package: ident1,
 			Dot:     dot,
 			Name:    ident2,

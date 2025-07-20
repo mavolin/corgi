@@ -27,7 +27,7 @@ func (z *analyzer) AggregateComponentCallData() {
 
 		for _, cc := range f.ComponentCalls {
 			logger := logger.With(
-				slog.String("call_name", cc.Component.Header().Name.Ident),
+				slog.String("call_name", cc.Component.Header().Name.Name),
 				slog.String("call_pos", cc.AST.Start().String()))
 			logger.Debug("Aggregating component call data")
 

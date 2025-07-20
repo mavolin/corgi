@@ -21,8 +21,8 @@ func testComponentArgument(t *testing.T, f parser.Func[*ast.ComponentArgument]) 
 		in := "name: value"
 
 		expect := &ast.ComponentArgument{
-			Name: &ast.Ident{
-				Ident:    "name",
+			Name: &ast.Identifier{
+				Name:     "name",
 				Position: &ast.Position{Line: 1, Col: 1},
 			},
 			Colon: &ast.Position{Line: 1, Col: 5},
@@ -56,8 +56,8 @@ func testComponentArgument(t *testing.T, f parser.Func[*ast.ComponentArgument]) 
 				name: "no colon space: no equal sign",
 				in:   "name:value 2",
 				expect: &ast.ComponentArgument{
-					Name: &ast.Ident{
-						Ident:    "name",
+					Name: &ast.Identifier{
+						Name:     "name",
 						Position: &ast.Position{Line: 1, Col: 1},
 					},
 					Colon: &ast.Position{Line: 1, Col: 5},
@@ -74,8 +74,8 @@ func testComponentArgument(t *testing.T, f parser.Func[*ast.ComponentArgument]) 
 				name: "no colon space: string",
 				in:   `name:"value"`,
 				expect: &ast.ComponentArgument{
-					Name: &ast.Ident{
-						Ident:    "name",
+					Name: &ast.Identifier{
+						Name:     "name",
 						Position: &ast.Position{Line: 1, Col: 1},
 					},
 					Colon: &ast.Position{Line: 1, Col: 5},

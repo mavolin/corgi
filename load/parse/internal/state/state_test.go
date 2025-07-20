@@ -23,12 +23,12 @@ func TestDeclaration(t *testing.T) {
 				State: &ast.Position{Line: 1, Col: 1},
 				Specs: []*ast.StateSpec{
 					{
-						Names: []*ast.Ident{
-							{Ident: "foo", Position: &ast.Position{Line: 1, Col: 7}},
+						Names: []*ast.Identifier{
+							{Name: "foo", Position: &ast.Position{Line: 1, Col: 7}},
 						},
 						Type: &ast.Type{
 							Parsed: &ast.NamedType{
-								Name: &ast.Ident{Ident: "int", Position: &ast.Position{Line: 1, Col: 11}},
+								Name: &ast.Identifier{Name: "int", Position: &ast.Position{Line: 1, Col: 11}},
 							},
 							Type:  "int",
 							From:  ast.Position{Line: 1, Col: 11},
@@ -48,8 +48,8 @@ func TestDeclaration(t *testing.T) {
 				LParen: &ast.Position{Line: 1, Col: 7},
 				Specs: []*ast.StateSpec{
 					{
-						Names: []*ast.Ident{
-							{Ident: "foo", Position: &ast.Position{Line: 2, Col: 2}},
+						Names: []*ast.Identifier{
+							{Name: "foo", Position: &ast.Position{Line: 2, Col: 2}},
 						},
 						EqualSign: &ast.Position{Line: 2, Col: 6},
 						Values: []*ast.Expression{
@@ -60,12 +60,12 @@ func TestDeclaration(t *testing.T) {
 							},
 						},
 					}, {
-						Names: []*ast.Ident{
-							{Ident: "bar", Position: &ast.Position{Line: 3, Col: 2}},
+						Names: []*ast.Identifier{
+							{Name: "bar", Position: &ast.Position{Line: 3, Col: 2}},
 						},
 						Type: &ast.Type{
 							Parsed: &ast.NamedType{
-								Name: &ast.Ident{Ident: "int", Position: &ast.Position{Line: 3, Col: 6}},
+								Name: &ast.Identifier{Name: "int", Position: &ast.Position{Line: 3, Col: 6}},
 							},
 							Type:  "int",
 							From:  ast.Position{Line: 3, Col: 6},
@@ -99,12 +99,12 @@ func TestSpec(t *testing.T) {
 			name: "only type",
 			in:   "foo int",
 			expect: &ast.StateSpec{
-				Names: []*ast.Ident{
-					{Ident: "foo", Position: &ast.Position{Line: 1, Col: 1}},
+				Names: []*ast.Identifier{
+					{Name: "foo", Position: &ast.Position{Line: 1, Col: 1}},
 				},
 				Type: &ast.Type{
 					Parsed: &ast.NamedType{
-						Name: &ast.Ident{Ident: "int", Position: &ast.Position{Line: 1, Col: 5}},
+						Name: &ast.Identifier{Name: "int", Position: &ast.Position{Line: 1, Col: 5}},
 					},
 					Type:  "int",
 					From:  ast.Position{Line: 1, Col: 5},
@@ -115,8 +115,8 @@ func TestSpec(t *testing.T) {
 			name: "only value",
 			in:   "foo = 42",
 			expect: &ast.StateSpec{
-				Names: []*ast.Ident{
-					{Ident: "foo", Position: &ast.Position{Line: 1, Col: 1}},
+				Names: []*ast.Identifier{
+					{Name: "foo", Position: &ast.Position{Line: 1, Col: 1}},
 				},
 				EqualSign: &ast.Position{Line: 1, Col: 5},
 				Values: []*ast.Expression{
@@ -131,12 +131,12 @@ func TestSpec(t *testing.T) {
 			name: "type and value",
 			in:   "foo int = 42",
 			expect: &ast.StateSpec{
-				Names: []*ast.Ident{
-					{Ident: "foo", Position: &ast.Position{Line: 1, Col: 1}},
+				Names: []*ast.Identifier{
+					{Name: "foo", Position: &ast.Position{Line: 1, Col: 1}},
 				},
 				Type: &ast.Type{
 					Parsed: &ast.NamedType{
-						Name: &ast.Ident{Ident: "int", Position: &ast.Position{Line: 1, Col: 5}},
+						Name: &ast.Identifier{Name: "int", Position: &ast.Position{Line: 1, Col: 5}},
 					},
 					Type:  "int",
 					From:  ast.Position{Line: 1, Col: 5},
@@ -155,13 +155,13 @@ func TestSpec(t *testing.T) {
 			name: "multiple names with type",
 			in:   "foo, bar int",
 			expect: &ast.StateSpec{
-				Names: []*ast.Ident{
-					{Ident: "foo", Position: &ast.Position{Line: 1, Col: 1}},
-					{Ident: "bar", Position: &ast.Position{Line: 1, Col: 6}},
+				Names: []*ast.Identifier{
+					{Name: "foo", Position: &ast.Position{Line: 1, Col: 1}},
+					{Name: "bar", Position: &ast.Position{Line: 1, Col: 6}},
 				},
 				Type: &ast.Type{
 					Parsed: &ast.NamedType{
-						Name: &ast.Ident{Ident: "int", Position: &ast.Position{Line: 1, Col: 10}},
+						Name: &ast.Identifier{Name: "int", Position: &ast.Position{Line: 1, Col: 10}},
 					},
 					Type:  "int",
 					From:  ast.Position{Line: 1, Col: 10},
@@ -172,9 +172,9 @@ func TestSpec(t *testing.T) {
 			name: "multiple names with multiple values",
 			in:   "foo, bar = 42, 43",
 			expect: &ast.StateSpec{
-				Names: []*ast.Ident{
-					{Ident: "foo", Position: &ast.Position{Line: 1, Col: 1}},
-					{Ident: "bar", Position: &ast.Position{Line: 1, Col: 6}},
+				Names: []*ast.Identifier{
+					{Name: "foo", Position: &ast.Position{Line: 1, Col: 1}},
+					{Name: "bar", Position: &ast.Position{Line: 1, Col: 6}},
 				},
 				EqualSign: &ast.Position{Line: 1, Col: 10},
 				Values: []*ast.Expression{
@@ -193,13 +193,13 @@ func TestSpec(t *testing.T) {
 			name: "multiple names with type and multiple values",
 			in:   "foo, bar int = 42, 43",
 			expect: &ast.StateSpec{
-				Names: []*ast.Ident{
-					{Ident: "foo", Position: &ast.Position{Line: 1, Col: 1}},
-					{Ident: "bar", Position: &ast.Position{Line: 1, Col: 6}},
+				Names: []*ast.Identifier{
+					{Name: "foo", Position: &ast.Position{Line: 1, Col: 1}},
+					{Name: "bar", Position: &ast.Position{Line: 1, Col: 6}},
 				},
 				Type: &ast.Type{
 					Parsed: &ast.NamedType{
-						Name: &ast.Ident{Ident: "int", Position: &ast.Position{Line: 1, Col: 10}},
+						Name: &ast.Identifier{Name: "int", Position: &ast.Position{Line: 1, Col: 10}},
 					},
 					Type:  "int",
 					From:  ast.Position{Line: 1, Col: 10},
@@ -222,9 +222,9 @@ func TestSpec(t *testing.T) {
 			name: "multiple names with single value",
 			in:   "foo, bar = baz()",
 			expect: &ast.StateSpec{
-				Names: []*ast.Ident{
-					{Ident: "foo", Position: &ast.Position{Line: 1, Col: 1}},
-					{Ident: "bar", Position: &ast.Position{Line: 1, Col: 6}},
+				Names: []*ast.Identifier{
+					{Name: "foo", Position: &ast.Position{Line: 1, Col: 1}},
+					{Name: "bar", Position: &ast.Position{Line: 1, Col: 6}},
 				},
 				EqualSign: &ast.Position{Line: 1, Col: 10},
 				Values: []*ast.Expression{

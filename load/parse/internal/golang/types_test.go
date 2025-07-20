@@ -26,14 +26,14 @@ func TestType(t *testing.T) {
 			expect := &ast.Type{
 				Type: in,
 				Parsed: &ast.NamedType{
-					Name: &ast.QualifiedIdent{
-						Package: &ast.Ident{
-							Ident:    "foo",
+					Name: &ast.QualifiedIdentifier{
+						Package: &ast.Identifier{
+							Name:     "foo",
 							Position: &ast.Position{Line: 1, Col: 1},
 						},
 						Dot: &ast.Position{Line: 1, Col: 4},
-						Name: &ast.Ident{
-							Ident:    "Bar",
+						Name: &ast.Identifier{
+							Name:     "Bar",
 							Position: &ast.Position{Line: 1, Col: 5},
 						},
 					},
@@ -573,8 +573,8 @@ func testNamedType(t *testing.T, f parser.Func[*ast.NamedType]) {
 			name: "int",
 			in:   "int",
 			expect: &ast.NamedType{
-				Name: &ast.Ident{
-					Ident:    "int",
+				Name: &ast.Identifier{
+					Name:     "int",
 					Position: &ast.Position{Line: 1, Col: 1},
 				},
 			},
@@ -582,8 +582,8 @@ func testNamedType(t *testing.T, f parser.Func[*ast.NamedType]) {
 			name: "custom",
 			in:   "foo",
 			expect: &ast.NamedType{
-				Name: &ast.Ident{
-					Ident:    "foo",
+				Name: &ast.Identifier{
+					Name:     "foo",
 					Position: &ast.Position{Line: 1, Col: 1},
 				},
 			},
@@ -591,14 +591,14 @@ func testNamedType(t *testing.T, f parser.Func[*ast.NamedType]) {
 			name: "qualified",
 			in:   "foo.Bar",
 			expect: &ast.NamedType{
-				Name: &ast.QualifiedIdent{
-					Package: &ast.Ident{
-						Ident:    "foo",
+				Name: &ast.QualifiedIdentifier{
+					Package: &ast.Identifier{
+						Name:     "foo",
 						Position: &ast.Position{Line: 1, Col: 1},
 					},
 					Dot: &ast.Position{Line: 1, Col: 4},
-					Name: &ast.Ident{
-						Ident:    "Bar",
+					Name: &ast.Identifier{
+						Name:     "Bar",
 						Position: &ast.Position{Line: 1, Col: 5},
 					},
 				},
@@ -607,14 +607,14 @@ func testNamedType(t *testing.T, f parser.Func[*ast.NamedType]) {
 			name: "type args",
 			in:   "foo.Bar[int, foobar]",
 			expect: &ast.NamedType{
-				Name: &ast.QualifiedIdent{
-					Package: &ast.Ident{
-						Ident:    "foo",
+				Name: &ast.QualifiedIdentifier{
+					Package: &ast.Identifier{
+						Name:     "foo",
 						Position: &ast.Position{Line: 1, Col: 1},
 					},
 					Dot: &ast.Position{Line: 1, Col: 4},
-					Name: &ast.Ident{
-						Ident:    "Bar",
+					Name: &ast.Identifier{
+						Name:     "Bar",
 						Position: &ast.Position{Line: 1, Col: 5},
 					},
 				},
@@ -624,8 +624,8 @@ func testNamedType(t *testing.T, f parser.Func[*ast.NamedType]) {
 						{
 							Type: "int",
 							Parsed: &ast.NamedType{
-								Name: &ast.Ident{
-									Ident:    "int",
+								Name: &ast.Identifier{
+									Name:     "int",
 									Position: &ast.Position{Line: 1, Col: 9},
 								},
 							},
@@ -634,8 +634,8 @@ func testNamedType(t *testing.T, f parser.Func[*ast.NamedType]) {
 						}, {
 							Type: "foobar",
 							Parsed: &ast.NamedType{
-								Name: &ast.Ident{
-									Ident:    "foobar",
+								Name: &ast.Identifier{
+									Name:     "foobar",
 									Position: &ast.Position{Line: 1, Col: 14},
 								},
 							},
@@ -681,12 +681,12 @@ func TestTypeParameters(t *testing.T) {
 				LBracket: &ast.Position{Line: 1, Col: 1},
 				Params: []*ast.TypeParameter{
 					{
-						Names: []*ast.Ident{
-							{Ident: "T", Position: &ast.Position{Line: 1, Col: 2}},
+						Names: []*ast.Identifier{
+							{Name: "T", Position: &ast.Position{Line: 1, Col: 2}},
 						},
 						Type: &ast.Type{
 							Parsed: &ast.NamedType{
-								Name: &ast.Ident{Ident: "int", Position: &ast.Position{Line: 1, Col: 4}},
+								Name: &ast.Identifier{Name: "int", Position: &ast.Position{Line: 1, Col: 4}},
 							},
 							Type:  "int",
 							From:  ast.Position{Line: 1, Col: 4},
@@ -703,24 +703,24 @@ func TestTypeParameters(t *testing.T) {
 				LBracket: &ast.Position{Line: 1, Col: 1},
 				Params: []*ast.TypeParameter{
 					{
-						Names: []*ast.Ident{
-							{Ident: "K", Position: &ast.Position{Line: 1, Col: 2}},
+						Names: []*ast.Identifier{
+							{Name: "K", Position: &ast.Position{Line: 1, Col: 2}},
 						},
 						Type: &ast.Type{
 							Parsed: &ast.NamedType{
-								Name: &ast.Ident{Ident: "int", Position: &ast.Position{Line: 1, Col: 4}},
+								Name: &ast.Identifier{Name: "int", Position: &ast.Position{Line: 1, Col: 4}},
 							},
 							Type:  "int",
 							From:  ast.Position{Line: 1, Col: 4},
 							Until: ast.Position{Line: 1, Col: 7},
 						},
 					}, {
-						Names: []*ast.Ident{
-							{Ident: "V", Position: &ast.Position{Line: 1, Col: 9}},
+						Names: []*ast.Identifier{
+							{Name: "V", Position: &ast.Position{Line: 1, Col: 9}},
 						},
 						Type: &ast.Type{
 							Parsed: &ast.NamedType{
-								Name: &ast.Ident{Ident: "string", Position: &ast.Position{Line: 1, Col: 11}},
+								Name: &ast.Identifier{Name: "string", Position: &ast.Position{Line: 1, Col: 11}},
 							},
 							Type:  "string",
 							From:  ast.Position{Line: 1, Col: 11},
@@ -737,12 +737,12 @@ func TestTypeParameters(t *testing.T) {
 				LBracket: &ast.Position{Line: 1, Col: 1},
 				Params: []*ast.TypeParameter{
 					{
-						Names: []*ast.Ident{
-							{Ident: "T", Position: &ast.Position{Line: 1, Col: 2}},
+						Names: []*ast.Identifier{
+							{Name: "T", Position: &ast.Position{Line: 1, Col: 2}},
 						},
 						Type: &ast.Type{
 							Parsed: &ast.NamedType{
-								Name: &ast.Ident{Ident: "int", Position: &ast.Position{Line: 1, Col: 4}},
+								Name: &ast.Identifier{Name: "int", Position: &ast.Position{Line: 1, Col: 4}},
 							},
 							Type:  "int",
 							From:  ast.Position{Line: 1, Col: 4},
@@ -777,12 +777,12 @@ func TestTypeParameterDecl(t *testing.T) {
 			name: "single",
 			in:   "T int",
 			expect: &ast.TypeParameter{
-				Names: []*ast.Ident{
-					{Ident: "T", Position: &ast.Position{Line: 1, Col: 1}},
+				Names: []*ast.Identifier{
+					{Name: "T", Position: &ast.Position{Line: 1, Col: 1}},
 				},
 				Type: &ast.Type{
 					Parsed: &ast.NamedType{
-						Name: &ast.Ident{Ident: "int", Position: &ast.Position{Line: 1, Col: 3}},
+						Name: &ast.Identifier{Name: "int", Position: &ast.Position{Line: 1, Col: 3}},
 					},
 					Type:  "int",
 					From:  ast.Position{Line: 1, Col: 3},
@@ -793,13 +793,13 @@ func TestTypeParameterDecl(t *testing.T) {
 			name: "multiple",
 			in:   "K, V string",
 			expect: &ast.TypeParameter{
-				Names: []*ast.Ident{
-					{Ident: "K", Position: &ast.Position{Line: 1, Col: 1}},
-					{Ident: "V", Position: &ast.Position{Line: 1, Col: 4}},
+				Names: []*ast.Identifier{
+					{Name: "K", Position: &ast.Position{Line: 1, Col: 1}},
+					{Name: "V", Position: &ast.Position{Line: 1, Col: 4}},
 				},
 				Type: &ast.Type{
 					Parsed: &ast.NamedType{
-						Name: &ast.Ident{Ident: "string", Position: &ast.Position{Line: 1, Col: 6}},
+						Name: &ast.Identifier{Name: "string", Position: &ast.Position{Line: 1, Col: 6}},
 					},
 					Type:  "string",
 					From:  ast.Position{Line: 1, Col: 6},

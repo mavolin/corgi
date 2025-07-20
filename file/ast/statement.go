@@ -174,7 +174,7 @@ func (*Return) _parsedStatement() {}
 
 type Break struct {
 	Break *Position
-	Label *Ident // optional
+	Label *Identifier // optional
 }
 
 var _ ParsedStatement = (*Break)(nil)
@@ -212,7 +212,7 @@ func (*Break) _parsedStatement() {}
 
 type Continue struct {
 	Continue *Position
-	Label    *Ident // optional
+	Label    *Identifier // optional
 }
 
 var _ ParsedStatement = (*Continue)(nil)
@@ -250,7 +250,7 @@ func (*Continue) _parsedStatement() {}
 
 type Fallthrough struct {
 	Fallthrough *Position
-	Label       *Ident // optional
+	Label       *Identifier // optional
 }
 
 var _ ParsedStatement = (*Fallthrough)(nil)
@@ -379,7 +379,7 @@ func (*ConstDeclaration) _parsedStatement() {}
 // ===================================== Const Spec =====================================
 
 type ConstSpec struct {
-	Names     []*Ident
+	Names     []*Identifier
 	Type      *Type // optional
 	EqualSign *Position
 	Values    []*Expression
@@ -504,7 +504,7 @@ func (*VarDeclaration) _parsedStatement() {}
 // ===================================== Var Spec =====================================
 
 type VarSpec struct {
-	Names     []*Ident
+	Names     []*Identifier
 	Type      *Type         // optional
 	EqualSign *Position     // optional if type
 	Values    []*Expression // optional if type
@@ -687,7 +687,7 @@ func (*IncDec) _parsedSimpleStatement() {}
 // ======================================================================================
 
 type ShortVarDeclaration struct {
-	Names          []*Ident
+	Names          []*Identifier
 	ColonEqualSign *Position
 	Values         []*Expression
 }
@@ -743,7 +743,7 @@ func (*ShortVarDeclaration) _parsedSimpleStatement() {}
 // ======================================================================================
 
 type Label struct {
-	Name  *Ident
+	Name  *Identifier
 	Colon *Position
 }
 

@@ -30,7 +30,7 @@ func testZeroCoalescing(t *testing.T, f parser.Func[*ast.ZeroCoalescing]) {
 		Chain: []ast.ZeroCoalescingNode{
 			&ast.ZCSelectorExpression{
 				Dot:   &ast.Position{Line: 1, Col: 7},
-				Ident: &ast.Ident{Ident: "bar", Position: &ast.Position{Line: 1, Col: 8}},
+				Ident: &ast.Identifier{Name: "bar", Position: &ast.Position{Line: 1, Col: 8}},
 				Check: &ast.Position{Line: 1, Col: 11},
 			}, &ast.ZCParenExpression{
 				LParen: &ast.Position{Line: 1, Col: 12},
@@ -70,8 +70,8 @@ func testZeroCoalescing(t *testing.T, f parser.Func[*ast.ZeroCoalescing]) {
 				Dot:          &ast.Position{Line: 1, Col: 28},
 				LParen:       &ast.Position{Line: 1, Col: 29},
 				PointerCount: 2,
-				Type: &ast.Ident{
-					Ident:    "qux",
+				Type: &ast.Identifier{
+					Name:     "qux",
 					Position: &ast.Position{Line: 1, Col: 32},
 				},
 				CheckType:  &ast.Position{Line: 1, Col: 35},
@@ -184,14 +184,14 @@ func TestZCSelectorExpression(t *testing.T) {
 			in:   ".foo",
 			expect: &ast.ZCSelectorExpression{
 				Dot:   &ast.Position{Line: 1, Col: 1},
-				Ident: &ast.Ident{Ident: "foo", Position: &ast.Position{Line: 1, Col: 2}},
+				Ident: &ast.Identifier{Name: "foo", Position: &ast.Position{Line: 1, Col: 2}},
 			},
 		}, {
 			name: "check",
 			in:   ".foo?",
 			expect: &ast.ZCSelectorExpression{
 				Dot:   &ast.Position{Line: 1, Col: 1},
-				Ident: &ast.Ident{Ident: "foo", Position: &ast.Position{Line: 1, Col: 2}},
+				Ident: &ast.Identifier{Name: "foo", Position: &ast.Position{Line: 1, Col: 2}},
 				Check: &ast.Position{Line: 1, Col: 5},
 			},
 		},
@@ -308,8 +308,8 @@ func TestZCTypeAssertionExpression(t *testing.T) {
 			expect: &ast.ZCTypeAssertionExpression{
 				Dot:    &ast.Position{Line: 1, Col: 1},
 				LParen: &ast.Position{Line: 1, Col: 2},
-				Type: &ast.Ident{
-					Ident:    "foo",
+				Type: &ast.Identifier{
+					Name:     "foo",
 					Position: &ast.Position{Line: 1, Col: 3},
 				},
 				RParen: &ast.Position{Line: 1, Col: 6},
@@ -320,14 +320,14 @@ func TestZCTypeAssertionExpression(t *testing.T) {
 			expect: &ast.ZCTypeAssertionExpression{
 				Dot:    &ast.Position{Line: 1, Col: 1},
 				LParen: &ast.Position{Line: 1, Col: 2},
-				Type: &ast.QualifiedIdent{
-					Package: &ast.Ident{
-						Ident:    "foo",
+				Type: &ast.QualifiedIdentifier{
+					Package: &ast.Identifier{
+						Name:     "foo",
 						Position: &ast.Position{Line: 1, Col: 3},
 					},
 					Dot: &ast.Position{Line: 1, Col: 6},
-					Name: &ast.Ident{
-						Ident:    "Bar",
+					Name: &ast.Identifier{
+						Name:     "Bar",
 						Position: &ast.Position{Line: 1, Col: 7},
 					},
 				},
@@ -340,8 +340,8 @@ func TestZCTypeAssertionExpression(t *testing.T) {
 				Dot:          &ast.Position{Line: 1, Col: 1},
 				LParen:       &ast.Position{Line: 1, Col: 2},
 				PointerCount: 1,
-				Type: &ast.Ident{
-					Ident:    "foo",
+				Type: &ast.Identifier{
+					Name:     "foo",
 					Position: &ast.Position{Line: 1, Col: 4},
 				},
 				RParen: &ast.Position{Line: 1, Col: 7},
@@ -352,8 +352,8 @@ func TestZCTypeAssertionExpression(t *testing.T) {
 			expect: &ast.ZCTypeAssertionExpression{
 				Dot:    &ast.Position{Line: 1, Col: 1},
 				LParen: &ast.Position{Line: 1, Col: 2},
-				Type: &ast.Ident{
-					Ident:    "foo",
+				Type: &ast.Identifier{
+					Name:     "foo",
 					Position: &ast.Position{Line: 1, Col: 3},
 				},
 				CheckType: &ast.Position{Line: 1, Col: 6},
@@ -365,8 +365,8 @@ func TestZCTypeAssertionExpression(t *testing.T) {
 			expect: &ast.ZCTypeAssertionExpression{
 				Dot:    &ast.Position{Line: 1, Col: 1},
 				LParen: &ast.Position{Line: 1, Col: 2},
-				Type: &ast.Ident{
-					Ident:    "foo",
+				Type: &ast.Identifier{
+					Name:     "foo",
 					Position: &ast.Position{Line: 1, Col: 3},
 				},
 				RParen:     &ast.Position{Line: 1, Col: 6},
@@ -378,8 +378,8 @@ func TestZCTypeAssertionExpression(t *testing.T) {
 			expect: &ast.ZCTypeAssertionExpression{
 				Dot:    &ast.Position{Line: 1, Col: 1},
 				LParen: &ast.Position{Line: 1, Col: 2},
-				Type: &ast.Ident{
-					Ident:    "foo",
+				Type: &ast.Identifier{
+					Name:     "foo",
 					Position: &ast.Position{Line: 1, Col: 3},
 				},
 				CheckType:  &ast.Position{Line: 1, Col: 6},

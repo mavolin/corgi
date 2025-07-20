@@ -14,7 +14,7 @@ func TestPackageDirective(t *testing.T) {
 	in := "package foo"
 	expect := &ast.PackageDirective{
 		Package: &ast.Position{Line: 1, Col: 1},
-		Name:    &ast.Ident{Ident: "foo", Position: &ast.Position{Line: 1, Col: 9}},
+		Name:    &ast.Identifier{Name: "foo", Position: &ast.Position{Line: 1, Col: 9}},
 	}
 
 	actual := testutil.ParsesFully(t, in, PackageDirective())
@@ -109,7 +109,7 @@ func TestImportSpec(t *testing.T) {
 			name: "alias",
 			in:   "foo \"bar\"",
 			expect: &ast.ImportSpec{
-				Alias: &ast.Ident{Ident: "foo", Position: &ast.Position{Line: 1, Col: 1}},
+				Alias: &ast.Identifier{Name: "foo", Position: &ast.Position{Line: 1, Col: 1}},
 				Path: &ast.StaticString{
 					Open:     &ast.Position{Line: 1, Col: 5},
 					Quote:    '"',

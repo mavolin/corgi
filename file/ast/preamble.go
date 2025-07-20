@@ -8,7 +8,7 @@ import "slices"
 
 type PackageDirective struct {
 	Package *Position
-	Name    *Ident // package name
+	Name    *Identifier // package name
 }
 
 var _ Node = (*PackageDirective)(nil)
@@ -100,7 +100,7 @@ func (*Import) _node() {}
 
 type ImportSpec struct {
 	// Alias is the alias of the import, if any.
-	Alias *Ident
+	Alias *Identifier
 	Path  *StaticString
 }
 

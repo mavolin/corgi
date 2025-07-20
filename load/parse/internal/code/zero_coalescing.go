@@ -121,7 +121,7 @@ func zeroCoalescingRoot() parser.Func[*ast.Expression] {
 		if ident != nil {
 			return &ast.Expression{
 				Nodes: ast.Code{
-					&ast.GoCode{Code: ident.Ident, Position: ident.Position},
+					&ast.GoCode{Code: ident.Name, Position: ident.Position},
 				},
 			}, nil
 		}

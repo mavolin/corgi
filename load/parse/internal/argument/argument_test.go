@@ -129,8 +129,8 @@ func TestArguments(t *testing.T) {
 				LParen: &ast.Position{Line: 1, Col: 1},
 				Args: []ast.Argument{
 					&ast.ComponentArgument{
-						Name: &ast.Ident{
-							Ident:    "foo",
+						Name: &ast.Identifier{
+							Name:     "foo",
 							Position: &ast.Position{Line: 1, Col: 2},
 						},
 						Colon: &ast.Position{Line: 1, Col: 5},
@@ -153,8 +153,8 @@ func TestArguments(t *testing.T) {
 				LParen: &ast.Position{Line: 1, Col: 1},
 				Args: []ast.Argument{
 					&ast.ComponentArgument{
-						Name: &ast.Ident{
-							Ident:    "arg1",
+						Name: &ast.Identifier{
+							Name:     "arg1",
 							Position: &ast.Position{Line: 1, Col: 2},
 						},
 						Colon: &ast.Position{Line: 1, Col: 6},
@@ -168,8 +168,8 @@ func TestArguments(t *testing.T) {
 						},
 					},
 					&ast.ComponentArgument{
-						Name: &ast.Ident{
-							Ident:    "arg2",
+						Name: &ast.Identifier{
+							Name:     "arg2",
 							Position: &ast.Position{Line: 1, Col: 19},
 						},
 						Colon: &ast.Position{Line: 1, Col: 23},

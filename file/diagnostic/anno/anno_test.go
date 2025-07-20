@@ -167,8 +167,8 @@ func TestNode(t *testing.T) {
 		node ast.Node
 	}{
 		{
-			node: &ast.Ident{
-				Ident:    "foo",
+			node: &ast.Identifier{
+				Name:     "foo",
 				Position: &start,
 			},
 		}, {
@@ -188,7 +188,11 @@ func TestNode(t *testing.T) {
 				LParen: &ast.Position{Line: start.Line, Col: start.Col + len("state ")},
 				Specs: []*ast.StateSpec{
 					{
-						Names:     []*ast.Ident{{Ident: "foo", Position: &ast.Position{Line: start.Line + 1, Col: 3}}},
+						Names: []*ast.Identifier{
+							{
+								Name: "foo", Position: &ast.Position{Line: start.Line + 1, Col: 3},
+							},
+						},
 						EqualSign: &ast.Position{Line: start.Line + 1, Col: 3 + len("foo ")},
 						Values: []*ast.Expression{
 							{

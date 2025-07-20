@@ -62,9 +62,9 @@ Erroneous:
 	primaries := make([]diagnostic.Annotation, len(b.Instances))
 	for i, instance := range b.Instances {
 		if instance.AST.Default == nil {
-			primaries[i] = anno.Range(b.Component.File, instance.AST.Start(), instance.AST.Name.End(), "no default -> required")
+			primaries[i] = anno.Range(b.Component.File, instance.AST.Start(), instance.AST.Identifier.End(), "no default -> required") // todo
 		} else {
-			primaries[i] = anno.Range(b.Component.File, instance.AST.Start(), instance.AST.Name.End(), "default set -> not required")
+			primaries[i] = anno.Range(b.Component.File, instance.AST.Start(), instance.AST.Identifier.End(), "default set -> not required") // todo
 		}
 	}
 

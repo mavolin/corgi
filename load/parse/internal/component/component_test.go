@@ -24,8 +24,8 @@ func TestComponent(t *testing.T) {
 			expect: &ast.Component{
 				Comp: &ast.Position{Line: 1, Col: 1},
 				Header: &ast.ComponentHeader{
-					Name: &ast.Ident{
-						Ident:    "foo",
+					Name: &ast.Identifier{
+						Name:     "foo",
 						Position: &ast.Position{Line: 1, Col: 6},
 					},
 					Parameters: &ast.ComponentParameters{
@@ -58,8 +58,8 @@ func TestComponent(t *testing.T) {
 			expect: &ast.Component{
 				Comp: &ast.Position{Line: 1, Col: 1},
 				Header: &ast.ComponentHeader{
-					Name: &ast.Ident{
-						Ident:    "foo",
+					Name: &ast.Identifier{
+						Name:     "foo",
 						Position: &ast.Position{Line: 1, Col: 6},
 					},
 					Parameters: &ast.ComponentParameters{
@@ -69,8 +69,8 @@ func TestComponent(t *testing.T) {
 				},
 				Colon: &ast.Position{Line: 1, Col: 12},
 				Extend: &ast.ComponentCallHeader{
-					Name: &ast.Ident{
-						Ident:    "bar",
+					Name: &ast.Identifier{
+						Name:     "bar",
 						Position: &ast.Position{Line: 1, Col: 14},
 					},
 					Arguments: &ast.Arguments{
@@ -119,8 +119,8 @@ func TestHeader(t *testing.T) {
 			name: "simple",
 			in:   "foo()",
 			expect: &ast.ComponentHeader{
-				Name: &ast.Ident{
-					Ident:    "foo",
+				Name: &ast.Identifier{
+					Name:     "foo",
 					Position: &ast.Position{Line: 1, Col: 1},
 				},
 				Parameters: &ast.ComponentParameters{
@@ -132,21 +132,21 @@ func TestHeader(t *testing.T) {
 			name: "with type params",
 			in:   "foo[T any](val T)",
 			expect: &ast.ComponentHeader{
-				Name: &ast.Ident{
-					Ident:    "foo",
+				Name: &ast.Identifier{
+					Name:     "foo",
 					Position: &ast.Position{Line: 1, Col: 1},
 				},
 				TypeParams: &ast.TypeParameters{
 					LBracket: &ast.Position{Line: 1, Col: 4},
 					Params: []*ast.TypeParameter{
 						{
-							Names: []*ast.Ident{
-								{Ident: "T", Position: &ast.Position{Line: 1, Col: 5}},
+							Names: []*ast.Identifier{
+								{Name: "T", Position: &ast.Position{Line: 1, Col: 5}},
 							},
 							Type: &ast.Type{
 								Parsed: &ast.NamedType{
-									Name: &ast.Ident{
-										Ident:    "any",
+									Name: &ast.Identifier{
+										Name:     "any",
 										Position: &ast.Position{Line: 1, Col: 7},
 									},
 								},
@@ -162,14 +162,14 @@ func TestHeader(t *testing.T) {
 					LParen: &ast.Position{Line: 1, Col: 11},
 					Params: []*ast.ComponentParameter{
 						{
-							Name: &ast.Ident{
-								Ident:    "val",
+							Name: &ast.Identifier{
+								Name:     "val",
 								Position: &ast.Position{Line: 1, Col: 12},
 							},
 							Type: &ast.Type{
 								Parsed: &ast.NamedType{
-									Name: &ast.Ident{
-										Ident:    "T",
+									Name: &ast.Identifier{
+										Name:     "T",
 										Position: &ast.Position{Line: 1, Col: 16},
 									},
 								},
@@ -217,14 +217,14 @@ func TestParameters(t *testing.T) {
 				LParen: &ast.Position{Line: 1, Col: 1},
 				Params: []*ast.ComponentParameter{
 					{
-						Name: &ast.Ident{
-							Ident:    "foo",
+						Name: &ast.Identifier{
+							Name:     "foo",
 							Position: &ast.Position{Line: 1, Col: 2},
 						},
 						Type: &ast.Type{
 							Parsed: &ast.NamedType{
-								Name: &ast.Ident{
-									Ident:    "any",
+								Name: &ast.Identifier{
+									Name:     "any",
 									Position: &ast.Position{Line: 1, Col: 6},
 								},
 							},
@@ -243,14 +243,14 @@ func TestParameters(t *testing.T) {
 				LParen: &ast.Position{Line: 1, Col: 1},
 				Params: []*ast.ComponentParameter{
 					{
-						Name: &ast.Ident{
-							Ident:    "foo",
+						Name: &ast.Identifier{
+							Name:     "foo",
 							Position: &ast.Position{Line: 1, Col: 2},
 						},
 						Type: &ast.Type{
 							Parsed: &ast.NamedType{
-								Name: &ast.Ident{
-									Ident:    "any",
+								Name: &ast.Identifier{
+									Name:     "any",
 									Position: &ast.Position{Line: 1, Col: 6},
 								},
 							},
@@ -259,14 +259,14 @@ func TestParameters(t *testing.T) {
 							Until: ast.Position{Line: 1, Col: 9},
 						},
 					}, {
-						Name: &ast.Ident{
-							Ident:    "bar",
+						Name: &ast.Identifier{
+							Name:     "bar",
 							Position: &ast.Position{Line: 1, Col: 11},
 						},
 						Type: &ast.Type{
 							Parsed: &ast.NamedType{
-								Name: &ast.Ident{
-									Ident:    "string",
+								Name: &ast.Identifier{
+									Name:     "string",
 									Position: &ast.Position{Line: 1, Col: 15},
 								},
 							},
@@ -302,14 +302,14 @@ func TestParameter(t *testing.T) {
 			name: "with type",
 			in:   "param string",
 			expect: &ast.ComponentParameter{
-				Name: &ast.Ident{
-					Ident:    "param",
+				Name: &ast.Identifier{
+					Name:     "param",
 					Position: &ast.Position{Line: 1, Col: 1},
 				},
 				Type: &ast.Type{
 					Parsed: &ast.NamedType{
-						Name: &ast.Ident{
-							Ident:    "string",
+						Name: &ast.Identifier{
+							Name:     "string",
 							Position: &ast.Position{Line: 1, Col: 7},
 						},
 					},
@@ -322,8 +322,8 @@ func TestParameter(t *testing.T) {
 			name: "with default",
 			in:   "param: \"default\"",
 			expect: &ast.ComponentParameter{
-				Name: &ast.Ident{
-					Ident:    "param",
+				Name: &ast.Identifier{
+					Name:     "param",
 					Position: &ast.Position{Line: 1, Col: 1},
 				},
 				Colon: &ast.Position{Line: 1, Col: 6},
@@ -347,14 +347,14 @@ func TestParameter(t *testing.T) {
 			name: "with type and default",
 			in:   "param string: \"default\"",
 			expect: &ast.ComponentParameter{
-				Name: &ast.Ident{
-					Ident:    "param",
+				Name: &ast.Identifier{
+					Name:     "param",
 					Position: &ast.Position{Line: 1, Col: 1},
 				},
 				Type: &ast.Type{
 					Parsed: &ast.NamedType{
-						Name: &ast.Ident{
-							Ident:    "string",
+						Name: &ast.Identifier{
+							Name:     "string",
 							Position: &ast.Position{Line: 1, Col: 7},
 						},
 					},
@@ -403,22 +403,22 @@ func TestAlias(t *testing.T) {
 	expect := &ast.Alias{
 		Alias: &ast.Position{Line: 1, Col: 1},
 		Header: &ast.ComponentHeader{
-			Name: &ast.Ident{
-				Ident:    "foo",
+			Name: &ast.Identifier{
+				Name:     "foo",
 				Position: &ast.Position{Line: 1, Col: 7},
 			},
 			Parameters: &ast.ComponentParameters{
 				LParen: &ast.Position{Line: 1, Col: 10},
 				Params: []*ast.ComponentParameter{
 					{
-						Name: &ast.Ident{
-							Ident:    "s",
+						Name: &ast.Identifier{
+							Name:     "s",
 							Position: &ast.Position{Line: 1, Col: 11},
 						},
 						Type: &ast.Type{
 							Parsed: &ast.NamedType{
-								Name: &ast.Ident{
-									Ident:    "string",
+								Name: &ast.Identifier{
+									Name:     "string",
 									Position: &ast.Position{Line: 1, Col: 13},
 								},
 							},
@@ -434,16 +434,16 @@ func TestAlias(t *testing.T) {
 		ComponentCall: &ast.ComponentCall{
 			Colon: &ast.Position{Line: 1, Col: 21},
 			Header: &ast.ComponentCallHeader{
-				Name: &ast.Ident{
-					Ident:    "bar",
+				Name: &ast.Identifier{
+					Name:     "bar",
 					Position: &ast.Position{Line: 1, Col: 23},
 				},
 				Arguments: &ast.Arguments{
 					LParen: &ast.Position{Line: 1, Col: 26},
 					Args: []ast.Argument{
 						&ast.ComponentArgument{
-							Name: &ast.Ident{
-								Ident:    "baz",
+							Name: &ast.Identifier{
+								Name:     "baz",
 								Position: &ast.Position{Line: 1, Col: 27},
 							},
 							Colon: &ast.Position{Line: 1, Col: 30},
@@ -512,8 +512,8 @@ func TestBlock(t *testing.T) {
 				"}",
 			expect: &ast.Block{
 				Block: &ast.Position{Line: 1, Col: 1},
-				Identifier: &ast.Ident{
-					Ident:    "foo",
+				Identifier: &ast.Identifier{
+					Name:     "foo",
 					Position: &ast.Position{Line: 1, Col: len("block ") + 1},
 				},
 				Default: &ast.Scope{
@@ -538,8 +538,8 @@ func TestBlock(t *testing.T) {
 			in:   "block foo",
 			expect: &ast.Block{
 				Block: &ast.Position{Line: 1, Col: 1},
-				Identifier: &ast.Ident{
-					Ident:    "foo",
+				Identifier: &ast.Identifier{
+					Name:     "foo",
 					Position: &ast.Position{Line: 1, Col: len("block ") + 1},
 				},
 			},

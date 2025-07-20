@@ -135,7 +135,7 @@ func (ch *checker) CheckAttributeTypeSuperfluousAttributeName(logger *slog.Logge
 
 func (ch *checker) CheckBlockFunction(logger *slog.Logger, f *file.File, parents []*walk.Context, bf *ast.BlockFunction) {
 	logger = logger.WithGroup("block_function").
-		With(slog.String("block_name", bf.BlockName.Ident),
+		With(slog.String("block_name", bf.BlockName.Name),
 			slog.String("block_function_pos", bf.Start().String()))
 	logger.Debug("Checking block function")
 
@@ -153,7 +153,7 @@ func (ch *checker) CheckBlockFunctionDefined(logger *slog.Logger, f *file.File, 
 	}
 
 	c := f.Package.ComponentByNode(astComp)
-	if c.BlockByName(bf.BlockName.Ident) != nil {
+	if c.BlockByName(bf.BlockName.Name) != nil {
 		return
 	}
 

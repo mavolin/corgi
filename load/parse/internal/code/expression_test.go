@@ -51,8 +51,8 @@ func TestExpression(t *testing.T) {
 				}, &ast.BlockFunction{
 					Block:  &ast.Position{Line: 1, Col: 17},
 					LParen: &ast.Position{Line: 1, Col: 22},
-					BlockName: &ast.Ident{
-						Ident:    "foo",
+					BlockName: &ast.Identifier{
+						Name:     "foo",
 						Position: &ast.Position{Line: 1, Col: 23},
 					},
 					RParen: &ast.Position{Line: 1, Col: 26},
@@ -157,7 +157,7 @@ func testNonZCExpression(t *testing.T, f parser.Func[*ast.Expression]) {
 					Position: &ast.Position{Line: 1, Col: 23},
 				}, &ast.BlockFunction{
 					LParen:    &ast.Position{Line: 1, Col: 33},
-					BlockName: &ast.Ident{Ident: "myBlock", Position: &ast.Position{Line: 1, Col: 34}},
+					BlockName: &ast.Identifier{Name: "myBlock", Position: &ast.Position{Line: 1, Col: 34}},
 					RParen:    &ast.Position{Line: 1, Col: 41},
 					Block:     &ast.Position{Line: 1, Col: 28},
 				}, &ast.GoCode{

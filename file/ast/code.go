@@ -83,7 +83,7 @@ func (*GoCode) _codeNode() {}
 type BlockFunction struct {
 	Block     *Position
 	LParen    *Position
-	BlockName *Ident
+	BlockName *Identifier
 	RParen    *Position
 }
 

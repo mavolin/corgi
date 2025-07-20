@@ -103,5 +103,5 @@ func (c *duplicateDotImportChecker) recordDuplicate(imp *file.Import) {
 }
 
 func (c duplicateDotImportChecker) shouldCheck(imp *file.Import) bool {
-	return imp.AST != nil && imp.AST.Alias != nil && imp.AST.Alias.Ident == "."
+	return imp.AST != nil && imp.AST.Alias != nil && imp.AST.Alias.Name == "."
 }

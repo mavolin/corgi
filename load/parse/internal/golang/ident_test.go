@@ -14,10 +14,10 @@ func TestIdentifier(t *testing.T) {
 	testIdentifier(t, Identifier())
 }
 
-func testIdentifier(t *testing.T, f parser.Func[*ast.Ident]) {
+func testIdentifier(t *testing.T, f parser.Func[*ast.Identifier]) {
 	in := "foo"
-	expect := &ast.Ident{
-		Ident:    "foo",
+	expect := &ast.Identifier{
+		Name:     "foo",
 		Position: &ast.Position{Line: 1, Col: 1},
 	}
 

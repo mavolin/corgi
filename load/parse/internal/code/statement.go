@@ -289,7 +289,7 @@ func BreakAsCode(b *ast.Break) ast.Code {
 	}
 	return ast.Code{
 		&ast.GoCode{Code: "break", Position: b.Break},
-		&ast.GoCode{Code: b.Label.Ident, Position: b.Label.Position},
+		&ast.GoCode{Code: b.Label.Name, Position: b.Label.Position},
 	}
 }
 
@@ -316,7 +316,7 @@ func ContinueAsCode(c *ast.Continue) ast.Code {
 	}
 	return ast.Code{
 		&ast.GoCode{Code: "continue", Position: c.Continue},
-		&ast.GoCode{Code: c.Label.Ident, Position: c.Label.Position},
+		&ast.GoCode{Code: c.Label.Name, Position: c.Label.Position},
 	}
 }
 
@@ -343,7 +343,7 @@ func FallthroughAsCode(f *ast.Fallthrough) ast.Code {
 	}
 	return ast.Code{
 		&ast.GoCode{Code: "fallthrough", Position: f.Fallthrough},
-		&ast.GoCode{Code: f.Label.Ident, Position: f.Label.Position},
+		&ast.GoCode{Code: f.Label.Name, Position: f.Label.Position},
 	}
 }
 
@@ -687,9 +687,9 @@ func ConstDeclarationAsCode(d *ast.ConstDeclaration) ast.Code {
 	for _, spec := range d.Specs {
 		for nameI, name := range spec.Names {
 			if nameI < len(spec.Names)-1 {
-				c[i] = &ast.GoCode{Code: name.Ident + ",", Position: name.Position}
+				c[i] = &ast.GoCode{Code: name.Name + ",", Position: name.Position}
 			} else {
-				c[i] = &ast.GoCode{Code: name.Ident, Position: name.Position}
+				c[i] = &ast.GoCode{Code: name.Name, Position: name.Position}
 			}
 			i++
 		}
@@ -880,9 +880,9 @@ func VarDeclarationAsCode(d *ast.VarDeclaration) ast.Code {
 	for _, spec := range d.Specs {
 		for nameI, name := range spec.Names {
 			if nameI < len(spec.Names)-1 {
-				c[i] = &ast.GoCode{Code: name.Ident + ",", Position: name.Position}
+				c[i] = &ast.GoCode{Code: name.Name + ",", Position: name.Position}
 			} else {
-				c[i] = &ast.GoCode{Code: name.Ident, Position: name.Position}
+				c[i] = &ast.GoCode{Code: name.Name, Position: name.Position}
 			}
 			i++
 		}
@@ -983,9 +983,9 @@ func ShortVarDeclarationAsCode(d *ast.ShortVarDeclaration) ast.Code {
 	i := 0
 	for nameI, name := range d.Names {
 		if nameI < len(d.Names)-1 {
-			c[i] = &ast.GoCode{Code: name.Ident + ",", Position: name.Position}
+			c[i] = &ast.GoCode{Code: name.Name + ",", Position: name.Position}
 		} else {
-			c[i] = &ast.GoCode{Code: name.Ident, Position: name.Position}
+			c[i] = &ast.GoCode{Code: name.Name, Position: name.Position}
 		}
 		i++
 	}
@@ -1034,10 +1034,10 @@ func Label() parser.Func[*ast.Label] {
 
 func LabelAsCode(l *ast.Label) ast.Code {
 	if l.Colon == nil {
-		return ast.Code{&ast.GoCode{Code: l.Name.Ident, Position: l.Name.Position}}
+		return ast.Code{&ast.GoCode{Code: l.Name.Name, Position: l.Name.Position}}
 	}
 	return ast.Code{
-		&ast.GoCode{Code: l.Name.Ident, Position: l.Name.Position},
+		&ast.GoCode{Code: l.Name.Name, Position: l.Name.Position},
 		&ast.GoCode{Code: ":", Position: l.Colon},
 	}
 }

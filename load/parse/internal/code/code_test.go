@@ -89,7 +89,7 @@ func testBlockFunction() func(t *testing.T, f parser.Func[*ast.BlockFunction]) {
 			in := "block(foo)"
 			expect := &ast.BlockFunction{
 				LParen:    &ast.Position{Line: 1, Col: 6},
-				BlockName: &ast.Ident{Ident: "foo", Position: &ast.Position{Line: 1, Col: 7}},
+				BlockName: &ast.Identifier{Name: "foo", Position: &ast.Position{Line: 1, Col: 7}},
 				RParen:    &ast.Position{Line: 1, Col: 10},
 				Block:     &ast.Position{Line: 1, Col: 1},
 			}
@@ -125,7 +125,7 @@ func testBlockFunction() func(t *testing.T, f parser.Func[*ast.BlockFunction]) {
 					in:   "block(foo, bar)",
 					expect: &ast.BlockFunction{
 						LParen:    &ast.Position{Line: 1, Col: 6},
-						BlockName: &ast.Ident{Ident: "foo", Position: &ast.Position{Line: 1, Col: 7}},
+						BlockName: &ast.Identifier{Name: "foo", Position: &ast.Position{Line: 1, Col: 7}},
 						RParen:    &ast.Position{Line: 1, Col: 15},
 						Block:     &ast.Position{Line: 1, Col: 1},
 					},

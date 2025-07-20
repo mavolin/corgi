@@ -22,7 +22,7 @@ func (z *analyzer) AnalyzeState() {
 	for _, s := range z.P.State {
 		logger := logger.With(
 			slog.String("file", s.File.Name),
-			slog.String("name", s.Name().Ident))
+			slog.String("name", s.Name().Name))
 		logger.Debug("Analyzing state variable")
 
 		z.InferStateType(logger, s)
@@ -61,7 +61,7 @@ func (z *analyzer) InferStateType(logger *slog.Logger, s *file.State) {
 		Hints: []diagnostic.Hint{
 			{
 				Hint:    "Give this variable an explicit type.",
-				Example: "`" + s.Name().Ident + " foo = ...`",
+				Example: "`" + s.Name().Name + " foo = ...`",
 			},
 		},
 	})

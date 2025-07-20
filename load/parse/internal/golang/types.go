@@ -71,7 +71,7 @@ func Type() parser.Func[*ast.Type] { // https://go.dev/ref/spec#Type
 	}
 }
 
-func TypeName() parser.Func[ast.FullIdent] { // https://go.dev/ref/spec#TypeName
+func TypeName() parser.Func[ast.FullIdentifier] { // https://go.dev/ref/spec#TypeName
 	return FullIdent()
 }
 

@@ -159,13 +159,13 @@ func (*ZCIndexExpression) _node()               {}
 func (*ZCIndexExpression) _zeroCoalescingNode() {}
 
 // ============================================================================
-// Dot Ident Expression
+// Selector Expression
 // ======================================================================================
 
 // ZCSelectorExpression is a dot followed by a Go identifier.
 type ZCSelectorExpression struct {
 	Dot   *Position // of the dot
-	Ident *Ident
+	Ident *Identifier
 	Check *Position
 }
 
@@ -272,7 +272,7 @@ type ZCTypeAssertionExpression struct {
 	Dot          *Position
 	LParen       *Position
 	PointerCount int
-	Type         FullIdent
+	Type         FullIdentifier
 	CheckType    *Position
 	RParen       *Position
 	CheckValue   *Position

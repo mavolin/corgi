@@ -39,8 +39,8 @@ func TestDiagnostic_Pretty(t *testing.T) {
 			},
 			Package: &ast.PackageDirective{
 				Package: &ast.Position{Line: 1, Col: 1},
-				Name: &ast.Ident{
-					Ident:    "foo",
+				Name: &ast.Identifier{
+					Name:     "foo",
 					Position: &ast.Position{Line: 1, Col: 9},
 				},
 			},

@@ -65,7 +65,7 @@ func (*StateDeclaration) _scopeNode() {}
 // ======================================================================================
 
 type StateSpec struct {
-	Names []*Ident
+	Names []*Identifier
 	Type  *Type // nil if type is inferred
 
 	EqualSign *Position     // nil if this has no default value

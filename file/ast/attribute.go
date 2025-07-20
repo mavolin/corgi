@@ -399,7 +399,7 @@ func (*AttributeName) _node() {}
 // ======================================================================================
 
 type AttributeReference struct {
-	Package *Ident
+	Package *Identifier
 	Dot     *Position
 	Name    *AttributeName
 }

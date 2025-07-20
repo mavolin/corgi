@@ -159,7 +159,7 @@ func (*ElementName) _node() {}
 // ======================================================================================
 
 type ElementReference struct {
-	Package *Ident
+	Package *Identifier
 	Dot     *Position
 	Name    *ElementName
 }

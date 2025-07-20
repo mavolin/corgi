@@ -22,7 +22,7 @@ func (ch *checker) CheckComponentCalls() {
 		for _, cc := range f.ComponentCalls {
 			logger := logger.With(
 				slog.String("call_package", cc.Component.File.Package.Module+"/"+cc.Component.File.Package.PathInModule),
-				slog.String("call_name", cc.Component.Header().Name.Ident),
+				slog.String("call_name", cc.Component.Header().Name.Name),
 				slog.String("call_pos", cc.AST.Start().String()))
 			logger.Debug("Checking component call")
 
@@ -213,7 +213,7 @@ func (ch *checker) CheckNoDuplicateComponentArgs(logger *slog.Logger, cc *file.C
 		if aArg == nil {
 			continue
 		}
-		aName := aArg.Name.Ident
+		aName := aArg.Name.Name
 		if reported.Contains(aName) {
 			continue
 		} else if cc.Component.ParameterByName(aName) == nil {
@@ -227,7 +227,7 @@ func (ch *checker) CheckNoDuplicateComponentArgs(logger *slog.Logger, cc *file.C
 
 		for _, b := range args[ai:] {
 			bArg, _ := b.(*ast.ComponentArgument)
-			if bArg != nil && aName == bArg.Name.Ident {
+			if bArg != nil && aName == bArg.Name.Name {
 				dupls = append(dupls, bArg)
 			}
 		}
@@ -269,7 +269,7 @@ func (ch *checker) CheckComponentArgsExist(logger *slog.Logger, cc *file.Compone
 			continue
 		}
 
-		name := carg.Name.Ident
+		name := carg.Name.Name
 		if reported.Contains(name) {
 			continue
 		} else if cc.Component.ParameterByName(name) != nil {
@@ -311,7 +311,7 @@ Params:
 			continue
 		}
 
-		logger := logger.With(slog.String("param", param.AST.Name.Ident))
+		logger := logger.With(slog.String("param", param.AST.Name.Name))
 		logger.Debug("Checking parameter")
 
 		for _, arg := range cc.AST.Header.Arguments.Args {
@@ -320,7 +320,7 @@ Params:
 				continue
 			}
 
-			if carg.Name.Ident == param.AST.Name.Ident {
+			if carg.Name.Name == param.AST.Name.Name {
 				logger.Debug("Required parameter is set", slog.String("arg_pos", carg.Start().String()))
 				continue Params // parameter is set
 			}
@@ -331,10 +331,10 @@ Params:
 		ch.Report(&diagnostic.Diagnostic{
 			Message: "component call: required parameter not set",
 			Primary: []diagnostic.Annotation{
-				anno.Node(cc.File, cc.AST.Header.Name, "requires parameter `"+param.AST.Name.Ident+"` to be set"),
+				anno.Node(cc.File, cc.AST.Header.Name, "requires parameter `"+param.AST.Name.Name+"` to be set"),
 			},
 			Explanation: "Parameters with no default, " +
-				"like `" + param.AST.Name.Ident + "`, " +
+				"like `" + param.AST.Name.Name + "`, " +
 				"are required to be set in every component call.",
 		})
 	}

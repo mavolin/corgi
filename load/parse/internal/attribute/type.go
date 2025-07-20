@@ -81,7 +81,7 @@ func TypeName() parser.Func[*ast.AttributeTypeName] {
 				Primary: quickanno.Expected(p, *n.Position, "an attribute type name"),
 			}
 		}
-		n.Name = ident.Ident
+		n.Name = ident.Name
 
 		switch n.Name {
 		case "unsafe":
