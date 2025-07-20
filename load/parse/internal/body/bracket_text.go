@@ -50,7 +50,7 @@ func VerbatimBracketText() parser.Func[*ast.BracketText] {
 			}
 		}
 
-		bt.Lines = parser.Collect(p, textLine(']'), 24, whitespace.Any())
+		bt.Lines = parser.Collect(p, verbatimTextLine(']'), 24, whitespace.Any())
 
 		parser.TrySkip(p, whitespace.Any())
 		bt.RBracket = parser.TryRuneAt(p, ']')
