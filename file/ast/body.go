@@ -137,7 +137,7 @@ func (*BadScopeNode) _node()      {}
 func (*BadScopeNode) _scopeNode() {}
 
 // ============================================================================
-// BracketText
+// Bracket Text
 // ======================================================================================
 
 type BracketText struct {
@@ -182,7 +182,7 @@ func (*BracketText) _node() {}
 func (*BracketText) _body() {}
 
 // ============================================================================
-// Underscore General Shorthand
+// Underscore Block Shorthand
 // ======================================================================================
 
 type UnderscoreBlockShorthand struct {

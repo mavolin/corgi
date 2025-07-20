@@ -106,13 +106,13 @@ func (z *analyzer) CheckCircularAlias(logger *slog.Logger, c *file.Component) {
 		var secondaries []diagnostic.Annotation
 		if len(chain) > 1 {
 			secondaries = make([]diagnostic.Annotation, 1, len(chain))
-			secondaries[0] = anno.Node(c.File, c.AliasAST.ComponentCall.Header,
+			secondaries[0] = anno.Node(c.File, c.AliasAST.ComponentCall.Header.Name,
 				"1: aliases `"+c.AliasAST.ComponentCall.Header.Name.Full()+"`")
 			for i, c := range chain[1:] {
 				secondaries = append(secondaries,
 					anno.Anno(c.File, anno.Annotation{
-						Context:    anno.ContextLines(c.AliasAST.Start(), c.AliasAST.ComponentCall.Header.End()),
-						Highlight:  anno.HighlightNode(c.AliasAST.Header),
+						Context:    anno.ContextLines(c.AliasAST.Start(), c.AliasAST.ComponentCall.Header.Name.End()),
+						Highlight:  anno.HighlightNode(c.AliasAST.Header.Name),
 						Annotation: fmt.Sprint(i+2, ": `"+c.AliasAST.Header.Name.Ident+"` is an alias of `"+c.AliasAST.ComponentCall.Header.Name.Full()+"`"),
 					}))
 			}
@@ -485,13 +485,13 @@ func (z *analyzer) aggregateDefinedComponentBlocks(logger *slog.Logger, c *file.
 		}
 
 		logger := logger.With(
-			slog.String("block", ctx.Node.Name.Ident),
+			slog.String("block", ctx.Node.Name()),
 			slog.String("block_pos", ctx.Node.Start().String()),
 			slog.String("block_child_of", instance.ChildOf.Group.Name))
 		logger.Debug("Aggregating block instance")
 
 		for _, block := range c.Blocks {
-			if block.Name == ctx.Node.Name.Ident {
+			if block.Name == ctx.Node.Name() {
 				instance.Group = block
 				block.Instances = append(block.Instances, instance)
 				logger.Debug("Block group already recorded, adding instance")
@@ -502,7 +502,7 @@ func (z *analyzer) aggregateDefinedComponentBlocks(logger *slog.Logger, c *file.
 		logger.Debug("Block group not recorded yet, creating new group")
 		group := &file.Block{
 			Component: c,
-			Name:      ctx.Node.Name.Ident,
+			Name:      ctx.Node.Name(),
 			Instances: make([]*file.BlockInstance, 0, 4),
 		}
 		instance.Group = group
@@ -569,7 +569,7 @@ func (z *analyzer) aggregateAliasComponentBlocks(logger *slog.Logger, c *file.Co
 		}
 
 		for i, group := range c.Blocks {
-			if group.Name != ctx.Node.Name.Ident {
+			if group.Name != ctx.Node.Name() {
 				continue
 			}
 
@@ -582,7 +582,7 @@ func (z *analyzer) aggregateAliasComponentBlocks(logger *slog.Logger, c *file.Co
 			// Case 1
 			group = &file.Block{
 				Component: c,
-				Name:      ctx.Node.Name.Ident,
+				Name:      ctx.Node.Name(),
 				Instances: make([]*file.BlockInstance, 1, 8),
 			}
 			instance.Group = group
@@ -594,7 +594,7 @@ func (z *analyzer) aggregateAliasComponentBlocks(logger *slog.Logger, c *file.Co
 		// Case 3
 		group := &file.Block{
 			Component: c,
-			Name:      ctx.Node.Name.Ident,
+			Name:      ctx.Node.Name(),
 			Instances: make([]*file.BlockInstance, 1, 8),
 		}
 		instance.Group = group

@@ -90,15 +90,7 @@ func With() parser.Func[*ast.With] {
 			}
 		}
 
-		w.Name = parser.Try(p, golang.Identifier())
-		if w.Name == nil {
-			p.CaptureError(&diagnostic.Diagnostic{
-				Message: "with: missing block name",
-				Primary: quickanno.Expected(p, *w.With, "a name of a block"),
-			})
-		}
-		parser.TrySkip(p, comment.OrHorizontalWhitespace())
-
+		w.Identifier = parser.TryOptional(p, golang.Identifier(), comment.OrHorizontalWhitespace())
 		w.Body = parser.Must(p, body.Body())
 		return &w, nil
 	}

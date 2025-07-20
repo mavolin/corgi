@@ -40,7 +40,7 @@ func testLineComment(t *testing.T, f parser.Func[*ast.Comment]) {
 	assert.Equal(t, expect, actual)
 }
 
-func TestBlockComment(t *testing.T) {
+func TestGeneralComment(t *testing.T) {
 	t.Parallel()
 	testBlockComment(t, GeneralComment())
 }

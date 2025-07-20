@@ -103,19 +103,27 @@ func (*ComponentCallHeader) _node() {}
 // ======================================================================================
 
 type With struct {
-	With *Position
-	Name *Ident
-	Body Body
+	With       *Position
+	Identifier *Ident // optional for default block
+	Body       Body
 }
 
 var _ ScopeNode = (*With)(nil)
+
+// Block returns the name of the block, "" for the default block.
+func (w *With) Block() string {
+	if w.Identifier != nil {
+		return w.Identifier.Ident
+	}
+	return ""
+}
 
 func (w *With) Start() Position {
 	switch {
 	case w.With != nil:
 		return *w.With
-	case w.Name != nil:
-		return w.Name.Start()
+	case w.Identifier != nil:
+		return w.Identifier.Start()
 	case w.Body != nil:
 		return w.Body.Start()
 	}
@@ -126,8 +134,8 @@ func (w *With) End() Position {
 	switch {
 	case w.Body != nil:
 		return w.Body.End()
-	case w.Name != nil:
-		return w.Name.End()
+	case w.Identifier != nil:
+		return w.Identifier.End()
 	case w.With != nil:
 		return deltaPos(*w.With, len("with"))
 	}
@@ -135,8 +143,8 @@ func (w *With) End() Position {
 }
 
 func (w *With) Walk(f func(Node)) {
-	if w.Name != nil {
-		f(w.Name)
+	if w.Identifier != nil {
+		f(w.Identifier)
 	}
 	if w.Body != nil {
 		f(w.Body)

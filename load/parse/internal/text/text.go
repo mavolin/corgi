@@ -67,6 +67,7 @@ func Line(term rune) parser.Func[ast.TextLine] {
 // VerbatimLine parses a text line consisting only of text nodes.
 // Sequences that when calling the regular [Line] would normally yield
 // other nodes, such as interpolation, will be included in text nodes.
+// The only exception are HashBrackets.
 func VerbatimLine(term rune) parser.Func[ast.TextLine] {
 	return func(p *parser.Parser) (ast.TextLine, *diagnostic.Diagnostic) {
 		var t ast.Text

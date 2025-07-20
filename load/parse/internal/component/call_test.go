@@ -199,33 +199,71 @@ func TestCallHeader(t *testing.T) {
 func TestWith(t *testing.T) {
 	t.Parallel()
 
-	in := "with foo {\n" +
-		"\tbr\n" +
-		"}"
-	expect := &ast.With{
-		With: &ast.Position{Line: 1, Col: 1},
-		Name: &ast.Ident{
-			Ident:    "foo",
-			Position: &ast.Position{Line: 1, Col: 6},
-		},
-		Body: &ast.Scope{
-			LBrace: &ast.Position{Line: 1, Col: 10},
-			Nodes: []ast.ScopeNode{
-				&ast.Element{
-					Header: &ast.ElementHeader{
-						Name: &ast.ElementReference{
-							Name: &ast.ElementName{
-								Name:     "br",
-								Position: &ast.Position{Line: 2, Col: 2},
+	testCases := []struct {
+		name   string
+		in     string
+		expect *ast.With
+	}{
+		{
+			name: "default block",
+			in: "with {\n" +
+				"\tbr" +
+				"\n}",
+			expect: &ast.With{
+				With: &ast.Position{Line: 1, Col: 1},
+				Body: &ast.Scope{
+					LBrace: &ast.Position{Line: 1, Col: len("with ") + 1},
+					Nodes: []ast.ScopeNode{
+						&ast.Element{
+							Header: &ast.ElementHeader{
+								Name: &ast.ElementReference{
+									Name: &ast.ElementName{
+										Name:     "br",
+										Position: &ast.Position{Line: 2, Col: len("\t") + 1},
+									},
+								},
 							},
 						},
 					},
+					RBrace: &ast.Position{Line: 3, Col: 1},
 				},
 			},
-			RBrace: &ast.Position{Line: 3, Col: 1},
+		}, {
+			name: "named block",
+			in: "with foo {\n" +
+				"\tbr\n" +
+				"}",
+			expect: &ast.With{
+				With: &ast.Position{Line: 1, Col: 1},
+				Identifier: &ast.Ident{
+					Ident:    "foo",
+					Position: &ast.Position{Line: 1, Col: len("with ") + 1},
+				},
+				Body: &ast.Scope{
+					LBrace: &ast.Position{Line: 1, Col: len("with foo ") + 1},
+					Nodes: []ast.ScopeNode{
+						&ast.Element{
+							Header: &ast.ElementHeader{
+								Name: &ast.ElementReference{
+									Name: &ast.ElementName{
+										Name:     "br",
+										Position: &ast.Position{Line: 2, Col: len("\t") + 1},
+									},
+								},
+							},
+						},
+					},
+					RBrace: &ast.Position{Line: 3, Col: 1},
+				},
+			},
 		},
 	}
 
-	actual := testutil.ParsesFully(t, in, With())
-	assert.Equal(t, expect, actual)
+	for _, c := range testCases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+			actual := testutil.ParsesFully(t, c.in, With())
+			assert.Equal(t, c.expect, actual)
+		})
+	}
 }

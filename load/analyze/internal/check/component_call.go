@@ -36,7 +36,6 @@ func (ch *checker) CheckComponentCalls() {
 			}
 
 			ch.CheckRequiredBlocksAreSet(logger, cc)
-			ch.CheckBlockExists(logger, cc)
 		}
 	}
 }
@@ -118,16 +117,16 @@ func (ch *checker) CheckUnreachableWiths(logger *slog.Logger, cc *file.Component
 
 	walk.WalkT(sc, func(ctx *walk.ContextT[*ast.With]) error {
 		if len(ctx.Parents) == 0 {
-			topLevelWiths[ctx.Node.Name.Ident] = append(topLevelWiths[ctx.Node.Name.Ident], ctx.Node)
+			topLevelWiths[ctx.Node.Block()] = append(topLevelWiths[ctx.Node.Block()], ctx.Node)
 		} else {
-			conditionalWiths[ctx.Node.Name.Ident] = append(conditionalWiths[ctx.Node.Name.Ident], ctx.Node)
+			conditionalWiths[ctx.Node.Block()] = append(conditionalWiths[ctx.Node.Block()], ctx.Node)
 		}
 
 		return walk.NoDive
 	}, walk.DontDiveAny(&ast.ComponentCall{}))
 
 	for _, tws := range topLevelWiths {
-		cws := conditionalWiths[tws[0].Name.Ident]
+		cws := conditionalWiths[tws[0].Block()]
 		if len(tws) <= 1 && len(cws) == 0 {
 			continue
 		}
@@ -135,17 +134,16 @@ func (ch *checker) CheckUnreachableWiths(logger *slog.Logger, cc *file.Component
 		last := tws[len(tws)-1]
 
 		primaries := make([]diagnostic.Annotation, 1, len(tws)+len(cws))
-		primaries[0] = anno.Range(cc.File, *last.With, last.Name.End(), "overwrites all of the above")
+		primaries[0] = anno.Range(cc.File, last.Start(), last.Identifier.End(), "overwrites all of the above") // todo
 
 		for _, tw := range tws[:len(tws)-1] {
-			primaries = append(primaries, anno.Range(cc.File, *tw.With, tw.Name.End(), "never actually used"))
+			primaries = append(primaries, anno.Range(cc.File, tw.Start(), tw.Identifier.End(), "never actually used")) // todo
 		}
 		for _, cw := range cws {
-			primaries = append(primaries, anno.Range(cc.File, *cw.With, cw.Name.End(), "never actually used"))
+			primaries = append(primaries, anno.Range(cc.File, cw.Start(), cw.Identifier.End(), "never actually used")) // todo
 		}
 
-		logger.
-			With(slog.String("name", last.Name.Ident)).
+		logger.With(slog.String("name", last.Block())).
 			Error("Unreachable withs")
 
 		ch.Report(&diagnostic.Diagnostic{
@@ -373,37 +371,6 @@ func (ch *checker) CheckRequiredBlocksAreSet(logger *slog.Logger, cc *file.Compo
 			Explanation: "This component requires that the `" + block.Name + "` block is always set.\n" +
 				"You can set a block using a with clause.",
 			Docs: "component-call",
-		})
-	}
-}
-
-func (ch *checker) CheckBlockExists(logger *slog.Logger, cc *file.ComponentCall) {
-	logger = logger.WithGroup("block_exists")
-	logger.Debug("Checking that all blocks specified in with clauses exists")
-
-	if cc.Component.AnalyzedWithErrors {
-		logger.Debug("Component analyzed with errors, skipping check")
-		return
-	}
-
-	for _, with := range cc.Withs {
-		logger := logger.With(slog.String("with_name", with.Name))
-		logger.Debug("Checking with block")
-
-		if cc.Component.BlockByName(with.Name) != nil {
-			logger.Debug("With block exists")
-			continue
-		}
-
-		logger.Error("With block does not exist")
-		primaries := make([]diagnostic.Annotation, len(with.Instances))
-		for i, inst := range with.Instances {
-			primaries[i] = anno.Node(cc.File, inst.AST.Name, "unknown block")
-		}
-		ch.Report(&diagnostic.Diagnostic{
-			Message:     "component call: with: block does not exist",
-			Primary:     primaries,
-			Explanation: "This component does not define a block named `" + with.Name + "`.",
 		})
 	}
 }

@@ -63,7 +63,9 @@ func (z *analyzer) AggregateWiths(logger *slog.Logger, cc *file.ComponentCall) {
 	walk.WalkT(scope, func(ctx *walk.ContextT[*ast.With]) error {
 		instance := &file.WithInstance{AST: ctx.Node}
 
-		group := cc.WithByName(ctx.Node.Name.Ident)
+		name := ctx.Node.Block()
+
+		group := cc.WithByName(name)
 		if group != nil {
 			instance.Group = group
 			group.Instances = append(group.Instances, instance)
@@ -71,7 +73,7 @@ func (z *analyzer) AggregateWiths(logger *slog.Logger, cc *file.ComponentCall) {
 		}
 
 		group = &file.With{
-			Name:      ctx.Node.Name.Ident,
+			Name:      name,
 			Instances: make([]*file.WithInstance, 1, 8),
 		}
 		instance.Group = group

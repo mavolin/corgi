@@ -240,15 +240,7 @@ func Block() parser.Func[*ast.Block] {
 			}
 		}
 
-		b.Name = parser.Try(p, golang.Identifier())
-		if b.Name == nil {
-			return nil, &diagnostic.Diagnostic{
-				Message: "block: missing name",
-				Primary: quickanno.Expected(p, *b.Block, "a name of a block"),
-			}
-		}
-
-		parser.TrySkip(p, comment.OrHorizontalWhitespace())
+		b.Identifier = parser.TryOptional(p, golang.Identifier(), comment.OrHorizontalWhitespace())
 		b.Default = parser.Try(p, body.Body())
 
 		return &b, nil

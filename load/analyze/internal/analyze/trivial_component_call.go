@@ -77,10 +77,18 @@ func (z *analyzer) LinkWithBlocks(logger *slog.Logger, cc *file.ComponentCall) {
 		if with.Block == nil {
 			cc.AnalyzedWithErrors = true
 			logger.Error("With block not found")
+
+			var primary diagnostic.Annotation
+			if with.Name == "" {
+				primary = anno.NChars(cc.File, *with.Instances[0].AST.With, len("with"), "`"+cc.AST.Header.Name.Full()+"` defines no default block")
+			} else {
+				primary = anno.Node(cc.File, with.Instances[0].AST.Identifier, "`"+cc.AST.Header.Name.Full()+"` defines no block with this name")
+			}
+
 			z.Report(&diagnostic.Diagnostic{
 				Message: "component call: with references unknown block",
 				Primary: []diagnostic.Annotation{
-					anno.Node(cc.File, with.Instances[0].AST.Name, "`"+cc.AST.Header.Name.Full()+"` defines no block with this name"),
+					primary,
 				},
 				Secondary: []diagnostic.Annotation{
 					anno.Node(cc.File, cc.AST.Header.Name, "in this component call"),

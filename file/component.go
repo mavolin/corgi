@@ -116,7 +116,7 @@ func (c *Component) BlockByName(name string) *Block {
 }
 
 func (c *Component) BlockByNode(b *ast.Block) *Block {
-	block := c.BlockByName(b.Name.Ident)
+	block := c.BlockByName(b.Name())
 	if block == nil {
 		return nil
 	}
@@ -130,7 +130,7 @@ func (c *Component) BlockByNode(b *ast.Block) *Block {
 }
 
 func (c *Component) BlockInstanceByNode(b *ast.Block) *BlockInstance {
-	block := c.BlockByName(b.Name.Ident)
+	block := c.BlockByName(b.Name())
 	if block == nil {
 		return nil
 	}
@@ -378,7 +378,7 @@ func (cc *ComponentCall) WithByName(name string) *With {
 }
 
 func (cc *ComponentCall) WithByNode(n *ast.With) *With {
-	w := cc.WithByName(n.Name.Ident)
+	w := cc.WithByName(n.Block())
 	if w == nil {
 		return nil
 	}

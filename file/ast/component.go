@@ -268,23 +268,30 @@ func (*Alias) _node()      {}
 func (*Alias) _scopeNode() {}
 
 // ============================================================================
-// General
+// Block
 // ======================================================================================
 
 type Block struct {
-	Block   *Position
-	Name    *Ident
-	Default Body // may be nil
+	Block      *Position
+	Identifier *Ident // optional for default block
+	Default    Body   // may be nil
 }
 
 var _ ScopeNode = (*Block)(nil)
+
+func (b *Block) Name() string {
+	if b.Identifier != nil {
+		return b.Identifier.Ident
+	}
+	return ""
+}
 
 func (b *Block) Start() Position {
 	switch {
 	case b.Block != nil:
 		return *b.Block
-	case b.Name != nil:
-		return b.Name.Start()
+	case b.Identifier != nil:
+		return b.Identifier.Start()
 	case b.Default != nil:
 		return b.Default.Start()
 	}
@@ -295,8 +302,8 @@ func (b *Block) End() Position {
 	switch {
 	case b.Default != nil:
 		return b.Default.End()
-	case b.Name != nil:
-		return b.Name.End()
+	case b.Identifier != nil:
+		return b.Identifier.End()
 	case b.Block != nil:
 		return deltaPos(*b.Block, len("block"))
 	}
@@ -304,8 +311,8 @@ func (b *Block) End() Position {
 }
 
 func (b *Block) Walk(w func(Node)) {
-	if b.Name != nil {
-		w(b.Name)
+	if b.Identifier != nil {
+		w(b.Identifier)
 	}
 	if b.Default != nil {
 		w(b.Default)

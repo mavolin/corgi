@@ -41,7 +41,7 @@ func TopLevel(f *file.File) Option {
 			if cc == nil {
 				panic(fmt.Sprintf("walk.TopLevel called without building symbols: %s/%s:%s: file.ComponentCall not found for ast node", f.Module, f.PathInModule, cc.AST.Start()))
 			}
-			with := cc.WithByName(n.Name.Ident)
+			with := cc.WithByNode(n)
 			if with == nil {
 				panic(fmt.Sprintf("walk.TopLevel called without analyzing component calls: %s/%s:%s: file.With not found for ast node", f.Module, f.PathInModule, n.Start()))
 			}

@@ -476,25 +476,27 @@ func TestBlock(t *testing.T) {
 		expect *ast.Block
 	}{
 		{
-			name: "with default",
-			in: "block foo {\n" +
+			name: "default block without default",
+			in:   "block",
+			expect: &ast.Block{
+				Block: &ast.Position{Line: 1, Col: 1},
+			},
+		}, {
+			name: "default block with default",
+			in: "block {\n" +
 				"\tbr\n" +
 				"}",
 			expect: &ast.Block{
 				Block: &ast.Position{Line: 1, Col: 1},
-				Name: &ast.Ident{
-					Ident:    "foo",
-					Position: &ast.Position{Line: 1, Col: 7},
-				},
 				Default: &ast.Scope{
-					LBrace: &ast.Position{Line: 1, Col: 11},
+					LBrace: &ast.Position{Line: 1, Col: len("block ") + 1},
 					Nodes: []ast.ScopeNode{
 						&ast.Element{
 							Header: &ast.ElementHeader{
 								Name: &ast.ElementReference{
 									Name: &ast.ElementName{
 										Name:     "br",
-										Position: &ast.Position{Line: 2, Col: 2},
+										Position: &ast.Position{Line: 2, Col: len("\t") + 1},
 									},
 								},
 							},
@@ -504,13 +506,41 @@ func TestBlock(t *testing.T) {
 				},
 			},
 		}, {
-			name: "without default",
+			name: "named block with default",
+			in: "block foo {\n" +
+				"\tbr\n" +
+				"}",
+			expect: &ast.Block{
+				Block: &ast.Position{Line: 1, Col: 1},
+				Identifier: &ast.Ident{
+					Ident:    "foo",
+					Position: &ast.Position{Line: 1, Col: len("block ") + 1},
+				},
+				Default: &ast.Scope{
+					LBrace: &ast.Position{Line: 1, Col: len("block foo ") + 1},
+					Nodes: []ast.ScopeNode{
+						&ast.Element{
+							Header: &ast.ElementHeader{
+								Name: &ast.ElementReference{
+									Name: &ast.ElementName{
+										Name:     "br",
+										Position: &ast.Position{Line: 2, Col: len("\t") + 1},
+									},
+								},
+							},
+						},
+					},
+					RBrace: &ast.Position{Line: 3, Col: 1},
+				},
+			},
+		}, {
+			name: "named block without default",
 			in:   "block foo",
 			expect: &ast.Block{
 				Block: &ast.Position{Line: 1, Col: 1},
-				Name: &ast.Ident{
+				Identifier: &ast.Ident{
 					Ident:    "foo",
-					Position: &ast.Position{Line: 1, Col: 7},
+					Position: &ast.Position{Line: 1, Col: len("block ") + 1},
 				},
 			},
 		},
