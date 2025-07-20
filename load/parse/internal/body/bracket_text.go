@@ -38,6 +38,7 @@ func BracketText() parser.Func[*ast.BracketText] {
 // VerbatimBracketText parses a bracket text consisting only of text nodes.
 // Sequences that when calling the regular [BracketText] would normally yield
 // other nodes, such as interpolation, will be included in text nodes.
+// The only exception are HashBrackets.
 func VerbatimBracketText() parser.Func[*ast.BracketText] {
 	return func(p *parser.Parser) (*ast.BracketText, *diagnostic.Diagnostic) {
 		var bt ast.BracketText

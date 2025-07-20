@@ -64,30 +64,6 @@ func Line(term rune) parser.Func[ast.TextLine] {
 	}
 }
 
-// VerbatimLine parses a text line consisting only of text nodes.
-// Sequences that when calling the regular [Line] would normally yield
-// other nodes, such as interpolation, will be included in text nodes.
-// The only exception are HashBrackets.
-func VerbatimLine(term rune) parser.Func[ast.TextLine] {
-	return func(p *parser.Parser) (ast.TextLine, *diagnostic.Diagnostic) {
-		var t ast.Text
-		t.Position = p.PosPtr()
-
-		t.Text = parser.TokenWhile(p, func() bool {
-			return !parser.MatchesAnyRune(p, term, '\r', '\n')
-		})
-		t.Text = strings.TrimRight(t.Text, " \t")
-		if t.Text == "" {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing text line",
-				Primary: quickanno.Expected(p, p.Pos(), "text"),
-			}
-		}
-
-		return ast.TextLine{&t}, nil
-	}
-}
-
 func Node(term rune) parser.Func[ast.TextNode] {
 	return func(p *parser.Parser) (ast.TextNode, *diagnostic.Diagnostic) {
 		if t := parser.Try(p, Text(term)); t != nil {
@@ -113,6 +89,66 @@ func Text(term rune) parser.Func[*ast.Text] {
 		t.Text = parser.TokenWhile(p, func() bool {
 			return !parser.MatchesAnyRune(p, term, '\r', '\n') &&
 				(parser.Matches(p, interpolation.UnambiguousHash()) || !parser.MatchesAnyRune(p, '#'))
+		})
+		t.Text = strings.TrimRight(t.Text, " \t")
+		if t.Text == "" {
+			return nil, &diagnostic.Diagnostic{
+				Message: "missing text",
+				Primary: quickanno.Expected(p, p.Pos(), "text"),
+			}
+		}
+
+		return &t, nil
+	}
+}
+
+// VerbatimLine parses a text line consisting only of text nodes.
+// Sequences that when calling the regular [Line] would normally yield
+// other nodes, such as interpolation, will be included in text nodes.
+// The only exception are HashBrackets.
+func VerbatimLine(term rune) parser.Func[ast.TextLine] {
+	return func(p *parser.Parser) (ast.TextLine, *diagnostic.Diagnostic) {
+		l := parser.Collect(p, VerbatimNode(term), 8, nil)
+		if len(l) == 0 {
+			return nil, &diagnostic.Diagnostic{
+				Message: "missing text line",
+				Primary: quickanno.Expected(p, p.Pos(), "text"),
+			}
+		}
+		return l, nil
+	}
+}
+
+// VerbatimNode parses a text node consisting only of text nodes.
+// Sequences that when calling the regular [Node] would normally yield
+// other nodes, such as interpolation, will be included in text nodes.
+// The only exception are escaped right brackets.
+func VerbatimNode(term rune) parser.Func[ast.TextNode] {
+	return func(p *parser.Parser) (ast.TextNode, *diagnostic.Diagnostic) {
+		if t := parser.Try(p, VerbatimText(term)); t != nil {
+			return t, nil
+		} else if escapedRBracket := parser.Try(p, interpolation.EscapedRBracket()); escapedRBracket != nil {
+			return escapedRBracket, nil
+		}
+
+		return nil, &diagnostic.Diagnostic{
+			Message: "missing text node",
+			Primary: quickanno.Expected(p, p.Pos(), "text or an escaped right bracket"),
+		}
+	}
+}
+
+// VerbatimText parses a text node consisting only of text nodes.
+// Sequences that when calling the regular [Text] would normally return to
+// allow parsing interpolation, will be included in text nodes.
+// The only exception are escaped right brackets.
+func VerbatimText(term rune) parser.Func[*ast.Text] {
+	return func(p *parser.Parser) (*ast.Text, *diagnostic.Diagnostic) {
+		var t ast.Text
+		t.Position = p.PosPtr()
+
+		t.Text = parser.TokenWhile(p, func() bool {
+			return !parser.MatchesAnyRune(p, term, '\r', '\n') && !parser.MatchesToken(p, "#]")
 		})
 		t.Text = strings.TrimRight(t.Text, " \t")
 		if t.Text == "" {

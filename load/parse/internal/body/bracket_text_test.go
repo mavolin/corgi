@@ -79,6 +79,8 @@ func testBracketText(t *testing.T, f parser.Func[*ast.BracketText]) {
 }
 
 func TestVerbatimBracketText(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name   string
 		in     string
@@ -100,11 +102,11 @@ func TestVerbatimBracketText(t *testing.T) {
 					ast.TextLine{
 						&ast.Text{
 							Text:     "foo #bar",
-							Position: &ast.Position{Line: 1, Col: 3},
+							Position: &ast.Position{Line: 1, Col: len("[ ") + 1},
 						},
 					},
 				},
-				RBracket: &ast.Position{Line: 1, Col: 7},
+				RBracket: &ast.Position{Line: 1, Col: len("[ foo #bar ") + 1},
 			},
 		}, {
 			name: "multi line",
