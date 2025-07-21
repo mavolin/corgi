@@ -175,14 +175,22 @@ func (d *Diagnostic) Short() string {
 	if typ == "" {
 		typ = Error
 	}
-	return fmt.Sprint(typ, ": ", d.Message)
+	if d.Cause == nil {
+		return fmt.Sprint(typ, ": ", d.Message)
+	}
+	return fmt.Sprint(typ, ": ", d.Message, ": ", d.Cause.Error())
 }
 
 func (d *Diagnostic) Error() string {
-	if len(d.Primary) > 0 {
-		f := d.Primary[0]
-		return fmt.Sprint(f.File.PathInModule(), ":", f.Start, ": ", d.Message)
+	message := d.Message
+	if d.Cause != nil {
+		message += ": " + d.Cause.Error()
 	}
 
-	return d.Message
+	if len(d.Primary) > 0 {
+		f := d.Primary[0]
+		return fmt.Sprint(f.File.PathInModule(), ":", f.Start, ": ", message)
+	}
+
+	return message
 }
