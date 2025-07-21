@@ -255,15 +255,17 @@ func (z *analyzer) AggregateParameters(logger *slog.Logger) {
 			slog.String("component", c.Header().Name.Name),
 			slog.String("pos", c.Start().String()))
 
+		// should've been caught by CheckCircularAlias
 		logger.Error("Failed to aggregate component parameters")
 		z.Report(&diagnostic.Diagnostic{
-			Message: "internal error: component alias: failed to aggregate parameters",
+			Type:    diagnostic.InternalError,
+			Message: "component alias: failed to aggregate parameters",
 			Primary: []diagnostic.Annotation{
 				anno.Node(c.File, c.Header().Name, "could not aggregate this component's parameters"),
 			},
 			Explanation: "This error should've been caught earlier with a better error message. " +
 				"Please open an issue.",
-		}) // should've been caught by CheckCircularAlias
+		})
 	}
 }
 

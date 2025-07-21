@@ -129,14 +129,17 @@ func (z *analyzer) AnalyzeAttrTypeComponentParam(logger *slog.Logger, param *fil
 	default:
 		logger.Error("Use of unknown attribute type as component parameter type")
 		z.Report(&diagnostic.Diagnostic{
-			Message: "internal error: component parameter: use of unknown attribute type",
+			Type:    diagnostic.InternalError,
+			Message: "component parameter: use of unknown attribute type",
 			Primary: []diagnostic.Annotation{
 				anno.Node(param.Component.File, t.Name, "unknown attribute type"),
 			},
 			Explanation: "This error can occur in one of two ways:\n" +
-				"Most likely, at some place in the program the value for this attribute type was set to an illegal value.\n" +
-				"It could also be that the parser was extended to support a new attribute type, but the analyzer " +
-				"was not updated to support it. In that case, please file a bug report.",
+				"If you are not running the corgi CLI, most likely, at some place in the program, " +
+				"the value for this attribute type was set to an illegal value.\n" +
+				"It could also be that the parser was extended to support a new attribute type, " +
+				"but the analyzer was not updated to support it.\n\n" +
+				"In any case: If you are running the corgi CLI, please open an issue, this is a bug.",
 		})
 	}
 }

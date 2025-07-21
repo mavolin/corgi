@@ -59,13 +59,15 @@ func (ch *checker) CheckClassAlwaysInnocuous(logger *slog.Logger, f *file.File, 
 		if tval != nil {
 			if tval.Type.Name.Type != ref.Type {
 				ch.Report(&diagnostic.Diagnostic{
-					Message: "internal error: analyze.CheckClassAlwaysInnocuous: resolved type and explicit type do not match",
+					Type:    diagnostic.InternalError,
+					Message: "analyze.CheckClassAlwaysInnocuous: resolved type and explicit type do not match",
 					Primary: []diagnostic.Annotation{
 						anno.Node(f, attr.Name, "typed by analyzer as `"+ref.Type.String()+"`"),
 						anno.Node(ref.Spec.File, ref.Rule, "typed in definition as `"+ref.Rule.Type.Type.String()+"`"),
 						anno.Node(f, tval.Type, "explicitly typed as `"+tval.Type.Name.Type.String()+"`"),
 					},
-					Explanation: "Using the result of the analysis, which is safe, but the error following this will be confusing.",
+					Explanation: "Using the result of the analysis, which is safe, but the error following this will be confusing.\n\n" +
+						"You should not see this error, please open an issue, this is a bug in the analyzer.",
 				})
 			}
 
@@ -87,12 +89,14 @@ func (ch *checker) CheckClassAlwaysInnocuous(logger *slog.Logger, f *file.File, 
 
 		if ref.Rule.Type.Type != ref.Type {
 			ch.Report(&diagnostic.Diagnostic{
-				Message: "internal error: analyze.CheckClassAlwaysInnocuous: resolved type and definition type do not match (found no explicit typing)",
+				Type:    diagnostic.InternalError,
+				Message: "analyze.CheckClassAlwaysInnocuous: resolved type and definition type do not match (found no explicit typing)",
 				Primary: []diagnostic.Annotation{
 					anno.Node(f, attr.Name, "typed by analyzer as `"+ref.Type.String()+"`"),
 					anno.Node(ref.Spec.File, ref.Rule, "typed in definition as `"+ref.Rule.Type.Type.String()+"`"),
 				},
-				Explanation: "Using the result of the analysis, which is safe, but the error following this will be confusing.",
+				Explanation: "Using the result of the analysis, which is safe, but the error following this will be confusing.\n\n" +
+					"You should not see this error, please open an issue, this is a bug in the analyzer.",
 			})
 			return
 		}
@@ -109,13 +113,16 @@ func (ch *checker) CheckClassAlwaysInnocuous(logger *slog.Logger, f *file.File, 
 		return
 	}
 
-	// AST was extended (or someone called analyze before linking/with linker errors)
+	// AST was extended?
 	ch.Report(&diagnostic.Diagnostic{
-		Message: "internal error: analyze.CheckClassAlwaysInnocuous: attribute is neither explicitly typed nor attached to a definition",
+		Type:    diagnostic.InternalError,
+		Message: "analyze.CheckClassAlwaysInnocuous: attribute is neither explicitly typed nor attached to a definition",
 		Primary: []diagnostic.Annotation{
 			anno.Node(f, attr.Name, "typed by analyzer as `"+ref.Type.String()+"`"),
 		},
-		Explanation: "Using the result of the analysis, which is safe, but the error following this will be confusing.",
+		Explanation: "Using the result of the analysis, which is safe, but the error following this will be confusing.\n" +
+			"This might've occurred because the AST was extended, but the analyzer wasn't subsequently updated (correctly).\n\n" +
+			"You should not see this error, please open an issue, this is a bug in the analyzer.",
 	})
 
 	ch.Report(&diagnostic.Diagnostic{
@@ -159,11 +166,13 @@ Loop:
 		default:
 			logger.Error("Attribute value is neither an expression nor typed attribute value")
 			ch.Report(&diagnostic.Diagnostic{
-				Message: "internal error: attribute value is neither an expression nor typed attribute value",
+				Type:    diagnostic.InternalError,
+				Message: "analyze.CheckNoInterpolationInUnsafeAttribute: attribute value is neither an expression nor typed attribute value",
 				Primary: []diagnostic.Annotation{
 					anno.Node(f, attr.Value, "for this node"),
 				},
-				Explanation: "This is a bug in the analyzer, please open an issue.",
+				Explanation: "This most likely happened because the ast.AttributeValue sum type was extended.\n\n" +
+					"This is a bug in the analyzer, please open an issue.",
 			})
 			return
 		}
@@ -290,11 +299,13 @@ Loop:
 		default:
 			logger.Error("Attribute value is neither an expression nor typed attribute value")
 			ch.Report(&diagnostic.Diagnostic{
-				Message: "internal error: attribute value is neither an expression nor typed attribute value",
+				Type:    diagnostic.InternalError,
+				Message: "analyze.CheckBoolAttributeSetToNonBoolExpression: attribute value is neither an expression nor typed attribute value",
 				Primary: []diagnostic.Annotation{
 					anno.Node(f, attr.Value, "for this node"),
 				},
-				Explanation: "This is a bug in the analyzer, please open an issue.",
+				Explanation: "This most likely happened because the ast.AttributeValue sum type was extended.\n\n" +
+					"This is a bug in the analyzer, please open an issue.",
 			})
 		}
 	}

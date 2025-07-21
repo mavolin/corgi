@@ -28,7 +28,7 @@ type (
 	// new paragraph or to separate different thoughts.
 	//
 	// Wrap code in backticks, e.g. `code`.
-	Diagnostic struct {
+	Diagnostic struct { //nolint:errname
 		// Type of diagnostic, used in the header, e.g. "error", "warning",
 		// "lint" etc.
 		// The empty string is equivalent to "error".
@@ -164,9 +164,10 @@ type (
 type Type string
 
 const (
-	Error   Type = "error"
-	Warning Type = "warning"
-	Lint    Type = "lint"
+	InternalError Type = "internal error"
+	Error         Type = "error"
+	Warning       Type = "warning"
+	Lint          Type = "lint"
 )
 
 func (d *Diagnostic) Short() string {

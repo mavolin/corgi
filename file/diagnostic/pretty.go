@@ -41,9 +41,10 @@ type PrettyOptions struct {
 }
 
 var defaultTypeColors = map[Type]color.Attribute{
-	Error:   color.FgRed,
-	Warning: color.FgYellow,
-	Lint:    color.FgBlue,
+	InternalError: color.FgHiMagenta,
+	Error:         color.FgRed,
+	Warning:       color.FgYellow,
+	Lint:          color.FgBlue,
 }
 
 func (o *PrettyOptions) applyDefaults() {
@@ -453,14 +454,18 @@ func (p *prettyPrinter) printHints() {
 }
 
 func (p *prettyPrinter) printDocs() {
-	if p.diagnostic.Docs == "" {
-		return
+	docs := p.diagnostic.Docs
+	if docs == "" {
+		if p.diagnostic.Type != InternalError {
+			return
+		}
+		docs = "internal-error"
 	}
 	p.uncolored("\n\n")
 	p.colored("Docs: ", color.Bold)
-	link, err := url.JoinPath(p.o.DocsBaseURL, "!"+p.diagnostic.Docs)
+	link, err := url.JoinPath(p.o.DocsBaseURL, "!"+docs)
 	if err != nil {
-		link = p.o.DocsBaseURL + "/!" + p.diagnostic.Docs
+		link = p.o.DocsBaseURL + "/!" + docs
 	}
 	p.uncolored(link)
 }
