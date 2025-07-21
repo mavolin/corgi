@@ -6,7 +6,7 @@ import (
 	"github.com/mavolin/corgi/v2/load/parse/internal/quickanno"
 )
 
-// EOL matches the EOL or EOF with optionally preceding horizontal whitespace
+// EOL matches the EOL or EOF with optionally preceding horizontal whitespace.
 func EOL() parser.WhitespaceFunc {
 	return func(p *parser.Parser) *diagnostic.Diagnostic {
 		if parser.TrySkip(p, EOF()) {

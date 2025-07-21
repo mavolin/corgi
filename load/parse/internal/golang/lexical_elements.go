@@ -292,6 +292,7 @@ func InterpretedStringLit() parser.Func[*ast.StaticString] {
 		}
 
 		index := p.Index()
+		//nolint:revive
 		for parser.TryInOrder(p, ByteValue(), UnicodeValue('"')) != "" {
 		}
 		s.Contents = p.AST.Raw[index:p.Index()]

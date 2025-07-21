@@ -22,9 +22,7 @@ func TestStatement(t *testing.T) {
 			}
 
 			ss := &ast.SimpleStatement{Nodes: make(ast.Code, len(s.Nodes))}
-			for i, sn := range s.Nodes {
-				ss.Nodes[i] = sn.(ast.CodeNode)
-			}
+			copy(ss.Nodes, s.Nodes)
 			ss.Parsed = s.Parsed.(ast.ParsedSimpleStatement)
 
 			return ss, nil

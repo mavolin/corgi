@@ -208,9 +208,7 @@ func nodesAsExpression(subTest func(t *testing.T, f parser.Func[[]ast.CodeNode])
 				return nil, err
 			}
 			ns := make([]ast.CodeNode, len(e.Nodes))
-			for i, n := range e.Nodes {
-				ns[i] = n.(ast.CodeNode)
-			}
+			copy(ns, e.Nodes)
 			return ns, err
 		})
 	}

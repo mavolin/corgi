@@ -35,21 +35,20 @@ func (l *linker) LinkComponentCalls(ctx context.Context) {
 				if ident == nil {
 					continue
 				}
-				l.linkUnqualifiedComponentCall(ctx, logger, f, cc)
+				l.linkUnqualifiedComponentCall(ctx, logger, f, cc, ident)
 			case *ast.QualifiedIdentifier:
 				if ident == nil {
 					continue
 				}
-				l.linkQualifiedComponentCall(ctx, logger, f, cc)
+				l.linkQualifiedComponentCall(ctx, logger, f, cc, ident)
 			}
 		}
 	}
 }
 
-func (l *linker) linkUnqualifiedComponentCall(_ context.Context, logger *slog.Logger, f *file.File, cc *file.ComponentCall) {
+func (l *linker) linkUnqualifiedComponentCall(_ context.Context, logger *slog.Logger, f *file.File, cc *file.ComponentCall, ident *ast.Identifier) {
 	logger.Debug("Unqualified call: local, builtin, or dot import component")
 
-	ident := cc.AST.Header.Name.(*ast.Identifier)
 	if c := l.p.ComponentByName(ident.Name); c != nil {
 		logger.Debug("Found component within package")
 		cc.Component = c
@@ -61,7 +60,7 @@ func (l *linker) linkUnqualifiedComponentCall(_ context.Context, logger *slog.Lo
 	}
 
 	var ignoreError bool
-	for _, imp := range f.Symbols.Imports {
+	for _, imp := range f.Imports {
 		if imp.Namespace() != "." {
 			continue
 		} else if imp.Package == nil {
@@ -97,17 +96,17 @@ func (l *linker) linkUnqualifiedComponentCall(_ context.Context, logger *slog.Lo
 	})
 }
 
-func (l *linker) linkQualifiedComponentCall(_ context.Context, logger *slog.Logger, f *file.File, cc *file.ComponentCall) {
+func (l *linker) linkQualifiedComponentCall(_ context.Context, logger *slog.Logger, f *file.File, cc *file.ComponentCall, ident *ast.QualifiedIdentifier) {
 	logger.Debug("Qualified call: external component")
 
-	ident := cc.AST.Header.Name.(*ast.QualifiedIdentifier)
-	if ident.Package == nil {
+	switch {
+	case ident.Package == nil:
 		logger.Warn("Qualified call with nil package, skipping")
 		return
-	} else if ident.Name == nil {
+	case ident.Name == nil:
 		logger.Warn("Qualified call with nil name, skipping")
 		return
-	} else if !file.IsExported(ident.Name.Name) {
+	case !file.IsExported(ident.Name.Name):
 		logger.Error("Qualified call to unexported component")
 		l.report(&diagnostic.Diagnostic{
 			Message: "component call: cannot call unexported component",
@@ -124,7 +123,6 @@ func (l *linker) linkQualifiedComponentCall(_ context.Context, logger *slog.Logg
 	imp := f.ImportByNamespace(ident.Package.Name)
 	if imp == nil {
 		logger.Error("Could not find import for package")
-
 		if l.reportedMissingImports[f].Contains(ident.Package.Name) {
 			l.reportedMissingImports[f].Add(ident.Package.Name)
 			l.report(&diagnostic.Diagnostic{

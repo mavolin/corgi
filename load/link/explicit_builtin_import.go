@@ -21,7 +21,7 @@ func (l *linker) CheckExplicitBuiltinImport(_ context.Context) {
 		logger := logger.With(slog.String("file", f.Name))
 		logger.Debug("Checking file")
 
-		for _, imp := range f.Symbols.Imports {
+		for _, imp := range f.Imports {
 			impPath := imp.ImportPath()
 			logger := logger.With(
 				slog.String("pos", imp.AST.Start().String()),

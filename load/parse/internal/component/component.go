@@ -162,13 +162,11 @@ func Parameter() parser.Func[*ast.ComponentParameter] {
 					},
 				})
 			}
-		} else {
-			if param.Colon == nil {
-				p.CaptureError(&diagnostic.Diagnostic{
-					Message: "component parameter: missing colon before default",
-					Primary: quickanno.Expected(p, param.Default.Start(), "a colon here"),
-				})
-			}
+		} else if param.Colon == nil {
+			p.CaptureError(&diagnostic.Diagnostic{
+				Message: "component parameter: missing colon before default",
+				Primary: quickanno.Expected(p, param.Default.Start(), "a colon here"),
+			})
 		}
 
 		return &param, nil

@@ -91,6 +91,7 @@ func (p *Parser) Index() int { return p.state.Index() }
 func (p *Parser) Inline() bool {
 	return p.state.inline
 }
+
 func (p *Parser) DoInline(f func()) {
 	if p.state.inline {
 		f()

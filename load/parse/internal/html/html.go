@@ -40,7 +40,7 @@ func AttributeName() parser.Func[string] { // https://html.spec.whatwg.org/multi
 
 func AttributeNameRune() parser.Func[rune] { // https://html.spec.whatwg.org/multipage/syntax.html#syntax-attribute-name
 	return func(p *parser.Parser) (rune, *diagnostic.Diagnostic) {
-		r := parser.TryRunePredicate(p, func(r rune) bool {
+		r := parser.TryRunePredicate(p, func(rune) bool {
 			return !codepoint.MatchesAny(p, codepoint.Control, codepoint.Noncharacter) &&
 				!parser.MatchesAnyRune(p, ' ', '"', '\'', '>', '/', '=')
 		})

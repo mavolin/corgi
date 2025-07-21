@@ -492,11 +492,12 @@ func incDec(expr *ast.Expression) parser.Func[*ast.IncDec] {
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 
 		pos := p.Pos()
-		if parser.TryToken(p, "++") {
+		switch {
+		case parser.TryToken(p, "++"):
 			incDec.IncrPos = &pos
-		} else if parser.TryToken(p, "--") {
+		case parser.TryToken(p, "--"):
 			incDec.DecrPos = &pos
-		} else {
+		default:
 			return nil, &diagnostic.Diagnostic{
 				Message: "missing inc/dec",
 				Primary: quickanno.Expected(p, pos, "`++` or `--`"),

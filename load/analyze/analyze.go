@@ -89,6 +89,8 @@ func (o *Options) applyDefaults() {
 //
 // If it returns an error, it is always of type [fileerr.List].
 func Analyze(p *file.Package, o Options) diagnostic.List {
+	o.applyDefaults()
+
 	logger := o.Logger.With(
 		slog.String("module", p.Module),
 		slog.String("path_in_module", p.PathInModule),

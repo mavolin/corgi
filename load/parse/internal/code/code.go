@@ -115,8 +115,8 @@ func goCode(o Options) parser.Func[*codeResult] {
 
 		start := p.Index()
 		type paren struct {
-			open byte
-			pos  ast.Position
+			opening byte
+			pos     ast.Position
 		}
 		parenStack := make([]paren, 0, 12)
 
@@ -139,7 +139,7 @@ func goCode(o Options) parser.Func[*codeResult] {
 
 			pos := p.Pos()
 			if r := parser.TryAnyRune(p, '(', '{', '['); r > 0 {
-				parenStack = append(parenStack, paren{open: byte(r), pos: pos})
+				parenStack = append(parenStack, paren{opening: byte(r), pos: pos})
 				if o.bodyFollows() && len(parenStack) == 1 {
 					c.Code = p.AST.Raw[start:state.Index()]
 					if c.Code != "" {
@@ -151,35 +151,35 @@ func goCode(o Options) parser.Func[*codeResult] {
 					bodyState = state
 				}
 				continue
-			} else if parser.MatchesAnyRune(p, ')', '}', ']') {
+			} else if parser.MatchesAnyRune(p, ')', '}', ']') { //nolint:gocritic
 				if len(parenStack) == 0 {
 					break
 				}
-				close := parser.NextRune(p)
+				closing := parser.NextRune(p)
 				open := parenStack[len(parenStack)-1]
 				switch {
-				case open.open == '(' && close == ')',
-					open.open == '{' && close == '}',
-					open.open == '[' && close == ']':
+				case open.opening == '(' && closing == ')',
+					open.opening == '{' && closing == '}',
+					open.opening == '[' && closing == ']':
 					parenStack = parenStack[:len(parenStack)-1]
 					if o.firstParen() && len(parenStack) == 0 {
 						break
 					}
-				case close == ')':
+				case closing == ')':
 					p.CaptureError(&diagnostic.Diagnostic{
 						Message: "go code: mismatched parentheses",
 						Primary: []diagnostic.Annotation{
 							anno.Position(p.File, pos, "this closing parenthesis does not have a matching opening parenthesis"),
 						},
 					})
-				case close == '}':
+				case closing == '}':
 					p.CaptureError(&diagnostic.Diagnostic{
 						Message: "go code: mismatched braces",
 						Primary: []diagnostic.Annotation{
 							anno.Position(p.File, pos, "this closing brace does not have a matching opening brace"),
 						},
 					})
-				case close == ']':
+				case closing == ']':
 					p.CaptureError(&diagnostic.Diagnostic{
 						Message: "go code: mismatched brackets",
 						Primary: []diagnostic.Annotation{
@@ -229,6 +229,7 @@ func goCode(o Options) parser.Func[*codeResult] {
 				break
 			}
 			if len(parenStack) == 0 {
+				//nolint:gocritic
 				if !o.statements() &&
 					(parser.MatchesAnyRune(p, ',', ':') || parser.Matches(p, golang.AssignOp())) {
 					p.RestoreState(state)
@@ -253,7 +254,7 @@ func goCode(o Options) parser.Func[*codeResult] {
 
 		noUnclosedParens := len(parenStack) == 0
 		// can happen if we're parsing inlined code
-		unclosedBlock := len(parenStack) == 1 && (parenStack[0].open == '{' || parenStack[0].open == '[')
+		unclosedBlock := len(parenStack) == 1 && (parenStack[0].opening == '{' || parenStack[0].opening == '[')
 		if o.bodyFollows() && bodyState != nil && (noUnclosedParens || unclosedBlock) {
 			p.RestoreState(bodyState)
 			exps = exps[:bodyEnd]
@@ -281,7 +282,7 @@ func goCode(o Options) parser.Func[*codeResult] {
 		exps = slices.Clip(exps)
 
 		for _, open := range slices.Backward(parenStack) {
-			switch open.open {
+			switch open.opening {
 			case '(':
 				p.CaptureError(&diagnostic.Diagnostic{
 					Message: "go code: unclosed parenthesis",

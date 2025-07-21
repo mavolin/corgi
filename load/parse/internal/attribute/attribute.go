@@ -122,13 +122,11 @@ func Reference() parser.Func[*ast.AttributeReference] {
 		if ref.Dot == nil {
 			ref.Package = nil
 			p.RestoreState(state)
-		} else {
-			if ref.Package == nil {
-				p.CaptureError(&diagnostic.Diagnostic{
-					Message: "attribute reference: missing package name",
-					Primary: quickanno.Expected(p, p.Pos(), "a package name before the `.`"),
-				})
-			}
+		} else if ref.Package == nil {
+			p.CaptureError(&diagnostic.Diagnostic{
+				Message: "attribute reference: missing package name",
+				Primary: quickanno.Expected(p, p.Pos(), "a package name before the `.`"),
+			})
 		}
 
 		var err *diagnostic.Diagnostic

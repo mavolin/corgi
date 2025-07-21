@@ -19,6 +19,7 @@ import (
 	"github.com/mavolin/corgi/v2/load/parse/internal/text"
 )
 
+//nolint:gochecknoinits
 func init() {
 	interpolation.SetExpression(code.Expression(code.Regular))
 	interpolation.SetElementHeader(element.Header())
@@ -103,9 +104,9 @@ func scopeNode(p *parser.Parser) (ast.ScopeNode, *diagnostic.Diagnostic) {
 func File() parser.Func[struct{}] {
 	return func(p *parser.Parser) (struct{}, *diagnostic.Diagnostic) {
 		parser.TrySkip(p, comment.OrAnyWhitespace())
-		p.File.AST.Package = parser.Must(p, PackageDirective())
-		p.File.AST.Imports = parser.Collect(p, Import(), 8, comment.OrAnyWhitespace())
-		for _, imp := range p.File.AST.Imports {
+		p.AST.Package = parser.Must(p, PackageDirective())
+		p.AST.Imports = parser.Collect(p, Import(), 8, comment.OrAnyWhitespace())
+		for _, imp := range p.AST.Imports {
 			for _, spec := range imp.Specs {
 				if spec.Path != nil {
 					p.Preload(spec.Path.Unquote())

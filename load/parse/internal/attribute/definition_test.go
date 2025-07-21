@@ -447,7 +447,7 @@ func testRegexpSelector(t *testing.T, f parser.Func[*ast.RegexpAttributeSelector
 			Contents: `foo\\d`,
 			Close:    &ast.Position{Line: 1, Col: 16},
 		},
-		Compiled: regexp.MustCompile("foo\\d"),
+		Compiled: regexp.MustCompile(`foo\d`),
 		RParen:   &ast.Position{Line: 1, Col: 17},
 		Regexp:   &ast.Position{Line: 1, Col: 1},
 	}

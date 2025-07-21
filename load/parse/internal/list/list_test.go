@@ -145,7 +145,7 @@ func testList(t *testing.T, name string, opening, closing rune) {
 				if !c.noClose {
 					gotIn += " other"
 				}
-				p := parsetest.NewParser(t, in)
+				p := parsetest.NewParser(t, gotIn)
 				got := parsetest.AssertMatchesButError(t, p, list(name, opening, closing, elemFunc))
 				if should.Equal(t, want, got) {
 					should.Equal(t, p.Index(), len(in))

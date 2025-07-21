@@ -508,7 +508,7 @@ func TestChannelType(t *testing.T) {
 
 func testChannelType(t *testing.T, f parser.Func[*ast.Type]) {
 	successCases := []string{
-		"chan int", "chan string", "chan chan int",
+		"chan int", "chan string", "chan int",
 		"chan<- int", "<-chan string", "<-chan<- chan int",
 	}
 

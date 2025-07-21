@@ -73,7 +73,7 @@ func BadScopeNode() parser.Func[*ast.BadScopeNode] {
 			_ = unexpected.UntilAnyRune(p, nil, '(', ')', '[', ']', '{', '}', ';')
 			b.Until = p.Pos()
 			parser.TrySkip(p, comment.OrHorizontalWhitespace())
-			if parser.MatchesAnyRune(p, '}', ';') {
+			if parser.MatchesAnyRune(p, '}', ';') { //nolint:gocritic
 				break
 			} else if parser.MatchesAnyRune(p, '{') {
 				if parser.TryOptional(p, Scope(), nil) == nil {
@@ -85,7 +85,7 @@ func BadScopeNode() parser.Func[*ast.BadScopeNode] {
 				}
 			}
 			parser.TrySkip(p, comment.OrAnyWhitespace())
-			if parser.MatchesAnyRune(p, '}') {
+			if parser.MatchesAnyRune(p, '}') { //nolint:gocritic
 				break
 			} else if parser.Matches(p, scopeNode) {
 				break
@@ -93,10 +93,9 @@ func BadScopeNode() parser.Func[*ast.BadScopeNode] {
 				break
 			}
 
-			if parser.TryOptionalRune(p, ']', nil) {
-			} else if parser.TryOptionalRune(p, '(', nil) {
-			} else if parser.TryOptionalRune(p, ')', nil) {
-			}
+			_ = parser.TryOptionalRune(p, ']', nil) ||
+				parser.TryOptionalRune(p, '(', nil) ||
+				parser.TryOptionalRune(p, ')', nil)
 		}
 
 		parser.RestoreWS(p)

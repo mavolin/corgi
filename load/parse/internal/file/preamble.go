@@ -108,12 +108,11 @@ func ImportSpec() parser.Func[*ast.ImportSpec] {
 					Message: "missing import spec",
 					Primary: quickanno.Expected(p, p.Pos(), "an import path"),
 				}
-			} else {
-				p.CaptureError(&diagnostic.Diagnostic{
-					Message: "import spec: missing path",
-					Primary: quickanno.Expected(p, p.Pos(), "an import path"),
-				})
 			}
+			p.CaptureError(&diagnostic.Diagnostic{
+				Message: "import spec: missing path",
+				Primary: quickanno.Expected(p, p.Pos(), "an import path"),
+			})
 		}
 
 		return &spec, nil

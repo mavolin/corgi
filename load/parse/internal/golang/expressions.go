@@ -74,12 +74,8 @@ func AddOp() parser.Func[string] {
 
 func MulOp() parser.Func[string] {
 	return func(p *parser.Parser) (string, *diagnostic.Diagnostic) {
-		if parser.TryToken(p, "<<") {
-			return "<<", nil
-		} else if parser.TryToken(p, ">>") {
-			return ">>", nil
-		} else if parser.TryToken(p, "&^") {
-			return "&^", nil
+		if op := parser.TryAnyToken(p, "<<", ">>", "&^"); op != "" {
+			return op, nil
 		}
 
 		r := parser.TryAnyRune(p, '*', '/', '%', '&')

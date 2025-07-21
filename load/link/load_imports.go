@@ -30,7 +30,7 @@ type (
 )
 
 func (loader *importLoader) load(ctx context.Context, l *linker, logger *slog.Logger) {
-	logger = l.logger.WithGroup("import_loader")
+	logger = logger.WithGroup("import_loader")
 	logger.Info("Loading imports")
 
 	loader.collectImports(l, logger)
@@ -115,7 +115,7 @@ func (loader *importLoader) collectImportsForComponentCalls(_ *linker, logger *s
 	}
 	if needDotImports {
 		logger.Info("Found at least one non-qualified call to an exported component, loading dot imports, if there are any")
-		for _, imp := range f.Symbols.Imports {
+		for _, imp := range f.Imports {
 			if imp.AST != nil && imp.AST.Alias != nil && imp.AST.Alias.Name == "." {
 				logger.Debug("Marking package for loading", slog.String("import", imp.ImportPath()))
 				loader.markImport(imp.ImportPath(), true)
@@ -162,7 +162,7 @@ func (loader *importLoader) collectImportsForElementReferences(_ *linker, logger
 	}
 	if needDotImports {
 		logger.Info("Found at least one non-qualified reference to an element, loading dot imports, if there are any")
-		for _, imp := range f.Symbols.Imports {
+		for _, imp := range f.Imports {
 			if imp.AST != nil && imp.AST.Alias != nil && imp.AST.Alias.Name == "." {
 				logger.Debug("Marking package for loading", slog.String("import", imp.ImportPath()))
 				loader.markImport(imp.ImportPath(), true)
@@ -211,7 +211,7 @@ func (loader *importLoader) collectImportsForAttributeReferences(_ *linker, logg
 	}
 	if needDotImports {
 		logger.Info("Found at least one non-qualified reference to an attribute, loading dot imports, if there are any")
-		for _, imp := range f.Symbols.Imports {
+		for _, imp := range f.Imports {
 			if imp.AST != nil && imp.AST.Alias != nil && imp.AST.Alias.Name == "." {
 				logger.Debug("Marking package for loading", slog.String("import", imp.ImportPath()))
 				loader.markImport(imp.ImportPath(), true)
@@ -235,7 +235,7 @@ func (loader *importLoader) localOnlyModeCheck(l *linker, logger *slog.Logger) (
 	for _, f := range l.p.Files {
 		logger := logger.With(slog.String("file", f.Name))
 
-		for _, imp := range f.Symbols.Imports {
+		for _, imp := range f.Imports {
 			if imp == nil {
 				continue
 			}
@@ -322,7 +322,7 @@ func (loader *importLoader) setImports(l *linker, logger *slog.Logger) {
 		logger := logger.With(slog.String("file", f.Name))
 		logger.Debug("Setting file")
 
-		for _, imp := range f.Symbols.Imports {
+		for _, imp := range f.Imports {
 			p := imp.ImportPath()
 			if p != "" {
 				logger := logger.With(slog.String("import", p))

@@ -24,7 +24,7 @@ type duplicateElementDefinitionChecker struct { // package level
 }
 
 func (c *duplicateElementDefinitionChecker) check(l *linker, logger *slog.Logger) {
-	logger = l.logger.WithGroup("check.duplicate_element_definitions")
+	logger = logger.WithGroup("check.duplicate_element_definitions")
 	logger.Info("Checking for duplicate element definitions")
 
 	if len(l.p.ElementDefinitions) <= 1 {

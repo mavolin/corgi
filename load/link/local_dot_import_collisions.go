@@ -20,7 +20,7 @@ func (l *linker) CheckLocalDotImportCollisions(_ context.Context) {
 
 	for _, f := range l.p.Files {
 		dotImports = dotImports[:0]
-		for _, imp := range f.Symbols.Imports {
+		for _, imp := range f.Imports {
 			if imp == nil || imp.AST == nil || imp.AST.Alias == nil || imp.AST.Alias.Name != "." || imp.Package == nil {
 				continue
 			} else if slices.Contains(dotImports, imp) {
@@ -168,6 +168,10 @@ func (c *localDotImportElementDefinitionCollisionChecker) checkFile(l *linker, l
 	logger.Info("Checking for collisions through element definitions")
 
 	for _, localElemDef := range l.p.ElementDefinitions {
+		if !c.shouldCheck(localElemDef) {
+			continue
+		}
+
 		localName := localElemDef.FullName()
 		logger := logger.With(
 			slog.String("pos", localElemDef.AST.Start().String()),
@@ -266,7 +270,7 @@ func (c *localDotImportAttributeDefinitionCollisionChecker) checkFile(l *linker,
 			continue
 		}
 
-		aName, aSelector := c.attrName(localAttrDef)
+		aName, aSelector := c.attrName(localAttrDef, aSel)
 
 		logger := logger.With(
 			slog.String("pos", localAttrDef.AST.Start().String()),
@@ -282,7 +286,7 @@ func (c *localDotImportAttributeDefinitionCollisionChecker) checkFile(l *linker,
 					continue
 				}
 
-				impName, impSelector := c.attrName(impAttrDef)
+				impName, impSelector := c.attrName(impAttrDef, aSel)
 
 				if aSel.Wildcard {
 					if impSel.Wildcard {
@@ -382,8 +386,7 @@ func (c localDotImportAttributeDefinitionCollisionChecker) basicSelector(attr *f
 	return sel
 }
 
-func (c localDotImportAttributeDefinitionCollisionChecker) attrName(attr *file.AttributeSpec) (name, selector string) {
-	sel := attr.AST.Selector.(*ast.BasicAttributeSelector)
+func (c localDotImportAttributeDefinitionCollisionChecker) attrName(attr *file.AttributeSpec, sel *ast.BasicAttributeSelector) (name, selector string) {
 	if attr.Definition != nil && attr.Definition.Prefix != nil {
 		name = attr.Definition.Prefix.Name + sel.Name
 	} else {

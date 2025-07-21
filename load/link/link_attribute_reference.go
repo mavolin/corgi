@@ -63,7 +63,7 @@ func (l *linker) linkUnqualifiedAttributeReference(_ context.Context, logger *sl
 	packageMatches := f.Package.AttributeDefinitionByFullName(name)
 	equalSpecificityMatches = packageMatches
 
-	for _, imp := range f.Symbols.Imports {
+	for _, imp := range f.Imports {
 		if imp.Namespace() != "." || imp.Package == nil {
 			continue
 		}

@@ -91,7 +91,7 @@ func Link(ctx context.Context, p *file.Package, o Options) diagnostic.List {
 		reportedMissingImports: make(map[*file.File]*set.SliceSet[importPath], len(p.Files)),
 	}
 	for _, f := range p.Files {
-		l.reportedMissingImports[f] = set.NewSliceSet[importPath](len(f.Symbols.Imports))
+		l.reportedMissingImports[f] = set.NewSliceSet[importPath](len(f.Imports))
 	}
 
 	l.CheckImportCycles(ctx)

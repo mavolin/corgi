@@ -32,12 +32,12 @@ type importNamespaceCollisionChecker struct { // file level
 func (c *importNamespaceCollisionChecker) checkFile(l *linker, logger *slog.Logger, f *file.File) {
 	logger = logger.With(slog.String("file", f.Name))
 	logger.Debug("Checking file")
-	if len(f.Symbols.Imports) <= 1 {
+	if len(f.Imports) <= 1 {
 		logger.Debug("One or no imports, skipping")
 		return
 	}
 
-	for ai, a := range f.Symbols.Imports[:len(f.Symbols.Imports)-1] {
+	for ai, a := range f.Imports[:len(f.Imports)-1] {
 		aNamespace := a.Namespace()
 		if aNamespace == "" || aNamespace == "." {
 			continue
@@ -55,7 +55,7 @@ func (c *importNamespaceCollisionChecker) checkFile(l *linker, logger *slog.Logg
 		}
 		c.resetDuplicates()
 
-		for _, b := range f.Symbols.Imports[ai+1:] {
+		for _, b := range f.Imports[ai+1:] {
 			bNamespace := b.Namespace()
 			if bNamespace == "" {
 				continue

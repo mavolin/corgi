@@ -437,18 +437,18 @@ func formatDirective() parser.Func[string] {
 		startIndex := p.Index()
 
 		// flag
-		for parser.TryAnyRune(p, '+', '-', '#', ' ', '0') > 0 {
+		for parser.TryAnyRune(p, '+', '-', '#', ' ', '0') > 0 { //nolint:revive
 		}
 
 		// width
 		if parser.TryRunePredicate(p, isInRange('1', '9')) > 0 {
-			for parser.TryRunePredicate(p, isInRange('0', '9')) > 0 {
+			for parser.TryRunePredicate(p, isInRange('0', '9')) > 0 { //nolint:revive
 			}
 		}
 
 		// precision
 		if parser.TryRune(p, '.') {
-			for parser.TryRunePredicate(p, isInRange('0', '9')) > 0 {
+			for parser.TryRunePredicate(p, isInRange('0', '9')) > 0 { //nolint:revive
 			}
 		}
 

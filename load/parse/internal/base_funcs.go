@@ -177,11 +177,11 @@ func TokenWhile(p *Parser, pred func() bool) string {
 		i = p.Index()
 	}
 	p.state.ws = nil // the predicate might've set a restore point
-	return p.File.AST.Raw[start:p.Index()]
+	return p.AST.Raw[start:p.Index()]
 }
 
-func Collect[T any](p *Parser, f Func[T], cap int, ws WhitespaceFunc) []T {
-	ts := make([]T, 0, cap)
+func Collect[T any](p *Parser, f Func[T], capacity int, ws WhitespaceFunc) []T {
+	ts := make([]T, 0, capacity)
 	for {
 		if ws != nil {
 			TrySkip(p, ws)

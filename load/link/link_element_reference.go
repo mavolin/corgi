@@ -54,7 +54,7 @@ func (l *linker) linkUnqualifiedElementReference(_ context.Context, logger *slog
 	}
 
 	var ignoreError bool
-	for _, imp := range f.Symbols.Imports {
+	for _, imp := range f.Imports {
 		if imp.Namespace() != "." {
 			continue
 		} else if imp.Package == nil {

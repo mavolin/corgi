@@ -49,7 +49,7 @@ func Horizontal() parser.WhitespaceFunc {
 			}
 		}
 
-		for parser.TryAnyRune(p, ' ', '\t') > 0 {
+		for parser.TryAnyRune(p, ' ', '\t') > 0 { //nolint:revive
 		}
 		return nil
 	}
@@ -66,7 +66,7 @@ func Vertical() parser.WhitespaceFunc {
 			}
 		}
 
-		for parser.TryAnyToken(p, "\n", "\r\n") != "" {
+		for parser.TryAnyToken(p, "\n", "\r\n") != "" { //nolint:revive
 		}
 		return nil
 	}

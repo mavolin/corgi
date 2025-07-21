@@ -221,7 +221,6 @@ func testAliasType(t *testing.T, f parser.Func[*ast.AliasElementType]) {
 
 	got := parsetest.ParsesFully(t, in, f)
 	should.Equal(t, want, got)
-
 }
 
 func TestTypeName(t *testing.T) {

@@ -31,12 +31,12 @@ func (c *duplicateDotImportChecker) checkFile(l *linker, logger *slog.Logger, f 
 	logger = logger.With(slog.String("file", f.Name))
 	logger.Debug("Checking file")
 
-	if len(f.Symbols.Imports) <= 1 {
+	if len(f.Imports) <= 1 {
 		logger.Debug("One or no imports, skipping")
 		return
 	}
 
-	for ai, a := range f.Symbols.Imports[:len(f.Symbols.Imports)-1] {
+	for ai, a := range f.Imports[:len(f.Imports)-1] {
 		if c.shouldCheck(a) {
 			continue
 		}
@@ -57,7 +57,7 @@ func (c *duplicateDotImportChecker) checkFile(l *linker, logger *slog.Logger, f 
 		c.checked.Add(aImpPath)
 		c.resetDuplicates()
 
-		for _, b := range f.Symbols.Imports[ai+1:] {
+		for _, b := range f.Imports[ai+1:] {
 			if c.shouldCheck(b) {
 				continue
 			}
@@ -91,7 +91,6 @@ func (c *duplicateDotImportChecker) reportDuplicate(l *linker, logger *slog.Logg
 			{Hint: "Remove the duplicate dot imports."},
 		},
 	})
-
 }
 
 func (c *duplicateDotImportChecker) resetDuplicates() {

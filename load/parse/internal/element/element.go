@@ -29,7 +29,6 @@ func Doctype() parser.Func[*ast.Doctype] {
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 
 		args := parser.Try(p, argument.Arguments())
-		d.LParen, d.RParen = args.LParen, args.RParen
 		if args == nil {
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "doctype: missing html attribute",
@@ -40,12 +39,17 @@ func Doctype() parser.Func[*ast.Doctype] {
 			})
 			return &d, nil
 		}
-		if len(args.Args) == 0 {
+		d.LParen, d.RParen = args.LParen, args.RParen
+		switch {
+		case len(args.Args) == 0:
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "doctype: missing html attribute",
 				Primary: quickanno.Expected(p, *args.LParen, "an html attribute"),
+				Examples: []diagnostic.Example{
+					{Example: "`!doctype(html)`"},
+				},
 			})
-		} else if len(args.Args) == 1 {
+		case len(args.Args) == 1:
 			attr, ok := args.Args[0].(*ast.NamedAttribute)
 			if !ok {
 				p.CaptureError(&diagnostic.Diagnostic{
@@ -77,7 +81,7 @@ func Doctype() parser.Func[*ast.Doctype] {
 					})
 				}
 			}
-		} else {
+		default:
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "doctype: too many attributes",
 				Primary: []diagnostic.Annotation{
@@ -141,13 +145,11 @@ func Reference() parser.Func[*ast.ElementReference] {
 		if ref.Dot == nil {
 			ref.Package = nil
 			p.RestoreState(state)
-		} else {
-			if ref.Package == nil {
-				p.CaptureError(&diagnostic.Diagnostic{
-					Message: "attribute reference: missing package name",
-					Primary: quickanno.Expected(p, p.Pos(), "a package name before the `.`"),
-				})
-			}
+		} else if ref.Package == nil {
+			p.CaptureError(&diagnostic.Diagnostic{
+				Message: "attribute reference: missing package name",
+				Primary: quickanno.Expected(p, p.Pos(), "a package name before the `.`"),
+			})
 		}
 
 		var err *diagnostic.Diagnostic

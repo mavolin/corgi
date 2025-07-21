@@ -25,7 +25,7 @@ type importCycleChecker struct { // package level
 }
 
 func (c *importCycleChecker) check(ctx context.Context, l *linker, logger *slog.Logger) {
-	logger = l.logger.WithGroup("check.import_cycles")
+	logger = logger.WithGroup("check.import_cycles")
 
 	if logger.Enabled(ctx, slog.LevelInfo) {
 		imports := make([]string, len(c.importersGraph))
@@ -48,7 +48,7 @@ func (c *importCycleChecker) checkFile(l *linker, logger *slog.Logger, f *file.F
 	logger = logger.With(slog.String("file", f.Name))
 	logger.Debug("Checking file")
 
-	for _, imp := range f.Symbols.Imports {
+	for _, imp := range f.Imports {
 		c.checkImport(l, logger, f, imp)
 	}
 }

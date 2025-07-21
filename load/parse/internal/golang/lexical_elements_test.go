@@ -71,7 +71,6 @@ func TestUnicodeValue(t *testing.T) {
 			return rs[0], nil
 		})
 	})
-
 }
 
 func TestByteValue(t *testing.T) {
