@@ -9,7 +9,6 @@ import (
 	"github.com/mavolin/corgi/v2/file/ast"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
 	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
-	"github.com/mavolin/corgi/v2/load/analyze/internal/context"
 )
 
 func (ch *checker) CheckComponents() {
@@ -184,26 +183,18 @@ func (ch *checker) CheckReservedComponentNames(logger *slog.Logger, c *file.Comp
 	logger.Debug("Checking that component is not using a reserved name")
 
 	name := c.Header().Name.Name
-	keyword := context.IsKeyword(name)
-	if !keyword && name != "state" && name != "ctx" {
+	if name != "ctx" {
 		return
 	}
 
 	logger.Error("Component uses reserved name")
-	d := &diagnostic.Diagnostic{
+	ch.Report(&diagnostic.Diagnostic{
 		Message: "component uses reserved name",
-		Hints:   []diagnostic.Hint{{Hint: "Rename this component."}},
-	}
-	if keyword {
-		d.Primary = []diagnostic.Annotation{
-			anno.Node(c.File, c.Header().Name, "this component is named `"+name+"`, which is a Go keyword"),
-		}
-	} else {
-		d.Primary = []diagnostic.Annotation{
+		Primary: []diagnostic.Annotation{
 			anno.Node(c.File, c.Header().Name, "this component is named `"+name+"`, which is a reserved name"),
-		}
-	}
-	ch.Report(d)
+		},
+		Hints: []diagnostic.Hint{{Hint: "Rename this component."}},
+	})
 }
 
 // ============================================================================
@@ -256,24 +247,16 @@ func (ch *checker) CheckReservedComponentParamName(logger *slog.Logger, c *file.
 	logger.Debug("Checking that parameter doesn't use a reserved name")
 
 	name := param.AST.Name.Name
-	keyword := context.IsKeyword(name)
-	if !keyword && name != "state" && name != "ctx" {
+	if name != "ctx" {
 		return
 	}
 
 	logger.Error("Component parameter uses reserved name")
-	d := &diagnostic.Diagnostic{
+	ch.Report(&diagnostic.Diagnostic{
 		Message: "component parameter uses reserved name",
-		Hints:   []diagnostic.Hint{{Hint: "Rename this parameter."}},
-	}
-	if keyword {
-		d.Primary = []diagnostic.Annotation{
-			anno.Node(c.File, c.Header().Name, "this parameter is named `"+name+"`, which is a Go keyword"),
-		}
-	} else {
-		d.Primary = []diagnostic.Annotation{
+		Primary: []diagnostic.Annotation{
 			anno.Node(c.File, c.Header().Name, "this parameter is named `"+name+"`, which is a reserved name"),
-		}
-	}
-	ch.Report(d)
+		},
+		Hints: []diagnostic.Hint{{Hint: "Rename this parameter."}},
+	})
 }

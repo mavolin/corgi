@@ -27,9 +27,9 @@ func Identifier() parser.Func[*ast.Identifier] { // https://go.dev/ref/spec#Iden
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "keyword used as identifier",
 				Primary: quickanno.Expected(p, p.Pos(), "an identifier"),
-				Explanation: "Go reserves certain words as keywords with a special meaning, " +
-					"for example `if` and `else`. Because of their special meaning, you can't " +
-					"use them as identifiers. `" + ident.Name + "` is one of those keywords.",
+				Explanation: "Go and Corgi reserve certain words as keywords, e.g. `if` or `comp`. " +
+					"Because of their special meaning, you can't use them as identifiers. " +
+					ident.Name + "` is one of those keywords.",
 				Hints: []diagnostic.Hint{{Hint: "Use a different identifier."}},
 			})
 		}

@@ -67,7 +67,6 @@ import (
 // todo: and with and placeholder in alias component call (and placeholder gets inherited anyway, or should it?)
 // todo: scope type assertions don't work on underscore blocks
 // todo: block annotations need to be corrected
-// todo: no keywords as identifiers
 
 // todo: should withs include underscore block shorthand?? prob yes
 

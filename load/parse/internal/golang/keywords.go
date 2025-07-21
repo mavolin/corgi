@@ -35,6 +35,13 @@ func IsKeyword(s string) bool { // https://go.dev/ref/spec#Keywords
 	case "switch":
 	case "type":
 	case "var":
+	// corgi
+	case "comp":
+	case "with":
+	case "state":
+	case "attr":
+	case "elem":
+	case "ordered":
 	default:
 		return false
 	}
