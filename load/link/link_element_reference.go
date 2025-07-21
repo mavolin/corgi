@@ -47,7 +47,7 @@ func (l *linker) linkUnqualifiedElementReference(_ context.Context, logger *slog
 	logger.Debug("Unqualified element reference: local, builtin or dot import element definition")
 
 	name := ref.AST.Name.Name
-	if def := f.Package.ElementDefinitionByFullName(name); def != nil {
+	if def := f.Package.ElementSpecByFullName(name); def != nil {
 		ref.Spec = def
 		logger.Debug("Found element definition within package")
 		return
@@ -62,7 +62,7 @@ func (l *linker) linkUnqualifiedElementReference(_ context.Context, logger *slog
 			continue
 		}
 
-		if def := imp.Package.ElementDefinitionByFullName(name); def != nil {
+		if def := imp.Package.ElementSpecByFullName(name); def != nil {
 			logger.Debug("Found component within dot import",
 				slog.String("import", imp.Package.PathInModule))
 			return
@@ -74,7 +74,7 @@ func (l *linker) linkUnqualifiedElementReference(_ context.Context, logger *slog
 	}
 
 	if l.builtin != nil {
-		if def := l.builtin.ElementDefinitionByFullName(name); def != nil {
+		if def := l.builtin.ElementSpecByFullName(name); def != nil {
 			ref.Spec = def
 			logger.Debug("Found element definition within builtin package")
 			return
@@ -118,7 +118,7 @@ func (l *linker) linkQualifiedElementReference(_ context.Context, logger *slog.L
 		return
 	}
 
-	ref.Spec = imp.Package.ElementDefinitionByQualifiedName(ref.AST.Name.Name)
+	ref.Spec = imp.Package.ElementSpecByQualifiedName(ref.AST.Name.Name)
 	if ref.Spec == nil {
 		logger.Error("Could not resolve reference")
 		l.report(&diagnostic.Diagnostic{

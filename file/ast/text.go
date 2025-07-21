@@ -11,7 +11,10 @@ type ArrowBlock struct {
 	Lines TextBlock
 }
 
-var _ ScopeNode = (*ArrowBlock)(nil)
+var (
+	_ ScopeNode   = (*ArrowBlock)(nil)
+	_ Highlighter = (*ArrowBlock)(nil)
+)
 
 func (b *ArrowBlock) Start() Position {
 	if b.Arrow != nil {
@@ -36,6 +39,13 @@ func (b *ArrowBlock) Walk(w func(Node)) {
 	if b.Lines != nil {
 		w(b.Lines)
 	}
+}
+
+func (b *ArrowBlock) Highlight() (start, end Position) {
+	if len(b.Lines) != 1 && b.Arrow != nil {
+		return *b.Arrow, deltaPos(*b.Arrow, len(">"))
+	}
+	return b.Start(), b.End()
 }
 
 func (*ArrowBlock) _node()      {}

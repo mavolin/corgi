@@ -48,48 +48,62 @@ type Import struct {
 	RParen *Position // nil if this is a single-line import
 }
 
-var _ Node = (*Import)(nil)
+var (
+	_ Node        = (*Import)(nil)
+	_ Highlighter = (*Import)(nil)
+)
 
-func (i *Import) Start() Position {
-	if i.Import != nil {
-		return *i.Import
-	} else if i.LParen != nil {
-		return *i.LParen
+func (imp *Import) Start() Position {
+	if imp.Import != nil {
+		return *imp.Import
+	} else if imp.LParen != nil {
+		return *imp.LParen
 	}
-	for _, spec := range i.Specs {
+	for _, spec := range imp.Specs {
 		if spec != nil {
 			return spec.Start()
 		}
 	}
-	if i.RParen != nil {
-		return *i.RParen
+	if imp.RParen != nil {
+		return *imp.RParen
 	}
 	return Position{}
 }
 
-func (i *Import) End() Position {
-	if i.RParen != nil {
-		return deltaPos(*i.RParen, len(")"))
+func (imp *Import) End() Position {
+	if imp.RParen != nil {
+		return deltaPos(*imp.RParen, len(")"))
 	}
-	for _, spec := range slices.Backward(i.Specs) {
+	for _, spec := range slices.Backward(imp.Specs) {
 		if spec != nil {
 			return spec.End()
 		}
 	}
-	if i.LParen != nil {
-		return deltaPos(*i.LParen, len("("))
-	} else if i.Import != nil {
-		return deltaPos(*i.Import, len("import"))
+	if imp.LParen != nil {
+		return deltaPos(*imp.LParen, len("("))
+	} else if imp.Import != nil {
+		return deltaPos(*imp.Import, len("import"))
 	}
 	return Position{}
 }
 
-func (i *Import) Walk(w func(Node)) {
-	for _, spec := range i.Specs {
+func (imp *Import) Walk(w func(Node)) {
+	for _, spec := range imp.Specs {
 		if spec != nil {
 			w(spec)
 		}
 	}
+}
+
+func (imp *Import) Highlight() (start, end Position) {
+	start, end = imp.Start(), imp.End()
+	if imp.LParen == nil && start.Line >= end.Line-3 {
+		return start, end
+	}
+	if imp.Import != nil {
+		return *imp.Import, deltaPos(*imp.Import, len("import"))
+	}
+	return start, end
 }
 
 func (*Import) _node() {}

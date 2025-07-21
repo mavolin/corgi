@@ -10,7 +10,10 @@ type ComponentCall struct {
 	Body   Body
 }
 
-var _ ScopeNode = (*ComponentCall)(nil)
+var (
+	_ ScopeNode   = (*ComponentCall)(nil)
+	_ Highlighter = (*ComponentCall)(nil)
+)
 
 func (c *ComponentCall) Start() Position {
 	switch {
@@ -43,6 +46,16 @@ func (c *ComponentCall) Walk(w func(Node)) {
 	if c.Body != nil {
 		w(c.Body)
 	}
+}
+
+func (c *ComponentCall) Highlight() (start, end Position) {
+	if c.Colon != nil {
+		if c.Header != nil && c.Header.Name != nil {
+			return *c.Colon, c.Header.Name.End()
+		}
+		return *c.Colon, deltaPos(*c.Colon, len(":"))
+	}
+	return c.Start(), c.End()
 }
 
 func (*ComponentCall) _node()      {}
@@ -108,10 +121,13 @@ type With struct {
 	Body       Body
 }
 
-var _ ScopeNode = (*With)(nil)
+var (
+	_ ScopeNode   = (*With)(nil)
+	_ Highlighter = (*With)(nil)
+)
 
-// Block returns the name of the block, "" for the default block.
-func (w *With) Block() string {
+// Name returns the name of the block, "" for the default block.
+func (w *With) Name() string {
 	if w.Identifier != nil {
 		return w.Identifier.Name
 	}
@@ -149,6 +165,16 @@ func (w *With) Walk(f func(Node)) {
 	if w.Body != nil {
 		f(w.Body)
 	}
+}
+
+func (w *With) Highlight() (start, end Position) {
+	if w.With != nil {
+		if w.Identifier != nil {
+			return *w.With, w.Identifier.End()
+		}
+		return *w.With, deltaPos(*w.With, len("with"))
+	}
+	return w.Start(), w.End()
 }
 
 func (*With) _node()      {}

@@ -14,7 +14,10 @@ type ElementDefinition struct {
 	RParen *Position // nil if not a list
 }
 
-var _ ScopeNode = (*ElementDefinition)(nil)
+var (
+	_ ScopeNode   = (*ElementDefinition)(nil)
+	_ Highlighter = (*ElementDefinition)(nil)
+)
 
 func (d *ElementDefinition) Start() Position {
 	switch {
@@ -65,6 +68,17 @@ func (d *ElementDefinition) Walk(w func(Node)) {
 			w(spec)
 		}
 	}
+}
+
+func (d *ElementDefinition) Highlight() (start, end Position) {
+	start, end = d.Start(), d.End()
+	if d.LParen == nil && start.Line >= end.Line-3 {
+		return start, end
+	}
+	if d.Elem != nil {
+		return *d.Elem, deltaPos(*d.Elem, len("elem"))
+	}
+	return start, end
 }
 
 func (*ElementDefinition) _node()      {}

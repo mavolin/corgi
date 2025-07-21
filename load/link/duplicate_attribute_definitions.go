@@ -14,7 +14,7 @@ import (
 
 func (l *linker) CheckDuplicateAttributeDefinitions(_ context.Context) {
 	(&duplicateAttributeDefinitionChecker{
-		reported:          set.NewSliceSet[*file.AttributeSpec](max(len(l.p.AttributeDefinitions)-1, 0)),
+		reported:          set.NewSliceSet[*file.AttributeSpec](max(len(l.p.AttributeSpecs)-1, 0)),
 		duplDefs:          make([]*file.AttributeSpec, 0, 8),
 		duplQualifiedDefs: make([]*file.AttributeSpec, 0, 8),
 	}).check(l, l.logger)
@@ -32,12 +32,12 @@ func (c *duplicateAttributeDefinitionChecker) check(l *linker, logger *slog.Logg
 	logger = logger.WithGroup("check.duplicate_attribute_definitions")
 	logger.Info("Checking for duplicate attribute definitions")
 
-	if len(l.p.AttributeDefinitions) <= 1 {
+	if len(l.p.AttributeSpecs) <= 1 {
 		logger.Info("One or no attribute definitions, skipping")
 		return
 	}
 
-	for ai, a := range l.p.AttributeDefinitions[:len(l.p.AttributeDefinitions)-1] {
+	for ai, a := range l.p.AttributeSpecs[:len(l.p.AttributeSpecs)-1] {
 		aInfo := attrDefInfo(a)
 		if aInfo == nil {
 			continue
@@ -58,7 +58,7 @@ func (c *duplicateAttributeDefinitionChecker) check(l *linker, logger *slog.Logg
 
 		c.resetDuplicates()
 
-		for _, b := range l.p.AttributeDefinitions[ai+1:] {
+		for _, b := range l.p.AttributeSpecs[ai+1:] {
 			bInfo := attrDefInfo(b)
 			if bInfo == nil {
 				continue
@@ -77,7 +77,9 @@ func (c *duplicateAttributeDefinitionChecker) check(l *linker, logger *slog.Logg
 	}
 }
 
-func (c *duplicateAttributeDefinitionChecker) reportDuplicate(l *linker, logger *slog.Logger, first *file.AttributeSpec, duplDefs []*file.AttributeSpec) {
+func (c *duplicateAttributeDefinitionChecker) reportDuplicate(
+	l *linker, logger *slog.Logger, first *file.AttributeSpec, duplDefs []*file.AttributeSpec,
+) {
 	logger.Error("Found duplicate attribute definitions")
 
 	primaries := make([]diagnostic.Annotation, 0, 2*(len(duplDefs)+1))
@@ -96,7 +98,9 @@ func (c *duplicateAttributeDefinitionChecker) reportDuplicate(l *linker, logger 
 	})
 }
 
-func (c *duplicateAttributeDefinitionChecker) appendDuplicateAnnotation(as []diagnostic.Annotation, def *file.AttributeSpec, reportedPrefixes *set.SliceSet[*ast.AttributeDefinition]) []diagnostic.Annotation {
+func (c *duplicateAttributeDefinitionChecker) appendDuplicateAnnotation(
+	as []diagnostic.Annotation, def *file.AttributeSpec, reportedPrefixes *set.SliceSet[*ast.AttributeDefinition],
+) []diagnostic.Annotation {
 	txt := "first defined here"
 	if len(as) > 0 {
 		txt = "then again here"

@@ -46,7 +46,9 @@ func (l *linker) LinkComponentCalls(ctx context.Context) {
 	}
 }
 
-func (l *linker) linkUnqualifiedComponentCall(_ context.Context, logger *slog.Logger, f *file.File, cc *file.ComponentCall, ident *ast.Identifier) {
+func (l *linker) linkUnqualifiedComponentCall(
+	_ context.Context, logger *slog.Logger, f *file.File, cc *file.ComponentCall, ident *ast.Identifier,
+) {
 	logger.Debug("Unqualified call: local, builtin, or dot import component")
 
 	if c := l.p.ComponentByName(ident.Name); c != nil {
@@ -96,7 +98,9 @@ func (l *linker) linkUnqualifiedComponentCall(_ context.Context, logger *slog.Lo
 	})
 }
 
-func (l *linker) linkQualifiedComponentCall(_ context.Context, logger *slog.Logger, f *file.File, cc *file.ComponentCall, ident *ast.QualifiedIdentifier) {
+func (l *linker) linkQualifiedComponentCall(
+	_ context.Context, logger *slog.Logger, f *file.File, cc *file.ComponentCall, ident *ast.QualifiedIdentifier,
+) {
 	logger.Debug("Qualified call: external component")
 
 	switch {
@@ -128,7 +132,7 @@ func (l *linker) linkQualifiedComponentCall(_ context.Context, logger *slog.Logg
 			l.report(&diagnostic.Diagnostic{
 				Message: "component call: unresolved reference to package",
 				Primary: []diagnostic.Annotation{
-					anno.Node(f, ident.Package, "missing import for this package"),
+					anno.Node(f, ident.Package, "missing import for package"),
 				},
 			})
 		}

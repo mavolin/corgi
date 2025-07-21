@@ -14,7 +14,10 @@ type Component struct {
 	Body   Body
 }
 
-var _ ScopeNode = (*Component)(nil)
+var (
+	_ ScopeNode   = (*Component)(nil)
+	_ Highlighter = (*Component)(nil)
+)
 
 func (c *Component) Start() Position {
 	switch {
@@ -44,6 +47,16 @@ func (c *Component) End() Position {
 		return deltaPos(*c.Comp, len("comp"))
 	}
 	return Position{}
+}
+
+func (c *Component) Highlight() (start, end Position) {
+	if c.Comp != nil {
+		if c.Header != nil && c.Header.Name != nil {
+			return *c.Comp, c.Header.Name.End()
+		}
+		return *c.Comp, deltaPos(*c.Comp, len("comp"))
+	}
+	return c.Start(), c.End()
 }
 
 func (c *Component) Walk(w func(Node)) {
@@ -277,7 +290,10 @@ type Block struct {
 	Default    Body        // may be nil
 }
 
-var _ ScopeNode = (*Block)(nil)
+var (
+	_ ScopeNode   = (*Block)(nil)
+	_ Highlighter = (*Block)(nil)
+)
 
 func (b *Block) Name() string {
 	if b.Identifier != nil {
@@ -308,6 +324,16 @@ func (b *Block) End() Position {
 		return deltaPos(*b.Block, len("block"))
 	}
 	return Position{}
+}
+
+func (b *Block) Highlight() (start, end Position) {
+	if b.Block != nil {
+		if b.Identifier != nil {
+			return *b.Block, b.Identifier.End()
+		}
+		return *b.Block, deltaPos(*b.Block, len("block"))
+	}
+	return b.Start(), b.End()
 }
 
 func (b *Block) Walk(w func(Node)) {

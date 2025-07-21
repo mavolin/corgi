@@ -171,13 +171,13 @@ func (c *duplicateElementsInAttributeSpecsChecker) reportDuplicate(
 	primaries := make([]diagnostic.Annotation, 1, len(dupls))
 	primaries[0] = anno.Anno(f, anno.Annotation{
 		Context:    anno.ContextLines(first.rule.Start(), first.rule.End()),
-		Highlight:  anno.HighlightNRunes(first.pos, len(first.name)),
+		Highlight:  anno.HighlightNChars(first.pos, len(first.name)),
 		Annotation: "first defined here",
 	})
 	for _, dupl := range dupls {
 		primaries = append(primaries, anno.Anno(f, anno.Annotation{
 			Context:    anno.ContextLines(dupl.rule.Start(), dupl.rule.End()),
-			Highlight:  anno.HighlightNRunes(dupl.pos, len(dupl.name)),
+			Highlight:  anno.HighlightNChars(dupl.pos, len(dupl.name)),
 			Annotation: "then again here",
 		}))
 	}

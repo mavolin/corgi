@@ -129,7 +129,7 @@ func (z *analyzer) AnalyzeAttrTypeComponentParam(logger *slog.Logger, param *fil
 	default:
 		logger.Error("Use of unknown attribute type as component parameter type")
 		z.Report(&diagnostic.Diagnostic{
-			Message: "component parameter: use of unknown attribute type",
+			Message: "internal error: component parameter: use of unknown attribute type",
 			Primary: []diagnostic.Annotation{
 				anno.Node(param.Component.File, t.Name, "unknown attribute type"),
 			},

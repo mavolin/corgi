@@ -58,9 +58,15 @@ func (ch *checker) CheckClassAlwaysInnocuous(logger *slog.Logger, f *file.File, 
 		tval, _ := attr.Value.(*ast.TypedAttributeValue)
 		if tval != nil {
 			if tval.Type.Name.Type != ref.Type {
-				logger.Warn("Resolved type and explicit type do not match. " +
-					"Analysis is correct, but the reported error will be confusing. " +
-					"This shouldn't happen, please open an issue.")
+				ch.Report(&diagnostic.Diagnostic{
+					Message: "internal error: analyze.CheckClassAlwaysInnocuous: resolved type and explicit type do not match",
+					Primary: []diagnostic.Annotation{
+						anno.Node(f, attr.Name, "typed by analyzer as `"+ref.Type.String()+"`"),
+						anno.Node(ref.Spec.File, ref.Rule, "typed in definition as `"+ref.Rule.Type.Type.String()+"`"),
+						anno.Node(f, tval.Type, "explicitly typed as `"+tval.Type.Name.Type.String()+"`"),
+					},
+					Explanation: "Using the result of the analysis, which is safe, but the error following this will be confusing.",
+				})
 			}
 
 			ch.Report(&diagnostic.Diagnostic{
@@ -80,16 +86,21 @@ func (ch *checker) CheckClassAlwaysInnocuous(logger *slog.Logger, f *file.File, 
 		logger.Debug("Found attribute definition")
 
 		if ref.Rule.Type.Type != ref.Type {
-			logger.Warn("Resolved type and definition type do not match (found no explicit typing). " +
-				"Analysis is correct, but the reported error will be confusing. " +
-				"This shouldn't happen, please open an issue.")
+			ch.Report(&diagnostic.Diagnostic{
+				Message: "internal error: analyze.CheckClassAlwaysInnocuous: resolved type and definition type do not match (found no explicit typing)",
+				Primary: []diagnostic.Annotation{
+					anno.Node(f, attr.Name, "typed by analyzer as `"+ref.Type.String()+"`"),
+					anno.Node(ref.Spec.File, ref.Rule, "typed in definition as `"+ref.Rule.Type.Type.String()+"`"),
+				},
+				Explanation: "Using the result of the analysis, which is safe, but the error following this will be confusing.",
+			})
 			return
 		}
 
 		ch.Report(&diagnostic.Diagnostic{
 			Message: "class attribute wrongly typed",
 			Primary: []diagnostic.Annotation{
-				anno.Node(f, attr.Name, "not an `innocuous` attribute"),
+				anno.Node(f, attr.Name, "should be `innocuous`"),
 				anno.Node(ref.Spec.File, ref.Rule, "but defined here as `"+ref.Rule.Type.Type.String()+"`"),
 			},
 			Explanation: "The `class` attribute must always be typed as `innocuous`, so that class shorthands" +
@@ -99,9 +110,13 @@ func (ch *checker) CheckClassAlwaysInnocuous(logger *slog.Logger, f *file.File, 
 	}
 
 	// AST was extended (or someone called analyze before linking/with linker errors)
-	logger.Warn("Attribute is neither explicitly typed not has a corresponding attribute definition. " +
-		"Falling back to reporting just the incorrect resolved type. " +
-		"This is safe, but shouldn't happen. Please open an issue.")
+	ch.Report(&diagnostic.Diagnostic{
+		Message: "internal error: analyze.CheckClassAlwaysInnocuous: attribute is neither explicitly typed nor attached to a definition",
+		Primary: []diagnostic.Annotation{
+			anno.Node(f, attr.Name, "typed by analyzer as `"+ref.Type.String()+"`"),
+		},
+		Explanation: "Using the result of the analysis, which is safe, but the error following this will be confusing.",
+	})
 
 	ch.Report(&diagnostic.Diagnostic{
 		Message: "class attribute wrongly typed",
@@ -150,6 +165,7 @@ Loop:
 				},
 				Explanation: "This is a bug in the analyzer, please open an issue.",
 			})
+			return
 		}
 	}
 
@@ -164,14 +180,14 @@ Loop:
 		return
 	}
 
-	for _, c := range s.Contents {
-		switch c.(type) {
+	for _, n := range s.Contents {
+		switch n.(type) {
 		case *ast.ExpressionInterpolation:
 			logger.Error("Unsafe attribute contains interpolation")
 			ch.Report(&diagnostic.Diagnostic{
 				Message: "unsafe attribute contains interpolation",
 				Primary: []diagnostic.Annotation{
-					anno.Node(f, attr.Value, "cannot use interpolation here"),
+					anno.Node(f, n, "cannot use interpolation here"),
 				},
 				Hints: []diagnostic.Hint{
 					{
@@ -190,7 +206,7 @@ Loop:
 			ch.Report(&diagnostic.Diagnostic{
 				Message: "unsafe attribute contains interpolation",
 				Primary: []diagnostic.Annotation{
-					anno.Node(f, attr.Value, "cannot use interpolation here"),
+					anno.Node(f, n, "cannot use interpolation here"),
 				},
 				Hints: []diagnostic.Hint{
 					{
@@ -235,7 +251,7 @@ func (ch *checker) CheckDefinedNonBoolAttributeSpecifiedAsBool(logger *slog.Logg
 	ch.Report(&diagnostic.Diagnostic{
 		Message: "non-bool attribute set using bool shorthand",
 		Primary: []diagnostic.Annotation{
-			anno.Node(f, attr.Name, "this attribute is not a bool attribute and can henceforth not be set using a bool shorthand"),
+			anno.Node(f, attr.Name, "not a bool attribute and can therefore not be set using a bool shorthand"),
 		},
 		Secondary: []diagnostic.Annotation{
 			anno.Node(ref.Spec.File, ref.Rule, "attribute type defined here as `"+ref.Type.String()+"`"),

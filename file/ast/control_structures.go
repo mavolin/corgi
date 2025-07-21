@@ -14,7 +14,10 @@ type Conditional struct {
 	Else    *Else
 }
 
-var _ ScopeNode = (*Conditional)(nil)
+var (
+	_ ScopeNode   = (*Conditional)(nil)
+	_ Highlighter = (*Conditional)(nil)
+)
 
 func (c *Conditional) Start() Position {
 	if c.If != nil {
@@ -60,6 +63,13 @@ func (c *Conditional) Walk(w func(Node)) {
 	}
 }
 
+func (c *Conditional) Highlight() (start, end Position) {
+	if c.If != nil {
+		return c.If.Highlight()
+	}
+	return c.Start(), c.End()
+}
+
 func (*Conditional) _node()      {}
 func (*Conditional) _scopeNode() {}
 
@@ -73,7 +83,10 @@ type If struct {
 	Then   Body
 }
 
-var _ Node = (*If)(nil)
+var (
+	_ Node        = (*If)(nil)
+	_ Highlighter = (*If)(nil)
+)
 
 func (i *If) Start() Position {
 	switch {
@@ -109,6 +122,13 @@ func (i *If) Walk(w func(Node)) {
 	}
 }
 
+func (i *If) Highlight() (start, end Position) {
+	if i.If != nil {
+		return *i.If, deltaPos(*i.If, len("if"))
+	}
+	return i.Start(), i.End()
+}
+
 func (*If) _node() {}
 
 // ============================================================================
@@ -122,7 +142,10 @@ type ElseIf struct {
 	Then   Body
 }
 
-var _ Node = (*ElseIf)(nil)
+var (
+	_ Node        = (*ElseIf)(nil)
+	_ Highlighter = (*ElseIf)(nil)
+)
 
 func (e *ElseIf) Start() Position {
 	switch {
@@ -161,6 +184,16 @@ func (e *ElseIf) Walk(w func(Node)) {
 	}
 }
 
+func (e *ElseIf) Highlight() (start, end Position) {
+	if e.Else != nil {
+		if e.If != nil {
+			return *e.Else, deltaPos(*e.If, len("if"))
+		}
+		return *e.Else, deltaPos(*e.Else, len("else"))
+	}
+	return e.Start(), e.End()
+}
+
 func (*ElseIf) _node() {}
 
 // ============================================================================
@@ -172,7 +205,10 @@ type Else struct {
 	Then Body
 }
 
-var _ Node = (*Else)(nil)
+var (
+	_ Node        = (*Else)(nil)
+	_ Highlighter = (*Else)(nil)
+)
 
 func (e *Else) Start() Position {
 	if e.Else != nil {
@@ -196,6 +232,13 @@ func (e *Else) Walk(w func(Node)) {
 	if e.Then != nil {
 		w(e.Then)
 	}
+}
+
+func (e *Else) Highlight() (start, end Position) {
+	if e.Else != nil {
+		return *e.Else, deltaPos(*e.Else, len("else"))
+	}
+	return e.Start(), e.End()
 }
 
 func (*Else) _node() {}
@@ -252,7 +295,10 @@ type Switch struct {
 	RBrace     *Position
 }
 
-var _ ScopeNode = (*Switch)(nil)
+var (
+	_ ScopeNode   = (*Switch)(nil)
+	_ Highlighter = (*Switch)(nil)
+)
 
 func (s *Switch) Start() Position {
 	switch {
@@ -303,6 +349,13 @@ func (s *Switch) Walk(w func(Node)) {
 			w(c)
 		}
 	}
+}
+
+func (s *Switch) Highlight() (start, end Position) {
+	if s.Switch != nil {
+		return *s.Switch, deltaPos(*s.Switch, len("switch"))
+	}
+	return s.Start(), s.End()
 }
 
 func (*Switch) _node()      {}
@@ -369,6 +422,15 @@ func (c *Case) Walk(w func(Node)) {
 	}
 }
 
+func (c *Case) Highlight() (start, end Position) {
+	if c.Case != nil {
+		return *c.Case, deltaPos(*c.Case, len("case"))
+	} else if c.Default != nil {
+		return *c.Default, deltaPos(*c.Default, len("default"))
+	}
+	return c.Start(), c.End()
+}
+
 func (*Case) _node() {}
 
 // ============================================================================
@@ -381,7 +443,10 @@ type For struct {
 	Body   Body
 }
 
-var _ ScopeNode = (*For)(nil)
+var (
+	_ ScopeNode   = (*For)(nil)
+	_ Highlighter = (*For)(nil)
+)
 
 func (f *For) Start() Position {
 	switch {
@@ -414,6 +479,13 @@ func (f *For) Walk(w func(Node)) {
 	if f.Body != nil {
 		w(f.Body)
 	}
+}
+
+func (f *For) Highlight() (start, end Position) {
+	if f.For != nil {
+		return *f.For, deltaPos(*f.For, len("for"))
+	}
+	return f.Start(), f.End()
 }
 
 func (*For) _node()      {}

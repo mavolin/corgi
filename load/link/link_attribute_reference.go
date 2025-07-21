@@ -60,7 +60,7 @@ func (l *linker) linkUnqualifiedAttributeReference(_ context.Context, logger *sl
 		equalSpecificityMatches []*file.AttributeSpec
 	)
 
-	packageMatches := f.Package.AttributeDefinitionByFullName(name)
+	packageMatches := f.Package.AttributeSpecByFullName(name)
 	equalSpecificityMatches = packageMatches
 
 	for _, imp := range f.Imports {
@@ -68,7 +68,7 @@ func (l *linker) linkUnqualifiedAttributeReference(_ context.Context, logger *sl
 			continue
 		}
 
-		packageMatches = imp.Package.AttributeDefinitionByFullName(name)
+		packageMatches = imp.Package.AttributeSpecByFullName(name)
 		if len(equalSpecificityMatches) == 0 || equalSpecificityMatches[0].Specificity < packageMatches[0].Specificity {
 			equalSpecificityMatches = packageMatches
 			bestMatchImport = imp.ImportPath()
@@ -94,8 +94,7 @@ func (l *linker) linkUnqualifiedAttributeReference(_ context.Context, logger *sl
 		l.report(&diagnostic.Diagnostic{
 			Message: "attribute: ambiguous reference",
 			Primary: []diagnostic.Annotation{
-				anno.Node(f, ref.AST,
-					"there are multiple attribute selectors with the same specificity that match this attribute"),
+				anno.Node(f, ref.AST, "there are multiple attribute selectors with the same specificity that match this attribute"),
 			},
 			Secondary:   equalSpecificityAnnotations(equalSpecificityMatches),
 			Explanation: ambiguousAttributeReferenceExplanation,
@@ -105,7 +104,7 @@ func (l *linker) linkUnqualifiedAttributeReference(_ context.Context, logger *sl
 	}
 
 	if l.builtin != nil {
-		packageMatches = l.builtin.AttributeDefinitionByFullName(name)
+		packageMatches = l.builtin.AttributeSpecByFullName(name)
 		if len(packageMatches) == 1 {
 			logger.Debug("Found attribute definition within builtin package")
 			ref.Spec = packageMatches[0]
@@ -114,8 +113,7 @@ func (l *linker) linkUnqualifiedAttributeReference(_ context.Context, logger *sl
 			l.report(&diagnostic.Diagnostic{
 				Message: "attribute: ambiguous reference",
 				Primary: []diagnostic.Annotation{
-					anno.Node(f, ref.AST,
-						"there are multiple attribute selectors with the same specificity that match this attribute"),
+					anno.Node(f, ref.AST, "there are multiple attribute selectors with the same specificity that match this attribute"),
 				},
 				Secondary:   equalSpecificityAnnotations(packageMatches),
 				Explanation: ambiguousAttributeReferenceExplanation,
@@ -157,7 +155,7 @@ func (l *linker) linkQualifiedAttributeReference(_ context.Context, logger *slog
 		return
 	}
 
-	matches := imp.Package.AttributeDefinitionByQualifiedName(ref.AST.Name.Name)
+	matches := imp.Package.AttributeSpecByQualifiedName(ref.AST.Name.Name)
 	switch {
 	case len(matches) == 0:
 		logger.Error("Could not resolve reference")

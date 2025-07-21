@@ -268,8 +268,8 @@ func (loader *importLoader) localOnlyModeCheck(l *linker, logger *slog.Logger) (
 					Message: "cannot load import: running in local-only mode",
 					Primary: []diagnostic.Annotation{anno.Node(f, imp.AST.Path, "imported here")},
 					Explanation: "This import could not be loaded, as the linker is running in local-only mode, " +
-						"but needs to be loaded, as it is used in the file by at least one component call, " +
-						"element reference, or attribute reference.",
+						"but needs to be loaded, being used by at least one component call, " +
+						"element reference, or attribute reference in this file.",
 				})
 			}
 

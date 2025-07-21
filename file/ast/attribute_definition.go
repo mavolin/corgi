@@ -16,7 +16,10 @@ type AttributeDefinition struct {
 	RParen *Position // nil if not a list
 }
 
-var _ ScopeNode = (*AttributeDefinition)(nil)
+var (
+	_ ScopeNode   = (*AttributeDefinition)(nil)
+	_ Highlighter = (*AttributeDefinition)(nil)
+)
 
 func (d *AttributeDefinition) Start() Position {
 	switch {
@@ -52,6 +55,17 @@ func (d *AttributeDefinition) End() Position {
 		return deltaPos(*d.Attr, len("attr"))
 	}
 	return Position{}
+}
+
+func (d *AttributeDefinition) Highlight() (start, end Position) {
+	start, end = d.Start(), d.End()
+	if d.LParen == nil && start.Line >= end.Line-3 {
+		return start, end
+	}
+	if d.Attr != nil {
+		return *d.Attr, deltaPos(*d.Attr, len("attr"))
+	}
+	return start, end
 }
 
 func (d *AttributeDefinition) Walk(w func(Node)) {
@@ -336,6 +350,7 @@ func (w *WildcardElementSelector) End() Position {
 	}
 	return Position{}
 }
+
 func (w *WildcardElementSelector) Walk(func(Node)) {}
 
 func (w *WildcardElementSelector) _node()            {}

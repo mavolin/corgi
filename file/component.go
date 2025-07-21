@@ -378,7 +378,7 @@ func (cc *ComponentCall) WithByName(name string) *With {
 }
 
 func (cc *ComponentCall) WithByNode(n *ast.With) *With {
-	w := cc.WithByName(n.Block())
+	w := cc.WithByName(n.Name())
 	if w == nil {
 		return nil
 	}

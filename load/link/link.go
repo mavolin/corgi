@@ -107,8 +107,8 @@ func Link(ctx context.Context, p *file.Package, o Options) diagnostic.List {
 	l.LinkComponentCalls(ctx)
 
 	l.CheckDuplicateAttributeDefinitions(ctx)
-	l.CheckDuplicateAttributeDefinitionElementTypes(ctx)
-	l.CheckDuplicateAttributeDefinitionElementSelectors(ctx)
+	l.CheckDuplicateElementsInAttributeSpecs(ctx)
+	l.CheckDuplicatesInAttributeSpecElementSelectors(ctx)
 	l.LinkAttributeReferences(ctx)
 
 	l.CheckDuplicateElementDefinitions(ctx)

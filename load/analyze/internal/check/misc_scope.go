@@ -113,20 +113,51 @@ func (ch *checker) CheckAttributeTypeSuperfluousAttributeName(logger *slog.Logge
 			Explanation: "Attribute types other than `unsafe` and `unsafeBool` " +
 				"do not need to be tied to a specific attribute.",
 		})
-	} else if walk.IsChildOf[*ast.NamedAttribute](parents) {
-		logger.Error("Attribute name on non-unsafe type")
-		ch.Report(&diagnostic.Diagnostic{
-			Message: "attribute type: superfluous attribute name",
-			Primary: []diagnostic.Annotation{
-				anno.Node(f, t.Name, "remove this attribute name"),
-			},
-			Hints: []diagnostic.Hint{
-				{Hint: "The formatter (`corgi fmt`) can automatically fix this error."},
-			},
-			Explanation: "Attribute names need not be specified a second time " +
-				"in brackets when writing a typed named attribute.",
-		})
+		return
 	}
+
+	// See if this is a named attribute, which can elide the attribute name.
+
+	// todo: it's probably easier to check that top-down on a NamedAttribute
+
+	// For that we would need to be a direct child of a typed attribute value,
+	// which would need to be a direct child of a named attribute.
+	// (We report illegally nested typed attribute values elsewhere)
+	//
+	// Although it might come to mind, we shouldn't simply do
+	// walk.Closest[*ast.NamedAttribute](parents) here:
+	// In case we ever decide to support full component calls as attribute
+	// values (not just interpolation), these could include further typed
+	// attribute values (although they would of course be contextually invalid
+	// if used on an attribute), leading to false positives:
+	//   TypedAttributeValue
+	//     ExpressionAttributeValue
+	//       ComponentCall
+	//         With
+	//           NamedAttribute ... you get the idea
+	if len(parents) < 2 {
+		return
+	}
+	if _, ok := parents[len(parents)-1].Node.(*ast.TypedAttributeValue); !ok {
+		return
+	}
+	namedAttr, _ := parents[len(parents)-2].Node.(*ast.NamedAttribute)
+	if namedAttr == nil {
+		return
+	}
+
+	logger.Error("Attribute name on non-unsafe type")
+	ch.Report(&diagnostic.Diagnostic{
+		Message: "attribute type: superfluous attribute name",
+		Primary: []diagnostic.Annotation{
+			anno.Node(f, t.Attribute, "remove this attribute name"),
+		},
+		Hints: []diagnostic.Hint{
+			{Hint: "The formatter (`corgi fmt`) can automatically fix this error."},
+		},
+		Explanation: "Attribute names need not be specified a second time " +
+			"in brackets when writing a typed named attribute.",
+	})
 }
 
 // ============================================================================
@@ -146,7 +177,7 @@ func (ch *checker) CheckBlockFunctionDefined(logger *slog.Logger, f *file.File, 
 	logger = logger.WithGroup("block_defined")
 	logger.Debug("Checking block function only uses blocks defined by the component")
 
-	astComp, _ := parents[0].Node.(*ast.Component) // todo: aliaz
+	astComp, _ := parents[0].Node.(*ast.Component) // todo: alias
 	if astComp == nil {
 		logger.Debug("Not a component, skipping")
 		return

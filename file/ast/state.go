@@ -57,6 +57,17 @@ func (s *StateDeclaration) Walk(w func(Node)) {
 	}
 }
 
+func (s *StateDeclaration) Highlight() (start, end Position) {
+	start, end = s.Start(), s.End()
+	if s.LParen == nil && start.Line >= end.Line-3 {
+		return start, end
+	}
+	if s.State != nil {
+		return *s.State, deltaPos(*s.State, len("state"))
+	}
+	return start, end
+}
+
 func (*StateDeclaration) _node()      {}
 func (*StateDeclaration) _scopeNode() {}
 

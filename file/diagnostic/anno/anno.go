@@ -59,7 +59,7 @@ func ToEOL(f *file.File, start ast.Position, anno string) diagnostic.Annotation 
 	})
 }
 
-// FirstWord is a shorthand for [HighlightFirstWord].attached
+// FirstWord is a shorthand for [HighlightFirstWord].
 func FirstWord(f *file.File, start ast.Position, s, anno string) diagnostic.Annotation {
 	return Anno(f, Annotation{
 		Highlight:  HighlightFirstWord(start, s),
@@ -144,7 +144,7 @@ var InvalidHighlight = Highlight{ast.Position{}, ast.Position{}}
 
 // HighlightNode highlights from the start to the end of the node.
 func HighlightNode(n ast.Node) HighlightFunc {
-	return HighlightRange(n.Start(), n.End())
+	return HighlightRange(ast.Highlight(n))
 }
 
 // HighlightRange highlights the area in the interval [start, end).
@@ -206,11 +206,6 @@ func HighlightNChars(start ast.Position, n int) HighlightFunc {
 	return func(*file.File) (Context, Highlight) {
 		return singleLine(start), Highlight{start, ast.Position{Line: start.Line, Col: start.Col + n}}
 	}
-}
-
-func delta(pos ast.Position, delta int) ast.Position {
-	pos.Col += delta
-	return pos
 }
 
 func normalizePos(f *file.File, pos ast.Position) ast.Position {

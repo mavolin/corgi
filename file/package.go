@@ -32,10 +32,10 @@ type Package struct {
 }
 
 type PackageSymbols struct {
-	Components           []*Component
-	State                []*State
-	ElementDefinitions   []*ElementSpec
-	AttributeDefinitions []*AttributeSpec // ordered by specificity, descending
+	Components     []*Component
+	State          []*State
+	ElementSpecs   []*ElementSpec
+	AttributeSpecs []*AttributeSpec // ordered by specificity, descending
 }
 
 func BuildSymbols(p *Package) {
@@ -59,10 +59,10 @@ func BuildSymbols(p *Package) {
 		}
 	}
 	p.PackageSymbols = &PackageSymbols{
-		Components:           make([]*Component, 0, nComponents),
-		State:                make([]*State, 0, nState),
-		ElementDefinitions:   make([]*ElementSpec, 0, nElementDefinitions),
-		AttributeDefinitions: make([]*AttributeSpec, 0, nAttributeDefinitions),
+		Components:     make([]*Component, 0, nComponents),
+		State:          make([]*State, 0, nState),
+		ElementSpecs:   make([]*ElementSpec, 0, nElementDefinitions),
+		AttributeSpecs: make([]*AttributeSpec, 0, nAttributeDefinitions),
 	}
 
 	for _, f := range p.Files {
@@ -96,7 +96,7 @@ func BuildSymbols(p *Package) {
 					if spec.Name != nil {
 						e.lowerName = strings.ToLower(spec.Name.Name)
 					}
-					p.ElementDefinitions = append(p.ElementDefinitions, e)
+					p.ElementSpecs = append(p.ElementSpecs, e)
 				}
 			case *ast.AttributeDefinition:
 				for _, spec := range n.Specs {
@@ -105,7 +105,7 @@ func BuildSymbols(p *Package) {
 					}
 					a := &AttributeSpec{Definition: n, AST: spec, File: f}
 					a.Specificity = a.specificity()
-					p.AttributeDefinitions = append(p.AttributeDefinitions, a)
+					p.AttributeSpecs = append(p.AttributeSpecs, a)
 				}
 			}
 		}
@@ -115,7 +115,7 @@ func BuildSymbols(p *Package) {
 		buildSymbols(f)
 	}
 
-	slices.SortFunc(p.AttributeDefinitions, func(a, b *AttributeSpec) int {
+	slices.SortFunc(p.AttributeSpecs, func(a, b *AttributeSpec) int {
 		return a.Specificity - b.Specificity
 	})
 }
@@ -168,8 +168,8 @@ func (s *PackageSymbols) StateByName(name string) *State {
 	return nil
 }
 
-func (s *PackageSymbols) ElementDefinitionByNode(spec *ast.ElementSpec) *ElementSpec {
-	for _, def := range s.ElementDefinitions {
+func (s *PackageSymbols) ElementSpecByNode(spec *ast.ElementSpec) *ElementSpec {
+	for _, def := range s.ElementSpecs {
 		if def.AST == spec {
 			return def
 		}
@@ -177,9 +177,9 @@ func (s *PackageSymbols) ElementDefinitionByNode(spec *ast.ElementSpec) *Element
 	return nil
 }
 
-func (s *PackageSymbols) ElementDefinitionByFullName(name string) *ElementSpec {
+func (s *PackageSymbols) ElementSpecByFullName(name string) *ElementSpec {
 	name = strings.ToLower(name)
-	for _, def := range s.ElementDefinitions {
+	for _, def := range s.ElementSpecs {
 		if len(name) <= len(def.lowerPrefix) {
 			continue
 		}
@@ -190,9 +190,9 @@ func (s *PackageSymbols) ElementDefinitionByFullName(name string) *ElementSpec {
 	return nil
 }
 
-func (s *PackageSymbols) ElementDefinitionByQualifiedName(name string) *ElementSpec {
+func (s *PackageSymbols) ElementSpecByQualifiedName(name string) *ElementSpec {
 	name = strings.ToLower(name)
-	for _, def := range s.ElementDefinitions {
+	for _, def := range s.ElementSpecs {
 		if def.lowerName == name {
 			return def
 		}
@@ -200,8 +200,8 @@ func (s *PackageSymbols) ElementDefinitionByQualifiedName(name string) *ElementS
 	return nil
 }
 
-func (s *PackageSymbols) AttributeDefinitionByNode(spec *ast.AttributeSpec) *AttributeSpec {
-	for _, def := range s.AttributeDefinitions {
+func (s *PackageSymbols) AttributeSpecByNode(spec *ast.AttributeSpec) *AttributeSpec {
+	for _, def := range s.AttributeSpecs {
 		if def.AST == spec {
 			return def
 		}
@@ -209,7 +209,7 @@ func (s *PackageSymbols) AttributeDefinitionByNode(spec *ast.AttributeSpec) *Att
 	return nil
 }
 
-// AttributeDefinitionByFullName returns the attribute definition that matches
+// AttributeSpecByFullName returns the attribute definition that matches
 // the given full name.
 //
 // It might return multiple definitions if there are multiple selectors with
@@ -217,9 +217,9 @@ func (s *PackageSymbols) AttributeDefinitionByNode(spec *ast.AttributeSpec) *Att
 // This, however, is only the case for invalid packages.
 // If the linker passes with no errors, it is guaranteed that this function
 // returns at most one definition.
-func (s *PackageSymbols) AttributeDefinitionByFullName(name string) []*AttributeSpec {
+func (s *PackageSymbols) AttributeSpecByFullName(name string) []*AttributeSpec {
 	var matches []*AttributeSpec
-	for _, def := range s.AttributeDefinitions {
+	for _, def := range s.AttributeSpecs {
 		if def.MatchesFullName(name) {
 			if def.Specificity > 0 {
 				return []*AttributeSpec{def}
@@ -230,7 +230,7 @@ func (s *PackageSymbols) AttributeDefinitionByFullName(name string) []*Attribute
 	return matches
 }
 
-// AttributeDefinitionByQualifiedName returns the attribute definition that
+// AttributeSpecByQualifiedName returns the attribute definition that
 // matches the given qualified name.
 //
 // It might return multiple definitions if there are multiple selectors with
@@ -238,9 +238,9 @@ func (s *PackageSymbols) AttributeDefinitionByFullName(name string) []*Attribute
 // This, however, is only the case for invalid packages.
 // If the linker passes with no errors, it is guaranteed that this function
 // returns at most one definition.
-func (s *PackageSymbols) AttributeDefinitionByQualifiedName(name string) []*AttributeSpec {
+func (s *PackageSymbols) AttributeSpecByQualifiedName(name string) []*AttributeSpec {
 	var matches []*AttributeSpec
-	for _, def := range s.AttributeDefinitions {
+	for _, def := range s.AttributeSpecs {
 		if def.MatchesQualifiedName(name) {
 			if def.Specificity > 0 {
 				return []*AttributeSpec{def}

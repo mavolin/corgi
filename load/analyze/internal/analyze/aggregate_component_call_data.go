@@ -63,7 +63,7 @@ func (z *analyzer) AggregateWiths(logger *slog.Logger, cc *file.ComponentCall) {
 	walk.WalkT(scope, func(ctx *walk.ContextT[*ast.With]) error {
 		instance := &file.WithInstance{AST: ctx.Node}
 
-		name := ctx.Node.Block()
+		name := ctx.Node.Name()
 
 		group := cc.WithByName(name)
 		if group != nil {

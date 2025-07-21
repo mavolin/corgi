@@ -106,7 +106,7 @@ func (z *analyzer) CheckCircularAlias(logger *slog.Logger, c *file.Component) {
 		var secondaries []diagnostic.Annotation
 		if len(chain) > 1 {
 			secondaries = make([]diagnostic.Annotation, 1, len(chain))
-			secondaries[0] = anno.Node(c.File, c.AliasAST.ComponentCall.Header.Name,
+			secondaries[0] = anno.Node(c.File, c.AliasAST.ComponentCall,
 				"1: aliases `"+c.AliasAST.ComponentCall.Header.Name.Full()+"`")
 			for i, c := range chain[1:] {
 				secondaries = append(secondaries,

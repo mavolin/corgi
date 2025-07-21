@@ -105,14 +105,14 @@ AliasedParams:
 						anno.Anno(c.File, anno.Annotation{
 							Highlight:  anno.HighlightNode(param),
 							Context:    anno.ContextLines(c.Start(), param.End()),
-							Annotation: "overwrites required parameter of the same name of aliased component",
+							Annotation: "overwrites required parameter of same name on aliased component",
 						}),
 					},
 					Hints: []diagnostic.Hint{
 						{Hint: "Rename this parameter."},
 						{
 							Hint: "Set the parameter of the same name in the component call to the aliased component, " +
-								"so you fulfill the requirement constraint of the aliased component.",
+								"so you fulfill the requirement constraint of the parameter.",
 						},
 					},
 				})
@@ -160,9 +160,9 @@ func (ch *checker) CheckDuplicateComponentParams(logger *slog.Logger, c *file.Co
 		}
 
 		primaries := make([]diagnostic.Annotation, 1, 1+len(dupls))
-		primaries[0] = anno.Node(c.File, a.AST.Name, "first defined here")
+		primaries[0] = anno.Node(c.File, a.AST, "first defined here")
 		for _, dupl := range dupls {
-			primaries = append(primaries, anno.Node(c.File, dupl.AST.Name, "then again here"))
+			primaries = append(primaries, anno.Node(c.File, dupl.AST, "then again here"))
 		}
 
 		logger.Error("Component has duplicate parameter names")
@@ -191,7 +191,7 @@ func (ch *checker) CheckReservedComponentNames(logger *slog.Logger, c *file.Comp
 	ch.Report(&diagnostic.Diagnostic{
 		Message: "component uses reserved name",
 		Primary: []diagnostic.Annotation{
-			anno.Node(c.File, c.Header().Name, "this component is named `"+name+"`, which is a reserved name"),
+			anno.Node(c.File, c.DefinedAST.Header.Name, "`"+name+"` is a reserved name"),
 		},
 		Hints: []diagnostic.Hint{{Hint: "Rename this component."}},
 	})
@@ -255,7 +255,7 @@ func (ch *checker) CheckReservedComponentParamName(logger *slog.Logger, c *file.
 	ch.Report(&diagnostic.Diagnostic{
 		Message: "component parameter uses reserved name",
 		Primary: []diagnostic.Annotation{
-			anno.Node(c.File, c.Header().Name, "this parameter is named `"+name+"`, which is a reserved name"),
+			anno.Node(c.File, param.AST.Name, "`"+name+"` is a reserved name"),
 		},
 		Hints: []diagnostic.Hint{{Hint: "Rename this parameter."}},
 	})

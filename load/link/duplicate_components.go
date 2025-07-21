@@ -71,9 +71,9 @@ func (c *duplicateComponentChecker) reportDuplicate(l *linker, logger *slog.Logg
 	logger.Error("Found duplicate components")
 
 	primaries := make([]diagnostic.Annotation, 1, len(dupls)+1)
-	primaries[0] = anno.Node(first.File, first.Header().Name, "first defined here")
+	primaries[0] = anno.Node(first.File, first.DefinedAST, "first defined here")
 	for _, b := range dupls {
-		primaries = append(primaries, anno.Node(b.File, b.Header().Name, "then again here"))
+		primaries = append(primaries, anno.Node(b.File, b.DefinedAST, "then again here"))
 	}
 
 	l.report(&diagnostic.Diagnostic{
@@ -83,7 +83,7 @@ func (c *duplicateComponentChecker) reportDuplicate(l *linker, logger *slog.Logg
 }
 
 func (c duplicateComponentChecker) shouldCheck(comp *file.Component) bool {
-	return comp != nil && comp.Header() != nil && comp.Header().Name != nil
+	return comp != nil && comp.DefinedAST.Header != nil && comp.DefinedAST.Header.Name != nil
 }
 
 func (c *duplicateComponentChecker) resetDuplicates() {

@@ -117,16 +117,16 @@ func (ch *checker) CheckUnreachableWiths(logger *slog.Logger, cc *file.Component
 
 	walk.WalkT(sc, func(ctx *walk.ContextT[*ast.With]) error {
 		if len(ctx.Parents) == 0 {
-			topLevelWiths[ctx.Node.Block()] = append(topLevelWiths[ctx.Node.Block()], ctx.Node)
+			topLevelWiths[ctx.Node.Name()] = append(topLevelWiths[ctx.Node.Name()], ctx.Node)
 		} else {
-			conditionalWiths[ctx.Node.Block()] = append(conditionalWiths[ctx.Node.Block()], ctx.Node)
+			conditionalWiths[ctx.Node.Name()] = append(conditionalWiths[ctx.Node.Name()], ctx.Node)
 		}
 
 		return walk.NoDive
 	}, walk.DontDiveAny(&ast.ComponentCall{}))
 
 	for _, tws := range topLevelWiths {
-		cws := conditionalWiths[tws[0].Block()]
+		cws := conditionalWiths[tws[0].Name()]
 		if len(tws) <= 1 && len(cws) == 0 {
 			continue
 		}
@@ -143,7 +143,7 @@ func (ch *checker) CheckUnreachableWiths(logger *slog.Logger, cc *file.Component
 			primaries = append(primaries, anno.Range(cc.File, cw.Start(), cw.Identifier.End(), "never actually used")) // todo
 		}
 
-		logger.With(slog.String("name", last.Block())).
+		logger.With(slog.String("name", last.Name())).
 			Error("Unreachable withs")
 
 		ch.Report(&diagnostic.Diagnostic{
@@ -188,7 +188,7 @@ func (ch *checker) CheckWithNotLooped(logger *slog.Logger, cc *file.ComponentCal
 				anno.Position(cc.File, ctx.Node.Start(), "only the with block from the very last iteration is ever used"),
 			},
 			Secondary: []diagnostic.Annotation{
-				anno.Node(cc.File, ctx.Node, "in this for loop"),
+				anno.Node(cc.File, forLoop, "in this for loop"),
 			},
 		})
 		return walk.NoDive
@@ -234,9 +234,9 @@ func (ch *checker) CheckNoDuplicateComponentArgs(logger *slog.Logger, cc *file.C
 
 		if len(dupls) > 0 {
 			primaries := make([]diagnostic.Annotation, 1, len(dupls)+1)
-			primaries[0] = anno.Node(cc.File, aArg.Name, "first set here")
-			for _, b := range dupls {
-				primaries = append(primaries, anno.Node(cc.File, b.Name, "then here again"))
+			primaries[0] = anno.Node(cc.File, aArg, "first set here")
+			for _, bArg := range dupls {
+				primaries = append(primaries, anno.Node(cc.File, bArg, "then here again"))
 			}
 
 			logger.Error("Found duplicate component call argument")
@@ -282,13 +282,10 @@ func (ch *checker) CheckComponentArgsExist(logger *slog.Logger, cc *file.Compone
 		ch.Report(&diagnostic.Diagnostic{
 			Message: "component call: argument does not exist",
 			Primary: []diagnostic.Annotation{
-				anno.Node(cc.File, carg.Name, "this component defines no argument `"+name+"`"),
-			},
-			Secondary: []diagnostic.Annotation{
-				anno.Anno(cc.Component.File, anno.Annotation{
-					Annotation: "referenced component",
-					Highlight:  anno.HighlightNode(cc.Component.Header().Name),
-					Context:    anno.ContextLines(cc.Component.Header().Start(), cc.Component.Header().End()),
+				anno.Anno(cc.File, anno.Annotation{
+					Highlight:  anno.HighlightNode(carg.Name),
+					Context:    anno.ContextLines(cc.AST.Start(), cc.AST.Header.End()),
+					Annotation: "component defines no parameter `" + name + "`",
 				}),
 			},
 		})

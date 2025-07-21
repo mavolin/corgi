@@ -14,7 +14,7 @@ import (
 func (l *linker) CheckDuplicateElementDefinitions(_ context.Context) {
 	(&duplicateElementDefinitionChecker{
 		duplDefs: make([]*file.ElementSpec, 0, 8),
-		reported: set.NewSliceSet[*file.ElementSpec](max(len(l.p.ElementDefinitions)-1, 0)),
+		reported: set.NewSliceSet[*file.ElementSpec](max(len(l.p.ElementSpecs)-1, 0)),
 	}).check(l, l.logger)
 }
 
@@ -27,12 +27,12 @@ func (c *duplicateElementDefinitionChecker) check(l *linker, logger *slog.Logger
 	logger = logger.WithGroup("check.duplicate_element_definitions")
 	logger.Info("Checking for duplicate element definitions")
 
-	if len(l.p.ElementDefinitions) <= 1 {
+	if len(l.p.ElementSpecs) <= 1 {
 		logger.Info("One or no element definitions, skipping")
 		return
 	}
 
-	for ai, a := range l.p.ElementDefinitions[:len(l.p.ElementDefinitions)-1] {
+	for ai, a := range l.p.ElementSpecs[:len(l.p.ElementSpecs)-1] {
 		if !c.shouldCheck(a) {
 			continue
 		}
@@ -58,7 +58,7 @@ func (c *duplicateElementDefinitionChecker) check(l *linker, logger *slog.Logger
 
 		c.resetDuplicates()
 
-		for _, b := range l.p.ElementDefinitions[ai+1:] {
+		for _, b := range l.p.ElementSpecs[ai+1:] {
 			if !c.shouldCheck(b) {
 				continue
 			}

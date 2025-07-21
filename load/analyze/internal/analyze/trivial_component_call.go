@@ -91,7 +91,7 @@ func (z *analyzer) LinkWithBlocks(logger *slog.Logger, cc *file.ComponentCall) {
 					primary,
 				},
 				Secondary: []diagnostic.Annotation{
-					anno.Node(cc.File, cc.AST.Header.Name, "in this component call"),
+					anno.Node(cc.File, cc.AST, "in this component call"),
 				},
 			})
 		}

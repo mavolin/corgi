@@ -126,7 +126,9 @@ func (c *dotImportComponentCollisionChecker) checkFile(l *linker, logger *slog.L
 	}
 }
 
-func (c *dotImportComponentCollisionChecker) reportCollision(l *linker, logger *slog.Logger, f *file.File, first dotImportComponentCollision, dupls []dotImportComponentCollision) {
+func (c *dotImportComponentCollisionChecker) reportCollision(
+	l *linker, logger *slog.Logger, f *file.File, first dotImportComponentCollision, dupls []dotImportComponentCollision,
+) {
 	collisionName := first.comp.Header().Name.Name
 	logger.Error("Component collision", slog.String("name", collisionName))
 
@@ -138,14 +140,14 @@ func (c *dotImportComponentCollisionChecker) reportCollision(l *linker, logger *
 
 	secondaries := make([]diagnostic.Annotation, 1, len(dupls)+1)
 	secondaries[0] = anno.Anno(first.comp.File, anno.Annotation{
-		Highlight:  anno.HighlightNode(first.comp.Header().Name),
-		Context:    anno.ContextLines(first.comp.Start(), first.comp.End()),
+		Highlight:  anno.HighlightNode(first.comp.DefinedAST),
+		Context:    anno.ContextLines(first.comp.DefinedAST.Start(), first.comp.DefinedAST.Header.End()),
 		Annotation: "defined here",
 	})
 	for _, dupl := range dupls {
 		secondaries = append(secondaries, anno.Anno(dupl.comp.File, anno.Annotation{
-			Highlight:  anno.HighlightNode(dupl.comp.Header().Name),
-			Context:    anno.ContextLines(dupl.comp.Start(), dupl.comp.End()),
+			Highlight:  anno.HighlightNode(dupl.comp.DefinedAST),
+			Context:    anno.ContextLines(dupl.comp.DefinedAST.Start(), dupl.comp.DefinedAST.Header.End()),
 			Annotation: "defined here",
 		}))
 	}
@@ -199,7 +201,7 @@ func (c *dotImportElementDefinitionCollisionChecker) checkFile(l *linker, logger
 		logger := logger.With(slog.String("import", aImp.Package.ImportPath))
 		logger.Debug("Checking import")
 
-		for _, aElemDef := range aImp.Package.ElementDefinitions {
+		for _, aElemDef := range aImp.Package.ElementSpecs {
 			if !c.shouldCheck(aElemDef) {
 				continue
 			}
@@ -222,7 +224,7 @@ func (c *dotImportElementDefinitionCollisionChecker) checkFile(l *linker, logger
 					continue
 				}
 
-				bElemDef := bImp.Package.ElementDefinitionByFullName(aName)
+				bElemDef := bImp.Package.ElementSpecByFullName(aName)
 				if bElemDef != nil {
 					c.recordDuplicate(bElemDef, bImp)
 				}
@@ -239,7 +241,10 @@ func (c *dotImportElementDefinitionCollisionChecker) checkFile(l *linker, logger
 	}
 }
 
-func (c *dotImportElementDefinitionCollisionChecker) reportCollision(l *linker, logger *slog.Logger, f *file.File, first dotImportElementDefinitionCollision, dupls []dotImportElementDefinitionCollision) {
+func (c *dotImportElementDefinitionCollisionChecker) reportCollision(
+	l *linker, logger *slog.Logger, f *file.File, first dotImportElementDefinitionCollision,
+	dupls []dotImportElementDefinitionCollision,
+) {
 	collisionName := first.elem.FullName()
 	logger.Error("Element definition collision", slog.String("name", collisionName))
 
@@ -267,7 +272,10 @@ func (c *dotImportElementDefinitionCollisionChecker) reportCollision(l *linker, 
 	})
 }
 
-func (c dotImportElementDefinitionCollisionChecker) appendCollisionDiagnosticSecondary(secondaries []diagnostic.Annotation, dupl dotImportElementDefinitionCollision, reportedPrefixes *set.SliceSet[*ast.ElementDefinition]) []diagnostic.Annotation {
+func (c dotImportElementDefinitionCollisionChecker) appendCollisionDiagnosticSecondary(
+	secondaries []diagnostic.Annotation, dupl dotImportElementDefinitionCollision,
+	reportedPrefixes *set.SliceSet[*ast.ElementDefinition],
+) []diagnostic.Annotation {
 	if dupl.elem.Definition.LParen == nil && dupl.elem.Definition.Prefix != nil {
 		return append(secondaries,
 			anno.Range(dupl.elem.File, dupl.elem.Definition.Prefix.Start(), dupl.elem.AST.Name.End(), "defined here"))
@@ -320,7 +328,7 @@ func (c *dotImportAttributeDefinitionCollisionChecker) checkFile(l *linker, logg
 		logger := logger.With(slog.String("import", aImp.Package.ImportPath))
 		logger.Debug("Checking import")
 
-		for _, aAttrDef := range aImp.Package.AttributeDefinitions {
+		for _, aAttrDef := range aImp.Package.AttributeSpecs {
 			aInfo := attrDefInfo(aAttrDef)
 			if aInfo == nil {
 				continue
@@ -344,7 +352,7 @@ func (c *dotImportAttributeDefinitionCollisionChecker) checkFile(l *linker, logg
 					continue
 				}
 
-				for _, bAttrDef := range bImp.Package.AttributeDefinitions {
+				for _, bAttrDef := range bImp.Package.AttributeSpecs {
 					bInfo := attrDefInfo(bAttrDef)
 					if bInfo == nil {
 						continue
@@ -372,7 +380,10 @@ func (c *dotImportAttributeDefinitionCollisionChecker) checkFile(l *linker, logg
 	}
 }
 
-func (c *dotImportAttributeDefinitionCollisionChecker) reportCollision(l *linker, logger *slog.Logger, f *file.File, first dotImportAttributeDefinitionCollision, dupls []dotImportAttributeDefinitionCollision) {
+func (c *dotImportAttributeDefinitionCollisionChecker) reportCollision(
+	l *linker, logger *slog.Logger, f *file.File, first dotImportAttributeDefinitionCollision,
+	dupls []dotImportAttributeDefinitionCollision,
+) {
 	logger.Error("Attribute definition collision", slog.String("selector", first.selector))
 
 	primaries := make([]diagnostic.Annotation, 1, len(dupls)+1)
@@ -398,7 +409,9 @@ func (c *dotImportAttributeDefinitionCollisionChecker) reportCollision(l *linker
 	})
 }
 
-func (c dotImportAttributeDefinitionCollisionChecker) appendCollisionDiagnosticSecondary(secondaries []diagnostic.Annotation, dupl dotImportAttributeDefinitionCollision) []diagnostic.Annotation {
+func (c dotImportAttributeDefinitionCollisionChecker) appendCollisionDiagnosticSecondary(
+	secondaries []diagnostic.Annotation, dupl dotImportAttributeDefinitionCollision,
+) []diagnostic.Annotation {
 	if dupl.attr.Definition.LParen == nil && dupl.attr.Definition.Prefix != nil {
 		return append(secondaries,
 			anno.Range(dupl.attr.File, dupl.attr.Definition.Prefix.Start(), dupl.attr.AST.Selector.End(), "defined here"))

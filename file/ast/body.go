@@ -68,7 +68,10 @@ type Scope struct {
 	RBrace *Position
 }
 
-var _ Body = (*Scope)(nil)
+var (
+	_ Body        = (*Scope)(nil)
+	_ Highlighter = (*Scope)(nil)
+)
 
 func (s *Scope) Start() Position {
 	if s.LBrace != nil {
@@ -98,6 +101,17 @@ func (s *Scope) End() Position {
 		return deltaPos(*s.LBrace, len("{"))
 	}
 	return Position{}
+}
+
+func (s *Scope) Highlight() (start, end Position) {
+	start, end = s.Start(), s.End()
+	if start.Line == end.Line {
+		return start, end
+	}
+	if s.LBrace != nil {
+		return *s.LBrace, deltaPos(*s.LBrace, len("{"))
+	}
+	return start, end
 }
 
 func (s *Scope) Walk(w func(Node)) {
@@ -146,7 +160,10 @@ type BracketText struct {
 	RBracket *Position
 }
 
-var _ Body = (*BracketText)(nil)
+var (
+	_ Body        = (*BracketText)(nil)
+	_ Highlighter = (*BracketText)(nil)
+)
 
 func (t *BracketText) Start() Position {
 	switch {
@@ -170,6 +187,17 @@ func (t *BracketText) End() Position {
 		return deltaPos(*t.LBracket, len("["))
 	}
 	return Position{}
+}
+
+func (t *BracketText) Highlight() (start, end Position) {
+	start, end = t.Start(), t.End()
+	if start.Line == end.Line {
+		return start, end
+	}
+	if t.LBracket != nil {
+		return *t.LBracket, deltaPos(*t.LBracket, len("["))
+	}
+	return start, end
 }
 
 func (t *BracketText) Walk(w func(Node)) {

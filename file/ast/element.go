@@ -39,6 +39,7 @@ func (d *Doctype) End() Position {
 	}
 	return Position{}
 }
+
 func (d *Doctype) Walk(func(Node)) {}
 
 func (*Doctype) _node()      {}
@@ -54,7 +55,10 @@ type Element struct {
 	Body   Body
 }
 
-var _ ScopeNode = (*Element)(nil)
+var (
+	_ ScopeNode   = (*Element)(nil)
+	_ Highlighter = (*Element)(nil)
+)
 
 func (e *Element) Start() Position {
 	if e.Header != nil {
@@ -81,6 +85,13 @@ func (e *Element) Walk(w func(Node)) {
 	if e.Body != nil {
 		w(e.Body)
 	}
+}
+
+func (e *Element) Highlight() (start, end Position) {
+	if e.Header != nil && e.Header.Name != nil {
+		return e.Header.Name.Start(), e.Header.Name.End()
+	}
+	return e.Start(), e.End()
 }
 
 func (*Element) _node()      {}
@@ -206,7 +217,10 @@ type RawElement struct {
 	Body *BracketText // should only contain text nodes, not nil
 }
 
-var _ ScopeNode = (*RawElement)(nil)
+var (
+	_ ScopeNode   = (*RawElement)(nil)
+	_ Highlighter = (*RawElement)(nil)
+)
 
 func (e *RawElement) Start() Position {
 	if e.Raw != nil {
@@ -228,6 +242,13 @@ func (e *RawElement) Walk(w func(Node)) {
 	if e.Body != nil {
 		w(e.Body)
 	}
+}
+
+func (e *RawElement) Highlight() (start, end Position) {
+	if e.Raw != nil {
+		return *e.Raw, deltaPos(*e.Raw, len("!raw"))
+	}
+	return e.Start(), e.End()
 }
 
 func (*RawElement) _node()      {}
