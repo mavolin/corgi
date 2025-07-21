@@ -118,14 +118,14 @@ func buildSymbols(f *File) {
 	for _, n := range f.AST.TopLevel {
 		switch n := n.(type) {
 		case *ast.Component:
-			ccsStart := len(f.Symbols.ComponentCalls)
+			ccsStart := len(f.ComponentCalls)
 			n.Walk(walk)
-			ccEnd := len(f.Symbols.ComponentCalls)
+			ccEnd := len(f.ComponentCalls)
 			if ccEnd > ccsStart {
-				f.Package.ComponentByNode(n).ComponentCalls = f.Symbols.ComponentCalls[ccsStart:ccEnd:ccEnd]
+				f.Package.ComponentByNode(n).ComponentCalls = f.ComponentCalls[ccsStart:ccEnd:ccEnd]
 			}
 		case *ast.Alias:
-			ccsStart := len(f.Symbols.ComponentCalls)
+			ccsStart := len(f.ComponentCalls)
 			if n.Header != nil {
 				n.Header.Walk(walk)
 			}
@@ -134,22 +134,22 @@ func buildSymbols(f *File) {
 				AliasFor: f.Package.AliasByNode(n),
 				File:     f,
 			}
-			f.Symbols.ComponentCalls = append(f.Symbols.ComponentCalls, ccw)
-			f.Symbols.componentCallsByNode[n.ComponentCall] = ccw
+			f.ComponentCalls = append(f.ComponentCalls, ccw)
+			f.componentCallsByNode[n.ComponentCall] = ccw
 			if n.ComponentCall.Header != nil {
 				n.ComponentCall.Header.Walk(walk)
 			}
 			if n.ComponentCall.Body != nil {
 				n.ComponentCall.Body.Walk(walk)
 			}
-			ccsEnd := len(f.Symbols.ComponentCalls)
-			ccw.AliasFor.ComponentCalls = f.Symbols.ComponentCalls[ccsStart:ccsEnd:ccsEnd]
+			ccsEnd := len(f.ComponentCalls)
+			ccw.AliasFor.ComponentCalls = f.ComponentCalls[ccsStart:ccsEnd:ccsEnd]
 		}
 	}
 
-	f.ComponentCalls = slices.Clip(f.Symbols.ComponentCalls)
-	f.ElementReferences = slices.Clip(f.Symbols.ElementReferences)
-	f.AttributeReferences = slices.Clip(f.Symbols.AttributeReferences)
+	f.ComponentCalls = slices.Clip(f.ComponentCalls)
+	f.ElementReferences = slices.Clip(f.ElementReferences)
+	f.AttributeReferences = slices.Clip(f.AttributeReferences)
 }
 
 func (s *Symbols) ImportByNamespace(namespace string) *Import {

@@ -73,11 +73,12 @@ func inferTernaryType(f *File, expr *ast.Ternary) (typ string, sure bool) {
 		return falseType, true
 	}
 
-	if trueType == falseType {
+	switch {
+	case trueType == falseType:
 		return trueType, false
-	} else if expr.TrueVal == nil {
+	case expr.TrueVal == nil:
 		return falseType, falseSure
-	} else if expr.FalseVal == nil {
+	case expr.FalseVal == nil:
 		return trueType, trueSure
 	}
 	return "", false

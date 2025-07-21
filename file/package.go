@@ -327,6 +327,7 @@ func (d *ElementSpec) FullName() string {
 	}
 	return d.AST.Name.Name
 }
+
 func (d *ElementSpec) MatchesFullName(name string) bool {
 	if d.AST.Name == nil {
 		return false
@@ -383,6 +384,7 @@ func (d *AttributeSpec) MatchesFullName(name string) bool {
 	}
 	return d.AST.Selector.Matches(name)
 }
+
 func (d *AttributeSpec) MatchesQualifiedName(name string) bool {
 	return d.AST.Selector.Matches(name)
 }
