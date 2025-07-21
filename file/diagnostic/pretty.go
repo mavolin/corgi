@@ -463,11 +463,15 @@ func (p *prettyPrinter) printDocs() {
 	}
 	p.uncolored("\n\n")
 	p.colored("Docs: ", color.Bold)
-	link, err := url.JoinPath(p.o.DocsBaseURL, "!"+docs)
-	if err != nil {
-		link = p.o.DocsBaseURL + "/!" + docs
+	if strings.HasPrefix(docs, "https://") {
+		p.uncolored(docs)
+	} else {
+		link, err := url.JoinPath(p.o.DocsBaseURL, "!"+docs)
+		if err != nil {
+			link = p.o.DocsBaseURL + "/!" + docs
+		}
+		p.uncolored(link)
 	}
-	p.uncolored(link)
 }
 
 // ============================================================================
