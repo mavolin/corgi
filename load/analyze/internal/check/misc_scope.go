@@ -95,7 +95,7 @@ func (ch *checker) CheckAttributeTypeSuperfluousAttributeName(logger *slog.Logge
 	logger = logger.WithGroup("superfluous_attribute_name")
 	logger.Debug("Checking for superfluous attribute name")
 
-	if t.Name == nil {
+	if t.Attribute == nil {
 		logger.Debug("No attribute name, skipping")
 		return
 	}
@@ -105,7 +105,7 @@ func (ch *checker) CheckAttributeTypeSuperfluousAttributeName(logger *slog.Logge
 		ch.Report(&diagnostic.Diagnostic{
 			Message: "attribute type: attribute name on non-unsafe type",
 			Primary: []diagnostic.Annotation{
-				anno.Node(f, t.Name, "remove this attribute name"),
+				anno.Node(f, t.Attribute, "remove this attribute name"),
 			},
 			Hints: []diagnostic.Hint{
 				{Hint: "The formatter (`corgi fmt`) can automatically fix this error."},
