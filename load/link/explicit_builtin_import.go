@@ -12,22 +12,26 @@ func (l *linker) CheckExplicitBuiltinImport(_ context.Context) {
 	logger := l.logger.WithGroup("check.explicit_builtin_import")
 	logger.Info("Checking for an illegal explicit import of the builtin package")
 
-	if l.builtin == nil {
-		logger.Info("No builtin package set, skipping")
-		return
-	}
-
 	for _, f := range l.p.Files {
 		logger := logger.With(slog.String("file", f.Name))
 		logger.Debug("Checking file")
 
+		builtin := f.BuiltinImport()
+		if builtin == nil {
+			logger.Debug("File has no builtin import, skipping")
+			continue
+		}
+
 		for _, imp := range f.Imports {
-			impPath := imp.ImportPath()
+			if imp.AST == nil || imp.Path == "" {
+				continue
+			}
+
 			logger := logger.With(
 				slog.String("pos", imp.AST.Start().String()),
-				slog.String("import", impPath))
+				slog.String("import", imp.Path))
 			logger.Debug("Checking import")
-			if impPath == "" || impPath != l.builtin.ImportPath {
+			if imp.Path != builtin.Path {
 				continue
 			}
 
@@ -40,6 +44,7 @@ func (l *linker) CheckExplicitBuiltinImport(_ context.Context) {
 				Explanation: "The builtin package is implicitly imported in every file. " +
 					"Explicitly importing it serves no purpose and is not allowed.",
 			})
+			imp.LoadedWithErrors = true
 		}
 	}
 }

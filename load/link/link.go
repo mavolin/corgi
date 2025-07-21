@@ -16,7 +16,6 @@ type linker struct {
 	p           *file.Package
 	logger      *slog.Logger
 	importer    Importer
-	builtin     *file.Package
 	diagnostics diagnostic.List
 
 	stringSet *set.SliceSet[string]
@@ -40,25 +39,24 @@ type (
 
 		// Importer loads imports.
 		// If not specified, the linker will run in local-only mode, where only
-		// local component calls are allowed.
-		// For every external component call, the linker will return an error.
+		// files must not make any imports.
+		// This does not affect the use of built-in package.
+		//
+		// The linker does not cache results of the Importer on its own.
+		// In a package where n files import the same package, the linker will
+		// call the importer n times for that package.
+		// It is highly recommend to implement some sort of caching logic.
+		//
+		// If you're not using the high-level load package, but are using the
+		// linker directly, refrain from setting the Importer to
+		// [github.com/mavolin/corgi/v2/load.Load], as that will not use any
+		// caching logic.
 		//
 		// Default: nil
 		Importer Importer
-
-		// Builtin is the builtin package of the corgi standard library.
-		//
-		// All symbols in this package are always available, even if not
-		// imported, but can be shadowed by local or dot-imported symbols.
-		//
-		// If a builtin package is specified, the linker will report an error
-		// if that same package is explicitly imported.
-		//
-		// Default: nil
-		Builtin *file.Package
 	}
 
-	Importer func(ctx context.Context, path importPath) (*file.Package, diagnostic.List)
+	Importer func(ctx context.Context, path importPath) (*file.Package, diagnostic.List, error)
 )
 
 func (o *Options) applyDefaults() {
@@ -72,6 +70,10 @@ func (o *Options) applyDefaults() {
 //
 // It loads the minimal set of imports required to link the package and detect
 // all collisions of corgi symbols.
+//
+// If you wish to include symbols from a corgi standard library, you should
+// call [file.Symbols.AddBuiltinImport] before calling this function.
+// The builtin package must not contain any exported symbols.
 func Link(ctx context.Context, p *file.Package, o Options) diagnostic.List {
 	o.applyDefaults()
 
@@ -85,7 +87,6 @@ func Link(ctx context.Context, p *file.Package, o Options) diagnostic.List {
 		p:                      p,
 		logger:                 logger,
 		importer:               o.Importer,
-		builtin:                o.Builtin,
 		diagnostics:            make(diagnostic.List, 0, 128),
 		stringSet:              set.NewSliceSet[importPath](32),
 		reportedMissingImports: make(map[*file.File]*set.SliceSet[importPath], len(p.Files)),
@@ -96,10 +97,10 @@ func Link(ctx context.Context, p *file.Package, o Options) diagnostic.List {
 
 	l.CheckImportCycles(ctx)
 	ctx = addToImportersGraph(ctx, p)
-	l.CheckImportNamespaceCollisions(ctx)
 	l.CheckDuplicateDotImports(ctx)
 	l.CheckExplicitBuiltinImport(ctx)
 	l.LoadImports(ctx)
+	l.CheckImportNamespaceCollisions(ctx)
 	l.CheckDotImportCollisions(ctx)
 	l.CheckLocalDotImportCollisions(ctx)
 

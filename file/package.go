@@ -1,7 +1,6 @@
 package file
 
 import (
-	"fmt"
 	"path"
 	"slices"
 	"strings"
@@ -44,31 +43,6 @@ func (p *Package) ModulePath() string {
 		return path.Join(p.Module, p.PathInModule)
 	}
 	return p.PathInModule
-}
-
-// AddBuiltinImport creates a single new [Import] and add it to all files in
-// the package, correctly setting the Package and Namespace fields.
-// The import will use the default alias "__corgi_builtin", however, the caller
-// may choose to change that alias by modifying the returned import.
-//
-// None of the files in the package may already have an import with that alias
-// or another builtin import.
-func (p *Package) AddBuiltinImport(builtin *Package) *Import {
-	imp := &Import{
-		Alias:     "__corgi_builtin",
-		Path:      builtin.ImportPath,
-		Package:   builtin,
-		Namespace: "",
-	}
-
-	for _, f := range p.Files {
-		if f.builtin != nil {
-			panic(fmt.Sprintf("%s: already has a builtin import for %q", f.ModulePath(), builtin.ImportPath))
-		}
-		f.Imports = append(f.Imports, imp)
-	}
-
-	return imp
 }
 
 type PackageSymbols struct {

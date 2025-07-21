@@ -4,6 +4,7 @@
 package file
 
 import (
+	"fmt"
 	"path"
 	"slices"
 
@@ -11,6 +12,13 @@ import (
 	"github.com/mavolin/corgi/v2/escape/elemtype"
 	"github.com/mavolin/corgi/v2/file/ast"
 )
+
+// BuiltinAlias is the default alias used for the builtin package.
+//
+// Note that the methods in this package don't identify the builtin package
+// by its alias, but by its namespace, which is the empty string.
+// You are free to choose another alias, if you please.
+const BuiltinAlias = "__corgi_builtin"
 
 type permanentImport struct {
 	Alias string
@@ -46,7 +54,7 @@ type File struct {
 }
 
 func (f *File) ModulePath() string {
-	return path.Join(f.ModulePath(), f.Name)
+	return path.Join(f.Package.ModulePath(), f.Name)
 }
 
 func (f *File) PathInModule() string {
@@ -154,6 +162,31 @@ func buildSymbols(f *File) {
 	f.AttributeReferences = slices.Clip(f.AttributeReferences)
 }
 
+// AddBuiltinImport creates a new [Import] importing the given builtin package.
+// The import is marked as not forwarded by default and uses the [BuiltinAlias]
+// as the alias.
+//
+// The file must not already have a builtin import or use the given alias.
+// The function returns a pointer to the created import, which may also be
+// retrieved by calling [File.BuiltinImport].
+func (s *Symbols) AddBuiltinImport(builtin *Package) *Import {
+	if builtinImp := s.BuiltinImport(); builtinImp != nil {
+		panic(fmt.Sprintf("symbols already contain builtin import for %q", builtinImp.Path))
+	} else if imp := s.ImportByNamespace(BuiltinAlias); imp != nil {
+		panic(fmt.Sprintf("symbols already contain import with namespace %s: %q: you need to chose a different alias", BuiltinAlias, imp.Path))
+	}
+
+	imp := &Import{
+		Alias:     BuiltinAlias,
+		Path:      builtin.ImportPath,
+		Package:   builtin,
+		Namespace: "",
+	}
+	s.builtin = imp
+	s.Imports = append(s.Imports, imp)
+	return imp
+}
+
 // ImportByNamespace returns the first import with the given namespace.
 //
 // Does not work for the "." namespace.
@@ -215,12 +248,18 @@ type Import struct {
 
 	// Package is the package this import resolves to.
 	//
-	// This may be nil, at the discretion of the linker, if no components are
-	// imported from the package.
+	// Nil for packages that don't contain any corgi files or are not relevant
+	// for linking the file.
 	//
 	// The linker will not load the packages of implicitly imported packages,
 	// the only exception being a builtin package, if provided.
 	Package *Package
+
+	// LoadedWithErrors indicates that the linker wanted to load the package,
+	// but encountered an error while doing so.
+	//
+	// Details will be available in the diagnostics returned by the linker.
+	LoadedWithErrors bool
 
 	// Namespace is the namespace of the import.
 	//

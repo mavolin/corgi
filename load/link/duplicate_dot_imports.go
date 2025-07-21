@@ -40,29 +40,24 @@ func (c *duplicateDotImportChecker) checkFile(l *linker, logger *slog.Logger, f 
 		if c.shouldCheck(a) {
 			continue
 		}
-		aImpPath := a.ImportPath()
-		if aImpPath == "" {
-			continue
-		}
 
 		logger := logger.With(
 			slog.String("pos", a.AST.Start().String()),
-			slog.String("import", aImpPath))
+			slog.String("import", a.Path))
 		logger.Debug("Checking import")
 
-		if c.checked.Contains(aImpPath) {
+		if c.checked.Contains(a.Path) {
 			logger.Debug("Already checked imports with that path")
 			continue
 		}
-		c.checked.Add(aImpPath)
+		c.checked.Add(a.Path)
 		c.resetDuplicates()
 
 		for _, b := range f.Imports[ai+1:] {
 			if c.shouldCheck(b) {
 				continue
 			}
-			bImpPath := b.ImportPath()
-			if aImpPath == bImpPath {
+			if a.Path == b.Path {
 				logger.Debug("Found duplicate", slog.String("duplicate_position", b.AST.Start().String()))
 				c.recordDuplicate(b)
 			}
@@ -102,5 +97,5 @@ func (c *duplicateDotImportChecker) recordDuplicate(imp *file.Import) {
 }
 
 func (c duplicateDotImportChecker) shouldCheck(imp *file.Import) bool {
-	return imp.AST != nil && imp.AST.Alias != nil && imp.AST.Alias.Name == "."
+	return imp.Path != "" && imp.AST != nil && imp.AST.Alias != nil && imp.AST.Alias.Name == "."
 }

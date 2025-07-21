@@ -54,24 +54,25 @@ func (c *importCycleChecker) checkFile(l *linker, logger *slog.Logger, f *file.F
 }
 
 func (c *importCycleChecker) checkImport(l *linker, logger *slog.Logger, f *file.File, imp *file.Import) {
-	impPath := imp.ImportPath()
-	if impPath == "" {
+	if imp.AST != nil && imp.Path == "" {
 		return
 	}
+
 	logger = logger.With(
 		slog.String("pos", imp.AST.Start().String()),
-		slog.String("import", impPath))
+		slog.String("import", imp.Path))
 	logger.Debug("Checking import")
-	if c.reported.Contains(impPath) {
+	if c.reported.Contains(imp.Path) {
 		logger.Debug("Already reported, skipping")
 		return
 	}
 
 	for i, parentPkg := range slices.Backward(c.importersGraph) {
-		if parentPkg.ImportPath != impPath {
+		if parentPkg.ImportPath != imp.Path {
 			continue
 		}
 		logger.Error("Circular import")
+		imp.LoadedWithErrors = true
 
 		var msg strings.Builder
 		msg.Grow(512)
@@ -84,7 +85,7 @@ func (c *importCycleChecker) checkImport(l *linker, logger *slog.Logger, f *file
 			msg.WriteString(p.ImportPath)
 		}
 
-		c.reported.Add(impPath)
+		c.reported.Add(imp.Path)
 		l.report(&diagnostic.Diagnostic{
 			Message: "circular import",
 			Primary: []diagnostic.Annotation{anno.Node(f, imp.AST.Path, msg.String())},
