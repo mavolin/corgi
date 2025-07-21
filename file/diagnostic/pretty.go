@@ -56,7 +56,7 @@ func (o *PrettyOptions) applyDefaults() {
 	}
 	if o.FileNamePrinter == nil {
 		o.FileNamePrinter = func(f *file.File) string {
-			return filepath.FromSlash("./" + f.PathInModule)
+			return filepath.FromSlash("./" + f.PathInModule())
 		}
 	}
 	if o.DocsBaseURL == "" {

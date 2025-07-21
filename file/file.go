@@ -33,14 +33,6 @@ type File struct {
 	// Name is the name of the file.
 	Name string
 
-	// Module is the path/name of the Go module providing this file.
-	Module string
-	// PathInModule is the path to the file in the Go module, relative to the
-	// module root.
-	//
-	// It is always specified as a forward slash separated path.
-	PathInModule string
-
 	// NeedsSafeImport indicates whether this file needs to import the safe
 	// package.
 	NeedsSafeImport bool
@@ -53,9 +45,17 @@ type File struct {
 	*Symbols
 }
 
+func (f *File) ModulePath() string {
+	return path.Join(f.ModulePath(), f.Name)
+}
+
+func (f *File) PathInModule() string {
+	return path.Join(f.Package.PathInModule, f.Name)
+}
+
 type Symbols struct {
-	Imports            []*Import
-	importsByNamespace map[string]*Import
+	Imports []*Import
+	builtin *Import // quick access to the builtin import, not always set
 
 	ComponentCalls       []*ComponentCall
 	componentCallsByNode map[*ast.ComponentCall]*ComponentCall
@@ -74,8 +74,7 @@ func buildSymbols(f *File) {
 	}
 
 	f.Symbols = &Symbols{
-		Imports:            make([]*Import, 0, nImports),
-		importsByNamespace: make(map[string]*Import, nImports),
+		Imports: make([]*Import, 0, nImports),
 
 		ComponentCalls:       make([]*ComponentCall, 0, 256),
 		componentCallsByNode: make(map[*ast.ComponentCall]*ComponentCall, 256),
@@ -90,10 +89,13 @@ func buildSymbols(f *File) {
 	for _, impStmt := range f.AST.Imports {
 		for _, spec := range impStmt.Specs {
 			imp := &Import{AST: spec}
-			f.Imports = append(f.Imports, imp)
-			if ns := imp.Namespace(); ns != "" {
-				f.importsByNamespace[ns] = imp
+			if spec.Alias != nil {
+				imp.Alias = spec.Alias.Name
 			}
+			if spec.Path != nil {
+				imp.Path = spec.Path.Unquote()
+			}
+			f.Imports = append(f.Imports, imp)
 		}
 	}
 
@@ -152,8 +154,18 @@ func buildSymbols(f *File) {
 	f.AttributeReferences = slices.Clip(f.AttributeReferences)
 }
 
+// ImportByNamespace returns the first import with the given namespace.
+//
+// Does not work for the "." namespace.
+//
+// Only available after linking.
 func (s *Symbols) ImportByNamespace(namespace string) *Import {
-	return s.importsByNamespace[namespace]
+	for _, imp := range s.Imports {
+		if imp.Namespace == namespace {
+			return imp
+		}
+	}
+	return nil
 }
 
 func (s *Symbols) ImportByNode(node *ast.ImportSpec) *Import {
@@ -163,6 +175,13 @@ func (s *Symbols) ImportByNode(node *ast.ImportSpec) *Import {
 		}
 	}
 	return nil
+}
+
+func (s *Symbols) BuiltinImport() *Import {
+	if s.builtin != nil {
+		return s.builtin
+	}
+	return s.ImportByNamespace("")
 }
 
 func (s *Symbols) ComponentCallByNode(node *ast.ComponentCall) *ComponentCall {
@@ -181,32 +200,67 @@ type Import struct {
 	// BUILD SYMBOLS
 	//
 
+	// AST is the AST node of the import, if this package was explicitly
+	// imported.
 	AST *ast.ImportSpec
+
+	Alias string // may be empty
+	// Path is the import path.
+	//
+	// Guaranteed to be non-empty for both explicit and implicit imports.
+	Path string
 
 	// LINKER
 	//
 
 	// Package is the package this import resolves to.
 	//
-	// This may be nil, if no components are imported from the package.
+	// This may be nil, at the discretion of the linker, if no components are
+	// imported from the package.
+	//
+	// The linker will not load the packages of implicitly imported packages,
+	// the only exception being a builtin package, if provided.
 	Package *Package
+
+	// Namespace is the namespace of the import.
+	//
+	// The responsibility of setting this field depends on whether the import
+	// is explicit or implicit:
+	//
+	// For explicit imports, it is the linker's responsibility to set this
+	// field, as it loads the package and reads the package name.
+	//
+	// For implicit imports, it is the responsibility of the adder of the
+	// import to set this field.
+	//
+	// All forwarded imports must have a valid namespace.
+	//
+	// For dot imports, this field is set to "."
+	//
+	// For the builtin package, this field is set to the empty string.
+	// The builtin package is the only package where Namespace differs from the
+	// computed namespace, i.e. where Namespace is neither the Alias, if set,
+	// nor the package name as specified in the source files.
+	//
+	// Therefore, when outputting the file, rely on Alias to produce correct
+	// import statement aliases.
+	//
+	// The corgi module reserves all namespaces prefixed with "__corgi_".
+	Namespace string
+
+	// Forward indicates whether this import should be forwarded, i.e. included,
+	// in the output file's list of imports.
+	//
+	// Like with the Namespace field, this is set by the linker for explicit
+	// imports, and by the adder of the import for implicit imports.
+	//
+	// All forwarded imports must have a valid, unique, namespace.
+	// All forwarded explicit imports must have a valid Package.
+	Forward bool
 }
 
-func (i *Import) ImportPath() string {
-	if i.AST.Path == nil {
-		return ""
-	}
-	return i.AST.Path.Unquote()
-}
-
-// Namespace returns the namespace of the import.
-// For dot imports, it returns ".".
-func (i *Import) Namespace() string {
-	if i.AST.Alias != nil {
-		return i.AST.Alias.Name
-	}
-	return path.Base(i.ImportPath())
-}
+func (imp *Import) Explicit() bool { return imp.AST != nil }
+func (imp *Import) Implicit() bool { return !imp.Explicit() }
 
 type ElementReference struct {
 	// BUILD SYMBOLS

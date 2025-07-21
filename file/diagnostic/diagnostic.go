@@ -181,7 +181,7 @@ func (d *Diagnostic) Short() string {
 func (d *Diagnostic) Error() string {
 	if len(d.Primary) > 0 {
 		f := d.Primary[0]
-		return fmt.Sprint(f.File.PathInModule, ":", f.Start, ": ", d.Message)
+		return fmt.Sprint(f.File.PathInModule(), ":", f.Start, ": ", d.Message)
 	}
 
 	return d.Message

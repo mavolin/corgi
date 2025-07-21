@@ -39,11 +39,11 @@ func TopLevel(f *file.File) Option {
 			astCC := Closest[*ast.ComponentCall](ctx.Parents)
 			cc := f.ComponentCallByNode(astCC)
 			if cc == nil {
-				panic(fmt.Sprintf("walk.TopLevel called without building symbols: %s/%s:%s: file.ComponentCall not found for ast node", f.Module, f.PathInModule, cc.AST.Start()))
+				panic(fmt.Sprintf("walk.TopLevel called without building symbols: %s:%s: file.ComponentCall not found for ast node", f.ModulePath(), cc.AST.Start()))
 			}
 			with := cc.WithByNode(n)
 			if with == nil {
-				panic(fmt.Sprintf("walk.TopLevel called without analyzing component calls: %s/%s:%s: file.With not found for ast node", f.Module, f.PathInModule, n.Start()))
+				panic(fmt.Sprintf("walk.TopLevel called without analyzing component calls: %s:%s: file.With not found for ast node", f.ModulePath(), n.Start()))
 			}
 			if with.Block == nil || !with.Block.TopLevel(file.AtLeastOne) {
 				return Skip

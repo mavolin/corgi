@@ -27,7 +27,10 @@ func TestDiagnostic_Pretty(t *testing.T) {
 	}
 
 	f := &file.File{
-		PathInModule: "foo.corgi",
+		Package: &file.Package{
+			PathInModule: "",
+		},
+		Name: "foo.corgi",
 		AST: &ast.File{
 			Raw: "package foo\n" +
 				"\n" +

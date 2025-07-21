@@ -1,6 +1,8 @@
 package file
 
 import (
+	"fmt"
+	"path"
 	"slices"
 	"strings"
 
@@ -12,16 +14,22 @@ import (
 type Package struct {
 	// Module is the path/name of the Go module providing this directory.
 	//
-	// Empty for Go stdlib.
+	// Empty for Corgi stdlib.
 	Module string // load
 	// PathInModule is the path to the directory in the Go module, relative
 	// to the module root.
 	//
 	// Always specified as a forward slash separated path.
 	PathInModule string // load
-	// ImportPath is the actual import path of the package.
+	// ImportPath is the import path with which the package was imported.
 	//
-	// Only differs from Module/PathInModule if the package is a stdlib package.
+	// This needn't necessarily be a correct import, corresponding to
+	// path.Join(Module, PathInModule), if the path is symbolic.
+	// The most common case for that is a corgi stdlib import, that uses the
+	// "corgi/" import path prefix, but is obviously located in this module.
+	//
+	// In that case ImportPath might be "corgi/fmt", while Module is
+	// "github.com/mavolin/corgi/v2" and PathInModule is "std/fmt".
 	ImportPath string // load
 
 	Name string // analyze
@@ -29,6 +37,38 @@ type Package struct {
 	*PackageSymbols
 
 	Files []*File
+}
+
+func (p *Package) ModulePath() string {
+	if p.Module != "" {
+		return path.Join(p.Module, p.PathInModule)
+	}
+	return p.PathInModule
+}
+
+// AddBuiltinImport creates a single new [Import] and add it to all files in
+// the package, correctly setting the Package and Namespace fields.
+// The import will use the default alias "__corgi_builtin", however, the caller
+// may choose to change that alias by modifying the returned import.
+//
+// None of the files in the package may already have an import with that alias
+// or another builtin import.
+func (p *Package) AddBuiltinImport(builtin *Package) *Import {
+	imp := &Import{
+		Alias:     "__corgi_builtin",
+		Path:      builtin.ImportPath,
+		Package:   builtin,
+		Namespace: "",
+	}
+
+	for _, f := range p.Files {
+		if f.builtin != nil {
+			panic(fmt.Sprintf("%s: already has a builtin import for %q", f.ModulePath(), builtin.ImportPath))
+		}
+		f.Imports = append(f.Imports, imp)
+	}
+
+	return imp
 }
 
 type PackageSymbols struct {

@@ -42,8 +42,7 @@ func Parse(input string, o Options) (*file.File, diagnostic.List) {
 	}
 
 	f := &file.File{
-		Name:         "<string>",
-		PathInModule: "<string>",
+		Name: "<string_input>",
 		AST: &ast.File{
 			Raw:   input,
 			Lines: lines,
