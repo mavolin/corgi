@@ -20,7 +20,7 @@ type linker struct {
 
 	stringSet *set.SliceSet[string]
 
-	reportedMissingImports map[*file.File]*set.SliceSet[importPath]
+	reportedMissingImports map[*file.File]*set.SliceSet[string /* namespace */]
 }
 
 type (
@@ -143,4 +143,13 @@ func addToImportersGraph(ctx context.Context, p *file.Package) context.Context {
 func importersGraph(ctx context.Context) []*file.Package {
 	importers, _ := ctx.Value(importersGraphKey{}).([]*file.Package)
 	return importers
+}
+
+func (l *linker) reportMissingImport(f *file.File, namespace string, d *diagnostic.Diagnostic) {
+	if l.reportedMissingImports[f].Contains(namespace) {
+		return
+	}
+
+	l.reportedMissingImports[f].Add(namespace)
+	l.report(d)
 }

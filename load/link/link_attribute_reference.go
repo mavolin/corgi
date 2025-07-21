@@ -63,15 +63,21 @@ func (l *linker) linkUnqualifiedAttributeReference(_ context.Context, logger *sl
 	packageMatches := f.Package.AttributeSpecByFullName(name)
 	equalSpecificityMatches = packageMatches
 
+	var ignoreError bool
 	for _, imp := range f.Imports {
-		if imp.Namespace() != "." || imp.Package == nil {
+		if !imp.Explicit() || imp.Namespace != "." {
+			continue
+		} else if imp.LoadedWithErrors {
+			ignoreError = true
+			continue
+		} else if imp.Package == nil || imp.Package.PackageSymbols == nil { // contains no corgi files
 			continue
 		}
 
 		packageMatches = imp.Package.AttributeSpecByFullName(name)
 		if len(equalSpecificityMatches) == 0 || equalSpecificityMatches[0].Specificity < packageMatches[0].Specificity {
 			equalSpecificityMatches = packageMatches
-			bestMatchImport = imp.ImportPath()
+			bestMatchImport = imp.Path
 		} else if equalSpecificityMatches[0].Specificity == packageMatches[0].Specificity {
 			equalSpecificityMatches = append(equalSpecificityMatches, packageMatches...)
 		}
@@ -87,6 +93,11 @@ func (l *linker) linkUnqualifiedAttributeReference(_ context.Context, logger *sl
 		}
 		return
 	} else if len(equalSpecificityMatches) > 1 {
+		if ignoreError {
+			logger.Warn("Found multiple attribute definitions with same specificity, but at least one dot import was not loaded; not reporting error")
+			return
+		}
+
 		logger.Error("Found multiple attribute definitions with same specificity",
 			slog.Int("count", len(equalSpecificityMatches)),
 			slog.Int("specificity", equalSpecificityMatches[0].Specificity))
@@ -103,15 +114,16 @@ func (l *linker) linkUnqualifiedAttributeReference(_ context.Context, logger *sl
 		return
 	}
 
-	if l.builtin != nil {
-		packageMatches = l.builtin.AttributeSpecByFullName(name)
+	if builtinImp := f.BuiltinImport(); builtinImp != nil {
+		packageMatches = builtinImp.Package.AttributeSpecByFullName(name)
 		if len(packageMatches) == 1 {
 			logger.Debug("Found attribute definition within builtin package")
 			ref.Spec = packageMatches[0]
 		} else if len(packageMatches) > 1 {
 			logger.Error("Found multiple attribute definitions with same specificity in builtin package")
 			l.report(&diagnostic.Diagnostic{
-				Message: "attribute: ambiguous reference",
+				Type:    diagnostic.InternalError,
+				Message: "builtin: attribute: ambiguous reference",
 				Primary: []diagnostic.Annotation{
 					anno.Node(f, ref.AST, "there are multiple attribute selectors with the same specificity that match this attribute"),
 				},
@@ -120,7 +132,7 @@ func (l *linker) linkUnqualifiedAttributeReference(_ context.Context, logger *sl
 				Hints: []diagnostic.Hint{
 					{
 						Hint: "If you are using the corgi stdlib builtin package, you shouldn't see this error. " +
-							"Please open an issue.",
+							"Please open an issue, this is a bug.",
 					},
 				},
 				Docs: "attribute-specificity",
@@ -136,21 +148,17 @@ func (l *linker) linkQualifiedAttributeReference(_ context.Context, logger *slog
 	logger.Debug("Qualified attribute reference: external attribute definition")
 
 	imp := f.ImportByNamespace(ref.AST.Package.Name)
-	if imp == nil {
+	if imp == nil || !imp.Explicit() {
 		logger.Error("Could not find import for package")
-
-		if l.reportedMissingImports[f].Contains(ref.AST.Package.Name) {
-			l.reportedMissingImports[f].Add(ref.AST.Package.Name)
-			l.report(&diagnostic.Diagnostic{
-				Message: "attribute: unresolved reference to package",
-				Primary: []diagnostic.Annotation{
-					anno.Node(f, ref.AST.Package, "missing import for this package"),
-				},
-			})
-		}
+		l.reportMissingImport(f, ref.AST.Package.Name, &diagnostic.Diagnostic{
+			Message: "attribute: unresolved reference to package",
+			Primary: []diagnostic.Annotation{
+				anno.Node(f, ref.AST.Package, "missing import for this package"),
+			},
+		})
 		return
 	}
-	if imp.Package == nil {
+	if imp.LoadedWithErrors {
 		logger.Warn("Could not resolve reference, but import was not loaded, not reporting error")
 		return
 	}

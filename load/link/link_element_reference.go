@@ -55,10 +55,12 @@ func (l *linker) linkUnqualifiedElementReference(_ context.Context, logger *slog
 
 	var ignoreError bool
 	for _, imp := range f.Imports {
-		if imp.Namespace() != "." {
+		if !imp.Explicit() || imp.Namespace != "." {
 			continue
-		} else if imp.Package == nil {
+		} else if imp.LoadedWithErrors {
 			ignoreError = true
+			continue
+		} else if imp.Package == nil || imp.Package.PackageSymbols == nil { // contains no corgi files
 			continue
 		}
 
@@ -73,10 +75,10 @@ func (l *linker) linkUnqualifiedElementReference(_ context.Context, logger *slog
 		return
 	}
 
-	if l.builtin != nil {
-		if def := l.builtin.ElementSpecByFullName(name); def != nil {
-			ref.Spec = def
-			logger.Debug("Found element definition within builtin package")
+	if builtinImp := f.BuiltinImport(); builtinImp != nil {
+		if spec := builtinImp.Package.ElementSpecByFullName(name); spec != nil {
+			ref.Spec = spec
+			logger.Debug("Found element spec within builtin package")
 			return
 		}
 	}
@@ -99,26 +101,25 @@ func (l *linker) linkQualifiedElementReference(_ context.Context, logger *slog.L
 	slog.Debug("Qualified element reference: external element definition")
 
 	imp := f.ImportByNamespace(ref.AST.Package.Name)
-	if imp == nil {
+	if imp == nil || !imp.Explicit() {
 		logger.Error("Could not find import for package")
 
-		if l.reportedMissingImports[f].Contains(ref.AST.Package.Name) {
-			l.reportedMissingImports[f].Add(ref.AST.Package.Name)
-			l.report(&diagnostic.Diagnostic{
-				Message: "element: unresolved reference to package",
-				Primary: []diagnostic.Annotation{
-					anno.Node(f, ref.AST.Package, "missing import for this package"),
-				},
-			})
-		}
+		l.reportMissingImport(f, ref.AST.Package.Name, &diagnostic.Diagnostic{
+			Message: "element: unresolved reference to package",
+			Primary: []diagnostic.Annotation{
+				anno.Node(f, ref.AST.Package, "missing import for this package"),
+			},
+		})
 		return
 	}
-	if imp.Package == nil {
+	if imp.LoadedWithErrors {
 		logger.Warn("Could not resolve reference, but import was not loaded, not reporting error")
 		return
 	}
 
-	ref.Spec = imp.Package.ElementSpecByQualifiedName(ref.AST.Name.Name)
+	if imp.Package != nil && imp.Package.PackageSymbols != nil {
+		ref.Spec = imp.Package.ElementSpecByQualifiedName(ref.AST.Name.Name)
+	}
 	if ref.Spec == nil {
 		logger.Error("Could not resolve reference")
 		l.report(&diagnostic.Diagnostic{

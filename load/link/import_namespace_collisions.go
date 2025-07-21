@@ -38,48 +38,46 @@ func (c *importNamespaceCollisionChecker) checkFile(l *linker, logger *slog.Logg
 	}
 
 	for ai, a := range f.Imports[:len(f.Imports)-1] {
-		aNamespace := a.Namespace()
-		if aNamespace == "" || aNamespace == "." {
+		if a.Namespace == "" || a.Namespace == "." {
 			continue
 		}
-		aImpPath := a.ImportPath()
 		logger := logger.With(
 			slog.String("pos", a.AST.Start().String()),
-			slog.String("import", aImpPath),
-			slog.String("namespace", aNamespace))
+			slog.String("import", a.Path),
+			slog.String("namespace", a.Namespace))
 		logger.Debug("Checking import")
 
-		if c.reported.Contains(aImpPath) {
+		if c.reported.Contains(a.Path) {
 			logger.Debug("Already reported, skipping")
 			continue
 		}
 		c.resetDuplicates()
 
 		for _, b := range f.Imports[ai+1:] {
-			bNamespace := b.Namespace()
-			if bNamespace == "" {
+			if b.Namespace == "" || b.Namespace == "." {
 				continue
-			} else if aNamespace == bNamespace {
-				logger.Debug("Found duplicate", slog.String("duplicate_import", b.ImportPath()))
+			} else if a.Namespace == b.Namespace {
+				logger.Debug("Found duplicate", slog.String("duplicate_import", b.Path))
 				c.recordDuplicate(b)
 			}
 		}
 
 		if len(c.duplNamespace) > 0 {
-			c.reported.Add(aImpPath)
+			c.reported.Add(a.Path)
 			c.reportCollision(l, logger, f, a, c.duplNamespace)
 		}
 	}
 }
 
 func (c *importNamespaceCollisionChecker) reportCollision(l *linker, logger *slog.Logger, f *file.File, first *file.Import, dupls []*file.Import) {
-	ns := first.Namespace()
-	logger.Error("Import collisions", slog.Int("n_collisions", len(ns)))
+	logger.Error("Import collisions",
+		slog.String("namespace", first.Namespace),
+		slog.Int("n_collisions", len(first.Namespace)))
 
 	primaries := make([]diagnostic.Annotation, 1, 1+len(dupls))
-	primaries[0] = anno.Node(f, first.AST, "namespace `"+ns+"` used for the first time here")
+	primaries[0] = anno.Node(f, first.AST, "has namespace `"+first.Namespace+"`")
 	for _, dupl := range dupls {
-		primaries = append(primaries, anno.Node(f, dupl.AST, "then again here"))
+		primaries = append(primaries, anno.Node(f, dupl.AST, "also has namespace `"+dupl.Namespace+"`"))
 	}
 
 	l.report(&diagnostic.Diagnostic{

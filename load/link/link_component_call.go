@@ -13,9 +13,6 @@ import (
 func (l *linker) LinkComponentCalls(ctx context.Context) {
 	logger := l.logger.WithGroup("component_calls")
 	logger.Info("Linking component calls")
-	if l.builtin == nil {
-		logger.Warn("No builtin package set")
-	}
 
 	for _, f := range l.p.Files {
 		logger := logger.With(slog.String("file", f.Name))
@@ -35,7 +32,7 @@ func (l *linker) LinkComponentCalls(ctx context.Context) {
 				if ident == nil {
 					continue
 				}
-				l.linkUnqualifiedComponentCall(ctx, logger, f, cc, ident)
+				l.linkUnqualifiedComponentCall(logger, f, cc, ident)
 			case *ast.QualifiedIdentifier:
 				if ident == nil {
 					continue
@@ -46,9 +43,7 @@ func (l *linker) LinkComponentCalls(ctx context.Context) {
 	}
 }
 
-func (l *linker) linkUnqualifiedComponentCall(
-	_ context.Context, logger *slog.Logger, f *file.File, cc *file.ComponentCall, ident *ast.Identifier,
-) {
+func (l *linker) linkUnqualifiedComponentCall(logger *slog.Logger, f *file.File, cc *file.ComponentCall, ident *ast.Identifier) {
 	logger.Debug("Unqualified call: local, builtin, or dot import component")
 
 	if c := l.p.ComponentByName(ident.Name); c != nil {
@@ -58,42 +53,44 @@ func (l *linker) linkUnqualifiedComponentCall(
 	}
 
 	if !file.IsExported(ident.Name) {
+		if builtinImp := f.BuiltinImport(); builtinImp != nil {
+			if c := builtinImp.Package.ComponentByName(ident.Name); c != nil {
+				logger.Debug("Found component within builtin package")
+				cc.Component = c
+			}
+		}
+
 		return
 	}
 
 	var ignoreError bool
 	for _, imp := range f.Imports {
-		if imp.Namespace() != "." {
+		if !imp.Explicit() || imp.Namespace != "." {
 			continue
-		} else if imp.Package == nil {
+		} else if imp.LoadedWithErrors {
 			ignoreError = true
+			continue
+		} else if imp.Package == nil || imp.Package.PackageSymbols == nil { // contains no corgi files
 			continue
 		}
 
 		if c := imp.Package.ComponentByName(ident.Name); c != nil {
 			logger.Debug("Found component within dot import",
-				slog.String("import", imp.ImportPath()))
+				slog.String("import", imp.Path))
 			cc.Component = c
 			return
 		}
 	}
 	if ignoreError {
-		logger.Warn("Could not resolve reference, but least one dot import was not loaded: not reporting error (not searching in builtin because of this)")
+		logger.Warn("Could not resolve reference, but least one dot import was not loaded: not reporting error")
 		return
-	}
-
-	if l.builtin != nil {
-		if c := l.builtin.ComponentByName(ident.Name); c != nil {
-			logger.Debug("Found component within builtin package")
-			cc.Component = c
-		}
 	}
 
 	logger.Error("Could not resolve reference")
 	l.report(&diagnostic.Diagnostic{
 		Message: "component call: unresolved reference",
 		Primary: []diagnostic.Annotation{
-			anno.Node(f, cc.AST.Header.Name, "could not resolve reference"),
+			anno.Node(f, cc.AST.Header.Name, "no component with that name found in the current package or dot imports"),
 		},
 	})
 }
@@ -125,26 +122,25 @@ func (l *linker) linkQualifiedComponentCall(
 	}
 
 	imp := f.ImportByNamespace(ident.Package.Name)
-	if imp == nil {
+	if imp == nil || !imp.Explicit() {
 		logger.Error("Could not find import for package")
-		if l.reportedMissingImports[f].Contains(ident.Package.Name) {
-			l.reportedMissingImports[f].Add(ident.Package.Name)
-			l.report(&diagnostic.Diagnostic{
-				Message: "component call: unresolved reference to package",
-				Primary: []diagnostic.Annotation{
-					anno.Node(f, ident.Package, "missing import for package"),
-				},
-			})
-		}
+		l.reportMissingImport(f, ident.Package.Name, &diagnostic.Diagnostic{
+			Message: "component call: unresolved reference to package",
+			Primary: []diagnostic.Annotation{
+				anno.Node(f, ident.Package, "missing import for package"),
+			},
+		})
 		return
 	}
 
-	if imp.Package == nil {
-		logger.Warn("Could not resolve reference, but import was not loaded, not reporting error")
+	if imp.LoadedWithErrors {
+		logger.Warn("Could not resolve reference, but import was loaded with error, not reporting subsequent error")
 		return
 	}
 
-	cc.Component = imp.Package.ComponentByName(ident.Name.Name)
+	if imp.Package != nil && imp.Package.PackageSymbols != nil {
+		cc.Component = imp.Package.ComponentByName(ident.Name.Name)
+	}
 	if cc.Component == nil {
 		logger.Error("Could not resolve reference")
 		l.report(&diagnostic.Diagnostic{

@@ -120,7 +120,14 @@ func (loader *importLoader) loadImport(ctx context.Context, l *linker, logger *s
 		}
 
 		loader.reportMut.Unlock()
-	} else {
-		logger.Info("Successfully loaded import")
+		return
 	}
+
+	if imp.Alias != "" {
+		imp.Namespace = imp.Alias
+	} else {
+		imp.Namespace = imp.Package.Name
+	}
+
+	logger.Info("Successfully loaded import")
 }
