@@ -4,6 +4,7 @@
 package file
 
 import (
+	"cmp"
 	"fmt"
 	"path"
 	"slices"
@@ -20,15 +21,10 @@ import (
 // You are free to choose another alias, if you please.
 const BuiltinAlias = "__corgi_builtin"
 
-type permanentImport struct {
-	Alias string
-	Path  string
-}
-
-var (
-	EscapeImport  = &permanentImport{"__corgi_escape", "github.com/mavolin/corgi/v2/escape"}
-	SafeImport    = &permanentImport{"__corgi_safe", "github.com/mavolin/corgi/v2/escape/safe"}
-	RuntimeImport = &permanentImport{"__corgi_runtime", "github.com/mavolin/corgi/v2/runtime"}
+const (
+	EscapeImport  = "github.com/mavolin/corgi/v2/escape"
+	SafeImport    = "github.com/mavolin/corgi/v2/escape/safe"
+	RuntimeImport = "github.com/mavolin/corgi/v2/runtime"
 )
 
 // File represents a parsed corgi file.
@@ -40,13 +36,6 @@ type File struct {
 
 	// Name is the name of the file.
 	Name string
-
-	// NeedsSafeImport indicates whether this file needs to import the safe
-	// package.
-	NeedsSafeImport bool
-	// NeedsEscapeImport indicates whether this file needs to import the
-	// escape package.
-	NeedsEscapeImport bool
 
 	AST *ast.File
 
@@ -63,7 +52,6 @@ func (f *File) PathInModule() string {
 
 type Symbols struct {
 	Imports []*Import
-	builtin *Import // quick access to the builtin import, not always set
 
 	ComponentCalls       []*ComponentCall
 	componentCallsByNode map[*ast.ComponentCall]*ComponentCall
@@ -163,28 +151,58 @@ func buildSymbols(f *File) {
 }
 
 // AddBuiltinImport creates a new [Import] importing the given builtin package.
-// The import is marked as not forwarded by default and uses the [BuiltinAlias]
-// as the alias.
+// The import is marked as not forwarded by default.
+// If you don't know what alias to use, [BuiltinAlias] is a good choice.
+// You may also choose to not use any alias at all.
 //
 // The file must not already have a builtin import or use the given alias.
 // The function returns a pointer to the created import, which may also be
-// retrieved by calling [File.BuiltinImport].
-func (s *Symbols) AddBuiltinImport(builtin *Package) *Import {
+// retrieved by calling [Symbols.BuiltinImport].
+//
+// The package must not contain any exported symbols.
+func (s *Symbols) AddBuiltinImport(alias string, builtin *Package) {
 	if builtinImp := s.BuiltinImport(); builtinImp != nil {
 		panic(fmt.Sprintf("symbols already contain builtin import for %q", builtinImp.Path))
-	} else if imp := s.ImportByNamespace(BuiltinAlias); imp != nil {
-		panic(fmt.Sprintf("symbols already contain import with namespace %s: %q: you need to chose a different alias", BuiltinAlias, imp.Path))
+	}
+
+	namespace := cmp.Or(alias, builtin.Name)
+	if imp := s.ImportByNamespace(namespace); imp != nil {
+		panic(fmt.Sprintf("symbols already contain import with namespace %s: you need to chose a (different) alias", namespace))
 	}
 
 	imp := &Import{
-		Alias:     BuiltinAlias,
+		Alias:     alias,
 		Path:      builtin.ImportPath,
 		Package:   builtin,
 		Namespace: "",
 	}
-	s.builtin = imp
 	s.Imports = append(s.Imports, imp)
-	return imp
+}
+
+// AddImport adds the given import to the file.
+// Always use this method over manipulating the [Symbols.Imports] slice
+// directly.
+//
+// AddImport panics if any of the following conditions are violated:
+//   - The import's namespace must match the alias, if set.
+//   - The import must not have the AST field set.
+//   - The file must not already have an import with the namespace.
+//   - The import must be marked as forwarded: There would be no point in
+//     adding an implicit import that is not forwarded, unless you are
+//     doing sketchy AST manipulation (that should've happened before building
+//     symbols instead).
+func (s *Symbols) AddImport(imp *Import) {
+	if imp.Alias != "" && imp.Alias != imp.Namespace {
+		panic(fmt.Sprintf("import alias %s does not match namespace %s", imp.Alias, imp.Namespace))
+	} else if imp := s.ImportByNamespace(imp.Namespace); imp != nil {
+		panic(fmt.Sprintf("symbols already contain import with namespace %s: you need to chose a (different) alias", imp.Namespace))
+	} else if imp.AST != nil {
+		panic("cannot add implicit import with AST set")
+	} else if !imp.Forward {
+		panic("cannot add implicit import that is not forwarded")
+	}
+
+	s.Imports = append(s.Imports, imp)
 }
 
 // ImportByNamespace returns the first import with the given namespace.
@@ -201,6 +219,15 @@ func (s *Symbols) ImportByNamespace(namespace string) *Import {
 	return nil
 }
 
+func (s *Symbols) ImportByPath(p string) *Import {
+	for _, imp := range s.Imports {
+		if imp.Path == p {
+			return imp
+		}
+	}
+	return nil
+}
+
 func (s *Symbols) ImportByNode(node *ast.ImportSpec) *Import {
 	for _, imp := range s.Imports {
 		if imp.AST == node {
@@ -211,9 +238,6 @@ func (s *Symbols) ImportByNode(node *ast.ImportSpec) *Import {
 }
 
 func (s *Symbols) BuiltinImport() *Import {
-	if s.builtin != nil {
-		return s.builtin
-	}
 	return s.ImportByNamespace("")
 }
 

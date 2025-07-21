@@ -223,14 +223,11 @@ func (s *PackageSymbols) AttributeSpecByNode(spec *ast.AttributeSpec) *Attribute
 	return nil
 }
 
-// AttributeSpecByFullName returns the attribute definition that matches
+// AttributeSpecByFullName returns the attribute spec that matches
 // the given full name.
 //
 // It might return multiple definitions if there are multiple selectors with
 // the same specificity that both match the name.
-// This, however, is only the case for invalid packages.
-// If the linker passes with no errors, it is guaranteed that this function
-// returns at most one definition.
 func (s *PackageSymbols) AttributeSpecByFullName(name string) []*AttributeSpec {
 	var matches []*AttributeSpec
 	for _, def := range s.AttributeSpecs {
@@ -249,9 +246,6 @@ func (s *PackageSymbols) AttributeSpecByFullName(name string) []*AttributeSpec {
 //
 // It might return multiple definitions if there are multiple selectors with
 // the same specificity that both match the name.
-// This, however, is only the case for invalid packages.
-// If the linker passes with no errors, it is guaranteed that this function
-// returns at most one definition.
 func (s *PackageSymbols) AttributeSpecByQualifiedName(name string) []*AttributeSpec {
 	var matches []*AttributeSpec
 	for _, def := range s.AttributeSpecs {

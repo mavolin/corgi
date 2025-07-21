@@ -79,8 +79,6 @@ func (z *analyzer) AnalyzeAttrTypeComponentParam(logger *slog.Logger, param *fil
 		return
 	}
 
-	param.Component.File.NeedsSafeImport = true
-
 	if t.Name.Type == attrtype.Unsafe || t.Name.Type == attrtype.UnsafeBool {
 		if t.Attribute == nil {
 			logger.Error("Use of unsafe attribute type as component parameter type without explicit attribute name")
@@ -100,7 +98,7 @@ func (z *analyzer) AnalyzeAttrTypeComponentParam(logger *slog.Logger, param *fil
 	}
 
 	param.AttributeType = t.Name.Type
-	param.InferredType = file.SafeImport.Alias + "."
+	param.InferredType = z.SafeImport(param.Component.File).Namespace + "."
 	switch t.Name.Type {
 	case attrtype.Unsafe:
 		param.InferredType += "Unsafe"
