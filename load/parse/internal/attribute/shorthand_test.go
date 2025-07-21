@@ -4,9 +4,9 @@ import (
 	"testing"
 
 	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/internal/test/should"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
-	"github.com/mavolin/corgi/v2/load/parse/internal/testutil"
-	"github.com/stretchr/testify/assert"
+	"github.com/mavolin/corgi/v2/load/parse/internal/parsetest"
 )
 
 func TestIDShorthand(t *testing.T) {
@@ -15,7 +15,7 @@ func TestIDShorthand(t *testing.T) {
 }
 
 func testIDShorthand(t *testing.T, f parser.Func[*ast.IDShorthand]) {
-	expect := &ast.IDShorthand{
+	want := &ast.IDShorthand{
 		Hash: &ast.Position{Line: 1, Col: 1},
 		ID: ast.Shorthand{
 			&ast.ShorthandText{Text: "foo", Position: &ast.Position{Line: 1, Col: 2}},
@@ -35,8 +35,8 @@ func testIDShorthand(t *testing.T, f parser.Func[*ast.IDShorthand]) {
 		},
 	}
 
-	actual := testutil.ParsesFully(t, "#foo#{bar}", f)
-	assert.Equal(t, expect, actual)
+	got := parsetest.ParsesFully(t, "#foo#{bar}", f)
+	should.Equal(t, want, got)
 }
 
 func TestClassShorthand(t *testing.T) {
@@ -45,15 +45,15 @@ func TestClassShorthand(t *testing.T) {
 }
 
 func testClassShorthand(t *testing.T, f parser.Func[*ast.ClassShorthand]) {
-	testCases := []struct {
-		name   string
-		in     string
-		expect *ast.ClassShorthand
+	tests := []struct {
+		name string
+		in   string
+		want *ast.ClassShorthand
 	}{
 		{
 			name: "only constant",
 			in:   ".foo",
-			expect: &ast.ClassShorthand{
+			want: &ast.ClassShorthand{
 				Dot: &ast.Position{Line: 1, Col: 1},
 				Names: []ast.Shorthand{
 					{&ast.ShorthandText{Text: "foo", Position: &ast.Position{Line: 1, Col: 2}}},
@@ -62,7 +62,7 @@ func testClassShorthand(t *testing.T, f parser.Func[*ast.ClassShorthand]) {
 		}, {
 			name: "constant and interpolation",
 			in:   ".foo#{bar}",
-			expect: &ast.ClassShorthand{
+			want: &ast.ClassShorthand{
 				Dot: &ast.Position{Line: 1, Col: 1},
 				Names: []ast.Shorthand{
 					{
@@ -86,7 +86,7 @@ func testClassShorthand(t *testing.T, f parser.Func[*ast.ClassShorthand]) {
 		}, {
 			name: "multiple",
 			in:   ".md foo #{bar}",
-			expect: &ast.ClassShorthand{
+			want: &ast.ClassShorthand{
 				Dot: &ast.Position{Line: 1, Col: 1},
 				Names: []ast.Shorthand{
 					{
@@ -113,16 +113,16 @@ func testClassShorthand(t *testing.T, f parser.Func[*ast.ClassShorthand]) {
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			p := testutil.NewParser(t, c.in+", 1other stuff")
-			actual := testutil.AssertNoError(t, p, f)
+			p := parsetest.NewParser(t, c.in+", 1other stuff")
+			got := parsetest.AssertNoError(t, p, f)
 
-			line, col, index := testutil.CalcEnd(1, 1, 0, c.in)
-			testutil.AssertPosition(t, p, line, col, index)
-			assert.Equal(t, c.expect, actual)
+			line, col, index := parsetest.CalcEnd(1, 1, 0, c.in)
+			parsetest.AssertPosition(t, p, line, col, index)
+			should.Equal(t, c.want, got)
 		})
 	}
 }
@@ -133,21 +133,21 @@ func TestShorthand(t *testing.T) {
 }
 
 func testShorthand(t *testing.T, f parser.Func[ast.Shorthand]) {
-	testCases := []struct {
-		name   string
-		in     string
-		expect ast.Shorthand
+	tests := []struct {
+		name string
+		in   string
+		want ast.Shorthand
 	}{
 		{
 			name: "text",
 			in:   "foo",
-			expect: ast.Shorthand{
+			want: ast.Shorthand{
 				&ast.ShorthandText{Text: "foo", Position: &ast.Position{Line: 1, Col: 1}},
 			},
 		}, {
 			name: "interpolation",
 			in:   "#{bar}",
-			expect: ast.Shorthand{
+			want: ast.Shorthand{
 				&ast.ShorthandInterpolation{
 					LBrace: &ast.Position{Line: 1, Col: 2},
 					Expression: &ast.Expression{
@@ -162,7 +162,7 @@ func testShorthand(t *testing.T, f parser.Func[ast.Shorthand]) {
 		}, {
 			name: "mix",
 			in:   "foo#{bar}foobar",
-			expect: ast.Shorthand{
+			want: ast.Shorthand{
 				&ast.ShorthandText{Text: "foo", Position: &ast.Position{Line: 1, Col: 1}},
 				&ast.ShorthandInterpolation{
 					LBrace: &ast.Position{Line: 1, Col: 5},
@@ -179,20 +179,20 @@ func testShorthand(t *testing.T, f parser.Func[ast.Shorthand]) {
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			actual := testutil.ParsesFully(t, c.in, f)
-			assert.Equal(t, c.expect, actual)
+			got := parsetest.ParsesFully(t, c.in, f)
+			should.Equal(t, c.want, got)
 		})
 	}
 }
 
 func TestShorthandNode(t *testing.T) {
 	t.Parallel()
-	testutil.AssertAlsoFulfils(t, ShorthandNode(), testShorthandText)
-	testutil.AssertAlsoFulfils(t, ShorthandNode(), testShorthandInterpolation)
+	parsetest.AssertAlsoFulfils(t, ShorthandNode(), testShorthandText)
+	parsetest.AssertAlsoFulfils(t, ShorthandNode(), testShorthandInterpolation)
 }
 
 func TestShorthandText(t *testing.T) {
@@ -203,14 +203,14 @@ func TestShorthandText(t *testing.T) {
 func testShorthandText(t *testing.T, f parser.Func[*ast.ShorthandText]) {
 	t.Run("text", func(t *testing.T) {
 		t.Parallel()
-		expect := &ast.ShorthandText{Text: "foo", Position: &ast.Position{Line: 1, Col: 1}}
-		actual := testutil.ParsesFully(t, "foo", f)
-		assert.Equal(t, expect, actual)
+		want := &ast.ShorthandText{Text: "foo", Position: &ast.Position{Line: 1, Col: 1}}
+		got := parsetest.ParsesFully(t, "foo", f)
+		should.Equal(t, want, got)
 	})
 
 	t.Run("missing", func(t *testing.T) {
 		t.Parallel()
-		testutil.NoMatch(t, "", f)
+		parsetest.NoMatch(t, "", f)
 	})
 }
 
@@ -222,7 +222,7 @@ func TestShorthandInterpolation(t *testing.T) {
 func testShorthandInterpolation(t *testing.T, f parser.Func[*ast.ShorthandInterpolation]) {
 	t.Run("interpolation", func(t *testing.T) {
 		t.Parallel()
-		expect := &ast.ShorthandInterpolation{
+		want := &ast.ShorthandInterpolation{
 			LBrace: &ast.Position{Line: 1, Col: 2},
 			Expression: &ast.Expression{
 				Nodes: ast.Code{
@@ -233,12 +233,12 @@ func testShorthandInterpolation(t *testing.T, f parser.Func[*ast.ShorthandInterp
 			Hash:   &ast.Position{Line: 1, Col: 1},
 		}
 
-		actual := testutil.ParsesFully(t, "#{foo}", f)
-		assert.Equal(t, expect, actual)
+		got := parsetest.ParsesFully(t, "#{foo}", f)
+		should.Equal(t, want, got)
 	})
 
 	t.Run("missing expression", func(t *testing.T) {
 		t.Parallel()
-		testutil.NoMatch(t, "", f)
+		parsetest.NoMatch(t, "", f)
 	})
 }

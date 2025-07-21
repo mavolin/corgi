@@ -4,17 +4,17 @@ import (
 	"testing"
 
 	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/internal/test/should"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
-	"github.com/mavolin/corgi/v2/load/parse/internal/testutil"
-	"github.com/stretchr/testify/assert"
+	"github.com/mavolin/corgi/v2/load/parse/internal/parsetest"
 )
 
 func TestAttribute(t *testing.T) {
 	t.Parallel()
-	testutil.AssertAlsoFulfils(t, Attribute(), testAndPlaceholder)
-	testutil.AssertAlsoFulfils(t, Attribute(), testIDShorthand)
-	testutil.AssertAlsoFulfils(t, Attribute(), testClassShorthand)
-	testutil.AssertAlsoFulfils(t, Attribute(), testNamedAttribute)
+	parsetest.AssertAlsoFulfils(t, Attribute(), testAndPlaceholder)
+	parsetest.AssertAlsoFulfils(t, Attribute(), testIDShorthand)
+	parsetest.AssertAlsoFulfils(t, Attribute(), testClassShorthand)
+	parsetest.AssertAlsoFulfils(t, Attribute(), testNamedAttribute)
 }
 
 func TestAndPlaceholder(t *testing.T) {
@@ -23,14 +23,14 @@ func TestAndPlaceholder(t *testing.T) {
 }
 
 func testAndPlaceholder(t *testing.T, f parser.Func[*ast.AndPlaceholder]) {
-	expect := &ast.AndPlaceholder{
+	want := &ast.AndPlaceholder{
 		And: &ast.Position{Line: 1, Col: 1},
 	}
 
-	p := testutil.NewParser(t, "&, other")
-	actual := testutil.AssertNoError(t, p, f)
-	if assert.Equal(t, expect, actual) {
-		testutil.AssertPosition(t, p, expect.End().Line, expect.End().Col, 1)
+	p := parsetest.NewParser(t, "&, other")
+	got := parsetest.AssertNoError(t, p, f)
+	if should.Equal(t, want, got) {
+		parsetest.AssertPosition(t, p, want.End().Line, want.End().Col, 1)
 	}
 }
 
@@ -40,15 +40,15 @@ func TestNamedAttribute(t *testing.T) {
 }
 
 func testNamedAttribute(t *testing.T, f parser.Func[*ast.NamedAttribute]) {
-	testCases := []struct {
-		name   string
-		in     string
-		expect *ast.NamedAttribute
+	tests := []struct {
+		name string
+		in   string
+		want *ast.NamedAttribute
 	}{
 		{
 			name: "boolean",
 			in:   "async",
-			expect: &ast.NamedAttribute{
+			want: &ast.NamedAttribute{
 				Name: &ast.AttributeReference{
 					Name: &ast.AttributeName{
 						Name:     "async",
@@ -59,7 +59,7 @@ func testNamedAttribute(t *testing.T, f parser.Func[*ast.NamedAttribute]) {
 		}, {
 			name: "value",
 			in:   `value=woof`,
-			expect: &ast.NamedAttribute{
+			want: &ast.NamedAttribute{
 				Name: &ast.AttributeReference{
 					Name: &ast.AttributeName{
 						Name:     "value",
@@ -79,14 +79,16 @@ func testNamedAttribute(t *testing.T, f parser.Func[*ast.NamedAttribute]) {
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+
 			// we add ", other" to the input to ensure that the parser stops at
 			// the correct position
-			p := testutil.NewParser(t, c.in+", other")
-			actual := testutil.AssertNoError(t, p, f)
-			if assert.Equal(t, c.expect, actual) {
-				testutil.AssertPosition(t, p, c.expect.End().Line, c.expect.End().Col, len(c.in))
+			p := parsetest.NewParser(t, c.in+", other")
+			got := parsetest.AssertNoError(t, p, f)
+			if should.Equal(t, c.want, got) {
+				parsetest.AssertPosition(t, p, c.want.End().Line, c.want.End().Col, len(c.in))
 			}
 		})
 	}
@@ -95,15 +97,15 @@ func testNamedAttribute(t *testing.T, f parser.Func[*ast.NamedAttribute]) {
 func TestReference(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
-		name   string
-		in     string
-		expect *ast.AttributeReference
+	tests := []struct {
+		name string
+		in   string
+		want *ast.AttributeReference
 	}{
 		{
 			name: "local",
 			in:   "name",
-			expect: &ast.AttributeReference{
+			want: &ast.AttributeReference{
 				Name: &ast.AttributeName{
 					Name:     "name",
 					Position: &ast.Position{Line: 1, Col: 1},
@@ -112,7 +114,7 @@ func TestReference(t *testing.T) {
 		}, {
 			name: "external",
 			in:   "package1.Name",
-			expect: &ast.AttributeReference{
+			want: &ast.AttributeReference{
 				Package: &ast.Identifier{
 					Name:     "package1",
 					Position: &ast.Position{Line: 1, Col: 1},
@@ -126,12 +128,12 @@ func TestReference(t *testing.T) {
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			actual := testutil.ParsesFully(t, c.in, Reference())
-			assert.Equal(t, c.expect, actual)
+			got := parsetest.ParsesFully(t, c.in, Reference())
+			should.Equal(t, c.want, got)
 		})
 	}
 }

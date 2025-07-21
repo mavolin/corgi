@@ -4,15 +4,15 @@ import (
 	"testing"
 
 	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/internal/test/should"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
-	"github.com/mavolin/corgi/v2/load/parse/internal/testutil"
-	"github.com/stretchr/testify/assert"
+	"github.com/mavolin/corgi/v2/load/parse/internal/parsetest"
 )
 
 func TestValue(t *testing.T) {
 	t.Parallel()
-	testutil.AssertAlsoFulfils(t, Value(), testExpressionValue)
-	testutil.AssertAlsoFulfils(t, Value(), testTypedAttributeValue)
+	parsetest.AssertAlsoFulfils(t, Value(), testExpressionValue)
+	parsetest.AssertAlsoFulfils(t, Value(), testTypedAttributeValue)
 }
 
 func TestExpressionValue(t *testing.T) {
@@ -22,7 +22,7 @@ func TestExpressionValue(t *testing.T) {
 
 func testExpressionValue(t *testing.T, f parser.Func[*ast.ExpressionAttributeValue]) {
 	in := "woof"
-	expect := &ast.ExpressionAttributeValue{
+	want := &ast.ExpressionAttributeValue{
 		Nodes: ast.Code{
 			&ast.GoCode{
 				Code:     "woof",
@@ -31,13 +31,13 @@ func testExpressionValue(t *testing.T, f parser.Func[*ast.ExpressionAttributeVal
 		},
 	}
 
-	p := testutil.NewParser(t, in+", 1other stuff")
-	actual := testutil.AssertNoError(t, p, f)
+	p := parsetest.NewParser(t, in+", 1other stuff")
+	got := parsetest.AssertNoError(t, p, f)
 
-	line, col, index := testutil.CalcEnd(1, 1, 0, in)
-	testutil.AssertPosition(t, p, line, col, index)
+	line, col, index := parsetest.CalcEnd(1, 1, 0, in)
+	parsetest.AssertPosition(t, p, line, col, index)
 
-	assert.Equal(t, expect, actual)
+	should.Equal(t, want, got)
 }
 
 func TestTypedAttributeValue(t *testing.T) {
@@ -47,16 +47,16 @@ func TestTypedAttributeValue(t *testing.T) {
 	t.Run("false positive", func(t *testing.T) {
 		t.Parallel()
 
-		testCases := []string{
+		tests := []string{
 			`'w'`,
 			`'\"'`,
 		}
 
-		for _, in := range testCases {
+		for _, in := range tests {
 			t.Run(in, func(t *testing.T) {
 				t.Parallel()
 
-				testutil.NoMatch(t, in, TypedAttributeValue())
+				parsetest.NoMatch(t, in, TypedAttributeValue())
 			})
 		}
 	})
@@ -66,7 +66,7 @@ func testTypedAttributeValue(t *testing.T, f parser.Func[*ast.TypedAttributeValu
 	for _, c := range attrTypes {
 		t.Run(c.name, func(t *testing.T) {
 			in := "'" + c.name + "(woof)"
-			expect := &ast.TypedAttributeValue{
+			want := &ast.TypedAttributeValue{
 				Type: &ast.AttributeType{
 					Quote: &ast.Position{Line: 1, Col: 1},
 					Name: &ast.AttributeTypeName{
@@ -87,12 +87,12 @@ func testTypedAttributeValue(t *testing.T, f parser.Func[*ast.TypedAttributeValu
 				RParen: &ast.Position{Line: 1, Col: 1 + len("'") + len(c.name) + len("(woof")},
 			}
 
-			p := testutil.NewParser(t, in+", 1other stuff")
-			actual := testutil.AssertNoError(t, p, f)
+			p := parsetest.NewParser(t, in+", 1other stuff")
+			got := parsetest.AssertNoError(t, p, f)
 
-			line, col, index := testutil.CalcEnd(1, 1, 0, in)
-			testutil.AssertPosition(t, p, line, col, index)
-			assert.Equal(t, expect, actual)
+			line, col, index := parsetest.CalcEnd(1, 1, 0, in)
+			parsetest.AssertPosition(t, p, line, col, index)
+			should.Equal(t, want, got)
 		})
 	}
 }

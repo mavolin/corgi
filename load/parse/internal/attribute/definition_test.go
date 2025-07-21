@@ -4,25 +4,26 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/mavolin/corgi/v2/escape/attrtype"
 	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/internal/test/should"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
-	"github.com/mavolin/corgi/v2/load/parse/internal/testutil"
-	"github.com/stretchr/testify/assert"
+	"github.com/mavolin/corgi/v2/load/parse/internal/parsetest"
 )
 
 func TestDefinition(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
-		name   string
-		in     string
-		expect *ast.AttributeDefinition
+	tests := []struct {
+		name string
+		in   string
+		want *ast.AttributeDefinition
 	}{
 		{
 			name: "single",
 			in:   `attr foo { * innocuous }`,
-			expect: &ast.AttributeDefinition{
+			want: &ast.AttributeDefinition{
 				Specs: []*ast.AttributeSpec{
 					{
 						Selector: &ast.BasicAttributeSelector{
@@ -52,7 +53,7 @@ func TestDefinition(t *testing.T) {
 		}, {
 			name: "single with prefix",
 			in:   `attr hx- foo { * innocuous }`,
-			expect: &ast.AttributeDefinition{
+			want: &ast.AttributeDefinition{
 				Prefix: &ast.AttributeName{
 					Name:     "hx-",
 					Position: &ast.Position{Line: 1, Col: 6},
@@ -89,7 +90,7 @@ func TestDefinition(t *testing.T) {
 				"\tfoo { * innocuous }\n" +
 				"\tbar { * text }\n" +
 				")",
-			expect: &ast.AttributeDefinition{
+			want: &ast.AttributeDefinition{
 				LParen: &ast.Position{Line: 1, Col: 6},
 				Specs: []*ast.AttributeSpec{
 					{
@@ -145,7 +146,7 @@ func TestDefinition(t *testing.T) {
 				"\tfoo { * innocuous }\n" +
 				"\tbar { * text }\n" +
 				")",
-			expect: &ast.AttributeDefinition{
+			want: &ast.AttributeDefinition{
 				Prefix: &ast.AttributeName{
 					Name:     "hx-",
 					Position: &ast.Position{Line: 1, Col: 6},
@@ -202,12 +203,12 @@ func TestDefinition(t *testing.T) {
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			actual := testutil.ParsesFully(t, c.in, Definition())
-			assert.Equal(t, c.expect, actual)
+			got := parsetest.ParsesFully(t, c.in, Definition())
+			should.Equal(t, c.want, got)
 		})
 	}
 }
@@ -216,7 +217,7 @@ func TestSpec(t *testing.T) {
 	t.Parallel()
 
 	in := `foo { * innocuous }`
-	expect := &ast.AttributeSpec{
+	want := &ast.AttributeSpec{
 		Selector: &ast.BasicAttributeSelector{
 			Name:     "foo",
 			Position: &ast.Position{Line: 1, Col: 1},
@@ -239,22 +240,22 @@ func TestSpec(t *testing.T) {
 		},
 	}
 
-	actual := testutil.ParsesFully(t, in, Spec())
-	assert.Equal(t, expect, actual)
+	got := parsetest.ParsesFully(t, in, Spec())
+	should.Equal(t, want, got)
 }
 
 func TestRuleset(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
-		name   string
-		in     string
-		expect *ast.AttributeRuleset
+	tests := []struct {
+		name string
+		in   string
+		want *ast.AttributeRuleset
 	}{
 		{
 			name: "single rule on single line",
 			in:   "{ * innocuous }",
-			expect: &ast.AttributeRuleset{
+			want: &ast.AttributeRuleset{
 				LBrace: &ast.Position{Line: 1, Col: 1},
 				Rules: []*ast.AttributeRule{
 					{
@@ -273,7 +274,7 @@ func TestRuleset(t *testing.T) {
 		}, {
 			name: "multiple rules on single line",
 			in:   "{ * innocuous; foo text }",
-			expect: &ast.AttributeRuleset{
+			want: &ast.AttributeRuleset{
 				LBrace: &ast.Position{Line: 1, Col: 1},
 				Rules: []*ast.AttributeRule{
 					{
@@ -308,7 +309,7 @@ func TestRuleset(t *testing.T) {
 			in: "{\n" +
 				"\t* innocuous\n" +
 				"}",
-			expect: &ast.AttributeRuleset{
+			want: &ast.AttributeRuleset{
 				LBrace: &ast.Position{Line: 1, Col: 1},
 				Rules: []*ast.AttributeRule{
 					{
@@ -330,7 +331,7 @@ func TestRuleset(t *testing.T) {
 				"\t* innocuous\n" +
 				"\tfoo text\n" +
 				"}",
-			expect: &ast.AttributeRuleset{
+			want: &ast.AttributeRuleset{
 				LBrace: &ast.Position{Line: 1, Col: 1},
 				Rules: []*ast.AttributeRule{
 					{
@@ -363,12 +364,12 @@ func TestRuleset(t *testing.T) {
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			actual := testutil.ParsesFully(t, c.in, Ruleset())
-			assert.Equal(t, c.expect, actual)
+			got := parsetest.ParsesFully(t, c.in, Ruleset())
+			should.Equal(t, c.want, got)
 		})
 	}
 }
@@ -377,7 +378,7 @@ func TestRule(t *testing.T) {
 	t.Parallel()
 
 	in := "* innocuous"
-	expect := &ast.AttributeRule{
+	want := &ast.AttributeRule{
 		Selector: &ast.WildcardElementSelector{
 			Asterisk: &ast.Position{Line: 1, Col: 1},
 		},
@@ -388,15 +389,15 @@ func TestRule(t *testing.T) {
 		},
 	}
 
-	actual := testutil.ParsesFully(t, in, Rule())
-	assert.Equal(t, expect, actual)
+	got := parsetest.ParsesFully(t, in, Rule())
+	should.Equal(t, want, got)
 }
 
 func TestSelector(t *testing.T) {
 	t.Parallel()
 
-	testutil.AssertAlsoFulfils(t, Selector(), testBasicSelector)
-	testutil.AssertAlsoFulfils(t, Selector(), testRegexpSelector)
+	parsetest.AssertAlsoFulfils(t, Selector(), testBasicSelector)
+	parsetest.AssertAlsoFulfils(t, Selector(), testRegexpSelector)
 }
 
 func TestBasicSelector(t *testing.T) {
@@ -405,28 +406,28 @@ func TestBasicSelector(t *testing.T) {
 }
 
 func testBasicSelector(t *testing.T, f parser.Func[*ast.BasicAttributeSelector]) {
-	testCases := []struct {
-		in     string
-		expect *ast.BasicAttributeSelector
+	tests := []struct {
+		in   string
+		want *ast.BasicAttributeSelector
 	}{
 		{
-			in:     "foo",
-			expect: &ast.BasicAttributeSelector{Name: "foo", Position: &ast.Position{Line: 1, Col: 1}},
+			in:   "foo",
+			want: &ast.BasicAttributeSelector{Name: "foo", Position: &ast.Position{Line: 1, Col: 1}},
 		}, {
-			in:     "foo*",
-			expect: &ast.BasicAttributeSelector{Name: "foo", Wildcard: true, Position: &ast.Position{Line: 1, Col: 1}},
+			in:   "foo*",
+			want: &ast.BasicAttributeSelector{Name: "foo", Wildcard: true, Position: &ast.Position{Line: 1, Col: 1}},
 		}, {
-			in:     "foo*bar",
-			expect: &ast.BasicAttributeSelector{Name: "foo*bar", Position: &ast.Position{Line: 1, Col: 1}},
+			in:   "foo*bar",
+			want: &ast.BasicAttributeSelector{Name: "foo*bar", Position: &ast.Position{Line: 1, Col: 1}},
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.in, func(t *testing.T) {
 			t.Parallel()
 
-			actual := testutil.ParsesFully(t, c.in, f)
-			assert.Equal(t, c.expect, actual)
+			got := parsetest.ParsesFully(t, c.in, f)
+			should.Equal(t, c.want, got)
 		})
 	}
 }
@@ -438,7 +439,7 @@ func TestRegexpSelector(t *testing.T) {
 
 func testRegexpSelector(t *testing.T, f parser.Func[*ast.RegexpAttributeSelector]) {
 	in := `'regexp("foo\\d")`
-	expect := &ast.RegexpAttributeSelector{
+	want := &ast.RegexpAttributeSelector{
 		LParen: &ast.Position{Line: 1, Col: 8},
 		Raw: &ast.StaticString{
 			Open:     &ast.Position{Line: 1, Col: 9},
@@ -451,15 +452,15 @@ func testRegexpSelector(t *testing.T, f parser.Func[*ast.RegexpAttributeSelector
 		Regexp:   &ast.Position{Line: 1, Col: 1},
 	}
 
-	actual := testutil.ParsesFully(t, in, f)
-	assert.Equal(t, expect, actual)
+	got := parsetest.ParsesFully(t, in, f)
+	should.Equal(t, want, got, cmpopts.IgnoreFields(ast.RegexpAttributeSelector{}, "Compiled"))
 }
 
 func TestElementSelector(t *testing.T) {
 	t.Parallel()
 
-	testutil.AssertAlsoFulfils(t, ElementSelector(), testWildcardElementSelector)
-	testutil.AssertAlsoFulfils(t, ElementSelector(), testListElementSelector)
+	parsetest.AssertAlsoFulfils(t, ElementSelector(), testWildcardElementSelector)
+	parsetest.AssertAlsoFulfils(t, ElementSelector(), testListElementSelector)
 }
 
 func TestWildcardElementSelector(t *testing.T) {
@@ -469,10 +470,10 @@ func TestWildcardElementSelector(t *testing.T) {
 
 func testWildcardElementSelector(t *testing.T, f parser.Func[*ast.WildcardElementSelector]) {
 	in := "*"
-	expect := &ast.WildcardElementSelector{Asterisk: &ast.Position{Line: 1, Col: 1}}
+	want := &ast.WildcardElementSelector{Asterisk: &ast.Position{Line: 1, Col: 1}}
 
-	actual := testutil.ParsesFully(t, in, f)
-	assert.Equal(t, expect, actual)
+	got := parsetest.ParsesFully(t, in, f)
+	should.Equal(t, want, got)
 }
 
 func TestListElementSelector(t *testing.T) {
@@ -481,15 +482,15 @@ func TestListElementSelector(t *testing.T) {
 }
 
 func testListElementSelector(t *testing.T, f parser.Func[*ast.ListElementSelector]) {
-	testCases := []struct {
-		name   string
-		in     string
-		expect *ast.ListElementSelector
+	tests := []struct {
+		name string
+		in   string
+		want *ast.ListElementSelector
 	}{
 		{
 			name: "single",
 			in:   "foo",
-			expect: &ast.ListElementSelector{
+			want: &ast.ListElementSelector{
 				Elements: []*ast.ElementName{
 					{Name: "foo", Position: &ast.Position{Line: 1, Col: 1}},
 				},
@@ -498,7 +499,7 @@ func testListElementSelector(t *testing.T, f parser.Func[*ast.ListElementSelecto
 			name: "multiple",
 			in: "foo,\n" +
 				"\tbar, baz",
-			expect: &ast.ListElementSelector{
+			want: &ast.ListElementSelector{
 				Elements: []*ast.ElementName{
 					{Name: "foo", Position: &ast.Position{Line: 1, Col: 1}},
 					{Name: "bar", Position: &ast.Position{Line: 2, Col: 2}},
@@ -508,12 +509,12 @@ func testListElementSelector(t *testing.T, f parser.Func[*ast.ListElementSelecto
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			actual := testutil.ParsesFully(t, c.in, f)
-			assert.Equal(t, c.expect, actual)
+			got := parsetest.ParsesFully(t, c.in, f)
+			should.Equal(t, c.want, got)
 		})
 	}
 }
@@ -522,8 +523,8 @@ func TestListElementSelectorItem(t *testing.T) {
 	t.Parallel()
 
 	in := "foo"
-	expect := &ast.ElementName{Name: "foo", Position: &ast.Position{Line: 1, Col: 1}}
+	want := &ast.ElementName{Name: "foo", Position: &ast.Position{Line: 1, Col: 1}}
 
-	actual := testutil.ParsesFully(t, in, elementName())
-	assert.Equal(t, expect, actual)
+	got := parsetest.ParsesFully(t, in, elementName())
+	should.Equal(t, want, got)
 }

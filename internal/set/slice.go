@@ -8,8 +8,10 @@ type SliceSet[K comparable] struct {
 	s []K
 }
 
-func NewSliceSet[K comparable](cap int) *SliceSet[K] {
-	return &SliceSet[K]{s: make([]K, 0, cap)}
+var _ Set[any] = (*SliceSet[any])(nil)
+
+func NewSliceSet[K comparable](capacity int) *SliceSet[K] {
+	return &SliceSet[K]{s: make([]K, 0, capacity)}
 }
 
 func (s *SliceSet[K]) Add(k K) {

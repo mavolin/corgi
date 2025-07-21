@@ -4,24 +4,24 @@ import (
 	"testing"
 
 	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/internal/test/should"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
-	"github.com/mavolin/corgi/v2/load/parse/internal/testutil"
-	"github.com/stretchr/testify/assert"
+	"github.com/mavolin/corgi/v2/load/parse/internal/parsetest"
 )
 
 func TestBody(t *testing.T) {
 	t.Parallel()
 
-	testutil.AssertAlsoFulfils(t, Body(), testBracketText)
-	testutil.AssertAlsoFulfils(t, Body(), testScope)
+	parsetest.AssertAlsoFulfils(t, Body(), testBracketText)
+	parsetest.AssertAlsoFulfils(t, Body(), testScope)
 }
 
 func TestComponentCallBody(t *testing.T) {
 	t.Parallel()
 
-	testutil.AssertAlsoFulfils(t, ComponentCallBody(), testBracketText)
-	testutil.AssertAlsoFulfils(t, ComponentCallBody(), testScope)
-	testutil.AssertAlsoFulfils(t, ComponentCallBody(), testUnderscoreBlockShorthand)
+	parsetest.AssertAlsoFulfils(t, ComponentCallBody(), testBracketText)
+	parsetest.AssertAlsoFulfils(t, ComponentCallBody(), testScope)
+	parsetest.AssertAlsoFulfils(t, ComponentCallBody(), testUnderscoreBlockShorthand)
 }
 
 func TestUnderscoreBlockShorthand(t *testing.T) {
@@ -30,15 +30,15 @@ func TestUnderscoreBlockShorthand(t *testing.T) {
 }
 
 func testUnderscoreBlockShorthand(t *testing.T, f parser.Func[*ast.UnderscoreBlockShorthand]) {
-	testCases := []struct {
-		name   string
-		in     string
-		expect *ast.UnderscoreBlockShorthand
+	tests := []struct {
+		name string
+		in   string
+		want *ast.UnderscoreBlockShorthand
 	}{
 		{
 			name: "bracket text",
 			in:   "_[ foo ]",
-			expect: &ast.UnderscoreBlockShorthand{
+			want: &ast.UnderscoreBlockShorthand{
 				Body: &ast.BracketText{
 					LBracket: &ast.Position{Line: 1, Col: 2},
 					Lines: ast.TextBlock{
@@ -56,7 +56,7 @@ func testUnderscoreBlockShorthand(t *testing.T, f parser.Func[*ast.UnderscoreBlo
 		}, {
 			name: "scope",
 			in:   "_{}",
-			expect: &ast.UnderscoreBlockShorthand{
+			want: &ast.UnderscoreBlockShorthand{
 				Body: &ast.Scope{
 					LBrace: &ast.Position{Line: 1, Col: 2},
 					RBrace: &ast.Position{Line: 1, Col: 3},
@@ -66,11 +66,11 @@ func testUnderscoreBlockShorthand(t *testing.T, f parser.Func[*ast.UnderscoreBlo
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
-			actual := testutil.ParsesFully(t, c.in, f)
-			assert.Equal(t, c.expect, actual)
+			got := parsetest.ParsesFully(t, c.in, f)
+			should.Equal(t, c.want, got)
 		})
 	}
 }

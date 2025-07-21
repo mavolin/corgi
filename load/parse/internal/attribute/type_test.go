@@ -5,8 +5,8 @@ import (
 
 	"github.com/mavolin/corgi/v2/escape/attrtype"
 	"github.com/mavolin/corgi/v2/file/ast"
-	"github.com/mavolin/corgi/v2/load/parse/internal/testutil"
-	"github.com/stretchr/testify/assert"
+	"github.com/mavolin/corgi/v2/internal/test/should"
+	"github.com/mavolin/corgi/v2/load/parse/internal/parsetest"
 )
 
 var attrTypes = []struct {
@@ -43,7 +43,7 @@ func TestType(t *testing.T) {
 			t.Run(s, func(t *testing.T) {
 				t.Parallel()
 
-				expect := &ast.AttributeType{
+				want := &ast.AttributeType{
 					Quote: &ast.Position{Line: 1, Col: 1},
 					Name: &ast.AttributeTypeName{
 						Name:     at.name,
@@ -52,18 +52,18 @@ func TestType(t *testing.T) {
 					},
 				}
 				if at.attr != "" {
-					expect.LBracket = &ast.Position{Line: 1, Col: 1 + len("'") + len(at.name)}
-					expect.Attribute = &ast.AttributeName{
+					want.LBracket = &ast.Position{Line: 1, Col: 1 + len("'") + len(at.name)}
+					want.Attribute = &ast.AttributeName{
 						Name:     at.attr,
 						Position: &ast.Position{Line: 1, Col: 1 + len("'") + len(at.name) + len("[")},
 					}
-					expect.RBracket = &ast.Position{
+					want.RBracket = &ast.Position{
 						Line: 1,
 						Col:  1 + len("'") + len(at.name) + len("[") + len(at.attr),
 					}
 				}
-				actual := testutil.ParsesFully(t, "'"+s, Type())
-				assert.Equal(t, expect, actual)
+				got := parsetest.ParsesFully(t, "'"+s, Type())
+				should.Equal(t, want, got)
 			})
 		}
 	})
@@ -73,7 +73,7 @@ func TestType(t *testing.T) {
 		t.Run("unknown", func(t *testing.T) {
 			t.Parallel()
 
-			expect := &ast.AttributeType{
+			want := &ast.AttributeType{
 				Quote: &ast.Position{Line: 1, Col: 1},
 				Name: &ast.AttributeTypeName{
 					Name:     "foo",
@@ -81,8 +81,8 @@ func TestType(t *testing.T) {
 					Position: &ast.Position{Line: 1, Col: 2},
 				},
 			}
-			actual := testutil.MatchesButError(t, "'foo", Type())
-			assert.Equal(t, expect, actual)
+			got := parsetest.MatchesButError(t, "'foo", Type())
+			should.Equal(t, want, got)
 		})
 	})
 }
@@ -97,13 +97,13 @@ func TestTypeName(t *testing.T) {
 			t.Run(c.name, func(t *testing.T) {
 				t.Parallel()
 
-				expect := &ast.AttributeTypeName{
+				want := &ast.AttributeTypeName{
 					Name:     c.name,
 					Type:     c.typ,
 					Position: &ast.Position{Line: 1, Col: 1},
 				}
-				actual := testutil.ParsesFully(t, c.name, TypeName())
-				assert.Equal(t, expect, actual)
+				got := parsetest.ParsesFully(t, c.name, TypeName())
+				should.Equal(t, want, got)
 			})
 		}
 	})
@@ -113,13 +113,13 @@ func TestTypeName(t *testing.T) {
 		t.Run("unknown", func(t *testing.T) {
 			t.Parallel()
 
-			expect := &ast.AttributeTypeName{
+			want := &ast.AttributeTypeName{
 				Name:     "foo",
 				Type:     attrtype.Unknown,
 				Position: &ast.Position{Line: 1, Col: 1},
 			}
-			actual := testutil.MatchesButError(t, "foo", TypeName())
-			assert.Equal(t, expect, actual)
+			got := parsetest.MatchesButError(t, "foo", TypeName())
+			should.Equal(t, want, got)
 		})
 	})
 }

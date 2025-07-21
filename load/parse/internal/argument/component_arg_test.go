@@ -4,14 +4,14 @@ import (
 	"testing"
 
 	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/internal/test/should"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
-	"github.com/mavolin/corgi/v2/load/parse/internal/testutil"
-	"github.com/stretchr/testify/assert"
+	"github.com/mavolin/corgi/v2/load/parse/internal/parsetest"
 )
 
 func TestComponentArgument(t *testing.T) {
 	t.Parallel()
-	testutil.AssertAlsoFulfils(t, ComponentArgument(), testComponentArgument)
+	parsetest.AssertAlsoFulfils(t, ComponentArgument(), testComponentArgument)
 }
 
 func testComponentArgument(t *testing.T, f parser.Func[*ast.ComponentArgument]) {
@@ -20,7 +20,7 @@ func testComponentArgument(t *testing.T, f parser.Func[*ast.ComponentArgument]) 
 
 		in := "name: value"
 
-		expect := &ast.ComponentArgument{
+		want := &ast.ComponentArgument{
 			Name: &ast.Identifier{
 				Name:     "name",
 				Position: &ast.Position{Line: 1, Col: 1},
@@ -37,25 +37,25 @@ func testComponentArgument(t *testing.T, f parser.Func[*ast.ComponentArgument]) 
 		}
 
 		// we add ", other" to test that the parser stops at the comma
-		p := testutil.NewParser(t, in+", other")
-		actual := testutil.AssertNoError(t, p, f)
-		if assert.Equal(t, expect, actual) {
-			testutil.AssertPosition(t, p, expect.End().Line, expect.End().Col, len(in))
+		p := parsetest.NewParser(t, in+", other")
+		got := parsetest.AssertNoError(t, p, f)
+		if should.Equal(t, want, got) {
+			parsetest.AssertPosition(t, p, want.End().Line, want.End().Col, len(in))
 		}
 	})
 
 	t.Run("recover", func(t *testing.T) {
 		t.Parallel()
 
-		testCases := []struct {
-			name   string
-			in     string
-			expect *ast.ComponentArgument
+		tests := []struct {
+			name string
+			in   string
+			want *ast.ComponentArgument
 		}{
 			{
 				name: "no colon space: no equal sign",
 				in:   "name:value 2",
-				expect: &ast.ComponentArgument{
+				want: &ast.ComponentArgument{
 					Name: &ast.Identifier{
 						Name:     "name",
 						Position: &ast.Position{Line: 1, Col: 1},
@@ -73,7 +73,7 @@ func testComponentArgument(t *testing.T, f parser.Func[*ast.ComponentArgument]) 
 			}, {
 				name: "no colon space: string",
 				in:   `name:"value"`,
-				expect: &ast.ComponentArgument{
+				want: &ast.ComponentArgument{
 					Name: &ast.Identifier{
 						Name:     "name",
 						Position: &ast.Position{Line: 1, Col: 1},
@@ -98,14 +98,14 @@ func testComponentArgument(t *testing.T, f parser.Func[*ast.ComponentArgument]) 
 			},
 		}
 
-		for _, c := range testCases {
+		for _, c := range tests {
 			t.Run(c.name, func(t *testing.T) {
 				t.Parallel()
 				// we add ", other" to test that the parser stops at the comma
-				p := testutil.NewParser(t, c.in+", other")
-				actual := testutil.AssertMatchesButError(t, p, f)
-				if assert.Equal(t, c.expect, actual) {
-					testutil.AssertPosition(t, p, c.expect.End().Line, c.expect.End().Col, len(c.in))
+				p := parsetest.NewParser(t, c.in+", other")
+				got := parsetest.AssertMatchesButError(t, p, f)
+				if should.Equal(t, c.want, got) {
+					parsetest.AssertPosition(t, p, c.want.End().Line, c.want.End().Col, len(c.in))
 				}
 			})
 		}

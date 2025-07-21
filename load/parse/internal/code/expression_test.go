@@ -5,16 +5,16 @@ import (
 
 	"github.com/mavolin/corgi/v2/file/ast"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
+	"github.com/mavolin/corgi/v2/internal/test/should"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
+	"github.com/mavolin/corgi/v2/load/parse/internal/parsetest"
 	"github.com/mavolin/corgi/v2/load/parse/internal/quickanno"
-	"github.com/mavolin/corgi/v2/load/parse/internal/testutil"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestExpression(t *testing.T) {
 	t.Parallel()
 
-	testutil.AssertAlsoFulfils(t, Expression(Regular), func(t *testing.T, f parser.Func[*ast.Expression]) {
+	parsetest.AssertAlsoFulfils(t, Expression(Regular), func(t *testing.T, f parser.Func[*ast.Expression]) {
 		testZeroCoalescing(t, func(p *parser.Parser) (*ast.ZeroCoalescing, *diagnostic.Diagnostic) {
 			e, err := f(p)
 			if err != nil {
@@ -31,13 +31,13 @@ func TestExpression(t *testing.T) {
 			return e.Nodes[0].(*ast.ZeroCoalescing), nil
 		})
 	})
-	testutil.AssertAlsoFulfils(t, Expression(Regular), testNonZCExpression)
+	parsetest.AssertAlsoFulfils(t, Expression(Regular), testNonZCExpression)
 
 	t.Run("body follows", func(t *testing.T) {
 		t.Parallel()
 
 		in := "func() { return block(foo) }()"
-		expect := &ast.Expression{
+		want := &ast.Expression{
 			Nodes: ast.Code{
 				&ast.GoCode{
 					Code:     "func",
@@ -66,10 +66,10 @@ func TestExpression(t *testing.T) {
 			},
 		}
 
-		testCases := []struct {
-			name   string
-			body   string
-			expect *ast.Expression
+		tests := []struct {
+			name string
+			body string
+			want *ast.Expression
 		}{
 			{
 				name: "scope",
@@ -80,31 +80,31 @@ func TestExpression(t *testing.T) {
 			},
 		}
 
-		for _, c := range testCases {
+		for _, c := range tests {
 			t.Run(c.name, func(t *testing.T) {
 				t.Parallel()
 				t.Run("inline", func(t *testing.T) {
 					t.Parallel()
 
-					p := testutil.NewParser(t, in+" "+c.body+" 1other stuff")
-					var actual *ast.Expression
+					p := parsetest.NewParser(t, in+" "+c.body+" 1other stuff")
+					var got *ast.Expression
 					p.DoInline(func() {
-						actual = testutil.AssertNoError(t, p, Expression(BodyFollows))
+						got = parsetest.AssertNoError(t, p, Expression(BodyFollows))
 					})
 
-					line, col, index := testutil.CalcEnd(1, 1, 0, in)
-					testutil.AssertPosition(t, p, line, col, index)
-					assert.Equal(t, expect, actual)
+					line, col, index := parsetest.CalcEnd(1, 1, 0, in)
+					parsetest.AssertPosition(t, p, line, col, index)
+					should.Equal(t, want, got)
 				})
 				t.Run("not inline", func(t *testing.T) {
 					t.Parallel()
 
-					p := testutil.NewParser(t, in+" "+c.body+" 1other stuff")
-					actual := testutil.AssertNoError(t, p, Expression(BodyFollows))
+					p := parsetest.NewParser(t, in+" "+c.body+" 1other stuff")
+					got := parsetest.AssertNoError(t, p, Expression(BodyFollows))
 
-					line, col, index := testutil.CalcEnd(1, 1, 0, in)
-					testutil.AssertPosition(t, p, line, col, index)
-					assert.Equal(t, expect, actual)
+					line, col, index := parsetest.CalcEnd(1, 1, 0, in)
+					parsetest.AssertPosition(t, p, line, col, index)
+					should.Equal(t, want, got)
 				})
 			})
 		}
@@ -117,15 +117,15 @@ func TestNonZCExpression(t *testing.T) {
 }
 
 func testNonZCExpression(t *testing.T, f parser.Func[*ast.Expression]) {
-	testutil.AssertAlsoFulfils(t, f, nodesAsExpression(testGoCode()))
-	testutil.AssertAlsoFulfils(t, f, nodesAsExpression(nodeAsNodes(testBlockFunction())))
-	testutil.AssertAlsoFulfils(t, f, nodesAsExpression(nodeAsNodes(testString())))
-	testutil.AssertAlsoFulfils(t, f, nodesAsExpression(nodeAsNodes(testTernary())))
+	parsetest.AssertAlsoFulfils(t, f, nodesAsExpression(testGoCode()))
+	parsetest.AssertAlsoFulfils(t, f, nodesAsExpression(nodeAsNodes(testBlockFunction())))
+	parsetest.AssertAlsoFulfils(t, f, nodesAsExpression(nodeAsNodes(testString())))
+	parsetest.AssertAlsoFulfils(t, f, nodesAsExpression(nodeAsNodes(testTernary())))
 	t.Run("mix", func(t *testing.T) {
 		t.Parallel()
 
 		in := `foo(bar, "baz #{woof}") || block(myBlock) || ?(cond, ifT, ifF)`
-		expect := &ast.Expression{
+		want := &ast.Expression{
 			Nodes: ast.Code{
 				&ast.GoCode{
 					Code:     "foo(bar,",
@@ -195,8 +195,8 @@ func testNonZCExpression(t *testing.T, f parser.Func[*ast.Expression]) {
 			},
 		}
 
-		actual := parsesCodeNodeFully(t, in, f)
-		assert.Equal(t, expect, actual)
+		got := parsesCodeNodeFully(t, in, f)
+		should.Equal(t, want, got)
 	})
 }
 

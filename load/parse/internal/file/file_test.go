@@ -5,10 +5,10 @@ import (
 	"testing"
 
 	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/internal/test/must"
+	"github.com/mavolin/corgi/v2/internal/test/should"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
-	"github.com/mavolin/corgi/v2/load/parse/internal/testutil"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/mavolin/corgi/v2/load/parse/internal/parsetest"
 )
 
 func TestFile(t *testing.T) {
@@ -32,7 +32,7 @@ func TestFile(t *testing.T) {
 			lines[i] = line[:last]
 		}
 	}
-	expect := &ast.File{
+	want := &ast.File{
 		Raw:   in,
 		Lines: lines,
 		Package: &ast.PackageDirective{
@@ -104,11 +104,9 @@ func TestFile(t *testing.T) {
 		},
 	}
 
-	p := testutil.NewParser(t, in)
+	p := parsetest.NewParser(t, in)
 	_, err := parser.TryErr(p, File())
-	if err != nil {
-		require.Fail(t, "unexpected error: %v", err)
-	}
+	must.Equal(t, nil, err) // parse(File)
 
-	assert.Equal(t, expect, p.File.AST)
+	should.Equal(t, want, p.AST)
 }

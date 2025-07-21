@@ -4,37 +4,37 @@ import (
 	"testing"
 
 	"github.com/mavolin/corgi/v2/file/ast"
-	"github.com/mavolin/corgi/v2/load/parse/internal/testutil"
-	"github.com/stretchr/testify/assert"
+	"github.com/mavolin/corgi/v2/internal/test/should"
+	"github.com/mavolin/corgi/v2/load/parse/internal/parsetest"
 )
 
 func TestDoctype(t *testing.T) {
 	t.Parallel()
 
 	in := "!doctype(html)"
-	expect := &ast.Doctype{
+	want := &ast.Doctype{
 		Doctype: &ast.Position{Line: 1, Col: 1},
 		LParen:  &ast.Position{Line: 1, Col: 9},
 		HTML:    &ast.Position{Line: 1, Col: 10},
 		RParen:  &ast.Position{Line: 1, Col: 14},
 	}
 
-	actual := testutil.ParsesFully(t, in, Doctype())
-	assert.Equal(t, expect, actual)
+	got := parsetest.ParsesFully(t, in, Doctype())
+	should.Equal(t, want, got)
 }
 
 func TestElement(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
-		name   string
-		in     string
-		expect *ast.Element
+	tests := []struct {
+		name string
+		in   string
+		want *ast.Element
 	}{
 		{
 			name: "void",
 			in:   "br",
-			expect: &ast.Element{
+			want: &ast.Element{
 				Header: &ast.ElementHeader{
 					Name: &ast.ElementReference{
 						Name: &ast.ElementName{
@@ -47,7 +47,7 @@ func TestElement(t *testing.T) {
 		}, {
 			name: "void with attributes",
 			in:   "br(foo=bar)",
-			expect: &ast.Element{
+			want: &ast.Element{
 				Header: &ast.ElementHeader{
 					Name: &ast.ElementReference{
 						Name: &ast.ElementName{
@@ -83,7 +83,7 @@ func TestElement(t *testing.T) {
 		}, {
 			name: "with body",
 			in:   "div [ foo ]",
-			expect: &ast.Element{
+			want: &ast.Element{
 				Header: &ast.ElementHeader{
 					Name: &ast.ElementReference{
 						Name: &ast.ElementName{
@@ -108,11 +108,11 @@ func TestElement(t *testing.T) {
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
-			actual := testutil.ParsesFully(t, c.in, Element())
-			assert.Equal(t, c.expect, actual)
+			got := parsetest.ParsesFully(t, c.in, Element())
+			should.Equal(t, c.want, got)
 		})
 	}
 }
@@ -120,15 +120,15 @@ func TestElement(t *testing.T) {
 func TestHeader(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
-		name   string
-		in     string
-		expect *ast.ElementHeader
+	tests := []struct {
+		name string
+		in   string
+		want *ast.ElementHeader
 	}{
 		{
 			name: "name",
 			in:   "br",
-			expect: &ast.ElementHeader{
+			want: &ast.ElementHeader{
 				Name: &ast.ElementReference{
 					Name: &ast.ElementName{
 						Name:     "br",
@@ -139,7 +139,7 @@ func TestHeader(t *testing.T) {
 		}, {
 			name: "name with attributes",
 			in:   "br(foo=bar)",
-			expect: &ast.ElementHeader{
+			want: &ast.ElementHeader{
 				Name: &ast.ElementReference{
 					Name: &ast.ElementName{
 						Name:     "br",
@@ -173,11 +173,11 @@ func TestHeader(t *testing.T) {
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
-			actual := testutil.ParsesFully(t, c.in, Header())
-			assert.Equal(t, c.expect, actual)
+			got := parsetest.ParsesFully(t, c.in, Header())
+			should.Equal(t, c.want, got)
 		})
 	}
 }
@@ -185,15 +185,15 @@ func TestHeader(t *testing.T) {
 func TestReference(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
-		name   string
-		in     string
-		expect *ast.ElementReference
+	tests := []struct {
+		name string
+		in   string
+		want *ast.ElementReference
 	}{
 		{
 			name: "local",
 			in:   "name",
-			expect: &ast.ElementReference{
+			want: &ast.ElementReference{
 				Name: &ast.ElementName{
 					Name:     "name",
 					Position: &ast.Position{Line: 1, Col: 1},
@@ -202,7 +202,7 @@ func TestReference(t *testing.T) {
 		}, {
 			name: "external",
 			in:   "package1.Name",
-			expect: &ast.ElementReference{
+			want: &ast.ElementReference{
 				Package: &ast.Identifier{
 					Name:     "package1",
 					Position: &ast.Position{Line: 1, Col: 1},
@@ -216,12 +216,12 @@ func TestReference(t *testing.T) {
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			actual := testutil.ParsesFully(t, c.in, Reference())
-			assert.Equal(t, c.expect, actual)
+			got := parsetest.ParsesFully(t, c.in, Reference())
+			should.Equal(t, c.want, got)
 		})
 	}
 }
@@ -230,20 +230,20 @@ func TestName(t *testing.T) {
 	t.Parallel()
 
 	in := "br"
-	expect := &ast.ElementName{
+	want := &ast.ElementName{
 		Name:     "br",
 		Position: &ast.Position{Line: 1, Col: 1},
 	}
 
-	actual := testutil.ParsesFully(t, in, Name())
-	assert.Equal(t, expect, actual)
+	got := parsetest.ParsesFully(t, in, Name())
+	should.Equal(t, want, got)
 }
 
 func TestRaw(t *testing.T) {
 	t.Parallel()
 
 	in := "!raw [ foo ]"
-	expect := &ast.RawElement{
+	want := &ast.RawElement{
 		Raw: &ast.Position{Line: 1, Col: 1},
 		Body: &ast.BracketText{
 			LBracket: &ast.Position{Line: 1, Col: 6},
@@ -259,15 +259,15 @@ func TestRaw(t *testing.T) {
 		},
 	}
 
-	actual := testutil.ParsesFully(t, in, Raw())
-	assert.Equal(t, expect, actual)
+	got := parsetest.ParsesFully(t, in, Raw())
+	should.Equal(t, want, got)
 }
 
 func TestAnd(t *testing.T) {
 	t.Parallel()
 
 	in := "&(foo)"
-	expect := &ast.And{
+	want := &ast.And{
 		And: &ast.Position{Line: 1, Col: 1},
 		Attributes: &ast.Arguments{
 			LParen: &ast.Position{Line: 1, Col: 2},
@@ -285,6 +285,6 @@ func TestAnd(t *testing.T) {
 		},
 	}
 
-	actual := testutil.ParsesFully(t, in, And())
-	assert.Equal(t, expect, actual)
+	got := parsetest.ParsesFully(t, in, And())
+	should.Equal(t, want, got)
 }

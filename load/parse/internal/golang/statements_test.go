@@ -3,19 +3,19 @@ package golang
 import (
 	"testing"
 
-	"github.com/mavolin/corgi/v2/load/parse/internal/testutil"
-	"github.com/stretchr/testify/assert"
+	"github.com/mavolin/corgi/v2/internal/test/should"
+	"github.com/mavolin/corgi/v2/load/parse/internal/parsetest"
 )
 
 func TestAssignOp(t *testing.T) {
 	t.Parallel()
 
-	testCases := []string{"=", "+=", "-=", "|=", "^=", "*=", "/=", "%=", "<<=", ">>=", "&=", "&^="}
-	for _, c := range testCases {
+	tests := []string{"=", "+=", "-=", "|=", "^=", "*=", "/=", "%=", "<<=", ">>=", "&=", "&^="}
+	for _, c := range tests {
 		t.Run(c, func(t *testing.T) {
 			t.Parallel()
-			actual := testutil.ParsesFully(t, c, AssignOp())
-			assert.Equal(t, c, actual)
+			got := parsetest.ParsesFully(t, c, AssignOp())
+			should.Equal(t, c, got)
 		})
 	}
 }

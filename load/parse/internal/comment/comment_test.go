@@ -4,9 +4,9 @@ import (
 	"testing"
 
 	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/internal/test/should"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
-	"github.com/mavolin/corgi/v2/load/parse/internal/testutil"
-	"github.com/stretchr/testify/assert"
+	"github.com/mavolin/corgi/v2/load/parse/internal/parsetest"
 )
 
 func TestComment(t *testing.T) {
@@ -29,15 +29,15 @@ func TestLineComment(t *testing.T) {
 }
 
 func testLineComment(t *testing.T, f parser.Func[*ast.Comment]) {
-	expect := &ast.Comment{
+	want := &ast.Comment{
 		Open:    &ast.Position{Line: 1, Col: 1},
 		Comment: " foo",
 		General: false,
 		Until:   ast.Position{Line: 1, Col: 7},
 	}
 
-	actual := testutil.ParsesFully(t, "// foo\n", f)
-	assert.Equal(t, expect, actual)
+	got := parsetest.ParsesFully(t, "// foo\n", f)
+	should.Equal(t, want, got)
 }
 
 func TestGeneralComment(t *testing.T) {
@@ -49,7 +49,7 @@ func testBlockComment(t *testing.T, f parser.Func[*ast.Comment]) {
 	t.Run("single line", func(t *testing.T) {
 		t.Parallel()
 
-		expect := &ast.Comment{
+		want := &ast.Comment{
 			Open:    &ast.Position{Line: 1, Col: 1},
 			Comment: " foo ",
 			General: true,
@@ -57,14 +57,14 @@ func testBlockComment(t *testing.T, f parser.Func[*ast.Comment]) {
 			Until:   ast.Position{Line: 1, Col: 10},
 		}
 
-		actual := testutil.ParsesFully(t, "/* foo */", f)
-		assert.Equal(t, expect, actual)
+		got := parsetest.ParsesFully(t, "/* foo */", f)
+		should.Equal(t, want, got)
 	})
 
 	t.Run("multi line", func(t *testing.T) {
 		t.Parallel()
 
-		expect := &ast.Comment{
+		want := &ast.Comment{
 			Open:    &ast.Position{Line: 1, Col: 1},
 			Comment: " foo\n   bar ",
 			General: true,
@@ -72,16 +72,16 @@ func testBlockComment(t *testing.T, f parser.Func[*ast.Comment]) {
 			Until:   ast.Position{Line: 2, Col: 10},
 		}
 
-		actual := testutil.ParsesFully(t, "/* foo\n   bar */", f)
-		assert.Equal(t, expect, actual)
+		got := parsetest.ParsesFully(t, "/* foo\n   bar */", f)
+		should.Equal(t, want, got)
 	})
 
 	t.Run("missing closing", func(t *testing.T) {
 		t.Parallel()
 
-		p := testutil.NewParser(t, "/* foo")
+		p := parsetest.NewParser(t, "/* foo")
 		p.DoInline(func() {
-			testutil.AssertMatchesButError(t, p, f)
+			parsetest.AssertMatchesButError(t, p, f)
 		})
 	})
 
@@ -91,7 +91,7 @@ func testBlockComment(t *testing.T, f parser.Func[*ast.Comment]) {
 		t.Run("single line", func(t *testing.T) {
 			t.Parallel()
 
-			expect := &ast.Comment{
+			want := &ast.Comment{
 				Open:    &ast.Position{Line: 1, Col: 1},
 				Comment: " foo ",
 				General: true,
@@ -99,29 +99,29 @@ func testBlockComment(t *testing.T, f parser.Func[*ast.Comment]) {
 				Until:   ast.Position{Line: 1, Col: 10},
 			}
 
-			p := testutil.NewParser(t, "/* foo */")
+			p := parsetest.NewParser(t, "/* foo */")
 			p.DoInline(func() {
-				actual := testutil.AssertNoError(t, p, f)
-				testutil.AssertEOF(t, p)
-				assert.Equal(t, expect, actual)
+				got := parsetest.AssertNoError(t, p, f)
+				parsetest.AssertEOF(t, p)
+				should.Equal(t, want, got)
 			})
 		})
 
 		t.Run("error on multi line", func(t *testing.T) {
 			t.Parallel()
 
-			p := testutil.NewParser(t, "/* foo\n   bar */")
+			p := parsetest.NewParser(t, "/* foo\n   bar */")
 			p.DoInline(func() {
-				testutil.AssertMatchesButError(t, p, f)
+				parsetest.AssertMatchesButError(t, p, f)
 			})
 		})
 
 		t.Run("missing closing", func(t *testing.T) {
 			t.Parallel()
 
-			p := testutil.NewParser(t, "/* foo\n*/")
+			p := parsetest.NewParser(t, "/* foo\n*/")
 			p.DoInline(func() {
-				testutil.AssertMatchesButError(t, p, f)
+				parsetest.AssertMatchesButError(t, p, f)
 			})
 		})
 	})

@@ -426,7 +426,6 @@ func zeroCoalescingAssignment(valueExpr *ast.Expression) parser.Func[*ast.ZeroCo
 
 		return &zca, nil
 	}
-
 }
 
 func ZeroCoalescingAssignmentAsCode(zca *ast.ZeroCoalescingAssignment) ast.Code {

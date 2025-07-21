@@ -4,9 +4,9 @@ import (
 	"testing"
 
 	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/internal/test/should"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
-	"github.com/mavolin/corgi/v2/load/parse/internal/testutil"
-	"github.com/stretchr/testify/assert"
+	"github.com/mavolin/corgi/v2/load/parse/internal/parsetest"
 )
 
 func TestZeroCoalescing(t *testing.T) {
@@ -16,7 +16,7 @@ func TestZeroCoalescing(t *testing.T) {
 
 func testZeroCoalescing(t *testing.T, f parser.Func[*ast.ZeroCoalescing]) {
 	in := "**foo?.bar?(baz, faz)?[1?]?.(**qux?)?"
-	expect := &ast.ZeroCoalescing{
+	want := &ast.ZeroCoalescing{
 		DerefCount: 2,
 		Root: &ast.Expression{
 			Nodes: ast.Code{
@@ -82,22 +82,22 @@ func testZeroCoalescing(t *testing.T, f parser.Func[*ast.ZeroCoalescing]) {
 		DerefPosition: &ast.Position{Line: 1, Col: 1},
 	}
 
-	actual := testutil.ParsesFully(t, in, f)
-	assert.Equal(t, expect, actual)
+	got := parsetest.ParsesFully(t, in, f)
+	should.Equal(t, want, got)
 }
 
 func TestZCIndexExpression(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
-		name   string
-		in     string
-		expect *ast.ZCIndexExpression
+	tests := []struct {
+		name string
+		in   string
+		want *ast.ZCIndexExpression
 	}{
 		{
 			name: "check nothing",
 			in:   "[1]",
-			expect: &ast.ZCIndexExpression{
+			want: &ast.ZCIndexExpression{
 				LBracket: &ast.Position{Line: 1, Col: 1},
 				Index: &ast.Expression{
 					Nodes: ast.Code{
@@ -112,7 +112,7 @@ func TestZCIndexExpression(t *testing.T) {
 		}, {
 			name: "check index",
 			in:   "[1?]",
-			expect: &ast.ZCIndexExpression{
+			want: &ast.ZCIndexExpression{
 				LBracket: &ast.Position{Line: 1, Col: 1},
 				Index: &ast.Expression{
 					Nodes: ast.Code{
@@ -128,7 +128,7 @@ func TestZCIndexExpression(t *testing.T) {
 		}, {
 			name: "check value",
 			in:   "[1]?",
-			expect: &ast.ZCIndexExpression{
+			want: &ast.ZCIndexExpression{
 				LBracket: &ast.Position{Line: 1, Col: 1},
 				Index: &ast.Expression{
 					Nodes: ast.Code{
@@ -144,7 +144,7 @@ func TestZCIndexExpression(t *testing.T) {
 		}, {
 			name: "check both",
 			in:   "[1?]?",
-			expect: &ast.ZCIndexExpression{
+			want: &ast.ZCIndexExpression{
 				LBracket: &ast.Position{Line: 1, Col: 1},
 				Index: &ast.Expression{
 					Nodes: ast.Code{
@@ -161,12 +161,12 @@ func TestZCIndexExpression(t *testing.T) {
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			actual := testutil.ParsesFully(t, c.in, ZCIndexExpression())
-			assert.Equal(t, c.expect, actual)
+			got := parsetest.ParsesFully(t, c.in, ZCIndexExpression())
+			should.Equal(t, c.want, got)
 		})
 	}
 }
@@ -174,22 +174,22 @@ func TestZCIndexExpression(t *testing.T) {
 func TestZCSelectorExpression(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
-		name   string
-		in     string
-		expect *ast.ZCSelectorExpression
+	tests := []struct {
+		name string
+		in   string
+		want *ast.ZCSelectorExpression
 	}{
 		{
 			name: "check nothing",
 			in:   ".foo",
-			expect: &ast.ZCSelectorExpression{
+			want: &ast.ZCSelectorExpression{
 				Dot:   &ast.Position{Line: 1, Col: 1},
 				Ident: &ast.Identifier{Name: "foo", Position: &ast.Position{Line: 1, Col: 2}},
 			},
 		}, {
 			name: "check",
 			in:   ".foo?",
-			expect: &ast.ZCSelectorExpression{
+			want: &ast.ZCSelectorExpression{
 				Dot:   &ast.Position{Line: 1, Col: 1},
 				Ident: &ast.Identifier{Name: "foo", Position: &ast.Position{Line: 1, Col: 2}},
 				Check: &ast.Position{Line: 1, Col: 5},
@@ -197,12 +197,12 @@ func TestZCSelectorExpression(t *testing.T) {
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			actual := testutil.ParsesFully(t, c.in, ZCSelectorExpression())
-			assert.Equal(t, c.expect, actual)
+			got := parsetest.ParsesFully(t, c.in, ZCSelectorExpression())
+			should.Equal(t, c.want, got)
 		})
 	}
 }
@@ -210,22 +210,22 @@ func TestZCSelectorExpression(t *testing.T) {
 func TestZCParenExpression(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
-		name   string
-		in     string
-		expect *ast.ZCParenExpression
+	tests := []struct {
+		name string
+		in   string
+		want *ast.ZCParenExpression
 	}{
 		{
 			name: "no args",
 			in:   "()",
-			expect: &ast.ZCParenExpression{
+			want: &ast.ZCParenExpression{
 				LParen: &ast.Position{Line: 1, Col: 1},
 				RParen: &ast.Position{Line: 1, Col: 2},
 			},
 		}, {
 			name: "one arg",
 			in:   "(foo)",
-			expect: &ast.ZCParenExpression{
+			want: &ast.ZCParenExpression{
 				LParen: &ast.Position{Line: 1, Col: 1},
 				Args: []*ast.Expression{
 					{
@@ -242,7 +242,7 @@ func TestZCParenExpression(t *testing.T) {
 		}, {
 			name: "multiple args",
 			in:   "(foo, bar)",
-			expect: &ast.ZCParenExpression{
+			want: &ast.ZCParenExpression{
 				LParen: &ast.Position{Line: 1, Col: 1},
 				Args: []*ast.Expression{
 					{
@@ -266,7 +266,7 @@ func TestZCParenExpression(t *testing.T) {
 		}, {
 			name: "check",
 			in:   "(foo)?",
-			expect: &ast.ZCParenExpression{
+			want: &ast.ZCParenExpression{
 				LParen: &ast.Position{Line: 1, Col: 1},
 				Args: []*ast.Expression{
 					{
@@ -284,12 +284,12 @@ func TestZCParenExpression(t *testing.T) {
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			actual := testutil.ParsesFully(t, c.in, ZCParenExpression())
-			assert.Equal(t, c.expect, actual)
+			got := parsetest.ParsesFully(t, c.in, ZCParenExpression())
+			should.Equal(t, c.want, got)
 		})
 	}
 }
@@ -297,15 +297,15 @@ func TestZCParenExpression(t *testing.T) {
 func TestZCTypeAssertionExpression(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
-		name   string
-		in     string
-		expect *ast.ZCTypeAssertionExpression
+	tests := []struct {
+		name string
+		in   string
+		want *ast.ZCTypeAssertionExpression
 	}{
 		{
 			name: "unqualified type",
 			in:   ".(foo)",
-			expect: &ast.ZCTypeAssertionExpression{
+			want: &ast.ZCTypeAssertionExpression{
 				Dot:    &ast.Position{Line: 1, Col: 1},
 				LParen: &ast.Position{Line: 1, Col: 2},
 				Type: &ast.Identifier{
@@ -317,7 +317,7 @@ func TestZCTypeAssertionExpression(t *testing.T) {
 		}, {
 			name: "qualified type",
 			in:   ".(foo.Bar)",
-			expect: &ast.ZCTypeAssertionExpression{
+			want: &ast.ZCTypeAssertionExpression{
 				Dot:    &ast.Position{Line: 1, Col: 1},
 				LParen: &ast.Position{Line: 1, Col: 2},
 				Type: &ast.QualifiedIdentifier{
@@ -336,7 +336,7 @@ func TestZCTypeAssertionExpression(t *testing.T) {
 		}, {
 			name: "pointer type",
 			in:   ".(*foo)",
-			expect: &ast.ZCTypeAssertionExpression{
+			want: &ast.ZCTypeAssertionExpression{
 				Dot:          &ast.Position{Line: 1, Col: 1},
 				LParen:       &ast.Position{Line: 1, Col: 2},
 				PointerCount: 1,
@@ -349,7 +349,7 @@ func TestZCTypeAssertionExpression(t *testing.T) {
 		}, {
 			name: "check type",
 			in:   ".(foo?)",
-			expect: &ast.ZCTypeAssertionExpression{
+			want: &ast.ZCTypeAssertionExpression{
 				Dot:    &ast.Position{Line: 1, Col: 1},
 				LParen: &ast.Position{Line: 1, Col: 2},
 				Type: &ast.Identifier{
@@ -362,7 +362,7 @@ func TestZCTypeAssertionExpression(t *testing.T) {
 		}, {
 			name: "check value",
 			in:   ".(foo)?",
-			expect: &ast.ZCTypeAssertionExpression{
+			want: &ast.ZCTypeAssertionExpression{
 				Dot:    &ast.Position{Line: 1, Col: 1},
 				LParen: &ast.Position{Line: 1, Col: 2},
 				Type: &ast.Identifier{
@@ -375,7 +375,7 @@ func TestZCTypeAssertionExpression(t *testing.T) {
 		}, {
 			name: "check both",
 			in:   ".(foo?)?",
-			expect: &ast.ZCTypeAssertionExpression{
+			want: &ast.ZCTypeAssertionExpression{
 				Dot:    &ast.Position{Line: 1, Col: 1},
 				LParen: &ast.Position{Line: 1, Col: 2},
 				Type: &ast.Identifier{
@@ -389,12 +389,12 @@ func TestZCTypeAssertionExpression(t *testing.T) {
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			actual := testutil.ParsesFully(t, c.in, ZCTypeAssertionExpression())
-			assert.Equal(t, c.expect, actual)
+			got := parsetest.ParsesFully(t, c.in, ZCTypeAssertionExpression())
+			should.Equal(t, c.want, got)
 		})
 	}
 }

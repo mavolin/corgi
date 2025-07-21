@@ -7,10 +7,10 @@ import (
 
 	"github.com/mavolin/corgi/v2/file/ast"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
+	"github.com/mavolin/corgi/v2/internal/test/should"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
+	"github.com/mavolin/corgi/v2/load/parse/internal/parsetest"
 	"github.com/mavolin/corgi/v2/load/parse/internal/quickanno"
-	"github.com/mavolin/corgi/v2/load/parse/internal/testutil"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestParenList(t *testing.T) {
@@ -23,7 +23,7 @@ func TestBracketList(t *testing.T) {
 	testList(t, "bracket list", '[', ']')
 }
 
-func testList(t *testing.T, name string, open, close rune) {
+func testList(t *testing.T, name string, opening, closing rune) {
 	elemFunc := func(p *parser.Parser) (string, *diagnostic.Diagnostic) {
 		s := parser.TokenWhile(p, func() bool {
 			return parser.MatchesRunePredicate(p, func(r rune) bool {
@@ -40,30 +40,30 @@ func testList(t *testing.T, name string, open, close rune) {
 	}
 
 	successCases := []struct {
-		name   string
-		elems  string
-		expect []string
+		name  string
+		elems string
+		want  []string
 	}{
 		{
-			name:   "empty",
-			elems:  "",
-			expect: nil,
+			name:  "empty",
+			elems: "",
+			want:  nil,
 		}, {
-			name:   "single",
-			elems:  "foo",
-			expect: []string{"foo"},
+			name:  "single",
+			elems: "foo",
+			want:  []string{"foo"},
 		}, {
-			name:   "multiple",
-			elems:  "foo, bar, baz",
-			expect: []string{"foo", "bar", "baz"},
+			name:  "multiple",
+			elems: "foo, bar, baz",
+			want:  []string{"foo", "bar", "baz"},
 		}, {
-			name:   "trailing comma",
-			elems:  "foo,bar,baz,\n",
-			expect: []string{"foo", "bar", "baz"},
+			name:  "trailing comma",
+			elems: "foo,bar,baz,\n",
+			want:  []string{"foo", "bar", "baz"},
 		}, {
-			name:   "multiline",
-			elems:  "\n  \nfoo\t ,\nbar  ,\n\nbaz",
-			expect: []string{"foo", "bar", "baz"},
+			name:  "multiline",
+			elems: "\n  \nfoo\t ,\nbar  ,\n\nbaz",
+			want:  []string{"foo", "bar", "baz"},
 		},
 	}
 
@@ -74,21 +74,21 @@ func testList(t *testing.T, name string, open, close rune) {
 			t.Run(c.name, func(t *testing.T) {
 				t.Parallel()
 
-				in := fmt.Sprintf("%c%s%c", open, c.elems, close)
-				expect := &List[string]{
+				in := fmt.Sprintf("%c%s%c", opening, c.elems, closing)
+				want := &List[string]{
 					Open: &ast.Position{Line: 1, Col: 1},
 					Close: &ast.Position{
 						Line: strings.Count(in, "\n") + 1,
-						Col:  len(string(open)) + len(c.elems) + 1,
+						Col:  len(string(opening)) + len(c.elems) + 1,
 					},
-					Elems: c.expect,
+					Elems: c.want,
 				}
-				if expect.Close.Line > 1 {
-					expect.Close.Col = len(in[strings.LastIndex(in, "\n")+1:])
+				if want.Close.Line > 1 {
+					want.Close.Col = len(in[strings.LastIndex(in, "\n")+1:])
 				}
 
-				actual := testutil.ParsesFully(t, in, list(name, open, close, elemFunc))
-				assert.Equal(t, expect, actual)
+				got := parsetest.ParsesFully(t, in, list(name, opening, closing, elemFunc))
+				should.Equal(t, want, got)
 			})
 		}
 	})
@@ -97,29 +97,29 @@ func testList(t *testing.T, name string, open, close rune) {
 		name    string
 		elems   string
 		noClose bool
-		expect  []string
+		want    []string
 	}{
 		{
-			name:   "empty elem",
-			elems:  "foo, , baz",
-			expect: []string{"foo", "", "baz"},
+			name:  "empty elem",
+			elems: "foo, , baz",
+			want:  []string{"foo", "", "baz"},
 		}, {
 			name:    "unclosed",
 			elems:   "foo",
 			noClose: true,
-			expect:  []string{"foo"},
+			want:    []string{"foo"},
 		}, {
-			name:   "unexpected after elem",
-			elems:  "foo 123, baz",
-			expect: []string{"foo", "baz"},
+			name:  "unexpected after elem",
+			elems: "foo 123, baz",
+			want:  []string{"foo", "baz"},
 		}, {
-			name:   "no elem match",
-			elems:  "foo, 123, baz",
-			expect: []string{"foo", "", "baz"},
+			name:  "no elem match",
+			elems: "foo, 123, baz",
+			want:  []string{"foo", "", "baz"},
 		}, {
-			name:   "missing comma",
-			elems:  "foo bar baz, qux",
-			expect: []string{"foo", "bar", "baz", "qux"},
+			name:  "missing comma",
+			elems: "foo bar baz, qux",
+			want:  []string{"foo", "bar", "baz", "qux"},
 		},
 	}
 
@@ -130,25 +130,25 @@ func testList(t *testing.T, name string, open, close rune) {
 			t.Run(c.name, func(t *testing.T) {
 				t.Parallel()
 
-				in := fmt.Sprintf("%c%s%c", open, c.elems, close)
-				expect := &List[string]{
+				in := fmt.Sprintf("%c%s%c", opening, c.elems, closing)
+				want := &List[string]{
 					Open:  &ast.Position{Line: 1, Col: 1},
-					Close: &ast.Position{Line: 1, Col: len(string(open)) + len(c.elems) + 1},
-					Elems: c.expect,
+					Close: &ast.Position{Line: 1, Col: len(string(opening)) + len(c.elems) + 1},
+					Elems: c.want,
 				}
 				if c.noClose {
 					in = in[:len(in)-1]
-					expect.Close = nil
+					want.Close = nil
 				}
 
-				actualIn := in
+				gotIn := in
 				if !c.noClose {
-					actualIn += " other"
+					gotIn += " other"
 				}
-				p := testutil.NewParser(t, in)
-				actual := testutil.AssertMatchesButError(t, p, list(name, open, close, elemFunc))
-				if assert.Equal(t, expect, actual) {
-					assert.Equal(t, p.Index(), len(in))
+				p := parsetest.NewParser(t, in)
+				got := parsetest.AssertMatchesButError(t, p, list(name, opening, closing, elemFunc))
+				if should.Equal(t, want, got) {
+					should.Equal(t, p.Index(), len(in))
 				}
 			})
 		}
@@ -156,6 +156,8 @@ func testList(t *testing.T, name string, open, close rune) {
 }
 
 func TestCommaList(t *testing.T) {
+	t.Parallel()
+
 	elemFunc := func(p *parser.Parser) (string, *diagnostic.Diagnostic) {
 		s := parser.TokenWhile(p, func() bool {
 			return parser.MatchesRunePredicate(p, func(r rune) bool {
@@ -172,22 +174,22 @@ func TestCommaList(t *testing.T) {
 	}
 
 	successCases := []struct {
-		name   string
-		in     string
-		expect []string
+		name string
+		in   string
+		want []string
 	}{
 		{
-			name:   "single",
-			in:     "foo",
-			expect: []string{"foo"},
+			name: "single",
+			in:   "foo",
+			want: []string{"foo"},
 		}, {
-			name:   "multiple",
-			in:     "foo, bar, baz",
-			expect: []string{"foo", "bar", "baz"},
+			name: "multiple",
+			in:   "foo, bar, baz",
+			want: []string{"foo", "bar", "baz"},
 		}, {
-			name:   "multiline",
-			in:     "foo\t ,\nbar  ,\n\nbaz",
-			expect: []string{"foo", "bar", "baz"},
+			name: "multiline",
+			in:   "foo\t ,\nbar  ,\n\nbaz",
+			want: []string{"foo", "bar", "baz"},
 		},
 	}
 
@@ -198,28 +200,28 @@ func TestCommaList(t *testing.T) {
 			t.Run(c.name, func(t *testing.T) {
 				t.Parallel()
 
-				p := testutil.NewParser(t, c.in+" other")
-				actual := testutil.AssertNoError(t, p, CommaList("a", "as", elemFunc))
-				if assert.Equal(t, c.expect, actual) {
-					assert.Equal(t, p.Index(), len(c.in))
+				p := parsetest.NewParser(t, c.in+" other")
+				got := parsetest.AssertNoError(t, p, CommaList("a", "as", elemFunc))
+				if should.Equal(t, c.want, got) {
+					should.Equal(t, len(c.in), p.Index())
 				}
 			})
 		}
 	})
 
 	recoverCases := []struct {
-		name   string
-		in     string
-		expect []string
+		name string
+		in   string
+		want []string
 	}{
 		{
-			name:   "empty elem",
-			in:     "foo, , baz",
-			expect: []string{"foo", "", "baz"},
+			name: "empty elem",
+			in:   "foo, , baz",
+			want: []string{"foo", "", "baz"},
 		}, {
-			name:   "no elems but comma",
-			in:     ",",
-			expect: []string{"", ""},
+			name: "no elems but comma",
+			in:   ",",
+			want: []string{"", ""},
 		},
 	}
 
@@ -230,10 +232,10 @@ func TestCommaList(t *testing.T) {
 			t.Run(c.name, func(t *testing.T) {
 				t.Parallel()
 
-				p := testutil.NewParser(t, c.in+" 123")
-				actual := testutil.AssertMatchesButError(t, p, CommaList("a", "as", elemFunc))
-				if assert.Equal(t, c.expect, actual) {
-					assert.Equal(t, p.Index(), len(c.in))
+				p := parsetest.NewParser(t, c.in+" 123")
+				got := parsetest.AssertMatchesButError(t, p, CommaList("a", "as", elemFunc))
+				if should.Equal(t, c.want, got) {
+					should.Equal(t, len(c.in), p.Index())
 				}
 			})
 		}

@@ -4,24 +4,24 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/mavolin/corgi/v2/internal/test/should"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
-	"github.com/mavolin/corgi/v2/load/parse/internal/testutil"
-	"github.com/stretchr/testify/assert"
+	"github.com/mavolin/corgi/v2/load/parse/internal/parsetest"
 )
 
 func TestAny(t *testing.T) {
 	t.Parallel()
 
-	testCases := []string{" ", "\t", "\n", "\r\n", " \t\n\r\n", "  \t  \n  \r\n  \t  \n  \r\n"}
+	tests := []string{" ", "\t", "\n", "\r\n", " \t\n\r\n", "  \t  \n  \r\n  \t  \n  \r\n"}
 
-	for _, in := range testCases {
+	for _, in := range tests {
 		t.Run(testName(in), func(t *testing.T) {
 			t.Parallel()
 
-			p := testutil.NewParser(t, in)
-			assert.Nil(t, Any()(p))
-			line, col, index := testutil.CalcEnd(1, 1, 0, in)
-			testutil.AssertPosition(t, p, line, col, index)
+			p := parsetest.NewParser(t, in)
+			should.Equal(t, nil, Any()(p))
+			line, col, index := parsetest.CalcEnd(1, 1, 0, in)
+			parsetest.AssertPosition(t, p, line, col, index)
 		})
 	}
 
@@ -42,16 +42,16 @@ func TestHorizontal(t *testing.T) {
 }
 
 func testHorizontal(t *testing.T, f parser.WhitespaceFunc, trail string) {
-	testCases := []string{" ", "\t", "  ", "\t\t", " \t  \t "}
+	tests := []string{" ", "\t", "  ", "\t\t", " \t  \t "}
 
-	for _, in := range testCases {
+	for _, in := range tests {
 		t.Run(testName(in), func(t *testing.T) {
 			t.Parallel()
 
-			p := testutil.NewParser(t, in+trail)
-			assert.Nil(t, f(p))
-			line, col, index := testutil.CalcEnd(1, 1, 0, in)
-			testutil.AssertPosition(t, p, line, col, index)
+			p := parsetest.NewParser(t, in+trail)
+			should.Equal(t, nil, f(p))
+			line, col, index := parsetest.CalcEnd(1, 1, 0, in)
+			parsetest.AssertPosition(t, p, line, col, index)
 		})
 	}
 }
@@ -62,16 +62,16 @@ func TestVertical(t *testing.T) {
 }
 
 func testVertical(t *testing.T, f parser.WhitespaceFunc, trail string) {
-	testCases := []string{"\n", "\r\n", "\n\n", "\r\n\n", "\n\r\n"}
+	tests := []string{"\n", "\r\n", "\n\n", "\r\n\n", "\n\r\n"}
 
-	for _, in := range testCases {
+	for _, in := range tests {
 		t.Run(testName(in), func(t *testing.T) {
 			t.Parallel()
 
-			p := testutil.NewParser(t, in+trail)
-			assert.Nil(t, f(p))
-			line, col, index := testutil.CalcEnd(1, 1, 0, in)
-			testutil.AssertPosition(t, p, line, col, index)
+			p := parsetest.NewParser(t, in+trail)
+			should.Equal(t, nil, f(p))
+			line, col, index := parsetest.CalcEnd(1, 1, 0, in)
+			parsetest.AssertPosition(t, p, line, col, index)
 		})
 	}
 }
@@ -79,16 +79,16 @@ func testVertical(t *testing.T, f parser.WhitespaceFunc, trail string) {
 func TestSingleVertical(t *testing.T) {
 	t.Parallel()
 
-	testCases := []string{"\n", "\r\n"}
+	tests := []string{"\n", "\r\n"}
 
-	for _, in := range testCases {
+	for _, in := range tests {
 		t.Run(testName(in), func(t *testing.T) {
 			t.Parallel()
 
-			p := testutil.NewParser(t, in+"\n")
-			assert.Nil(t, SingleVertical()(p))
-			line, col, index := testutil.CalcEnd(1, 1, 0, in)
-			testutil.AssertPosition(t, p, line, col, index)
+			p := parsetest.NewParser(t, in+"\n")
+			should.Equal(t, nil, SingleVertical()(p))
+			line, col, index := parsetest.CalcEnd(1, 1, 0, in)
+			parsetest.AssertPosition(t, p, line, col, index)
 		})
 	}
 }

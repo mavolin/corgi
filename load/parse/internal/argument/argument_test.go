@@ -4,35 +4,35 @@ import (
 	"testing"
 
 	"github.com/mavolin/corgi/v2/file/ast"
-	"github.com/mavolin/corgi/v2/load/parse/internal/testutil"
-	"github.com/stretchr/testify/assert"
+	"github.com/mavolin/corgi/v2/internal/test/should"
+	"github.com/mavolin/corgi/v2/load/parse/internal/parsetest"
 )
 
 func TestArgument(t *testing.T) {
 	t.Parallel()
 	// can't test attribute because it's in a different package
-	testutil.AssertAlsoFulfils(t, Argument(), testComponentArgument)
+	parsetest.AssertAlsoFulfils(t, Argument(), testComponentArgument)
 }
 
 func TestArguments(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
-		name   string
-		in     string
-		expect *ast.Arguments
+	tests := []struct {
+		name string
+		in   string
+		want *ast.Arguments
 	}{
 		{
 			name: "empty",
 			in:   "()",
-			expect: &ast.Arguments{
+			want: &ast.Arguments{
 				LParen: &ast.Position{Line: 1, Col: 1},
 				RParen: &ast.Position{Line: 1, Col: 2},
 			},
 		}, {
 			name: "single class shorthand",
 			in:   "(.foo)",
-			expect: &ast.Arguments{
+			want: &ast.Arguments{
 				LParen: &ast.Position{Line: 1, Col: 1},
 				Args: []ast.Argument{
 					&ast.ClassShorthand{
@@ -52,7 +52,7 @@ func TestArguments(t *testing.T) {
 		}, {
 			name: "single id shorthand",
 			in:   "(#foo)",
-			expect: &ast.Arguments{
+			want: &ast.Arguments{
 				LParen: &ast.Position{Line: 1, Col: 1},
 				Args: []ast.Argument{
 					&ast.IDShorthand{
@@ -70,7 +70,7 @@ func TestArguments(t *testing.T) {
 		}, {
 			name: "single and placeholder",
 			in:   "(&)",
-			expect: &ast.Arguments{
+			want: &ast.Arguments{
 				LParen: &ast.Position{Line: 1, Col: 1},
 				Args: []ast.Argument{
 					&ast.AndPlaceholder{
@@ -82,7 +82,7 @@ func TestArguments(t *testing.T) {
 		}, {
 			name: "single named boolean attribute",
 			in:   "(disabled)",
-			expect: &ast.Arguments{
+			want: &ast.Arguments{
 				LParen: &ast.Position{Line: 1, Col: 1},
 				Args: []ast.Argument{
 					&ast.NamedAttribute{
@@ -99,7 +99,7 @@ func TestArguments(t *testing.T) {
 		}, {
 			name: "single named value attribute",
 			in:   "(class=foo)",
-			expect: &ast.Arguments{
+			want: &ast.Arguments{
 				LParen: &ast.Position{Line: 1, Col: 1},
 				Args: []ast.Argument{
 					&ast.NamedAttribute{
@@ -125,7 +125,7 @@ func TestArguments(t *testing.T) {
 		}, {
 			name: "single component argument",
 			in:   "(foo: bar)",
-			expect: &ast.Arguments{
+			want: &ast.Arguments{
 				LParen: &ast.Position{Line: 1, Col: 1},
 				Args: []ast.Argument{
 					&ast.ComponentArgument{
@@ -149,7 +149,7 @@ func TestArguments(t *testing.T) {
 		}, {
 			name: "mix",
 			in:   "(arg1: arg1Value, arg2: arg2Value, &, .class1 class2, #id, booleanAttr, valueAttr=valueAttrValue)",
-			expect: &ast.Arguments{
+			want: &ast.Arguments{
 				LParen: &ast.Position{Line: 1, Col: 1},
 				Args: []ast.Argument{
 					&ast.ComponentArgument{
@@ -241,14 +241,14 @@ func TestArguments(t *testing.T) {
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			p := testutil.NewParser(t, c.in+"other")
-			actual := testutil.AssertNoError(t, p, Arguments())
-			if assert.Equal(t, c.expect, actual) {
-				testutil.AssertPosition(t, p, c.expect.End().Line, c.expect.End().Col, len(c.in))
+			p := parsetest.NewParser(t, c.in+"other")
+			got := parsetest.AssertNoError(t, p, Arguments())
+			if should.Equal(t, c.want, got) {
+				parsetest.AssertPosition(t, p, c.want.End().Line, c.want.End().Col, len(c.in))
 			}
 		})
 	}

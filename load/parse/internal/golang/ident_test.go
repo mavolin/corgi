@@ -4,9 +4,9 @@ import (
 	"testing"
 
 	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/internal/test/should"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
-	"github.com/mavolin/corgi/v2/load/parse/internal/testutil"
-	"github.com/stretchr/testify/assert"
+	"github.com/mavolin/corgi/v2/load/parse/internal/parsetest"
 )
 
 func TestIdentifier(t *testing.T) {
@@ -16,11 +16,11 @@ func TestIdentifier(t *testing.T) {
 
 func testIdentifier(t *testing.T, f parser.Func[*ast.Identifier]) {
 	in := "foo"
-	expect := &ast.Identifier{
+	want := &ast.Identifier{
 		Name:     "foo",
 		Position: &ast.Position{Line: 1, Col: 1},
 	}
 
-	actual := testutil.ParsesFully(t, in, f)
-	assert.Equal(t, expect, actual)
+	got := parsetest.ParsesFully(t, in, f)
+	should.Equal(t, want, got)
 }

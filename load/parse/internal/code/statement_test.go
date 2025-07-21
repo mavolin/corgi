@@ -5,16 +5,16 @@ import (
 
 	"github.com/mavolin/corgi/v2/file/ast"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
+	"github.com/mavolin/corgi/v2/internal/test/should"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
-	"github.com/mavolin/corgi/v2/load/parse/internal/testutil"
-	"github.com/stretchr/testify/assert"
+	"github.com/mavolin/corgi/v2/load/parse/internal/parsetest"
 )
 
 func TestStatement(t *testing.T) {
 	t.Parallel()
 
-	testutil.AssertAlsoFulfils(t, ParsedStatement(), testParsedStatement)
-	testutil.AssertAlsoFulfils(t, Statement(Regular), func(t *testing.T, f parser.Func[*ast.Statement]) {
+	parsetest.AssertAlsoFulfils(t, ParsedStatement(), testParsedStatement)
+	parsetest.AssertAlsoFulfils(t, Statement(Regular), func(t *testing.T, f parser.Func[*ast.Statement]) {
 		testSimpleStatement(t, func(p *parser.Parser) (*ast.SimpleStatement, *diagnostic.Diagnostic) {
 			s, err := f(p)
 			if err != nil {
@@ -38,19 +38,19 @@ func TestParsedStatement(t *testing.T) {
 }
 
 func testParsedStatement(t *testing.T, f parser.Func[*ast.Statement]) {
-	testutil.AssertAlsoFulfils(t, f, parsedStatementAsStatement(testReturn))
-	testutil.AssertAlsoFulfils(t, f, parsedStatementAsStatement(testBreak))
-	testutil.AssertAlsoFulfils(t, f, parsedStatementAsStatement(testContinue))
-	testutil.AssertAlsoFulfils(t, f, parsedStatementAsStatement(testFallthrough))
-	testutil.AssertAlsoFulfils(t, f, parsedStatementAsStatement(testDefer))
-	testutil.AssertAlsoFulfils(t, f, parsedStatementAsStatement(testIncDec))
-	testutil.AssertAlsoFulfils(t, f, parsedStatementAsStatement(testLabel))
-	testutil.AssertAlsoFulfils(t, f, parsedStatementAsStatement(testZeroCoalescingAssignment))
-	testutil.AssertAlsoFulfils(t, f, parsedStatementAsStatement(testConstDeclaration))
-	testutil.AssertAlsoFulfils(t, f, parsedStatementAsStatement(testVarDeclaration))
-	testutil.AssertAlsoFulfils(t, f, parsedStatementAsStatement(testShortVarDeclaration))
-	testutil.AssertAlsoFulfils(t, f, parsedStatementAsStatement(testLabel))
-	testutil.AssertAlsoFulfils(t, f, parsedStatementAsStatement(testAssignment))
+	parsetest.AssertAlsoFulfils(t, f, parsedStatementAsStatement(testReturn))
+	parsetest.AssertAlsoFulfils(t, f, parsedStatementAsStatement(testBreak))
+	parsetest.AssertAlsoFulfils(t, f, parsedStatementAsStatement(testContinue))
+	parsetest.AssertAlsoFulfils(t, f, parsedStatementAsStatement(testFallthrough))
+	parsetest.AssertAlsoFulfils(t, f, parsedStatementAsStatement(testDefer))
+	parsetest.AssertAlsoFulfils(t, f, parsedStatementAsStatement(testIncDec))
+	parsetest.AssertAlsoFulfils(t, f, parsedStatementAsStatement(testLabel))
+	parsetest.AssertAlsoFulfils(t, f, parsedStatementAsStatement(testZeroCoalescingAssignment))
+	parsetest.AssertAlsoFulfils(t, f, parsedStatementAsStatement(testConstDeclaration))
+	parsetest.AssertAlsoFulfils(t, f, parsedStatementAsStatement(testVarDeclaration))
+	parsetest.AssertAlsoFulfils(t, f, parsedStatementAsStatement(testShortVarDeclaration))
+	parsetest.AssertAlsoFulfils(t, f, parsedStatementAsStatement(testLabel))
+	parsetest.AssertAlsoFulfils(t, f, parsedStatementAsStatement(testAssignment))
 }
 
 func parsedStatementAsStatement[PS ast.ParsedStatement](subTest func(*testing.T, parser.Func[PS])) func(*testing.T, parser.Func[*ast.Statement]) {
@@ -80,7 +80,7 @@ func TestSimpleStatement(t *testing.T) {
 }
 
 func testSimpleStatement(t *testing.T, f parser.Func[*ast.SimpleStatement]) {
-	testutil.AssertAlsoFulfils(t, f, testParsedSimpleStatement)
+	parsetest.AssertAlsoFulfils(t, f, testParsedSimpleStatement)
 }
 
 func TestParsedSimpleStatement(t *testing.T) {
@@ -89,10 +89,10 @@ func TestParsedSimpleStatement(t *testing.T) {
 }
 
 func testParsedSimpleStatement(t *testing.T, f parser.Func[*ast.SimpleStatement]) {
-	testutil.AssertAlsoFulfils(t, f, parsedSimpleStatementAsSimpleStatement(testIncDec))
-	testutil.AssertAlsoFulfils(t, f, parsedSimpleStatementAsSimpleStatement(testZeroCoalescingAssignment))
-	testutil.AssertAlsoFulfils(t, f, parsedSimpleStatementAsSimpleStatement(testShortVarDeclaration))
-	testutil.AssertAlsoFulfils(t, f, parsedSimpleStatementAsSimpleStatement(testAssignment))
+	parsetest.AssertAlsoFulfils(t, f, parsedSimpleStatementAsSimpleStatement(testIncDec))
+	parsetest.AssertAlsoFulfils(t, f, parsedSimpleStatementAsSimpleStatement(testZeroCoalescingAssignment))
+	parsetest.AssertAlsoFulfils(t, f, parsedSimpleStatementAsSimpleStatement(testShortVarDeclaration))
+	parsetest.AssertAlsoFulfils(t, f, parsedSimpleStatementAsSimpleStatement(testAssignment))
 }
 
 func parsedSimpleStatementAsSimpleStatement[PS ast.ParsedSimpleStatement](subTest func(*testing.T, parser.Func[PS])) func(*testing.T, parser.Func[*ast.SimpleStatement]) {
@@ -122,21 +122,21 @@ func TestReturn(t *testing.T) {
 }
 
 func testReturn(t *testing.T, f parser.Func[*ast.Return]) {
-	testCases := []struct {
-		name   string
-		in     string
-		expect *ast.Return
+	tests := []struct {
+		name string
+		in   string
+		want *ast.Return
 	}{
 		{
 			name: "no error",
 			in:   "return",
-			expect: &ast.Return{
+			want: &ast.Return{
 				Return: &ast.Position{Line: 1, Col: 1},
 			},
 		}, {
 			name: "with error",
 			in:   "return err",
-			expect: &ast.Return{
+			want: &ast.Return{
 				Return: &ast.Position{Line: 1, Col: 1},
 				Error: &ast.Expression{
 					Nodes: ast.Code{
@@ -150,12 +150,12 @@ func testReturn(t *testing.T, f parser.Func[*ast.Return]) {
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			actual := parsesCodeNodeFully(t, c.in, f)
-			assert.Equal(t, c.expect, actual)
+			got := parsesCodeNodeFully(t, c.in, f)
+			should.Equal(t, c.want, got)
 		})
 	}
 }
@@ -166,21 +166,21 @@ func TestBreak(t *testing.T) {
 }
 
 func testBreak(t *testing.T, f parser.Func[*ast.Break]) {
-	testCases := []struct {
-		name   string
-		in     string
-		expect *ast.Break
+	tests := []struct {
+		name string
+		in   string
+		want *ast.Break
 	}{
 		{
 			name: "no label",
 			in:   "break",
-			expect: &ast.Break{
+			want: &ast.Break{
 				Break: &ast.Position{Line: 1, Col: 1},
 			},
 		}, {
 			name: "with label",
 			in:   "break myLabel",
-			expect: &ast.Break{
+			want: &ast.Break{
 				Break: &ast.Position{Line: 1, Col: 1},
 				Label: &ast.Identifier{
 					Name:     "myLabel",
@@ -190,12 +190,12 @@ func testBreak(t *testing.T, f parser.Func[*ast.Break]) {
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			actual := parsesCodeNodeFully(t, c.in, f)
-			assert.Equal(t, c.expect, actual)
+			got := parsesCodeNodeFully(t, c.in, f)
+			should.Equal(t, c.want, got)
 		})
 	}
 }
@@ -206,21 +206,21 @@ func TestContinue(t *testing.T) {
 }
 
 func testContinue(t *testing.T, f parser.Func[*ast.Continue]) {
-	testCases := []struct {
-		name   string
-		in     string
-		expect *ast.Continue
+	tests := []struct {
+		name string
+		in   string
+		want *ast.Continue
 	}{
 		{
 			name: "no label",
 			in:   "continue",
-			expect: &ast.Continue{
+			want: &ast.Continue{
 				Continue: &ast.Position{Line: 1, Col: 1},
 			},
 		}, {
 			name: "with label",
 			in:   "continue myLabel",
-			expect: &ast.Continue{
+			want: &ast.Continue{
 				Continue: &ast.Position{Line: 1, Col: 1},
 				Label: &ast.Identifier{
 					Name:     "myLabel",
@@ -230,12 +230,12 @@ func testContinue(t *testing.T, f parser.Func[*ast.Continue]) {
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			actual := parsesCodeNodeFully(t, c.in, f)
-			assert.Equal(t, c.expect, actual)
+			got := parsesCodeNodeFully(t, c.in, f)
+			should.Equal(t, c.want, got)
 		})
 	}
 }
@@ -246,21 +246,21 @@ func TestFallthrough(t *testing.T) {
 }
 
 func testFallthrough(t *testing.T, f parser.Func[*ast.Fallthrough]) {
-	testCases := []struct {
-		name   string
-		in     string
-		expect *ast.Fallthrough
+	tests := []struct {
+		name string
+		in   string
+		want *ast.Fallthrough
 	}{
 		{
 			name: "no label",
 			in:   "fallthrough",
-			expect: &ast.Fallthrough{
+			want: &ast.Fallthrough{
 				Fallthrough: &ast.Position{Line: 1, Col: 1},
 			},
 		}, {
 			name: "with label",
 			in:   "fallthrough myLabel",
-			expect: &ast.Fallthrough{
+			want: &ast.Fallthrough{
 				Fallthrough: &ast.Position{Line: 1, Col: 1},
 				Label: &ast.Identifier{
 					Name:     "myLabel",
@@ -270,12 +270,12 @@ func testFallthrough(t *testing.T, f parser.Func[*ast.Fallthrough]) {
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			actual := parsesCodeNodeFully(t, c.in, f)
-			assert.Equal(t, c.expect, actual)
+			got := parsesCodeNodeFully(t, c.in, f)
+			should.Equal(t, c.want, got)
 		})
 	}
 }
@@ -287,7 +287,7 @@ func TestDefer(t *testing.T) {
 
 func testDefer(t *testing.T, f parser.Func[*ast.Defer]) {
 	in := "defer foo(bar, baz)"
-	expect := &ast.Defer{
+	want := &ast.Defer{
 		Defer: &ast.Position{Line: 1, Col: 1},
 		Expression: &ast.Expression{
 			Nodes: ast.Code{
@@ -299,8 +299,8 @@ func testDefer(t *testing.T, f parser.Func[*ast.Defer]) {
 		},
 	}
 
-	actual := parsesCodeNodeFully(t, in, f)
-	assert.Equal(t, expect, actual)
+	got := parsesCodeNodeFully(t, in, f)
+	should.Equal(t, want, got)
 }
 
 func TestZeroCoalescingAssignment(t *testing.T) {
@@ -309,15 +309,15 @@ func TestZeroCoalescingAssignment(t *testing.T) {
 }
 
 func testZeroCoalescingAssignment(t *testing.T, f parser.Func[*ast.ZeroCoalescingAssignment]) {
-	testCases := []struct {
-		name   string
-		in     string
-		expect *ast.ZeroCoalescingAssignment
+	tests := []struct {
+		name string
+		in   string
+		want *ast.ZeroCoalescingAssignment
 	}{
 		{
 			name: "assignment",
 			in:   "foo = bar?",
-			expect: &ast.ZeroCoalescingAssignment{
+			want: &ast.ZeroCoalescingAssignment{
 				ValueExpression: &ast.Expression{
 					Nodes: ast.Code{
 						&ast.GoCode{Code: "foo", Position: &ast.Position{Line: 1, Col: 1}},
@@ -336,7 +336,7 @@ func testZeroCoalescingAssignment(t *testing.T, f parser.Func[*ast.ZeroCoalescin
 		}, {
 			name: "declaration",
 			in:   "foo := bar?",
-			expect: &ast.ZeroCoalescingAssignment{
+			want: &ast.ZeroCoalescingAssignment{
 				ValueExpression: &ast.Expression{
 					Nodes: ast.Code{
 						&ast.GoCode{Code: "foo", Position: &ast.Position{Line: 1, Col: 1}},
@@ -356,7 +356,7 @@ func testZeroCoalescingAssignment(t *testing.T, f parser.Func[*ast.ZeroCoalescin
 		}, {
 			name: "with ok var",
 			in:   "foo, ok = bar?",
-			expect: &ast.ZeroCoalescingAssignment{
+			want: &ast.ZeroCoalescingAssignment{
 				ValueExpression: &ast.Expression{
 					Nodes: ast.Code{
 						&ast.GoCode{Code: "foo", Position: &ast.Position{Line: 1, Col: 1}},
@@ -382,12 +382,12 @@ func testZeroCoalescingAssignment(t *testing.T, f parser.Func[*ast.ZeroCoalescin
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			actual := parsesCodeNodeFully(t, c.in, f)
-			assert.Equal(t, c.expect, actual)
+			got := parsesCodeNodeFully(t, c.in, f)
+			should.Equal(t, c.want, got)
 		})
 	}
 }
@@ -398,15 +398,15 @@ func TestIncDec(t *testing.T) {
 }
 
 func testIncDec(t *testing.T, f parser.Func[*ast.IncDec]) {
-	testCases := []struct {
-		name   string
-		in     string
-		expect *ast.IncDec
+	tests := []struct {
+		name string
+		in   string
+		want *ast.IncDec
 	}{
 		{
 			name: "increment",
 			in:   "foo++",
-			expect: &ast.IncDec{
+			want: &ast.IncDec{
 				Expression: &ast.Expression{
 					Nodes: ast.Code{
 						&ast.GoCode{Code: "foo", Position: &ast.Position{Line: 1, Col: 1}},
@@ -417,7 +417,7 @@ func testIncDec(t *testing.T, f parser.Func[*ast.IncDec]) {
 		}, {
 			name: "decrement",
 			in:   "foo--",
-			expect: &ast.IncDec{
+			want: &ast.IncDec{
 				Expression: &ast.Expression{
 					Nodes: ast.Code{
 						&ast.GoCode{Code: "foo", Position: &ast.Position{Line: 1, Col: 1}},
@@ -428,12 +428,12 @@ func testIncDec(t *testing.T, f parser.Func[*ast.IncDec]) {
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			actual := parsesCodeNodeFully(t, c.in, f)
-			assert.Equal(t, c.expect, actual)
+			got := parsesCodeNodeFully(t, c.in, f)
+			should.Equal(t, c.want, got)
 		})
 	}
 }
@@ -445,13 +445,13 @@ func TestLabel(t *testing.T) {
 
 func testLabel(t *testing.T, f parser.Func[*ast.Label]) {
 	in := "myLabel:"
-	expect := &ast.Label{
+	want := &ast.Label{
 		Name:  &ast.Identifier{Name: "myLabel", Position: &ast.Position{Line: 1, Col: 1}},
 		Colon: &ast.Position{Line: 1, Col: 8},
 	}
 
-	actual := parsesCodeNodeFully(t, in, f)
-	assert.Equal(t, expect, actual)
+	got := parsesCodeNodeFully(t, in, f)
+	should.Equal(t, want, got)
 }
 
 func TestConstDeclaration(t *testing.T) {
@@ -460,15 +460,15 @@ func TestConstDeclaration(t *testing.T) {
 }
 
 func testConstDeclaration(t *testing.T, f parser.Func[*ast.ConstDeclaration]) {
-	testCases := []struct {
-		name   string
-		in     string
-		expect *ast.ConstDeclaration
+	tests := []struct {
+		name string
+		in   string
+		want *ast.ConstDeclaration
 	}{
 		{
 			name: "no type",
 			in:   "const foo = 42",
-			expect: &ast.ConstDeclaration{
+			want: &ast.ConstDeclaration{
 				Const: &ast.Position{Line: 1, Col: 1},
 				Specs: []*ast.ConstSpec{
 					{
@@ -489,7 +489,7 @@ func testConstDeclaration(t *testing.T, f parser.Func[*ast.ConstDeclaration]) {
 		}, {
 			name: "with type",
 			in:   "const foo int = 42",
-			expect: &ast.ConstDeclaration{
+			want: &ast.ConstDeclaration{
 				Const: &ast.Position{Line: 1, Col: 1},
 				Specs: []*ast.ConstSpec{
 					{
@@ -518,7 +518,7 @@ func testConstDeclaration(t *testing.T, f parser.Func[*ast.ConstDeclaration]) {
 		}, {
 			name: "multiple names, multiple values",
 			in:   "const foo, bar = 42, 43",
-			expect: &ast.ConstDeclaration{
+			want: &ast.ConstDeclaration{
 				Const: &ast.Position{Line: 1, Col: 1},
 				Specs: []*ast.ConstSpec{
 					{
@@ -544,7 +544,7 @@ func testConstDeclaration(t *testing.T, f parser.Func[*ast.ConstDeclaration]) {
 		}, {
 			name: "multiple names, single value",
 			in:   "const foo, bar = baz()",
-			expect: &ast.ConstDeclaration{
+			want: &ast.ConstDeclaration{
 				Const: &ast.Position{Line: 1, Col: 1},
 				Specs: []*ast.ConstSpec{
 					{
@@ -569,7 +569,7 @@ func testConstDeclaration(t *testing.T, f parser.Func[*ast.ConstDeclaration]) {
 				"\tfoo = 42\n" +
 				"\tbar = 43" +
 				")",
-			expect: &ast.ConstDeclaration{
+			want: &ast.ConstDeclaration{
 				Const:  &ast.Position{Line: 1, Col: 1},
 				LParen: &ast.Position{Line: 1, Col: 7},
 				Specs: []*ast.ConstSpec{
@@ -604,12 +604,12 @@ func testConstDeclaration(t *testing.T, f parser.Func[*ast.ConstDeclaration]) {
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			actual := parsesCodeNodeFully(t, c.in, f)
-			assert.Equal(t, c.expect, actual)
+			got := parsesCodeNodeFully(t, c.in, f)
+			should.Equal(t, c.want, got)
 		})
 	}
 }
@@ -620,15 +620,15 @@ func TestVarDeclaration(t *testing.T) {
 }
 
 func testVarDeclaration(t *testing.T, f parser.Func[*ast.VarDeclaration]) {
-	testCases := []struct {
-		name   string
-		in     string
-		expect *ast.VarDeclaration
+	tests := []struct {
+		name string
+		in   string
+		want *ast.VarDeclaration
 	}{
 		{
 			name: "no type",
 			in:   "var foo = 42",
-			expect: &ast.VarDeclaration{
+			want: &ast.VarDeclaration{
 				Var: &ast.Position{Line: 1, Col: 1},
 				Specs: []*ast.VarSpec{
 					{
@@ -649,7 +649,7 @@ func testVarDeclaration(t *testing.T, f parser.Func[*ast.VarDeclaration]) {
 		}, {
 			name: "with type",
 			in:   "var foo int = 42",
-			expect: &ast.VarDeclaration{
+			want: &ast.VarDeclaration{
 				Var: &ast.Position{Line: 1, Col: 1},
 				Specs: []*ast.VarSpec{
 					{
@@ -678,7 +678,7 @@ func testVarDeclaration(t *testing.T, f parser.Func[*ast.VarDeclaration]) {
 		}, {
 			name: "only type",
 			in:   "var foo int",
-			expect: &ast.VarDeclaration{
+			want: &ast.VarDeclaration{
 				Var: &ast.Position{Line: 1, Col: 1},
 				Specs: []*ast.VarSpec{
 					{
@@ -699,7 +699,7 @@ func testVarDeclaration(t *testing.T, f parser.Func[*ast.VarDeclaration]) {
 		}, {
 			name: "multiple names, multiple values",
 			in:   "var foo, bar = 42, 43",
-			expect: &ast.VarDeclaration{
+			want: &ast.VarDeclaration{
 				Var: &ast.Position{Line: 1, Col: 1},
 				Specs: []*ast.VarSpec{
 					{
@@ -725,7 +725,7 @@ func testVarDeclaration(t *testing.T, f parser.Func[*ast.VarDeclaration]) {
 		}, {
 			name: "multiple names, single value",
 			in:   "var foo, bar = baz()",
-			expect: &ast.VarDeclaration{
+			want: &ast.VarDeclaration{
 				Var: &ast.Position{Line: 1, Col: 1},
 				Specs: []*ast.VarSpec{
 					{
@@ -750,7 +750,7 @@ func testVarDeclaration(t *testing.T, f parser.Func[*ast.VarDeclaration]) {
 				"\tfoo = 42\n" +
 				"\tbar = 43" +
 				")",
-			expect: &ast.VarDeclaration{
+			want: &ast.VarDeclaration{
 				Var:    &ast.Position{Line: 1, Col: 1},
 				LParen: &ast.Position{Line: 1, Col: 5},
 				Specs: []*ast.VarSpec{
@@ -785,12 +785,12 @@ func testVarDeclaration(t *testing.T, f parser.Func[*ast.VarDeclaration]) {
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			actual := parsesCodeNodeFully(t, c.in, f)
-			assert.Equal(t, c.expect, actual)
+			got := parsesCodeNodeFully(t, c.in, f)
+			should.Equal(t, c.want, got)
 		})
 	}
 }
@@ -801,15 +801,15 @@ func TestShortVarDeclaration(t *testing.T) {
 }
 
 func testShortVarDeclaration(t *testing.T, f parser.Func[*ast.ShortVarDeclaration]) {
-	testCases := []struct {
-		name   string
-		in     string
-		expect *ast.ShortVarDeclaration
+	tests := []struct {
+		name string
+		in   string
+		want *ast.ShortVarDeclaration
 	}{
 		{
 			name: "single",
 			in:   "foo := 42",
-			expect: &ast.ShortVarDeclaration{
+			want: &ast.ShortVarDeclaration{
 				Names: []*ast.Identifier{
 					{Name: "foo", Position: &ast.Position{Line: 1, Col: 1}},
 				},
@@ -825,7 +825,7 @@ func testShortVarDeclaration(t *testing.T, f parser.Func[*ast.ShortVarDeclaratio
 		}, {
 			name: "multiple",
 			in:   "foo, bar := 42, 43",
-			expect: &ast.ShortVarDeclaration{
+			want: &ast.ShortVarDeclaration{
 				Names: []*ast.Identifier{
 					{Name: "foo", Position: &ast.Position{Line: 1, Col: 1}},
 					{Name: "bar", Position: &ast.Position{Line: 1, Col: 6}},
@@ -846,7 +846,7 @@ func testShortVarDeclaration(t *testing.T, f parser.Func[*ast.ShortVarDeclaratio
 		}, {
 			name: "multiple, single value",
 			in:   "foo, bar := baz()",
-			expect: &ast.ShortVarDeclaration{
+			want: &ast.ShortVarDeclaration{
 				Names: []*ast.Identifier{
 					{Name: "foo", Position: &ast.Position{Line: 1, Col: 1}},
 					{Name: "bar", Position: &ast.Position{Line: 1, Col: 6}},
@@ -863,12 +863,12 @@ func testShortVarDeclaration(t *testing.T, f parser.Func[*ast.ShortVarDeclaratio
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			actual := parsesCodeNodeFully(t, c.in, f)
-			assert.Equal(t, c.expect, actual)
+			got := parsesCodeNodeFully(t, c.in, f)
+			should.Equal(t, c.want, got)
 		})
 	}
 }
@@ -879,15 +879,15 @@ func TestAssignment(t *testing.T) {
 }
 
 func testAssignment(t *testing.T, f parser.Func[*ast.Assignment]) {
-	testCases := []struct {
-		name   string
-		in     string
-		expect *ast.Assignment
+	tests := []struct {
+		name string
+		in   string
+		want *ast.Assignment
 	}{
 		{
 			name: "single",
 			in:   "foo = 42",
-			expect: &ast.Assignment{
+			want: &ast.Assignment{
 				LHS: []*ast.Expression{
 					{
 						Nodes: ast.Code{
@@ -907,7 +907,7 @@ func testAssignment(t *testing.T, f parser.Func[*ast.Assignment]) {
 		}, {
 			name: "multiple",
 			in:   "foo, bar = 42, 43",
-			expect: &ast.Assignment{
+			want: &ast.Assignment{
 				LHS: []*ast.Expression{
 					{
 						Nodes: ast.Code{
@@ -935,7 +935,7 @@ func testAssignment(t *testing.T, f parser.Func[*ast.Assignment]) {
 		}, {
 			name: "multiple, single value",
 			in:   "foo, bar = baz()",
-			expect: &ast.Assignment{
+			want: &ast.Assignment{
 				LHS: []*ast.Expression{
 					{
 						Nodes: ast.Code{
@@ -959,7 +959,7 @@ func testAssignment(t *testing.T, f parser.Func[*ast.Assignment]) {
 		}, {
 			name: "special operator",
 			in:   "foo += 42",
-			expect: &ast.Assignment{
+			want: &ast.Assignment{
 				LHS: []*ast.Expression{
 					{
 						Nodes: ast.Code{
@@ -980,12 +980,12 @@ func testAssignment(t *testing.T, f parser.Func[*ast.Assignment]) {
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			actual := parsesCodeNodeFully(t, c.in, f)
-			assert.Equal(t, c.expect, actual)
+			got := parsesCodeNodeFully(t, c.in, f)
+			should.Equal(t, c.want, got)
 		})
 	}
 }

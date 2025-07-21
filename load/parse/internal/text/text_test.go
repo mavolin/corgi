@@ -4,29 +4,29 @@ import (
 	"testing"
 
 	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/internal/test/should"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
-	"github.com/mavolin/corgi/v2/load/parse/internal/testutil"
-	"github.com/stretchr/testify/assert"
+	"github.com/mavolin/corgi/v2/load/parse/internal/parsetest"
 )
 
 func TestArrowBlock(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
-		name   string
-		in     string
-		expect *ast.ArrowBlock
+	tests := []struct {
+		name string
+		in   string
+		want *ast.ArrowBlock
 	}{
 		{
 			name: "empty",
 			in:   ">",
-			expect: &ast.ArrowBlock{
+			want: &ast.ArrowBlock{
 				Arrow: &ast.Position{Line: 1, Col: 1},
 			},
 		}, {
 			name: "single line",
 			in:   "> foo",
-			expect: &ast.ArrowBlock{
+			want: &ast.ArrowBlock{
 				Arrow: &ast.Position{Line: 1, Col: 1},
 				Lines: ast.TextBlock{
 					{
@@ -42,7 +42,7 @@ func TestArrowBlock(t *testing.T) {
 			in: "> foo\n" +
 				"\n" +
 				"  bar",
-			expect: &ast.ArrowBlock{
+			want: &ast.ArrowBlock{
 				Arrow: &ast.Position{Line: 1, Col: 1},
 				Lines: ast.TextBlock{
 					{
@@ -61,11 +61,11 @@ func TestArrowBlock(t *testing.T) {
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
-			actual := parsesTextFully(t, c.in, ArrowBlock())
-			assert.Equal(t, c.expect, actual)
+			got := parsesTextFully(t, c.in, ArrowBlock())
+			should.Equal(t, c.want, got)
 		})
 	}
 }
@@ -74,7 +74,7 @@ func TestLine(t *testing.T) {
 	t.Parallel()
 
 	in := "foo #{bar}##baz #_"
-	expect := ast.TextLine{
+	want := ast.TextLine{
 		&ast.Text{
 			Text:     "foo",
 			Position: &ast.Position{Line: 1, Col: 1},
@@ -100,29 +100,29 @@ func TestLine(t *testing.T) {
 		&ast.HashSpace{Hash: &ast.Position{Line: 1, Col: 17}},
 	}
 
-	actual := parsesTextFully(t, in, Line('\n'))
-	assert.Equal(t, expect, actual)
+	got := parsesTextFully(t, in, Line('\n'))
+	should.Equal(t, want, got)
 }
 
 func TestVerbatimLine(t *testing.T) {
 	t.Parallel()
 
 	in := "foo #{bar}##baz #? #_"
-	expect := ast.TextLine{
+	want := ast.TextLine{
 		&ast.Text{
 			Text:     "foo #{bar}##baz #? #_",
 			Position: &ast.Position{Line: 1, Col: 1},
 		},
 	}
 
-	actual := parsesTextFully(t, in, VerbatimLine('\n'))
-	assert.Equal(t, expect, actual)
+	got := parsesTextFully(t, in, VerbatimLine('\n'))
+	should.Equal(t, want, got)
 }
 
 func TestText(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
+	tests := []struct {
 		name string
 		in   string
 	}{
@@ -138,16 +138,16 @@ func TestText(t *testing.T) {
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			expect := &ast.Text{
+			want := &ast.Text{
 				Text:     c.in,
 				Position: &ast.Position{Line: 1, Col: 1},
 			}
-			actual := parsesTextFully(t, c.in, Text('\n'))
-			assert.Equal(t, expect, actual)
+			got := parsesTextFully(t, c.in, Text('\n'))
+			should.Equal(t, want, got)
 		})
 	}
 }
@@ -155,11 +155,11 @@ func TestText(t *testing.T) {
 func parsesTextFully[T any](t *testing.T, input string, f parser.Func[T]) T {
 	t.Helper()
 
-	p := testutil.NewParser(t, input+"\n1other stuff")
-	v := testutil.AssertNoError(t, p, f)
+	p := parsetest.NewParser(t, input+"\n1other stuff")
+	v := parsetest.AssertNoError(t, p, f)
 
-	line, col, index := testutil.CalcEnd(1, 1, 0, input)
-	testutil.AssertPosition(t, p, line, col, index)
+	line, col, index := parsetest.CalcEnd(1, 1, 0, input)
+	parsetest.AssertPosition(t, p, line, col, index)
 
 	return v
 }

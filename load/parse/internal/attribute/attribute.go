@@ -85,7 +85,6 @@ func NamedAttribute() parser.Func[*ast.NamedAttribute] {
 						break
 					}
 				}
-
 			}
 
 			p.CaptureError(err)

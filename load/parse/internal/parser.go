@@ -202,7 +202,6 @@ func TryOptionalErr[T any](p *Parser, f Func[T], ws WhitespaceFunc) (T, *diagnos
 func TryOptional[T any](p *Parser, f Func[T], ws WhitespaceFunc) T {
 	v, _ := TryOptionalErr(p, f, ws)
 	return v
-
 }
 
 // TryInOrder tries all Funcs until it finds one that matches.

@@ -1,5 +1,7 @@
+version: "2"
+
 linters:
-  disable-all: true
+  default: none
   enable:
     - asasalint
     - asciicheck
@@ -10,18 +12,16 @@ linters:
     - errcheck
     - errname
     - errorlint
-    - execinquery
     - exhaustive
-    - exportloopref
     - gocheckcompilerdirectives
+    - gochecknoinits
     - gocritic
     - godot
-    - gofumpt
-    - goimports
     - gosec
-    - gosimple
     - govet
+    - importas
     - ineffassign
+    - intrange
     - loggercheck
     - misspell
     - nakedret
@@ -32,34 +32,57 @@ linters:
     - predeclared
     - reassign
     - revive
+    - rowserrcheck
+    - sloglint
+    - sqlclosecheck
     - staticcheck
-    - tenv
+    - testifylint
     - tparallel
-    - typecheck
     - unconvert
     - unparam
     - unused
     - usestdlibvars
     - wastedassign
     - whitespace
-
-linters-settings:
-  godot:
-    exclude:
-      - ^\s*.+:.+$
-      - ^\s*(?:=+|/+|-+|\++)
-      - ^\s*\w+$
-  unparam:
-    check-exported: true
-  gocritic:
-    disabled-checks:
-      - singleCaseSwitch
-
-  errcheck:
-    exclude-functions:
-      - github.com/mavolin/corgi/file/fileutil.Walk
-
-issues:
-  exclude-rules:
-    - path: ^test/
-      linters: [unused]
+  settings:
+    errcheck:
+      check-type-assertions: true
+      exclude-functions:
+        - github.com/mavolin/corgi/v2/file/walk.Walk
+        - github.com/mavolin/corgi/v2/file/walk.WalkT
+    gocritic:
+      disabled-checks:
+        - singleCaseSwitch
+    godot:
+      exclude:
+        - ^\s*\p{Ll} # Exclude lowercase comments
+        - ^\s*(?:=+|/+|-+|\++) # Exclude lines that are not identifiers
+        - ^\s*\w+$ # Exclude single-word identifiers
+        - '[\w\d]:\s+' # Exclude colons
+    unparam:
+      check-exported: true
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - path: '[^/]+_test.go$'
+        linters:
+          - errcheck
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gofumpt
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

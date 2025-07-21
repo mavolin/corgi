@@ -4,9 +4,9 @@ import (
 	"testing"
 
 	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/internal/test/should"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
-	"github.com/mavolin/corgi/v2/load/parse/internal/testutil"
-	"github.com/stretchr/testify/assert"
+	"github.com/mavolin/corgi/v2/load/parse/internal/parsetest"
 )
 
 func TestType(t *testing.T) {
@@ -23,7 +23,7 @@ func TestType(t *testing.T) {
 			t.Parallel()
 
 			in := "foo.Bar"
-			expect := &ast.Type{
+			want := &ast.Type{
 				Type: in,
 				Parsed: &ast.NamedType{
 					Name: &ast.QualifiedIdentifier{
@@ -39,24 +39,24 @@ func TestType(t *testing.T) {
 					},
 				},
 				From:  ast.Position{Line: 1, Col: 1},
-				Until: testutil.CalcEndPos(in),
+				Until: parsetest.CalcEndPos(in),
 			}
 
-			actual := testutil.ParsesFully(t, in, Type())
-			assert.Equal(t, expect, actual)
+			got := parsetest.ParsesFully(t, in, Type())
+			should.Equal(t, want, got)
 		})
 		t.Run("paren type", func(t *testing.T) {
 			t.Parallel()
 
 			in := "(foo.Bar)"
-			expect := &ast.Type{
+			want := &ast.Type{
 				Type:  in,
 				From:  ast.Position{Line: 1, Col: 1},
-				Until: testutil.CalcEndPos(in),
+				Until: parsetest.CalcEndPos(in),
 			}
 
-			actual := testutil.ParsesFully(t, in, Type())
-			assert.Equal(t, expect, actual)
+			got := parsetest.ParsesFully(t, in, Type())
+			should.Equal(t, want, got)
 		})
 	})
 
@@ -74,17 +74,17 @@ func TestType(t *testing.T) {
 				t.Run(in, func(t *testing.T) {
 					t.Parallel()
 
-					expect := &ast.Type{
+					want := &ast.Type{
 						Type:  in,
 						From:  ast.Position{Line: 1, Col: 1},
-						Until: testutil.CalcEndPos(in),
+						Until: parsetest.CalcEndPos(in),
 					}
 
-					p := testutil.NewParser(t, in+" 123")
-					actual := testutil.AssertMatchesButError(t, p, Type())
-					expectLine, expectCol, expectIndex := testutil.CalcEnd(1, 1, 0, in)
-					testutil.AssertPosition(t, p, expectLine, expectCol, expectIndex)
-					assert.Equal(t, expect, actual)
+					p := parsetest.NewParser(t, in+" 123")
+					got := parsetest.AssertMatchesButError(t, p, Type())
+					wantLine, wantCol, wantIndex := parsetest.CalcEnd(1, 1, 0, in)
+					parsetest.AssertPosition(t, p, wantLine, wantCol, wantIndex)
+					should.Equal(t, want, got)
 				})
 			}
 		})
@@ -155,14 +155,14 @@ func testArrayType(t *testing.T, f parser.Func[*ast.Type]) {
 			t.Run(in, func(t *testing.T) {
 				t.Parallel()
 
-				expect := &ast.Type{
+				want := &ast.Type{
 					Type:  in,
 					From:  ast.Position{Line: 1, Col: 1},
-					Until: testutil.CalcEndPos(in),
+					Until: parsetest.CalcEndPos(in),
 				}
 
-				actual := testutil.ParsesFully(t, in, f)
-				assert.Equal(t, expect, actual)
+				got := parsetest.ParsesFully(t, in, f)
+				should.Equal(t, want, got)
 			})
 		}
 	})
@@ -178,17 +178,17 @@ func testArrayType(t *testing.T, f parser.Func[*ast.Type]) {
 			t.Run(in, func(t *testing.T) {
 				t.Parallel()
 
-				expect := &ast.Type{
+				want := &ast.Type{
 					Type:  in,
 					From:  ast.Position{Line: 1, Col: 1},
-					Until: testutil.CalcEndPos(in),
+					Until: parsetest.CalcEndPos(in),
 				}
 
-				p := testutil.NewParser(t, in+" ; aa")
-				actual := testutil.AssertMatchesButError(t, p, f)
-				expectLine, expectCol, expectIndex := testutil.CalcEnd(1, 1, 0, in)
-				testutil.AssertPosition(t, p, expectLine, expectCol, expectIndex)
-				assert.Equal(t, expect, actual)
+				p := parsetest.NewParser(t, in+" ; aa")
+				got := parsetest.AssertMatchesButError(t, p, f)
+				wantLine, wantCol, wantIndex := parsetest.CalcEnd(1, 1, 0, in)
+				parsetest.AssertPosition(t, p, wantLine, wantCol, wantIndex)
+				should.Equal(t, want, got)
 			})
 		}
 	})
@@ -210,14 +210,14 @@ func testStructType(t *testing.T, f parser.Func[*ast.Type]) {
 			t.Run(in, func(t *testing.T) {
 				t.Parallel()
 
-				expect := &ast.Type{
+				want := &ast.Type{
 					Type:  in,
 					From:  ast.Position{Line: 1, Col: 1},
-					Until: testutil.CalcEndPos(in),
+					Until: parsetest.CalcEndPos(in),
 				}
 
-				actual := testutil.ParsesFully(t, in, f)
-				assert.Equal(t, expect, actual)
+				got := parsetest.ParsesFully(t, in, f)
+				should.Equal(t, want, got)
 			})
 		}
 	})
@@ -233,17 +233,17 @@ func testStructType(t *testing.T, f parser.Func[*ast.Type]) {
 			t.Run(in, func(t *testing.T) {
 				t.Parallel()
 
-				expect := &ast.Type{
+				want := &ast.Type{
 					Type:  in,
 					From:  ast.Position{Line: 1, Col: 1},
-					Until: testutil.CalcEndPos(in),
+					Until: parsetest.CalcEndPos(in),
 				}
 
-				p := testutil.NewParser(t, in+" ")
-				actual := testutil.AssertMatchesButError(t, p, f)
-				expectLine, expectCol, expectIndex := testutil.CalcEnd(1, 1, 0, in)
-				testutil.AssertPosition(t, p, expectLine, expectCol, expectIndex)
-				assert.Equal(t, expect, actual)
+				p := parsetest.NewParser(t, in+" ")
+				got := parsetest.AssertMatchesButError(t, p, f)
+				wantLine, wantCol, wantIndex := parsetest.CalcEnd(1, 1, 0, in)
+				parsetest.AssertPosition(t, p, wantLine, wantCol, wantIndex)
+				should.Equal(t, want, got)
 			})
 		}
 	})
@@ -263,14 +263,14 @@ func testPointerType(t *testing.T, f parser.Func[*ast.Type]) {
 		t.Run(in, func(t *testing.T) {
 			t.Parallel()
 
-			expect := &ast.Type{
+			want := &ast.Type{
 				Type:  in,
 				From:  ast.Position{Line: 1, Col: 1},
-				Until: testutil.CalcEndPos(in),
+				Until: parsetest.CalcEndPos(in),
 			}
 
-			actual := testutil.ParsesFully(t, in, f)
-			assert.Equal(t, expect, actual)
+			got := parsetest.ParsesFully(t, in, f)
+			should.Equal(t, want, got)
 		})
 	}
 }
@@ -293,14 +293,14 @@ func testFunctionType(t *testing.T, f parser.Func[*ast.Type]) {
 			t.Run(in, func(t *testing.T) {
 				t.Parallel()
 
-				expect := &ast.Type{
+				want := &ast.Type{
 					Type:  in,
 					From:  ast.Position{Line: 1, Col: 1},
-					Until: testutil.CalcEndPos(in),
+					Until: parsetest.CalcEndPos(in),
 				}
 
-				actual := testutil.ParsesFully(t, in, f)
-				assert.Equal(t, expect, actual)
+				got := parsetest.ParsesFully(t, in, f)
+				should.Equal(t, want, got)
 			})
 		}
 	})
@@ -316,17 +316,17 @@ func testFunctionType(t *testing.T, f parser.Func[*ast.Type]) {
 			t.Run(in, func(t *testing.T) {
 				t.Parallel()
 
-				expect := &ast.Type{
+				want := &ast.Type{
 					Type:  in,
 					From:  ast.Position{Line: 1, Col: 1},
-					Until: testutil.CalcEndPos(in),
+					Until: parsetest.CalcEndPos(in),
 				}
 
-				p := testutil.NewParser(t, in+" 123")
-				actual := testutil.AssertMatchesButError(t, p, f)
-				expectLine, expectCol, expectIndex := testutil.CalcEnd(1, 1, 0, in)
-				testutil.AssertPosition(t, p, expectLine, expectCol, expectIndex)
-				assert.Equal(t, expect, actual)
+				p := parsetest.NewParser(t, in+" 123")
+				got := parsetest.AssertMatchesButError(t, p, f)
+				wantLine, wantCol, wantIndex := parsetest.CalcEnd(1, 1, 0, in)
+				parsetest.AssertPosition(t, p, wantLine, wantCol, wantIndex)
+				should.Equal(t, want, got)
 			})
 		}
 	})
@@ -350,14 +350,14 @@ func testInterfaceType(t *testing.T, f parser.Func[*ast.Type]) {
 			t.Run(in, func(t *testing.T) {
 				t.Parallel()
 
-				expect := &ast.Type{
+				want := &ast.Type{
 					Type:  in,
 					From:  ast.Position{Line: 1, Col: 1},
-					Until: testutil.CalcEndPos(in),
+					Until: parsetest.CalcEndPos(in),
 				}
 
-				actual := testutil.ParsesFully(t, in, f)
-				assert.Equal(t, expect, actual)
+				got := parsetest.ParsesFully(t, in, f)
+				should.Equal(t, want, got)
 			})
 		}
 	})
@@ -373,17 +373,17 @@ func testInterfaceType(t *testing.T, f parser.Func[*ast.Type]) {
 			t.Run(in, func(t *testing.T) {
 				t.Parallel()
 
-				expect := &ast.Type{
+				want := &ast.Type{
 					Type:  in,
 					From:  ast.Position{Line: 1, Col: 1},
-					Until: testutil.CalcEndPos(in),
+					Until: parsetest.CalcEndPos(in),
 				}
 
-				p := testutil.NewParser(t, in+" ")
-				actual := testutil.AssertMatchesButError(t, p, f)
-				expectLine, expectCol, expectIndex := testutil.CalcEnd(1, 1, 0, in)
-				testutil.AssertPosition(t, p, expectLine, expectCol, expectIndex)
-				assert.Equal(t, expect, actual)
+				p := parsetest.NewParser(t, in+" ")
+				got := parsetest.AssertMatchesButError(t, p, f)
+				wantLine, wantCol, wantIndex := parsetest.CalcEnd(1, 1, 0, in)
+				parsetest.AssertPosition(t, p, wantLine, wantCol, wantIndex)
+				should.Equal(t, want, got)
 			})
 		}
 	})
@@ -406,14 +406,14 @@ func testSliceType(t *testing.T, f parser.Func[*ast.Type]) {
 			t.Run(in, func(t *testing.T) {
 				t.Parallel()
 
-				expect := &ast.Type{
+				want := &ast.Type{
 					Type:  in,
 					From:  ast.Position{Line: 1, Col: 1},
-					Until: testutil.CalcEndPos(in),
+					Until: parsetest.CalcEndPos(in),
 				}
 
-				actual := testutil.ParsesFully(t, in, f)
-				assert.Equal(t, expect, actual)
+				got := parsetest.ParsesFully(t, in, f)
+				should.Equal(t, want, got)
 			})
 		}
 	})
@@ -429,17 +429,17 @@ func testSliceType(t *testing.T, f parser.Func[*ast.Type]) {
 			t.Run(in, func(t *testing.T) {
 				t.Parallel()
 
-				expect := &ast.Type{
+				want := &ast.Type{
 					Type:  in,
 					From:  ast.Position{Line: 1, Col: 1},
-					Until: testutil.CalcEndPos(in),
+					Until: parsetest.CalcEndPos(in),
 				}
 
-				p := testutil.NewParser(t, in+" 123")
-				actual := testutil.AssertMatchesButError(t, p, f)
-				expectLine, expectCol, expectIndex := testutil.CalcEnd(1, 1, 0, in)
-				testutil.AssertPosition(t, p, expectLine, expectCol, expectIndex)
-				assert.Equal(t, expect, actual)
+				p := parsetest.NewParser(t, in+" 123")
+				got := parsetest.AssertMatchesButError(t, p, f)
+				wantLine, wantCol, wantIndex := parsetest.CalcEnd(1, 1, 0, in)
+				parsetest.AssertPosition(t, p, wantLine, wantCol, wantIndex)
+				should.Equal(t, want, got)
 			})
 		}
 	})
@@ -462,14 +462,14 @@ func testMapType(t *testing.T, f parser.Func[*ast.Type]) {
 			t.Run(in, func(t *testing.T) {
 				t.Parallel()
 
-				expect := &ast.Type{
+				want := &ast.Type{
 					Type:  in,
 					From:  ast.Position{Line: 1, Col: 1},
-					Until: testutil.CalcEndPos(in),
+					Until: parsetest.CalcEndPos(in),
 				}
 
-				actual := testutil.ParsesFully(t, in, f)
-				assert.Equal(t, expect, actual)
+				got := parsetest.ParsesFully(t, in, f)
+				should.Equal(t, want, got)
 			})
 		}
 	})
@@ -485,17 +485,17 @@ func testMapType(t *testing.T, f parser.Func[*ast.Type]) {
 			t.Run(in, func(t *testing.T) {
 				t.Parallel()
 
-				expect := &ast.Type{
+				want := &ast.Type{
 					Type:  in,
 					From:  ast.Position{Line: 1, Col: 1},
-					Until: testutil.CalcEndPos(in),
+					Until: parsetest.CalcEndPos(in),
 				}
 
-				p := testutil.NewParser(t, in+" 123")
-				actual := testutil.AssertMatchesButError(t, p, f)
-				expectLine, expectCol, expectIndex := testutil.CalcEnd(1, 1, 0, in)
-				testutil.AssertPosition(t, p, expectLine, expectCol, expectIndex)
-				assert.Equal(t, expect, actual)
+				p := parsetest.NewParser(t, in+" 123")
+				got := parsetest.AssertMatchesButError(t, p, f)
+				wantLine, wantCol, wantIndex := parsetest.CalcEnd(1, 1, 0, in)
+				parsetest.AssertPosition(t, p, wantLine, wantCol, wantIndex)
+				should.Equal(t, want, got)
 			})
 		}
 	})
@@ -519,14 +519,14 @@ func testChannelType(t *testing.T, f parser.Func[*ast.Type]) {
 			t.Run(in, func(t *testing.T) {
 				t.Parallel()
 
-				expect := &ast.Type{
+				want := &ast.Type{
 					Type:  in,
 					From:  ast.Position{Line: 1, Col: 1},
-					Until: testutil.CalcEndPos(in),
+					Until: parsetest.CalcEndPos(in),
 				}
 
-				actual := testutil.ParsesFully(t, in, f)
-				assert.Equal(t, expect, actual)
+				got := parsetest.ParsesFully(t, in, f)
+				should.Equal(t, want, got)
 			})
 		}
 	})
@@ -542,17 +542,17 @@ func testChannelType(t *testing.T, f parser.Func[*ast.Type]) {
 			t.Run(in, func(t *testing.T) {
 				t.Parallel()
 
-				expect := &ast.Type{
+				want := &ast.Type{
 					Type:  in,
 					From:  ast.Position{Line: 1, Col: 1},
-					Until: testutil.CalcEndPos(in),
+					Until: parsetest.CalcEndPos(in),
 				}
 
-				p := testutil.NewParser(t, in+" 123")
-				actual := testutil.AssertMatchesButError(t, p, f)
-				expectLine, expectCol, expectIndex := testutil.CalcEnd(1, 1, 0, in)
-				testutil.AssertPosition(t, p, expectLine, expectCol, expectIndex)
-				assert.Equal(t, expect, actual)
+				p := parsetest.NewParser(t, in+" 123")
+				got := parsetest.AssertMatchesButError(t, p, f)
+				wantLine, wantCol, wantIndex := parsetest.CalcEnd(1, 1, 0, in)
+				parsetest.AssertPosition(t, p, wantLine, wantCol, wantIndex)
+				should.Equal(t, want, got)
 			})
 		}
 	})
@@ -564,15 +564,15 @@ func TestNamedType(t *testing.T) {
 }
 
 func testNamedType(t *testing.T, f parser.Func[*ast.NamedType]) {
-	testCases := []struct {
-		name   string
-		in     string
-		expect *ast.NamedType
+	tests := []struct {
+		name string
+		in   string
+		want *ast.NamedType
 	}{
 		{
 			name: "int",
 			in:   "int",
-			expect: &ast.NamedType{
+			want: &ast.NamedType{
 				Name: &ast.Identifier{
 					Name:     "int",
 					Position: &ast.Position{Line: 1, Col: 1},
@@ -581,7 +581,7 @@ func testNamedType(t *testing.T, f parser.Func[*ast.NamedType]) {
 		}, {
 			name: "custom",
 			in:   "foo",
-			expect: &ast.NamedType{
+			want: &ast.NamedType{
 				Name: &ast.Identifier{
 					Name:     "foo",
 					Position: &ast.Position{Line: 1, Col: 1},
@@ -590,7 +590,7 @@ func testNamedType(t *testing.T, f parser.Func[*ast.NamedType]) {
 		}, {
 			name: "qualified",
 			in:   "foo.Bar",
-			expect: &ast.NamedType{
+			want: &ast.NamedType{
 				Name: &ast.QualifiedIdentifier{
 					Package: &ast.Identifier{
 						Name:     "foo",
@@ -606,7 +606,7 @@ func testNamedType(t *testing.T, f parser.Func[*ast.NamedType]) {
 		}, {
 			name: "type args",
 			in:   "foo.Bar[int, foobar]",
-			expect: &ast.NamedType{
+			want: &ast.NamedType{
 				Name: &ast.QualifiedIdentifier{
 					Package: &ast.Identifier{
 						Name:     "foo",
@@ -649,12 +649,12 @@ func testNamedType(t *testing.T, f parser.Func[*ast.NamedType]) {
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			actual := testutil.ParsesFully(t, c.in, f)
-			assert.Equal(t, c.expect, actual)
+			got := parsetest.ParsesFully(t, c.in, f)
+			should.Equal(t, c.want, got)
 		})
 	}
 }
@@ -662,22 +662,22 @@ func testNamedType(t *testing.T, f parser.Func[*ast.NamedType]) {
 func TestTypeParameters(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
-		name   string
-		in     string
-		expect *ast.TypeParameters
+	tests := []struct {
+		name string
+		in   string
+		want *ast.TypeParameters
 	}{
 		{
 			name: "empty",
 			in:   "[]",
-			expect: &ast.TypeParameters{
+			want: &ast.TypeParameters{
 				LBracket: &ast.Position{Line: 1, Col: 1},
 				RBracket: &ast.Position{Line: 1, Col: 2},
 			},
 		}, {
 			name: "single",
 			in:   "[T int]",
-			expect: &ast.TypeParameters{
+			want: &ast.TypeParameters{
 				LBracket: &ast.Position{Line: 1, Col: 1},
 				Params: []*ast.TypeParameter{
 					{
@@ -699,7 +699,7 @@ func TestTypeParameters(t *testing.T) {
 		}, {
 			name: "single",
 			in:   "[K int, V string]",
-			expect: &ast.TypeParameters{
+			want: &ast.TypeParameters{
 				LBracket: &ast.Position{Line: 1, Col: 1},
 				Params: []*ast.TypeParameter{
 					{
@@ -733,7 +733,7 @@ func TestTypeParameters(t *testing.T) {
 		}, {
 			name: "comma",
 			in:   "[T int,]",
-			expect: &ast.TypeParameters{
+			want: &ast.TypeParameters{
 				LBracket: &ast.Position{Line: 1, Col: 1},
 				Params: []*ast.TypeParameter{
 					{
@@ -755,12 +755,12 @@ func TestTypeParameters(t *testing.T) {
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			actual := testutil.ParsesFully(t, c.in, TypeParameters())
-			assert.Equal(t, c.expect, actual)
+			got := parsetest.ParsesFully(t, c.in, TypeParameters())
+			should.Equal(t, c.want, got)
 		})
 	}
 }
@@ -768,15 +768,15 @@ func TestTypeParameters(t *testing.T) {
 func TestTypeParameterDecl(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
-		name   string
-		in     string
-		expect *ast.TypeParameter
+	tests := []struct {
+		name string
+		in   string
+		want *ast.TypeParameter
 	}{
 		{
 			name: "single",
 			in:   "T int",
-			expect: &ast.TypeParameter{
+			want: &ast.TypeParameter{
 				Names: []*ast.Identifier{
 					{Name: "T", Position: &ast.Position{Line: 1, Col: 1}},
 				},
@@ -792,7 +792,7 @@ func TestTypeParameterDecl(t *testing.T) {
 		}, {
 			name: "multiple",
 			in:   "K, V string",
-			expect: &ast.TypeParameter{
+			want: &ast.TypeParameter{
 				Names: []*ast.Identifier{
 					{Name: "K", Position: &ast.Position{Line: 1, Col: 1}},
 					{Name: "V", Position: &ast.Position{Line: 1, Col: 4}},
@@ -809,12 +809,12 @@ func TestTypeParameterDecl(t *testing.T) {
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			actual := testutil.ParsesFully(t, c.in, TypeParameterDecl())
-			assert.Equal(t, c.expect, actual)
+			got := parsetest.ParsesFully(t, c.in, TypeParameterDecl())
+			should.Equal(t, c.want, got)
 		})
 	}
 }

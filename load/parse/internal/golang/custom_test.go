@@ -3,12 +3,12 @@ package golang
 import (
 	"testing"
 
-	"github.com/mavolin/corgi/v2/load/parse/internal/testutil"
+	"github.com/mavolin/corgi/v2/load/parse/internal/parsetest"
 )
 
 func TestFullIdent(t *testing.T) {
 	t.Parallel()
 
-	testutil.AssertAlsoFulfils(t, FullIdent(), testIdentifier)
-	testutil.AssertAlsoFulfils(t, FullIdent(), testQualifiedIdent)
+	parsetest.AssertAlsoFulfils(t, FullIdent(), testIdentifier)
+	parsetest.AssertAlsoFulfils(t, FullIdent(), testQualifiedIdent)
 }

@@ -1,16 +1,17 @@
-package testutil
+package parsetest
 
 import (
 	"fmt"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
 	"github.com/mavolin/corgi/v2/file"
 	"github.com/mavolin/corgi/v2/file/ast"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
+	"github.com/mavolin/corgi/v2/internal/test/should"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
-	"github.com/stretchr/testify/assert"
 )
 
 func NewParser(t *testing.T, input string) *parser.Parser {
@@ -50,7 +51,8 @@ func NoMatch[T any](t *testing.T, input string, f parser.Func[T]) {
 
 	p := NewParser(t, input)
 	v, err := f(p)
-	assert.NotNilf(t, err, "expected match error, found: %#v", v)
+	t.Logf("parsed value: %#v", v)
+	should.NotEqual(t, err, nil) // want match error
 }
 
 func MatchesButError[T any](t *testing.T, input string, f parser.Func[T]) T {
@@ -64,12 +66,12 @@ func AssertMatchesButError[T any](t *testing.T, p *parser.Parser, f parser.Func[
 	t.Helper()
 
 	v, err := f(p)
-	assert.Nil(t, err, "match error")
+	should.Equal(t, err, nil) // match error
 
-	assert.NotEmpty(t, p.CloneState().Errors(), "no error was captured")
-	for _, err = range p.CloneState().Errors() {
-		assert.NotNil(t, err, "a nil error was captured")
-	}
+	// diagnostic.List
+	errors := p.CloneState().Errors()
+	should.True(t, len(errors) > 0)
+	should.False(t, slices.Contains(errors, nil)) // nil error was captured
 
 	return v
 }
@@ -78,18 +80,18 @@ func AssertNoError[T any](t *testing.T, p *parser.Parser, f parser.Func[T]) T {
 	t.Helper()
 
 	v, err := f(p)
-	assert.Nil(t, err, "match error")
+	should.Equal(t, err, nil) // match error
 
 	for _, err = range p.CloneState().Errors() {
-		if assert.NotNil(t, err, "a nil error was captured") {
-			assert.Fail(t, "unexpected error", err.Message)
-		}
+		should.NotEqual(t, err, nil) // diagnostic.List: nil error was captured
+		should.Equal(t, err, nil)    // diagnostic.List: unexpected error
 	}
 
 	return v
 }
 
 func AssertEOF(t *testing.T, p *parser.Parser) {
+	t.Helper()
 	line, col, index := CalcEnd(1, 1, 0, p.AST.Raw)
 	AssertPosition(t, p, line, col, index)
 }
@@ -113,12 +115,15 @@ func CalcEndPos(in string) ast.Position {
 }
 
 func AssertPosition(t *testing.T, p *parser.Parser, line, col, index int) {
-	assert.Equal(t, line, p.Line(), "line mismatch")
-	assert.Equal(t, col, p.Col(), "col mismatch")
-	assert.Equal(t, index, p.Index(), "index mismatch")
+	t.Helper()
+	should.Equal(t, line, p.Line())   // position: line mismatch
+	should.Equal(t, col, p.Col())     // position: col mismatch
+	should.Equal(t, index, p.Index()) // position: index mismatch
 }
 
 func CoerceFunc[I, O any](t *testing.T, in parser.Func[I]) parser.Func[O] {
+	t.Helper()
+
 	return func(p *parser.Parser) (O, *diagnostic.Diagnostic) {
 		var zero O
 
@@ -149,6 +154,7 @@ func AssertAlsoFulfils[I, O any](t *testing.T, f parser.Func[I], subTest func(*t
 
 	t.Run(oType.Name(), func(t *testing.T) {
 		t.Parallel()
+		t.Helper()
 		subTest(t, CoerceFunc[I, O](t, f))
 	})
 }

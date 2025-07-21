@@ -4,9 +4,9 @@ import (
 	"testing"
 
 	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/internal/test/should"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
-	"github.com/mavolin/corgi/v2/load/parse/internal/testutil"
-	"github.com/stretchr/testify/assert"
+	"github.com/mavolin/corgi/v2/load/parse/internal/parsetest"
 )
 
 func TestString(t *testing.T) {
@@ -19,15 +19,15 @@ func testString() func(t *testing.T, f parser.Func[*ast.String]) {
 		t.Run("success", func(t *testing.T) {
 			t.Parallel()
 
-			testCases := []struct {
-				name   string
-				in     string
-				expect *ast.String
+			tests := []struct {
+				name string
+				in   string
+				want *ast.String
 			}{
 				{
 					name: "simple interpreted string",
 					in:   `"foo"`,
-					expect: &ast.String{
+					want: &ast.String{
 						Open:  &ast.Position{Line: 1, Col: 1},
 						Quote: '"',
 						Contents: []ast.StringNode{
@@ -41,7 +41,7 @@ func testString() func(t *testing.T, f parser.Func[*ast.String]) {
 				}, {
 					name: "simple raw string",
 					in:   "`bar`",
-					expect: &ast.String{
+					want: &ast.String{
 						Open:  &ast.Position{Line: 1, Col: 1},
 						Quote: '`',
 						Contents: []ast.StringNode{
@@ -55,7 +55,7 @@ func testString() func(t *testing.T, f parser.Func[*ast.String]) {
 				}, {
 					name: "with interpolation",
 					in:   `"foo #%1.2f{bar} baz"`,
-					expect: &ast.String{
+					want: &ast.String{
 						Open:  &ast.Position{Line: 1, Col: 1},
 						Quote: '"',
 						Contents: []ast.StringNode{
@@ -85,27 +85,27 @@ func testString() func(t *testing.T, f parser.Func[*ast.String]) {
 				},
 			}
 
-			for _, c := range testCases {
+			for _, c := range tests {
 				t.Run(c.name, func(t *testing.T) {
 					t.Parallel()
 
-					actual := parsesCodeNodeFully(t, c.in, f)
-					assert.Equal(t, c.expect, actual)
+					got := parsesCodeNodeFully(t, c.in, f)
+					should.Equal(t, c.want, got)
 				})
 			}
 		})
 		t.Run("failure", func(t *testing.T) {
 			t.Parallel()
 
-			testCases := []struct {
-				name   string
-				in     string
-				expect *ast.String
+			tests := []struct {
+				name string
+				in   string
+				want *ast.String
 			}{
 				{
 					name: "missing closing quote",
 					in:   `"foo`,
-					expect: &ast.String{
+					want: &ast.String{
 						Open:  &ast.Position{Line: 1, Col: 1},
 						Quote: '"',
 						Contents: []ast.StringNode{
@@ -118,12 +118,12 @@ func testString() func(t *testing.T, f parser.Func[*ast.String]) {
 				},
 			}
 
-			for _, c := range testCases {
+			for _, c := range tests {
 				t.Run(c.name, func(t *testing.T) {
 					t.Parallel()
 
-					actual := testutil.MatchesButError(t, c.in, f)
-					assert.Equal(t, c.expect, actual)
+					got := parsetest.MatchesButError(t, c.in, f)
+					should.Equal(t, c.want, got)
 				})
 			}
 		})

@@ -4,22 +4,22 @@ import (
 	"testing"
 
 	"github.com/mavolin/corgi/v2/file/ast"
-	"github.com/mavolin/corgi/v2/load/parse/internal/testutil"
-	"github.com/stretchr/testify/assert"
+	"github.com/mavolin/corgi/v2/internal/test/should"
+	"github.com/mavolin/corgi/v2/load/parse/internal/parsetest"
 )
 
 func TestDeclaration(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
-		name   string
-		in     string
-		expect *ast.StateDeclaration
+	tests := []struct {
+		name string
+		in   string
+		want *ast.StateDeclaration
 	}{
 		{
 			name: "single",
 			in:   "state foo int",
-			expect: &ast.StateDeclaration{
+			want: &ast.StateDeclaration{
 				State: &ast.Position{Line: 1, Col: 1},
 				Specs: []*ast.StateSpec{
 					{
@@ -43,7 +43,7 @@ func TestDeclaration(t *testing.T) {
 				"\tfoo = 42\n" +
 				"\tbar int\n" +
 				")",
-			expect: &ast.StateDeclaration{
+			want: &ast.StateDeclaration{
 				State:  &ast.Position{Line: 1, Col: 1},
 				LParen: &ast.Position{Line: 1, Col: 7},
 				Specs: []*ast.StateSpec{
@@ -78,11 +78,11 @@ func TestDeclaration(t *testing.T) {
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
-			actual := testutil.ParsesFully(t, c.in, Declaration())
-			assert.Equal(t, c.expect, actual)
+			got := parsetest.ParsesFully(t, c.in, Declaration())
+			should.Equal(t, c.want, got)
 		})
 	}
 }
@@ -90,15 +90,15 @@ func TestDeclaration(t *testing.T) {
 func TestSpec(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
-		name   string
-		in     string
-		expect *ast.StateSpec
+	tests := []struct {
+		name string
+		in   string
+		want *ast.StateSpec
 	}{
 		{
 			name: "only type",
 			in:   "foo int",
-			expect: &ast.StateSpec{
+			want: &ast.StateSpec{
 				Names: []*ast.Identifier{
 					{Name: "foo", Position: &ast.Position{Line: 1, Col: 1}},
 				},
@@ -114,7 +114,7 @@ func TestSpec(t *testing.T) {
 		}, {
 			name: "only value",
 			in:   "foo = 42",
-			expect: &ast.StateSpec{
+			want: &ast.StateSpec{
 				Names: []*ast.Identifier{
 					{Name: "foo", Position: &ast.Position{Line: 1, Col: 1}},
 				},
@@ -130,7 +130,7 @@ func TestSpec(t *testing.T) {
 		}, {
 			name: "type and value",
 			in:   "foo int = 42",
-			expect: &ast.StateSpec{
+			want: &ast.StateSpec{
 				Names: []*ast.Identifier{
 					{Name: "foo", Position: &ast.Position{Line: 1, Col: 1}},
 				},
@@ -154,7 +154,7 @@ func TestSpec(t *testing.T) {
 		}, {
 			name: "multiple names with type",
 			in:   "foo, bar int",
-			expect: &ast.StateSpec{
+			want: &ast.StateSpec{
 				Names: []*ast.Identifier{
 					{Name: "foo", Position: &ast.Position{Line: 1, Col: 1}},
 					{Name: "bar", Position: &ast.Position{Line: 1, Col: 6}},
@@ -171,7 +171,7 @@ func TestSpec(t *testing.T) {
 		}, {
 			name: "multiple names with multiple values",
 			in:   "foo, bar = 42, 43",
-			expect: &ast.StateSpec{
+			want: &ast.StateSpec{
 				Names: []*ast.Identifier{
 					{Name: "foo", Position: &ast.Position{Line: 1, Col: 1}},
 					{Name: "bar", Position: &ast.Position{Line: 1, Col: 6}},
@@ -192,7 +192,7 @@ func TestSpec(t *testing.T) {
 		}, {
 			name: "multiple names with type and multiple values",
 			in:   "foo, bar int = 42, 43",
-			expect: &ast.StateSpec{
+			want: &ast.StateSpec{
 				Names: []*ast.Identifier{
 					{Name: "foo", Position: &ast.Position{Line: 1, Col: 1}},
 					{Name: "bar", Position: &ast.Position{Line: 1, Col: 6}},
@@ -221,7 +221,7 @@ func TestSpec(t *testing.T) {
 		}, {
 			name: "multiple names with single value",
 			in:   "foo, bar = baz()",
-			expect: &ast.StateSpec{
+			want: &ast.StateSpec{
 				Names: []*ast.Identifier{
 					{Name: "foo", Position: &ast.Position{Line: 1, Col: 1}},
 					{Name: "bar", Position: &ast.Position{Line: 1, Col: 6}},
@@ -238,16 +238,16 @@ func TestSpec(t *testing.T) {
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			p := testutil.NewParser(t, c.in+"\n 1other stuff")
-			actual := testutil.AssertNoError(t, p, Spec())
+			p := parsetest.NewParser(t, c.in+"\n 1other stuff")
+			got := parsetest.AssertNoError(t, p, Spec())
 
-			line, col, index := testutil.CalcEnd(1, 1, 0, c.in)
-			testutil.AssertPosition(t, p, line, col, index)
-			assert.Equal(t, c.expect, actual)
+			line, col, index := parsetest.CalcEnd(1, 1, 0, c.in)
+			parsetest.AssertPosition(t, p, line, col, index)
+			should.Equal(t, c.want, got)
 		})
 	}
 }

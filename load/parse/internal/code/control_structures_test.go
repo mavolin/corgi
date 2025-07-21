@@ -4,25 +4,25 @@ import (
 	"testing"
 
 	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/internal/test/should"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
-	"github.com/mavolin/corgi/v2/load/parse/internal/testutil"
-	"github.com/stretchr/testify/assert"
+	"github.com/mavolin/corgi/v2/load/parse/internal/parsetest"
 )
 
 func TestConditional(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
-		name   string
-		in     string
-		expect *ast.Conditional
+	tests := []struct {
+		name string
+		in   string
+		want *ast.Conditional
 	}{
 		{
 			name: "only if",
 			in: "if i < 10 {\n" +
 				"\tbr\n" +
 				"}",
-			expect: &ast.Conditional{
+			want: &ast.Conditional{
 				If: &ast.If{
 					If: &ast.Position{Line: 1, Col: 1},
 					Header: &ast.IfHeader{
@@ -57,7 +57,7 @@ func TestConditional(t *testing.T) {
 				"} else {\n" +
 				"\tdiv\n" +
 				"}",
-			expect: &ast.Conditional{
+			want: &ast.Conditional{
 				If: &ast.If{
 					If: &ast.Position{Line: 1, Col: 1},
 					Header: &ast.IfHeader{
@@ -113,7 +113,7 @@ func TestConditional(t *testing.T) {
 				"} else {\n" +
 				"\tspan\n" +
 				"}",
-			expect: &ast.Conditional{
+			want: &ast.Conditional{
 				If: &ast.If{
 					If: &ast.Position{Line: 1, Col: 1},
 					Header: &ast.IfHeader{
@@ -192,12 +192,12 @@ func TestConditional(t *testing.T) {
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			actual := parsesCodeNodeFully(t, c.in, Conditional())
-			assert.Equal(t, c.expect, actual)
+			got := parsesCodeNodeFully(t, c.in, Conditional())
+			should.Equal(t, c.want, got)
 		})
 	}
 }
@@ -208,7 +208,7 @@ func TestIf(t *testing.T) {
 	in := "if i < 10 {\n" +
 		"\tbr\n" +
 		"}"
-	expect := &ast.If{
+	want := &ast.If{
 		If: &ast.Position{Line: 1, Col: 1},
 		Header: &ast.IfHeader{
 			Condition: &ast.Expression{
@@ -235,8 +235,8 @@ func TestIf(t *testing.T) {
 		},
 	}
 
-	actual := parsesCodeNodeFully(t, in, If())
-	assert.Equal(t, expect, actual)
+	got := parsesCodeNodeFully(t, in, If())
+	should.Equal(t, want, got)
 }
 
 func TestElseIf(t *testing.T) {
@@ -245,7 +245,7 @@ func TestElseIf(t *testing.T) {
 	in := "else if i < 10 {\n" +
 		"\tbr\n" +
 		"}"
-	expect := &ast.ElseIf{
+	want := &ast.ElseIf{
 		Else: &ast.Position{Line: 1, Col: 1},
 		If:   &ast.Position{Line: 1, Col: 6},
 		Header: &ast.IfHeader{
@@ -273,8 +273,8 @@ func TestElseIf(t *testing.T) {
 		},
 	}
 
-	actual := parsesCodeNodeFully(t, in, ElseIf())
-	assert.Equal(t, expect, actual)
+	got := parsesCodeNodeFully(t, in, ElseIf())
+	should.Equal(t, want, got)
 }
 
 func TestElse(t *testing.T) {
@@ -283,7 +283,7 @@ func TestElse(t *testing.T) {
 	in := "else {\n" +
 		"\tbr\n" +
 		"}"
-	expect := &ast.Else{
+	want := &ast.Else{
 		Else: &ast.Position{Line: 1, Col: 1},
 		Then: &ast.Scope{
 			LBrace: &ast.Position{Line: 1, Col: 6},
@@ -303,22 +303,22 @@ func TestElse(t *testing.T) {
 		},
 	}
 
-	actual := parsesCodeNodeFully(t, in, Else())
-	assert.Equal(t, expect, actual)
+	got := parsesCodeNodeFully(t, in, Else())
+	should.Equal(t, want, got)
 }
 
 func TestIfHeader(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
-		name   string
-		in     string
-		expect *ast.IfHeader
+	tests := []struct {
+		name string
+		in   string
+		want *ast.IfHeader
 	}{
 		{
 			name: "condition",
 			in:   "i < 10",
-			expect: &ast.IfHeader{
+			want: &ast.IfHeader{
 				Condition: &ast.Expression{
 					Nodes: ast.Code{
 						&ast.GoCode{Code: "i < 10", Position: &ast.Position{Line: 1, Col: 1}},
@@ -328,7 +328,7 @@ func TestIfHeader(t *testing.T) {
 		}, {
 			name: "with statement",
 			in:   "i := 0; i < 10",
-			expect: &ast.IfHeader{
+			want: &ast.IfHeader{
 				Statement: &ast.SimpleStatement{
 					Parsed: &ast.ShortVarDeclaration{
 						Names: []*ast.Identifier{
@@ -358,16 +358,16 @@ func TestIfHeader(t *testing.T) {
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			p := testutil.NewParser(t, c.in+" { 1other stuff }")
-			actual := testutil.AssertNoError(t, p, IfHeader())
+			p := parsetest.NewParser(t, c.in+" { 1other stuff }")
+			got := parsetest.AssertNoError(t, p, IfHeader())
 
-			line, col, index := testutil.CalcEnd(1, 1, 0, c.in)
-			testutil.AssertPosition(t, p, line, col, index)
-			assert.Equal(t, c.expect, actual)
+			line, col, index := parsetest.CalcEnd(1, 1, 0, c.in)
+			parsetest.AssertPosition(t, p, line, col, index)
+			should.Equal(t, c.want, got)
 		})
 	}
 }
@@ -375,10 +375,10 @@ func TestIfHeader(t *testing.T) {
 func TestSwitch(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
-		name   string
-		in     string
-		expect *ast.Switch
+	tests := []struct {
+		name string
+		in   string
+		want *ast.Switch
 	}{
 		{
 			name: "comparator",
@@ -386,7 +386,7 @@ func TestSwitch(t *testing.T) {
 				"case 1:\n" +
 				"\tbr\n" +
 				"}",
-			expect: &ast.Switch{
+			want: &ast.Switch{
 				Switch: &ast.Position{Line: 1, Col: 1},
 				Comparator: &ast.SimpleStatement{
 					Nodes: ast.Code{
@@ -425,7 +425,7 @@ func TestSwitch(t *testing.T) {
 				"case 1:\n" +
 				"\tbr\n" +
 				"}",
-			expect: &ast.Switch{
+			want: &ast.Switch{
 				Switch: &ast.Position{Line: 1, Col: 1},
 				LBrace: &ast.Position{Line: 1, Col: 8},
 				Cases: []*ast.Case{
@@ -456,31 +456,31 @@ func TestSwitch(t *testing.T) {
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			actual := parsesCodeNodeFully(t, c.in, Switch())
-			assert.Equal(t, c.expect, actual)
+			got := parsesCodeNodeFully(t, c.in, Switch())
+			should.Equal(t, c.want, got)
 		})
 	}
 }
 
 func TestSwitchCase(t *testing.T) {
 	t.Parallel()
-	testutil.AssertAlsoFulfils(t, SwitchCase(), testCase)
-	testutil.AssertAlsoFulfils(t, SwitchCase(), testDefault)
+	parsetest.AssertAlsoFulfils(t, SwitchCase(), testCase)
+	parsetest.AssertAlsoFulfils(t, SwitchCase(), testDefault)
 }
 
 func TestCase(t *testing.T) {
 	t.Parallel()
-	testutil.AssertAlsoFulfils(t, Case(), testCase)
+	parsetest.AssertAlsoFulfils(t, Case(), testCase)
 }
 
 func testCase(t *testing.T, f parser.Func[*ast.Case]) {
 	in := "case 1:\n" +
 		"\tbr"
-	expect := &ast.Case{
+	want := &ast.Case{
 		Case: &ast.Position{Line: 1, Col: 1},
 		Expression: &ast.Expression{
 			Nodes: ast.Code{
@@ -502,19 +502,19 @@ func testCase(t *testing.T, f parser.Func[*ast.Case]) {
 		},
 	}
 
-	actual := parsesSwitchCaseFully(t, in, "", f)
-	assert.Equal(t, expect, actual)
+	got := parsesSwitchCaseFully(t, in, "", f)
+	should.Equal(t, want, got)
 }
 
 func TestDefault(t *testing.T) {
 	t.Parallel()
-	testutil.AssertAlsoFulfils(t, Default(), testDefault)
+	parsetest.AssertAlsoFulfils(t, Default(), testDefault)
 }
 
 func testDefault(t *testing.T, f parser.Func[*ast.Case]) {
 	in := "default:\n" +
 		"\tbr"
-	expect := &ast.Case{
+	want := &ast.Case{
 		Default: &ast.Position{Line: 1, Col: 1},
 		Colon:   &ast.Position{Line: 1, Col: 8},
 		Then: []ast.ScopeNode{
@@ -531,18 +531,18 @@ func testDefault(t *testing.T, f parser.Func[*ast.Case]) {
 		},
 	}
 
-	actual := parsesSwitchCaseFully(t, in, "", f)
-	assert.Equal(t, expect, actual)
+	got := parsesSwitchCaseFully(t, in, "", f)
+	should.Equal(t, want, got)
 }
 
 func TestCaseBody(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
+	tests := []struct {
 		name   string
 		in     string
 		suffix string
-		expect []ast.ScopeNode
+		want   []ast.ScopeNode
 	}{
 		{
 			name: "empty",
@@ -557,7 +557,7 @@ func TestCaseBody(t *testing.T) {
 			name:   "case",
 			in:     "br",
 			suffix: "\ncase 1:",
-			expect: []ast.ScopeNode{
+			want: []ast.ScopeNode{
 				&ast.Element{
 					Header: &ast.ElementHeader{
 						Name: &ast.ElementReference{
@@ -573,7 +573,7 @@ func TestCaseBody(t *testing.T) {
 			name:   "default",
 			in:     "br",
 			suffix: "\ndefault:",
-			expect: []ast.ScopeNode{
+			want: []ast.ScopeNode{
 				&ast.Element{
 					Header: &ast.ElementHeader{
 						Name: &ast.ElementReference{
@@ -588,39 +588,39 @@ func TestCaseBody(t *testing.T) {
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			actual := parsesSwitchCaseFully(t, c.in, c.suffix, CaseBody())
-			assert.Equal(t, c.expect, actual)
+			got := parsesSwitchCaseFully(t, c.in, c.suffix, CaseBody())
+			should.Equal(t, c.want, got)
 		})
 	}
 }
 
 func parsesSwitchCaseFully[T any](t *testing.T, in string, suffix string, f parser.Func[T]) T {
-	p := testutil.NewParser(t, in+suffix+"} 1other stuff")
-	actual := testutil.AssertNoError(t, p, f)
+	p := parsetest.NewParser(t, in+suffix+"} 1other stuff")
+	got := parsetest.AssertNoError(t, p, f)
 
-	line, col, index := testutil.CalcEnd(1, 1, 0, in)
-	testutil.AssertPosition(t, p, line, col, index)
-	return actual
+	line, col, index := parsetest.CalcEnd(1, 1, 0, in)
+	parsetest.AssertPosition(t, p, line, col, index)
+	return got
 }
 
 func TestFor(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
-		name   string
-		in     string
-		expect *ast.For
+	tests := []struct {
+		name string
+		in   string
+		want *ast.For
 	}{
 		{
 			name: "infinite",
 			in: "for {\n" +
 				"\tbr\n" +
 				"}",
-			expect: &ast.For{
+			want: &ast.For{
 				For: &ast.Position{Line: 1, Col: 1},
 				Body: &ast.Scope{
 					LBrace: &ast.Position{Line: 1, Col: 5},
@@ -644,7 +644,7 @@ func TestFor(t *testing.T) {
 			in: "for i < 10 {\n" +
 				"\tbr\n" +
 				"}",
-			expect: &ast.For{
+			want: &ast.For{
 				For: &ast.Position{Line: 1, Col: 1},
 				Header: &ast.ForConditionHeader{
 					Condition: &ast.Expression{
@@ -675,7 +675,7 @@ func TestFor(t *testing.T) {
 			in: "for i := 0; i < 10; i++ {\n" +
 				"\tbr\n" +
 				"}",
-			expect: &ast.For{
+			want: &ast.For{
 				For: &ast.Position{Line: 1, Col: 1},
 				Header: &ast.ForClauseHeader{
 					Init: &ast.SimpleStatement{
@@ -740,7 +740,7 @@ func TestFor(t *testing.T) {
 			in: "for i := range s {\n" +
 				"\tbr\n" +
 				"}",
-			expect: &ast.For{
+			want: &ast.For{
 				For: &ast.Position{Line: 1, Col: 1},
 				Header: &ast.ForRangeHeader{
 					Var1: &ast.Expression{
@@ -777,21 +777,21 @@ func TestFor(t *testing.T) {
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			actual := parsesCodeNodeFully(t, c.in, For())
-			assert.Equal(t, c.expect, actual)
+			got := parsesCodeNodeFully(t, c.in, For())
+			should.Equal(t, c.want, got)
 		})
 	}
 }
 
 func TestForHeader(t *testing.T) {
 	t.Parallel()
-	testutil.AssertAlsoFulfils(t, ForHeader(), testForConditionHeader)
-	testutil.AssertAlsoFulfils(t, ForHeader(), testForClauseHeader)
-	testutil.AssertAlsoFulfils(t, ForHeader(), testForRangeHeader)
+	parsetest.AssertAlsoFulfils(t, ForHeader(), testForConditionHeader)
+	parsetest.AssertAlsoFulfils(t, ForHeader(), testForClauseHeader)
+	parsetest.AssertAlsoFulfils(t, ForHeader(), testForRangeHeader)
 }
 
 func TestForConditionHeader(t *testing.T) {
@@ -801,7 +801,7 @@ func TestForConditionHeader(t *testing.T) {
 
 func testForConditionHeader(t *testing.T, f parser.Func[*ast.ForConditionHeader]) {
 	in := "i < 10"
-	expect := &ast.ForConditionHeader{
+	want := &ast.ForConditionHeader{
 		Condition: &ast.Expression{
 			Nodes: ast.Code{
 				&ast.GoCode{Code: "i < 10", Position: &ast.Position{Line: 1, Col: 1}},
@@ -809,12 +809,12 @@ func testForConditionHeader(t *testing.T, f parser.Func[*ast.ForConditionHeader]
 		},
 	}
 
-	p := testutil.NewParser(t, in+" { 1other stuff }")
-	actual := testutil.AssertNoError(t, p, f)
+	p := parsetest.NewParser(t, in+" { 1other stuff }")
+	got := parsetest.AssertNoError(t, p, f)
 
-	line, col, index := testutil.CalcEnd(1, 1, 0, in)
-	testutil.AssertPosition(t, p, line, col, index)
-	assert.Equal(t, expect, actual)
+	line, col, index := parsetest.CalcEnd(1, 1, 0, in)
+	parsetest.AssertPosition(t, p, line, col, index)
+	should.Equal(t, want, got)
 }
 
 func TestForClauseHeader(t *testing.T) {
@@ -823,19 +823,19 @@ func TestForClauseHeader(t *testing.T) {
 }
 
 func testForClauseHeader(t *testing.T, f parser.Func[*ast.ForClauseHeader]) {
-	testCases := []struct {
-		name   string
-		in     string
-		expect *ast.ForClauseHeader
+	tests := []struct {
+		name string
+		in   string
+		want *ast.ForClauseHeader
 	}{
 		{
-			name:   "empty",
-			in:     ";;",
-			expect: &ast.ForClauseHeader{},
+			name: "empty",
+			in:   ";;",
+			want: &ast.ForClauseHeader{},
 		}, {
 			name: "with init",
 			in:   "i := 0;;",
-			expect: &ast.ForClauseHeader{
+			want: &ast.ForClauseHeader{
 				Init: &ast.SimpleStatement{
 					Parsed: &ast.ShortVarDeclaration{
 						Names: []*ast.Identifier{
@@ -860,7 +860,7 @@ func testForClauseHeader(t *testing.T, f parser.Func[*ast.ForClauseHeader]) {
 		}, {
 			name: "with condition",
 			in:   "; i < 10;",
-			expect: &ast.ForClauseHeader{
+			want: &ast.ForClauseHeader{
 				Condition: &ast.Expression{
 					Nodes: ast.Code{
 						&ast.GoCode{Code: "i < 10", Position: &ast.Position{Line: 1, Col: 3}},
@@ -870,7 +870,7 @@ func testForClauseHeader(t *testing.T, f parser.Func[*ast.ForClauseHeader]) {
 		}, {
 			name: "with post",
 			in:   ";; i++",
-			expect: &ast.ForClauseHeader{
+			want: &ast.ForClauseHeader{
 				Post: &ast.SimpleStatement{
 					Parsed: &ast.IncDec{
 						Expression: &ast.Expression{
@@ -889,7 +889,7 @@ func testForClauseHeader(t *testing.T, f parser.Func[*ast.ForClauseHeader]) {
 		}, {
 			name: "full",
 			in:   "i := 0; i < 10; i++",
-			expect: &ast.ForClauseHeader{
+			want: &ast.ForClauseHeader{
 				Init: &ast.SimpleStatement{
 					Parsed: &ast.ShortVarDeclaration{
 						Names: []*ast.Identifier{
@@ -933,12 +933,12 @@ func testForClauseHeader(t *testing.T, f parser.Func[*ast.ForClauseHeader]) {
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			actual := parsesCodeNodeFully(t, c.in, f)
-			assert.Equal(t, c.expect, actual)
+			got := parsesCodeNodeFully(t, c.in, f)
+			should.Equal(t, c.want, got)
 		})
 	}
 }
@@ -949,15 +949,15 @@ func TestForRangeHeader(t *testing.T) {
 }
 
 func testForRangeHeader(t *testing.T, f parser.Func[*ast.ForRangeHeader]) {
-	testCases := []struct {
-		name   string
-		in     string
-		expect *ast.ForRangeHeader
+	tests := []struct {
+		name string
+		in   string
+		want *ast.ForRangeHeader
 	}{
 		{
 			name: "basic",
 			in:   "range s",
-			expect: &ast.ForRangeHeader{
+			want: &ast.ForRangeHeader{
 				Range: &ast.Position{Line: 1, Col: 1},
 				Expression: &ast.Expression{
 					Nodes: ast.Code{
@@ -968,7 +968,7 @@ func testForRangeHeader(t *testing.T, f parser.Func[*ast.ForRangeHeader]) {
 		}, {
 			name: "ordered",
 			in:   "ordered range s",
-			expect: &ast.ForRangeHeader{
+			want: &ast.ForRangeHeader{
 				Ordered: &ast.Position{Line: 1, Col: 1},
 				Range:   &ast.Position{Line: 1, Col: 9},
 				Expression: &ast.Expression{
@@ -980,7 +980,7 @@ func testForRangeHeader(t *testing.T, f parser.Func[*ast.ForRangeHeader]) {
 		}, {
 			name: "with index",
 			in:   "i = range s",
-			expect: &ast.ForRangeHeader{
+			want: &ast.ForRangeHeader{
 				Var1: &ast.Expression{
 					Nodes: ast.Code{
 						&ast.GoCode{Code: "i", Position: &ast.Position{Line: 1, Col: 1}},
@@ -997,7 +997,7 @@ func testForRangeHeader(t *testing.T, f parser.Func[*ast.ForRangeHeader]) {
 		}, {
 			name: "with index and value",
 			in:   "i, v = range s",
-			expect: &ast.ForRangeHeader{
+			want: &ast.ForRangeHeader{
 				Var1: &ast.Expression{
 					Nodes: ast.Code{
 						&ast.GoCode{Code: "i", Position: &ast.Position{Line: 1, Col: 1}},
@@ -1019,7 +1019,7 @@ func testForRangeHeader(t *testing.T, f parser.Func[*ast.ForRangeHeader]) {
 		}, {
 			name: "declares",
 			in:   "i, v := range s",
-			expect: &ast.ForRangeHeader{
+			want: &ast.ForRangeHeader{
 				Var1: &ast.Expression{
 					Nodes: ast.Code{
 						&ast.GoCode{Code: "i", Position: &ast.Position{Line: 1, Col: 1}},
@@ -1042,12 +1042,12 @@ func testForRangeHeader(t *testing.T, f parser.Func[*ast.ForRangeHeader]) {
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			actual := parsesCodeNodeFully(t, c.in, f)
-			assert.Equal(t, c.expect, actual)
+			got := parsesCodeNodeFully(t, c.in, f)
+			should.Equal(t, c.want, got)
 		})
 	}
 }

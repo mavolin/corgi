@@ -4,9 +4,9 @@ import (
 	"testing"
 
 	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/internal/test/should"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
-	"github.com/mavolin/corgi/v2/load/parse/internal/testutil"
-	"github.com/stretchr/testify/assert"
+	"github.com/mavolin/corgi/v2/load/parse/internal/parsetest"
 )
 
 func TestBracketText(t *testing.T) {
@@ -15,22 +15,22 @@ func TestBracketText(t *testing.T) {
 }
 
 func testBracketText(t *testing.T, f parser.Func[*ast.BracketText]) {
-	testCases := []struct {
-		name   string
-		in     string
-		expect *ast.BracketText
+	tests := []struct {
+		name string
+		in   string
+		want *ast.BracketText
 	}{
 		{
 			name: "empty",
 			in:   "[]",
-			expect: &ast.BracketText{
+			want: &ast.BracketText{
 				LBracket: &ast.Position{Line: 1, Col: 1},
 				RBracket: &ast.Position{Line: 1, Col: 2},
 			},
 		}, {
 			name: "single line",
 			in:   "[ foo ]",
-			expect: &ast.BracketText{
+			want: &ast.BracketText{
 				LBracket: &ast.Position{Line: 1, Col: 1},
 				Lines: ast.TextBlock{
 					ast.TextLine{
@@ -48,7 +48,7 @@ func testBracketText(t *testing.T, f parser.Func[*ast.BracketText]) {
 				"\tfoo\n" +
 				"\tbar\n" +
 				"]",
-			expect: &ast.BracketText{
+			want: &ast.BracketText{
 				LBracket: &ast.Position{Line: 1, Col: 1},
 				Lines: ast.TextBlock{
 					ast.TextLine{
@@ -68,12 +68,12 @@ func testBracketText(t *testing.T, f parser.Func[*ast.BracketText]) {
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			actual := testutil.ParsesFully(t, c.in, f)
-			assert.Equal(t, c.expect, actual)
+			got := parsetest.ParsesFully(t, c.in, f)
+			should.Equal(t, c.want, got)
 		})
 	}
 }
@@ -81,22 +81,22 @@ func testBracketText(t *testing.T, f parser.Func[*ast.BracketText]) {
 func TestVerbatimBracketText(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
-		name   string
-		in     string
-		expect *ast.BracketText
+	tests := []struct {
+		name string
+		in   string
+		want *ast.BracketText
 	}{
 		{
 			name: "empty",
 			in:   "[]",
-			expect: &ast.BracketText{
+			want: &ast.BracketText{
 				LBracket: &ast.Position{Line: 1, Col: 1},
 				RBracket: &ast.Position{Line: 1, Col: 2},
 			},
 		}, {
 			name: "single line",
 			in:   "[ foo #bar ]",
-			expect: &ast.BracketText{
+			want: &ast.BracketText{
 				LBracket: &ast.Position{Line: 1, Col: 1},
 				Lines: ast.TextBlock{
 					ast.TextLine{
@@ -114,7 +114,7 @@ func TestVerbatimBracketText(t *testing.T) {
 				"\tfoo #bar \n" +
 				"\tbar #:baz()\n" +
 				"]",
-			expect: &ast.BracketText{
+			want: &ast.BracketText{
 				LBracket: &ast.Position{Line: 1, Col: 1},
 				Lines: ast.TextBlock{
 					ast.TextLine{
@@ -134,12 +134,12 @@ func TestVerbatimBracketText(t *testing.T) {
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			actual := testutil.ParsesFully(t, c.in, VerbatimBracketText())
-			assert.Equal(t, c.expect, actual)
+			got := parsetest.ParsesFully(t, c.in, VerbatimBracketText())
+			should.Equal(t, c.want, got)
 		})
 	}
 }

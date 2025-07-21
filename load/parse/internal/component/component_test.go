@@ -4,24 +4,24 @@ import (
 	"testing"
 
 	"github.com/mavolin/corgi/v2/file/ast"
-	"github.com/mavolin/corgi/v2/load/parse/internal/testutil"
-	"github.com/stretchr/testify/assert"
+	"github.com/mavolin/corgi/v2/internal/test/should"
+	"github.com/mavolin/corgi/v2/load/parse/internal/parsetest"
 )
 
 func TestComponent(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
-		name   string
-		in     string
-		expect *ast.Component
+	tests := []struct {
+		name string
+		in   string
+		want *ast.Component
 	}{
 		{
 			name: "simple",
 			in: "comp foo() {\n" +
 				"\tbr\n" +
 				"}",
-			expect: &ast.Component{
+			want: &ast.Component{
 				Comp: &ast.Position{Line: 1, Col: 1},
 				Header: &ast.ComponentHeader{
 					Name: &ast.Identifier{
@@ -55,7 +55,7 @@ func TestComponent(t *testing.T) {
 			in: "comp foo() : bar() {\n" +
 				"\tbr\n" +
 				"}",
-			expect: &ast.Component{
+			want: &ast.Component{
 				Comp: &ast.Position{Line: 1, Col: 1},
 				Header: &ast.ComponentHeader{
 					Name: &ast.Identifier{
@@ -98,11 +98,11 @@ func TestComponent(t *testing.T) {
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
-			actual := testutil.ParsesFully(t, c.in, Component())
-			assert.Equal(t, c.expect, actual)
+			got := parsetest.ParsesFully(t, c.in, Component())
+			should.Equal(t, c.want, got)
 		})
 	}
 }
@@ -110,15 +110,15 @@ func TestComponent(t *testing.T) {
 func TestHeader(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
-		name   string
-		in     string
-		expect *ast.ComponentHeader
+	tests := []struct {
+		name string
+		in   string
+		want *ast.ComponentHeader
 	}{
 		{
 			name: "simple",
 			in:   "foo()",
-			expect: &ast.ComponentHeader{
+			want: &ast.ComponentHeader{
 				Name: &ast.Identifier{
 					Name:     "foo",
 					Position: &ast.Position{Line: 1, Col: 1},
@@ -131,7 +131,7 @@ func TestHeader(t *testing.T) {
 		}, {
 			name: "with type params",
 			in:   "foo[T any](val T)",
-			expect: &ast.ComponentHeader{
+			want: &ast.ComponentHeader{
 				Name: &ast.Identifier{
 					Name:     "foo",
 					Position: &ast.Position{Line: 1, Col: 1},
@@ -185,11 +185,11 @@ func TestHeader(t *testing.T) {
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
-			actual := testutil.ParsesFully(t, c.in, Header())
-			assert.Equal(t, c.expect, actual)
+			got := parsetest.ParsesFully(t, c.in, Header())
+			should.Equal(t, c.want, got)
 		})
 	}
 }
@@ -197,15 +197,15 @@ func TestHeader(t *testing.T) {
 func TestParameters(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
-		name   string
-		in     string
-		expect *ast.ComponentParameters
+	tests := []struct {
+		name string
+		in   string
+		want *ast.ComponentParameters
 	}{
 		{
 			name: "empty",
 			in:   "()",
-			expect: &ast.ComponentParameters{
+			want: &ast.ComponentParameters{
 				LParen: &ast.Position{Line: 1, Col: 1},
 				RParen: &ast.Position{Line: 1, Col: 2},
 			},
@@ -213,7 +213,7 @@ func TestParameters(t *testing.T) {
 			name: "trailing comma",
 			in: "(foo any,\n" +
 				")",
-			expect: &ast.ComponentParameters{
+			want: &ast.ComponentParameters{
 				LParen: &ast.Position{Line: 1, Col: 1},
 				Params: []*ast.ComponentParameter{
 					{
@@ -239,7 +239,7 @@ func TestParameters(t *testing.T) {
 		}, {
 			name: "multiple",
 			in:   "(foo any, bar string)",
-			expect: &ast.ComponentParameters{
+			want: &ast.ComponentParameters{
 				LParen: &ast.Position{Line: 1, Col: 1},
 				Params: []*ast.ComponentParameter{
 					{
@@ -281,11 +281,11 @@ func TestParameters(t *testing.T) {
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
-			actual := testutil.ParsesFully(t, c.in, Parameters())
-			assert.Equal(t, c.expect, actual)
+			got := parsetest.ParsesFully(t, c.in, Parameters())
+			should.Equal(t, c.want, got)
 		})
 	}
 }
@@ -293,15 +293,15 @@ func TestParameters(t *testing.T) {
 func TestParameter(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
-		name   string
-		in     string
-		expect *ast.ComponentParameter
+	tests := []struct {
+		name string
+		in   string
+		want *ast.ComponentParameter
 	}{
 		{
 			name: "with type",
 			in:   "param string",
-			expect: &ast.ComponentParameter{
+			want: &ast.ComponentParameter{
 				Name: &ast.Identifier{
 					Name:     "param",
 					Position: &ast.Position{Line: 1, Col: 1},
@@ -321,7 +321,7 @@ func TestParameter(t *testing.T) {
 		}, {
 			name: "with default",
 			in:   "param: \"default\"",
-			expect: &ast.ComponentParameter{
+			want: &ast.ComponentParameter{
 				Name: &ast.Identifier{
 					Name:     "param",
 					Position: &ast.Position{Line: 1, Col: 1},
@@ -346,7 +346,7 @@ func TestParameter(t *testing.T) {
 		}, {
 			name: "with type and default",
 			in:   "param string: \"default\"",
-			expect: &ast.ComponentParameter{
+			want: &ast.ComponentParameter{
 				Name: &ast.Identifier{
 					Name:     "param",
 					Position: &ast.Position{Line: 1, Col: 1},
@@ -382,16 +382,16 @@ func TestParameter(t *testing.T) {
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			p := testutil.NewParser(t, c.in+", 1other stuff")
-			actual := testutil.AssertNoError(t, p, Parameter())
+			p := parsetest.NewParser(t, c.in+", 1other stuff")
+			got := parsetest.AssertNoError(t, p, Parameter())
 
-			line, col, index := testutil.CalcEnd(1, 1, 0, c.in)
-			testutil.AssertPosition(t, p, line, col, index)
-			assert.Equal(t, c.expect, actual)
+			line, col, index := parsetest.CalcEnd(1, 1, 0, c.in)
+			parsetest.AssertPosition(t, p, line, col, index)
+			should.Equal(t, c.want, got)
 		})
 	}
 }
@@ -400,7 +400,7 @@ func TestAlias(t *testing.T) {
 	t.Parallel()
 
 	in := "alias foo(s string) : bar(baz: s)"
-	expect := &ast.Alias{
+	want := &ast.Alias{
 		Alias: &ast.Position{Line: 1, Col: 1},
 		Header: &ast.ComponentHeader{
 			Name: &ast.Identifier{
@@ -463,22 +463,22 @@ func TestAlias(t *testing.T) {
 		},
 	}
 
-	actual := testutil.ParsesFully(t, in, Alias())
-	assert.Equal(t, expect, actual)
+	got := parsetest.ParsesFully(t, in, Alias())
+	should.Equal(t, want, got)
 }
 
 func TestBlock(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
-		name   string
-		in     string
-		expect *ast.Block
+	tests := []struct {
+		name string
+		in   string
+		want *ast.Block
 	}{
 		{
 			name: "default block without default",
 			in:   "block",
-			expect: &ast.Block{
+			want: &ast.Block{
 				Block: &ast.Position{Line: 1, Col: 1},
 			},
 		}, {
@@ -486,7 +486,7 @@ func TestBlock(t *testing.T) {
 			in: "block {\n" +
 				"\tbr\n" +
 				"}",
-			expect: &ast.Block{
+			want: &ast.Block{
 				Block: &ast.Position{Line: 1, Col: 1},
 				Default: &ast.Scope{
 					LBrace: &ast.Position{Line: 1, Col: len("block ") + 1},
@@ -510,7 +510,7 @@ func TestBlock(t *testing.T) {
 			in: "block foo {\n" +
 				"\tbr\n" +
 				"}",
-			expect: &ast.Block{
+			want: &ast.Block{
 				Block: &ast.Position{Line: 1, Col: 1},
 				Identifier: &ast.Identifier{
 					Name:     "foo",
@@ -536,7 +536,7 @@ func TestBlock(t *testing.T) {
 		}, {
 			name: "named block without default",
 			in:   "block foo",
-			expect: &ast.Block{
+			want: &ast.Block{
 				Block: &ast.Position{Line: 1, Col: 1},
 				Identifier: &ast.Identifier{
 					Name:     "foo",
@@ -546,11 +546,11 @@ func TestBlock(t *testing.T) {
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
-			actual := testutil.ParsesFully(t, c.in, Block())
-			assert.Equal(t, c.expect, actual)
+			got := parsetest.ParsesFully(t, c.in, Block())
+			should.Equal(t, c.want, got)
 		})
 	}
 }

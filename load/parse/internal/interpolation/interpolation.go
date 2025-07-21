@@ -283,6 +283,7 @@ var elementHeader parser.Func[*ast.ElementHeader]
 func SetElementHeader(f parser.Func[*ast.ElementHeader]) {
 	elementHeader = f
 }
+
 func ElementInterpolation() parser.Func[*ast.ElementInterpolation] {
 	return func(p *parser.Parser) (*ast.ElementInterpolation, *diagnostic.Diagnostic) {
 		var ei ast.ElementInterpolation

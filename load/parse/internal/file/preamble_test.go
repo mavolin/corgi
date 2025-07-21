@@ -4,35 +4,35 @@ import (
 	"testing"
 
 	"github.com/mavolin/corgi/v2/file/ast"
-	"github.com/mavolin/corgi/v2/load/parse/internal/testutil"
-	"github.com/stretchr/testify/assert"
+	"github.com/mavolin/corgi/v2/internal/test/should"
+	"github.com/mavolin/corgi/v2/load/parse/internal/parsetest"
 )
 
 func TestPackageDirective(t *testing.T) {
 	t.Parallel()
 
 	in := "package foo"
-	expect := &ast.PackageDirective{
+	want := &ast.PackageDirective{
 		Package: &ast.Position{Line: 1, Col: 1},
 		Name:    &ast.Identifier{Name: "foo", Position: &ast.Position{Line: 1, Col: 9}},
 	}
 
-	actual := testutil.ParsesFully(t, in, PackageDirective())
-	assert.Equal(t, expect, actual)
+	got := parsetest.ParsesFully(t, in, PackageDirective())
+	should.Equal(t, want, got)
 }
 
 func TestImport(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
-		name   string
-		in     string
-		expect *ast.Import
+	tests := []struct {
+		name string
+		in   string
+		want *ast.Import
 	}{
 		{
 			name: "single",
 			in:   "import \"foo\"",
-			expect: &ast.Import{
+			want: &ast.Import{
 				Import: &ast.Position{Line: 1, Col: 1},
 				Specs: []*ast.ImportSpec{
 					{
@@ -51,7 +51,7 @@ func TestImport(t *testing.T) {
 				"\t\"foo\"\n" +
 				"\t\"bar\"\n" +
 				")",
-			expect: &ast.Import{
+			want: &ast.Import{
 				Import: &ast.Position{Line: 1, Col: 1},
 				LParen: &ast.Position{Line: 1, Col: 8},
 				Specs: []*ast.ImportSpec{
@@ -76,12 +76,12 @@ func TestImport(t *testing.T) {
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			actual := testutil.ParsesFully(t, c.in, Import())
-			assert.Equal(t, c.expect, actual)
+			got := parsetest.ParsesFully(t, c.in, Import())
+			should.Equal(t, c.want, got)
 		})
 	}
 }
@@ -89,15 +89,15 @@ func TestImport(t *testing.T) {
 func TestImportSpec(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
-		name   string
-		in     string
-		expect *ast.ImportSpec
+	tests := []struct {
+		name string
+		in   string
+		want *ast.ImportSpec
 	}{
 		{
 			name: "no alias",
 			in:   "\"foo\"",
-			expect: &ast.ImportSpec{
+			want: &ast.ImportSpec{
 				Path: &ast.StaticString{
 					Open:     &ast.Position{Line: 1, Col: 1},
 					Quote:    '"',
@@ -108,7 +108,7 @@ func TestImportSpec(t *testing.T) {
 		}, {
 			name: "alias",
 			in:   "foo \"bar\"",
-			expect: &ast.ImportSpec{
+			want: &ast.ImportSpec{
 				Alias: &ast.Identifier{Name: "foo", Position: &ast.Position{Line: 1, Col: 1}},
 				Path: &ast.StaticString{
 					Open:     &ast.Position{Line: 1, Col: 5},
@@ -120,12 +120,12 @@ func TestImportSpec(t *testing.T) {
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			actual := testutil.ParsesFully(t, c.in, ImportSpec())
-			assert.Equal(t, c.expect, actual)
+			got := parsetest.ParsesFully(t, c.in, ImportSpec())
+			should.Equal(t, c.want, got)
 		})
 	}
 }

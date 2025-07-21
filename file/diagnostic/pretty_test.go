@@ -6,7 +6,7 @@ import (
 
 	"github.com/mavolin/corgi/v2/file"
 	"github.com/mavolin/corgi/v2/file/ast"
-	"github.com/stretchr/testify/assert"
+	"github.com/mavolin/corgi/v2/internal/test/should"
 )
 
 func TestDiagnostic_Pretty(t *testing.T) {
@@ -81,7 +81,7 @@ func TestDiagnostic_Pretty(t *testing.T) {
 		Annotation:   "import",
 	}
 
-	testCases := []struct {
+	tests := []struct {
 		name         string
 		diag         *Diagnostic
 		expectShort  string
@@ -360,15 +360,17 @@ func TestDiagnostic_Pretty(t *testing.T) {
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
+			// short message
 			actualShort := c.diag.Short()
-			assert.Equal(t, c.expectShort, actualShort, "short mismatch")
+			should.Equal(t, c.expectShort, actualShort)
 
+			// pretty message
 			actualPretty := c.diag.Pretty(PrettyOptions{})
-			assert.Equal(t, c.expectPretty, actualPretty, "pretty mismatch")
+			should.Equal(t, c.expectPretty, actualPretty)
 		})
 	}
 }

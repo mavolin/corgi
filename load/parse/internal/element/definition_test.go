@@ -5,23 +5,23 @@ import (
 
 	"github.com/mavolin/corgi/v2/escape/elemtype"
 	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/internal/test/should"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
-	"github.com/mavolin/corgi/v2/load/parse/internal/testutil"
-	"github.com/stretchr/testify/assert"
+	"github.com/mavolin/corgi/v2/load/parse/internal/parsetest"
 )
 
 func TestDefinition(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
-		name   string
-		in     string
-		expect *ast.ElementDefinition
+	tests := []struct {
+		name string
+		in   string
+		want *ast.ElementDefinition
 	}{
 		{
 			name: "single",
 			in:   "elem foo normal",
-			expect: &ast.ElementDefinition{
+			want: &ast.ElementDefinition{
 				Elem: &ast.Position{Line: 1, Col: 1},
 				Specs: []*ast.ElementSpec{
 					{
@@ -39,7 +39,7 @@ func TestDefinition(t *testing.T) {
 		}, {
 			name: "single with prefix",
 			in:   "elem x foo normal",
-			expect: &ast.ElementDefinition{
+			want: &ast.ElementDefinition{
 				Elem:   &ast.Position{Line: 1, Col: 1},
 				Prefix: &ast.ElementName{Name: "x", Position: &ast.Position{Line: 1, Col: 6}},
 				Specs: []*ast.ElementSpec{
@@ -61,7 +61,7 @@ func TestDefinition(t *testing.T) {
 				"\tfoo normal\n" +
 				"\tbar = div\n" +
 				")",
-			expect: &ast.ElementDefinition{
+			want: &ast.ElementDefinition{
 				Elem:   &ast.Position{Line: 1, Col: 1},
 				LParen: &ast.Position{Line: 1, Col: 6},
 				Specs: []*ast.ElementSpec{
@@ -92,7 +92,7 @@ func TestDefinition(t *testing.T) {
 				"\tfoo normal\n" +
 				"\tbar = div\n" +
 				")",
-			expect: &ast.ElementDefinition{
+			want: &ast.ElementDefinition{
 				Elem:   &ast.Position{Line: 1, Col: 1},
 				Prefix: &ast.ElementName{Name: "x", Position: &ast.Position{Line: 1, Col: 6}},
 				LParen: &ast.Position{Line: 1, Col: 8},
@@ -121,11 +121,11 @@ func TestDefinition(t *testing.T) {
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
-			actual := testutil.ParsesFully(t, c.in, Definition())
-			assert.Equal(t, c.expect, actual)
+			got := parsetest.ParsesFully(t, c.in, Definition())
+			should.Equal(t, c.want, got)
 		})
 	}
 }
@@ -133,15 +133,15 @@ func TestDefinition(t *testing.T) {
 func TestSpec(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
-		name   string
-		in     string
-		expect *ast.ElementSpec
+	tests := []struct {
+		name string
+		in   string
+		want *ast.ElementSpec
 	}{
 		{
 			name: "basic",
 			in:   "foo normal",
-			expect: &ast.ElementSpec{
+			want: &ast.ElementSpec{
 				Name: &ast.ElementName{Name: "foo", Position: &ast.Position{Line: 1, Col: 1}},
 				Type: &ast.BasicElementType{
 					Type: &ast.ElementTypeName{
@@ -154,7 +154,7 @@ func TestSpec(t *testing.T) {
 		}, {
 			name: "alias",
 			in:   "foo = div",
-			expect: &ast.ElementSpec{
+			want: &ast.ElementSpec{
 				Name: &ast.ElementName{Name: "foo", Position: &ast.Position{Line: 1, Col: 1}},
 				Type: &ast.AliasElementType{
 					EqualSign: &ast.Position{Line: 1, Col: 5},
@@ -166,24 +166,24 @@ func TestSpec(t *testing.T) {
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			p := testutil.NewParser(t, c.in+"; 1other stuff")
-			actual := testutil.AssertNoError(t, p, Spec())
+			p := parsetest.NewParser(t, c.in+"; 1other stuff")
+			got := parsetest.AssertNoError(t, p, Spec())
 
-			line, col, index := testutil.CalcEnd(1, 1, 0, c.in)
-			testutil.AssertPosition(t, p, line, col, index)
-			assert.Equal(t, c.expect, actual)
+			line, col, index := parsetest.CalcEnd(1, 1, 0, c.in)
+			parsetest.AssertPosition(t, p, line, col, index)
+			should.Equal(t, c.want, got)
 		})
 	}
 }
 
 func TestType(t *testing.T) {
 	t.Parallel()
-	testutil.AssertAlsoFulfils(t, Type(), testBasicType)
-	testutil.AssertAlsoFulfils(t, Type(), testAliasType)
+	parsetest.AssertAlsoFulfils(t, Type(), testBasicType)
+	parsetest.AssertAlsoFulfils(t, Type(), testAliasType)
 }
 
 func TestBasicType(t *testing.T) {
@@ -193,7 +193,7 @@ func TestBasicType(t *testing.T) {
 
 func testBasicType(t *testing.T, f parser.Func[*ast.BasicElementType]) {
 	in := "normal"
-	expect := &ast.BasicElementType{
+	want := &ast.BasicElementType{
 		Type: &ast.ElementTypeName{
 			Name:     "normal",
 			Type:     elemtype.Normal,
@@ -201,8 +201,8 @@ func testBasicType(t *testing.T, f parser.Func[*ast.BasicElementType]) {
 		},
 	}
 
-	actual := testutil.ParsesFully(t, in, f)
-	assert.Equal(t, expect, actual)
+	got := parsetest.ParsesFully(t, in, f)
+	should.Equal(t, want, got)
 }
 
 func TestAliasType(t *testing.T) {
@@ -212,22 +212,22 @@ func TestAliasType(t *testing.T) {
 
 func testAliasType(t *testing.T, f parser.Func[*ast.AliasElementType]) {
 	in := "= div"
-	expect := &ast.AliasElementType{
+	want := &ast.AliasElementType{
 		EqualSign: &ast.Position{Line: 1, Col: 1},
 		Name: &ast.ElementReference{
 			Name: &ast.ElementName{Name: "div", Position: &ast.Position{Line: 1, Col: 3}},
 		},
 	}
 
-	actual := testutil.ParsesFully(t, in, f)
-	assert.Equal(t, expect, actual)
+	got := parsetest.ParsesFully(t, in, f)
+	should.Equal(t, want, got)
 
 }
 
 func TestTypeName(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
+	tests := []struct {
 		name string
 		typ  elemtype.Type
 	}{
@@ -252,18 +252,18 @@ func TestTypeName(t *testing.T) {
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			expect := &ast.ElementTypeName{
+			want := &ast.ElementTypeName{
 				Name:     c.name,
 				Type:     c.typ,
 				Position: &ast.Position{Line: 1, Col: 1},
 			}
 
-			actual := testutil.ParsesFully(t, c.name, TypeName())
-			assert.Equal(t, expect, actual)
+			got := parsetest.ParsesFully(t, c.name, TypeName())
+			should.Equal(t, want, got)
 		})
 	}
 }

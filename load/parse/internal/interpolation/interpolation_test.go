@@ -4,21 +4,21 @@ import (
 	"testing"
 
 	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/internal/test/should"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
-	"github.com/mavolin/corgi/v2/load/parse/internal/testutil"
-	"github.com/stretchr/testify/assert"
+	"github.com/mavolin/corgi/v2/load/parse/internal/parsetest"
 )
 
 func TestTextInterpolation(t *testing.T) {
 	t.Parallel()
 
-	testutil.AssertAlsoFulfils(t, TextInterpolation(), testEscapedHash)
-	testutil.AssertAlsoFulfils(t, TextInterpolation(), testHashSpace)
-	testutil.AssertAlsoFulfils(t, TextInterpolation(), testExpressionInterpolation)
-	testutil.AssertAlsoFulfils(t, TextInterpolation(), testComponentCallInterpolation)
-	testutil.AssertAlsoFulfils(t, TextInterpolation(), testCharacterReference)
-	testutil.AssertAlsoFulfils(t, TextInterpolation(), testExpressionInterpolation)
-	testutil.AssertAlsoFulfils(t, TextInterpolation(), testElementInterpolation)
+	parsetest.AssertAlsoFulfils(t, TextInterpolation(), testEscapedHash)
+	parsetest.AssertAlsoFulfils(t, TextInterpolation(), testHashSpace)
+	parsetest.AssertAlsoFulfils(t, TextInterpolation(), testExpressionInterpolation)
+	parsetest.AssertAlsoFulfils(t, TextInterpolation(), testComponentCallInterpolation)
+	parsetest.AssertAlsoFulfils(t, TextInterpolation(), testCharacterReference)
+	parsetest.AssertAlsoFulfils(t, TextInterpolation(), testExpressionInterpolation)
+	parsetest.AssertAlsoFulfils(t, TextInterpolation(), testElementInterpolation)
 }
 
 func TestStringInterpolation(t *testing.T) {
@@ -27,10 +27,10 @@ func TestStringInterpolation(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		testutil.AssertAlsoFulfils(t, StringInterpolation(), testEscapedHash)
-		testutil.AssertAlsoFulfils(t, StringInterpolation(), testExpressionInterpolation)
-		testutil.AssertAlsoFulfils(t, StringInterpolation(), testComponentCallInterpolation)
-		testutil.AssertAlsoFulfils(t, StringInterpolation(), testCharacterReference)
+		parsetest.AssertAlsoFulfils(t, StringInterpolation(), testEscapedHash)
+		parsetest.AssertAlsoFulfils(t, StringInterpolation(), testExpressionInterpolation)
+		parsetest.AssertAlsoFulfils(t, StringInterpolation(), testComponentCallInterpolation)
+		parsetest.AssertAlsoFulfils(t, StringInterpolation(), testCharacterReference)
 	})
 
 	t.Run("failure", func(t *testing.T) {
@@ -38,24 +38,24 @@ func TestStringInterpolation(t *testing.T) {
 
 		t.Run("hash space", func(t *testing.T) {
 			t.Parallel()
-			expect := &ast.BadInterpolation{
+			want := &ast.BadInterpolation{
 				From:  ast.Position{Line: 1, Col: 1},
 				Until: ast.Position{Line: 1, Col: 3},
 			}
 
-			si := testutil.MatchesButError(t, "#_", StringInterpolation())
-			assert.Equal(t, expect, si)
+			si := parsetest.MatchesButError(t, "#_", StringInterpolation())
+			should.Equal(t, ast.StringInterpolation(want), si)
 		})
 
 		t.Run("bad interpolation", func(t *testing.T) {
 			t.Parallel()
-			expect := &ast.BadInterpolation{
+			want := &ast.BadInterpolation{
 				From:  ast.Position{Line: 1, Col: 1},
 				Until: ast.Position{Line: 1, Col: 2},
 			}
 
-			si := testutil.MatchesButError(t, "#@", StringInterpolation())
-			assert.Equal(t, expect, si)
+			si := parsetest.MatchesButError(t, "#@", StringInterpolation())
+			should.Equal(t, ast.StringInterpolation(want), si)
 		})
 	})
 }
@@ -64,16 +64,16 @@ func TestBadInterpolation(t *testing.T) {
 	t.Parallel()
 
 	in := "#@"
-	expect := &ast.BadInterpolation{
+	want := &ast.BadInterpolation{
 		From:  ast.Position{Line: 1, Col: 1},
 		Until: ast.Position{Line: 1, Col: 2},
 	}
 
-	p := testutil.NewParser(t, in+" 1other stuff")
-	actual := testutil.AssertNoError(t, p, BadInterpolation())
+	p := parsetest.NewParser(t, in+" 1other stuff")
+	got := parsetest.AssertNoError(t, p, BadInterpolation())
 
-	testutil.AssertPosition(t, p, 1, 2, 1)
-	assert.Equal(t, expect, actual)
+	parsetest.AssertPosition(t, p, 1, 2, 1)
+	should.Equal(t, want, got)
 }
 
 func TestEscapedHash(t *testing.T) {
@@ -83,10 +83,10 @@ func TestEscapedHash(t *testing.T) {
 
 func testEscapedHash(t *testing.T, f parser.Func[*ast.EscapedHash]) {
 	in := "##"
-	expect := &ast.EscapedHash{Hash: &ast.Position{Line: 1, Col: 1}}
+	want := &ast.EscapedHash{Hash: &ast.Position{Line: 1, Col: 1}}
 
-	actual := testutil.ParsesFully(t, in, f)
-	assert.Equal(t, expect, actual)
+	got := parsetest.ParsesFully(t, in, f)
+	should.Equal(t, want, got)
 }
 
 func TestHashSpace(t *testing.T) {
@@ -96,16 +96,16 @@ func TestHashSpace(t *testing.T) {
 
 func testHashSpace(t *testing.T, f parser.Func[*ast.HashSpace]) {
 	in := "#_"
-	expect := &ast.HashSpace{Hash: &ast.Position{Line: 1, Col: 1}}
+	want := &ast.HashSpace{Hash: &ast.Position{Line: 1, Col: 1}}
 
-	actual := testutil.ParsesFully(t, in, f)
-	assert.Equal(t, expect, actual)
+	got := parsetest.ParsesFully(t, in, f)
+	should.Equal(t, want, got)
 }
 
 func TestUnambiguousHash(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
+	tests := []struct {
 		char     rune
 		noInline bool
 	}{
@@ -115,7 +115,7 @@ func TestUnambiguousHash(t *testing.T) {
 		{char: '\r', noInline: true},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(string(c.char), func(t *testing.T) {
 			t.Parallel()
 
@@ -125,16 +125,16 @@ func TestUnambiguousHash(t *testing.T) {
 				t.Run("inline", func(t *testing.T) {
 					t.Parallel()
 
-					p := testutil.NewParser(t, in)
+					p := parsetest.NewParser(t, in)
 					p.DoInline(func() {
-						testutil.AssertNoError(t, p, UnambiguousHash())
-						line, col, index := testutil.CalcEnd(1, 1, 0, in)
-						testutil.AssertPosition(t, p, line, col, index)
+						parsetest.AssertNoError(t, p, UnambiguousHash())
+						line, col, index := parsetest.CalcEnd(1, 1, 0, in)
+						parsetest.AssertPosition(t, p, line, col, index)
 					})
 				})
 			}
 			t.Run("no inline", func(t *testing.T) {
-				testutil.ParsesFully(t, in, UnambiguousHash())
+				parsetest.ParsesFully(t, in, UnambiguousHash())
 			})
 		})
 	}
@@ -146,7 +146,7 @@ func TestCharacterReference(t *testing.T) {
 }
 
 func testCharacterReference(t *testing.T, f parser.Func[*ast.CharacterReference]) {
-	testCases := []struct {
+	tests := []struct {
 		name  string
 		chars string
 	}{
@@ -155,21 +155,20 @@ func testCharacterReference(t *testing.T, f parser.Func[*ast.CharacterReference]
 		{name: "euro", chars: "€"},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
 			in := "#" + c.name + ";"
-			expect := &ast.CharacterReference{
+			want := &ast.CharacterReference{
 				Name:  c.name,
 				Chars: c.chars,
 				Hash:  &ast.Position{Line: 1, Col: 1},
 			}
 
-			actual := testutil.ParsesFully(t, in, f)
-			assert.Equal(t, expect, actual)
+			got := parsetest.ParsesFully(t, in, f)
+			should.Equal(t, want, got)
 		})
-
 	}
 }
 
@@ -179,15 +178,15 @@ func TestElementInterpolation(t *testing.T) {
 }
 
 func testElementInterpolation(t *testing.T, f parser.Func[*ast.ElementInterpolation]) {
-	testCases := []struct {
-		name   string
-		in     string
-		expect *ast.ElementInterpolation
+	tests := []struct {
+		name string
+		in   string
+		want *ast.ElementInterpolation
 	}{
 		{
 			name: "no body",
 			in:   "#br",
-			expect: &ast.ElementInterpolation{
+			want: &ast.ElementInterpolation{
 				Element: &ast.Element{
 					Header: &ast.ElementHeader{
 						Name: &ast.ElementReference{
@@ -203,7 +202,7 @@ func testElementInterpolation(t *testing.T, f parser.Func[*ast.ElementInterpolat
 		}, {
 			name: "body",
 			in:   "#strong[woof]",
-			expect: &ast.ElementInterpolation{
+			want: &ast.ElementInterpolation{
 				Element: &ast.Element{
 					Header: &ast.ElementHeader{
 						Name: &ast.ElementReference{
@@ -231,11 +230,11 @@ func testElementInterpolation(t *testing.T, f parser.Func[*ast.ElementInterpolat
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
-			actual := testutil.ParsesFully(t, c.in, f)
-			assert.Equal(t, c.expect, actual)
+			got := parsetest.ParsesFully(t, c.in, f)
+			should.Equal(t, c.want, got)
 		})
 	}
 }
@@ -249,15 +248,15 @@ func testExpressionInterpolation(t *testing.T, f parser.Func[*ast.ExpressionInte
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		testCases := []struct {
-			name   string
-			in     string
-			expect *ast.ExpressionInterpolation
+		tests := []struct {
+			name string
+			in   string
+			want *ast.ExpressionInterpolation
 		}{
 			{
 				name: "simple",
 				in:   "#{1 + 1}",
-				expect: &ast.ExpressionInterpolation{
+				want: &ast.ExpressionInterpolation{
 					LBrace: &ast.Position{Line: 1, Col: 2},
 					Expression: &ast.Expression{
 						Nodes: ast.Code{
@@ -273,7 +272,7 @@ func testExpressionInterpolation(t *testing.T, f parser.Func[*ast.ExpressionInte
 			}, {
 				name: "format directive",
 				in:   "#%1.2f{2.3}",
-				expect: &ast.ExpressionInterpolation{
+				want: &ast.ExpressionInterpolation{
 					FormatDirective: "1.2f",
 					LBrace:          &ast.Position{Line: 1, Col: 7},
 					Expression: &ast.Expression{
@@ -290,11 +289,11 @@ func testExpressionInterpolation(t *testing.T, f parser.Func[*ast.ExpressionInte
 			},
 		}
 
-		for _, c := range testCases {
+		for _, c := range tests {
 			t.Run(c.name, func(t *testing.T) {
 				t.Parallel()
-				actual := testutil.ParsesFully(t, c.in, f)
-				assert.Equal(t, c.expect, actual)
+				got := parsetest.ParsesFully(t, c.in, f)
+				should.Equal(t, c.want, got)
 			})
 		}
 	})
@@ -303,14 +302,14 @@ func testExpressionInterpolation(t *testing.T, f parser.Func[*ast.ExpressionInte
 		t.Parallel()
 		t.Run("no expression", func(t *testing.T) {
 			t.Parallel()
-			expect := &ast.ExpressionInterpolation{
+			want := &ast.ExpressionInterpolation{
 				LBrace: &ast.Position{Line: 1, Col: 2},
 				RBrace: &ast.Position{Line: 1, Col: 3},
 				Hash:   &ast.Position{Line: 1, Col: 1},
 			}
 
-			actual := testutil.MatchesButError(t, "#{}", f)
-			assert.Equal(t, expect, actual)
+			got := parsetest.MatchesButError(t, "#{}", f)
+			should.Equal(t, want, got)
 		})
 	})
 }
@@ -321,15 +320,15 @@ func TestComponentCallInterpolation(t *testing.T) {
 }
 
 func testComponentCallInterpolation(t *testing.T, f parser.Func[*ast.ComponentCallInterpolation]) {
-	testCases := []struct {
-		name   string
-		in     string
-		expect *ast.ComponentCallInterpolation
+	tests := []struct {
+		name string
+		in   string
+		want *ast.ComponentCallInterpolation
 	}{
 		{
 			name: "local",
 			in:   "#:component()",
-			expect: &ast.ComponentCallInterpolation{
+			want: &ast.ComponentCallInterpolation{
 				ComponentCall: &ast.ComponentCall{
 					Colon: &ast.Position{Line: 1, Col: 2},
 					Header: &ast.ComponentCallHeader{
@@ -348,7 +347,7 @@ func testComponentCallInterpolation(t *testing.T, f parser.Func[*ast.ComponentCa
 		}, {
 			name: "underscore block",
 			in:   "#:component()[foo]",
-			expect: &ast.ComponentCallInterpolation{
+			want: &ast.ComponentCallInterpolation{
 				ComponentCall: &ast.ComponentCall{
 					Colon: &ast.Position{Line: 1, Col: 2},
 					Header: &ast.ComponentCallHeader{
@@ -383,11 +382,11 @@ func testComponentCallInterpolation(t *testing.T, f parser.Func[*ast.ComponentCa
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
-			actual := testutil.ParsesFully(t, c.in, f)
-			assert.Equal(t, c.expect, actual)
+			got := parsetest.ParsesFully(t, c.in, f)
+			should.Equal(t, c.want, got)
 		})
 	}
 }

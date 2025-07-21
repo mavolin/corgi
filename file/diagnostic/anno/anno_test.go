@@ -7,7 +7,7 @@ import (
 	"github.com/mavolin/corgi/v2/file"
 	"github.com/mavolin/corgi/v2/file/ast"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
-	"github.com/stretchr/testify/assert"
+	"github.com/mavolin/corgi/v2/internal/test/should"
 )
 
 func TestAnno(t *testing.T) {
@@ -15,40 +15,40 @@ func TestAnno(t *testing.T) {
 	t.Run("only highlight", func(t *testing.T) {
 		t.Parallel()
 
-		expectFile := new(file.File)
-		expectHighlight := Highlight{
+		wantFile := new(file.File)
+		wantHighlight := Highlight{
 			Start: ast.Position{Line: 2, Col: 3},
 			End:   ast.Position{Line: 2, Col: 4},
 		}
-		expectContext := Context{
+		wantContext := Context{
 			Start: 1,
 			End:   5,
 		}
-		expectAnno := "annotation"
+		wantAnno := "annotation"
 
-		anno := Anno(expectFile, Annotation{
+		anno := Anno(wantFile, Annotation{
 			Highlight: func(f *file.File) (Context, Highlight) {
-				assert.Same(t, expectFile, f)
-				return expectContext, expectHighlight
+				should.True(t, wantFile == f)
+				return wantContext, wantHighlight
 			},
-			Annotation: expectAnno,
+			Annotation: wantAnno,
 		})
-		assert.Equal(t, expectFile, anno.File)
-		assert.Equal(t, expectContext.Start, anno.ContextStart)
-		assert.Equal(t, expectContext.End, anno.ContextEnd)
-		assert.Equal(t, expectHighlight.Start, anno.Start)
-		assert.Equal(t, expectHighlight.End, anno.End)
-		assert.Equal(t, expectAnno, anno.Annotation)
+		should.True(t, wantFile == anno.File)                 // file
+		should.Equal(t, wantContext.Start, anno.ContextStart) // context start
+		should.Equal(t, wantContext.End, anno.ContextEnd)     // context end
+		should.Equal(t, wantHighlight.Start, anno.Start)      // highlight start
+		should.Equal(t, wantHighlight.End, anno.End)          // highlight end
+		should.Equal(t, wantAnno, anno.Annotation)            // annotation
 	})
 	t.Run("highlight and context", func(t *testing.T) {
 		t.Parallel()
 
-		expectFile := new(file.File)
-		expectHighlight := Highlight{
+		wantFile := new(file.File)
+		wantHighlight := Highlight{
 			Start: ast.Position{Line: 2, Col: 3},
 			End:   ast.Position{Line: 2, Col: 4},
 		}
-		expectContext := Context{
+		wantContext := Context{
 			Start: 1,
 			End:   5,
 		}
@@ -56,34 +56,34 @@ func TestAnno(t *testing.T) {
 			Start: 0,
 			End:   6,
 		}
-		expectAnno := "annotation"
+		wantAnno := "annotation"
 
-		anno := Anno(expectFile, Annotation{
+		anno := Anno(wantFile, Annotation{
 			Context: func(f *file.File, context Context, highlight Highlight) Context {
-				assert.Same(t, expectFile, f)
-				assert.Equal(t, otherContext, context)
-				assert.Equal(t, expectHighlight, highlight)
-				return expectContext
+				should.True(t, wantFile == f)
+				should.Equal(t, otherContext, context)
+				should.Equal(t, wantHighlight, highlight)
+				return wantContext
 			},
 			Highlight: func(f *file.File) (Context, Highlight) {
-				assert.Same(t, expectFile, f)
-				return otherContext, expectHighlight
+				should.True(t, wantFile == f)
+				return otherContext, wantHighlight
 			},
-			Annotation: expectAnno,
+			Annotation: wantAnno,
 		})
-		assert.Equal(t, expectFile, anno.File)
-		assert.Equal(t, expectContext.Start, anno.ContextStart)
-		assert.Equal(t, expectContext.End, anno.ContextEnd)
-		assert.Equal(t, expectHighlight.Start, anno.Start)
-		assert.Equal(t, expectHighlight.End, anno.End)
-		assert.Equal(t, expectAnno, anno.Annotation)
+		should.Equal(t, wantFile, anno.File)
+		should.Equal(t, wantContext.Start, anno.ContextStart)
+		should.Equal(t, wantContext.End, anno.ContextEnd)
+		should.Equal(t, wantHighlight.Start, anno.Start)
+		should.Equal(t, wantHighlight.End, anno.End)
+		should.Equal(t, wantAnno, anno.Annotation)
 	})
 }
 
 func TestRange(t *testing.T) {
 	t.Parallel()
 
-	expect := diagnostic.Annotation{
+	want := diagnostic.Annotation{
 		File:         new(file.File),
 		ContextStart: 2,
 		ContextEnd:   3,
@@ -92,15 +92,15 @@ func TestRange(t *testing.T) {
 		Annotation:   "anno",
 	}
 
-	anno := Range(expect.File, expect.Start, expect.End, expect.Annotation)
-	assert.Equal(t, expect, anno)
-	assert.Same(t, expect.File, anno.File)
+	anno := Range(want.File, want.Start, want.End, want.Annotation)
+	should.Equal(t, want, anno)
+	should.True(t, want.File == anno.File)
 }
 
 func TestToEOL(t *testing.T) {
 	t.Parallel()
 
-	expectFile := &file.File{
+	wantFile := &file.File{
 		AST: &ast.File{
 			Lines: []string{
 				"foo",
@@ -109,24 +109,24 @@ func TestToEOL(t *testing.T) {
 			},
 		},
 	}
-	expect := diagnostic.Annotation{
-		File:         expectFile,
+	want := diagnostic.Annotation{
+		File:         wantFile,
 		ContextStart: 2,
 		ContextEnd:   3,
 		Start:        ast.Position{Line: 2, Col: 3},
-		End:          ast.Position{Line: 2, Col: len(expectFile.AST.Lines[1]) + 1},
+		End:          ast.Position{Line: 2, Col: len(wantFile.AST.Lines[1]) + 1},
 		Annotation:   "anno",
 	}
 
-	anno := ToEOL(expect.File, expect.Start, expect.Annotation)
-	assert.Equal(t, expect, anno)
-	assert.Same(t, expect.File, anno.File)
+	anno := ToEOL(want.File, want.Start, want.Annotation)
+	should.Equal(t, want, anno)
+	should.True(t, want.File == anno.File)
 }
 
 func TestPosition(t *testing.T) {
 	t.Parallel()
 
-	expect := diagnostic.Annotation{
+	want := diagnostic.Annotation{
 		File:         new(file.File),
 		ContextStart: 2,
 		ContextEnd:   3,
@@ -135,16 +135,16 @@ func TestPosition(t *testing.T) {
 		Annotation:   "anno",
 	}
 
-	anno := Position(expect.File, expect.Start, expect.Annotation)
-	assert.Equal(t, expect, anno)
-	assert.Same(t, expect.File, anno.File)
+	anno := Position(want.File, want.Start, want.Annotation)
+	should.Equal(t, want, anno)
+	should.True(t, want.File == anno.File)
 }
 
 func TestNChars(t *testing.T) {
 	t.Parallel()
 
 	n := 3
-	expect := diagnostic.Annotation{
+	want := diagnostic.Annotation{
 		File:         new(file.File),
 		ContextStart: 2,
 		ContextEnd:   3,
@@ -153,9 +153,9 @@ func TestNChars(t *testing.T) {
 		Annotation:   "anno",
 	}
 
-	anno := NChars(expect.File, expect.Start, n, expect.Annotation)
-	assert.Equal(t, expect, anno)
-	assert.Same(t, expect.File, anno.File)
+	anno := NChars(want.File, want.Start, n, want.Annotation)
+	should.Equal(t, want, anno)
+	should.True(t, want.File == anno.File)
 }
 
 func TestNode(t *testing.T) {
@@ -163,7 +163,7 @@ func TestNode(t *testing.T) {
 
 	start := ast.Position{Line: 3, Col: 4} // to make things simpler
 
-	testCases := []struct {
+	tests := []struct {
 		node ast.Node
 	}{
 		{
@@ -211,9 +211,11 @@ func TestNode(t *testing.T) {
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(fmt.Sprintf("%T", c.node), func(t *testing.T) {
-			expect := diagnostic.Annotation{
+			t.Parallel()
+
+			want := diagnostic.Annotation{
 				File:         new(file.File),
 				ContextStart: c.node.Start().Line,
 				ContextEnd:   c.node.End().Line + 1,
@@ -222,8 +224,8 @@ func TestNode(t *testing.T) {
 				Annotation:   "anno",
 			}
 
-			anno := Node(expect.File, c.node, expect.Annotation)
-			assert.Equal(t, expect, anno)
+			anno := Node(want.File, c.node, want.Annotation)
+			should.Equal(t, want, anno)
 		})
 	}
 }

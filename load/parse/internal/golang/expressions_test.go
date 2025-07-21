@@ -4,9 +4,9 @@ import (
 	"testing"
 
 	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/internal/test/should"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
-	"github.com/mavolin/corgi/v2/load/parse/internal/testutil"
-	"github.com/stretchr/testify/assert"
+	"github.com/mavolin/corgi/v2/load/parse/internal/parsetest"
 )
 
 func TestQualifiedIdent(t *testing.T) {
@@ -16,7 +16,7 @@ func TestQualifiedIdent(t *testing.T) {
 
 func testQualifiedIdent(t *testing.T, f parser.Func[*ast.QualifiedIdentifier]) {
 	in := "foo.bar"
-	expect := &ast.QualifiedIdentifier{
+	want := &ast.QualifiedIdentifier{
 		Package: &ast.Identifier{
 			Name:     "foo",
 			Position: &ast.Position{Line: 1, Col: 1},
@@ -28,19 +28,19 @@ func testQualifiedIdent(t *testing.T, f parser.Func[*ast.QualifiedIdentifier]) {
 		},
 	}
 
-	actual := testutil.ParsesFully(t, in, f)
-	assert.Equal(t, expect, actual)
+	got := parsetest.ParsesFully(t, in, f)
+	should.Equal(t, want, got)
 }
 
 func TestAddOp(t *testing.T) {
 	t.Parallel()
 
-	testCases := []string{"+", "-", "|", "^"}
-	for _, c := range testCases {
+	tests := []string{"+", "-", "|", "^"}
+	for _, c := range tests {
 		t.Run(c, func(t *testing.T) {
 			t.Parallel()
-			actual := testutil.ParsesFully(t, c, AddOp())
-			assert.Equal(t, c, actual)
+			got := parsetest.ParsesFully(t, c, AddOp())
+			should.Equal(t, c, got)
 		})
 	}
 }
@@ -48,12 +48,12 @@ func TestAddOp(t *testing.T) {
 func TestMulOp(t *testing.T) {
 	t.Parallel()
 
-	testCases := []string{"*", "/", "%", "<<", ">>", "&", "&^"}
-	for _, c := range testCases {
+	tests := []string{"*", "/", "%", "<<", ">>", "&", "&^"}
+	for _, c := range tests {
 		t.Run(c, func(t *testing.T) {
 			t.Parallel()
-			actual := testutil.ParsesFully(t, c, MulOp())
-			assert.Equal(t, c, actual)
+			got := parsetest.ParsesFully(t, c, MulOp())
+			should.Equal(t, c, got)
 		})
 	}
 }

@@ -4,9 +4,9 @@ import (
 	"testing"
 
 	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/internal/test/should"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
-	"github.com/mavolin/corgi/v2/load/parse/internal/testutil"
-	"github.com/stretchr/testify/assert"
+	"github.com/mavolin/corgi/v2/load/parse/internal/parsetest"
 )
 
 func TestScope(t *testing.T) {
@@ -15,22 +15,22 @@ func TestScope(t *testing.T) {
 }
 
 func testScope(t *testing.T, f parser.Func[*ast.Scope]) {
-	testCases := []struct {
-		name   string
-		in     string
-		expect *ast.Scope
+	tests := []struct {
+		name string
+		in   string
+		want *ast.Scope
 	}{
 		{
 			name: "empty",
 			in:   "{}",
-			expect: &ast.Scope{
+			want: &ast.Scope{
 				LBrace: &ast.Position{Line: 1, Col: 1},
 				RBrace: &ast.Position{Line: 1, Col: 2},
 			},
 		}, {
 			name: "empty with newline",
 			in:   "{\n}",
-			expect: &ast.Scope{
+			want: &ast.Scope{
 				LBrace: &ast.Position{Line: 1, Col: 1},
 				RBrace: &ast.Position{Line: 2, Col: 1},
 			},
@@ -39,7 +39,7 @@ func testScope(t *testing.T, f parser.Func[*ast.Scope]) {
 			in: "{\n" +
 				"\tbr\n" +
 				"}",
-			expect: &ast.Scope{
+			want: &ast.Scope{
 				LBrace: &ast.Position{Line: 1, Col: 1},
 				Nodes: []ast.ScopeNode{
 					&ast.Element{
@@ -58,12 +58,12 @@ func testScope(t *testing.T, f parser.Func[*ast.Scope]) {
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			actual := testutil.ParsesFully(t, c.in, f)
-			assert.Equal(t, c.expect, actual)
+			got := parsetest.ParsesFully(t, c.in, f)
+			should.Equal(t, c.want, got)
 		})
 	}
 }
@@ -71,7 +71,7 @@ func testScope(t *testing.T, f parser.Func[*ast.Scope]) {
 func TestBadScopeNode(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
+	tests := []struct {
 		name string
 		in   string
 	}{
@@ -93,20 +93,20 @@ func TestBadScopeNode(t *testing.T) {
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			expect := &ast.BadScopeNode{
+			want := &ast.BadScopeNode{
 				From:  ast.Position{Line: 1, Col: 1},
 				Until: ast.Position{Line: 1, Col: 1 + len(c.in)},
 			}
 
-			p := testutil.NewParser(t, c.in+" foo")
-			actual := testutil.AssertNoError(t, p, BadScopeNode())
-			assert.Equal(t, expect, actual)
+			p := parsetest.NewParser(t, c.in+" foo")
+			got := parsetest.AssertNoError(t, p, BadScopeNode())
+			should.Equal(t, want, got)
 
-			testutil.AssertPosition(t, p, expect.Until.Line, expect.Until.Col, len(c.in))
+			parsetest.AssertPosition(t, p, want.Until.Line, want.Until.Col, len(c.in))
 		})
 	}
 }

@@ -5,14 +5,14 @@ import (
 
 	"github.com/mavolin/corgi/v2/file/ast"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
+	"github.com/mavolin/corgi/v2/internal/test/should"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
-	"github.com/mavolin/corgi/v2/load/parse/internal/testutil"
-	"github.com/stretchr/testify/assert"
+	"github.com/mavolin/corgi/v2/load/parse/internal/parsetest"
 )
 
 func TestImplicitCodeLine(t *testing.T) {
 	t.Parallel()
-	testutil.AssertAlsoFulfils(t, ImplicitCodeLine(), func(t *testing.T, f parser.Func[*ast.ImplicitCodeLine]) {
+	parsetest.AssertAlsoFulfils(t, ImplicitCodeLine(), func(t *testing.T, f parser.Func[*ast.ImplicitCodeLine]) {
 		testParsedStatement(t, func(p *parser.Parser) (*ast.Statement, *diagnostic.Diagnostic) {
 			f, err := f(p)
 			if err != nil {
@@ -28,7 +28,7 @@ func TestExplicitCodeLine(t *testing.T) {
 	t.Parallel()
 
 	in := "- foo()"
-	expect := &ast.ExplicitCodeLine{
+	want := &ast.ExplicitCodeLine{
 		Minus: &ast.Position{Line: 1, Col: 1},
 		Statement: &ast.Statement{
 			Nodes: ast.Code{
@@ -37,6 +37,6 @@ func TestExplicitCodeLine(t *testing.T) {
 		},
 	}
 
-	actual := parsesCodeNodeFully(t, in, ExplicitCodeLine())
-	assert.Equal(t, expect, actual)
+	got := parsesCodeNodeFully(t, in, ExplicitCodeLine())
+	should.Equal(t, want, got)
 }

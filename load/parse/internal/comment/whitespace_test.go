@@ -5,22 +5,24 @@ import (
 	"testing"
 
 	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/internal/test/should"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
-	"github.com/mavolin/corgi/v2/load/parse/internal/testutil"
-	"github.com/stretchr/testify/assert"
+	"github.com/mavolin/corgi/v2/load/parse/internal/parsetest"
 )
 
 func TestOrHorizontalWhitespace(t *testing.T) {
 	t.Parallel()
 
 	successCases := []struct {
-		in             string
-		expectComments []*ast.Comment
+		in           string
+		wantComments []*ast.Comment
 	}{
-		{in: "  "}, {in: "\t"}, {in: "  \t  \t\t "},
+		{in: "  "},
+		{in: "\t"},
+		{in: "  \t  \t\t "},
 		{
 			in: "/* test */",
-			expectComments: []*ast.Comment{
+			wantComments: []*ast.Comment{
 				{
 					Open:    &ast.Position{Line: 1, Col: 1},
 					Comment: " test ",
@@ -29,9 +31,10 @@ func TestOrHorizontalWhitespace(t *testing.T) {
 					Until:   ast.Position{Line: 1, Col: 11},
 				},
 			},
-		}, {
+		},
+		{
 			in: "  /* test */ \t/* test2 */\t",
-			expectComments: []*ast.Comment{
+			wantComments: []*ast.Comment{
 				{
 					Open:    &ast.Position{Line: 1, Col: 3},
 					Comment: " test ",
@@ -56,16 +59,16 @@ func TestOrHorizontalWhitespace(t *testing.T) {
 			t.Run(testName(c.in), func(t *testing.T) {
 				t.Parallel()
 
-				p := testutil.NewParser(t, c.in)
+				p := parsetest.NewParser(t, c.in)
 				err := parser.TrySkipErr(p, OrHorizontalWhitespace())
-				assert.Nil(t, err, "expected no error")
-				testutil.AssertEOF(t, p)
+				should.Equal(t, nil, err)
+				parsetest.AssertEOF(t, p)
 
-				expectGroups := make([]*ast.CommentGroup, len(c.expectComments))
-				for i, comment := range c.expectComments {
-					expectGroups[i] = &ast.CommentGroup{Comments: []*ast.Comment{comment}}
+				wantGroups := make([]*ast.CommentGroup, len(c.wantComments))
+				for i, comment := range c.wantComments {
+					wantGroups[i] = &ast.CommentGroup{Comments: []*ast.Comment{comment}}
 				}
-				assert.Equal(t, expectGroups, p.CloneState().Comments())
+				should.Equal(t, wantGroups, p.CloneState().Comments())
 			})
 		}
 	})
@@ -78,9 +81,9 @@ func TestOrHorizontalWhitespace(t *testing.T) {
 		for _, c := range failureCases {
 			t.Run(testName(c), func(t *testing.T) {
 				t.Parallel()
-				p := testutil.NewParser(t, c)
+				p := parsetest.NewParser(t, c)
 				err := OrHorizontalWhitespace()(p)
-				assert.NotNil(t, err, "expected match error")
+				should.NotEqual(t, nil, err) // want match error
 			})
 		}
 	})
@@ -89,17 +92,20 @@ func TestOrHorizontalWhitespace(t *testing.T) {
 func TestAndEOS(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
-		in             string
-		expectIndex    int
-		expectComments []*ast.Comment
+	tests := []struct {
+		in           string
+		wantIndex    int
+		wantComments []*ast.Comment
 	}{
-		{in: "\n", expectIndex: 0}, {in: "\r\n", expectIndex: 0}, {in: "  \t  \t\t\n", expectIndex: 7},
-		{in: "  \t  \t\t\r\n", expectIndex: 7}, {in: "  \t  \t\t }", expectIndex: 8},
+		{in: "\n", wantIndex: 0},
+		{in: "\r\n", wantIndex: 0},
+		{in: "  \t  \t\t\n", wantIndex: 7},
+		{in: "  \t  \t\t\r\n", wantIndex: 7},
+		{in: "  \t  \t\t }", wantIndex: 8},
 		{
-			in:          "/* test */ ;",
-			expectIndex: -1,
-			expectComments: []*ast.Comment{
+			in:        "/* test */ ;",
+			wantIndex: -1,
+			wantComments: []*ast.Comment{
 				{
 					Open:    &ast.Position{Line: 1, Col: 1},
 					Comment: " test ",
@@ -108,10 +114,11 @@ func TestAndEOS(t *testing.T) {
 					Until:   ast.Position{Line: 1, Col: 11},
 				},
 			},
-		}, {
-			in:          " /* test\n */",
-			expectIndex: -1,
-			expectComments: []*ast.Comment{
+		},
+		{
+			in:        " /* test\n */",
+			wantIndex: -1,
+			wantComments: []*ast.Comment{
 				{
 					Open:    &ast.Position{Line: 1, Col: 2},
 					Comment: " test\n ",
@@ -120,10 +127,11 @@ func TestAndEOS(t *testing.T) {
 					Until:   ast.Position{Line: 2, Col: 4},
 				},
 			},
-		}, {
-			in:          "  /* test */ \t/* test2 */\n",
-			expectIndex: 25,
-			expectComments: []*ast.Comment{
+		},
+		{
+			in:        "  /* test */ \t/* test2 */\n",
+			wantIndex: 25,
+			wantComments: []*ast.Comment{
 				{
 					Open:    &ast.Position{Line: 1, Col: 3},
 					Comment: " test ",
@@ -138,30 +146,31 @@ func TestAndEOS(t *testing.T) {
 					Until:   ast.Position{Line: 1, Col: 26},
 				},
 			},
-		}, {
-			in:          " // foo",
-			expectIndex: 1,
+		},
+		{
+			in:        " // foo",
+			wantIndex: 1,
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(testName(c.in), func(t *testing.T) {
 			t.Parallel()
 
-			if c.expectIndex == -1 {
-				c.expectIndex = len(c.in)
+			if c.wantIndex == -1 {
+				c.wantIndex = len(c.in)
 			}
 
-			p := testutil.NewParser(t, c.in)
+			p := parsetest.NewParser(t, c.in)
 			err := parser.TrySkipErr(p, AndEOS())
-			assert.Nil(t, err, "expected no error")
-			assert.Equal(t, c.expectIndex, p.Index())
+			should.Equal(t, nil, err)
+			should.Equal(t, c.wantIndex, p.Index())
 
-			expectGroups := make([]*ast.CommentGroup, len(c.expectComments))
-			for i, comment := range c.expectComments {
-				expectGroups[i] = &ast.CommentGroup{Comments: []*ast.Comment{comment}}
+			wantGroups := make([]*ast.CommentGroup, len(c.wantComments))
+			for i, comment := range c.wantComments {
+				wantGroups[i] = &ast.CommentGroup{Comments: []*ast.Comment{comment}}
 			}
-			assert.Equal(t, expectGroups, p.CloneState().Comments())
+			should.Equal(t, wantGroups, p.CloneState().Comments())
 		})
 	}
 }
@@ -175,10 +184,10 @@ func TestAndEOL(t *testing.T) {
 		t.Run("eof", func(t *testing.T) {
 			t.Parallel()
 
-			p := testutil.NewParser(t, "")
+			p := parsetest.NewParser(t, "")
 			err := parser.TrySkipErr(p, AndEOL())
-			assert.Nil(t, err, "expected no error")
-			testutil.AssertEOF(t, p)
+			should.Equal(t, nil, err)
+			parsetest.AssertEOF(t, p)
 		})
 	})
 
@@ -186,14 +195,17 @@ func TestAndEOL(t *testing.T) {
 }
 
 func testOrEOL(t *testing.T, f parser.WhitespaceFunc) {
-	testCases := []struct {
-		in             string
-		expectComments []*ast.Comment
+	tests := []struct {
+		in           string
+		wantComments []*ast.Comment
 	}{
-		{in: "\n"}, {in: "\r\n"}, {in: "  \t  \t\t\n"}, {in: "  \t  \t\t\r\n"},
+		{in: "\n"},
+		{in: "\r\n"},
+		{in: "  \t  \t\t\n"},
+		{in: "  \t  \t\t\r\n"},
 		{
 			in: "/* test */",
-			expectComments: []*ast.Comment{
+			wantComments: []*ast.Comment{
 				{
 					Open:    &ast.Position{Line: 1, Col: 1},
 					Comment: " test ",
@@ -202,9 +214,10 @@ func testOrEOL(t *testing.T, f parser.WhitespaceFunc) {
 					Until:   ast.Position{Line: 1, Col: 11},
 				},
 			},
-		}, {
+		},
+		{
 			in: "  /* test */ \t/* test2 */\n",
-			expectComments: []*ast.Comment{
+			wantComments: []*ast.Comment{
 				{
 					Open:    &ast.Position{Line: 1, Col: 3},
 					Comment: " test ",
@@ -219,9 +232,10 @@ func testOrEOL(t *testing.T, f parser.WhitespaceFunc) {
 					Until:   ast.Position{Line: 1, Col: 26},
 				},
 			},
-		}, {
+		},
+		{
 			in: " // foo",
-			expectComments: []*ast.Comment{
+			wantComments: []*ast.Comment{
 				{
 					Open:    &ast.Position{Line: 1, Col: 2},
 					Comment: " foo",
@@ -232,20 +246,20 @@ func testOrEOL(t *testing.T, f parser.WhitespaceFunc) {
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(testName(c.in), func(t *testing.T) {
 			t.Parallel()
 
-			p := testutil.NewParser(t, c.in)
+			p := parsetest.NewParser(t, c.in)
 			err := parser.TrySkipErr(p, f)
-			assert.Nil(t, err, "expected no error")
-			testutil.AssertEOF(t, p)
+			should.Equal(t, nil, err)
+			parsetest.AssertEOF(t, p)
 
-			expectGroups := make([]*ast.CommentGroup, len(c.expectComments))
-			for i, comment := range c.expectComments {
-				expectGroups[i] = &ast.CommentGroup{Comments: []*ast.Comment{comment}}
+			wantGroups := make([]*ast.CommentGroup, len(c.wantComments))
+			for i, comment := range c.wantComments {
+				wantGroups[i] = &ast.CommentGroup{Comments: []*ast.Comment{comment}}
 			}
-			assert.Equal(t, expectGroups, p.CloneState().Comments())
+			should.Equal(t, wantGroups, p.CloneState().Comments())
 		})
 	}
 }
@@ -253,15 +267,15 @@ func testOrEOL(t *testing.T, f parser.WhitespaceFunc) {
 func TestOrAnyWhitespace(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
-		in             string
-		expectComments []*ast.Comment
+	tests := []struct {
+		in           string
+		wantComments []*ast.Comment
 	}{
 		{
 			in: "  /* test */ \t/* test2 */\n" +
 				"// foo\n" +
 				"/* bar */\n",
-			expectComments: []*ast.Comment{
+			wantComments: []*ast.Comment{
 				{
 					Open:    &ast.Position{Line: 1, Col: 3},
 					Comment: " test ",
@@ -289,7 +303,7 @@ func TestOrAnyWhitespace(t *testing.T) {
 			},
 		}, {
 			in: " // foo\n// bar",
-			expectComments: []*ast.Comment{
+			wantComments: []*ast.Comment{
 				{
 					Open:    &ast.Position{Line: 1, Col: 2},
 					Comment: " foo",
@@ -305,20 +319,20 @@ func TestOrAnyWhitespace(t *testing.T) {
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(testName(c.in), func(t *testing.T) {
 			t.Parallel()
 
-			p := testutil.NewParser(t, c.in)
+			p := parsetest.NewParser(t, c.in)
 			err := parser.TrySkipErr(p, OrAnyWhitespace())
-			assert.Nil(t, err, "expected no error")
-			testutil.AssertEOF(t, p)
+			should.Equal(t, nil, err)
+			parsetest.AssertEOF(t, p)
 
-			expectGroups := make([]*ast.CommentGroup, len(c.expectComments))
-			for i, comment := range c.expectComments {
-				expectGroups[i] = &ast.CommentGroup{Comments: []*ast.Comment{comment}}
+			wantGroups := make([]*ast.CommentGroup, len(c.wantComments))
+			for i, comment := range c.wantComments {
+				wantGroups[i] = &ast.CommentGroup{Comments: []*ast.Comment{comment}}
 			}
-			assert.Equal(t, expectGroups, p.CloneState().Comments())
+			should.Equal(t, wantGroups, p.CloneState().Comments())
 		})
 	}
 
@@ -330,14 +344,16 @@ func TestOrAnyWhitespace(t *testing.T) {
 func TestOrLoneWS(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
-		in             string
-		expectComments []*ast.Comment
+	tests := []struct {
+		in           string
+		wantComments []*ast.Comment
 	}{
-		{in: "  "}, {in: "\t"}, {in: "  \t  \t\t "},
+		{in: "  "},
+		{in: "\t"},
+		{in: "  \t  \t\t "},
 		{
 			in: "/* test */",
-			expectComments: []*ast.Comment{
+			wantComments: []*ast.Comment{
 				{
 					Open:    &ast.Position{Line: 1, Col: 1},
 					Comment: " test ",
@@ -346,9 +362,10 @@ func TestOrLoneWS(t *testing.T) {
 					Until:   ast.Position{Line: 1, Col: 11},
 				},
 			},
-		}, {
+		},
+		{
 			in: "  /* test */\n /* test2 */\n",
-			expectComments: []*ast.Comment{
+			wantComments: []*ast.Comment{
 				{
 					Open:    &ast.Position{Line: 1, Col: 3},
 					Comment: " test ",
@@ -363,9 +380,10 @@ func TestOrLoneWS(t *testing.T) {
 					Until:   ast.Position{Line: 2, Col: 13},
 				},
 			},
-		}, {
+		},
+		{
 			in: " // foo\n/* bar\n baz */",
-			expectComments: []*ast.Comment{
+			wantComments: []*ast.Comment{
 				{
 					Open:    &ast.Position{Line: 1, Col: 2},
 					Comment: " foo",
@@ -382,7 +400,7 @@ func TestOrLoneWS(t *testing.T) {
 		},
 		{
 			in: "/* foo */ // bar",
-			expectComments: []*ast.Comment{
+			wantComments: []*ast.Comment{
 				{
 					Open:    &ast.Position{Line: 1, Col: 1},
 					Comment: " foo ",
@@ -399,20 +417,20 @@ func TestOrLoneWS(t *testing.T) {
 		},
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(testName(c.in), func(t *testing.T) {
 			t.Parallel()
 
-			p := testutil.NewParser(t, c.in)
+			p := parsetest.NewParser(t, c.in)
 			err := parser.TrySkipErr(p, OrLoneWS())
-			assert.Nil(t, err, "expected no error")
-			testutil.AssertEOF(t, p)
+			should.Equal(t, nil, err)
+			parsetest.AssertEOF(t, p)
 
-			expectGroups := make([]*ast.CommentGroup, len(c.expectComments))
-			for i, comment := range c.expectComments {
-				expectGroups[i] = &ast.CommentGroup{Comments: []*ast.Comment{comment}}
+			wantGroups := make([]*ast.CommentGroup, len(c.wantComments))
+			for i, comment := range c.wantComments {
+				wantGroups[i] = &ast.CommentGroup{Comments: []*ast.Comment{comment}}
 			}
-			assert.Equal(t, expectGroups, p.CloneState().Comments())
+			should.Equal(t, wantGroups, p.CloneState().Comments())
 		})
 	}
 }

@@ -3,9 +3,9 @@ package whitespace
 import (
 	"testing"
 
+	"github.com/mavolin/corgi/v2/internal/test/should"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
-	"github.com/mavolin/corgi/v2/load/parse/internal/testutil"
-	"github.com/stretchr/testify/assert"
+	"github.com/mavolin/corgi/v2/load/parse/internal/parsetest"
 )
 
 func TestEOL(t *testing.T) {
@@ -20,16 +20,16 @@ func TestEOL(t *testing.T) {
 }
 
 func testEOL(t *testing.T, f parser.WhitespaceFunc) {
-	testCases := []string{"\n", "\r\n"}
+	tests := []string{"\n", "\r\n"}
 
-	for _, in := range testCases {
+	for _, in := range tests {
 		t.Run(testName(in), func(t *testing.T) {
 			t.Parallel()
 
-			p := testutil.NewParser(t, in)
-			assert.Nil(t, f(p))
-			line, col, index := testutil.CalcEnd(1, 1, 0, in)
-			testutil.AssertPosition(t, p, line, col, index)
+			p := parsetest.NewParser(t, in)
+			should.Equal(t, nil, f(p))
+			line, col, index := parsetest.CalcEnd(1, 1, 0, in)
+			parsetest.AssertPosition(t, p, line, col, index)
 		})
 	}
 }
@@ -40,16 +40,16 @@ func TestEOF(t *testing.T) {
 }
 
 func testEOF(t *testing.T, f parser.WhitespaceFunc) {
-	testCases := []string{"", " ", "\t", "\t  ", "   \t  \t "}
+	tests := []string{"", " ", "\t", "\t  ", "   \t  \t "}
 
-	for _, in := range testCases {
+	for _, in := range tests {
 		t.Run(testName(in), func(t *testing.T) {
 			t.Parallel()
 
-			p := testutil.NewParser(t, in)
-			assert.Nil(t, f(p))
-			line, col, index := testutil.CalcEnd(1, 1, 0, in)
-			testutil.AssertPosition(t, p, line, col, index)
+			p := parsetest.NewParser(t, in)
+			should.Equal(t, nil, f(p))
+			line, col, index := parsetest.CalcEnd(1, 1, 0, in)
+			parsetest.AssertPosition(t, p, line, col, index)
 		})
 	}
 }

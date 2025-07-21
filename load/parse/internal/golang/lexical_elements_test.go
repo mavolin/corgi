@@ -5,9 +5,9 @@ import (
 
 	"github.com/mavolin/corgi/v2/file/ast"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
+	"github.com/mavolin/corgi/v2/internal/test/should"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
-	"github.com/mavolin/corgi/v2/load/parse/internal/testutil"
-	"github.com/stretchr/testify/assert"
+	"github.com/mavolin/corgi/v2/load/parse/internal/parsetest"
 )
 
 // ============================================================================
@@ -17,16 +17,16 @@ import (
 func TestRuneLit(t *testing.T) {
 	t.Parallel()
 
-	testCases := []string{
+	tests := []string{
 		`'a'`, `'ä'`, `'🐶'`, `'\n'`, `'\''`, `'"'`, `'\u1234'`, `'\U12345678'`,
 		`'\x12'`, `'\123'`,
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c, func(t *testing.T) {
 			t.Parallel()
-			actual := testutil.ParsesFully(t, c, RuneLit())
-			assert.Equal(t, c, actual)
+			got := parsetest.ParsesFully(t, c, RuneLit())
+			should.Equal(t, c, got)
 		})
 	}
 }
@@ -34,10 +34,10 @@ func TestRuneLit(t *testing.T) {
 func TestUnicodeValue(t *testing.T) {
 	t.Parallel()
 
-	testutil.AssertAlsoFulfils(t, UnicodeValue('\''), testLittleUValue)
-	testutil.AssertAlsoFulfils(t, UnicodeValue('\''), testBigUValue)
-	testutil.AssertAlsoFulfils(t, UnicodeValue('\''), testEscapedChar('\''))
-	testutil.AssertAlsoFulfils(t, UnicodeValue('\''), func(t *testing.T, f parser.Func[string]) {
+	parsetest.AssertAlsoFulfils(t, UnicodeValue('\''), testLittleUValue)
+	parsetest.AssertAlsoFulfils(t, UnicodeValue('\''), testBigUValue)
+	parsetest.AssertAlsoFulfils(t, UnicodeValue('\''), testEscapedChar('\''))
+	parsetest.AssertAlsoFulfils(t, UnicodeValue('\''), func(t *testing.T, f parser.Func[string]) {
 		testUnicodeChar(t, '\'', func(p *parser.Parser) (rune, *diagnostic.Diagnostic) {
 			s, err := parser.TryErr(p, f)
 			if err != nil {
@@ -53,10 +53,10 @@ func TestUnicodeValue(t *testing.T) {
 		})
 	})
 
-	testutil.AssertAlsoFulfils(t, UnicodeValue('"'), testLittleUValue)
-	testutil.AssertAlsoFulfils(t, UnicodeValue('"'), testBigUValue)
-	testutil.AssertAlsoFulfils(t, UnicodeValue('"'), testEscapedChar('"'))
-	testutil.AssertAlsoFulfils(t, UnicodeValue('"'), func(t *testing.T, f parser.Func[string]) {
+	parsetest.AssertAlsoFulfils(t, UnicodeValue('"'), testLittleUValue)
+	parsetest.AssertAlsoFulfils(t, UnicodeValue('"'), testBigUValue)
+	parsetest.AssertAlsoFulfils(t, UnicodeValue('"'), testEscapedChar('"'))
+	parsetest.AssertAlsoFulfils(t, UnicodeValue('"'), func(t *testing.T, f parser.Func[string]) {
 		testUnicodeChar(t, '"', func(p *parser.Parser) (rune, *diagnostic.Diagnostic) {
 			s, err := parser.TryErr(p, f)
 			if err != nil {
@@ -77,8 +77,8 @@ func TestUnicodeValue(t *testing.T) {
 func TestByteValue(t *testing.T) {
 	t.Parallel()
 
-	testutil.AssertAlsoFulfils(t, ByteValue(), testOctalByteValue)
-	testutil.AssertAlsoFulfils(t, ByteValue(), testHexByteValue)
+	parsetest.AssertAlsoFulfils(t, ByteValue(), testOctalByteValue)
+	parsetest.AssertAlsoFulfils(t, ByteValue(), testHexByteValue)
 }
 
 func TestOctalByteValue(t *testing.T) {
@@ -87,15 +87,15 @@ func TestOctalByteValue(t *testing.T) {
 }
 
 func testOctalByteValue(t *testing.T, f parser.Func[string]) {
-	testCases := []string{
+	tests := []string{
 		`\123`,
 		`\567`,
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c, func(t *testing.T) {
 			t.Parallel()
-			testutil.ParsesFully(t, c, f)
+			parsetest.ParsesFully(t, c, f)
 		})
 	}
 }
@@ -106,16 +106,16 @@ func TestHexByteValue(t *testing.T) {
 }
 
 func testHexByteValue(t *testing.T, f parser.Func[string]) {
-	testCases := []string{
+	tests := []string{
 		`\x12`,
 		`\xef`,
 		`\xEF`,
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c, func(t *testing.T) {
 			t.Parallel()
-			testutil.ParsesFully(t, c, f)
+			parsetest.ParsesFully(t, c, f)
 		})
 	}
 }
@@ -131,30 +131,30 @@ func testUnicodeChar(t *testing.T, except rune, f parser.Func[rune]) {
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		testCases := []rune{'a', 'ä', '🐶'}
+		tests := []rune{'a', 'ä', '🐶'}
 		switch except {
 		case '\'':
-			testCases = append(testCases, '"')
+			tests = append(tests, '"')
 		case '"':
-			testCases = append(testCases, '\'')
+			tests = append(tests, '\'')
 		}
 
-		for _, c := range testCases {
+		for _, c := range tests {
 			t.Run(string(c), func(t *testing.T) {
 				t.Parallel()
-				testutil.ParsesFully(t, string(c), f)
+				parsetest.ParsesFully(t, string(c), f)
 			})
 		}
 	})
 	t.Run("failure", func(t *testing.T) {
 		t.Parallel()
 
-		testCases := []rune{'\n', except}
+		tests := []rune{'\n', except}
 
-		for _, c := range testCases {
+		for _, c := range tests {
 			t.Run(string(c), func(t *testing.T) {
 				t.Parallel()
-				testutil.NoMatch(t, string(c), f)
+				parsetest.NoMatch(t, string(c), f)
 			})
 		}
 	})
@@ -166,12 +166,12 @@ func TestLittleUValue(t *testing.T) {
 }
 
 func testLittleUValue(t *testing.T, f parser.Func[string]) {
-	testCases := []string{`\u1234`, `\uefef`, `\uEFEF`}
+	tests := []string{`\u1234`, `\uefef`, `\uEFEF`}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c, func(t *testing.T) {
 			t.Parallel()
-			testutil.ParsesFully(t, c, f)
+			parsetest.ParsesFully(t, c, f)
 		})
 	}
 }
@@ -182,12 +182,12 @@ func TestBigUValue(t *testing.T) {
 }
 
 func testBigUValue(t *testing.T, f parser.Func[string]) {
-	testCases := []string{`\U12345678`, `\Uefefefef`, `\UEFEFEFEF`}
+	tests := []string{`\U12345678`, `\Uefefefef`, `\UEFEFEFEF`}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c, func(t *testing.T) {
 			t.Parallel()
-			testutil.ParsesFully(t, c, f)
+			parsetest.ParsesFully(t, c, f)
 		})
 	}
 }
@@ -201,12 +201,12 @@ func TestEscapedChar(t *testing.T) {
 
 func testEscapedChar(term rune) func(t *testing.T, f parser.Func[string]) {
 	return func(t *testing.T, f parser.Func[string]) {
-		testCases := []string{`\a`, `\b`, `\f`, `\n`, `\r`, `\t`, `\v`, `\\`, `\` + string(term)}
+		tests := []string{`\a`, `\b`, `\f`, `\n`, `\r`, `\t`, `\v`, `\\`, `\` + string(term)}
 
-		for _, c := range testCases {
+		for _, c := range tests {
 			t.Run(c, func(t *testing.T) {
 				t.Parallel()
-				testutil.ParsesFully(t, c, f)
+				parsetest.ParsesFully(t, c, f)
 			})
 		}
 	}
@@ -219,8 +219,8 @@ func testEscapedChar(term rune) func(t *testing.T, f parser.Func[string]) {
 func TestStringLit(t *testing.T) {
 	t.Parallel()
 
-	testutil.AssertAlsoFulfils(t, StringLit(), testRawStringLit)
-	testutil.AssertAlsoFulfils(t, StringLit(), testInterpretedStringLit)
+	parsetest.AssertAlsoFulfils(t, StringLit(), testRawStringLit)
+	parsetest.AssertAlsoFulfils(t, StringLit(), testInterpretedStringLit)
 }
 
 func TestRawStringLit(t *testing.T) {
@@ -229,17 +229,17 @@ func TestRawStringLit(t *testing.T) {
 }
 
 func testRawStringLit(t *testing.T, f parser.Func[*ast.StaticString]) {
-	testCases := []string{
+	tests := []string{
 		"``",
 		"`woof`",
 		"`woof\n`",
 		"`woof\nbark`",
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c, func(t *testing.T) {
 			t.Parallel()
-			testutil.ParsesFully(t, c, f)
+			parsetest.ParsesFully(t, c, f)
 		})
 	}
 }
@@ -250,15 +250,15 @@ func TestInterpretedStringLit(t *testing.T) {
 }
 
 func testInterpretedStringLit(t *testing.T, f parser.Func[*ast.StaticString]) {
-	testCases := []string{
+	tests := []string{
 		`""`,
 		`"woof"`,
 	}
 
-	for _, c := range testCases {
+	for _, c := range tests {
 		t.Run(c, func(t *testing.T) {
 			t.Parallel()
-			testutil.ParsesFully(t, c, f)
+			parsetest.ParsesFully(t, c, f)
 		})
 	}
 }

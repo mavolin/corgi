@@ -6,8 +6,10 @@ type HashSet[K comparable] struct {
 	s map[K]struct{}
 }
 
-func NewHashSet[K comparable](cap int) *HashSet[K] {
-	return &HashSet[K]{s: make(map[K]struct{}, cap)}
+var _ Set[any] = (*HashSet[any])(nil)
+
+func NewHashSet[K comparable](capacity int) *HashSet[K] {
+	return &HashSet[K]{s: make(map[K]struct{}, capacity)}
 }
 
 func (s *HashSet[K]) Add(k K) {

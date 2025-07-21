@@ -4,9 +4,9 @@ import (
 	"testing"
 
 	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/internal/test/should"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
-	"github.com/mavolin/corgi/v2/load/parse/internal/testutil"
-	"github.com/stretchr/testify/assert"
+	"github.com/mavolin/corgi/v2/load/parse/internal/parsetest"
 )
 
 func TestGoCode(t *testing.T) {
@@ -16,10 +16,10 @@ func TestGoCode(t *testing.T) {
 
 func testGoCode() func(t *testing.T, f parser.Func[[]ast.CodeNode]) {
 	return func(t *testing.T, f parser.Func[[]ast.CodeNode]) {
-		testCases := []struct {
-			name   string
-			code   string
-			expect []ast.CodeNode
+		tests := []struct {
+			name string
+			code string
+			want []ast.CodeNode
 		}{
 			{
 				name: "identifier",
@@ -45,7 +45,7 @@ func testGoCode() func(t *testing.T, f parser.Func[[]ast.CodeNode]) {
 			}, {
 				name: "string in parentheses",
 				code: "(\"foo\")",
-				expect: []ast.CodeNode{
+				want: []ast.CodeNode{
 					&ast.GoCode{Code: "(", Position: &ast.Position{Line: 1, Col: 1}},
 					&ast.String{
 						Open:  &ast.Position{Line: 1, Col: 2},
@@ -60,17 +60,17 @@ func testGoCode() func(t *testing.T, f parser.Func[[]ast.CodeNode]) {
 			},
 		}
 
-		for _, c := range testCases {
+		for _, c := range tests {
 			t.Run(c.name, func(t *testing.T) {
 				t.Parallel()
 
-				expect := c.expect
-				if expect == nil {
-					expect = []ast.CodeNode{&ast.GoCode{Code: c.code, Position: &ast.Position{Line: 1, Col: 1}}}
+				want := c.want
+				if want == nil {
+					want = []ast.CodeNode{&ast.GoCode{Code: c.code, Position: &ast.Position{Line: 1, Col: 1}}}
 				}
 
-				actual := parsesCodeNodeFully(t, c.code, f)
-				assert.Equal(t, expect, actual)
+				got := parsesCodeNodeFully(t, c.code, f)
+				should.Equal(t, want, got)
 			})
 		}
 	}
@@ -87,28 +87,28 @@ func testBlockFunction() func(t *testing.T, f parser.Func[*ast.BlockFunction]) {
 			t.Parallel()
 
 			in := "block(foo)"
-			expect := &ast.BlockFunction{
+			want := &ast.BlockFunction{
 				LParen:    &ast.Position{Line: 1, Col: 6},
 				BlockName: &ast.Identifier{Name: "foo", Position: &ast.Position{Line: 1, Col: 7}},
 				RParen:    &ast.Position{Line: 1, Col: 10},
 				Block:     &ast.Position{Line: 1, Col: 1},
 			}
 
-			actual := parsesCodeNodeFully(t, in, f)
-			assert.Equal(t, expect, actual)
+			got := parsesCodeNodeFully(t, in, f)
+			should.Equal(t, want, got)
 		})
 		t.Run("failure", func(t *testing.T) {
 			t.Parallel()
 
-			testCases := []struct {
-				name   string
-				in     string
-				expect *ast.BlockFunction
+			tests := []struct {
+				name string
+				in   string
+				want *ast.BlockFunction
 			}{
 				{
 					name: "missing block name",
 					in:   "block()",
-					expect: &ast.BlockFunction{
+					want: &ast.BlockFunction{
 						LParen: &ast.Position{Line: 1, Col: 6},
 						RParen: &ast.Position{Line: 1, Col: 7},
 						Block:  &ast.Position{Line: 1, Col: 1},
@@ -116,14 +116,14 @@ func testBlockFunction() func(t *testing.T, f parser.Func[*ast.BlockFunction]) {
 				}, {
 					name: "missing closing parenthesis",
 					in:   "block(",
-					expect: &ast.BlockFunction{
+					want: &ast.BlockFunction{
 						LParen: &ast.Position{Line: 1, Col: 6},
 						Block:  &ast.Position{Line: 1, Col: 1},
 					},
 				}, {
 					name: "too many arguments",
 					in:   "block(foo, bar)",
-					expect: &ast.BlockFunction{
+					want: &ast.BlockFunction{
 						LParen:    &ast.Position{Line: 1, Col: 6},
 						BlockName: &ast.Identifier{Name: "foo", Position: &ast.Position{Line: 1, Col: 7}},
 						RParen:    &ast.Position{Line: 1, Col: 15},
@@ -132,12 +132,12 @@ func testBlockFunction() func(t *testing.T, f parser.Func[*ast.BlockFunction]) {
 				},
 			}
 
-			for _, c := range testCases {
+			for _, c := range tests {
 				t.Run(c.name, func(t *testing.T) {
 					t.Parallel()
 
-					actual := testutil.MatchesButError(t, c.in, f)
-					assert.Equal(t, c.expect, actual)
+					got := parsetest.MatchesButError(t, c.in, f)
+					should.Equal(t, c.want, got)
 				})
 			}
 		})
@@ -155,7 +155,7 @@ func testTernary() func(t *testing.T, f parser.Func[*ast.Ternary]) {
 			t.Parallel()
 
 			in := "?(condition, ifTrue, ifFalse)"
-			expect := &ast.Ternary{
+			want := &ast.Ternary{
 				QuestionMark: &ast.Position{Line: 1, Col: 1},
 				LParen:       &ast.Position{Line: 1, Col: 2},
 				Condition: &ast.Expression{
@@ -176,22 +176,22 @@ func testTernary() func(t *testing.T, f parser.Func[*ast.Ternary]) {
 				RParen: &ast.Position{Line: 1, Col: 29},
 			}
 
-			actual := parsesCodeNodeFully(t, in, f)
-			assert.Equal(t, expect, actual)
+			got := parsesCodeNodeFully(t, in, f)
+			should.Equal(t, want, got)
 		})
 
 		t.Run("failure", func(t *testing.T) {
 			t.Parallel()
 
-			testCases := []struct {
-				name   string
-				in     string
-				expect *ast.Ternary
+			tests := []struct {
+				name string
+				in   string
+				want *ast.Ternary
 			}{
 				{
 					name: "no args",
 					in:   "?()",
-					expect: &ast.Ternary{
+					want: &ast.Ternary{
 						QuestionMark: &ast.Position{Line: 1, Col: 1},
 						LParen:       &ast.Position{Line: 1, Col: 2},
 						RParen:       &ast.Position{Line: 1, Col: 3},
@@ -199,7 +199,7 @@ func testTernary() func(t *testing.T, f parser.Func[*ast.Ternary]) {
 				}, {
 					name: "only condition",
 					in:   "?(condition)",
-					expect: &ast.Ternary{
+					want: &ast.Ternary{
 						QuestionMark: &ast.Position{Line: 1, Col: 1},
 						LParen:       &ast.Position{Line: 1, Col: 2},
 						Condition: &ast.Expression{
@@ -212,7 +212,7 @@ func testTernary() func(t *testing.T, f parser.Func[*ast.Ternary]) {
 				}, {
 					name: "missing ifFalse",
 					in:   "?(condition, ifTrue)",
-					expect: &ast.Ternary{
+					want: &ast.Ternary{
 						QuestionMark: &ast.Position{Line: 1, Col: 1},
 						LParen:       &ast.Position{Line: 1, Col: 2},
 						Condition: &ast.Expression{
@@ -230,7 +230,7 @@ func testTernary() func(t *testing.T, f parser.Func[*ast.Ternary]) {
 				}, {
 					name: "too many args",
 					in:   "?(condition, ifTrue, ifFalse, foo)",
-					expect: &ast.Ternary{
+					want: &ast.Ternary{
 						QuestionMark: &ast.Position{Line: 1, Col: 1},
 						LParen:       &ast.Position{Line: 1, Col: 2},
 						Condition: &ast.Expression{
@@ -253,12 +253,12 @@ func testTernary() func(t *testing.T, f parser.Func[*ast.Ternary]) {
 				},
 			}
 
-			for _, c := range testCases {
+			for _, c := range tests {
 				t.Run(c.name, func(t *testing.T) {
 					t.Parallel()
 
-					actual := testutil.MatchesButError(t, c.in, f)
-					assert.Equal(t, c.expect, actual)
+					got := parsetest.MatchesButError(t, c.in, f)
+					should.Equal(t, c.want, got)
 				})
 			}
 		})
@@ -268,11 +268,11 @@ func testTernary() func(t *testing.T, f parser.Func[*ast.Ternary]) {
 func parsesCodeNodeFully[T any](t *testing.T, input string, f parser.Func[T]) T {
 	t.Helper()
 
-	p := testutil.NewParser(t, input+"; 1other stuff")
-	v := testutil.AssertNoError(t, p, f)
+	p := parsetest.NewParser(t, input+"; 1other stuff")
+	v := parsetest.AssertNoError(t, p, f)
 
-	line, col, index := testutil.CalcEnd(1, 1, 0, input)
-	testutil.AssertPosition(t, p, line, col, index)
+	line, col, index := parsetest.CalcEnd(1, 1, 0, input)
+	parsetest.AssertPosition(t, p, line, col, index)
 
 	return v
 }
