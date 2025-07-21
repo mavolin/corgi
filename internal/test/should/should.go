@@ -324,17 +324,15 @@ func callerInfo(skip int) (path string, line int, ok bool) {
 	n := runtime.Callers(2+skip, callers)
 
 	frames := runtime.CallersFrames(callers[:n])
-	var returnNext bool
 	for {
 		frame, more := frames.Next()
 		switch {
 		case strings.HasSuffix(frame.File, "test/should/should.go"):
-			fallthrough
 		case strings.HasSuffix(frame.File, "test/must/must.go"):
-			returnNext = true
-		case returnNext:
+		default:
 			return frame.File, frame.Line, true
-		case !more:
+		}
+		if !more {
 			return "", 0, false
 		}
 	}
