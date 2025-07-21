@@ -12,13 +12,13 @@ import (
 	"github.com/mavolin/corgi/v2/internal/set"
 )
 
-func (l *linker) CheckDuplicateAttributeDefinitionElementSelectors(_ context.Context) {
-	logger := l.logger.WithGroup("check.duplicate_attribute_definition_element_selectors")
-	logger.Info("Checking for duplicate elements within attribute definitions within the same selector")
+func (l *linker) CheckDuplicatesInAttributeSpecElementSelectors(_ context.Context) {
+	logger := l.logger.WithGroup("check.duplicates_in_attribute_spec_element_selectors")
+	logger.Info("Checking for duplicate elements within the same attribute spec and rule")
 
 	duplElems := make([]*ast.ElementName, 0, 8)
 
-	for _, def := range l.p.AttributeDefinitions {
+	for _, def := range l.p.AttributeSpecs {
 		if def.AST == nil || def.AST.Ruleset == nil {
 			continue
 		}
@@ -45,7 +45,7 @@ func (l *linker) CheckDuplicateAttributeDefinitionElementSelectors(_ context.Con
 				continue
 			}
 
-			(&duplicateAttributeDefinitionElementSelectorChecker{
+			(&duplicatesInAttributeSpecElementSelectorsChecker{
 				duplElems: duplElems[:0],
 				reported:  l.takeStringSet(),
 			}).checkRule(l, logger, def, rule, sel)
@@ -53,12 +53,14 @@ func (l *linker) CheckDuplicateAttributeDefinitionElementSelectors(_ context.Con
 	}
 }
 
-type duplicateAttributeDefinitionElementSelectorChecker struct { // attribute definition rule level
+type duplicatesInAttributeSpecElementSelectorsChecker struct { // attribute definition rule level
 	duplElems []*ast.ElementName
 	reported  set.Set[elementName]
 }
 
-func (c *duplicateAttributeDefinitionElementSelectorChecker) checkRule(l *linker, logger *slog.Logger, def *file.AttributeSpec, rule *ast.AttributeRule, sel *ast.ListElementSelector) {
+func (c *duplicatesInAttributeSpecElementSelectorsChecker) checkRule(
+	l *linker, logger *slog.Logger, spec *file.AttributeSpec, rule *ast.AttributeRule, sel *ast.ListElementSelector,
+) {
 	for ai, a := range sel.Elements[:len(sel.Elements)-1] {
 		if a == nil || a.Name == "" {
 			continue
@@ -92,26 +94,29 @@ func (c *duplicateAttributeDefinitionElementSelectorChecker) checkRule(l *linker
 		}
 
 		if len(c.duplElems) > 0 {
-			c.reportDuplicate(l, logger, def, rule, a, c.duplElems)
+			c.reportDuplicate(l, logger, spec, rule, a, c.duplElems)
 		}
 	}
 }
 
-func (c *duplicateAttributeDefinitionElementSelectorChecker) reportDuplicate(l *linker, logger *slog.Logger, def *file.AttributeSpec, rule *ast.AttributeRule, first *ast.ElementName, duplElems []*ast.ElementName) {
+func (c *duplicatesInAttributeSpecElementSelectorsChecker) reportDuplicate(
+	l *linker, logger *slog.Logger, spec *file.AttributeSpec, rule *ast.AttributeRule,
+	first *ast.ElementName, duplElems []*ast.ElementName,
+) {
 	logger.Error("Found duplicate element")
 
 	primaries := make([]diagnostic.Annotation, 1, len(duplElems))
-	primaries[0] = anno.Anno(def.File, anno.Annotation{
+	primaries[0] = anno.Anno(spec.File, anno.Annotation{
 		Context:    anno.ContextLines(rule.Start(), rule.End()),
 		Highlight:  anno.HighlightNode(first),
 		Annotation: "first specified here",
 	})
 	for _, b := range duplElems {
-		primaries = append(primaries, anno.Node(def.File, b, "then again here"))
+		primaries = append(primaries, anno.Node(spec.File, b, "then again here"))
 	}
 
 	l.report(&diagnostic.Diagnostic{
-		Message: "attribute definition: element specified multiple times in the same selector",
+		Message: "attribute definition: element specified multiple times in the same element selector",
 		Primary: primaries,
 		Hints: []diagnostic.Hint{
 			{Hint: "Remember that element names are case-insensitive."},
@@ -119,10 +124,10 @@ func (c *duplicateAttributeDefinitionElementSelectorChecker) reportDuplicate(l *
 	})
 }
 
-func (c *duplicateAttributeDefinitionElementSelectorChecker) resetDuplicates() {
+func (c *duplicatesInAttributeSpecElementSelectorsChecker) resetDuplicates() {
 	c.duplElems = c.duplElems[:0]
 }
 
-func (c *duplicateAttributeDefinitionElementSelectorChecker) recordDuplicate(b *ast.ElementName) {
+func (c *duplicatesInAttributeSpecElementSelectorsChecker) recordDuplicate(b *ast.ElementName) {
 	c.duplElems = append(c.duplElems, b)
 }
