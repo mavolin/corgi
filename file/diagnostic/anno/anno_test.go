@@ -153,7 +153,7 @@ func TestNChars(t *testing.T) {
 		Annotation:   "anno",
 	}
 
-	anno := NChars(want.File, want.Start, n, want.Annotation)
+	anno := NRunes(want.File, want.Start, n, want.Annotation)
 	should.Equal(t, want, anno)
 	should.True(t, want.File == anno.File)
 }

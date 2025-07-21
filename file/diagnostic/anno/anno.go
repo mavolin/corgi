@@ -75,10 +75,10 @@ func Position(f *file.File, pos ast.Position, anno string) diagnostic.Annotation
 	})
 }
 
-// NChars is a shorthand for [HighlightNChars].
-func NChars(f *file.File, start ast.Position, n int, anno string) diagnostic.Annotation {
+// NRunes is a shorthand for [HighlightNRunes].
+func NRunes(f *file.File, start ast.Position, n int, anno string) diagnostic.Annotation {
 	return Anno(f, Annotation{
-		Highlight:  HighlightNChars(start, n),
+		Highlight:  HighlightNRunes(start, n),
 		Annotation: anno,
 	})
 }
@@ -188,20 +188,20 @@ func HighlightFirstWord(start ast.Position, s string) HighlightFunc {
 			length = i
 		}
 	}
-	return HighlightNChars(start, length)
+	return HighlightNRunes(start, length)
 }
 
-// HighlightPosition is a shorthand for HighlightNChars(start, 1).
+// HighlightPosition is a shorthand for HighlightNRunes(start, 1).
 func HighlightPosition(start ast.Position) HighlightFunc {
-	return HighlightNChars(start, 1)
+	return HighlightNRunes(start, 1)
 }
 
-// HighlightNChars highlights the area from start to start+n.
+// HighlightNRunes highlights the area from start to start+n.
 // n must be at least 1.
 // n must be specified in bytes.
-func HighlightNChars(start ast.Position, n int) HighlightFunc {
+func HighlightNRunes(start ast.Position, n int) HighlightFunc {
 	if n <= 0 {
-		panic("anno: HighlightNChars: n must be at least 1")
+		panic("anno: HighlightNRunes: n must be at least 1")
 	}
 	return func(*file.File) (Context, Highlight) {
 		return singleLine(start), Highlight{start, ast.Position{Line: start.Line, Col: start.Col + n}}

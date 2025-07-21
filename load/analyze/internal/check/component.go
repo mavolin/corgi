@@ -211,7 +211,7 @@ func (ch *checker) CheckUpperComponentParamName(logger *slog.Logger, c *file.Com
 		ch.Report(&diagnostic.Diagnostic{
 			Message: "component parameter: use of uppercase name",
 			Primary: []diagnostic.Annotation{
-				anno.NChars(c.File, c.Header().Name.Start(), 1, "this letter must not be uppercase"),
+				anno.NRunes(c.File, c.Header().Name.Start(), 1, "this letter must not be uppercase"),
 			},
 			Hints: []diagnostic.Hint{{Hint: "Rename this parameter."}},
 		})
@@ -231,7 +231,7 @@ func (ch *checker) CheckUnderscoreComponentParamName(logger *slog.Logger, c *fil
 		ch.Report(&diagnostic.Diagnostic{
 			Message: "component parameter: use of name with underscore-prefix",
 			Primary: []diagnostic.Annotation{
-				anno.NChars(c.File, c.Header().Name.Start(), 1, "cannot use an underscore as first letter"),
+				anno.NRunes(c.File, c.Header().Name.Start(), 1, "cannot use an underscore as first letter"),
 			},
 			Hints: []diagnostic.Hint{{Hint: "Rename this parameter."}},
 		})

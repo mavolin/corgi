@@ -81,7 +81,6 @@ import (
 // todo: File should have list of used imports
 // todo: block function needs to also accept no ident
 // todo: check/misc_scope: todos
-// todo: internal error
 
 // todo: should withs include underscore block shorthand?? prob yes
 

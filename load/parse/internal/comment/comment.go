@@ -80,7 +80,7 @@ func GeneralComment() parser.Func[*ast.Comment] {
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "unclosed block comment",
 				Primary: []diagnostic.Annotation{
-					anno.NChars(p.File, *c.Open, len("/*"), "this comment is never closed"),
+					anno.NRunes(p.File, *c.Open, len("/*"), "this comment is never closed"),
 				},
 				Explanation: "Unlike line comments, general comments must be closed using `*/`.\n" +
 					"Either change the `/*` to a `//` if you want a single-line comment, or add " +

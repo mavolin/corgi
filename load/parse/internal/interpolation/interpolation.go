@@ -106,7 +106,7 @@ func StringInterpolation() parser.Func[ast.StringInterpolation] {
 		p.CaptureError(&diagnostic.Diagnostic{
 			Message: "bad interpolation",
 			Primary: []diagnostic.Annotation{
-				anno.NChars(p.File, p.Pos(), 1, "expected a valid interpolation, but found this"),
+				anno.NRunes(p.File, p.Pos(), 1, "expected a valid interpolation, but found this"),
 			},
 			Hints: []diagnostic.Hint{
 				{Hint: "If you just wanted to use hash, you need to escape it.", Example: "`##`"},

@@ -170,11 +170,11 @@ func Switch() parser.Func[*ast.Switch] {
 			}
 			switch len(annos) {
 			case 0:
-				annos = append(annos, anno.NChars(p.File, *c.Default, len("default"), "first default case"))
+				annos = append(annos, anno.NRunes(p.File, *c.Default, len("default"), "first default case"))
 			case 1:
-				annos = append(annos, anno.NChars(p.File, *c.Default, len("default"), "second default case"))
+				annos = append(annos, anno.NRunes(p.File, *c.Default, len("default"), "second default case"))
 			default:
-				annos[1] = anno.NChars(p.File, *c.Default, len("default"), "another default case")
+				annos[1] = anno.NRunes(p.File, *c.Default, len("default"), "another default case")
 			}
 		}
 		if len(annos) > 0 {
