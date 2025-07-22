@@ -33,6 +33,10 @@ type Package struct {
 
 	Name string // analyze
 
+	// Analyzed indicates whether the package has been analyzed, albeit with
+	// errors.
+	Analyzed bool // analyze
+
 	*PackageSymbols
 
 	Files []*File

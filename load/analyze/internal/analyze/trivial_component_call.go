@@ -60,7 +60,7 @@ func (z *analyzer) TrivialAnalyzeComponentCalls() {
 func (z *analyzer) LinkWithBlocks(logger *slog.Logger, cc *file.ComponentCall) {
 	logger = logger.WithGroup("link_with_blocks")
 
-	if cc.Component.AnalyzedWithErrors {
+	if !cc.Component.File.Package.Analyzed || cc.Component.AnalyzedWithErrors {
 		cc.AnalyzedWithErrors = true
 		return
 	}

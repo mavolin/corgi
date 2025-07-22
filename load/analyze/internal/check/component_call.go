@@ -95,10 +95,7 @@ func (ch *checker) CheckComponentCallBody(logger *slog.Logger, cc *file.Componen
 func (ch *checker) CheckUnreachableWiths(logger *slog.Logger, cc *file.ComponentCall) {
 	logger = logger.WithGroup("unreachable_withs")
 
-	// We don't need successful analysis to run this check.
-	// But if it ran, we can safely check if this component call has any withs at all,
-	// before we do an unnecessary walk.
-	if !cc.AnalyzedWithErrors && len(cc.Withs) == 0 {
+	if len(cc.Withs) == 0 {
 		return
 	}
 
@@ -153,10 +150,7 @@ func (ch *checker) CheckUnreachableWiths(logger *slog.Logger, cc *file.Component
 func (ch *checker) CheckWithNotLooped(logger *slog.Logger, cc *file.ComponentCall) {
 	logger = logger.WithGroup("with_not_looped")
 
-	// We don't need successful analysis to run this check.
-	// But if it ran, we can safely check if this component call has any withs at all,
-	// before we do an unnecessary walk.
-	if !cc.AnalyzedWithErrors && len(cc.Withs) == 0 {
+	if len(cc.Withs) == 0 {
 		return
 	}
 
@@ -245,7 +239,7 @@ func (ch *checker) CheckComponentArgsExist(logger *slog.Logger, cc *file.Compone
 	logger = logger.WithGroup("args_exist")
 	logger.Debug("Checking that all component call arguments exist")
 
-	if cc.Component.AnalyzedWithErrors {
+	if !cc.Component.File.Package.Analyzed || cc.Component.AnalyzedWithErrors {
 		return
 	} else if cc.AST.Header.Arguments == nil || len(cc.AST.Header.Arguments.Args) == 0 {
 		return
@@ -285,7 +279,7 @@ func (ch *checker) CheckComponentArgsExist(logger *slog.Logger, cc *file.Compone
 func (ch *checker) CheckRequiredComponentParamsSet(logger *slog.Logger, cc *file.ComponentCall) {
 	logger = logger.WithGroup("required_params_set")
 
-	if cc.Component.AnalyzedWithErrors {
+	if !cc.Component.File.Package.Analyzed || cc.Component.AnalyzedWithErrors {
 		logger.Debug("Component analyzed with errors, skipping check")
 		return
 	}
@@ -326,7 +320,7 @@ Params:
 func (ch *checker) CheckRequiredBlocksAreSet(logger *slog.Logger, cc *file.ComponentCall) {
 	logger = logger.WithGroup("required_blocks_set")
 
-	if cc.Component.AnalyzedWithErrors {
+	if !cc.Component.File.Package.Analyzed || cc.Component.AnalyzedWithErrors {
 		return
 	}
 
@@ -356,7 +350,7 @@ func (ch *checker) CheckRequiredBlocksAreSet(logger *slog.Logger, cc *file.Compo
 func (ch *checker) CheckComponentAcceptsAttributes(logger *slog.Logger, cc *file.ComponentCall) {
 	logger = logger.WithGroup("component_accepts_attributes")
 
-	if cc.Component.AnalyzedWithErrors {
+	if !cc.Component.File.Package.Analyzed || cc.Component.AnalyzedWithErrors {
 		return
 	}
 
