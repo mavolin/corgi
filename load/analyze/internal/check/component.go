@@ -44,72 +44,71 @@ func (ch *checker) CheckComponents() {
 func (ch *checker) CheckAliasDoesntOverwriteRequiredParams(logger *slog.Logger, c *file.Component) {
 	logger = logger.WithGroup("alias_doesnt_overwrite_required_params")
 
-	if c.AliasAST == nil {
-		return
-	} else if c.AnalyzedWithErrors {
+	if c.AliasAST == nil || c.AnalyzedWithErrors {
 		return
 	}
 
-	cc := c.File.ComponentCallByNode(c.AliasAST.ComponentCall)
-	if cc.Component.AnalyzedWithErrors {
+	aliasedCall := c.File.ComponentCallByNode(c.AliasAST.ComponentCall)
+	if aliasedCall == nil || aliasedCall.Component == nil || aliasedCall.Component.AnalyzedWithErrors {
 		return
 	}
 
+	aliasedComponent := aliasedCall.Component
 	logger = logger.With(
-		slog.String("aliased_component_package", cc.Component.File.Package.ImportPath),
-		slog.String("aliased_component_file", cc.Component.File.Name),
-		slog.String("aliased_component", cc.AST.Header.Name.Full()),
-		slog.String("aliased_component_pos", cc.Component.Start().String()))
+		slog.String("aliased_component", aliasedCall.AST.Header.Name.Full()),
+		slog.String("aliased_package", aliasedComponent.File.Package.ImportPath),
+		slog.String("aliased_file", aliasedComponent.File.Name))
 
-	// All required parameters must either be set by the alias' component call
+	providedParams := make(map[string]bool)
+	if aliasedCall.AST.Header != nil {
+		for _, arg := range aliasedCall.AST.Header.Arguments.Args {
+			carg, _ := arg.(*ast.ComponentArgument)
+			if carg != nil && carg.Name != nil {
+				providedParams[carg.Name.Name] = true
+			}
+		}
+	}
+
+	// All required parameters must either be set by the aliased component call
 	// or inherited by the alias.
-AliasedParams:
-	for _, aliasedParam := range cc.Component.Parameters {
+	for _, aliasedParam := range aliasedComponent.Parameters {
 		if !aliasedParam.Required() {
 			continue
 		}
 
-		logger := logger.With(
-			slog.String("aliased_param", aliasedParam.AST.Name.Name),
-			slog.String("aliased_param_pos", aliasedParam.AST.Name.Start().String()))
+		name := aliasedParam.AST.Name.Name
+		logger := logger.With(slog.String("required_param", name))
 
-		if cc.AST.Header.Arguments != nil {
-			for _, arg := range cc.AST.Header.Arguments.Args {
-				carg, _ := arg.(*ast.ComponentArgument)
-				if carg == nil {
-					continue
-				}
-				if aliasedParam.AST.Name.Name == carg.Name.Name {
-					continue AliasedParams
-				}
-			}
+		// aliased component call sets this parameter
+		if providedParams[name] {
+			continue
 		}
 
-		if c.AliasAST.Header.Parameters != nil {
-			for _, param := range c.AliasAST.Header.Parameters.Params {
-				if aliasedParam.AST.Name.Name != param.Name.Name {
-					continue
-				}
-
-				logger.Error("Alias overwrites required parameter of aliased component")
-				ch.Report(&diagnostic.Diagnostic{
-					Message: "component alias overwrites required parameter",
-					Primary: []diagnostic.Annotation{
-						anno.Anno(c.File, anno.Annotation{
-							Highlight:  anno.HighlightNode(param),
-							Context:    anno.ContextLines(c.Start(), param.End()),
-							Annotation: "overwrites required parameter of same name on aliased component",
-						}),
-					},
-					Hints: []diagnostic.Hint{
-						{Hint: "Rename this parameter."},
-						{
-							Hint: "Set the parameter of the same name in the component call to the aliased component, " +
-								"so you fulfill the requirement constraint of the parameter.",
-						},
-					},
-				})
+		for _, param := range c.AliasAST.Header.Parameters.Params {
+			if name != param.Name.Name {
+				continue
 			}
+
+			logger.Error("Alias overwrites required parameter of aliased component")
+			ch.Report(&diagnostic.Diagnostic{
+				Message: "component alias overwrites required parameter",
+				Primary: []diagnostic.Annotation{
+					anno.Anno(c.File, anno.Annotation{
+						Highlight:  anno.HighlightNode(param),
+						Context:    anno.ContextLines(c.Start(), param.End()),
+						Annotation: "overwrites required parameter of same name on aliased component",
+					}),
+				},
+				Secondary: []diagnostic.Annotation{
+					anno.Node(aliasedComponent.File, aliasedParam.AST, "required parameter defined here"),
+				},
+				Hints: []diagnostic.Hint{
+					{Hint: "Rename this parameter to avoid the conflict."},
+					{Hint: "Set this parameter in the component call to the aliased component: "},
+				},
+			})
+
+			break // no need to check other parameters with the same name
 		}
 	}
 }
@@ -127,14 +126,14 @@ func (ch *checker) CheckDuplicateComponentParams(logger *slog.Logger, c *file.Co
 		return
 	}
 
-	reported := ch.TakeStringSet()
+	reported := make(map[string]bool, len(c.Parameters))
 	dupls := make([]*file.ComponentParameter, 0, len(c.Parameters))
 	for i, a := range c.Parameters {
 		// Only consider parameters defined by this component to avoid
 		// unnecessary noise
 		if a.Component != c {
 			continue
-		} else if reported.Contains(a.AST.Name.Name) {
+		} else if reported[a.AST.Name.Name] {
 			continue
 		}
 

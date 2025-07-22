@@ -8,7 +8,6 @@ import (
 	"github.com/mavolin/corgi/v2/file/ast"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
 	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
-	"github.com/mavolin/corgi/v2/internal/set"
 )
 
 // ============================================================================
@@ -119,7 +118,7 @@ func (l *linker) CheckElementSpecCollisions() {
 			slog.Int("count", len(elems)))
 
 		primaries := make([]diagnostic.Annotation, 0, 2*len(elems))
-		reportedPrefixes := set.NewSliceSet[*ast.ElementDefinition](len(elems))
+		reportedPrefixes := make(map[*ast.ElementDefinition]bool)
 		for _, elem := range elems {
 			primaries = appendElementSpecLocationAnnotations(primaries, reportedPrefixes, elem, "defined here")
 		}
@@ -132,13 +131,16 @@ func (l *linker) CheckElementSpecCollisions() {
 }
 
 func appendElementSpecLocationAnnotations(
-	annos []diagnostic.Annotation, reportedPrefixes set.Set[*ast.ElementDefinition], elem *file.ElementSpec, text string,
+	annos []diagnostic.Annotation, reportedPrefixes map[*ast.ElementDefinition]bool, elem *file.ElementSpec, text string,
 ) []diagnostic.Annotation {
 	if elem.Definition.LParen == nil && elem.Definition.Prefix != nil {
 		return append(annos, anno.Range(elem.File, elem.Definition.Prefix.Start(), elem.AST.Name.End(), text))
 	}
 
-	if elem.Definition.Prefix != nil && (reportedPrefixes == nil || !reportedPrefixes.Contains(elem.Definition)) {
+	if elem.Definition.Prefix != nil && (reportedPrefixes == nil || !reportedPrefixes[elem.Definition]) {
+		if reportedPrefixes != nil {
+			reportedPrefixes[elem.Definition] = true
+		}
 		annos = append(annos, anno.Node(elem.File, elem.Definition.Prefix, "with this prefix"))
 	}
 	return append(annos, anno.Node(elem.File, elem.AST.Name, text))
@@ -208,7 +210,7 @@ func (l *linker) CheckAttributeSpecCollisions() {
 			slog.Int("count", len(attrs)))
 
 		primaries := make([]diagnostic.Annotation, 0, 2*len(attrs))
-		reportedPrefixes := set.NewSliceSet[*ast.AttributeDefinition](len(attrs))
+		reportedPrefixes := make(map[*ast.AttributeDefinition]bool)
 		for _, attr := range attrs {
 			primaries = appendAttrSpecLocationAnnotations(primaries, reportedPrefixes, attr, "defined here")
 		}
@@ -224,14 +226,16 @@ func (l *linker) CheckAttributeSpecCollisions() {
 }
 
 func appendAttrSpecLocationAnnotations(
-	annos []diagnostic.Annotation, reportedPrefixes set.Set[*ast.AttributeDefinition], attr *file.AttributeSpec, text string,
+	annos []diagnostic.Annotation, reportedPrefixes map[*ast.AttributeDefinition]bool, attr *file.AttributeSpec, text string,
 ) []diagnostic.Annotation {
 	if attr.Definition.LParen == nil && attr.Definition.Prefix != nil {
 		return append(annos, anno.Range(attr.File, attr.Definition.Prefix.Start(), attr.AST.Selector.End(), text))
 	}
 
-	if attr.Definition.Prefix != nil && (reportedPrefixes != nil && !reportedPrefixes.Contains(attr.Definition)) {
-		reportedPrefixes.Add(attr.Definition)
+	if attr.Definition.Prefix != nil && (reportedPrefixes == nil || !reportedPrefixes[attr.Definition]) {
+		if reportedPrefixes != nil {
+			reportedPrefixes[attr.Definition] = true
+		}
 		annos = append(annos,
 			anno.Node(attr.File, attr.Definition.Prefix, "with this prefix"))
 	}

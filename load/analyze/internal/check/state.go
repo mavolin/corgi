@@ -31,7 +31,7 @@ func (ch *checker) CheckStateDuplicates(logger *slog.Logger) {
 		return
 	}
 
-	reported := ch.TakeStringSet()
+	reported := make(map[string]bool)
 	dupls := make([]*file.State, 0, len(ch.P.State)-1)
 
 	for ai, a := range ch.P.State[:len(ch.P.State)-1] {
@@ -39,7 +39,7 @@ func (ch *checker) CheckStateDuplicates(logger *slog.Logger) {
 			slog.String("file", a.File.Name),
 			slog.String("name", a.Name().Name))
 
-		if reported.Contains(a.Name().Name) {
+		if reported[a.Name().Name] {
 			continue
 		}
 
@@ -51,7 +51,7 @@ func (ch *checker) CheckStateDuplicates(logger *slog.Logger) {
 			}
 
 			dupls = append(dupls, b)
-			reported.Add(b.Name().Name)
+			reported[b.Name().Name] = true
 		}
 
 		if len(dupls) > 0 {

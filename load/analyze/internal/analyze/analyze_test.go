@@ -4,8 +4,6 @@ import (
 	"slices"
 	"strings"
 	"testing"
-
-	"github.com/mavolin/corgi/v2/internal/set"
 )
 
 func TestMethodsRunOnce(t *testing.T) {
@@ -23,20 +21,20 @@ func TestMethodsRunOnce(t *testing.T) {
 		}
 	}
 
-	seen := set.NewHashSet[string]()
+	seen := make(map[string]bool)
 
 	testMethodsRunOnce(t, root, seen)
 }
 
-func testMethodsRunOnce(t *testing.T, o *executionOrder, seen *set.HashSet[string]) {
+func testMethodsRunOnce(t *testing.T, o *executionOrder, seen map[string]bool) {
 	if strings.HasPrefix(o.name, "Complex") {
 		return
 	}
 
-	if seen.Contains(o.name) {
+	if seen[o.name] {
 		t.Errorf("%s: called multiple times in the execution order", o.name)
 	}
-	seen.Add(o.name)
+	seen[o.name] = true
 
 	for _, call := range o.calls {
 		testMethodsRunOnce(t, call, seen)
@@ -94,18 +92,18 @@ func TestFieldsSetOnce(t *testing.T) {
 	}
 
 	root := getExecutionOrder(analyzer)
-	seen := set.NewHashSet[string]()
+	seen := make(map[string]bool)
 
 	testFieldsSetOnce(t, root, seen)
 }
 
-func testFieldsSetOnce(t *testing.T, o *executionOrder, seen *set.HashSet[string]) {
+func testFieldsSetOnce(t *testing.T, o *executionOrder, seen map[string]bool) {
 	for _, field := range o.method.setsFields {
 		key := o.name + "/" + field
-		if seen.Contains(field) {
+		if seen[field] {
 			t.Errorf("%s: field set multiple times by different methods", field)
 		}
-		seen.Add(key)
+		seen[key] = true
 	}
 
 	for _, call := range o.calls {

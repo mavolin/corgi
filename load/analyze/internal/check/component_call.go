@@ -196,7 +196,7 @@ func (ch *checker) CheckNoDuplicateComponentArgs(logger *slog.Logger, cc *file.C
 	}
 	args := cc.AST.Header.Arguments.Args
 
-	reported := ch.TakeStringSet()
+	reported := make(map[string]bool)
 	dupls := make([]*ast.ComponentArgument, 0, len(args)-1)
 
 	for ai, a := range args[:len(args)-1] {
@@ -204,21 +204,21 @@ func (ch *checker) CheckNoDuplicateComponentArgs(logger *slog.Logger, cc *file.C
 		if aArg == nil {
 			continue
 		}
-		aName := aArg.Name.Name
-		if reported.Contains(aName) {
+		name := aArg.Name.Name
+		if reported[name] {
 			continue
-		} else if cc.Component.ParameterByName(aName) == nil {
+		} else if cc.Component.ParameterByName(name) == nil {
 			// non-existent arguments are handled by CheckComponentArgsExist
 			continue
 		}
 
 		logger := logger.With(
 			slog.String("arg_pos", aArg.Start().String()),
-			slog.String("arg_name", aName))
+			slog.String("arg_name", name))
 
 		for _, b := range args[ai:] {
 			bArg, _ := b.(*ast.ComponentArgument)
-			if bArg != nil && aName == bArg.Name.Name {
+			if bArg != nil && name == bArg.Name.Name {
 				dupls = append(dupls, bArg)
 			}
 		}
@@ -235,7 +235,7 @@ func (ch *checker) CheckNoDuplicateComponentArgs(logger *slog.Logger, cc *file.C
 				Message: "component call: argument specified twice",
 				Primary: primaries,
 			})
-			reported.Add(aName)
+			reported[name] = true
 			dupls = dupls[:0] // reset slice
 		}
 	}
@@ -251,7 +251,7 @@ func (ch *checker) CheckComponentArgsExist(logger *slog.Logger, cc *file.Compone
 		return
 	}
 
-	reported := ch.TakeStringSet()
+	reported := make(map[string]bool)
 	for _, arg := range cc.AST.Header.Arguments.Args {
 		carg, _ := arg.(*ast.ComponentArgument)
 		if carg == nil {
@@ -259,7 +259,7 @@ func (ch *checker) CheckComponentArgsExist(logger *slog.Logger, cc *file.Compone
 		}
 
 		name := carg.Name.Name
-		if reported.Contains(name) {
+		if reported[name] {
 			continue
 		} else if cc.Component.ParameterByName(name) != nil {
 			continue
@@ -278,7 +278,7 @@ func (ch *checker) CheckComponentArgsExist(logger *slog.Logger, cc *file.Compone
 				}),
 			},
 		})
-		reported.Add(name)
+		reported[name] = true
 	}
 }
 

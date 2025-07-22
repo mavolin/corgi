@@ -9,7 +9,6 @@ import (
 
 	"github.com/mavolin/corgi/v2/file"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
-	"github.com/mavolin/corgi/v2/internal/set"
 )
 
 type linker struct {
@@ -18,9 +17,7 @@ type linker struct {
 	importer    Importer
 	diagnostics diagnostic.List
 
-	stringSet *set.SliceSet[string]
-
-	reportedMissingImports map[*file.File]*set.SliceSet[namespace]
+	reportedMissingImports map[*file.File]map[namespace]bool
 	dotImports             map[*file.File][]*file.Import // file -> dot imports
 }
 
@@ -92,11 +89,10 @@ func Link(ctx context.Context, p *file.Package, o Options) diagnostic.List {
 		logger:                 logger,
 		importer:               o.Importer,
 		diagnostics:            make(diagnostic.List, 0, 128),
-		stringSet:              set.NewSliceSet[importPath](32),
-		reportedMissingImports: make(map[*file.File]*set.SliceSet[importPath], len(p.Files)),
+		reportedMissingImports: make(map[*file.File]map[namespace]bool, len(p.Files)),
 	}
 	for _, f := range p.Files {
-		l.reportedMissingImports[f] = set.NewSliceSet[importPath](len(f.Imports))
+		l.reportedMissingImports[f] = make(map[namespace]bool)
 		if imps := filterDotImports(f); len(imps) > 0 {
 			l.dotImports[f] = imps
 		}
@@ -133,17 +129,12 @@ func (l *linker) report(d ...*diagnostic.Diagnostic) {
 	l.diagnostics = append(l.diagnostics, d...)
 }
 
-func (l *linker) takeStringSet() *set.SliceSet[string] {
-	l.stringSet.Clear()
-	return l.stringSet
-}
-
 func (l *linker) reportMissingImport(f *file.File, namespace string, d *diagnostic.Diagnostic) {
-	if l.reportedMissingImports[f].Contains(namespace) {
+	if l.reportedMissingImports[f][namespace] {
 		return
 	}
 
-	l.reportedMissingImports[f].Add(namespace)
+	l.reportedMissingImports[f][namespace] = true
 	l.report(d)
 }
 

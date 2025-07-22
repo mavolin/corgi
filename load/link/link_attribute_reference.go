@@ -8,7 +8,6 @@ import (
 	"github.com/mavolin/corgi/v2/file/ast"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
 	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
-	"github.com/mavolin/corgi/v2/internal/set"
 )
 
 const ambiguousAttributeReferenceExplanation = "There are multiple regular expression selectors that all match this attribute and " +
@@ -191,11 +190,11 @@ func (l *linker) linkQualifiedAttributeReference(logger *slog.Logger, f *file.Fi
 }
 
 func equalSpecificityAnnotations(defs []*file.AttributeSpec) []diagnostic.Annotation {
-	reportedPrefixes := set.NewSliceSet[*ast.AttributeDefinition](len(defs))
+	reportedPrefixes := make(map[*ast.AttributeDefinition]bool)
 	as := make([]diagnostic.Annotation, 0, 2*len(defs))
 	for _, def := range defs {
-		if def.Definition.Prefix != nil && !reportedPrefixes.Contains(def.Definition) {
-			reportedPrefixes.Add(def.Definition)
+		if def.Definition.Prefix != nil && !reportedPrefixes[def.Definition] {
+			reportedPrefixes[def.Definition] = true
 			as = append(as, anno.Node(def.File, def.Definition.Prefix, "with this prefix"))
 		}
 		as = append(as,

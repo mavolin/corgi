@@ -10,14 +10,13 @@ import (
 	"log/slog"
 
 	"github.com/mavolin/corgi/v2/file"
-	"github.com/mavolin/corgi/v2/internal/set"
 	"github.com/mavolin/corgi/v2/load/analyze/internal/context"
 )
 
 type analyzer struct {
 	*context.Context
 	Logger                 *slog.Logger
-	analyzedComponentCalls *set.HashSet[*file.ComponentCall]
+	analyzedComponentCalls map[*file.ComponentCall]bool
 }
 
 func Analyze(ctx *context.Context) {
@@ -29,7 +28,7 @@ func Analyze(ctx *context.Context) {
 	z := &analyzer{
 		Context:                ctx,
 		Logger:                 ctx.Logger.WithGroup("analysis"),
-		analyzedComponentCalls: set.NewHashSet[*file.ComponentCall](),
+		analyzedComponentCalls: make(map[*file.ComponentCall]bool, numCCs),
 	}
 	z.Logger.Info("Running analysis")
 

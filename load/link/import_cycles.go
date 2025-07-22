@@ -28,7 +28,7 @@ func (l *linker) CheckImportCycles(ctx context.Context) {
 	}
 
 	// don't report the same import multiple times
-	reported := l.takeStringSet()
+	reported := make(map[string]bool)
 
 	for _, f := range l.p.Files {
 		logger := logger.With(slog.String("file", f.Name))
@@ -38,7 +38,7 @@ func (l *linker) CheckImportCycles(ctx context.Context) {
 				continue
 			}
 
-			if reported.Contains(imp.Path) {
+			if reported[imp.Path] {
 				continue
 			}
 
@@ -71,7 +71,7 @@ func (l *linker) CheckImportCycles(ctx context.Context) {
 				})
 
 				imp.LoadedWithErrors = true
-				reported.Add(imp.Path)
+				reported[imp.Path] = true
 
 				// once we've found a cycle for this import, no need to check more parent packages
 				break
