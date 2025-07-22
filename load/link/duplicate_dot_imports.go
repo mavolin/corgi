@@ -16,7 +16,6 @@ func (l *linker) CheckDuplicateDotImports() {
 		logger := logger.With(slog.String("file", f.Name))
 
 		if len(f.Imports) <= 1 {
-			logger.Debug("One or no imports, skipping")
 			continue
 		}
 

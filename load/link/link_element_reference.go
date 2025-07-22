@@ -76,12 +76,12 @@ func (l *linker) linkUnqualifiedElementReference(logger *slog.Logger, f *file.Fi
 		}
 	} else if l.builtinPath != "" {
 		// The builtin import was not loaded, but should've been.
-		logger.Debug("Could not resolve reference, but builtin import was loaded with errors: not reporting error")
+		logger.Debug("Couldn't resolve reference, but builtin import was loaded with errors: not reporting error")
 		return
 	}
 
 	if ignoreError {
-		logger.Debug("Could not resolve reference, but at least one dot import was not loaded: not reporting error")
+		logger.Debug("Couldn't resolve reference, but at least one dot import was not loaded: not reporting error")
 		return
 	}
 

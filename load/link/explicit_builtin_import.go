@@ -13,11 +13,9 @@ func (l *linker) CheckExplicitBuiltinImport() {
 
 	for _, f := range l.p.Files {
 		logger := logger.With(slog.String("file", f.Name))
-		logger.Debug("Checking file")
 
 		builtin := f.BuiltinImport()
 		if builtin == nil {
-			logger.Debug("File has no builtin import, skipping")
 			continue
 		}
 
@@ -29,7 +27,6 @@ func (l *linker) CheckExplicitBuiltinImport() {
 			logger := logger.With(
 				slog.String("pos", imp.AST.Start().String()),
 				slog.String("import", imp.Path))
-			logger.Debug("Checking import")
 			if imp.Path != builtin.Path {
 				continue
 			}

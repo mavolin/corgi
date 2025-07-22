@@ -57,7 +57,7 @@ func (l *linker) linkUnqualifiedComponentCall(logger *slog.Logger, f *file.File,
 		}
 		if l.builtinPath != "" {
 			// The builtin import was not loaded, but should've been.
-			logger.Debug("Could not resolve reference, but builtin import was loaded with errors: not reporting error")
+			logger.Debug("Couldn't resolve reference, but builtin import was loaded with errors: not reporting error")
 			return
 		}
 	} else {
@@ -81,7 +81,7 @@ func (l *linker) linkUnqualifiedComponentCall(logger *slog.Logger, f *file.File,
 		}
 
 		if ignoreError {
-			logger.Debug("Could not resolve reference, but least one dot import was not loaded: not reporting error")
+			logger.Debug("Couldn't resolve reference, but least one dot import was not loaded: not reporting error")
 			return
 		}
 	}

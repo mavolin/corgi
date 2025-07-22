@@ -30,7 +30,6 @@ func (l *linker) CheckAttributeRuleCollisions() {
 			slog.String("spec_pos", spec.AST.Start().String()))
 
 		if len(spec.AST.Ruleset.Rules) <= 1 {
-			logger.Debug("One or no rules, skipping")
 			continue
 		}
 

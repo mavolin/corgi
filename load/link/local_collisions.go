@@ -64,7 +64,6 @@ func (l *linker) CheckElementSpecCollisions() {
 	logger.Debug("Checking for element spec collisions")
 
 	if len(l.p.ElementSpecs) <= 1 {
-		logger.Debug("One or no element specs, skipping")
 		return
 	}
 
@@ -152,7 +151,6 @@ func appendElementSpecLocationAnnotations(
 
 func (l *linker) CheckAttributeSpecCollisions() {
 	logger := l.logger.WithGroup("checks.collisions.attribute_specs")
-	logger.Debug("Checking for attribute spec collisions")
 
 	if len(l.p.AttributeSpecs) <= 1 {
 		logger.Info("One or no attribute spec, skipping")
