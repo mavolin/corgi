@@ -75,9 +75,8 @@ type (
 	//
 	// A nil return without any errors is valid and indicates that the package
 	// contains no corgi files.
-	// The function may also return with a non-nil package with no files, if it
-	// was unable to ascertain whether the package contains corgi files without
-	// reading it.
+	// It is guaranteed, that if a non-nil package is returned, it contains at
+	// least one file.
 	//
 	// Both return values indicate an error has occurred, each with its own
 	// purpose:
@@ -222,6 +221,10 @@ func (l *loader) loadUncachedImport(ctx context.Context, logger *slog.Logger, im
 	if err != nil {
 		logger.Error("Reading import", slog.String("err", err.Error()))
 		return nil, nil, err
+	}
+
+	if len(data.Files) == 0 {
+		return nil, nil, nil
 	}
 
 	p := &file.Package{
