@@ -2,6 +2,7 @@ package link
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"sync"
 
@@ -12,30 +13,34 @@ import (
 )
 
 func (l *linker) LoadImports(ctx context.Context) {
-	(&importLoader{}).load(ctx, l, l.logger)
+	(&importLoader{
+		l:      l,
+		logger: l.logger.WithGroup("imports"),
+	}).load(ctx)
 }
 
 type importLoader struct {
+	l         *linker
+	logger    *slog.Logger
 	reportMut sync.Mutex
 }
 
-func (loader *importLoader) load(ctx context.Context, l *linker, logger *slog.Logger) {
-	logger = logger.WithGroup("import_loader")
-	logger.Debug("Loading imports")
+func (loader *importLoader) load(ctx context.Context) {
+	loader.logger.Debug("Loading imports")
 
-	if l.importer == nil {
-		loader.localOnlyModeCheck(l, logger)
+	if loader.l.importer == nil {
+		loader.localOnlyModeCheck()
 		return
 	}
 
-	loader.loadImports(ctx, l, logger)
+	loader.loadImports(ctx)
 }
 
-func (loader *importLoader) localOnlyModeCheck(l *linker, logger *slog.Logger) {
-	logger.Info("Running in local-only mode, not allowed to use imports")
+func (loader *importLoader) localOnlyModeCheck() {
+	loader.logger.Info("Running in local-only mode, not allowed to use imports")
 
-	for _, f := range l.p.Files {
-		logger := logger.With(slog.String("file", f.Name))
+	for _, f := range loader.l.p.Files {
+		logger := loader.logger.With(slog.String("file", f.Name))
 
 		if len(f.Imports) == 0 {
 			continue
@@ -49,7 +54,7 @@ func (loader *importLoader) localOnlyModeCheck(l *linker, logger *slog.Logger) {
 		}
 		if len(primaries) > 0 {
 			logger.Error("Local-only mode: File contains imports")
-			l.report(&diagnostic.Diagnostic{
+			loader.l.report(&diagnostic.Diagnostic{
 				Message:     "local-only mode: file contains imports",
 				Primary:     primaries,
 				Explanation: "In local-only mode, files are not allowed to make any imports.",
@@ -58,51 +63,51 @@ func (loader *importLoader) localOnlyModeCheck(l *linker, logger *slog.Logger) {
 	}
 }
 
-func (loader *importLoader) loadImports(ctx context.Context, l *linker, logger *slog.Logger) {
-	logger.Info("Concurrently loading imports")
+func (loader *importLoader) loadImports(ctx context.Context) {
+	loader.logger.Info("Concurrently loading imports")
 
 	var wg conc.WaitGroup
 
-	for _, f := range l.p.Files {
-		logger := logger.With(slog.String("file", f.Name))
-
+	for _, f := range loader.l.p.Files {
 		for _, imp := range f.Imports {
 			if !imp.Explicit() || imp.Path == "" || imp.LoadedWithErrors {
 				continue
 			}
 
-			logger := logger.With(
-				slog.String("import", imp.Path),
-				slog.String("import_pos", imp.AST.Start().String()))
-
 			wg.Go(func() {
-				loader.loadImport(ctx, l, logger, f, imp)
+				loader.loadImport(ctx, f, imp)
 			})
 		}
 	}
 
-	logger.Debug("Waiting for all goroutines to finish")
+	builtin, builtinDiagnostics, builtinErr := loader.loadBuiltin(ctx)
+	loader.logger.Debug("Waiting for all goroutines to finish")
 	wg.Wait()
-	logger.Debug("Finished loading imports")
+	if loader.l.builtinPath != "" {
+		loader.setBuiltinImport(builtin, builtinDiagnostics, builtinErr)
+	}
+	loader.logger.Info("Finished loading imports")
 }
 
-func (loader *importLoader) loadImport(ctx context.Context, l *linker, logger *slog.Logger, f *file.File, imp *file.Import) {
-	logger = logger.With(
+func (loader *importLoader) loadImport(ctx context.Context, f *file.File, imp *file.Import) {
+	logger := loader.logger.With(
+		slog.String("file", f.Name),
 		slog.String("import", imp.Path),
 		slog.String("import_pos", imp.AST.Start().String()))
 	logger.Debug("Loading import")
 
 	var d diagnostic.List
 	var err error
-	imp.Package, d, err = l.importer(ctx, imp.Path)
+	imp.Package, d, err = loader.l.importer(ctx, imp.Path)
 	if len(d) > 0 || err != nil {
 		imp.LoadedWithErrors = true
 
 		loader.reportMut.Lock()
+		defer loader.reportMut.Unlock()
 
 		if err != nil {
-			logger.Error("Failed to load import", slog.String("error", err.Error()))
-			l.report(&diagnostic.Diagnostic{
+			logger.Error("Failed to load import", slog.String("err", err.Error()))
+			loader.l.report(&diagnostic.Diagnostic{
 				Message: "import: failed to load package",
 				Cause:   err,
 				Primary: []diagnostic.Annotation{
@@ -111,11 +116,10 @@ func (loader *importLoader) loadImport(ctx context.Context, l *linker, logger *s
 			})
 		}
 		if len(d) > 0 {
-			l.report(d...)
+			loader.l.report(d...)
 			logger.Error("Import contains errors", slog.String("err", d.Short()))
 		}
 
-		loader.reportMut.Unlock()
 		return
 	}
 
@@ -125,5 +129,47 @@ func (loader *importLoader) loadImport(ctx context.Context, l *linker, logger *s
 		imp.Namespace = imp.Package.Name
 	}
 
-	logger.Info("Successfully loaded import")
+	logger.Debug("Successfully loaded import")
+}
+
+func (loader *importLoader) loadBuiltin(ctx context.Context) (*file.Package, diagnostic.List, error) {
+	if loader.l.builtinPath == "" {
+		return nil, nil, nil // no builtin path set, nothing to load
+	}
+	logger := loader.logger.With(slog.String("import", loader.l.builtinPath))
+
+	logger.Debug("Loading builtin import in current goroutine")
+
+	p, d, err := loader.l.importer(ctx, loader.l.builtinPath)
+	switch {
+	case err != nil:
+		logger.Error("Failed to load builtin import", slog.String("err", err.Error()))
+	case len(d) > 0:
+		logger.Error("Builtin import contains errors", slog.String("err", d.Short()))
+	default:
+		logger.Debug("Successfully loaded builtin import")
+	}
+
+	return p, d, err
+}
+
+func (loader *importLoader) setBuiltinImport(p *file.Package, d diagnostic.List, err error) {
+	if len(d) > 0 {
+		loader.l.report(d...)
+	}
+	if err != nil {
+		loader.l.report(&diagnostic.Diagnostic{
+			Message:     "failed to load builtin package",
+			Cause:       err,
+			Explanation: fmt.Sprintf("Attempting to load %q.", loader.l.builtinPath),
+		})
+	}
+	if p != nil {
+		for _, f := range loader.l.p.Files {
+			f.AddBuiltinImport(BuiltinAlias, p)
+			if len(d) > 0 || err != nil {
+				f.BuiltinImport().LoadedWithErrors = true
+			}
+		}
+	}
 }

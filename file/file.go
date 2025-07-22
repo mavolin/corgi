@@ -14,13 +14,6 @@ import (
 	"github.com/mavolin/corgi/v2/file/ast"
 )
 
-// BuiltinAlias is the default alias used for the builtin package.
-//
-// Note that the methods in this package don't identify the builtin package
-// by its alias, but by its namespace, which is the empty string.
-// You are free to choose another alias, if you please.
-const BuiltinAlias = "__corgi_builtin"
-
 const (
 	EscapeImport  = "github.com/mavolin/corgi/v2/escape"
 	SafeImport    = "github.com/mavolin/corgi/v2/escape/safe"
@@ -152,8 +145,7 @@ func buildSymbols(f *File) {
 
 // AddBuiltinImport creates a new [Import] importing the given builtin package.
 // The import is marked as not forwarded by default.
-// If you don't know what alias to use, [BuiltinAlias] is a good choice.
-// You may also choose to not use any alias at all.
+// You may choose to not use any alias at all.
 //
 // The file must not already have a builtin import or use the given alias.
 // The function returns a pointer to the created import, which may also be
@@ -213,6 +205,15 @@ func (s *Symbols) AddImport(imp *Import) {
 func (s *Symbols) ImportByNamespace(namespace string) *Import {
 	for _, imp := range s.Imports {
 		if imp.Namespace == namespace {
+			return imp
+		}
+	}
+	return nil
+}
+
+func (s *Symbols) ImportByPackage(p *Package) *Import {
+	for _, imp := range s.Imports {
+		if imp.Package == p {
 			return imp
 		}
 	}

@@ -81,13 +81,23 @@ type (
 	// Both return values indicate an error has occurred, each with its own
 	// purpose:
 	//
-	// Errors included in the diagnostic.List are errors attached to an AST
-	// node, typically errors from the parser/linker/analyzer.
+	// Errors included in the diagnostic.List are errors that occurred while
+	// processing, i.e. parsing, linking, or analyzing the package.
+	// Almost all are attached to some AST node in the package, though they
+	// needn't necessarily be (for example, if package link is unable to load
+	// the builtin package, it adds that error to the diagnostic.List without
+	// referencing any AST node).
+	// Unlike the regular error, diagnostics are usually recoverable, meaning
+	// the loader can continue processing the package.
 	//
-	// The regular error is used for errors outside the AST, such as IO
-	// errors.
-	// The linker will attach that error, if present, to the respective
-	// import spec as part of the linker's returned diagnostics.
+	// The regular error is used for errors outside the processing, such as I/O.
+	// The regular error is usually not propagated up, though.
+	// For example, the linker will turn any error returned from loading an
+	// import into a diagnostic referencing the import statement and then
+	// include it in its diagnostic.List.
+	//
+	// If the default Loader is sponsoring the ComputeFunc, the only regular
+	// errors are either context errors or error returned by the Reader.
 	ComputeFunc func(context.Context) (*file.Package, diagnostic.List, error)
 
 	Cache interface {
@@ -148,10 +158,10 @@ func (o *Options) applyDefaults() {
 }
 
 type loader struct {
-	logger  *slog.Logger
-	reader  Reader
-	cache   Cache
-	builtin *file.Package
+	logger      *slog.Logger
+	reader      Reader
+	cache       Cache
+	builtinPath importPath
 }
 
 // Load loads the passed package.
@@ -162,9 +172,11 @@ type loader struct {
 // to ascertain whether the package contains corgi files without reading it.
 //
 // Load returns two kinds of errors:
-// Through the diagnostic.List, errors that are attached to AST nodes;
+// Through the diagnostic.List, errors that occurred while processing the file;
 // And through the regular error, errors that occurred outside of
 // parsing/linking/analyzing, such as IO errors.
+// See the doc of [ComputeFunc] for a more detailed explanation of the
+// distinction.
 // If either the list is non-empty or the error is non-nil, Load has failed.
 // Beware, however, that Load is capable of recovering from errors and as such,
 // may return a non-nil package _and_ a non-empty list of errors.
@@ -174,9 +186,10 @@ func Load(ctx context.Context, impPath importPath, r Reader, o Options) (*file.P
 	o.applyDefaults()
 
 	l := &loader{
-		logger: o.Logger,
-		reader: r,
-		cache:  o.Cache,
+		logger:      o.Logger,
+		reader:      r,
+		cache:       o.Cache,
+		builtinPath: o.BuiltinPath,
 	}
 
 	logger := o.Logger
@@ -184,15 +197,6 @@ func Load(ctx context.Context, impPath importPath, r Reader, o Options) (*file.P
 	defer func(start time.Time) {
 		logger.Info("Loaded entire tree", slog.Duration("took", time.Since(start)))
 	}(time.Now())
-
-	if o.BuiltinPath != "" {
-		var d diagnostic.List
-		var err error
-		l.builtin, d, err = l.loadCachedImport(ctx, logger, o.BuiltinPath)
-		if len(d) > 0 || err != nil {
-			return nil, d, err
-		}
-	}
 
 	return l.loadCachedImport(ctx, logger, impPath)
 }
@@ -242,9 +246,6 @@ func (l *loader) loadUncachedImport(ctx context.Context, logger *slog.Logger, im
 		slog.String("path_in_module", p.PathInModule))
 
 	parseErrs := l.parse(ctx, logger, p, data.Files)
-
-	l.buildSymbols(logger, p)
-	l.addBuiltinImport(logger, p)
 
 	// the linker can recover from parser errors
 	linkErrs := l.link(ctx, logger, p)
@@ -310,25 +311,6 @@ func (l *loader) parse(ctx context.Context, logger *slog.Logger, p *file.Package
 	return slices.Clip(errs)
 }
 
-func (l *loader) buildSymbols(logger *slog.Logger, p *file.Package) {
-	logger = logger.WithGroup("symbols")
-
-	logger.Info("Building symbols")
-	file.BuildSymbols(p)
-	logger.Info("Done building symbols")
-}
-
-func (l *loader) addBuiltinImport(logger *slog.Logger, p *file.Package) {
-	if l.builtin == nil {
-		return
-	}
-
-	logger.Info("Adding builtin import")
-	for _, f := range p.Files {
-		f.AddBuiltinImport(file.BuiltinAlias, l.builtin)
-	}
-}
-
 func (l *loader) link(ctx context.Context, logger *slog.Logger, p *file.Package) diagnostic.List {
 	logger = logger.WithGroup("link")
 
@@ -370,35 +352,25 @@ func (l *loader) newPreloadHook(ctx context.Context, logger *slog.Logger) func(i
 		logger.Info("Received preload request")
 
 		if isStdlib(impPath) {
-			logger.Info("Discarding Go stdlib import")
+			logger.Debug("Discarding Go stdlib import")
 			return
 		}
 
 		l.cache.Preload(ctx, impPath, func(ctx context.Context) (*file.Package, diagnostic.List, error) {
-			logger.Info("Cache called compute: Preloading package")
+			logger.Debug("Cache called compute: Preloading package")
 			return l.loadUncachedImport(ctx, logger, impPath)
 		})
 	}
 }
 
 func (l *loader) importHook(ctx context.Context, impPath importPath) (*file.Package, diagnostic.List, error) {
-	logger := l.logger.
-		WithGroup("import_hook").
-		With(slog.String("import", impPath))
+	logger := l.logger.WithGroup("import_hook")
 
 	if isStdlib(impPath) {
-		logger.Info("Immediately returning nil package for stdlib import without loading")
+		logger.Debug("Immediately returning nil package for Go stdlib import without loading",
+			slog.String("import", impPath))
 		return nil, nil, nil
 	}
 
-	var noCacheHit bool
-	p, d, err := l.cache.Import(ctx, impPath, func(ctx context.Context) (*file.Package, diagnostic.List, error) {
-		logger.Info("Loading package", slog.Bool("cache_hit", false))
-		noCacheHit = true
-		return l.loadUncachedImport(ctx, logger, impPath)
-	})
-	if !noCacheHit {
-		logger.Info("Loading package", slog.Bool("cache_hit", true))
-	}
-	return p, d, err
+	return l.loadCachedImport(ctx, logger, impPath)
 }

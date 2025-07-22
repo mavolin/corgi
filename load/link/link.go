@@ -11,11 +11,16 @@ import (
 	"github.com/mavolin/corgi/v2/file/diagnostic"
 )
 
+// BuiltinAlias is the alias used for the builtin package, if it is loaded by
+// the linker.
+const BuiltinAlias = "__corgi_builtin"
+
 type linker struct {
 	p           *file.Package
 	logger      *slog.Logger
 	importer    Importer
 	diagnostics diagnostic.List
+	builtinPath importPath
 
 	reportedMissingImports map[*file.File]map[namespace]bool
 	dotImports             map[*file.File][]*file.Import // file -> dot imports
@@ -55,6 +60,23 @@ type (
 		//
 		// Default: nil
 		Importer Importer
+
+		// BuiltinPath is the import path of the builtin package, if any.
+		//
+		// The package must not contain any explicit imports and must not
+		// contain any exported components.
+		//
+		// If set, the linker will import the specified package as any other
+		// explicit import, linking its symbols last in priority.
+		// Unlike other imports, the linker will not report errors for
+		// collisions between builtin symbols and local symbols.
+		//
+		// Furthermore, if set, the linker will report an error if the package
+		// tries to explicitly import the builtin package.
+		//
+		// If set, the Importer must be set as well and no file in the package
+		// must already have a builtin import.
+		BuiltinPath importPath
 	}
 
 	Importer func(ctx context.Context, path importPath) (*file.Package, diagnostic.List, error)
@@ -64,17 +86,25 @@ func (o *Options) applyDefaults() {
 	if o.Logger == nil {
 		o.Logger = slog.New(slog.DiscardHandler)
 	}
+
+	if o.BuiltinPath != "" && o.Importer == nil {
+		panic("link.Options: BuiltinPath set, but Importer is nil")
+	}
 }
 
 // Link links the given package, linking all component calls, element
-// references, and attribute references.
+// references, and attribute references, correctly setting [file.Import.Forward]
+// on the required imports.
 //
-// It loads the minimal set of imports required to link the package and detect
-// all collisions of corgi symbols.
+// If not already done, the linker will build the package's symbols.
 //
-// If you wish to include symbols from a corgi standard library, you should
-// call [file.Symbols.AddBuiltinImport] before calling this function.
-// The builtin package must not contain any exported symbols.
+// Instead of using [Options.BuiltinPath], you may also add an already loaded
+// builtin package to each file's imports, which will then be linked according
+// to the same rules as laid out in [Options.BuiltinPath]'s documentation.
+// When adding a builtin package like this, you may still choose to run in
+// local-only mode.
+// Remember that to add a builtin package like this, you need to build the
+// package's symbols beforehand.
 func Link(ctx context.Context, p *file.Package, o Options) diagnostic.List {
 	o.applyDefaults()
 
@@ -89,7 +119,9 @@ func Link(ctx context.Context, p *file.Package, o Options) diagnostic.List {
 		logger:                 logger,
 		importer:               o.Importer,
 		diagnostics:            make(diagnostic.List, 0, 128),
+		builtinPath:            o.BuiltinPath,
 		reportedMissingImports: make(map[*file.File]map[namespace]bool, len(p.Files)),
+		dotImports:             make(map[*file.File][]*file.Import, len(p.Files)),
 	}
 	for _, f := range p.Files {
 		l.reportedMissingImports[f] = make(map[namespace]bool)
