@@ -13,18 +13,16 @@ import (
 
 func (ch *checker) CheckComponentCalls() {
 	logger := ch.Logger.WithGroup("component_calls")
-	logger.Info("Checking component calls")
+	logger.Debug("Checking component calls")
 
 	for _, f := range ch.P.Files {
 		logger := logger.With(slog.String("file", f.Name))
-		logger.Debug("Checking file")
 
 		for _, cc := range f.ComponentCalls {
 			logger := logger.With(
 				slog.String("call_package", cc.Component.File.Package.Module+"/"+cc.Component.File.Package.PathInModule),
 				slog.String("call_name", cc.Component.Header().Name.Name),
 				slog.String("call_pos", cc.AST.Start().String()))
-			logger.Debug("Checking component call")
 
 			ch.CheckComponentArgsExist(logger, cc)
 			ch.CheckNoDuplicateComponentArgs(logger, cc)
@@ -43,7 +41,6 @@ func (ch *checker) CheckComponentCalls() {
 func (ch *checker) CheckComponentCallBody(logger *slog.Logger, cc *file.ComponentCall) (ok bool) {
 	ok = true
 	logger = logger.WithGroup("body")
-	logger.Debug("Checking for valid body")
 
 	bt, _ := cc.AST.Body.(*ast.BracketText)
 	if bt != nil {
@@ -97,13 +94,11 @@ func (ch *checker) CheckComponentCallBody(logger *slog.Logger, cc *file.Componen
 
 func (ch *checker) CheckUnreachableWiths(logger *slog.Logger, cc *file.ComponentCall) {
 	logger = logger.WithGroup("unreachable_withs")
-	logger.Debug("Checking for unreachable withs")
 
 	// We don't need successful analysis to run this check.
 	// But if it ran, we can safely check if this component call has any withs at all,
 	// before we do an unnecessary walk.
 	if !cc.AnalyzedWithErrors && len(cc.Withs) == 0 {
-		logger.Debug("Component call has no withs, skipping")
 		return
 	}
 
@@ -157,13 +152,11 @@ func (ch *checker) CheckUnreachableWiths(logger *slog.Logger, cc *file.Component
 
 func (ch *checker) CheckWithNotLooped(logger *slog.Logger, cc *file.ComponentCall) {
 	logger = logger.WithGroup("with_not_looped")
-	logger.Debug("Checking that withs are not looped")
 
 	// We don't need successful analysis to run this check.
 	// But if it ran, we can safely check if this component call has any withs at all,
 	// before we do an unnecessary walk.
 	if !cc.AnalyzedWithErrors && len(cc.Withs) == 0 {
-		logger.Debug("Component call has no withs, skipping")
 		return
 	}
 
@@ -197,10 +190,8 @@ func (ch *checker) CheckWithNotLooped(logger *slog.Logger, cc *file.ComponentCal
 
 func (ch *checker) CheckNoDuplicateComponentArgs(logger *slog.Logger, cc *file.ComponentCall) {
 	logger = logger.WithGroup("no_duplicate_args")
-	logger.Debug("Checking for duplicate component call arguments")
 
 	if cc.AST.Header.Arguments == nil || len(cc.AST.Header.Arguments.Args) <= 1 {
-		logger.Debug("One or no arguments, skipping")
 		return
 	}
 	args := cc.AST.Header.Arguments.Args
@@ -255,10 +246,8 @@ func (ch *checker) CheckComponentArgsExist(logger *slog.Logger, cc *file.Compone
 	logger.Debug("Checking that all component call arguments exist")
 
 	if cc.Component.AnalyzedWithErrors {
-		logger.Debug("Component analyzed with errors, skipping check")
 		return
 	} else if cc.AST.Header.Arguments == nil || len(cc.AST.Header.Arguments.Args) == 0 {
-		logger.Debug("Component call has no arguments, skipping")
 		return
 	}
 
@@ -295,7 +284,6 @@ func (ch *checker) CheckComponentArgsExist(logger *slog.Logger, cc *file.Compone
 
 func (ch *checker) CheckRequiredComponentParamsSet(logger *slog.Logger, cc *file.ComponentCall) {
 	logger = logger.WithGroup("required_params_set")
-	logger.Debug("Checking required component parameters are set")
 
 	if cc.Component.AnalyzedWithErrors {
 		logger.Debug("Component analyzed with errors, skipping check")
@@ -309,7 +297,6 @@ Params:
 		}
 
 		logger := logger.With(slog.String("param", param.AST.Name.Name))
-		logger.Debug("Checking parameter")
 
 		for _, arg := range cc.AST.Header.Arguments.Args {
 			carg, _ := arg.(*ast.ComponentArgument)
@@ -318,7 +305,6 @@ Params:
 			}
 
 			if carg.Name.Name == param.AST.Name.Name {
-				logger.Debug("Required parameter is set", slog.String("arg_pos", carg.Start().String()))
 				continue Params // parameter is set
 			}
 		}
@@ -339,23 +325,18 @@ Params:
 
 func (ch *checker) CheckRequiredBlocksAreSet(logger *slog.Logger, cc *file.ComponentCall) {
 	logger = logger.WithGroup("required_blocks_set")
-	logger.Debug("Checking required blocks are set")
 
 	if cc.Component.AnalyzedWithErrors {
-		logger.Debug("Component analyzed with error, skipping check")
 		return
 	}
 
 	for _, block := range cc.Component.Blocks {
 		logger := logger.With(slog.String("block", block.Name))
-		logger.Debug("Checking block")
 		if !block.Required {
-			logger.Debug("Block is not required, skipping")
 			continue
 		}
 
 		if cc.WithByName(block.Name) != nil {
-			logger.Debug("Required block is set")
 			continue
 		}
 
@@ -374,10 +355,8 @@ func (ch *checker) CheckRequiredBlocksAreSet(logger *slog.Logger, cc *file.Compo
 
 func (ch *checker) CheckComponentAcceptsAttributes(logger *slog.Logger, cc *file.ComponentCall) {
 	logger = logger.WithGroup("component_accepts_attributes")
-	logger.Debug("Checking that if call hands attributes, component accepts attributes")
 
 	if cc.Component.AnalyzedWithErrors {
-		logger.Debug("Component analyzed with errors, skipping check")
 		return
 	}
 
@@ -390,8 +369,6 @@ func (ch *checker) CheckComponentAcceptsAttributes(logger *slog.Logger, cc *file
 				}
 			}
 		}
-
-		logger.Debug("Component call does not hand attributes, skipping check")
 		return
 	}
 

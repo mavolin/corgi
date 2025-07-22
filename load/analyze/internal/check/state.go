@@ -18,7 +18,6 @@ func (ch *checker) CheckState() {
 		logger := logger.With(
 			slog.String("file", s.File.Name),
 			slog.String("name", s.Name().Name))
-		logger.Debug("Checking state variable")
 
 		ch.CheckStateUnexported(logger, s)
 	}
@@ -26,7 +25,6 @@ func (ch *checker) CheckState() {
 
 func (ch *checker) CheckStateDuplicates(logger *slog.Logger) {
 	logger = logger.WithGroup("duplicates")
-	logger.Debug("Checking for duplicate state variables")
 
 	if len(ch.P.State) <= 1 {
 		logger.Debug("One or no state variables, skipping")
@@ -40,10 +38,8 @@ func (ch *checker) CheckStateDuplicates(logger *slog.Logger) {
 		logger := logger.With(
 			slog.String("file", a.File.Name),
 			slog.String("name", a.Name().Name))
-		logger.Debug("Checking state variable")
 
 		if reported.Contains(a.Name().Name) {
-			logger.Debug("Already reported, skipping")
 			continue
 		}
 
@@ -77,7 +73,6 @@ func (ch *checker) CheckStateDuplicates(logger *slog.Logger) {
 
 func (ch *checker) CheckStateUnexported(logger *slog.Logger, s *file.State) {
 	logger = logger.WithGroup("unexported")
-	logger.Debug("Checking that state variable is unexported")
 
 	if file.IsExported(s.Name().Name) {
 		logger.Error("state variable is exported")

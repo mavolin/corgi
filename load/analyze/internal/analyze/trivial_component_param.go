@@ -21,7 +21,6 @@ import (
 //   - Components.Parameters.AST
 func (z *analyzer) AnalyzeComponentParameters(logger *slog.Logger, c *file.Component) {
 	logger = logger.WithGroup("parameters")
-	logger.Debug("Analyzing component parameters")
 
 	for _, param := range c.Parameters {
 		if param.Component != c {
@@ -32,7 +31,6 @@ func (z *analyzer) AnalyzeComponentParameters(logger *slog.Logger, c *file.Compo
 		logger := logger.With(
 			slog.String("param", param.AST.Name.Name),
 			slog.String("param_pos", param.AST.Name.Start().String()))
-		logger.Debug("Analyzing component parameter")
 
 		z.AnalyzeAttrTypeComponentParam(logger, param)
 		z.InferTypeFromComponentParamDefault(logger, param)
@@ -54,16 +52,13 @@ func (z *analyzer) AnalyzeComponentParameters(logger *slog.Logger, c *file.Compo
 // Depends on Fields: None
 func (z *analyzer) AnalyzeAttrTypeComponentParam(logger *slog.Logger, param *file.ComponentParameter) {
 	logger = logger.WithGroup("attr_type_param")
-	logger.Debug("Inferring type from attribute type param")
 
 	if param.AST.Type == nil || param.AST.Type.Parsed == nil {
-		logger.Debug("Not an attribute type param, skipping")
 		return
 	}
 
 	t, _ := param.AST.Type.Parsed.(*ast.AttributeType)
 	if t == nil {
-		logger.Debug("Not an attribute type param, skipping")
 		return
 	}
 
@@ -159,13 +154,10 @@ func (z *analyzer) InferTypeFromComponentParamDefault(logger *slog.Logger, param
 	logger = logger.WithGroup("infer_type_from_default").
 		With(slog.String("param", param.AST.Name.Name),
 			slog.String("param_pos", param.AST.Name.Start().String()))
-	logger.Debug("Inferring type from default value")
 
 	if param.AST.Type != nil {
-		logger.Debug("Type explicitly set, skipping")
 		return
 	} else if param.InferredType != "" {
-		logger.Debug("Inferred type already set, skipping")
 		return
 	}
 

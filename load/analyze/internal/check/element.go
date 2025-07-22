@@ -14,7 +14,6 @@ func (ch *checker) CheckElement(logger *slog.Logger, f *file.File, _ []*walk.Con
 	logger = logger.WithGroup("element").With(
 		slog.String("element", e.Header.Name.Name.Name),
 		slog.String("element_pos", e.Header.Name.Start().String()))
-	logger.Debug("Checking element")
 
 	ch.CheckElementNoEmptyAttributeList(logger, f, e)
 	ch.CheckAttributeListContainsOnlyAttributes(logger, f, e)
@@ -22,13 +21,10 @@ func (ch *checker) CheckElement(logger *slog.Logger, f *file.File, _ []*walk.Con
 
 func (ch *checker) CheckElementNoEmptyAttributeList(logger *slog.Logger, f *file.File, e *ast.Element) {
 	logger = logger.WithGroup("no_empty_attribute_list")
-	logger.Debug("Checking for empty attribute list")
 
 	if e.Header.Attributes == nil {
-		logger.Debug("No attribute list, skipping")
 		return
 	} else if len(e.Header.Attributes.Args) > 0 {
-		logger.Debug("At least one attribute, skipping")
 		return
 	}
 
@@ -46,19 +42,15 @@ func (ch *checker) CheckElementNoEmptyAttributeList(logger *slog.Logger, f *file
 
 func (ch *checker) CheckAttributeListContainsOnlyAttributes(logger *slog.Logger, f *file.File, e *ast.Element) {
 	logger = logger.WithGroup("attribute_list_contains_only_attributes")
-	logger.Debug("Checking that attribute list contains only attributes")
 
 	if e.Header.Attributes == nil {
-		logger.Debug("No attributes, skipping")
 		return
 	}
 
 	for _, arg := range e.Header.Attributes.Args {
 		logger := logger.With(slog.String("pos", arg.Start().String()))
-		logger.Debug("Checking argument")
 
 		if _, ok := arg.(ast.Attribute); ok {
-			logger.Debug("Argument is an attribute")
 			continue
 		}
 

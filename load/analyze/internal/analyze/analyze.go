@@ -45,7 +45,5 @@ func Analyze(ctx *context.Context) {
 	z.TrivialAnalyzeComponentCalls()
 	z.TrivialAnalyzeComponents()
 
-	z.AnalyzeNeedsEscapeImport()
-
 	z.ComplexAnalysis()
 }

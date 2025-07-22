@@ -17,13 +17,12 @@ import (
 // Depends on Fields: None
 func (z *analyzer) AnalyzeState() {
 	logger := z.Logger.WithGroup("state")
-	logger.Info("Analyzing state variables")
+	logger.Debug("Analyzing state variables")
 
 	for _, s := range z.P.State {
 		logger := logger.With(
 			slog.String("file", s.File.Name),
 			slog.String("name", s.Name().Name))
-		logger.Debug("Analyzing state variable")
 
 		z.InferStateType(logger, s)
 	}
@@ -39,9 +38,7 @@ func (z *analyzer) AnalyzeState() {
 //
 // Depends on Fields: None
 func (z *analyzer) InferStateType(logger *slog.Logger, s *file.State) {
-	logger.Debug("Inferring type")
 	if s.AST.Type != nil {
-		logger.Debug("Type explicitly set, skipping")
 		return
 	}
 

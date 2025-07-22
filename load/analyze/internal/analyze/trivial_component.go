@@ -21,16 +21,15 @@ import (
 // Depends on Fields: None
 func (z *analyzer) TrivialAnalyzeComponents() {
 	logger := z.Logger.WithGroup("components")
-	logger.Info("Analyzing components")
+	logger.Debug("Analyzing components")
 
 	for _, c := range z.P.Components {
 		logger := logger.With(
 			slog.String("file", c.File.Name),
 			slog.String("comp", c.Header().Name.Name),
 			slog.String("comp_pos", c.Start().String()))
-		logger.Debug("Checking component")
 
-		z.CheckComponentCallCycles(logger, c)
+		z.CheckComponentCallCycles(c)
 
 		z.AnalyzeComponentParameters(logger, c)
 		z.TrivialAnalyzeBlocks(logger, c)
@@ -49,13 +48,9 @@ func (z *analyzer) TrivialAnalyzeComponents() {
 // Sets Fields: None
 //
 // Depends on Fields: None
-func (z *analyzer) CheckComponentCallCycles(logger *slog.Logger, c *file.Component) {
-	logger = logger.WithGroup("check.component_call_cycles")
-	logger.Debug("Checking for component call cycles")
-
+func (z *analyzer) CheckComponentCallCycles(c *file.Component) {
 	if c.AnalyzedWithErrors {
 		// Possibly a circular alias
-		logger.Debug("Component already analyzed with errors, skipping")
 		return
 	}
 

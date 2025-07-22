@@ -13,14 +13,13 @@ import (
 
 func (ch *checker) CheckComponents() {
 	logger := ch.Logger.WithGroup("components")
-	logger.Info("Checking components")
+	logger.Debug("Checking components")
 
 	for _, c := range ch.P.Components {
 		logger := logger.With(
 			slog.String("file", c.File.Name),
 			slog.String("comp", c.Header().Name.Name),
 			slog.String("comp_pos", c.Start().String()))
-		logger.Debug("Checking component")
 
 		ch.CheckAliasDoesntOverwriteRequiredParams(logger, c)
 		ch.CheckDuplicateComponentParams(logger, c)
@@ -30,7 +29,6 @@ func (ch *checker) CheckComponents() {
 			logger := logger.With(
 				slog.String("param", param.AST.Name.Name),
 				slog.String("param_pos", param.AST.Name.Start().String()))
-			logger.Debug("Checking parameter")
 
 			ch.CheckReservedComponentParamName(logger, c, param)
 			ch.CheckUpperComponentParamName(logger, c, param)
@@ -45,26 +43,23 @@ func (ch *checker) CheckComponents() {
 
 func (ch *checker) CheckAliasDoesntOverwriteRequiredParams(logger *slog.Logger, c *file.Component) {
 	logger = logger.WithGroup("alias_doesnt_overwrite_required_params")
-	logger.Debug("Checking that alias doesn't overwrite required parameters of child component")
 
 	if c.AliasAST == nil {
-		logger.Debug("Component is not an alias, skipping")
 		return
 	} else if c.AnalyzedWithErrors {
-		logger.Debug("Component analyzed with errors, skipping")
 		return
 	}
 
 	cc := c.File.ComponentCallByNode(c.AliasAST.ComponentCall)
+	if cc.Component.AnalyzedWithErrors {
+		return
+	}
+
 	logger = logger.With(
 		slog.String("aliased_component_package", cc.Component.File.Package.ImportPath),
 		slog.String("aliased_component_file", cc.Component.File.Name),
 		slog.String("aliased_component", cc.AST.Header.Name.Full()),
 		slog.String("aliased_component_pos", cc.Component.Start().String()))
-	if cc.Component.AnalyzedWithErrors {
-		logger.Debug("Aliased component analyzed with errors, skipping")
-		return
-	}
 
 	// All required parameters must either be set by the alias' component call
 	// or inherited by the alias.
@@ -77,7 +72,6 @@ AliasedParams:
 		logger := logger.With(
 			slog.String("aliased_param", aliasedParam.AST.Name.Name),
 			slog.String("aliased_param_pos", aliasedParam.AST.Name.Start().String()))
-		logger.Debug("Checking required parameter")
 
 		if cc.AST.Header.Arguments != nil {
 			for _, arg := range cc.AST.Header.Arguments.Args {
@@ -86,7 +80,6 @@ AliasedParams:
 					continue
 				}
 				if aliasedParam.AST.Name.Name == carg.Name.Name {
-					logger.Debug("Parameter set by component call, skipping")
 					continue AliasedParams
 				}
 			}
@@ -127,13 +120,10 @@ AliasedParams:
 
 func (ch *checker) CheckDuplicateComponentParams(logger *slog.Logger, c *file.Component) {
 	logger = logger.WithGroup("duplicate_params")
-	logger.Debug("Checking for duplicate component parameter names")
 
 	if c.AnalyzedWithErrors {
-		logger.Debug("Component analyzed with errors, skipping")
 		return
 	} else if len(c.Parameters) < 2 {
-		logger.Debug("Component has less than two parameters, skipping")
 		return
 	}
 
@@ -180,7 +170,6 @@ func (ch *checker) CheckDuplicateComponentParams(logger *slog.Logger, c *file.Co
 
 func (ch *checker) CheckReservedComponentNames(logger *slog.Logger, c *file.Component) {
 	logger = logger.WithGroup("reserved_names")
-	logger.Debug("Checking that component is not using a reserved name")
 
 	name := c.Header().Name.Name
 	if name != "ctx" {
@@ -203,7 +192,6 @@ func (ch *checker) CheckReservedComponentNames(logger *slog.Logger, c *file.Comp
 
 func (ch *checker) CheckUpperComponentParamName(logger *slog.Logger, c *file.Component, param *file.ComponentParameter) {
 	logger = logger.WithGroup("no_upper_names")
-	logger.Debug("Checking that parameter is not using an uppercase name")
 
 	r, _ := utf8.DecodeRuneInString(param.AST.Name.Name)
 	if unicode.IsUpper(r) {
@@ -224,7 +212,6 @@ func (ch *checker) CheckUpperComponentParamName(logger *slog.Logger, c *file.Com
 
 func (ch *checker) CheckUnderscoreComponentParamName(logger *slog.Logger, c *file.Component, param *file.ComponentParameter) {
 	logger = logger.WithGroup("no_underscore_names")
-	logger.Debug("Checking that parameter is not using a name starting with an underscore")
 
 	if param.AST.Name.Name[0] == '_' {
 		logger.Error("Component parameter uses name starting with an underscore")
@@ -244,7 +231,6 @@ func (ch *checker) CheckUnderscoreComponentParamName(logger *slog.Logger, c *fil
 
 func (ch *checker) CheckReservedComponentParamName(logger *slog.Logger, c *file.Component, param *file.ComponentParameter) {
 	logger = logger.WithGroup("reserved_param_name")
-	logger.Debug("Checking that parameter doesn't use a reserved name")
 
 	name := param.AST.Name.Name
 	if name != "ctx" {

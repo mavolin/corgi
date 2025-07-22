@@ -21,14 +21,13 @@ import (
 // Depends on Fields: None
 func (z *analyzer) AggregateComponentData() {
 	logger := z.Logger.WithGroup("components.aggregate")
-	logger.Info("Aggregating component data")
+	logger.Debug("Aggregating component data")
 
 	for _, c := range z.P.Components {
 		logger := logger.With(
 			slog.String("file", c.File.Name),
 			slog.String("comp", c.Header().Name.Name),
 			slog.String("comp_pos", c.Start().String()))
-		logger.Debug("Aggregating component data")
 
 		z.CheckCircularAlias(logger, c)
 	}
@@ -51,10 +50,8 @@ func (z *analyzer) AggregateComponentData() {
 // Depends on Fields: None
 func (z *analyzer) CheckCircularAlias(logger *slog.Logger, c *file.Component) {
 	logger = logger.WithGroup("check.circular_alias")
-	logger.Info("Checking that this is not a circular alias")
 
 	if c.AliasAST == nil {
-		logger.Debug("Not an alias, skipping")
 		return
 	}
 
@@ -76,23 +73,14 @@ func (z *analyzer) CheckCircularAlias(logger *slog.Logger, c *file.Component) {
 	for aliasOf != nil {
 		aliasComp := aliasOf.Component
 		if aliasComp == nil { //nolint:gocritic
-			logger.Debug("Component in chain not found, skipping",
-				slog.String("component_name", aliasOf.AST.Header.Name.Full()),
-				slog.String("component_call_pos", aliasOf.AST.Start().String()))
 			break
 		} else if aliasComp.AliasAST == nil {
-			logger.Debug("Component in chain is not an alias, no circular alias",
-				slog.String("component_name", aliasComp.Header().Name.Full()),
-				slog.String("component_call_pos", aliasOf.AST.Start().String()))
 			break
 		} else if aliasComp.AnalyzedWithErrors {
 			// probably a subchain of a circular alias that we already
 			// reported
-			logger.Debug("Already analyzed with error, skipping")
 			break
 		} else if slices.Contains(chain[1:], aliasComp) {
-			logger.Debug("Component calls a circular alias, this will be reported when the root alias is analyzed",
-				slog.String("circular_alias_name", aliasComp.Header().Name.Full()))
 			c.AnalyzedWithErrors = true
 			break
 		}
@@ -160,7 +148,6 @@ func (z *analyzer) CheckCircularAlias(logger *slog.Logger, c *file.Component) {
 // Depends on Fields: None
 func (z *analyzer) AggregateParameters(logger *slog.Logger) {
 	logger = logger.WithGroup("parameters")
-	logger.Info("Aggregating all component parameters")
 
 	// Our strategy to aggregate component parameters:
 	//  For as long as we aggregated at least one component the last iteration:
@@ -192,21 +179,14 @@ func (z *analyzer) AggregateParameters(logger *slog.Logger) {
 				continue
 			}
 
-			logger := logger.With(
-				slog.String("file", c.File.Name),
-				slog.String("component", c.Header().Name.Name),
-				slog.String("pos", c.Start().String()))
-			logger.Debug("Trying to aggregate component parameters")
-
 			if c.AnalyzedWithErrors {
-				logger.Debug("Component has been analyzed with errors, skipping")
 				comps[ci] = nil
 				n--
 				continue
 			}
 
 			if c.DefinedAST != nil {
-				z.aggregateDefinedComponentParameters(logger, c)
+				z.aggregateDefinedComponentParameters(c)
 				n--
 				comps[ci] = nil
 				continue
@@ -215,23 +195,20 @@ func (z *analyzer) AggregateParameters(logger *slog.Logger) {
 			cc := c.File.ComponentCallByNode(c.AliasAST.ComponentCall)
 			switch {
 			case cc.Component == nil:
-				logger.Debug("Component call is not linked, skipping")
 				c.AnalyzedWithErrors = true
 				comps[ci] = nil
 				n--
 				continue
 			case cc.Component.AnalyzedWithErrors:
-				logger.Debug("Aliased component has been analyzed with errors, skipping")
 				c.AnalyzedWithErrors = true
 				comps[ci] = nil
 				n--
 				continue
 			case cc.Component.Parameters == nil:
-				logger.Debug("Aliased component has not yet had its parameters aggregated, waiting for next iteration")
 				continue
 			}
 
-			z.aggregateAliasComponentParameters(logger, c, cc)
+			z.aggregateAliasComponentParameters(c, cc)
 			comps[ci] = nil
 			n--
 		}
@@ -269,13 +246,11 @@ func (z *analyzer) AggregateParameters(logger *slog.Logger) {
 	}
 }
 
-func (z *analyzer) aggregateDefinedComponentParameters(logger *slog.Logger, c *file.Component) {
-	logger.Debug("Component is a defined component, using defined parameter list")
-
+func (z *analyzer) aggregateDefinedComponentParameters(c *file.Component) {
 	if c.DefinedAST.Header == nil {
-		logger.Debug("Component has no header, skipping")
+		return
 	} else if c.DefinedAST.Header.Parameters == nil {
-		logger.Debug("Component has no parameters, skipping")
+		return
 	}
 
 	c.Parameters = make([]*file.ComponentParameter, len(c.DefinedAST.Header.Parameters.Params))
@@ -287,9 +262,7 @@ func (z *analyzer) aggregateDefinedComponentParameters(logger *slog.Logger, c *f
 	}
 }
 
-func (z *analyzer) aggregateAliasComponentParameters(logger *slog.Logger, c *file.Component, cc *file.ComponentCall) {
-	logger.Debug("Component is an alias, resolving which parameters are available")
-
+func (z *analyzer) aggregateAliasComponentParameters(c *file.Component, cc *file.ComponentCall) {
 	parent := cc.Component
 
 	params := make([]*file.ComponentParameter, 0, len(parent.Parameters)+len(c.AliasAST.Header.Parameters.Params))
@@ -353,7 +326,6 @@ Params:
 //   - ComponentCalls.Withs.Name
 func (z *analyzer) AggregateBlocks(logger *slog.Logger) {
 	logger = logger.WithGroup("blocks")
-	logger.Info("Aggregating all component blocks")
 
 	// Our strategy to aggregate component blocks is essentially the same as
 	// for parameters:
@@ -386,21 +358,14 @@ func (z *analyzer) AggregateBlocks(logger *slog.Logger) {
 				continue
 			}
 
-			logger := logger.With(
-				slog.String("file", c.File.Name),
-				slog.String("comp", c.Header().Name.Name),
-				slog.String("comp_pos", c.Start().String()))
-			logger.Debug("Trying to aggregate component blocks")
-
 			if c.AnalyzedWithErrors {
-				logger.Debug("Component has been analyzed with errors, skipping")
 				comps[ci] = nil
 				n--
 				continue
 			}
 
 			if c.DefinedAST != nil {
-				z.aggregateDefinedComponentBlocks(logger, c)
+				z.aggregateDefinedComponentBlocks(c)
 				n--
 				comps[ci] = nil
 				continue
@@ -409,22 +374,19 @@ func (z *analyzer) AggregateBlocks(logger *slog.Logger) {
 			cc := c.File.ComponentCallByNode(c.AliasAST.ComponentCall)
 			switch {
 			case cc.Component == nil:
-				logger.Debug("Component call is not linked, skipping")
 				comps[ci] = nil
 				n--
 				continue
 			case cc.Component.AnalyzedWithErrors:
-				logger.Debug("Aliased component has been analyzed with errors, skipping")
 				c.AnalyzedWithErrors = true
 				comps[ci] = nil
 				n--
 				continue
 			case cc.Component.Blocks == nil:
-				logger.Debug("Aliased component has not yet had its blocks aggregated, waiting for next iteration")
 				continue
 			}
 
-			z.aggregateAliasComponentBlocks(logger, c, cc)
+			z.aggregateAliasComponentBlocks(c, cc)
 			comps[ci] = nil
 			n--
 		}
@@ -460,12 +422,9 @@ func (z *analyzer) AggregateBlocks(logger *slog.Logger) {
 	}
 }
 
-func (z *analyzer) aggregateDefinedComponentBlocks(logger *slog.Logger, c *file.Component) {
-	logger.Debug("Component is a defined component, using aggregating blocks from body")
-
+func (z *analyzer) aggregateDefinedComponentBlocks(c *file.Component) {
 	scope, _ := c.DefinedAST.Body.(*ast.Scope)
 	if scope == nil {
-		logger.Debug("Component body is not a scope, skipping aggregation")
 		return
 	}
 
@@ -486,22 +445,14 @@ func (z *analyzer) aggregateDefinedComponentBlocks(logger *slog.Logger, c *file.
 			instance.ChildOf = c.BlockInstanceByNode(parent)
 		}
 
-		logger := logger.With(
-			slog.String("block", ctx.Node.Name()),
-			slog.String("block_pos", ctx.Node.Start().String()),
-			slog.String("block_child_of", instance.ChildOf.Group.Name))
-		logger.Debug("Aggregating block instance")
-
 		for _, block := range c.Blocks {
 			if block.Name == ctx.Node.Name() {
 				instance.Group = block
 				block.Instances = append(block.Instances, instance)
-				logger.Debug("Block group already recorded, adding instance")
 				return nil
 			}
 		}
 
-		logger.Debug("Block group not recorded yet, creating new group")
 		group := &file.Block{
 			Component: c,
 			Name:      ctx.Node.Name(),
@@ -520,11 +471,8 @@ func (z *analyzer) aggregateDefinedComponentBlocks(logger *slog.Logger, c *file.
 	}
 }
 
-func (z *analyzer) aggregateAliasComponentBlocks(logger *slog.Logger, c *file.Component, cc *file.ComponentCall) {
-	logger.Debug("Component is an alias, resolving which blocks are available")
-
+func (z *analyzer) aggregateAliasComponentBlocks(c *file.Component, cc *file.ComponentCall) {
 	if cc.AST.Body == nil { // fast path
-		logger.Debug("Component call has no body, component inherits all blocks from aliased component")
 		c.Blocks = make([]*file.Block, len(cc.Component.Blocks))
 		copy(c.Blocks, cc.Component.Blocks)
 		return

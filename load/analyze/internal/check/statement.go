@@ -14,7 +14,6 @@ import (
 func (ch *checker) CheckStatement(logger *slog.Logger, f *file.File, parents []*walk.Context, s *ast.Statement) {
 	logger = logger.WithGroup("statements").
 		With("statement_pos", s.Start().String())
-	logger.Debug("Checking statement")
 
 	ch.CheckNoGoto(logger, parents, f, s)
 	ch.CheckFallthroughOnlyInSwitch(logger, parents, f, s)
@@ -22,19 +21,15 @@ func (ch *checker) CheckStatement(logger *slog.Logger, f *file.File, parents []*
 
 func (ch *checker) CheckNoGoto(logger *slog.Logger, parents []*walk.Context, f *file.File, s *ast.Statement) {
 	logger = logger.WithGroup("no_goto")
-	logger.Debug("Checking that no goto statement is used")
 
 	if s.Parsed != nil {
-		logger.Debug("Parsed statement, skipping")
 		return
 	} else if len(s.Nodes) != 1 {
-		logger.Debug("Multiple code nodes, skipping")
 		return
 	}
 
 	gc, _ := s.Nodes[0].(*ast.GoCode)
 	if gc == nil {
-		logger.Debug("No GoCode, skipping")
 		return
 	}
 
@@ -60,15 +55,12 @@ func (ch *checker) CheckNoGoto(logger *slog.Logger, parents []*walk.Context, f *
 func (ch *checker) CheckFallthroughOnlyInSwitch(logger *slog.Logger, parents []*walk.Context, f *file.File, s *ast.Statement) {
 	logger = logger.WithGroup("fallthrough_only_in_switch").
 		With("statement_pos", s.Start().String())
-	logger.Debug("Checking that fallthrough is only used in switch statements")
 
 	if s.Parsed == nil {
-		logger.Debug("Not a ParsedStatement, skipping")
 		return
 	}
 	ft, _ := s.Parsed.(*ast.Fallthrough)
 	if ft == nil {
-		logger.Debug("Not a Fallthrough, skipping")
 		return
 	}
 

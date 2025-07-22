@@ -15,13 +15,11 @@ import (
 func (ch *checker) CheckArguments(logger *slog.Logger, f *file.File, _ []*walk.Context, a *ast.Arguments) {
 	logger = logger.WithGroup("arguments").
 		With(slog.String("arguments_pos", a.Start().String()))
-	logger.Debug("Checking arguments")
 
 	for _, arg := range a.Args {
 		logger := logger.With(
 			slog.String("arg_pos", arg.Start().String()),
 			slog.String("arg_type", fmt.Sprintf("%T", arg)))
-		logger.Debug("Checking argument")
 
 		switch arg := arg.(type) {
 		case *ast.NamedAttribute:
@@ -35,18 +33,14 @@ func (ch *checker) CheckArguments(logger *slog.Logger, f *file.File, _ []*walk.C
 
 func (ch *checker) CheckClassAlwaysInnocuous(logger *slog.Logger, f *file.File, attr *ast.NamedAttribute) {
 	logger = logger.WithGroup("class_not_typed")
-	logger.Debug("Checking that class attribute is not typed")
 
 	ref := f.AttributeReferenceByNode(attr.Name)
 	switch {
 	case ref.AnalyzedWithErrors:
-		logger.Debug("Attribute analyzed with errors, skipping")
 		return
 	case ref.Type == attrtype.Innocuous:
-		logger.Debug("Attribute is innocuous (and possibly not even a class attribute), skipping")
 		return
 	case ref.Name() != "class":
-		logger.Debug("Attribute is not a class attribute, skipping")
 		return
 	}
 
@@ -84,9 +78,6 @@ func (ch *checker) CheckClassAlwaysInnocuous(logger *slog.Logger, f *file.File, 
 	}
 
 	if ref.Rule != nil {
-		logger := logger.With(slog.String("rule_pos", ref.Rule.Start().String()))
-		logger.Debug("Found attribute definition")
-
 		if ref.Rule.Type.Type != ref.Type {
 			ch.Report(&diagnostic.Diagnostic{
 				Type:    diagnostic.InternalError,
@@ -137,55 +128,25 @@ func (ch *checker) CheckClassAlwaysInnocuous(logger *slog.Logger, f *file.File, 
 
 func (ch *checker) CheckNoInterpolationInUnsafeAttribute(logger *slog.Logger, f *file.File, attr *ast.NamedAttribute) {
 	logger = logger.WithGroup("no_interpolation_in_unsafe")
-	logger.Debug("Checking for expression/component call interpolation in unsafe attribute")
 
 	if attr.Value == nil {
-		logger.Debug("Attribute has no value, skipping")
 		return
 	}
 
 	ref := f.AttributeReferenceByNode(attr.Name)
 	if ref.AnalyzedWithErrors {
-		logger.Debug("Attribute analyzed with errors, skipping")
 		return
 	} else if ref.Type != attrtype.Unsafe {
-		logger.Debug("Attribute is not unsafe, skipping")
 		return
 	}
 
-	var expr *ast.Expression
-	val := attr.Value
-Loop:
-	for {
-		switch typed := val.(type) {
-		case *ast.TypedAttributeValue:
-			val = typed.Value
-		case *ast.ExpressionAttributeValue:
-			expr = (*ast.Expression)(typed)
-			break Loop
-		default:
-			logger.Error("Attribute value is neither an expression nor typed attribute value")
-			ch.Report(&diagnostic.Diagnostic{
-				Type:    diagnostic.InternalError,
-				Message: "analyze.CheckNoInterpolationInUnsafeAttribute: attribute value is neither an expression nor typed attribute value",
-				Primary: []diagnostic.Annotation{
-					anno.Node(f, attr.Value, "for this node"),
-				},
-				Explanation: "This most likely happened because the ast.AttributeValue sum type was extended.\n\n" +
-					"This is a bug in the analyzer, please open an issue.",
-			})
-			return
-		}
-	}
-
-	if len(expr.Nodes) != 1 {
-		logger.Debug("Attribute value is not a single expression, skipping")
+	expr := ch.expressionFromAttributeValue(logger, f, attr.Value)
+	if expr == nil || len(expr.Nodes) != 1 {
 		return
 	}
 
 	s, _ := expr.Nodes[0].(*ast.String)
 	if s == nil {
-		logger.Debug("Not a string literal, skipping")
 		return
 	}
 
@@ -235,24 +196,19 @@ Loop:
 
 func (ch *checker) CheckDefinedNonBoolAttributeSpecifiedAsBool(logger *slog.Logger, f *file.File, attr *ast.NamedAttribute) {
 	logger = logger.WithGroup("defined_non_bool_attribute_specified_as_bool")
-	logger.Debug("Checking that a defined attribute, declared as non-bool, isn't specified as a bool shorthand")
 
 	if attr.Value != nil {
-		logger.Debug("Not a bool shorthand, skipping")
 		return
 	}
 
 	ref := f.AttributeReferenceByNode(attr.Name)
 	if ref.AnalyzedWithErrors {
-		logger.Debug("Attribute analyzed with errors, skipping")
 		return
 	} else if ref.Spec == nil {
-		logger.Debug("Attribute is not a defined attribute, skipping")
 		return
 	}
 
 	if ref.Type == attrtype.Bool || ref.Type == attrtype.UnsafeBool {
-		logger.Debug("Attribute is a bool shorthand and of a bool type, skipping")
 		return
 	}
 
@@ -270,51 +226,27 @@ func (ch *checker) CheckDefinedNonBoolAttributeSpecifiedAsBool(logger *slog.Logg
 
 func (ch *checker) CheckBoolAttributeSetToNonBoolExpression(logger *slog.Logger, f *file.File, attr *ast.NamedAttribute) {
 	logger = logger.WithGroup("bool_attribute_set_to_non_bool_expression")
-	logger.Debug("Checking that a bool attribute isn't set to a non-bool-yielding expression")
 
 	if attr.Value == nil {
-		logger.Debug("Attribute has no value, skipping")
 		return
 	}
 
 	ref := f.AttributeReferenceByNode(attr.Name)
 	if ref.AnalyzedWithErrors {
-		logger.Debug("Attribute analyzed with errors, skipping")
 		return
 	} else if ref.Type != attrtype.Bool && ref.Type != attrtype.UnsafeBool {
-		logger.Debug("Attribute is not a bool attribute, skipping")
 		return
 	}
 
-	var expr *ast.Expression
-	val := attr.Value
-Loop:
-	for {
-		switch typed := val.(type) {
-		case *ast.TypedAttributeValue:
-			val = typed.Value
-		case *ast.ExpressionAttributeValue:
-			expr = (*ast.Expression)(typed)
-			break Loop
-		default:
-			logger.Error("Attribute value is neither an expression nor typed attribute value")
-			ch.Report(&diagnostic.Diagnostic{
-				Type:    diagnostic.InternalError,
-				Message: "analyze.CheckBoolAttributeSetToNonBoolExpression: attribute value is neither an expression nor typed attribute value",
-				Primary: []diagnostic.Annotation{
-					anno.Node(f, attr.Value, "for this node"),
-				},
-				Explanation: "This most likely happened because the ast.AttributeValue sum type was extended.\n\n" +
-					"This is a bug in the analyzer, please open an issue.",
-			})
-		}
+	expr := ch.expressionFromAttributeValue(logger, f, attr.Value)
+	if expr == nil {
+		return
 	}
 
 	t, _ := file.InferType(f, expr)
 	// We can only judge types we know
 	switch t {
 	case "bool":
-		logger.Debug("Expression yields a bool, skipping")
 	case "int", "float", "string", "any", "interface{}":
 		logger.Error("Bool attribute set to non-bool expression")
 		ch.Report(&diagnostic.Diagnostic{
@@ -326,7 +258,31 @@ Loop:
 				anno.Node(ref.Spec.File, ref.Rule, "attribute type defined here as `"+ref.Type.String()+"`"),
 			},
 		})
-	default:
-		logger.Debug("Expression yields an unknown type, skipping")
 	}
+}
+
+func (ch *checker) expressionFromAttributeValue(logger *slog.Logger, f *file.File, v ast.AttributeValue) *ast.Expression {
+	var expr *ast.Expression
+Loop:
+	for {
+		switch typed := v.(type) {
+		case *ast.TypedAttributeValue:
+			v = typed.Value
+		case *ast.ExpressionAttributeValue:
+			expr = (*ast.Expression)(typed)
+			break Loop
+		default:
+			logger.Error("Attribute value is neither an expression nor typed attribute value")
+			ch.Report(&diagnostic.Diagnostic{
+				Type:    diagnostic.InternalError,
+				Message: "attribute value is neither an expression nor typed attribute value",
+				Primary: []diagnostic.Annotation{
+					anno.Node(f, v, "for this node"),
+				},
+				Explanation: "This most likely happened because the ast.AttributeValue sum type was extended.\n\n" +
+					"This is a bug in the analyzer, please open an issue.",
+			})
+		}
+	}
+	return expr
 }

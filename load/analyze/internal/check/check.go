@@ -25,7 +25,7 @@ func Check(ctx *context.Context) {
 		Context: ctx,
 		Logger:  ctx.Logger.WithGroup("check"),
 	}
-	c.Logger.Info("Running checks")
+	c.Logger.Debug("Running checks")
 
 	c.CheckComponents()
 	c.CheckComponentCalls()
@@ -35,11 +35,10 @@ func Check(ctx *context.Context) {
 
 func (ch *checker) CheckScope() {
 	logger := ch.Logger.WithGroup("scope")
-	logger.Info("Checking scope")
+	logger.Debug("Checking scope")
 
 	for _, f := range ch.P.Files {
 		logger := logger.With(slog.String("file", f.Name))
-		logger.Debug("Checking file")
 
 		walk.Walk(f.AST, func(ctx *walk.Context) error {
 			switch n := ctx.Node.(type) {

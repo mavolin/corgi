@@ -22,7 +22,6 @@ import (
 //   - Components.Blocks
 func (z *analyzer) TrivialAnalyzeBlocks(logger *slog.Logger, c *file.Component) {
 	logger = logger.WithGroup("blocks")
-	logger.Debug("Analyzing blocks")
 
 	for _, block := range c.Blocks {
 		if block.Component != c {
@@ -30,7 +29,6 @@ func (z *analyzer) TrivialAnalyzeBlocks(logger *slog.Logger, c *file.Component) 
 		}
 
 		logger := logger.With(slog.String("block", block.Name))
-		logger.Debug("Analyzing block")
 
 		z.AnalyzeBlockRequired(logger, block)
 	}
@@ -48,7 +46,6 @@ func (z *analyzer) TrivialAnalyzeBlocks(logger *slog.Logger, c *file.Component) 
 //   - Components.Blocks.Instances.AST
 func (z *analyzer) AnalyzeBlockRequired(logger *slog.Logger, b *file.Block) {
 	logger = logger.WithGroup("required")
-	logger.Debug("Determining if block is required")
 
 	b.Required = b.Instances[0].AST.Default == nil
 	for _, instance := range b.Instances[1:] {
@@ -68,6 +65,7 @@ Erroneous:
 		}
 	}
 
+	logger.Error("Block has conflicting defaults, cannot determine if it is required")
 	z.Report(&diagnostic.Diagnostic{
 		Message: "block: cannot determine if block is required: conflicting defaults",
 		Primary: primaries,

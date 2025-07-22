@@ -19,10 +19,8 @@ import (
 // Depends on Fields: None
 func (z *analyzer) CheckPackageNamesMatch() (ok bool) {
 	logger := z.Logger.WithGroup("check.package_names_match")
-	logger.Info("Checking if package names match")
 
 	if len(z.P.Files) <= 1 {
-		logger.Debug("One or no files, skipping")
 		return true
 	}
 
@@ -58,7 +56,6 @@ func (z *analyzer) CheckPackageNamesMatch() (ok bool) {
 // Depends on Fields: None
 func (z *analyzer) SetPackageName() {
 	logger := z.Logger.WithGroup("set_package_name")
-	logger.Info("Setting package name")
 
 	if len(z.P.Files) == 0 {
 		logger.Warn("No files in package")

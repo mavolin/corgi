@@ -1,7 +1,6 @@
 package analyze
 
 import (
-	"log/slog"
 	"slices"
 
 	"github.com/mavolin/corgi/v2/file"
@@ -19,19 +18,11 @@ import (
 // Depends on Fields: None
 func (z *analyzer) AggregateComponentCallData() {
 	logger := z.Logger.WithGroup("component_calls.aggregate")
-	logger.Info("Aggregating component call data")
+	logger.Debug("Aggregating component call data")
 
 	for _, f := range z.P.Files {
-		logger := logger.With(slog.String("file", f.Name))
-		logger.Debug("Aggregating from file")
-
 		for _, cc := range f.ComponentCalls {
-			logger := logger.With(
-				slog.String("call_name", cc.Component.Header().Name.Name),
-				slog.String("call_pos", cc.AST.Start().String()))
-			logger.Debug("Aggregating component call data")
-
-			z.AggregateWiths(logger, cc)
+			z.AggregateWiths(cc)
 		}
 	}
 }
@@ -48,13 +39,9 @@ func (z *analyzer) AggregateComponentCallData() {
 //   - ComponentCalls.Withs.Instances.AST
 //
 // Depends on Fields: None
-func (z *analyzer) AggregateWiths(logger *slog.Logger, cc *file.ComponentCall) {
-	logger = logger.WithGroup("withs")
-	logger.Debug("Aggregating withs")
-
+func (z *analyzer) AggregateWiths(cc *file.ComponentCall) {
 	scope, _ := cc.AST.Body.(*ast.Scope)
 	if scope == nil {
-		logger.Debug("Call has no body or no scope, skipping")
 		return
 	}
 
