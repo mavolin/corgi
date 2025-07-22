@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strings"
 	"sync"
 
 	"github.com/mavolin/corgi/v2/file"
@@ -33,6 +34,7 @@ func (loader *importLoader) load(ctx context.Context) {
 		return
 	}
 
+	loader.checkIllegalAliases()
 	loader.loadImports(ctx)
 }
 
@@ -58,6 +60,30 @@ func (loader *importLoader) localOnlyModeCheck() {
 				Message:     "local-only mode: file contains imports",
 				Primary:     primaries,
 				Explanation: "In local-only mode, files are not allowed to make any imports.",
+			})
+		}
+	}
+}
+
+func (loader *importLoader) checkIllegalAliases() {
+	loader.logger.Debug("Checking for import aliases using the reserved `__corgi_` prefix")
+
+	for _, f := range loader.l.p.Files {
+		logger := loader.logger.With(slog.String("file", f.Name))
+		for _, imp := range f.Imports {
+			if !imp.Explicit() || imp.Alias == "" || !strings.HasPrefix(imp.Alias, "__corgi_") {
+				continue
+			}
+
+			logger.Error("Import alias with reserved prefix",
+				slog.String("alias", imp.Alias),
+				slog.String("import_path", imp.Path))
+			loader.l.report(&diagnostic.Diagnostic{
+				Message: "import alias: cannot use `__corgi_` prefix",
+				Primary: []diagnostic.Annotation{
+					anno.Node(f, imp.AST.Alias, "illegal import alias"),
+				},
+				Explanation: "All import aliases starting with `__corgi_` are reserved for internal use by corgi.",
 			})
 		}
 	}
@@ -103,7 +129,6 @@ func (loader *importLoader) loadImport(ctx context.Context, f *file.File, imp *f
 		imp.LoadedWithErrors = true
 
 		loader.reportMut.Lock()
-		defer loader.reportMut.Unlock()
 
 		if err != nil {
 			logger.Error("Failed to load import", slog.String("err", err.Error()))
@@ -119,19 +144,38 @@ func (loader *importLoader) loadImport(ctx context.Context, f *file.File, imp *f
 			loader.l.report(d...)
 			logger.Error("Import contains errors", slog.String("err", d.Short()))
 		}
-
-		return
-	}
-
-	if imp.Package != nil {
-		if imp.Alias != "" {
-			imp.Namespace = imp.Alias
-		} else {
-			imp.Namespace = imp.Package.Name
-		}
+		loader.reportMut.Unlock()
 	}
 
 	logger.Debug("Successfully loaded import")
+
+	if imp.Package == nil {
+		return
+	}
+
+	if imp.Alias != "" {
+		imp.Namespace = imp.Alias
+	} else {
+		imp.Namespace = imp.Package.Name
+		if strings.HasPrefix(imp.Namespace, "__corgi_") {
+			logger.Error("Import has package name with reserved prefix",
+				slog.String("alias", imp.Namespace),
+				slog.String("import_path", imp.Path))
+
+			loader.reportMut.Lock()
+			loader.l.report(&diagnostic.Diagnostic{
+				Message: "import: import uses reserved `__corgi_` package name prefix",
+				Primary: []diagnostic.Annotation{
+					anno.Node(f, imp.AST, "illegal package name"),
+				},
+				Explanation: "All namespaces starting with `__corgi_` are reserved for internal use by corgi.",
+				Hints: []diagnostic.Hint{
+					{Hint: "Use an import alias."},
+				},
+			})
+			loader.reportMut.Unlock()
+		}
+	}
 }
 
 func (loader *importLoader) loadBuiltin(ctx context.Context) (*file.Package, diagnostic.List, error) {
