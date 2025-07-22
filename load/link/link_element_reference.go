@@ -1,7 +1,6 @@
 package link
 
 import (
-	"context"
 	"log/slog"
 
 	"github.com/mavolin/corgi/v2/file"
@@ -9,13 +8,12 @@ import (
 	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
 )
 
-func (l *linker) LinkElementReferences(ctx context.Context) {
-	logger := l.logger.WithGroup("element_references")
-	logger.Info("Linking element references")
+func (l *linker) LinkElementReferences() {
+	logger := l.logger.WithGroup("links.element_references")
+	logger.Debug("Linking element references")
 
 	for _, f := range l.p.Files {
 		logger := logger.With(slog.String("file", f.Name))
-		logger.Debug("Linking file")
 
 		for _, ref := range f.ElementReferences {
 			if ref.AST.Name == nil {
@@ -32,55 +30,54 @@ func (l *linker) LinkElementReferences(ctx context.Context) {
 			logger := logger.With(
 				slog.String("name", name),
 				slog.String("pos", ref.AST.Start().String()))
-			logger.Debug("Linking element reference")
 
 			if ref.AST.Package != nil {
-				l.linkQualifiedElementReference(ctx, logger, f, ref)
+				l.linkQualifiedElementReference(logger, f, ref)
 			} else {
-				l.linkUnqualifiedElementReference(ctx, logger, f, ref)
+				l.linkUnqualifiedElementReference(logger, f, ref)
 			}
 		}
 	}
 }
 
-func (l *linker) linkUnqualifiedElementReference(_ context.Context, logger *slog.Logger, f *file.File, ref *file.ElementReference) {
-	logger.Debug("Unqualified element reference: local, builtin or dot import element definition")
-
+func (l *linker) linkUnqualifiedElementReference(logger *slog.Logger, f *file.File, ref *file.ElementReference) {
 	name := ref.AST.Name.Name
+
+	// search in current package
 	if def := f.Package.ElementSpecByFullName(name); def != nil {
 		ref.Spec = def
-		logger.Debug("Found element definition within package")
 		return
 	}
 
+	// search in dot imports
 	var ignoreError bool
 	for _, imp := range f.Imports {
-		if !imp.Explicit() || imp.Namespace != "." {
+		switch {
+		case !imp.Explicit() || imp.Namespace != ".":
 			continue
-		} else if imp.LoadedWithErrors {
+		case imp.LoadedWithErrors:
 			ignoreError = true
 			continue
-		} else if imp.Package == nil || imp.Package.PackageSymbols == nil { // contains no corgi files
+		case imp.Package == nil:
 			continue
 		}
 
-		if def := imp.Package.ElementSpecByFullName(name); def != nil {
-			logger.Debug("Found component within dot import",
-				slog.String("import", imp.Package.PathInModule))
+		if spec := imp.Package.ElementSpecByFullName(name); spec != nil {
+			ref.Spec = spec
 			return
 		}
-	}
-	if ignoreError {
-		logger.Warn("Could not resolve reference, but at least one dot import was not loaded: not reporting error (not searching in builtin because of this)")
-		return
 	}
 
 	if builtinImp := f.BuiltinImport(); builtinImp != nil {
 		if spec := builtinImp.Package.ElementSpecByFullName(name); spec != nil {
 			ref.Spec = spec
-			logger.Debug("Found element spec within builtin package")
 			return
 		}
+	}
+
+	if ignoreError {
+		logger.Warn("Could not resolve reference, but at least one dot import was not loaded: not reporting error")
+		return
 	}
 
 	logger.Error("Could not resolve reference")
@@ -97,13 +94,10 @@ func (l *linker) linkUnqualifiedElementReference(_ context.Context, logger *slog
 	})
 }
 
-func (l *linker) linkQualifiedElementReference(_ context.Context, logger *slog.Logger, f *file.File, ref *file.ElementReference) {
-	slog.Debug("Qualified element reference: external element definition")
-
+func (l *linker) linkQualifiedElementReference(logger *slog.Logger, f *file.File, ref *file.ElementReference) {
 	imp := f.ImportByNamespace(ref.AST.Package.Name)
 	if imp == nil || !imp.Explicit() {
 		logger.Error("Could not find import for package")
-
 		l.reportMissingImport(f, ref.AST.Package.Name, &diagnostic.Diagnostic{
 			Message: "element: unresolved reference to package",
 			Primary: []diagnostic.Annotation{
@@ -111,13 +105,12 @@ func (l *linker) linkQualifiedElementReference(_ context.Context, logger *slog.L
 			},
 		})
 		return
-	}
-	if imp.LoadedWithErrors {
-		logger.Warn("Could not resolve reference, but import was not loaded, not reporting error")
+	} else if imp.LoadedWithErrors {
+		logger.Debug("Could not resolve reference, but import was not loaded, not reporting error")
 		return
 	}
 
-	if imp.Package != nil && imp.Package.PackageSymbols != nil {
+	if imp.Package != nil {
 		ref.Spec = imp.Package.ElementSpecByQualifiedName(ref.AST.Name.Name)
 	}
 	if ref.Spec == nil {

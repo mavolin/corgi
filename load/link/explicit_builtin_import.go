@@ -1,14 +1,13 @@
 package link
 
 import (
-	"context"
 	"log/slog"
 
 	"github.com/mavolin/corgi/v2/file/diagnostic"
 	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
 )
 
-func (l *linker) CheckExplicitBuiltinImport(_ context.Context) {
+func (l *linker) CheckExplicitBuiltinImport() {
 	logger := l.logger.WithGroup("check.explicit_builtin_import")
 	logger.Info("Checking for an illegal explicit import of the builtin package")
 

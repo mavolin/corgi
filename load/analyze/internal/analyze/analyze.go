@@ -29,7 +29,7 @@ func Analyze(ctx *context.Context) {
 	z := &analyzer{
 		Context:                ctx,
 		Logger:                 ctx.Logger.WithGroup("analysis"),
-		analyzedComponentCalls: set.NewHashSet[*file.ComponentCall](numCCs),
+		analyzedComponentCalls: set.NewHashSet[*file.ComponentCall](),
 	}
 	z.Logger.Info("Running analysis")
 

@@ -23,7 +23,7 @@ func TestMethodsRunOnce(t *testing.T) {
 		}
 	}
 
-	seen := set.NewHashSet[string](100)
+	seen := set.NewHashSet[string]()
 
 	testMethodsRunOnce(t, root, seen)
 }
@@ -94,7 +94,7 @@ func TestFieldsSetOnce(t *testing.T) {
 	}
 
 	root := getExecutionOrder(analyzer)
-	seen := set.NewHashSet[string](100)
+	seen := set.NewHashSet[string]()
 
 	testFieldsSetOnce(t, root, seen)
 }

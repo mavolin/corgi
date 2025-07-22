@@ -81,8 +81,7 @@ import (
 // todo: check/misc_scope: todos
 // todo: linker: disallow imports with an alias prefixed with __corgi_
 // todo: linker: disallow imports with a namespace prefixed with __corgi_
-// todo: linker: local dot import collisions should not be reported twice for a duplicate local comp
-// todo: linker: non-local dot import collisions should not be reported twice for a duplicate local comp
+// todo: less log.Debug
 
 // todo: should withs include underscore block shorthand?? prob yes
 
