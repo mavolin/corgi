@@ -32,7 +32,10 @@ type (
 		// Type of diagnostic, used in the header, e.g. "error", "warning",
 		// "lint" etc.
 		// The empty string is equivalent to "error".
-		Type    Type
+		Type Type
+		// Message is the static message of the diagnostic.
+		// It must not change based on the context of the error, i.e. it must
+		// not include any information like file name, position, etc.
 		Message string // e.g. "missing type"
 
 		// Primary and Secondary annotations are used to highlight the error.

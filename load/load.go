@@ -180,6 +180,7 @@ type loader struct {
 // If either the list is non-empty or the error is non-nil, Load has failed.
 // Beware, however, that Load is capable of recovering from errors and as such,
 // may return a non-nil package _and_ a non-empty list of errors.
+// Before returning, Load calls [diagnostic.List.Tidy] on the diagnostic.List.
 //
 // To see an example of how to use Load, see the [Directory] function.
 func Load(ctx context.Context, impPath importPath, r Reader, o Options) (*file.Package, diagnostic.List, error) {
