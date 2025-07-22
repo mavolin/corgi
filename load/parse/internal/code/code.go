@@ -326,22 +326,17 @@ func BlockFunction() parser.Func[*ast.BlockFunction] {
 
 		bf.LParen, bf.RParen = l.Open, l.Close
 
-		if len(l.Elems) == 0 {
-			p.CaptureError(&diagnostic.Diagnostic{
-				Message: "block function: missing block name",
-				Primary: quickanno.Expected(p, *l.Open, "a block name"),
-			})
-		} else {
+		if len(l.Elems) > 0 {
 			bf.BlockName = l.Elems[0]
-			if len(l.Elems) > 1 {
-				p.CaptureError(&diagnostic.Diagnostic{
-					Message: "block function: too many arguments",
-					Primary: []diagnostic.Annotation{
-						anno.Range(p.File, l.Elems[1].Start(), l.Elems[len(l.Elems)-1].End(),
-							"unexpected arguments, expected only a single block name"),
-					},
-				})
-			}
+		}
+		if len(l.Elems) > 1 {
+			p.CaptureError(&diagnostic.Diagnostic{
+				Message: "block function: too many arguments",
+				Primary: []diagnostic.Annotation{
+					anno.Range(p.File, l.Elems[1].Start(), l.Elems[len(l.Elems)-1].End(),
+						"unexpected arguments, expected only a single block name"),
+				},
+			})
 		}
 
 		return &bf, nil

@@ -86,16 +86,40 @@ func testBlockFunction() func(t *testing.T, f parser.Func[*ast.BlockFunction]) {
 		t.Run("success", func(t *testing.T) {
 			t.Parallel()
 
-			in := "block(foo)"
-			want := &ast.BlockFunction{
-				LParen:    &ast.Position{Line: 1, Col: 6},
-				BlockName: &ast.Identifier{Name: "foo", Position: &ast.Position{Line: 1, Col: 7}},
-				RParen:    &ast.Position{Line: 1, Col: 10},
-				Block:     &ast.Position{Line: 1, Col: 1},
+			tests := []struct {
+				name string
+				in   string
+				want *ast.BlockFunction
+			}{
+				{
+					name: "default block",
+					in:   "block()",
+					want: &ast.BlockFunction{
+						Block:  &ast.Position{Line: 1, Col: 1},
+						LParen: &ast.Position{Line: 1, Col: 1 + len("block")},
+						RParen: &ast.Position{Line: 1, Col: 1 + len("block(")},
+					},
+				}, {
+					name: "named block",
+					in:   "block(foo)",
+					want: &ast.BlockFunction{
+						Block:  &ast.Position{Line: 1, Col: 1},
+						LParen: &ast.Position{Line: 1, Col: 1 + len("block")},
+						BlockName: &ast.Identifier{
+							Name: "foo", Position: &ast.Position{Line: 1, Col: 1 + len("block(")},
+						},
+						RParen: &ast.Position{Line: 1, Col: 1 + len("block(foo")},
+					},
+				},
 			}
 
-			got := parsesCodeNodeFully(t, in, f)
-			should.Equal(t, want, got)
+			for _, c := range tests {
+				t.Run(c.name, func(t *testing.T) {
+					t.Parallel()
+					got := parsesCodeNodeFully(t, c.in, f)
+					should.Equal(t, c.want, got)
+				})
+			}
 		})
 		t.Run("failure", func(t *testing.T) {
 			t.Parallel()
@@ -106,14 +130,6 @@ func testBlockFunction() func(t *testing.T, f parser.Func[*ast.BlockFunction]) {
 				want *ast.BlockFunction
 			}{
 				{
-					name: "missing block name",
-					in:   "block()",
-					want: &ast.BlockFunction{
-						LParen: &ast.Position{Line: 1, Col: 6},
-						RParen: &ast.Position{Line: 1, Col: 7},
-						Block:  &ast.Position{Line: 1, Col: 1},
-					},
-				}, {
 					name: "missing closing parenthesis",
 					in:   "block(",
 					want: &ast.BlockFunction{

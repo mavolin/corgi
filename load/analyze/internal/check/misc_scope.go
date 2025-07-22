@@ -156,7 +156,7 @@ func (ch *checker) CheckAttributeTypeSuperfluousAttributeName(logger *slog.Logge
 
 func (ch *checker) CheckBlockFunction(logger *slog.Logger, f *file.File, parents []*walk.Context, bf *ast.BlockFunction) {
 	logger = logger.WithGroup("block_function").
-		With(slog.String("block_name", bf.BlockName.Name),
+		With(slog.String("block_name", bf.Name()),
 			slog.String("block_function_pos", bf.Start().String()))
 
 	ch.CheckBlockFunctionDefined(logger, f, parents, bf)
@@ -171,15 +171,20 @@ func (ch *checker) CheckBlockFunctionDefined(logger *slog.Logger, f *file.File, 
 	}
 
 	c := f.Package.ComponentByNode(astComp)
-	if c.BlockByName(bf.BlockName.Name) != nil {
+	if c.BlockByName(bf.Name()) != nil {
 		return
 	}
 
 	logger.Error("Block function uses block not defined by the component")
+
+	annoText := "component does not define a default block"
+	if bf.BlockName != nil {
+		annoText = "component does not define a block named `" + bf.BlockName.Name + "`"
+	}
 	ch.Report(&diagnostic.Diagnostic{
 		Message: "block function: reference to undefined block",
 		Primary: []diagnostic.Annotation{
-			anno.Node(f, bf.BlockName, "this block is never used in this component"),
+			anno.Node(f, bf, annoText),
 		},
 	})
 }

@@ -83,11 +83,18 @@ func (*GoCode) _codeNode() {}
 type BlockFunction struct {
 	Block     *Position
 	LParen    *Position
-	BlockName *Identifier
+	BlockName *Identifier // optional for the default block
 	RParen    *Position
 }
 
 var _ CodeNode = (*BlockFunction)(nil)
+
+func (f *BlockFunction) Name() string {
+	if f.BlockName != nil {
+		return f.BlockName.Name
+	}
+	return ""
+}
 
 func (f *BlockFunction) Start() Position {
 	switch {

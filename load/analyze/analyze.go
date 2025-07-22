@@ -69,14 +69,11 @@ import (
 // todo: ast.AttributeType as ParsedType only allowed on component call parameter
 // todo: scope type assertions don't work on underscore blocks
 // todo: block annotations need to be corrected
-// todo: file.(Block|With).Name
+// todo: file.(Block|With).Name correctly used (i.e. empty for default block)
 // todo: looped with considers only direct children
 // todo: extend as part of body
-// todo: rename Args and Params to List
 // todo: store param field on file.ComponentArgument
-// todo: rename file.Import file.ImportSpec
 // todo: link/linkattribute_reference.go:122
-// todo: File should have list of used imports
 // todo: block function needs to also accept no ident
 // todo: check/misc_scope: todos
 
