@@ -5,15 +5,13 @@ import (
 	"log/slog"
 
 	"github.com/mavolin/corgi/v2/file"
-	"github.com/mavolin/corgi/v2/file/ast"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
 	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
-	"github.com/mavolin/corgi/v2/internal/set"
 )
 
 func (l *linker) CheckDotImportCollisions(_ context.Context) {
 	logger := l.logger.WithGroup("check.dot_import_collisions")
-	logger.Info("Checking for dot import collisions")
+	logger.Debug("Checking for dot import collisions")
 
 	dotImports := make([]*file.Import, 0, 32)
 
@@ -25,413 +23,230 @@ func (l *linker) CheckDotImportCollisions(_ context.Context) {
 			}
 			dotImports = append(dotImports, imp)
 		}
+		if len(dotImports) <= 1 {
+			continue
+		}
 
-		(&dotImportCollisionChecker{
-			dotImports: dotImports,
-		}).checkFile(l, logger, f)
+		logger = logger.With(slog.String("file", f.Name))
+
+		l.checkDotImportComponentCollision(logger, f, dotImports)
+		l.checkDotImportElementSpecCollisions(logger, f, dotImports)
+		l.checkDotImportAttributeSpecCollision(logger, f, dotImports)
 	}
-}
-
-type dotImportCollisionChecker struct { // file level
-	dotImports []*file.Import
-}
-
-func (c *dotImportCollisionChecker) checkFile(l *linker, logger *slog.Logger, f *file.File) {
-	logger = logger.With(slog.String("file", f.Name))
-	logger.Debug("Checking file")
-
-	if len(c.dotImports) <= 1 {
-		logger.Debug("One or no dot imports, skipping")
-		return
-	}
-
-	(&dotImportComponentCollisionChecker{
-		dotImportCollisionChecker: c,
-		checked:                   l.takeStringSet(),
-		duplComps:                 make([]dotImportComponentCollision, 0, 8),
-	}).checkFile(l, logger, f)
-	(&dotImportElementDefinitionCollisionChecker{
-		dotImportCollisionChecker: c,
-		checked:                   l.takeStringSet(),
-		duplElemDefs:              make([]dotImportElementDefinitionCollision, 0, 8),
-	}).checkFile(l, logger, f)
-	(&dotImportAttributeDefinitionCollisionChecker{
-		dotImportCollisionChecker: c,
-		reported:                  set.NewSliceSet[*file.AttributeSpec](32),
-		duplAttrDefs:              make([]dotImportAttributeDefinitionCollision, 0, 8),
-	}).checkFile(l, logger, f)
 }
 
 // ============================================================================
 // Component Collisions
 // ======================================================================================
 
-type (
-	dotImportComponentCollisionChecker struct { // file level
-		*dotImportCollisionChecker
-		checked   set.Set[componentName]
-		duplComps []dotImportComponentCollision
-	}
-
-	dotImportComponentCollision struct {
-		imp  *file.Import
-		comp *file.Component
-	}
-)
-
-func (c *dotImportComponentCollisionChecker) checkFile(l *linker, logger *slog.Logger, f *file.File) {
+func (l *linker) checkDotImportComponentCollision(logger *slog.Logger, f *file.File, dotImports []*file.Import) {
 	logger = logger.WithGroup("components")
-	logger.Debug("Checking for dot import collisions through components")
 
-	for aImpI, aImp := range c.dotImports[:len(c.dotImports)-1] {
-		logger := logger.With(slog.String("import", aImp.Package.ImportPath))
-		logger.Debug("Checking import")
+	dupls := make(map[string][]*file.Component)
 
-		for _, aComp := range aImp.Package.Components {
-			if !c.shouldCheck(aComp) {
-				continue
-			}
+	for _, imp := range dotImports {
+		addComponentsFromPackage(dupls, imp.Package)
+	}
+	addComponentsFromPackage(dupls, f.Package)
 
-			aCompName := aComp.Header().Name.Name
-			logger := logger.With(
-				slog.String("component_pos", aComp.Start().String()),
-				slog.String("component", aCompName))
-			logger.Debug("Checking component")
-			if c.checked.Contains(aCompName) {
-				logger.Debug("Already checked components with that name")
-				continue
-			}
-			c.checked.Add(aCompName)
-			c.resetDuplicates()
+	for name, comps := range dupls {
+		if len(comps) < 2 {
+			continue // no collision
+		}
 
-			for _, bImp := range c.dotImports[aImpI+1:] {
-				if aImp.Package.ImportPath == bImp.Package.ImportPath { // duplicate import, reported elsewhere
-					continue
-				}
+		logger := logger.With(slog.String("name", name))
+		logger.Error("Component collision", slog.Int("count", len(comps)))
 
-				bComp := bImp.Package.ComponentByName(aCompName)
-				if bComp != nil {
-					c.recordDuplicate(bComp, bImp)
-				}
-			}
-
-			if len(c.duplComps) > 0 {
-				a := dotImportComponentCollision{
-					imp:  aImp,
-					comp: aComp,
-				}
-				c.reportCollision(l, logger, f, a, c.duplComps)
+		primaries := make([]diagnostic.Annotation, len(comps))
+		secondaries := make([]diagnostic.Annotation, 0, len(comps))
+		for i, comp := range comps {
+			if comp.File.Package == f.Package {
+				primaries[i] = anno.Node(f, comp.DefinedAST, "`"+name+"` defined locally")
+			} else {
+				primaries[i] = anno.Node(f, f.ImportByPackage(comp.File.Package).AST, "defines `"+name+"`")
+				secondaries = append(secondaries, anno.Anno(comp.File, anno.Annotation{
+					Highlight:  anno.HighlightNode(comp.DefinedAST),
+					Context:    anno.ContextLines(comp.DefinedAST.Start(), comp.DefinedAST.Header.End()),
+					Annotation: "defined here",
+				}))
 			}
 		}
+
+		l.report(&diagnostic.Diagnostic{
+			Message:   "dot import collision: multiple definitions for component of the same name",
+			Primary:   primaries,
+			Secondary: secondaries,
+			Hints: []diagnostic.Hint{
+				{Hint: "Use import aliases instead."},
+			},
+		})
 	}
 }
 
-func (c *dotImportComponentCollisionChecker) reportCollision(
-	l *linker, logger *slog.Logger, f *file.File, first dotImportComponentCollision, dupls []dotImportComponentCollision,
-) {
-	collisionName := first.comp.Header().Name.Name
-	logger.Error("Component collision", slog.String("name", collisionName))
+func addComponentsFromPackage(dupls map[string][]*file.Component, p *file.Package) {
+Components:
+	for _, comp := range p.Components {
+		if comp.DefinedAST.Header == nil || comp.DefinedAST.Header.Name == nil {
+			continue
+		}
+		name := comp.DefinedAST.Header.Name.Name
+		if !file.IsExported(name) {
+			continue
+		}
 
-	primaries := make([]diagnostic.Annotation, 1, len(dupls)+1)
-	primaries[0] = anno.Node(f, first.imp.AST, "defines `"+collisionName+"`")
-	for _, dupl := range dupls {
-		primaries = append(primaries, anno.Node(f, dupl.imp.AST, "defines `"+collisionName+"`"))
+		for _, dupl := range dupls[name] {
+			if dupl.File.Package == comp.File.Package {
+				continue Components // only report one collision per package
+			}
+		}
+		dupls[name] = append(dupls[name], comp)
 	}
-
-	secondaries := make([]diagnostic.Annotation, 1, len(dupls)+1)
-	secondaries[0] = anno.Anno(first.comp.File, anno.Annotation{
-		Highlight:  anno.HighlightNode(first.comp.DefinedAST),
-		Context:    anno.ContextLines(first.comp.DefinedAST.Start(), first.comp.DefinedAST.Header.End()),
-		Annotation: "defined here",
-	})
-	for _, dupl := range dupls {
-		secondaries = append(secondaries, anno.Anno(dupl.comp.File, anno.Annotation{
-			Highlight:  anno.HighlightNode(dupl.comp.DefinedAST),
-			Context:    anno.ContextLines(dupl.comp.DefinedAST.Start(), dupl.comp.DefinedAST.Header.End()),
-			Annotation: "defined here",
-		}))
-	}
-
-	l.report(&diagnostic.Diagnostic{
-		Message:   "dot import collision: multiple definitions for component of the same name",
-		Primary:   primaries,
-		Secondary: secondaries,
-		Hints: []diagnostic.Hint{
-			{Hint: "Make all but one of the imports non-dot imports."},
-		},
-	})
-}
-
-func (c *dotImportComponentCollisionChecker) resetDuplicates() {
-	c.duplComps = c.duplComps[:0]
-}
-
-func (c *dotImportComponentCollisionChecker) recordDuplicate(comp *file.Component, imp *file.Import) {
-	c.duplComps = append(c.duplComps, dotImportComponentCollision{
-		imp:  imp,
-		comp: comp,
-	})
-}
-
-func (c dotImportComponentCollisionChecker) shouldCheck(comp *file.Component) bool {
-	return comp != nil && comp.Header() != nil && comp.Header().Name != nil && file.IsExported(comp.Header().Name.Name)
 }
 
 // ============================================================================
 // Element Spec Collisions
 // ======================================================================================
 
-type (
-	dotImportElementDefinitionCollisionChecker struct { // file level
-		*dotImportCollisionChecker
-		checked      set.Set[fullElementName]
-		duplElemDefs []dotImportElementDefinitionCollision
-	}
-	dotImportElementDefinitionCollision struct {
-		imp  *file.Import
-		elem *file.ElementSpec
-	}
-)
-
-func (c *dotImportElementDefinitionCollisionChecker) checkFile(l *linker, logger *slog.Logger, f *file.File) {
+func (l *linker) checkDotImportElementSpecCollisions(logger *slog.Logger, f *file.File, dotImports []*file.Import) {
 	logger = logger.WithGroup("element_definitions")
-	logger.Debug("Checking for dot import collisions through element definitions")
 
-	for aImpI, aImp := range c.dotImports[:len(c.dotImports)-1] {
-		logger := logger.With(slog.String("import", aImp.Package.ImportPath))
-		logger.Debug("Checking import")
+	dupls := make(map[string][]*file.ElementSpec)
+	for _, imp := range dotImports {
+		addElementSpecsFromPackage(dupls, imp.Package)
+	}
+	addElementSpecsFromPackage(dupls, f.Package)
 
-		for _, aElemDef := range aImp.Package.ElementSpecs {
-			if !c.shouldCheck(aElemDef) {
-				continue
-			}
+	for name, elems := range dupls {
+		if len(elems) < 2 {
+			continue // no collision
+		}
 
-			aName := aElemDef.FullName()
-			logger := logger.With(
-				slog.String("spec_file", aElemDef.File.Name),
-				slog.String("spec_pos", aElemDef.AST.Start().String()),
-				slog.String("element", aName))
-			logger.Debug("Checking element definition spec")
-			if c.checked.Contains(aName) {
-				logger.Debug("Already checked element definitions with that name")
-				continue
-			}
-			c.checked.Add(aName)
-			c.resetDuplicates()
+		logger.Error("Element definition collision",
+			slog.String("name", name),
+			slog.Int("count", len(elems)))
 
-			for _, bImp := range c.dotImports[aImpI+1:] {
-				if aImp.Package.ImportPath == bImp.Package.ImportPath { // duplicate import, reported elsewhere
-					continue
-				}
-
-				bElemDef := bImp.Package.ElementSpecByFullName(aName)
-				if bElemDef != nil {
-					c.recordDuplicate(bElemDef, bImp)
-				}
-			}
-
-			if len(c.duplElemDefs) > 0 {
-				a := dotImportElementDefinitionCollision{
-					imp:  aImp,
-					elem: aElemDef,
-				}
-				c.reportCollision(l, logger, f, a, c.duplElemDefs)
+		primaries := make([]diagnostic.Annotation, 0, len(elems)+1)
+		secondaries := make([]diagnostic.Annotation, 0, 2*len(elems))
+		for _, elem := range elems {
+			if elem.File.Package == f.Package {
+				primaries = appendElementSpecLocationAnnotations(primaries, elem, "`"+name+"` defined locally")
+			} else {
+				primaries = append(primaries, anno.Node(f, f.ImportByPackage(elem.File.Package).AST, "defines `"+name+"`"))
+				secondaries = appendElementSpecLocationAnnotations(secondaries, elem, "defined here")
 			}
 		}
+
+		l.report(&diagnostic.Diagnostic{
+			Message:   "dot import collision: multiple definitions for element of the same name",
+			Primary:   primaries,
+			Secondary: secondaries,
+			Hints: []diagnostic.Hint{
+				{Hint: "Use import aliases instead."},
+				{Hint: "Remember that element names are case-insensitive."},
+			},
+		})
 	}
 }
 
-func (c *dotImportElementDefinitionCollisionChecker) reportCollision(
-	l *linker, logger *slog.Logger, f *file.File, first dotImportElementDefinitionCollision,
-	dupls []dotImportElementDefinitionCollision,
-) {
-	collisionName := first.elem.FullName()
-	logger.Error("Element definition collision", slog.String("name", collisionName))
+func addElementSpecsFromPackage(dupls map[string][]*file.ElementSpec, p *file.Package) {
+Specs:
+	for _, elem := range p.ElementSpecs {
+		name := elem.FullName()
+		if name == "" {
+			continue
+		}
 
-	primaries := make([]diagnostic.Annotation, 1, len(dupls)+1)
-	primaries[0] = anno.Node(f, first.imp.AST, "defines `"+collisionName+"`")
-	for _, dupl := range dupls {
-		primaries = append(primaries, anno.Node(f, dupl.imp.AST, "defines `"+collisionName+"`"))
+		for _, dupl := range dupls[name] {
+			if dupl.File.Package == elem.File.Package {
+				continue Specs // only report one collision per package
+			}
+		}
+		dupls[name] = append(dupls[name], elem)
 	}
-
-	secondaries := make([]diagnostic.Annotation, 0, 2*(len(dupls)+1))
-	reportedPrefixes := set.NewSliceSet[*ast.ElementDefinition](len(dupls) + 1)
-	secondaries = c.appendCollisionDiagnosticSecondary(secondaries, first, reportedPrefixes)
-	for _, dupl := range dupls {
-		secondaries = c.appendCollisionDiagnosticSecondary(secondaries, dupl, reportedPrefixes)
-	}
-
-	l.report(&diagnostic.Diagnostic{
-		Message:   "dot import collision: multiple definitions for element of the same name",
-		Primary:   primaries,
-		Secondary: secondaries,
-		Hints: []diagnostic.Hint{
-			{Hint: "Make all but one of the imports non-dot imports."},
-			{Hint: "Remember that element definitions are case-insensitive."},
-		},
-	})
 }
 
-func (c dotImportElementDefinitionCollisionChecker) appendCollisionDiagnosticSecondary(
-	secondaries []diagnostic.Annotation, dupl dotImportElementDefinitionCollision,
-	reportedPrefixes *set.SliceSet[*ast.ElementDefinition],
-) []diagnostic.Annotation {
-	if dupl.elem.Definition.LParen == nil && dupl.elem.Definition.Prefix != nil {
-		return append(secondaries,
-			anno.Range(dupl.elem.File, dupl.elem.Definition.Prefix.Start(), dupl.elem.AST.Name.End(), "defined here"))
+func appendElementSpecLocationAnnotations(annos []diagnostic.Annotation, elem *file.ElementSpec, text string) []diagnostic.Annotation {
+	if elem.Definition.LParen == nil && elem.Definition.Prefix != nil {
+		return append(annos, anno.Range(elem.File, elem.Definition.Prefix.Start(), elem.AST.Name.End(), text))
 	}
 
-	if dupl.elem.Definition.Prefix != nil && reportedPrefixes.Contains(dupl.elem.Definition) {
-		reportedPrefixes.Add(dupl.elem.Definition)
-		secondaries = append(secondaries, anno.Node(dupl.elem.File, dupl.elem.Definition.Prefix, "with this prefix"))
+	if elem.Definition.Prefix != nil {
+		annos = append(annos, anno.Node(elem.File, elem.Definition.Prefix, "with this prefix"))
 	}
-	return append(secondaries, anno.Node(dupl.elem.File, dupl.elem.AST.Name, "defined here"))
-}
-
-func (c *dotImportElementDefinitionCollisionChecker) resetDuplicates() {
-	c.duplElemDefs = c.duplElemDefs[:0]
-}
-
-func (c *dotImportElementDefinitionCollisionChecker) recordDuplicate(elem *file.ElementSpec, imp *file.Import) {
-	c.duplElemDefs = append(c.duplElemDefs, dotImportElementDefinitionCollision{
-		imp:  imp,
-		elem: elem,
-	})
-}
-
-func (c dotImportElementDefinitionCollisionChecker) shouldCheck(elem *file.ElementSpec) bool {
-	return elem != nil && elem.AST != nil && elem.FullName() != ""
+	return append(annos, anno.Node(elem.File, elem.AST.Name, text))
 }
 
 // ============================================================================
 // Attribute Spec Collisions
 // ======================================================================================
 
-type (
-	dotImportAttributeDefinitionCollisionChecker struct { // file level
-		*dotImportCollisionChecker
-		reported     set.Set[*file.AttributeSpec]
-		duplAttrDefs []dotImportAttributeDefinitionCollision
-	}
-	dotImportAttributeDefinitionCollision struct {
-		imp      *file.Import
-		attr     *file.AttributeSpec
-		selector string
-	}
-)
-
-func (c *dotImportAttributeDefinitionCollisionChecker) checkFile(l *linker, logger *slog.Logger, f *file.File) {
+func (l *linker) checkDotImportAttributeSpecCollision(logger *slog.Logger, f *file.File, dotImports []*file.Import) {
 	logger = logger.WithGroup("attribute_definitions")
-	logger.Debug("Checking for dot import collisions through attribute definitions")
 
-	for aImpI, aImp := range c.dotImports[:len(c.dotImports)-1] {
-		logger := logger.With(slog.String("import", aImp.Package.ImportPath))
-		logger.Debug("Checking import")
+	dupls := make(map[string][]*file.AttributeSpec)
+	for _, imp := range dotImports {
+		addAttributeSpecsFromPackage(dupls, imp.Package)
+	}
+	addAttributeSpecsFromPackage(dupls, f.Package)
 
-		for _, aAttrDef := range aImp.Package.AttributeSpecs {
-			aInfo := attrDefInfo(aAttrDef)
-			if aInfo == nil {
-				continue
-			}
+	for sel, attrs := range dupls {
+		if len(attrs) < 2 {
+			continue // no collision
+		}
 
-			logger := logger.With(
-				slog.String("spec_file", aAttrDef.File.Name),
-				slog.String("spec_pos", aAttrDef.AST.Start().String()),
-				slog.String("full_selector", aInfo.fullSelector()))
-			logger.Debug("Checking attribute definition spec")
+		logger.Error("Attribute definition collision",
+			slog.String("selector", sel),
+			slog.Int("count", len(attrs)))
 
-			if c.reported.Contains(aAttrDef) {
-				logger.Debug("Already reported, skipping")
-				continue
-			}
-
-			c.resetDuplicates()
-
-			for _, bImp := range c.dotImports[aImpI+1:] {
-				if aImp.Package.ImportPath == bImp.Package.ImportPath { // duplicate import, reported elsewhere
-					continue
-				}
-
-				for _, bAttrDef := range bImp.Package.AttributeSpecs {
-					bInfo := attrDefInfo(bAttrDef)
-					if bInfo == nil {
-						continue
-					}
-
-					// only report collisions for attribute definitions with
-					// the same specificity
-					if aInfo.fullSelector() == bInfo.fullSelector() {
-						c.recordDuplicate(bImp, bAttrDef, bInfo.fullSelector())
-						c.reported.Add(bAttrDef)
-						break // one per file
-					}
-				}
-			}
-
-			if len(c.duplAttrDefs) > 0 {
-				a := dotImportAttributeDefinitionCollision{
-					imp:      aImp,
-					attr:     aAttrDef,
-					selector: aInfo.fullSelector(),
-				}
-				c.reportCollision(l, logger, f, a, c.duplAttrDefs)
+		primaries := make([]diagnostic.Annotation, 0, len(attrs))
+		secondaries := make([]diagnostic.Annotation, 0, len(attrs))
+		for _, attr := range attrs {
+			if attr.File.Package == f.Package {
+				primaries = appendAttrSpecLocationAnnotations(primaries, attr, "`"+sel+"` defined locally")
+			} else {
+				primaries = append(primaries, anno.Node(f, f.ImportByPackage(attr.File.Package).AST, "defines `"+sel+"`"))
+				secondaries = appendAttrSpecLocationAnnotations(secondaries, attr, "defined here")
 			}
 		}
+
+		l.report(&diagnostic.Diagnostic{
+			Message:   "dot import collision: multiple definitions for attribute of the same name",
+			Primary:   primaries,
+			Secondary: secondaries,
+			Hints: []diagnostic.Hint{
+				{Hint: "Use import aliases instead."},
+				{Hint: "Remember that attribute names are case-insensitive."},
+			},
+		})
 	}
 }
 
-func (c *dotImportAttributeDefinitionCollisionChecker) reportCollision(
-	l *linker, logger *slog.Logger, f *file.File, first dotImportAttributeDefinitionCollision,
-	dupls []dotImportAttributeDefinitionCollision,
-) {
-	logger.Error("Attribute definition collision", slog.String("selector", first.selector))
+func addAttributeSpecsFromPackage(dupls map[string][]*file.AttributeSpec, p *file.Package) {
+Specs:
+	for _, attr := range p.AttributeSpecs {
+		info := attrSpecInfo(attr)
+		if info == nil {
+			continue
+		}
+		sel := info.fullSelector()
 
-	primaries := make([]diagnostic.Annotation, 1, len(dupls)+1)
-	primaries[0] = anno.Node(f, first.imp.AST, "defines `"+first.selector+"`")
-	for _, dupl := range dupls {
-		primaries = append(primaries, anno.Node(f, dupl.imp.AST, "defines `"+dupl.selector+"`"))
+		for _, dupl := range dupls[sel] {
+			if dupl.File.Package == attr.File.Package {
+				continue Specs // only report one collision per package
+			}
+		}
+		dupls[sel] = append(dupls[sel], attr)
 	}
-
-	secondaries := make([]diagnostic.Annotation, 0, 2*(len(dupls)+1))
-	secondaries = c.appendCollisionDiagnosticSecondary(secondaries, first)
-	for _, dupl := range dupls {
-		secondaries = c.appendCollisionDiagnosticSecondary(secondaries, dupl)
-	}
-
-	l.report(&diagnostic.Diagnostic{
-		Message:   "dot import collision: multiple definitions for attribute of the same name",
-		Primary:   primaries,
-		Secondary: secondaries,
-		Hints: []diagnostic.Hint{
-			{Hint: "Make all but one of the imports non-dot imports."},
-			{Hint: "Remember that attribute names are case-insensitive."},
-		},
-	})
 }
 
-func (c dotImportAttributeDefinitionCollisionChecker) appendCollisionDiagnosticSecondary(
-	secondaries []diagnostic.Annotation, dupl dotImportAttributeDefinitionCollision,
-) []diagnostic.Annotation {
-	if dupl.attr.Definition.LParen == nil && dupl.attr.Definition.Prefix != nil {
-		return append(secondaries,
-			anno.Range(dupl.attr.File, dupl.attr.Definition.Prefix.Start(), dupl.attr.AST.Selector.End(), "defined here"))
+func appendAttrSpecLocationAnnotations(annos []diagnostic.Annotation, attr *file.AttributeSpec, text string) []diagnostic.Annotation {
+	if attr.Definition.LParen == nil && attr.Definition.Prefix != nil {
+		return append(annos, anno.Range(attr.File, attr.Definition.Prefix.Start(), attr.AST.Selector.End(), text))
 	}
 
-	if dupl.attr.Definition.Prefix != nil {
-		secondaries = append(secondaries,
-			anno.Node(dupl.attr.File, dupl.attr.Definition.Prefix, "with this prefix"))
+	if attr.Definition.Prefix != nil {
+		annos = append(annos,
+			anno.Node(attr.File, attr.Definition.Prefix, "with this prefix"))
 	}
-	return append(secondaries, anno.Node(dupl.attr.File, dupl.attr.AST.Selector, "defined here"))
-}
-
-func (c *dotImportAttributeDefinitionCollisionChecker) resetDuplicates() {
-	c.duplAttrDefs = c.duplAttrDefs[:0]
-}
-
-func (c *dotImportAttributeDefinitionCollisionChecker) recordDuplicate(imp *file.Import, attr *file.AttributeSpec, selector string) {
-	c.duplAttrDefs = append(c.duplAttrDefs, dotImportAttributeDefinitionCollision{
-		imp:      imp,
-		attr:     attr,
-		selector: selector,
-	})
+	return append(annos, anno.Node(attr.File, attr.AST.Selector, text))
 }

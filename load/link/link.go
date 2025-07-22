@@ -102,7 +102,6 @@ func Link(ctx context.Context, p *file.Package, o Options) diagnostic.List {
 	l.LoadImports(ctx)
 	l.CheckImportNamespaceCollisions(ctx)
 	l.CheckDotImportCollisions(ctx)
-	l.CheckLocalDotImportCollisions(ctx)
 
 	l.CheckDuplicateComponents(ctx)
 	l.LinkComponentCalls(ctx)
