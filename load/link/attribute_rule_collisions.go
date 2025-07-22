@@ -29,7 +29,7 @@ func (l *linker) CheckAttributeRuleCollisions() {
 			slog.String("file", spec.File.Name),
 			slog.String("spec_pos", spec.AST.Start().String()))
 
-		if len(spec.AST.Ruleset.Rules) <= 1 {
+		if len(spec.AST.Ruleset.List) <= 1 {
 			continue
 		}
 
@@ -48,9 +48,9 @@ func (l *linker) CheckAttributeRuleCollisions() {
 }
 
 func duplicateWildcardElementSelectors(spec *file.AttributeSpec) []*duplicateAttributeRule {
-	sels := make([]*duplicateAttributeRule, 0, len(spec.AST.Ruleset.Rules))
+	sels := make([]*duplicateAttributeRule, 0, len(spec.AST.Ruleset.List))
 
-	for _, rule := range spec.AST.Ruleset.Rules {
+	for _, rule := range spec.AST.Ruleset.List {
 		if rule == nil || rule.Selector == nil {
 			continue
 		}
@@ -73,7 +73,7 @@ func duplicateWildcardElementSelectors(spec *file.AttributeSpec) []*duplicateAtt
 func duplicateListElementSelectors(spec *file.AttributeSpec) map[elementName][]*duplicateAttributeRule {
 	elemMap := make(map[elementName][]*duplicateAttributeRule)
 
-	for _, rule := range spec.AST.Ruleset.Rules {
+	for _, rule := range spec.AST.Ruleset.List {
 		if rule == nil || rule.Selector == nil {
 			continue
 		}
@@ -83,7 +83,7 @@ func duplicateListElementSelectors(spec *file.AttributeSpec) map[elementName][]*
 			continue
 		}
 
-		for _, elem := range sel.Elements {
+		for _, elem := range sel.List {
 			if elem == nil || elem.Name == "" {
 				continue
 			}

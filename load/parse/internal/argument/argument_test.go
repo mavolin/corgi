@@ -34,7 +34,7 @@ func TestArguments(t *testing.T) {
 			in:   "(.foo)",
 			want: &ast.Arguments{
 				LParen: &ast.Position{Line: 1, Col: 1},
-				Args: []ast.Argument{
+				List: []ast.Argument{
 					&ast.ClassShorthand{
 						Dot: &ast.Position{Line: 1, Col: 2},
 						Names: []ast.Shorthand{
@@ -54,7 +54,7 @@ func TestArguments(t *testing.T) {
 			in:   "(#foo)",
 			want: &ast.Arguments{
 				LParen: &ast.Position{Line: 1, Col: 1},
-				Args: []ast.Argument{
+				List: []ast.Argument{
 					&ast.IDShorthand{
 						Hash: &ast.Position{Line: 1, Col: 2},
 						ID: ast.Shorthand{
@@ -72,7 +72,7 @@ func TestArguments(t *testing.T) {
 			in:   "(&)",
 			want: &ast.Arguments{
 				LParen: &ast.Position{Line: 1, Col: 1},
-				Args: []ast.Argument{
+				List: []ast.Argument{
 					&ast.AndPlaceholder{
 						And: &ast.Position{Line: 1, Col: 2},
 					},
@@ -84,7 +84,7 @@ func TestArguments(t *testing.T) {
 			in:   "(disabled)",
 			want: &ast.Arguments{
 				LParen: &ast.Position{Line: 1, Col: 1},
-				Args: []ast.Argument{
+				List: []ast.Argument{
 					&ast.NamedAttribute{
 						Name: &ast.AttributeReference{
 							Name: &ast.AttributeName{
@@ -101,7 +101,7 @@ func TestArguments(t *testing.T) {
 			in:   "(class=foo)",
 			want: &ast.Arguments{
 				LParen: &ast.Position{Line: 1, Col: 1},
-				Args: []ast.Argument{
+				List: []ast.Argument{
 					&ast.NamedAttribute{
 						Name: &ast.AttributeReference{
 							Name: &ast.AttributeName{
@@ -127,7 +127,7 @@ func TestArguments(t *testing.T) {
 			in:   "(foo: bar)",
 			want: &ast.Arguments{
 				LParen: &ast.Position{Line: 1, Col: 1},
-				Args: []ast.Argument{
+				List: []ast.Argument{
 					&ast.ComponentArgument{
 						Name: &ast.Identifier{
 							Name:     "foo",
@@ -151,7 +151,7 @@ func TestArguments(t *testing.T) {
 			in:   "(arg1: arg1Value, arg2: arg2Value, &, .class1 class2, #id, booleanAttr, valueAttr=valueAttrValue)",
 			want: &ast.Arguments{
 				LParen: &ast.Position{Line: 1, Col: 1},
-				Args: []ast.Argument{
+				List: []ast.Argument{
 					&ast.ComponentArgument{
 						Name: &ast.Identifier{
 							Name:     "arg1",

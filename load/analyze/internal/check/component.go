@@ -61,7 +61,7 @@ func (ch *checker) CheckAliasDoesntOverwriteRequiredParams(logger *slog.Logger, 
 
 	providedParams := make(map[string]bool)
 	if aliasedCall.AST.Header != nil {
-		for _, arg := range aliasedCall.AST.Header.Arguments.Args {
+		for _, arg := range aliasedCall.AST.Header.Arguments.List {
 			carg, _ := arg.(*ast.ComponentArgument)
 			if carg != nil && carg.Name != nil {
 				providedParams[carg.Name.Name] = true
@@ -84,7 +84,7 @@ func (ch *checker) CheckAliasDoesntOverwriteRequiredParams(logger *slog.Logger, 
 			continue
 		}
 
-		for _, param := range c.AliasAST.Header.Parameters.Params {
+		for _, param := range c.AliasAST.Header.Parameters.List {
 			if name != param.Name.Name {
 				continue
 			}

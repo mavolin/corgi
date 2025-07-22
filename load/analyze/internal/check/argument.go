@@ -16,7 +16,7 @@ func (ch *checker) CheckArguments(logger *slog.Logger, f *file.File, _ []*walk.C
 	logger = logger.WithGroup("arguments").
 		With(slog.String("arguments_pos", a.Start().String()))
 
-	for _, arg := range a.Args {
+	for _, arg := range a.List {
 		logger := logger.With(
 			slog.String("arg_pos", arg.Start().String()),
 			slog.String("arg_type", fmt.Sprintf("%T", arg)))

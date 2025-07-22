@@ -160,7 +160,7 @@ func TestHeader(t *testing.T) {
 				},
 				Parameters: &ast.ComponentParameters{
 					LParen: &ast.Position{Line: 1, Col: 11},
-					Params: []*ast.ComponentParameter{
+					List: []*ast.ComponentParameter{
 						{
 							Name: &ast.Identifier{
 								Name:     "val",
@@ -215,7 +215,7 @@ func TestParameters(t *testing.T) {
 				")",
 			want: &ast.ComponentParameters{
 				LParen: &ast.Position{Line: 1, Col: 1},
-				Params: []*ast.ComponentParameter{
+				List: []*ast.ComponentParameter{
 					{
 						Name: &ast.Identifier{
 							Name:     "foo",
@@ -241,7 +241,7 @@ func TestParameters(t *testing.T) {
 			in:   "(foo any, bar string)",
 			want: &ast.ComponentParameters{
 				LParen: &ast.Position{Line: 1, Col: 1},
-				Params: []*ast.ComponentParameter{
+				List: []*ast.ComponentParameter{
 					{
 						Name: &ast.Identifier{
 							Name:     "foo",
@@ -409,7 +409,7 @@ func TestAlias(t *testing.T) {
 			},
 			Parameters: &ast.ComponentParameters{
 				LParen: &ast.Position{Line: 1, Col: 10},
-				Params: []*ast.ComponentParameter{
+				List: []*ast.ComponentParameter{
 					{
 						Name: &ast.Identifier{
 							Name:     "s",
@@ -440,7 +440,7 @@ func TestAlias(t *testing.T) {
 				},
 				Arguments: &ast.Arguments{
 					LParen: &ast.Position{Line: 1, Col: 26},
-					Args: []ast.Argument{
+					List: []ast.Argument{
 						&ast.ComponentArgument{
 							Name: &ast.Identifier{
 								Name:     "baz",

@@ -293,8 +293,8 @@ func (z *analyzer) aggregateDefinedComponentParameters(c *file.Component) {
 		return
 	}
 
-	c.Parameters = make([]*file.ComponentParameter, len(c.DefinedAST.Header.Parameters.Params))
-	for i, param := range c.DefinedAST.Header.Parameters.Params {
+	c.Parameters = make([]*file.ComponentParameter, len(c.DefinedAST.Header.Parameters.List))
+	for i, param := range c.DefinedAST.Header.Parameters.List {
 		c.Parameters[i] = &file.ComponentParameter{
 			AST:       param,
 			Component: c,
@@ -305,11 +305,11 @@ func (z *analyzer) aggregateDefinedComponentParameters(c *file.Component) {
 func (z *analyzer) aggregateAliasComponentParameters(c *file.Component, cc *file.ComponentCall) {
 	parent := cc.Component
 
-	params := make([]*file.ComponentParameter, 0, len(parent.Parameters)+len(c.AliasAST.Header.Parameters.Params))
+	params := make([]*file.ComponentParameter, 0, len(parent.Parameters)+len(c.AliasAST.Header.Parameters.List))
 Params:
 	for _, parentParam := range parent.Parameters {
 		if cc.AST.Header.Arguments != nil {
-			for _, arg := range cc.AST.Header.Arguments.Args {
+			for _, arg := range cc.AST.Header.Arguments.List {
 				carg, _ := arg.(*ast.ComponentArgument)
 				if carg != nil && carg.Name.Name == parentParam.AST.Name.Name {
 					continue Params // skip this parameter, not inherited by c
@@ -317,7 +317,7 @@ Params:
 			}
 		}
 		if c.AliasAST.Header.Parameters != nil {
-			for _, childParam := range c.AliasAST.Header.Parameters.Params {
+			for _, childParam := range c.AliasAST.Header.Parameters.List {
 				if childParam.Name.Name == parentParam.AST.Name.Name {
 					continue Params // skip this parameter, overridden by c
 				}
@@ -328,7 +328,7 @@ Params:
 	}
 
 	if c.AliasAST.Header.Parameters != nil {
-		for _, param := range c.AliasAST.Header.Parameters.Params {
+		for _, param := range c.AliasAST.Header.Parameters.List {
 			params = append(params, &file.ComponentParameter{
 				AST:       param,
 				Component: c,

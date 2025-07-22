@@ -128,7 +128,7 @@ func (*AttributeSpec) _node() {}
 
 type AttributeRuleset struct {
 	LBrace *Position
-	Rules  []*AttributeRule
+	List   []*AttributeRule
 	RBrace *Position
 }
 
@@ -138,7 +138,7 @@ func (a *AttributeRuleset) Start() Position {
 	if a.LBrace != nil {
 		return *a.LBrace
 	}
-	for _, r := range a.Rules {
+	for _, r := range a.List {
 		if r != nil {
 			return r.Start()
 		}
@@ -153,7 +153,7 @@ func (a *AttributeRuleset) End() Position {
 	if a.RBrace != nil {
 		return deltaPos(*a.RBrace, len("}"))
 	}
-	for _, r := range slices.Backward(a.Rules) {
+	for _, r := range slices.Backward(a.List) {
 		if r != nil {
 			return r.End()
 		}
@@ -165,7 +165,7 @@ func (a *AttributeRuleset) End() Position {
 }
 
 func (a *AttributeRuleset) Walk(w func(Node)) {
-	for _, r := range a.Rules {
+	for _, r := range a.List {
 		if r != nil {
 			w(r)
 		}
@@ -359,13 +359,13 @@ func (w *WildcardElementSelector) _elementSelector() {}
 // =============================== Element List Selector ================================
 
 type ListElementSelector struct {
-	Elements []*ElementName
+	List []*ElementName
 }
 
 var _ ElementSelector = (*ListElementSelector)(nil)
 
 func (l *ListElementSelector) Start() Position {
-	for _, e := range l.Elements {
+	for _, e := range l.List {
 		if e != nil {
 			return e.Start()
 		}
@@ -374,7 +374,7 @@ func (l *ListElementSelector) Start() Position {
 }
 
 func (l *ListElementSelector) End() Position {
-	for _, e := range slices.Backward(l.Elements) {
+	for _, e := range slices.Backward(l.List) {
 		if e != nil {
 			return e.End()
 		}
@@ -383,7 +383,7 @@ func (l *ListElementSelector) End() Position {
 }
 
 func (l *ListElementSelector) Walk(w func(Node)) {
-	for _, e := range l.Elements {
+	for _, e := range l.List {
 		if e != nil {
 			w(e)
 		}
@@ -391,7 +391,7 @@ func (l *ListElementSelector) Walk(w func(Node)) {
 }
 
 func (l *ListElementSelector) Matches(s string) bool {
-	for _, e := range l.Elements {
+	for _, e := range l.List {
 		if e != nil && e.Name == s {
 			return true
 		}

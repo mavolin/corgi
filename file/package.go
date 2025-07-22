@@ -414,7 +414,7 @@ func (d *AttributeSpec) TypeFor(elemDef *ElementSpec) attrtype.Type {
 		elemName := elemDef.FullName()
 
 		var wildcard attrtype.Type
-		for _, rule := range d.AST.Ruleset.Rules {
+		for _, rule := range d.AST.Ruleset.List {
 			if rule == nil {
 				continue
 			}
@@ -455,11 +455,11 @@ func (d *AttributeSpec) GenericType() attrtype.Type {
 		return attrtype.Unknown
 	}
 
-	if len(d.AST.Ruleset.Rules) != 1 {
+	if len(d.AST.Ruleset.List) != 1 {
 		return attrtype.Unknown
 	}
 
-	rule := d.AST.Ruleset.Rules[0]
+	rule := d.AST.Ruleset.List[0]
 	if rule.Selector == nil || rule.Type == nil {
 		return attrtype.Unknown
 	}

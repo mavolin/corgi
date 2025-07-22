@@ -123,7 +123,7 @@ func TestCallHeader(t *testing.T) {
 				},
 				Arguments: &ast.Arguments{
 					LParen: &ast.Position{Line: 1, Col: 4},
-					Args: []ast.Argument{
+					List: []ast.Argument{
 						&ast.ComponentArgument{
 							Name:  &ast.Identifier{Name: "bar", Position: &ast.Position{Line: 1, Col: 5}},
 							Colon: &ast.Position{Line: 1, Col: 8},
@@ -167,7 +167,7 @@ func TestCallHeader(t *testing.T) {
 				},
 				Arguments: &ast.Arguments{
 					LParen: &ast.Position{Line: 1, Col: 9},
-					Args: []ast.Argument{
+					List: []ast.Argument{
 						&ast.ComponentArgument{
 							Name:  &ast.Identifier{Name: "baz", Position: &ast.Position{Line: 1, Col: 10}},
 							Colon: &ast.Position{Line: 1, Col: 13},

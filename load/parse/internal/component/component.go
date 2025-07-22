@@ -104,7 +104,7 @@ func Parameters() parser.Func[*ast.ComponentParameters] {
 		}
 		return &ast.ComponentParameters{
 			LParen: l.Open,
-			Params: l.Elems,
+			List:   l.Elems,
 			RParen: l.Close,
 		}, nil
 	}

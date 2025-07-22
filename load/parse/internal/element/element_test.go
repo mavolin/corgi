@@ -57,7 +57,7 @@ func TestElement(t *testing.T) {
 					},
 					Attributes: &ast.Arguments{
 						LParen: &ast.Position{Line: 1, Col: 3},
-						Args: []ast.Argument{
+						List: []ast.Argument{
 							&ast.NamedAttribute{
 								Name: &ast.AttributeReference{
 									Name: &ast.AttributeName{
@@ -148,7 +148,7 @@ func TestHeader(t *testing.T) {
 				},
 				Attributes: &ast.Arguments{
 					LParen: &ast.Position{Line: 1, Col: 3},
-					Args: []ast.Argument{
+					List: []ast.Argument{
 						&ast.NamedAttribute{
 							Name: &ast.AttributeReference{
 								Name: &ast.AttributeName{
@@ -271,7 +271,7 @@ func TestAnd(t *testing.T) {
 		And: &ast.Position{Line: 1, Col: 1},
 		Attributes: &ast.Arguments{
 			LParen: &ast.Position{Line: 1, Col: 2},
-			Args: []ast.Argument{
+			List: []ast.Argument{
 				&ast.NamedAttribute{
 					Name: &ast.AttributeReference{
 						Name: &ast.AttributeName{

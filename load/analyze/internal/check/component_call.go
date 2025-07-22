@@ -185,10 +185,10 @@ func (ch *checker) CheckWithNotLooped(logger *slog.Logger, cc *file.ComponentCal
 func (ch *checker) CheckNoDuplicateComponentArgs(logger *slog.Logger, cc *file.ComponentCall) {
 	logger = logger.WithGroup("no_duplicate_args")
 
-	if cc.AST.Header.Arguments == nil || len(cc.AST.Header.Arguments.Args) <= 1 {
+	if cc.AST.Header.Arguments == nil || len(cc.AST.Header.Arguments.List) <= 1 {
 		return
 	}
-	args := cc.AST.Header.Arguments.Args
+	args := cc.AST.Header.Arguments.List
 
 	reported := make(map[string]bool)
 	dupls := make([]*ast.ComponentArgument, 0, len(args)-1)
@@ -241,12 +241,12 @@ func (ch *checker) CheckComponentArgsExist(logger *slog.Logger, cc *file.Compone
 
 	if !cc.Component.File.Package.Analyzed || cc.Component.AnalyzedWithErrors {
 		return
-	} else if cc.AST.Header.Arguments == nil || len(cc.AST.Header.Arguments.Args) == 0 {
+	} else if cc.AST.Header.Arguments == nil || len(cc.AST.Header.Arguments.List) == 0 {
 		return
 	}
 
 	reported := make(map[string]bool)
-	for _, arg := range cc.AST.Header.Arguments.Args {
+	for _, arg := range cc.AST.Header.Arguments.List {
 		carg, _ := arg.(*ast.ComponentArgument)
 		if carg == nil {
 			continue
@@ -292,7 +292,7 @@ Params:
 
 		logger := logger.With(slog.String("param", param.AST.Name.Name))
 
-		for _, arg := range cc.AST.Header.Arguments.Args {
+		for _, arg := range cc.AST.Header.Arguments.List {
 			carg, _ := arg.(*ast.ComponentArgument)
 			if carg == nil {
 				continue
@@ -356,7 +356,7 @@ func (ch *checker) CheckComponentAcceptsAttributes(logger *slog.Logger, cc *file
 
 	if cc.FirstPlaceholderAnd == nil {
 		if cc.AST.Header.Arguments != nil {
-			for _, arg := range cc.AST.Header.Arguments.Args {
+			for _, arg := range cc.AST.Header.Arguments.List {
 				attr, _ := arg.(ast.Attribute)
 				if attr != nil {
 					goto HasAttributes

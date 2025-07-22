@@ -4,7 +4,7 @@ import "slices"
 
 type Arguments struct {
 	LParen *Position
-	Args   []Argument
+	List   []Argument
 	RParen *Position
 }
 
@@ -14,7 +14,7 @@ func (a *Arguments) Start() Position {
 	if a.LParen != nil {
 		return *a.LParen
 	}
-	for _, arg := range a.Args {
+	for _, arg := range a.List {
 		if arg != nil {
 			return arg.Start()
 		}
@@ -29,7 +29,7 @@ func (a *Arguments) End() Position {
 	if a.RParen != nil {
 		return deltaPos(*a.RParen, len(")"))
 	}
-	for _, arg := range slices.Backward(a.Args) {
+	for _, arg := range slices.Backward(a.List) {
 		if arg != nil {
 			return arg.End()
 		}
@@ -41,7 +41,7 @@ func (a *Arguments) End() Position {
 }
 
 func (a *Arguments) Walk(w func(Node)) {
-	for _, arg := range a.Args {
+	for _, arg := range a.List {
 		if arg != nil {
 			w(arg)
 		}

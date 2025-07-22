@@ -121,7 +121,7 @@ func Ruleset() parser.Func[*ast.AttributeRuleset] {
 			}
 		}
 
-		rs.Rules = make([]*ast.AttributeRule, 0, 64)
+		rs.List = make([]*ast.AttributeRule, 0, 64)
 		for {
 			parser.TrySkip(p, comment.OrAnyWhitespace())
 			r := parser.TryOptional(p, Rule(), nil)
@@ -129,9 +129,9 @@ func Ruleset() parser.Func[*ast.AttributeRuleset] {
 				break
 			}
 			parser.MustSkip(p, comment.AndMustEOS())
-			rs.Rules = append(rs.Rules, r)
+			rs.List = append(rs.List, r)
 		}
-		rs.Rules = slices.Clip(rs.Rules)
+		rs.List = slices.Clip(rs.List)
 
 		rs.RBrace = parser.TryRuneAt(p, '}')
 		if rs.RBrace == nil {
@@ -300,7 +300,7 @@ func ListElementSelector() parser.Func[*ast.ListElementSelector] {
 		var s ast.ListElementSelector
 
 		var err *diagnostic.Diagnostic
-		s.Elements, err = parser.TryErr(p, list.CommaList("element name", "element names", elementName()))
+		s.List, err = parser.TryErr(p, list.CommaList("element name", "element names", elementName()))
 		if err != nil {
 			return nil, err
 		}

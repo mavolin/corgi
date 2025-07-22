@@ -41,7 +41,7 @@ func Doctype() parser.Func[*ast.Doctype] {
 		}
 		d.LParen, d.RParen = args.LParen, args.RParen
 		switch {
-		case len(args.Args) == 0:
+		case len(args.List) == 0:
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "doctype: missing html attribute",
 				Primary: quickanno.Expected(p, *args.LParen, "an html attribute"),
@@ -49,13 +49,13 @@ func Doctype() parser.Func[*ast.Doctype] {
 					{Example: "`!doctype(html)`"},
 				},
 			})
-		case len(args.Args) == 1:
-			attr, ok := args.Args[0].(*ast.NamedAttribute)
+		case len(args.List) == 1:
+			attr, ok := args.List[0].(*ast.NamedAttribute)
 			if !ok {
 				p.CaptureError(&diagnostic.Diagnostic{
 					Message: "doctype: invalid html attribute",
 					Primary: []diagnostic.Annotation{
-						anno.Range(p.File, args.Args[0].Start(), args.Args[0].End(), "expected `html`, not this"),
+						anno.Range(p.File, args.List[0].Start(), args.List[0].End(), "expected `html`, not this"),
 					},
 					Examples: []diagnostic.Example{{Example: "`!doctype(html)`"}},
 				})
@@ -85,7 +85,7 @@ func Doctype() parser.Func[*ast.Doctype] {
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "doctype: too many attributes",
 				Primary: []diagnostic.Annotation{
-					anno.Range(p.File, args.Args[0].Start(), args.Args[len(args.Args)-1].End(), "only a single `html` attribute"),
+					anno.Range(p.File, args.List[0].Start(), args.List[len(args.List)-1].End(), "only a single `html` attribute"),
 				},
 				Examples: []diagnostic.Example{{Example: "`!doctype(html)`"}},
 			})

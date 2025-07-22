@@ -40,7 +40,7 @@ func Arguments() parser.Func[*ast.Arguments] {
 
 		return &ast.Arguments{
 			LParen: l.Open,
-			Args:   l.Elems,
+			List:   l.Elems,
 			RParen: l.Close,
 		}, nil
 	}

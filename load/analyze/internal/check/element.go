@@ -24,7 +24,7 @@ func (ch *checker) CheckElementNoEmptyAttributeList(logger *slog.Logger, f *file
 
 	if e.Header.Attributes == nil {
 		return
-	} else if len(e.Header.Attributes.Args) > 0 {
+	} else if len(e.Header.Attributes.List) > 0 {
 		return
 	}
 
@@ -47,7 +47,7 @@ func (ch *checker) CheckAttributeListContainsOnlyAttributes(logger *slog.Logger,
 		return
 	}
 
-	for _, arg := range e.Header.Attributes.Args {
+	for _, arg := range e.Header.Attributes.List {
 		logger := logger.With(slog.String("pos", arg.Start().String()))
 
 		if _, ok := arg.(ast.Attribute); ok {

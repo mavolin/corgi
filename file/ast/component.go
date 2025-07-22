@@ -130,7 +130,7 @@ func (*ComponentHeader) _node() {}
 
 type ComponentParameters struct {
 	LParen *Position
-	Params []*ComponentParameter
+	List   []*ComponentParameter
 	RParen *Position
 }
 
@@ -140,7 +140,7 @@ func (p *ComponentParameters) Start() Position {
 	if p.LParen != nil {
 		return *p.LParen
 	}
-	for _, param := range p.Params {
+	for _, param := range p.List {
 		if param != nil {
 			return param.Start()
 		}
@@ -155,7 +155,7 @@ func (p *ComponentParameters) End() Position {
 	if p.RParen != nil {
 		return deltaPos(*p.RParen, len(")"))
 	}
-	for _, param := range slices.Backward(p.Params) {
+	for _, param := range slices.Backward(p.List) {
 		if param != nil {
 			return param.End()
 		}
@@ -167,7 +167,7 @@ func (p *ComponentParameters) End() Position {
 }
 
 func (p *ComponentParameters) Walk(w func(Node)) {
-	for _, param := range p.Params {
+	for _, param := range p.List {
 		if param != nil {
 			w(param)
 		}

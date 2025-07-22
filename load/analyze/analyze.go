@@ -79,9 +79,6 @@ import (
 // todo: File should have list of used imports
 // todo: block function needs to also accept no ident
 // todo: check/misc_scope: todos
-// todo: linker: disallow imports with an alias prefixed with __corgi_
-// todo: linker: disallow imports with a namespace prefixed with __corgi_
-// todo: less log.Debug
 
 // todo: should withs include underscore block shorthand?? prob yes
 
@@ -110,8 +107,9 @@ func Analyze(p *file.Package, o Options) diagnostic.List {
 		slog.String("path_in_module", p.PathInModule),
 	)
 
+	p.Analyzed = true
 	ctx := context.New(p, logger)
-	check.Check(ctx)
 	analyze.Analyze(ctx)
+	check.Check(ctx)
 	return ctx.Diagnostics()
 }

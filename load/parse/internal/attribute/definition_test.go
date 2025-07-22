@@ -32,7 +32,7 @@ func TestDefinition(t *testing.T) {
 						},
 						Ruleset: &ast.AttributeRuleset{
 							LBrace: &ast.Position{Line: 1, Col: 10},
-							Rules: []*ast.AttributeRule{
+							List: []*ast.AttributeRule{
 								{
 									Selector: &ast.WildcardElementSelector{
 										Asterisk: &ast.Position{Line: 1, Col: 12},
@@ -66,7 +66,7 @@ func TestDefinition(t *testing.T) {
 						},
 						Ruleset: &ast.AttributeRuleset{
 							LBrace: &ast.Position{Line: 1, Col: 14},
-							Rules: []*ast.AttributeRule{
+							List: []*ast.AttributeRule{
 								{
 									Selector: &ast.WildcardElementSelector{
 										Asterisk: &ast.Position{Line: 1, Col: 16},
@@ -100,7 +100,7 @@ func TestDefinition(t *testing.T) {
 						},
 						Ruleset: &ast.AttributeRuleset{
 							LBrace: &ast.Position{Line: 2, Col: 6},
-							Rules: []*ast.AttributeRule{
+							List: []*ast.AttributeRule{
 								{
 									Selector: &ast.WildcardElementSelector{
 										Asterisk: &ast.Position{Line: 2, Col: 8},
@@ -121,7 +121,7 @@ func TestDefinition(t *testing.T) {
 						},
 						Ruleset: &ast.AttributeRuleset{
 							LBrace: &ast.Position{Line: 3, Col: 6},
-							Rules: []*ast.AttributeRule{
+							List: []*ast.AttributeRule{
 								{
 									Selector: &ast.WildcardElementSelector{
 										Asterisk: &ast.Position{Line: 3, Col: 8},
@@ -160,7 +160,7 @@ func TestDefinition(t *testing.T) {
 						},
 						Ruleset: &ast.AttributeRuleset{
 							LBrace: &ast.Position{Line: 2, Col: 6},
-							Rules: []*ast.AttributeRule{
+							List: []*ast.AttributeRule{
 								{
 									Selector: &ast.WildcardElementSelector{
 										Asterisk: &ast.Position{Line: 2, Col: 8},
@@ -181,7 +181,7 @@ func TestDefinition(t *testing.T) {
 						},
 						Ruleset: &ast.AttributeRuleset{
 							LBrace: &ast.Position{Line: 3, Col: 6},
-							Rules: []*ast.AttributeRule{
+							List: []*ast.AttributeRule{
 								{
 									Selector: &ast.WildcardElementSelector{
 										Asterisk: &ast.Position{Line: 3, Col: 8},
@@ -224,7 +224,7 @@ func TestSpec(t *testing.T) {
 		},
 		Ruleset: &ast.AttributeRuleset{
 			LBrace: &ast.Position{Line: 1, Col: 5},
-			Rules: []*ast.AttributeRule{
+			List: []*ast.AttributeRule{
 				{
 					Selector: &ast.WildcardElementSelector{
 						Asterisk: &ast.Position{Line: 1, Col: 7},
@@ -257,7 +257,7 @@ func TestRuleset(t *testing.T) {
 			in:   "{ * innocuous }",
 			want: &ast.AttributeRuleset{
 				LBrace: &ast.Position{Line: 1, Col: 1},
-				Rules: []*ast.AttributeRule{
+				List: []*ast.AttributeRule{
 					{
 						Selector: &ast.WildcardElementSelector{
 							Asterisk: &ast.Position{Line: 1, Col: 3},
@@ -276,7 +276,7 @@ func TestRuleset(t *testing.T) {
 			in:   "{ * innocuous; foo text }",
 			want: &ast.AttributeRuleset{
 				LBrace: &ast.Position{Line: 1, Col: 1},
-				Rules: []*ast.AttributeRule{
+				List: []*ast.AttributeRule{
 					{
 						Selector: &ast.WildcardElementSelector{
 							Asterisk: &ast.Position{Line: 1, Col: 3},
@@ -288,7 +288,7 @@ func TestRuleset(t *testing.T) {
 						},
 					}, {
 						Selector: &ast.ListElementSelector{
-							Elements: []*ast.ElementName{
+							List: []*ast.ElementName{
 								{
 									Name:     "foo",
 									Position: &ast.Position{Line: 1, Col: 16},
@@ -311,7 +311,7 @@ func TestRuleset(t *testing.T) {
 				"}",
 			want: &ast.AttributeRuleset{
 				LBrace: &ast.Position{Line: 1, Col: 1},
-				Rules: []*ast.AttributeRule{
+				List: []*ast.AttributeRule{
 					{
 						Selector: &ast.WildcardElementSelector{
 							Asterisk: &ast.Position{Line: 2, Col: 2},
@@ -333,7 +333,7 @@ func TestRuleset(t *testing.T) {
 				"}",
 			want: &ast.AttributeRuleset{
 				LBrace: &ast.Position{Line: 1, Col: 1},
-				Rules: []*ast.AttributeRule{
+				List: []*ast.AttributeRule{
 					{
 						Selector: &ast.WildcardElementSelector{
 							Asterisk: &ast.Position{Line: 2, Col: 2},
@@ -345,7 +345,7 @@ func TestRuleset(t *testing.T) {
 						},
 					}, {
 						Selector: &ast.ListElementSelector{
-							Elements: []*ast.ElementName{
+							List: []*ast.ElementName{
 								{
 									Name:     "foo",
 									Position: &ast.Position{Line: 3, Col: 2},
@@ -491,7 +491,7 @@ func testListElementSelector(t *testing.T, f parser.Func[*ast.ListElementSelecto
 			name: "single",
 			in:   "foo",
 			want: &ast.ListElementSelector{
-				Elements: []*ast.ElementName{
+				List: []*ast.ElementName{
 					{Name: "foo", Position: &ast.Position{Line: 1, Col: 1}},
 				},
 			},
@@ -500,7 +500,7 @@ func testListElementSelector(t *testing.T, f parser.Func[*ast.ListElementSelecto
 			in: "foo,\n" +
 				"\tbar, baz",
 			want: &ast.ListElementSelector{
-				Elements: []*ast.ElementName{
+				List: []*ast.ElementName{
 					{Name: "foo", Position: &ast.Position{Line: 1, Col: 1}},
 					{Name: "bar", Position: &ast.Position{Line: 2, Col: 2}},
 					{Name: "baz", Position: &ast.Position{Line: 2, Col: 7}},
