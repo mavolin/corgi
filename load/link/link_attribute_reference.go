@@ -1,7 +1,6 @@
 package link
 
 import (
-	"context"
 	"fmt"
 	"log/slog"
 
@@ -16,13 +15,12 @@ const ambiguousAttributeReferenceExplanation = "There are multiple regular expre
 	"therefore it is unclear which one to use. " +
 	"Refine your regular expressions so that only one matches to resolve this ambiguity."
 
-func (l *linker) LinkAttributeReferences(ctx context.Context) {
-	logger := l.logger.WithGroup("attribute_references")
-	logger.Info("Linking attribute references")
+func (l *linker) LinkAttributeReferences() {
+	logger := l.logger.WithGroup("links.attribute_references")
+	logger.Debug("Linking attribute references")
 
 	for _, f := range l.p.Files {
 		logger := logger.With(slog.String("file", f.Name))
-		logger.Debug("Linking file")
 
 		for _, ref := range f.AttributeReferences {
 			if ref.AST.Name == nil {
@@ -39,20 +37,17 @@ func (l *linker) LinkAttributeReferences(ctx context.Context) {
 			logger := logger.With(
 				slog.String("name", name),
 				slog.String("pos", ref.AST.Start().String()))
-			logger.Debug("Linking attribute reference")
 
 			if ref.AST.Package != nil {
-				l.linkQualifiedAttributeReference(ctx, logger, f, ref)
+				l.linkQualifiedAttributeReference(logger, f, ref)
 			} else {
-				l.linkUnqualifiedAttributeReference(ctx, logger, f, ref)
+				l.linkUnqualifiedAttributeReference(logger, f, ref)
 			}
 		}
 	}
 }
 
-func (l *linker) linkUnqualifiedAttributeReference(_ context.Context, logger *slog.Logger, f *file.File, ref *file.AttributeReference) {
-	logger.Debug("Unqualified attribute reference: local, builtin or dot import attribute definition")
-
+func (l *linker) linkUnqualifiedAttributeReference(logger *slog.Logger, f *file.File, ref *file.AttributeReference) {
 	name := ref.AST.Name.Name
 
 	var (
@@ -60,17 +55,20 @@ func (l *linker) linkUnqualifiedAttributeReference(_ context.Context, logger *sl
 		equalSpecificityMatches []*file.AttributeSpec
 	)
 
+	// search in current package
 	packageMatches := f.Package.AttributeSpecByFullName(name)
 	equalSpecificityMatches = packageMatches
 
+	// search in dot imports
 	var ignoreError bool
 	for _, imp := range f.Imports {
-		if !imp.Explicit() || imp.Namespace != "." {
+		switch {
+		case !imp.Explicit() || imp.Namespace != ".":
 			continue
-		} else if imp.LoadedWithErrors {
+		case imp.LoadedWithErrors:
 			ignoreError = true
 			continue
-		} else if imp.Package == nil || imp.Package.PackageSymbols == nil { // contains no corgi files
+		case imp.Package == nil:
 			continue
 		}
 
@@ -114,6 +112,7 @@ func (l *linker) linkUnqualifiedAttributeReference(_ context.Context, logger *sl
 		return
 	}
 
+	// search in builtin package
 	if builtinImp := f.BuiltinImport(); builtinImp != nil {
 		packageMatches = builtinImp.Package.AttributeSpecByFullName(name)
 		if len(packageMatches) == 1 {
@@ -144,9 +143,7 @@ func (l *linker) linkUnqualifiedAttributeReference(_ context.Context, logger *sl
 	logger.Debug("Not defined explicitly, analyzer needs to determine whether there is explicit typing")
 }
 
-func (l *linker) linkQualifiedAttributeReference(_ context.Context, logger *slog.Logger, f *file.File, ref *file.AttributeReference) {
-	logger.Debug("Qualified attribute reference: external attribute definition")
-
+func (l *linker) linkQualifiedAttributeReference(logger *slog.Logger, f *file.File, ref *file.AttributeReference) {
 	imp := f.ImportByNamespace(ref.AST.Package.Name)
 	if imp == nil || !imp.Explicit() {
 		logger.Error("Could not find import for package")
@@ -197,7 +194,7 @@ func equalSpecificityAnnotations(defs []*file.AttributeSpec) []diagnostic.Annota
 	reportedPrefixes := set.NewSliceSet[*ast.AttributeDefinition](len(defs))
 	as := make([]diagnostic.Annotation, 0, 2*len(defs))
 	for _, def := range defs {
-		if def.Definition.Prefix != nil && reportedPrefixes.Contains(def.Definition) {
+		if def.Definition.Prefix != nil && !reportedPrefixes.Contains(def.Definition) {
 			reportedPrefixes.Add(def.Definition)
 			as = append(as, anno.Node(def.File, def.Definition.Prefix, "with this prefix"))
 		}

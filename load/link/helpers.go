@@ -1,6 +1,8 @@
 package link
 
 import (
+	"strings"
+
 	"github.com/mavolin/corgi/v2/file"
 	"github.com/mavolin/corgi/v2/file/ast"
 )
@@ -25,7 +27,7 @@ func (i attrDefinitionInfo) fullSelector() string {
 	return i.fullName
 }
 
-func attrDefInfo(attr *file.AttributeSpec) *attrDefinitionInfo {
+func attrSpecInfo(attr *file.AttributeSpec) *attrDefinitionInfo {
 	if attr.AST.Selector == nil {
 		return nil
 	}
@@ -36,11 +38,11 @@ func attrDefInfo(attr *file.AttributeSpec) *attrDefinitionInfo {
 	}
 
 	var info attrDefinitionInfo
-	info.name = sel.Name
+	info.name = strings.ToLower(sel.Name)
 	if attr.Definition != nil && attr.Definition.Prefix != nil {
-		info.fullName = attr.Definition.Prefix.Name + sel.Name
+		info.fullName = strings.ToLower(attr.Definition.Prefix.Name) + info.name
 	} else {
-		info.fullName = sel.Name
+		info.fullName = info.name
 	}
 	info.wildcard = sel.Wildcard
 

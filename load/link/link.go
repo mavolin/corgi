@@ -20,14 +20,18 @@ type linker struct {
 
 	stringSet *set.SliceSet[string]
 
-	reportedMissingImports map[*file.File]*set.SliceSet[string /* namespace */]
+	reportedMissingImports map[*file.File]*set.SliceSet[namespace]
+	dotImports             map[*file.File][]*file.Import // file -> dot imports
 }
 
 type (
-	importPath      = string
-	componentName   = string
-	elementName     = string
-	fullElementName = string
+	namespace             = string
+	importPath            = string
+	attributeSelector     = string
+	fullAttributeSelector = string
+	componentName         = string
+	elementName           = string
+	fullElementName       = string
 )
 
 type (
@@ -93,26 +97,31 @@ func Link(ctx context.Context, p *file.Package, o Options) diagnostic.List {
 	}
 	for _, f := range p.Files {
 		l.reportedMissingImports[f] = set.NewSliceSet[importPath](len(f.Imports))
+		if imps := filterDotImports(f); len(imps) > 0 {
+			l.dotImports[f] = imps
+		}
 	}
 
 	l.CheckImportCycles(ctx)
 	ctx = addToImportersGraph(ctx, p)
-	l.CheckDuplicateDotImports(ctx)
-	l.CheckExplicitBuiltinImport(ctx)
+	l.CheckDuplicateDotImports()
+	l.CheckExplicitBuiltinImport()
 	l.LoadImports(ctx)
-	l.CheckImportNamespaceCollisions(ctx)
-	l.CheckDotImportCollisions(ctx)
+	l.CheckImportNamespaceCollisions()
+	l.CheckDotImportComponentCollisions()
+	l.CheckDotImportElementSpecCollisions()
+	l.CheckDotImportAttributeSpecCollisions()
 
-	l.CheckDuplicateComponents(ctx)
-	l.LinkComponentCalls(ctx)
+	l.CheckComponentsCollisions()
+	l.LinkComponentCalls()
 
-	l.CheckDuplicateAttributeDefinitions(ctx)
-	l.CheckDuplicateElementsInAttributeSpecs(ctx)
-	l.CheckDuplicatesInAttributeSpecElementSelectors(ctx)
-	l.LinkAttributeReferences(ctx)
+	l.CheckAttributeSpecCollisions()
+	l.CheckAttributeRuleCollisions()
+	l.CheckAttributeRuleCollisions()
+	l.LinkAttributeReferences()
 
-	l.CheckDuplicateElementDefinitions(ctx)
-	l.LinkElementReferences(ctx)
+	l.CheckElementSpecCollisions()
+	l.LinkElementReferences()
 
 	if len(l.diagnostics) > 0 {
 		return slices.Clip(l.diagnostics)
@@ -129,6 +138,25 @@ func (l *linker) takeStringSet() *set.SliceSet[string] {
 	return l.stringSet
 }
 
+func (l *linker) reportMissingImport(f *file.File, namespace string, d *diagnostic.Diagnostic) {
+	if l.reportedMissingImports[f].Contains(namespace) {
+		return
+	}
+
+	l.reportedMissingImports[f].Add(namespace)
+	l.report(d)
+}
+
+func filterDotImports(f *file.File) []*file.Import {
+	imps := make([]*file.Import, 0, 8)
+	for _, imp := range f.Imports {
+		if imp.Explicit() && imp.Alias != "." && imp.Package != nil {
+			imps = append(imps, imp)
+		}
+	}
+	return imps
+}
+
 type importersGraphKey struct{}
 
 func addToImportersGraph(ctx context.Context, p *file.Package) context.Context {
@@ -142,13 +170,4 @@ func addToImportersGraph(ctx context.Context, p *file.Package) context.Context {
 func importersGraph(ctx context.Context) []*file.Package {
 	importers, _ := ctx.Value(importersGraphKey{}).([]*file.Package)
 	return importers
-}
-
-func (l *linker) reportMissingImport(f *file.File, namespace string, d *diagnostic.Diagnostic) {
-	if l.reportedMissingImports[f].Contains(namespace) {
-		return
-	}
-
-	l.reportedMissingImports[f].Add(namespace)
-	l.report(d)
 }

@@ -1,7 +1,6 @@
 package link
 
 import (
-	"context"
 	"log/slog"
 
 	"github.com/mavolin/corgi/v2/file"
@@ -10,67 +9,67 @@ import (
 	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
 )
 
-func (l *linker) LinkComponentCalls(ctx context.Context) {
-	logger := l.logger.WithGroup("component_calls")
-	logger.Info("Linking component calls")
+func (l *linker) LinkComponentCalls() {
+	logger := l.logger.WithGroup("link.component_calls")
+	logger.Debug("Linking component calls")
 
 	for _, f := range l.p.Files {
 		logger := logger.With(slog.String("file", f.Name))
-		logger.Debug("Linking file")
 
 		for _, cc := range f.ComponentCalls {
 			if cc == nil || cc.AST.Header == nil || cc.AST.Header.Name == nil {
 				continue
 			}
+
 			logger := logger.With(
 				slog.String("pos", cc.AST.Start().String()),
 				slog.String("component", cc.AST.Header.Name.Full()))
-			logger.Debug("Linking component call")
 
 			switch ident := cc.AST.Header.Name.(type) {
 			case *ast.Identifier:
-				if ident == nil {
-					continue
-				}
 				l.linkUnqualifiedComponentCall(logger, f, cc, ident)
 			case *ast.QualifiedIdentifier:
-				if ident == nil {
-					continue
-				}
-				l.linkQualifiedComponentCall(ctx, logger, f, cc, ident)
+				l.linkQualifiedComponentCall(logger, f, cc, ident)
 			}
 		}
 	}
 }
 
 func (l *linker) linkUnqualifiedComponentCall(logger *slog.Logger, f *file.File, cc *file.ComponentCall, ident *ast.Identifier) {
+	if ident == nil {
+		return
+	}
+
 	logger.Debug("Unqualified call: local, builtin, or dot import component")
 
+	// search in current package
 	if c := l.p.ComponentByName(ident.Name); c != nil {
 		logger.Debug("Found component within package")
 		cc.Component = c
 		return
 	}
 
+	// if this is unexported: check if this is a builtin component
 	if !file.IsExported(ident.Name) {
 		if builtinImp := f.BuiltinImport(); builtinImp != nil {
 			if c := builtinImp.Package.ComponentByName(ident.Name); c != nil {
 				logger.Debug("Found component within builtin package")
 				cc.Component = c
+				return
 			}
 		}
-
 		return
 	}
 
+	// exported: check dot imports
 	var ignoreError bool
 	for _, imp := range f.Imports {
-		if !imp.Explicit() || imp.Namespace != "." {
+		switch {
+		case !imp.Explicit() || imp.Namespace != ".":
 			continue
-		} else if imp.LoadedWithErrors {
+		case imp.LoadedWithErrors:
 			ignoreError = true
-			continue
-		} else if imp.Package == nil || imp.Package.PackageSymbols == nil { // contains no corgi files
+		case imp.Package == nil:
 			continue
 		}
 
@@ -81,6 +80,7 @@ func (l *linker) linkUnqualifiedComponentCall(logger *slog.Logger, f *file.File,
 			return
 		}
 	}
+
 	if ignoreError {
 		logger.Warn("Could not resolve reference, but least one dot import was not loaded: not reporting error")
 		return
@@ -96,9 +96,11 @@ func (l *linker) linkUnqualifiedComponentCall(logger *slog.Logger, f *file.File,
 }
 
 func (l *linker) linkQualifiedComponentCall(
-	_ context.Context, logger *slog.Logger, f *file.File, cc *file.ComponentCall, ident *ast.QualifiedIdentifier,
+	logger *slog.Logger, f *file.File, cc *file.ComponentCall, ident *ast.QualifiedIdentifier,
 ) {
-	logger.Debug("Qualified call: external component")
+	if ident == nil {
+		return
+	}
 
 	switch {
 	case ident.Package == nil:
@@ -121,6 +123,7 @@ func (l *linker) linkQualifiedComponentCall(
 		return
 	}
 
+	// find import for package
 	imp := f.ImportByNamespace(ident.Package.Name)
 	if imp == nil || !imp.Explicit() {
 		logger.Error("Could not find import for package")
@@ -138,7 +141,7 @@ func (l *linker) linkQualifiedComponentCall(
 		return
 	}
 
-	if imp.Package != nil && imp.Package.PackageSymbols != nil {
+	if imp.Package != nil {
 		cc.Component = imp.Package.ComponentByName(ident.Name.Name)
 	}
 	if cc.Component == nil {

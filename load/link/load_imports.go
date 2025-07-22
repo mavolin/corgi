@@ -70,7 +70,7 @@ func (loader *importLoader) loadImports(ctx context.Context, l *linker, logger *
 		logger.Debug("Loading imports for file")
 
 		for _, imp := range f.Imports {
-			if !imp.Explicit() || imp.Path == "" {
+			if !imp.Explicit() || imp.Path == "" || imp.LoadedWithErrors {
 				continue
 			}
 
