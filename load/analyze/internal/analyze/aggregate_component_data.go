@@ -29,6 +29,7 @@ func (z *analyzer) AggregateComponentData() {
 			slog.String("comp", c.Header().Name.Name),
 			slog.String("comp_pos", c.Start().String()))
 
+		z.CheckForeignAlias(logger, c)
 		z.CheckCircularAlias(logger, c)
 	}
 
@@ -49,7 +50,7 @@ func (z *analyzer) AggregateComponentData() {
 //
 // Depends on Fields: None
 func (z *analyzer) CheckCircularAlias(logger *slog.Logger, c *file.Component) {
-	logger = logger.WithGroup("check.circular_alias")
+	logger = logger.WithGroup("checks.circular_alias")
 
 	if c.AliasAST == nil {
 		return
@@ -130,6 +131,44 @@ func (z *analyzer) CheckCircularAlias(logger *slog.Logger, c *file.Component) {
 }
 
 // ============================================================================
+// Check Foreign Alias
+// ======================================================================================
+
+// CheckForeignAlias checks that the given component, if it is an alias, is
+// not an alias of a component from another package.
+//
+// Depends on Checks: None
+//
+// Sets Fields: None
+//
+// Depends on Fields: None
+func (z *analyzer) CheckForeignAlias(logger *slog.Logger, c *file.Component) {
+	logger = logger.WithGroup("checks.foreign_alias")
+
+	if c.AliasAST == nil {
+		return
+	}
+
+	cc := c.File.ComponentCallByNode(c.AliasAST.ComponentCall)
+	if cc == nil || cc.Component == nil {
+		return
+	} else if cc.Component.File.Package == c.File.Package {
+		return
+	}
+
+	c.AnalyzedWithErrors = true
+
+	logger.Error("Found foreign alias")
+	z.Report(&diagnostic.Diagnostic{
+		Message: "foreign alias",
+		Primary: []diagnostic.Annotation{
+			anno.Node(c.File, c.AliasAST.Header.Name, "is an alias"),
+			anno.Node(c.File, c.AliasAST.ComponentCall, "calls a component from another package"),
+		},
+	})
+}
+
+// ============================================================================
 // Aggregate Parameters
 // ======================================================================================
 
@@ -139,6 +178,8 @@ func (z *analyzer) CheckCircularAlias(logger *slog.Logger, c *file.Component) {
 //   - CheckCircularAlias - To ensure that we don't aggregate parameters of
 //     components that are aliases of themselves, which would lead to an
 //     infinite loop.
+//   - CheckForeignAlias - Sensible requirement so aliases don't break when
+//     dependencies are updated.
 //
 // Sets Fields:
 //   - Components.Parameters
@@ -195,10 +236,9 @@ func (z *analyzer) AggregateParameters(logger *slog.Logger) {
 			cc := c.File.ComponentCallByNode(c.AliasAST.ComponentCall)
 			switch {
 			case cc.Component == nil:
-				c.AnalyzedWithErrors = true
-				comps[ci] = nil
-				n--
-				continue
+				fallthrough
+			case cc.Component.File.Package != c.File.Package:
+				fallthrough
 			case cc.Component.AnalyzedWithErrors:
 				c.AnalyzedWithErrors = true
 				comps[ci] = nil
@@ -309,6 +349,8 @@ Params:
 //   - CheckCircularAlias - To ensure that we don't aggregate blocks
 //     of components that are aliases of themselves, which would lead to an
 //     infinite loop.
+//   - CheckForeignAlias - Sensible requirement so aliases don't break when
+//     dependencies are updated.
 //
 // Sets Fields:
 //   - Components.Blocks
@@ -374,9 +416,9 @@ func (z *analyzer) AggregateBlocks(logger *slog.Logger) {
 			cc := c.File.ComponentCallByNode(c.AliasAST.ComponentCall)
 			switch {
 			case cc.Component == nil:
-				comps[ci] = nil
-				n--
-				continue
+				fallthrough
+			case cc.Component.File.Package != c.File.Package:
+				fallthrough
 			case cc.Component.AnalyzedWithErrors:
 				c.AnalyzedWithErrors = true
 				comps[ci] = nil

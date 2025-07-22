@@ -18,7 +18,7 @@ import (
 //
 // Depends on Fields: None
 func (z *analyzer) CheckPackageNamesMatch() (ok bool) {
-	logger := z.Logger.WithGroup("check.package_names_match")
+	logger := z.Logger.WithGroup("checks.package_names_match")
 
 	if len(z.P.Files) <= 1 {
 		return true
