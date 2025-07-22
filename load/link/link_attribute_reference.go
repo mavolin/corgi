@@ -49,7 +49,10 @@ func (l *linker) LinkAttributeReferences() {
 func (l *linker) linkUnqualifiedAttributeReference(logger *slog.Logger, f *file.File, ref *file.AttributeReference) {
 	name := ref.AST.Name.Name
 
-	var equalSpecificityMatches []*file.AttributeSpec
+	var (
+		equalSpecificityMatches []*file.AttributeSpec
+		bestImport              *file.Import
+	)
 
 	// search in current package
 	equalSpecificityMatches = f.Package.AttributeSpecByFullName(name)
@@ -70,6 +73,7 @@ func (l *linker) linkUnqualifiedAttributeReference(logger *slog.Logger, f *file.
 		packageMatches := imp.Package.AttributeSpecByFullName(name)
 		if len(equalSpecificityMatches) == 0 || equalSpecificityMatches[0].Specificity < packageMatches[0].Specificity {
 			equalSpecificityMatches = packageMatches
+			bestImport = imp
 		} else if equalSpecificityMatches[0].Specificity == packageMatches[0].Specificity {
 			equalSpecificityMatches = append(equalSpecificityMatches, packageMatches...)
 		}
@@ -77,6 +81,9 @@ func (l *linker) linkUnqualifiedAttributeReference(logger *slog.Logger, f *file.
 
 	if len(equalSpecificityMatches) == 1 {
 		ref.Spec = equalSpecificityMatches[0]
+		if bestImport != nil {
+			bestImport.Forward = true
+		}
 		return
 	} else if len(equalSpecificityMatches) > 1 {
 		if ignoreError {
@@ -110,6 +117,7 @@ func (l *linker) linkUnqualifiedAttributeReference(logger *slog.Logger, f *file.
 	packageMatches := builtinImp.Package.AttributeSpecByFullName(name)
 	if len(packageMatches) == 1 {
 		ref.Spec = packageMatches[0]
+		builtinImp.Forward = true
 		return
 	} else if len(packageMatches) > 1 {
 		logger.Error("Found multiple attribute definitions with same specificity in builtin package")
@@ -155,6 +163,7 @@ func (l *linker) linkQualifiedAttributeReference(logger *slog.Logger, f *file.Fi
 		matches = imp.Package.AttributeSpecByQualifiedName(ref.AST.Name.Name)
 		if len(matches) == 1 {
 			ref.Spec = matches[0]
+			imp.Forward = true
 			return
 		}
 	}

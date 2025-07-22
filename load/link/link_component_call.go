@@ -51,6 +51,7 @@ func (l *linker) linkUnqualifiedComponentCall(logger *slog.Logger, f *file.File,
 		builtinImp := f.BuiltinImport()
 		if builtinImp != nil && builtinImp.Package != nil && builtinImp.Package.PackageSymbols != nil {
 			if c := builtinImp.Package.ComponentByName(ident.Name); c != nil {
+				builtinImp.Forward = true
 				cc.Component = c
 				return
 			}
@@ -74,8 +75,9 @@ func (l *linker) linkUnqualifiedComponentCall(logger *slog.Logger, f *file.File,
 				continue
 			}
 
-			if c := imp.Package.ComponentByName(ident.Name); c != nil {
-				cc.Component = c
+			cc.Component = imp.Package.ComponentByName(ident.Name)
+			if cc.Component != nil {
+				imp.Forward = true
 				return
 			}
 		}
@@ -141,6 +143,7 @@ func (l *linker) linkQualifiedComponentCall(
 	if imp.Package != nil && imp.Package.PackageSymbols != nil {
 		cc.Component = imp.Package.ComponentByName(ident.Name.Name)
 		if cc.Component != nil {
+			imp.Forward = true
 			return
 		}
 	}

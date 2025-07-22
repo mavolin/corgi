@@ -64,6 +64,7 @@ func (l *linker) linkUnqualifiedElementReference(logger *slog.Logger, f *file.Fi
 
 		if spec := imp.Package.ElementSpecByFullName(name); spec != nil {
 			ref.Spec = spec
+			imp.Forward = true
 			return
 		}
 	}
@@ -72,6 +73,7 @@ func (l *linker) linkUnqualifiedElementReference(logger *slog.Logger, f *file.Fi
 	if builtinImp != nil && builtinImp.Package != nil && builtinImp.Package.PackageSymbols != nil {
 		if spec := builtinImp.Package.ElementSpecByFullName(name); spec != nil {
 			ref.Spec = spec
+			builtinImp.Forward = true
 			return
 		}
 	} else if l.builtinPath != "" {
@@ -119,6 +121,7 @@ func (l *linker) linkQualifiedElementReference(logger *slog.Logger, f *file.File
 	if imp.Package != nil && imp.Package.PackageSymbols != nil {
 		ref.Spec = imp.Package.ElementSpecByQualifiedName(ref.AST.Name.Name)
 		if ref.Spec != nil {
+			imp.Forward = true
 			return
 		}
 	}
