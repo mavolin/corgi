@@ -123,10 +123,12 @@ func (loader *importLoader) loadImport(ctx context.Context, f *file.File, imp *f
 		return
 	}
 
-	if imp.Alias != "" {
-		imp.Namespace = imp.Alias
-	} else {
-		imp.Namespace = imp.Package.Name
+	if imp.Package != nil {
+		if imp.Alias != "" {
+			imp.Namespace = imp.Alias
+		} else {
+			imp.Namespace = imp.Package.Name
+		}
 	}
 
 	logger.Debug("Successfully loaded import")

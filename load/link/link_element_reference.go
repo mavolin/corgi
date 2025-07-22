@@ -52,13 +52,13 @@ func (l *linker) linkUnqualifiedElementReference(logger *slog.Logger, f *file.Fi
 	// search in dot imports
 	var ignoreError bool
 	for _, imp := range f.Imports {
+		if imp.LoadedWithErrors {
+			ignoreError = true
+		}
 		switch {
 		case !imp.Explicit() || imp.Namespace != ".":
 			continue
-		case imp.LoadedWithErrors:
-			ignoreError = true
-			continue
-		case imp.Package == nil:
+		case imp.Package == nil || imp.Package.PackageSymbols == nil:
 			continue
 		}
 
@@ -68,15 +68,20 @@ func (l *linker) linkUnqualifiedElementReference(logger *slog.Logger, f *file.Fi
 		}
 	}
 
-	if builtinImp := f.BuiltinImport(); builtinImp != nil {
+	builtinImp := f.BuiltinImport()
+	if builtinImp != nil && builtinImp.Package != nil && builtinImp.Package.PackageSymbols != nil {
 		if spec := builtinImp.Package.ElementSpecByFullName(name); spec != nil {
 			ref.Spec = spec
 			return
 		}
+	} else if l.builtinPath != "" {
+		// The builtin import was not loaded, but should've been.
+		logger.Debug("Could not resolve reference, but builtin import was loaded with errors: not reporting error")
+		return
 	}
 
 	if ignoreError {
-		logger.Warn("Could not resolve reference, but at least one dot import was not loaded: not reporting error")
+		logger.Debug("Could not resolve reference, but at least one dot import was not loaded: not reporting error")
 		return
 	}
 
@@ -105,22 +110,29 @@ func (l *linker) linkQualifiedElementReference(logger *slog.Logger, f *file.File
 			},
 		})
 		return
-	} else if imp.LoadedWithErrors {
-		logger.Debug("Could not resolve reference, but import was not loaded, not reporting error")
+	}
+
+	if !l.implicitImportCheck(logger, f, imp, ref.AST.Package, "an", "element") {
 		return
 	}
 
-	if imp.Package != nil {
+	if imp.Package != nil && imp.Package.PackageSymbols != nil {
 		ref.Spec = imp.Package.ElementSpecByQualifiedName(ref.AST.Name.Name)
+		if ref.Spec != nil {
+			return
+		}
 	}
-	if ref.Spec == nil {
-		logger.Error("Could not resolve reference")
-		l.report(&diagnostic.Diagnostic{
-			Message: "element: unresolved reference",
-			Primary: []diagnostic.Annotation{
-				anno.Node(f, ref.AST, "element is not defined in package"),
-			},
-		})
+
+	if imp.LoadedWithErrors {
+		logger.Debug("Couldn't resolve reference, but package was loaded with errors: not reporting error")
 		return
 	}
+
+	logger.Error("Could not resolve reference")
+	l.report(&diagnostic.Diagnostic{
+		Message: "element: unresolved reference",
+		Primary: []diagnostic.Annotation{
+			anno.Node(f, ref.AST, "element is not defined in package"),
+		},
+	})
 }

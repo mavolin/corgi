@@ -49,7 +49,7 @@ func (l *linker) CheckAttributeRuleCollisions() {
 }
 
 func duplicateWildcardElementSelectors(spec *file.AttributeSpec) []*duplicateAttributeRule {
-	var sels []*duplicateAttributeRule
+	sels := make([]*duplicateAttributeRule, 0, len(spec.AST.Ruleset.Rules))
 
 	for _, rule := range spec.AST.Ruleset.Rules {
 		if rule == nil || rule.Selector == nil {

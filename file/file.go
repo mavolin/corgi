@@ -177,6 +177,7 @@ func (s *Symbols) AddBuiltinImport(alias string, builtin *Package) {
 //
 // AddImport panics if any of the following conditions are violated:
 //   - The import's namespace must match the alias, if set.
+//   - The import must not be a dot import
 //   - The import must not have the AST field set.
 //   - The file must not already have an import with the namespace.
 //   - The import must be marked as forwarded: There would be no point in
@@ -186,6 +187,8 @@ func (s *Symbols) AddBuiltinImport(alias string, builtin *Package) {
 func (s *Symbols) AddImport(imp *Import) {
 	if imp.Alias != "" && imp.Alias != imp.Namespace {
 		panic(fmt.Sprintf("import alias %s does not match namespace %s", imp.Alias, imp.Namespace))
+	} else if imp.Alias == "." {
+		panic("cannot add implicit dot import")
 	} else if imp := s.ImportByNamespace(imp.Namespace); imp != nil {
 		panic(fmt.Sprintf("symbols already contain import with namespace %s: you need to chose a (different) alias", imp.Namespace))
 	} else if imp.AST != nil {
@@ -272,9 +275,6 @@ type Import struct {
 	//
 
 	// Package is the package this import resolves to.
-	//
-	// Nil for packages that don't contain any corgi files or are not relevant
-	// for linking the file.
 	//
 	// The linker will not load the packages of implicitly imported packages,
 	// the only exception being a builtin package, if provided.

@@ -330,6 +330,9 @@ func (d *ElementSpec) MatchesQualifiedName(name string) bool {
 
 // FullName is the name of the element, including the prefix.
 func (d *ElementSpec) FullName() string {
+	if d.AST.Name == nil {
+		return ""
+	}
 	if d.Definition != nil && d.Definition.Prefix != nil {
 		return d.Definition.Prefix.Name + d.AST.Name.Name
 	}
