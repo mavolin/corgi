@@ -71,8 +71,7 @@ import (
 // todo: file.(Block|With).Name correctly used (i.e. empty for default block)
 // todo: looped with considers only direct children
 // todo: extend as part of body
-// todo: check/misc_scope: todos
-// todo: remove and placeholder
+// todo: component call: body type-asserted as scope
 
 // todo: should withs include underscore block shorthand?? prob yes
 

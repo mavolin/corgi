@@ -29,7 +29,6 @@ func (ch *checker) CheckComponentCalls() {
 			ch.CheckRequiredComponentParamsSet(logger, cc)
 			if ch.CheckComponentCallBody(logger, cc) {
 				ch.CheckUnreachableWiths(logger, cc)
-				ch.CheckWithNotLooped(logger, cc)
 			}
 
 			ch.CheckRequiredBlocksAreSet(logger, cc)
@@ -61,13 +60,16 @@ func (ch *checker) CheckComponentCallBody(logger *slog.Logger, cc *file.Componen
 		return false
 	}
 
+	// todo: properly resolve so sc is always a scope, even if wrapped in
+	// a block shorthand etc
 	walk.WalkT(sc, func(ctx *walk.ContextT[ast.ScopeNode]) error {
-		switch ctx.Node.(type) {
+		switch n := ctx.Node.(type) {
 		case *ast.Conditional:
 		case *ast.Switch:
 		case *ast.And:
 		case *ast.For:
 		case *ast.With:
+			ch.CheckWithNotLooped(logger, cc, ctx.Parents, n)
 			return walk.NoDive
 		case *ast.ComponentCall:
 			return walk.NoDive
@@ -146,39 +148,27 @@ func (ch *checker) CheckUnreachableWiths(logger *slog.Logger, cc *file.Component
 	}
 }
 
-func (ch *checker) CheckWithNotLooped(logger *slog.Logger, cc *file.ComponentCall) {
+func (ch *checker) CheckWithNotLooped(logger *slog.Logger, cc *file.ComponentCall, parents []*walk.Context, with *ast.With) {
 	logger = logger.WithGroup("with_not_looped")
 
-	if len(cc.Withs) == 0 {
+	if len(parents) == 0 {
 		return
 	}
-
-	sc, _ := cc.AST.Body.(*ast.Scope)
-	if sc == nil {
-		return
+	loop := walk.Closest[*ast.For](parents)
+	if loop == nil {
+		return // not inside a for loop
 	}
 
-	walk.WalkT(cc.AST.Body, func(ctx *walk.ContextT[*ast.With]) error {
-		if len(ctx.Parents) == 0 {
-			return nil
-		}
-		forLoop, _ := ctx.Parents[len(ctx.Parents)-1].Node.(*ast.For)
-		if forLoop == nil {
-			return nil
-		}
-
-		logger.Error("Component call: looped with")
-		ch.Report(&diagnostic.Diagnostic{
-			Message: "component call: looped with",
-			Primary: []diagnostic.Annotation{
-				anno.Position(cc.File, ctx.Node.Start(), "only the with block from the very last iteration is ever used"),
-			},
-			Secondary: []diagnostic.Annotation{
-				anno.Node(cc.File, forLoop, "in this for loop"),
-			},
-		})
-		return walk.NoDive
-	}, walk.DontDiveAny(&ast.ComponentCall{}))
+	logger.Error("Component call: looped with")
+	ch.Report(&diagnostic.Diagnostic{
+		Message: "component call: looped with",
+		Primary: []diagnostic.Annotation{
+			anno.Position(cc.File, with.Start(), "only the with block from the very last iteration is ever used"),
+		},
+		Secondary: []diagnostic.Annotation{
+			anno.Node(cc.File, loop, "in this for loop"),
+		},
+	})
 }
 
 func (ch *checker) CheckNoDuplicateComponentArgs(logger *slog.Logger, cc *file.ComponentCall) {
