@@ -345,7 +345,7 @@ func testComponentCallInterpolation(t *testing.T, f parser.Func[*ast.ComponentCa
 				Hash: &ast.Position{Line: 1, Col: 1},
 			},
 		}, {
-			name: "underscore block",
+			name: "default block",
 			in:   "#:component()[foo]",
 			want: &ast.ComponentCallInterpolation{
 				ComponentCall: &ast.ComponentCall{
@@ -360,7 +360,7 @@ func testComponentCallInterpolation(t *testing.T, f parser.Func[*ast.ComponentCa
 							RParen: &ast.Position{Line: 1, Col: 13},
 						},
 					},
-					Body: &ast.UnderscoreBlockShorthand{
+					Body: &ast.DefaultBlockShorthand{
 						Implicit: true,
 						Body: &ast.BracketText{
 							LBracket: &ast.Position{Line: 1, Col: 14},

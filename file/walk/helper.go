@@ -1,6 +1,8 @@
 package walk
 
-import "slices"
+import (
+	"slices"
+)
 
 // Closest returns the closest parent of the passed type, or the zero value for
 // T.

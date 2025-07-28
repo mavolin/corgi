@@ -21,24 +21,24 @@ func TestComponentCallBody(t *testing.T) {
 
 	parsetest.AssertAlsoFulfils(t, ComponentCallBody(), testBracketText)
 	parsetest.AssertAlsoFulfils(t, ComponentCallBody(), testScope)
-	parsetest.AssertAlsoFulfils(t, ComponentCallBody(), testUnderscoreBlockShorthand)
+	parsetest.AssertAlsoFulfils(t, ComponentCallBody(), testDefaultBlockShorthand)
 }
 
-func TestUnderscoreBlockShorthand(t *testing.T) {
+func TestDefaultBlockShorthand(t *testing.T) {
 	t.Parallel()
-	testUnderscoreBlockShorthand(t, UnderscoreBlockShorthand())
+	testDefaultBlockShorthand(t, DefaultBlockShorthand())
 }
 
-func testUnderscoreBlockShorthand(t *testing.T, f parser.Func[*ast.UnderscoreBlockShorthand]) {
+func testDefaultBlockShorthand(t *testing.T, f parser.Func[*ast.DefaultBlockShorthand]) {
 	tests := []struct {
 		name string
 		in   string
-		want *ast.UnderscoreBlockShorthand
+		want *ast.DefaultBlockShorthand
 	}{
 		{
 			name: "bracket text",
 			in:   "_[ foo ]",
-			want: &ast.UnderscoreBlockShorthand{
+			want: &ast.DefaultBlockShorthand{
 				Body: &ast.BracketText{
 					LBracket: &ast.Position{Line: 1, Col: 2},
 					Lines: ast.TextBlock{
@@ -56,7 +56,7 @@ func testUnderscoreBlockShorthand(t *testing.T, f parser.Func[*ast.UnderscoreBlo
 		}, {
 			name: "scope",
 			in:   "_{}",
-			want: &ast.UnderscoreBlockShorthand{
+			want: &ast.DefaultBlockShorthand{
 				Body: &ast.Scope{
 					LBrace: &ast.Position{Line: 1, Col: 2},
 					RBrace: &ast.Position{Line: 1, Col: 3},

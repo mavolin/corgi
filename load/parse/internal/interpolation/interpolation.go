@@ -352,7 +352,7 @@ func ComponentCallInterpolation() parser.Func[*ast.ComponentCallInterpolation] {
 		p.DoInline(func() {
 			bt := parser.Try(p, body.BracketText())
 			if bt != nil {
-				cci.ComponentCall.Body = &ast.UnderscoreBlockShorthand{
+				cci.ComponentCall.Body = &ast.DefaultBlockShorthand{
 					Implicit: true,
 					Body:     bt,
 					Position: bt.LBracket,

@@ -49,7 +49,7 @@ func (ch *checker) CheckComponentCallBody(logger *slog.Logger, cc *file.Componen
 				anno.Position(cc.File, cc.AST.Body.Start(), "cannot use a bracket text here"),
 			},
 			Hints: []diagnostic.Hint{
-				{Hint: "Did you mean to use an underscore block shorthand?", Example: "`_[ ... ]"},
+				{Hint: "Did you mean to use a default block shorthand?", Example: "`_[ ... ]"},
 			},
 		})
 		return false
@@ -82,7 +82,7 @@ func (ch *checker) CheckComponentCallBody(logger *slog.Logger, cc *file.Componen
 					anno.Position(cc.File, ctx.Node.Start(), fmt.Sprintf("cannot use %T here", ctx.Node)),
 				},
 				Hints: []diagnostic.Hint{
-					{Hint: "Did you mean to use a underscore block shorthand?", Example: "`:foo() _{ ... }"},
+					{Hint: "Did you mean to use a default block shorthand?", Example: "`:foo() _{ ... }"},
 					{Hint: "Wrap this inside a with statement", Example: "`with myBlock { ... }"},
 				},
 			})

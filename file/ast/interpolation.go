@@ -222,7 +222,7 @@ func (*ElementInterpolation) _textNode()      {}
 
 type ComponentCallInterpolation struct {
 	Hash          *Position
-	ComponentCall *ComponentCall // Body is implicit UnderscoreBlockShorthand, if present
+	ComponentCall *ComponentCall // Body is implicit DefaultBlockShorthand, if present
 }
 
 var (

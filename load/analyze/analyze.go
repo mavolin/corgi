@@ -66,7 +66,7 @@ import (
 // todo: block is top-level
 // todo: nested typed attribute values
 // todo: ast.AttributeType as ParsedType only allowed on component call parameter
-// todo: scope type assertions don't work on underscore blocks
+// todo: scope type assertions don't work on default block shorthands
 // todo: block annotations need to be corrected
 // todo: file.(Block|With).Name correctly used (i.e. empty for default block)
 // todo: looped with considers only direct children

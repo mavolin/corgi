@@ -8,7 +8,7 @@ import "slices"
 
 // A Body is a group of nodes.
 // It is a pointer to either a [Scope], [BracketText], or
-// [UnderscoreBlockShorthand].
+// [DefaultBlockShorthand].
 //
 // The Go spec calls this a "block", but that name is already taken.
 type Body interface {
@@ -20,7 +20,7 @@ type Body interface {
 var (
 	_ Body = (*Scope)(nil)
 	_ Body = (*BracketText)(nil)
-	_ Body = (*UnderscoreBlockShorthand)(nil)
+	_ Body = (*DefaultBlockShorthand)(nil)
 )
 
 // ============================================================================
@@ -210,10 +210,10 @@ func (*BracketText) _node() {}
 func (*BracketText) _body() {}
 
 // ============================================================================
-// Underscore Block Shorthand
+// Default Block Shorthand
 // ======================================================================================
 
-type UnderscoreBlockShorthand struct {
+type DefaultBlockShorthand struct {
 	// Implicit, if set to true, indicates that this shorthand has no leading
 	// underscore.
 	// As of writing, this is only true for interpolation.
@@ -222,9 +222,9 @@ type UnderscoreBlockShorthand struct {
 	Position *Position
 }
 
-var _ Body = (*UnderscoreBlockShorthand)(nil)
+var _ Body = (*DefaultBlockShorthand)(nil)
 
-func (s *UnderscoreBlockShorthand) Start() Position {
+func (s *DefaultBlockShorthand) Start() Position {
 	if s.Position != nil {
 		return *s.Position
 	} else if s.Body != nil {
@@ -233,7 +233,7 @@ func (s *UnderscoreBlockShorthand) Start() Position {
 	return Position{}
 }
 
-func (s *UnderscoreBlockShorthand) End() Position {
+func (s *DefaultBlockShorthand) End() Position {
 	if s.Body != nil {
 		return s.Body.End()
 	} else if s.Position != nil {
@@ -245,11 +245,11 @@ func (s *UnderscoreBlockShorthand) End() Position {
 	return Position{}
 }
 
-func (s *UnderscoreBlockShorthand) Walk(w func(Node)) {
+func (s *DefaultBlockShorthand) Walk(w func(Node)) {
 	if s.Body != nil {
 		w(s.Body)
 	}
 }
 
-func (*UnderscoreBlockShorthand) _node() {}
-func (*UnderscoreBlockShorthand) _body() {}
+func (*DefaultBlockShorthand) _node() {}
+func (*DefaultBlockShorthand) _body() {}
