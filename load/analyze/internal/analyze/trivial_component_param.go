@@ -48,6 +48,7 @@ func (z *analyzer) AnalyzeComponentParameters(logger *slog.Logger, c *file.Compo
 //
 // Sets Fields:
 //   - Components.Parameters.AttributeType
+//   - Components.Parameters.AttributeName
 //
 // Depends on Fields: None
 func (z *analyzer) AnalyzeAttrTypeComponentParam(logger *slog.Logger, param *file.ComponentParameter) {
