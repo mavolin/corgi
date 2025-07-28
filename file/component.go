@@ -53,14 +53,6 @@ type Component struct {
 	// remaining (unset by the aliased component call) blocks of the
 	// component being aliased.
 	Blocks []*Block
-
-	// FirstPermanentAndPlaceholder is the first &-placeholder that is not
-	// part of a block default.
-	FirstPermanentAndPlaceholder *ast.AndPlaceholder
-	// FirstPermanentTopLevelAndPlaceholder is the first &-placeholder that is
-	// at the top-level of the component, i.e. not nested inside an element or
-	// part of a block default.
-	FirstPermanentTopLevelAndPlaceholder *ast.AndPlaceholder
 }
 
 func (c *Component) Header() *ast.ComponentHeader {
@@ -141,47 +133,6 @@ func (c *Component) Exported() bool {
 	return IsExported(c.Header().Name.Name)
 }
 
-// HasAndPlaceholder returns whether the component has an &-placeholder that is
-// included in the output of the component for the given component call.
-//
-// Passing nil checks the general case, in which all block defaults are
-// included.
-func (c *Component) HasAndPlaceholder(cc *ComponentCall) bool {
-	return c.FirstIncludedAndPlaceholder(cc) != nil
-}
-
-// FirstIncludedAndPlaceholder returns the first &-placeholder that is included in the
-// output of the component for the given component call.
-//
-// Passing nil checks the general case, in which all block defaults are
-// included.
-func (c *Component) FirstIncludedAndPlaceholder(cc *ComponentCall) *ast.AndPlaceholder {
-	if c.FirstPermanentAndPlaceholder != nil {
-		return c.FirstPermanentAndPlaceholder
-	}
-
-	instance := c.FirstBlockIncludedAndPlaceholder(cc)
-	if instance != nil {
-		return instance.Default.FirstAndPlaceholder
-	}
-	return nil
-}
-
-// FirstBlockIncludedAndPlaceholder returns the first block instance with an
-// &-placeholder that is included in the output of the component for the given
-// component call.
-//
-// Passing nil checks the general case, in which all block defaults are
-// included.
-func (c *Component) FirstBlockIncludedAndPlaceholder(cc *ComponentCall) *BlockInstance {
-	for _, block := range c.Blocks {
-		if instance := block.FirstIncludedAndPlaceholder(cc); instance != nil {
-			return instance
-		}
-	}
-	return nil
-}
-
 type ComponentParameter struct {
 	// ANALYZER
 	//
@@ -251,22 +202,6 @@ func (b *Block) InstanceByNode(n *ast.Block) *BlockInstance {
 	return nil
 }
 
-// FirstIncludedAndPlaceholder returns the first instance of an &-placeholder
-// in a block default that is included in the output of the component for the
-// given component call.
-//
-// Passing nil checks the general case, in which all block defaults are
-// included.
-func (b *Block) FirstIncludedAndPlaceholder(cc *ComponentCall) *BlockInstance {
-	for _, instance := range b.Instances {
-		if instance.Default.FirstAndPlaceholder != nil && (cc == nil || !instance.DefaultOverwritten(cc)) {
-			return instance
-		}
-	}
-
-	return nil
-}
-
 // TopLevel reports whether this block is top-level.
 func (b *Block) TopLevel(s AnalysisStrategy) bool {
 	s.assertValid()
@@ -298,8 +233,6 @@ type (
 
 	BlockInstanceDefault struct {
 		AST ast.Body
-
-		FirstAndPlaceholder *ast.AndPlaceholder // nil if no &-placeholder
 	}
 )
 
@@ -355,9 +288,6 @@ type ComponentCall struct {
 	// All withs and their instances are guaranteed to be correctly set after
 	// analyzing, even if [AnalyzedWithErrors] is true.
 	Withs []*With
-	// FirstPlaceholderAnd is the first & that fills the components placeholder.
-	// Nil, if no such & exists.
-	FirstPlaceholderAnd *ast.And
 }
 
 func (cc *ComponentCall) External() bool {

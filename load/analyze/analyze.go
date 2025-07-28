@@ -65,17 +65,14 @@ import (
 // todo: comp interpolation must only write text
 // todo: block is top-level
 // todo: nested typed attribute values
-// todo: and with and placeholder in alias component call (and placeholder gets inherited anyway, or should it?)
 // todo: ast.AttributeType as ParsedType only allowed on component call parameter
 // todo: scope type assertions don't work on underscore blocks
 // todo: block annotations need to be corrected
 // todo: file.(Block|With).Name correctly used (i.e. empty for default block)
 // todo: looped with considers only direct children
 // todo: extend as part of body
-// todo: store param field on file.ComponentArgument
-// todo: link/linkattribute_reference.go:122
-// todo: block function needs to also accept no ident
 // todo: check/misc_scope: todos
+// todo: remove and placeholder
 
 // todo: should withs include underscore block shorthand?? prob yes
 

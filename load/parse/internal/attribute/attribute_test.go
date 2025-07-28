@@ -11,27 +11,9 @@ import (
 
 func TestAttribute(t *testing.T) {
 	t.Parallel()
-	parsetest.AssertAlsoFulfils(t, Attribute(), testAndPlaceholder)
 	parsetest.AssertAlsoFulfils(t, Attribute(), testIDShorthand)
 	parsetest.AssertAlsoFulfils(t, Attribute(), testClassShorthand)
 	parsetest.AssertAlsoFulfils(t, Attribute(), testNamedAttribute)
-}
-
-func TestAndPlaceholder(t *testing.T) {
-	t.Parallel()
-	testAndPlaceholder(t, AndPlaceholder())
-}
-
-func testAndPlaceholder(t *testing.T, f parser.Func[*ast.AndPlaceholder]) {
-	want := &ast.AndPlaceholder{
-		And: &ast.Position{Line: 1, Col: 1},
-	}
-
-	p := parsetest.NewParser(t, "&, other")
-	got := parsetest.AssertNoError(t, p, f)
-	if should.Equal(t, want, got) {
-		parsetest.AssertPosition(t, p, want.End().Line, want.End().Col, 1)
-	}
 }
 
 func TestNamedAttribute(t *testing.T) {

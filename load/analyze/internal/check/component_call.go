@@ -27,7 +27,6 @@ func (ch *checker) CheckComponentCalls() {
 			ch.CheckComponentArgsExist(logger, cc)
 			ch.CheckNoDuplicateComponentArgs(logger, cc)
 			ch.CheckRequiredComponentParamsSet(logger, cc)
-			ch.CheckComponentAcceptsAttributes(logger, cc)
 			if ch.CheckComponentCallBody(logger, cc) {
 				ch.CheckUnreachableWiths(logger, cc)
 				ch.CheckWithNotLooped(logger, cc)
@@ -345,54 +344,4 @@ func (ch *checker) CheckRequiredBlocksAreSet(logger *slog.Logger, cc *file.Compo
 			Docs: "component-call",
 		})
 	}
-}
-
-func (ch *checker) CheckComponentAcceptsAttributes(logger *slog.Logger, cc *file.ComponentCall) {
-	logger = logger.WithGroup("component_accepts_attributes")
-
-	if !cc.Component.File.Package.Analyzed || cc.Component.AnalyzedWithErrors {
-		return
-	}
-
-	if cc.FirstPlaceholderAnd == nil {
-		if cc.AST.Header.Arguments != nil {
-			for _, arg := range cc.AST.Header.Arguments.List {
-				attr, _ := arg.(ast.Attribute)
-				if attr != nil {
-					goto HasAttributes
-				}
-			}
-		}
-		return
-	}
-
-HasAttributes:
-	if cc.Component.FirstIncludedAndPlaceholder(cc) != nil {
-		return
-	}
-
-	logger.Error("Component does not accept attributes")
-	diag := &diagnostic.Diagnostic{
-		Message: "component call: component does not accept attributes",
-		Primary: []diagnostic.Annotation{
-			anno.Node(cc.File, cc.AST.Header.Name, "this component does not accept any attributes"),
-			anno.Node(cc.File, cc.FirstPlaceholderAnd, "but you hand it attributes here"),
-		},
-		Explanation: "Components need to specify an &-placeholder somewhere in their body " +
-			"for them to accept attributes. Since this component does not specify any " +
-			"(or you have overwritten all block defaults that contain one), " +
-			"you cannot hand attributes to it.",
-		Docs: "attribute-placeholder",
-	}
-	if cc.Component.FirstIncludedAndPlaceholder(nil) != nil {
-		diag.Hints = []diagnostic.Hint{
-			{
-				Hint: "The only &-placeholders of this component are specified in defaults of blocks, " +
-					"that you are overwriting. " +
-					"Perhaps, you could add the attributes in your block body directly, " +
-					"to achieve the same result?",
-			},
-		}
-	}
-	ch.Report(diag)
 }
