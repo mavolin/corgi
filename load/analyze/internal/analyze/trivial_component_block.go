@@ -53,9 +53,9 @@ Erroneous:
 	primaries := make([]diagnostic.Annotation, len(b.Instances))
 	for i, instance := range b.Instances {
 		if instance.AST.Default == nil {
-			primaries[i] = anno.Range(c.File, instance.AST.Start(), instance.AST.Identifier.End(), "no default -> required")
+			primaries[i] = anno.Node(c.File, instance.AST, "no default -> required")
 		} else {
-			primaries[i] = anno.Range(c.File, instance.AST.Start(), instance.AST.Identifier.End(), "default set -> not required")
+			primaries[i] = anno.Node(c.File, instance.AST, "default set -> not required")
 		}
 	}
 
