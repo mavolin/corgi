@@ -1,6 +1,7 @@
 package analyze
 
 import (
+	"fmt"
 	"log/slog"
 
 	"github.com/mavolin/corgi/v2/file"
@@ -82,6 +83,18 @@ func (z *analyzer) LinkBlockSetterBlocks(logger *slog.Logger, cc *file.Component
 				}
 			case *ast.DefaultBlockShorthand:
 				highlight = anno.HighlightPosition(instance.Body.Start())
+			default:
+				logger.Error("unknown block setter instance type",
+					slog.String("instance_type", fmt.Sprintf("%T", instance)))
+				z.Report(&diagnostic.Diagnostic{
+					Type:    diagnostic.InternalError,
+					Message: "analyze.LinkBlockSetterBlocks: unknown block setter instance type",
+					Primary: []diagnostic.Annotation{
+						anno.Node(cc.File, instance, fmt.Sprintf("expected an *ast.With or *ast.DefaultBlockShorthand, got %T", instance)),
+					},
+					Explanation: "You shouldn't see this error, please open an issue.\n" +
+						"Subsequent analyses might be impacted.",
+				})
 			}
 
 			var annotation string

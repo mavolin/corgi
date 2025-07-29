@@ -27,9 +27,14 @@ func (ch *checker) CheckArguments(logger *slog.Logger, f *file.File, _ []*walk.C
 			ch.CheckNoInterpolationInUnsafeAttribute(logger, f, arg)
 			ch.CheckDefinedNonBoolAttributeSpecifiedAsBool(logger, f, arg)
 			ch.CheckBoolAttributeSetToNonBoolExpression(logger, f, arg)
+			ch.CheckSuperfluousAttributeNameOnAttributeType(logger, f, arg)
 		}
 	}
 }
+
+// ============================================================================
+// Class Attribute is Always Typed as Innocuous
+// ======================================================================================
 
 func (ch *checker) CheckClassAlwaysInnocuous(logger *slog.Logger, f *file.File, attr *ast.NamedAttribute) {
 	logger = logger.WithGroup("class_not_typed")
@@ -126,6 +131,10 @@ func (ch *checker) CheckClassAlwaysInnocuous(logger *slog.Logger, f *file.File, 
 	})
 }
 
+// ============================================================================
+// No Interpolation in an Unsafe Attribute Value
+// ======================================================================================
+
 func (ch *checker) CheckNoInterpolationInUnsafeAttribute(logger *slog.Logger, f *file.File, attr *ast.NamedAttribute) {
 	logger = logger.WithGroup("no_interpolation_in_unsafe")
 
@@ -194,6 +203,10 @@ func (ch *checker) CheckNoInterpolationInUnsafeAttribute(logger *slog.Logger, f 
 	}
 }
 
+// ============================================================================
+// Non-bool Attribute Set Using Bool Shorthand
+// ======================================================================================
+
 func (ch *checker) CheckDefinedNonBoolAttributeSpecifiedAsBool(logger *slog.Logger, f *file.File, attr *ast.NamedAttribute) {
 	logger = logger.WithGroup("defined_non_bool_attribute_specified_as_bool")
 
@@ -223,6 +236,10 @@ func (ch *checker) CheckDefinedNonBoolAttributeSpecifiedAsBool(logger *slog.Logg
 		},
 	})
 }
+
+// ============================================================================
+// Bool Attribute Set to Non-bool Expression
+// ======================================================================================
 
 func (ch *checker) CheckBoolAttributeSetToNonBoolExpression(logger *slog.Logger, f *file.File, attr *ast.NamedAttribute) {
 	logger = logger.WithGroup("bool_attribute_set_to_non_bool_expression")
@@ -285,4 +302,50 @@ Loop:
 		}
 	}
 	return expr
+}
+
+// ============================================================================
+// Superfluous Attribute Name Attached To Attribute Type
+// ======================================================================================
+
+func (ch *checker) CheckSuperfluousAttributeNameOnAttributeType(logger *slog.Logger, f *file.File, a *ast.NamedAttribute) {
+	logger = logger.WithGroup("superfluous_attribute_name_on_attribute_type")
+
+	tv, _ := a.Value.(*ast.TypedAttributeValue)
+	if tv == nil {
+		return
+	}
+
+	if tv.Type.Attribute == nil {
+		return
+	}
+
+	if tv.Type.Name.Type != attrtype.Unsafe && tv.Type.Name.Type != attrtype.UnsafeBool {
+		logger.Error("Attribute name on non-unsafe type")
+		ch.Report(&diagnostic.Diagnostic{
+			Message: "attribute type: attribute name on non-unsafe type",
+			Primary: []diagnostic.Annotation{
+				anno.Range(f, *tv.Type.LBracket, *tv.Type.RBracket, "remove this attribute name"),
+			},
+			Hints: []diagnostic.Hint{
+				{Hint: "The formatter (`corgi fmt`) can automatically fix this error."},
+			},
+			Explanation: "Attribute types other than `unsafe` and `unsafeBool` " +
+				"do not need to be tied to a specific attribute.",
+		})
+		return
+	}
+
+	logger.Error("Superfluous attribute name on attribute type")
+	ch.Report(&diagnostic.Diagnostic{
+		Message: "attribute type: superfluous attribute name",
+		Primary: []diagnostic.Annotation{
+			anno.Range(f, *tv.Type.LBracket, *tv.Type.RBracket, "remove this attribute name"),
+		},
+		Hints: []diagnostic.Hint{
+			{Hint: "The formatter (`corgi fmt`) can automatically fix this error."},
+		},
+		Explanation: "Attribute names need not be specified a second time " +
+			"in brackets when writing a typed named attribute.",
+	})
 }

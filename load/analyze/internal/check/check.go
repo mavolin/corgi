@@ -46,8 +46,6 @@ func (ch *checker) CheckScope() {
 				ch.CheckAnd(logger, f, ctx.Parents, n)
 			case *ast.Arguments:
 				ch.CheckArguments(logger, f, ctx.Parents, n)
-			case *ast.AttributeType:
-				ch.CheckAttributeType(logger, f, ctx.Parents, n)
 			case *ast.BlockFunction:
 				ch.CheckBlockFunction(logger, f, ctx.Parents, n)
 			case *ast.Break:
