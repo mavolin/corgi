@@ -140,7 +140,7 @@ func Link(ctx context.Context, p *file.Package, o Options) diagnostic.List {
 	l.CheckDotImportElementSpecCollisions()
 	l.CheckDotImportAttributeSpecCollisions()
 
-	l.CheckComponentsCollisions()
+	l.CheckComponentCollisions()
 	l.LinkComponentCalls()
 
 	l.CheckAttributeSpecCollisions()

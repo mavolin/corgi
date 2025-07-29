@@ -14,7 +14,7 @@ import (
 // Component
 // ======================================================================================
 
-func (l *linker) CheckComponentsCollisions() {
+func (l *linker) CheckComponentCollisions() {
 	logger := l.logger.WithGroup("checks.collisions.components")
 	logger.Debug("Checking for component collisions")
 
@@ -26,11 +26,11 @@ func (l *linker) CheckComponentsCollisions() {
 	dupls := make(map[componentName][]*file.Component)
 
 	for _, comp := range l.p.Components {
-		if comp.DefinedAST.Header == nil || comp.DefinedAST.Header.Name == nil {
+		if comp.AST.Header == nil || comp.AST.Header.Name == nil {
 			continue
 		}
 
-		name := comp.Header().Name.Name
+		name := comp.AST.Header.Name.Name
 		dupls[name] = append(dupls[name], comp)
 	}
 
@@ -45,7 +45,7 @@ func (l *linker) CheckComponentsCollisions() {
 
 		primaries := make([]diagnostic.Annotation, len(comps))
 		for i, comp := range comps {
-			primaries[i] = anno.Node(comp.File, comp.DefinedAST, "defined here")
+			primaries[i] = anno.Node(comp.File, comp.AST, "defined here")
 		}
 
 		l.report(&diagnostic.Diagnostic{

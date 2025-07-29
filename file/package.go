@@ -61,8 +61,6 @@ func BuildSymbols(p *Package) {
 	for _, f := range p.Files {
 		for _, n := range f.AST.TopLevel {
 			switch n := n.(type) {
-			case *ast.Alias:
-				nComponents++
 			case *ast.Component:
 				nComponents++
 			case *ast.StateDeclaration:
@@ -86,11 +84,17 @@ func BuildSymbols(p *Package) {
 	for _, f := range p.Files {
 		for _, n := range f.AST.TopLevel {
 			switch n := n.(type) {
-			case *ast.Alias:
-				c := &Component{AliasAST: n, File: f}
-				p.Components = append(p.Components, c)
 			case *ast.Component:
-				c := &Component{DefinedAST: n, File: f}
+				c := &Component{
+					AST:  n,
+					File: f,
+				}
+				if n.Header != nil && n.Header.Parameters != nil && len(n.Header.Parameters.List) > 0 {
+					c.Parameters = make([]*ComponentParameter, len(n.Header.Parameters.List))
+					for i, param := range n.Header.Parameters.List {
+						c.Parameters[i] = &ComponentParameter{AST: param}
+					}
+				}
 				p.Components = append(p.Components, c)
 			case *ast.StateDeclaration:
 				for _, spec := range n.Specs {
@@ -140,16 +144,7 @@ func BuildSymbols(p *Package) {
 
 func (s *PackageSymbols) ComponentByNode(c *ast.Component) *Component {
 	for _, comp := range s.Components {
-		if comp.DefinedAST == c {
-			return comp
-		}
-	}
-	return nil
-}
-
-func (s *PackageSymbols) AliasByNode(a *ast.Alias) *Component {
-	for _, comp := range s.Components {
-		if comp.AliasAST == a {
+		if comp.AST == c {
 			return comp
 		}
 	}
@@ -158,7 +153,7 @@ func (s *PackageSymbols) AliasByNode(a *ast.Alias) *Component {
 
 func (s *PackageSymbols) ComponentByName(name string) *Component {
 	for _, comp := range s.Components {
-		h := comp.Header()
+		h := comp.AST.Header
 		if h != nil && h.Name != nil && h.Name.Name == name {
 			return comp
 		}
@@ -264,16 +259,16 @@ func (s *PackageSymbols) AttributeSpecByQualifiedName(name string) []*AttributeS
 }
 
 type State struct {
-	// BUILD SYMBOLS
 	//
+	// BUILD SYMBOLS
 
 	AST  *ast.StateSpec
 	File *File
 	// Index of the variable in the Names and Values slices.
 	Index int
 
-	// ANALYZER
 	//
+	// ANALYZER
 
 	AnalyzedWithErrors bool
 
@@ -300,8 +295,8 @@ func (s *State) ResolvedType() string {
 }
 
 type ElementSpec struct {
-	// BUILD SYMBOLS
 	//
+	// BUILD SYMBOLS
 
 	AST         *ast.ElementSpec
 	Definition  *ast.ElementDefinition
@@ -309,8 +304,8 @@ type ElementSpec struct {
 	lowerPrefix string
 	lowerName   string
 
-	// ANALYZE
 	//
+	// ANALYZE
 
 	AnalyzedWithErrors bool
 

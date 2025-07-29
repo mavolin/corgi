@@ -165,7 +165,7 @@ func (ch *checker) CheckBlockFunction(logger *slog.Logger, f *file.File, parents
 func (ch *checker) CheckBlockFunctionDefined(logger *slog.Logger, f *file.File, parents []*walk.Context, bf *ast.BlockFunction) {
 	logger = logger.WithGroup("block_defined")
 
-	astComp, _ := parents[0].Node.(*ast.Component) // todo: alias
+	astComp, _ := parents[0].Node.(*ast.Component)
 	if astComp == nil {
 		return
 	}

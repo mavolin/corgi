@@ -42,12 +42,12 @@ func (l *linker) CheckDotImportComponentCollisions() {
 			secondaries := make([]diagnostic.Annotation, 0, len(comps))
 			for i, comp := range comps {
 				if comp.File.Package == f.Package {
-					primaries[i] = anno.Node(f, comp.DefinedAST, "`"+name+"` defined locally")
+					primaries[i] = anno.Node(f, comp.AST, "`"+name+"` defined locally")
 				} else {
 					primaries[i] = anno.Node(f, f.ImportByPackage(comp.File.Package).AST, "defines `"+name+"`")
 					secondaries = append(secondaries, anno.Anno(comp.File, anno.Annotation{
-						Highlight:  anno.HighlightNode(comp.DefinedAST),
-						Context:    anno.ContextLines(comp.DefinedAST.Start(), comp.DefinedAST.Header.End()),
+						Highlight:  anno.HighlightNode(comp.AST),
+						Context:    anno.ContextLines(comp.AST.Start(), comp.AST.Header.End()),
 						Annotation: "defined here",
 					}))
 				}
@@ -68,10 +68,10 @@ func (l *linker) CheckDotImportComponentCollisions() {
 func addComponentsFromPackage(dupls map[componentName][]*file.Component, p *file.Package) {
 Components:
 	for _, comp := range p.Components {
-		if comp.DefinedAST.Header == nil || comp.DefinedAST.Header.Name == nil {
+		if comp.AST.Header == nil || comp.AST.Header.Name == nil {
 			continue
 		}
-		name := comp.DefinedAST.Header.Name.Name
+		name := comp.AST.Header.Name.Name
 		if !file.IsExported(name) {
 			continue
 		}

@@ -9,9 +9,7 @@ import "slices"
 type Component struct {
 	Comp   *Position
 	Header *ComponentHeader
-	Colon  *Position            // nil if no extend
-	Extend *ComponentCallHeader // optional
-	Body   Body
+	Body   ComponentBody
 }
 
 var (
@@ -25,10 +23,6 @@ func (c *Component) Start() Position {
 		return *c.Comp
 	case c.Header != nil:
 		return c.Header.Start()
-	case c.Colon != nil:
-		return *c.Colon
-	case c.Extend != nil:
-		return c.Extend.Start()
 	}
 	return Position{}
 }
@@ -37,10 +31,6 @@ func (c *Component) End() Position {
 	switch {
 	case c.Body != nil:
 		return c.Body.End()
-	case c.Extend != nil:
-		return c.Extend.End()
-	case c.Colon != nil:
-		return deltaPos(*c.Colon, len(":"))
 	case c.Header != nil:
 		return c.Header.End()
 	case c.Comp != nil:
@@ -62,9 +52,6 @@ func (c *Component) Highlight() (start, end Position) {
 func (c *Component) Walk(w func(Node)) {
 	if c.Header != nil {
 		w(c.Header)
-	}
-	if c.Extend != nil {
-		w(c.Extend)
 	}
 	if c.Body != nil {
 		w(c.Body)
@@ -177,7 +164,7 @@ func (p *ComponentParameters) Walk(w func(Node)) {
 func (*ComponentParameters) _node() {}
 
 // ============================================================================
-// Component Param
+// Component Parameter
 // ======================================================================================
 
 // ComponentParameter is a parameter of a Component.
@@ -233,52 +220,93 @@ func (p *ComponentParameter) Walk(w func(Node)) {
 func (*ComponentParameter) _node() {}
 
 // ============================================================================
-// Alias
+// Component Body
 // ======================================================================================
 
-type Alias struct {
-	Alias         *Position
-	Header        *ComponentHeader
+// ComponentBody is the body of a component, either [Body] or [Extend].
+type ComponentBody interface {
+	Node
+	_componentBody()
+}
+
+// if this is changed, change the comment above
+var (
+	_ ComponentBody = (Body)(nil)
+	_ ComponentBody = (*Extend)(nil)
+)
+
+// ============================================================================
+// Extend
+// ======================================================================================
+
+type Extend struct {
 	ComponentCall *ComponentCall
 }
 
-var _ ScopeNode = (*Alias)(nil)
+var _ ComponentBody = (*Extend)(nil)
 
-func (a *Alias) Start() Position {
+func (e *Extend) Start() Position {
+	if e.ComponentCall != nil {
+		return e.ComponentCall.Start()
+	}
+	return Position{}
+}
+
+func (e *Extend) End() Position {
+	if e.ComponentCall != nil {
+		return e.ComponentCall.End()
+	}
+	return Position{}
+}
+
+func (e *Extend) Walk(w func(Node)) {
+	if e.ComponentCall != nil {
+		w(e.ComponentCall)
+	}
+}
+
+func (*Extend) _node()          {}
+func (*Extend) _componentBody() {}
+
+// ============================================================================
+// Component Alias
+// ======================================================================================
+
+type ComponentAlias struct {
+	EqualSign     *Position
+	ComponentCall *ComponentCall
+}
+
+var _ ComponentBody = (*ComponentAlias)(nil)
+
+func (a *ComponentAlias) Start() Position {
 	switch {
-	case a.Alias != nil:
-		return *a.Alias
-	case a.Header != nil:
-		return a.Header.Start()
+	case a.EqualSign != nil:
+		return *a.EqualSign
 	case a.ComponentCall != nil:
 		return a.ComponentCall.Start()
 	}
 	return Position{}
 }
 
-func (a *Alias) End() Position {
+func (a *ComponentAlias) End() Position {
 	switch {
 	case a.ComponentCall != nil:
 		return a.ComponentCall.End()
-	case a.Header != nil:
-		return a.Header.End()
-	case a.Alias != nil:
-		return deltaPos(*a.Alias, len("alias"))
+	case a.EqualSign != nil:
+		return deltaPos(*a.EqualSign, len("="))
 	}
 	return Position{}
 }
 
-func (a *Alias) Walk(w func(Node)) {
-	if a.Header != nil {
-		w(a.Header)
-	}
+func (a *ComponentAlias) Walk(w func(Node)) {
 	if a.ComponentCall != nil {
 		w(a.ComponentCall)
 	}
 }
 
-func (*Alias) _node()      {}
-func (*Alias) _scopeNode() {}
+func (*ComponentAlias) _node()          {}
+func (*ComponentAlias) _componentBody() {}
 
 // ============================================================================
 // Block

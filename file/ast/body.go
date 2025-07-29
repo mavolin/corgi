@@ -14,6 +14,7 @@ import "slices"
 type Body interface {
 	Node
 	_body()
+	_componentBody()
 }
 
 // if this is changed, change the comment above
@@ -69,8 +70,9 @@ type Scope struct {
 }
 
 var (
-	_ Body        = (*Scope)(nil)
-	_ Highlighter = (*Scope)(nil)
+	_ Body          = (*Scope)(nil)
+	_ ComponentBody = (*Scope)(nil)
+	_ Highlighter   = (*Scope)(nil)
 )
 
 func (s *Scope) Start() Position {
@@ -122,8 +124,9 @@ func (s *Scope) Walk(w func(Node)) {
 	}
 }
 
-func (*Scope) _node() {}
-func (*Scope) _body() {}
+func (*Scope) _node()          {}
+func (*Scope) _body()          {}
+func (*Scope) _componentBody() {}
 
 // ============================================================================
 // Scope Node
@@ -206,8 +209,9 @@ func (t *BracketText) Walk(w func(Node)) {
 	}
 }
 
-func (*BracketText) _node() {}
-func (*BracketText) _body() {}
+func (*BracketText) _node()          {}
+func (*BracketText) _body()          {}
+func (*BracketText) _componentBody() {}
 
 // ============================================================================
 // Default Block Shorthand
@@ -251,5 +255,6 @@ func (s *DefaultBlockShorthand) Walk(w func(Node)) {
 	}
 }
 
-func (*DefaultBlockShorthand) _node() {}
-func (*DefaultBlockShorthand) _body() {}
+func (*DefaultBlockShorthand) _node()          {}
+func (*DefaultBlockShorthand) _body()          {}
+func (*DefaultBlockShorthand) _componentBody() {}

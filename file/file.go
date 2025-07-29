@@ -24,8 +24,8 @@ const (
 type File struct {
 	Package *Package
 
-	// METADATA
 	//
+	// METADATA
 
 	// Name is the name of the file.
 	Name string
@@ -88,53 +88,90 @@ func buildSymbols(f *File) {
 		}
 	}
 
+	var (
+		cc          *ComponentCall
+		comp        *Component
+		parentBlock *BlockInstance
+	)
 	var walk func(n ast.Node)
 	walk = func(n ast.Node) {
 		switch n := n.(type) {
 		case *ast.ComponentCall:
-			ccw := &ComponentCall{AST: n, File: f}
+			ccw := &ComponentCall{AST: n, File: f, Withs: make([]*With, 0, 24)}
 			f.ComponentCalls = append(f.ComponentCalls, ccw)
 			f.componentCallsByNode[n] = ccw
+
+			oldCC := cc
+			cc = ccw
+			n.Walk(walk)
+			cc = oldCC
+
+			ccw.Withs = slices.Clip(ccw.Withs)
+			for _, with := range ccw.Withs {
+				with.Instances = slices.Clip(with.Instances)
+			}
+		case *ast.With:
+			if cc == nil {
+				n.Walk(walk)
+				break
+			}
+			instance := &WithInstance{AST: n}
+			group := cc.WithByName(n.Name())
+			if group == nil {
+				group = &With{Name: n.Name(), Instances: make([]*WithInstance, 0, 16)}
+				cc.Withs = append(cc.Withs, group)
+			}
+			instance.Group = group
+			group.Instances = append(group.Instances, instance)
+
+			n.Walk(walk)
+		case *ast.Block:
+			instance := &BlockInstance{AST: n, ChildOf: parentBlock}
+			if n.Default != nil {
+				instance.Default = &BlockInstanceDefault{AST: n.Default}
+			}
+			group := comp.BlockByName(n.Name())
+			if group == nil {
+				group = &Block{Name: n.Name(), Instances: make([]*BlockInstance, 0, 16)}
+				comp.Blocks = append(comp.Blocks, group)
+			}
+			instance.Group = group
+			group.Instances = append(group.Instances, instance)
+
+			oldParent := parentBlock
+			parentBlock = instance
+			n.Walk(walk)
+			parentBlock = oldParent
 		case *ast.ElementReference:
 			rw := &ElementReference{AST: n}
 			f.ElementReferences = append(f.ElementReferences, rw)
 			f.elementReferencesByNode[n] = rw
+			n.Walk(walk)
 		case *ast.AttributeReference:
 			rw := &AttributeReference{AST: n}
 			f.AttributeReferences = append(f.AttributeReferences, rw)
 			f.attributeReferencesByNode[n] = rw
+			n.Walk(walk)
 		}
-		n.Walk(walk)
 	}
 	for _, n := range f.AST.TopLevel {
-		switch n := n.(type) {
-		case *ast.Component:
-			ccsStart := len(f.ComponentCalls)
-			n.Walk(walk)
-			ccEnd := len(f.ComponentCalls)
-			if ccEnd > ccsStart {
-				f.Package.ComponentByNode(n).ComponentCalls = f.ComponentCalls[ccsStart:ccEnd:ccEnd]
-			}
-		case *ast.Alias:
-			ccsStart := len(f.ComponentCalls)
-			if n.Header != nil {
-				n.Header.Walk(walk)
-			}
-			ccw := &ComponentCall{
-				AST:      n.ComponentCall,
-				AliasFor: f.Package.AliasByNode(n),
-				File:     f,
-			}
-			f.ComponentCalls = append(f.ComponentCalls, ccw)
-			f.componentCallsByNode[n.ComponentCall] = ccw
-			if n.ComponentCall.Header != nil {
-				n.ComponentCall.Header.Walk(walk)
-			}
-			if n.ComponentCall.Body != nil {
-				n.ComponentCall.Body.Walk(walk)
-			}
-			ccsEnd := len(f.ComponentCalls)
-			ccw.AliasFor.ComponentCalls = f.ComponentCalls[ccsStart:ccsEnd:ccsEnd]
+		astC, _ := n.(*ast.Component)
+		if astC == nil {
+			continue
+		}
+		c := f.Package.ComponentByNode(astC)
+		c.Blocks = make([]*Block, 0, 24)
+
+		ccsStart := len(f.ComponentCalls)
+		n.Walk(walk)
+		ccEnd := len(f.ComponentCalls)
+		if ccEnd > ccsStart {
+			c.ComponentCalls = f.ComponentCalls[ccsStart:ccEnd:ccEnd]
+		}
+
+		c.Blocks = slices.Clip(c.Blocks)
+		for _, block := range c.Blocks {
+			block.Instances = slices.Clip(block.Instances)
 		}
 	}
 
@@ -189,8 +226,8 @@ func (s *Symbols) AddImport(imp *Import) {
 		panic(fmt.Sprintf("import alias %s does not match namespace %s", imp.Alias, imp.Namespace))
 	} else if imp.Alias == "." {
 		panic("cannot add implicit dot import")
-	} else if imp := s.ImportByNamespace(imp.Namespace); imp != nil {
-		panic(fmt.Sprintf("symbols already contain import with namespace %s: you need to chose a (different) alias", imp.Namespace))
+	} else if fimp := s.ImportByNamespace(imp.Namespace); fimp != nil {
+		panic(fmt.Sprintf("symbols already contain import with namespace %s: you need to chose a (different) alias", fimp.Namespace))
 	} else if imp.AST != nil {
 		panic("cannot add implicit import with AST set")
 	} else if !imp.Forward {
@@ -258,8 +295,8 @@ func (s *Symbols) AttributeReferenceByNode(node *ast.AttributeReference) *Attrib
 }
 
 type Import struct {
-	// BUILD SYMBOLS
 	//
+	// BUILD SYMBOLS
 
 	// AST is the AST node of the import, if this package was explicitly
 	// imported.
@@ -271,8 +308,8 @@ type Import struct {
 	// Guaranteed to be non-empty for both explicit and implicit imports.
 	Path string
 
-	// LINKER
 	//
+	// LINKER
 
 	// Package is the package this import resolves to.
 	//
@@ -327,13 +364,13 @@ func (imp *Import) Explicit() bool { return imp.AST != nil }
 func (imp *Import) Implicit() bool { return !imp.Explicit() }
 
 type ElementReference struct {
-	// BUILD SYMBOLS
 	//
+	// BUILD SYMBOLS
 
 	AST *ast.ElementReference
 
-	// LINKER
 	//
+	// LINKER
 
 	// Spec is the spec providing the type of the Element.
 	Spec *ElementSpec
@@ -352,13 +389,13 @@ func (r *ElementReference) Type() elemtype.Type {
 }
 
 type AttributeReference struct {
-	// BUILD SYMBOLS
 	//
+	// BUILD SYMBOLS
 
 	AST *ast.AttributeReference
 
-	// LINKER
 	//
+	// LINKER
 
 	// Spec is the spec declaring the attribute.
 	//
@@ -368,8 +405,8 @@ type AttributeReference struct {
 	// cannot resolve the spec that belongs to the reference.
 	Spec *AttributeSpec // may be nil
 
-	// ANALYZER
 	//
+	// ANALYZER
 
 	AnalyzedWithErrors bool
 

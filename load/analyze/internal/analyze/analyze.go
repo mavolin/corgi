@@ -38,11 +38,8 @@ func Analyze(ctx *context.Context) {
 
 	z.AnalyzeState()
 
-	z.AggregateComponentCallData()
-	z.AggregateComponentData()
-
-	z.TrivialAnalyzeComponentCalls()
 	z.TrivialAnalyzeComponents()
+	z.TrivialAnalyzeComponentCalls()
 
 	z.ComplexAnalysis()
 }

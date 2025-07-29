@@ -17,10 +17,7 @@ import (
 // dontDiveFields is a list of fields that should not be traversed further
 // to prevent including fields that are otherwise included in the output.
 var dontDiveFields = []string{
-	"Components.Blocks.Instances.Group",
-	"Components.Blocks.Instances.ChildOf",
 	"ComponentCalls.Withs.Block",
-	"ComponentCalls.Withs.Instances.Group",
 }
 
 func getAllFields() ([]string, error) {
@@ -85,11 +82,11 @@ func getAllFields() ([]string, error) {
 
 		for field := range structType.Fields() {
 			a := &fieldAnalyzer{
-				pkg:       pkg,
-				rootTypes: rootTypes,
+				pkg:           pkg,
+				dontDiveTypes: rootTypes,
 			}
 
-			subFields, err := a.extractFields(field)
+			subFields, err := a.extractFields(symbolType, field)
 			if err != nil {
 				return nil, fmt.Errorf("%s: %w", symbolType, err)
 			}
@@ -120,9 +117,9 @@ func symbolStruct(pkg *packages.Package, symbolType string) (*types.Struct, erro
 }
 
 type fieldAnalyzer struct {
-	pkg       *packages.Package
-	rootTypes []string
-	prefix    string
+	pkg           *packages.Package
+	dontDiveTypes []string
+	prefix        string
 }
 
 func (a *fieldAnalyzer) prefixedName(n string) string {
@@ -132,7 +129,7 @@ func (a *fieldAnalyzer) prefixedName(n string) string {
 	return a.prefix + "." + n
 }
 
-func (a fieldAnalyzer) extractFields(field *types.Var) ([]string, error) {
+func (a fieldAnalyzer) extractFields(parent string, field *types.Var) ([]string, error) {
 	switch {
 	case !field.Exported():
 		return nil, nil
@@ -145,89 +142,72 @@ func (a fieldAnalyzer) extractFields(field *types.Var) ([]string, error) {
 		}
 	}
 
+	fields := make([]string, 0, 48)
+
 	typ := field.Type()
 	var typeName string
-Deref:
 	for {
 		switch typed := typ.(type) {
 		case *types.Pointer:
 			typ = typed.Elem()
 		case *types.Slice:
 			typ = typed.Elem()
+		case *types.Basic:
+			if a.prefix == "" {
+				return nil, fmt.Errorf("root field %s is not a struct", field.Name())
+			}
+
+			isAnalyzerField, err := a.isAnalyzerField(parent, field)
+			if err != nil {
+				return nil, fmt.Errorf("failed to check if field %s is an analyzer field: %w", field.Name(), err)
+			}
+			if isAnalyzerField {
+				return []string{a.prefixedName(field.Name())}, nil
+			}
+			return nil, nil
 		case *types.Named:
-			switch {
-			case typed.Obj().Pkg() != a.pkg.Types:
-				break Deref
-			case a.prefix != "" && slices.Contains(a.rootTypes, typed.Obj().Name()):
-				break Deref
+			isAnalyzerField, err := a.isAnalyzerField(parent, field)
+			if err != nil {
+				return nil, fmt.Errorf("failed to check if field %s is an analyzer field: %w", field.Name(), err)
+			}
+			if isAnalyzerField {
+				fields = append(fields, a.prefixedName(field.Name()))
 			}
 
 			typeName = typed.Obj().Name()
+
+			switch {
+			case typed.Obj().Pkg() != a.pkg.Types:
+				return fields, nil
+			case a.prefix != "" && slices.Contains(a.dontDiveTypes, typeName):
+				return fields, nil
+			}
+
+			a.dontDiveTypes = append(a.dontDiveTypes, typeName)
+
 			typ = typed.Underlying()
-		default:
-			break Deref
-		}
-	}
+		case *types.Struct:
+			a.prefix = a.prefixedName(field.Name())
 
-	switch typ := typ.(type) {
-	case *types.Basic:
-		if a.prefix == "" {
-			return nil, fmt.Errorf("root field %s is not a struct", field.Name())
-		}
-		return []string{a.prefixedName(field.Name())}, nil
-	case *types.Named:
-		if a.prefix == "" {
-			return nil, fmt.Errorf("root field %s is not a struct", field.Name())
-		}
-		return []string{a.prefixedName(field.Name())}, nil
-	case *types.Struct:
-		a.prefix = a.prefixedName(field.Name())
-		fields, err := a.extractStructFields(typeName, typ)
-		if err != nil {
-			return nil, fmt.Errorf("%s: %w", field.Name(), err)
-		}
+			for field := range typed.Fields() {
+				subFields, err := a.extractFields(typeName, field)
+				if err != nil {
+					return nil, err
+				}
+				fields = append(fields, subFields...)
+			}
 
-		// don't add root fields to the list
-		if a.prefix == field.Name() {
 			return fields, nil
+		default:
+			return nil, fmt.Errorf("unsupported field type %T for field %s", typ, field.Name())
 		}
-		return append([]string{a.prefix}, fields...), nil
-	default:
-		return nil, fmt.Errorf("unsupported field type %T for field %s", typ, field.Name())
 	}
-}
-
-func (a fieldAnalyzer) extractStructFields(typeName string, s *types.Struct) ([]string, error) {
-	fields := make([]string, 0, 50)
-	for field := range s.Fields() {
-		analyzerField, err := a.isAnalyzerField(typeName, field)
-		if err != nil {
-			return nil, fmt.Errorf("failed to check if field %s is an analyzer field: %w", field.Name(), err)
-		}
-		if !analyzerField {
-			continue // skip fields not marked with ANALYZER
-		}
-
-		subFields, err := a.extractFields(field)
-		if err != nil {
-			return nil, err
-		}
-		fields = append(fields, subFields...)
-	}
-
-	return fields, nil
 }
 
 // isAnalyzerField checks if the field is marked with an ANALYZER comment and
 // doesn't belong to another group. It analyzes the AST to find comment groups
 // associated with fields.
 func (a *fieldAnalyzer) isAnalyzerField(parent string, field *types.Var) (bool, error) {
-	// Only root fields need to marked with an ANALYZER comment.
-	// All other fields are considered analyzer fields by default.
-	if strings.Contains(a.prefix, ".") {
-		return true, nil
-	}
-
 	tokenFile := a.pkg.Fset.File(field.Pos())
 
 	var file *ast.File
@@ -278,9 +258,9 @@ Decls:
 		switch {
 		case len(cg.List) != 2:
 			continue
-		case strings.TrimSpace(cg.List[1].Text) != "//":
+		case strings.TrimSpace(cg.List[0].Text) != "//":
 			continue
-		case strings.TrimSpace(cg.List[0].Text) == "// ANALYZER":
+		case strings.TrimSpace(cg.List[1].Text) == "// ANALYZER":
 			return true, nil
 		}
 		return false, nil // different group

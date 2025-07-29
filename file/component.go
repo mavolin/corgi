@@ -10,18 +10,10 @@ import (
 // ======================================================================================
 
 type Component struct {
+	//
 	// BUILD SYMBOLS
-	//
 
-	// DefinedAST is the AST of a defined component, i.e. the AST of a
-	// non-alias component.
-	//
-	// Either this or AliasAST is set, but not both.
-	DefinedAST *ast.Component
-	// AliasAST is the AST of the alias statement defining this Component.
-	//
-	// Either this or DefinedAST is set, but not both.
-	AliasAST *ast.Alias
+	AST *ast.Component
 
 	// File is the file the Component is defined in.
 	File *File
@@ -29,8 +21,15 @@ type Component struct {
 	// ComponentCalls are the component calls this component calls.
 	ComponentCalls []*ComponentCall
 
-	// ANALYZER
+	// Parameters are the parameters of the Component.
+	Parameters []*ComponentParameter
+
+	// Blocks are the blocks used in the Component in the order they
+	// appear in.
+	Blocks []*Block
+
 	//
+	// ANALYZER
 
 	// AnalyzedWithErrors indicates whether this component could not be fully
 	// analyzed without errors.
@@ -38,46 +37,6 @@ type Component struct {
 	// is a circular alias, which needs to be checked in the linker, not the
 	// analyzer to allow successful parameter linking.
 	AnalyzedWithErrors bool
-
-	// Parameters are the parameters of the Component.
-	//
-	// If the component is an alias, this list also includes the remaining
-	// (unset by the aliased component call) parameters of the component
-	// being aliased.
-	Parameters []*ComponentParameter
-
-	// Blocks are the blocks used in the Component in the order they
-	// appear in.
-	//
-	// If the component is an alias, this list also includes the
-	// remaining (unset by the aliased component call) blocks of the
-	// component being aliased.
-	Blocks []*Block
-}
-
-func (c *Component) Header() *ast.ComponentHeader {
-	if c.DefinedAST != nil {
-		return c.DefinedAST.Header
-	}
-	return c.AliasAST.Header
-}
-
-func (c *Component) Start() ast.Position {
-	if c.DefinedAST != nil {
-		return c.DefinedAST.Start()
-	}
-	return c.AliasAST.Start()
-}
-
-func (c *Component) End() ast.Position {
-	if c.DefinedAST != nil {
-		return c.DefinedAST.End()
-	}
-	return c.AliasAST.End()
-}
-
-func (c *Component) QualifiedName() string {
-	return c.File.Package.Name + "." + c.Header().Name.Name
 }
 
 func (c *Component) ParameterByName(name string) *ComponentParameter {
@@ -130,21 +89,17 @@ func (c *Component) BlockInstanceByNode(b *ast.Block) *BlockInstance {
 }
 
 func (c *Component) Exported() bool {
-	return IsExported(c.Header().Name.Name)
+	return IsExported(c.AST.Header.Name.Name)
 }
 
 type ComponentParameter struct {
-	// ANALYZER
 	//
+	// BUILD SYMBOLS
 
 	AST *ast.ComponentParameter
 
-	// Component is the component this parameter belongs to.
 	//
-	// This might be different from the component containing this parameter, if
-	// that component is an alias and this parameter belongs to the component
-	// being aliased.
-	Component *Component
+	// ANALYZER
 
 	// The InferredType of this value, if there is no explicit type or if using
 	// a special type, like an attribute type.
@@ -175,20 +130,16 @@ func (p *ComponentParameter) Required() bool {
 // to true, if that exact placement of block B is top-level and has a
 // top-level and placeholder.
 type Block struct {
-	// ANALYZER
 	//
-
-	// Component is the component this block belongs to.
-	//
-	// This might be different from the component containing this block, if
-	// that component is an alias and this block belongs to the component
-	// being aliased.
-	Component *Component
+	// BUILD SYMBOLS
 
 	// Name is the name of the block.
 	Name string
 
 	Instances []*BlockInstance
+
+	//
+	// ANALYZER
 
 	Required bool
 }
@@ -219,19 +170,28 @@ func (b *Block) TopLevel(s AnalysisStrategy) bool {
 
 type (
 	BlockInstance struct {
+		//
+		// BUILD SYMBOLS
+
 		Group *Block
 		AST   *ast.Block
 		// ChildOf is the instance of another block that contains this block.
 		ChildOf *BlockInstance
 
+		Default *BlockInstanceDefault // nil if no default
+
+		//
+		// ANALYZER
+
 		// TopLevel indicates whether this block instance is placed outside
 		// any element.
 		TopLevel bool
-
-		Default BlockInstanceDefault // nil if no default
 	}
 
 	BlockInstanceDefault struct {
+		//
+		// BUILD SYMBOLS
+
 		AST ast.Body
 	}
 )
@@ -259,35 +219,30 @@ func (cbi *BlockInstance) DefaultOverwritten(cc *ComponentCall) bool {
 // ======================================================================================
 
 type ComponentCall struct {
-	// BUILD SYMBOLS
 	//
+	// BUILD SYMBOLS
 
 	AST *ast.ComponentCall
 
-	// AliasFor is the component that aliases this call.
-	//
-	// If true, be mindful that not all required parameters/blocks might be set.
-	AliasFor *Component
-
 	// File is the file the Component is defined in.
 	File *File
-
-	// LINKER
-	//
-
-	// Component is the Component being called.
-	Component *Component
-
-	// ANALYZER
-	//
-
-	AnalyzedWithErrors bool
 
 	// Withs are the withs used in this component call.
 	//
 	// All withs and their instances are guaranteed to be correctly set after
 	// analyzing, even if [AnalyzedWithErrors] is true.
 	Withs []*With
+
+	//
+	// LINKER
+
+	// Component is the Component being called.
+	Component *Component
+
+	//
+	// ANALYZER
+
+	AnalyzedWithErrors bool
 }
 
 func (cc *ComponentCall) External() bool {
@@ -320,10 +275,16 @@ func (cc *ComponentCall) WithByNode(n *ast.With) *With {
 }
 
 type With struct {
-	Name  string
-	Block *Block
+	//
+	// BUILD SYMBOLS
 
+	Name      string
 	Instances []*WithInstance
+
+	//
+	// ANALYZER
+
+	Block *Block
 }
 
 func (w *With) InstanceByNode(n *ast.With) *WithInstance {

@@ -18,19 +18,14 @@ import (
 //
 // Sets Fields: None
 //
-// Depends on Fields:
-//   - Components.Blocks
+// Depends on Fields: None
 func (z *analyzer) TrivialAnalyzeBlocks(logger *slog.Logger, c *file.Component) {
 	logger = logger.WithGroup("blocks")
 
 	for _, block := range c.Blocks {
-		if block.Component != c {
-			continue // Only analyze blocks that belong to the component
-		}
-
 		logger := logger.With(slog.String("block", block.Name))
 
-		z.AnalyzeBlockRequired(logger, block)
+		z.AnalyzeBlockRequired(logger, c, block)
 	}
 }
 
@@ -42,9 +37,8 @@ func (z *analyzer) TrivialAnalyzeBlocks(logger *slog.Logger, c *file.Component) 
 // Sets Fields:
 //   - Components.Blocks.Required
 //
-// Depends on Fields:
-//   - Components.Blocks.Instances.AST
-func (z *analyzer) AnalyzeBlockRequired(logger *slog.Logger, b *file.Block) {
+// Depends on Fields: None
+func (z *analyzer) AnalyzeBlockRequired(logger *slog.Logger, c *file.Component, b *file.Block) {
 	logger = logger.WithGroup("required")
 
 	b.Required = b.Instances[0].AST.Default == nil
@@ -59,9 +53,9 @@ Erroneous:
 	primaries := make([]diagnostic.Annotation, len(b.Instances))
 	for i, instance := range b.Instances {
 		if instance.AST.Default == nil {
-			primaries[i] = anno.Range(b.Component.File, instance.AST.Start(), instance.AST.Identifier.End(), "no default -> required") // todo
+			primaries[i] = anno.Range(c.File, instance.AST.Start(), instance.AST.Identifier.End(), "no default -> required")
 		} else {
-			primaries[i] = anno.Range(b.Component.File, instance.AST.Start(), instance.AST.Identifier.End(), "default set -> not required") // todo
+			primaries[i] = anno.Range(c.File, instance.AST.Start(), instance.AST.Identifier.End(), "default set -> not required")
 		}
 	}
 

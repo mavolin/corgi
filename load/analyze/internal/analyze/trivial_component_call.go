@@ -29,7 +29,7 @@ func (z *analyzer) TrivialAnalyzeComponentCalls() {
 		for _, cc := range f.ComponentCalls {
 			logger := logger.With(
 				slog.String("call_package", cc.Component.File.Package.Module+"/"+cc.Component.File.Package.PathInModule),
-				slog.String("call_name", cc.Component.Header().Name.Name),
+				slog.String("call_name", cc.Component.AST.Header.Name.Name),
 				slog.String("call_pos", cc.AST.Start().String()))
 
 			z.LinkWithBlocks(logger, cc)
@@ -44,16 +44,12 @@ func (z *analyzer) TrivialAnalyzeComponentCalls() {
 // LinkWithBlocks links the Block field of the Withs of the given
 // component call.
 //
-// Depends on Checks:
-//   - AggregateWiths - To iterate over the Withs
-//   - AggregateBlocks - To find the blocks by name
+// Depends on Checks: None
 //
 // Sets Fields:
 //   - ComponentCalls.Withs.Block
 //
-// Depends on Fields:
-//   - ComponentCalls.Withs.Name
-//   - Components.Blocks.Name
+// Depends on Fields: None
 func (z *analyzer) LinkWithBlocks(logger *slog.Logger, cc *file.ComponentCall) {
 	logger = logger.WithGroup("link_with_blocks")
 

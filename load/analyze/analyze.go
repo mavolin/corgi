@@ -50,9 +50,6 @@ import (
 // todo: ast.Types that are parsed as AttributeType must carry attribute name in brackets
 // todo: analyze: attr type: a boolean attr without explicit value (just name) that has no definition -> not allowed
 // todo: block nested inside itself
-// todo: aggregate component blocks
-// todo: required block overwritten by alias
-// todo: aliases must be in same package
 // todo: component block required
 // todo: component first permanent and placeholder
 // todo: component: block: first and placeholder
@@ -72,6 +69,9 @@ import (
 // todo: looped with considers only direct children
 // todo: extend as part of body
 // todo: component call: body type-asserted as scope
+// todo: disallow fors in component call bodies and remove looped with check
+// todo: For every component Foo, no FooData component
+// todo: fix analyze test
 
 // todo: should withs include underscore block shorthand?? prob yes
 

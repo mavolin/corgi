@@ -37,27 +37,7 @@ func Component() parser.Func[*ast.Component] {
 			})
 		}
 
-		c.Colon = parser.TryOptionalRuneAt(p, ':', comment.OrAnyWhitespace())
-		c.Extend = parser.TryOptional(p, CallHeader(), comment.OrHorizontalWhitespace())
-		if c.Extend != nil && c.Colon == nil {
-			p.CaptureError(&diagnostic.Diagnostic{
-				Message: "component: missing colon before extend",
-				Primary: quickanno.Expected(p, c.Extend.Start(), "a colon before the component call header"),
-			})
-		} else if c.Extend == nil && c.Colon != nil {
-			p.CaptureError(&diagnostic.Diagnostic{
-				Message: "component: missing extend",
-				Primary: quickanno.Expected(p, p.Pos(), "a component call header"),
-				Secondary: []diagnostic.Annotation{
-					anno.Position(p.File, *c.Colon, "because of this colon, indicating a following component call header"),
-				},
-				Hints: []diagnostic.Hint{
-					{Hint: "If you don't want to extend another component, remove the colon."},
-				},
-			})
-		}
-
-		c.Body = parser.Must(p, body.Body())
+		c.Body = parser.Must(p, Body())
 		return &c, nil
 	}
 }
@@ -188,41 +168,6 @@ func ParameterType() parser.Func[*ast.Type] {
 		}
 
 		return parser.TryErr(p, golang.Type())
-	}
-}
-
-func Alias() parser.Func[*ast.Alias] {
-	return func(p *parser.Parser) (*ast.Alias, *diagnostic.Diagnostic) {
-		var a ast.Alias
-
-		a.Alias = parser.TryKeywordAt(p, "alias", comment.OrAnyWhitespace())
-		if a.Alias == nil {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing alias",
-				Primary: quickanno.Expected(p, p.Pos(), "an alias"),
-			}
-		}
-
-		colon := parser.MatchesAnyRune(p, ':')
-		if !colon {
-			a.Header = parser.TryOptional(p, Header(), comment.OrAnyWhitespace())
-		}
-		if colon || a.Header == nil {
-			p.CaptureError(&diagnostic.Diagnostic{
-				Message: "alias: missing component header",
-				Primary: quickanno.Expected(p, p.Pos(), "a component header for the alias"),
-			})
-		}
-
-		a.ComponentCall = parser.Try(p, call(true))
-		if a.ComponentCall == nil {
-			p.CaptureError(&diagnostic.Diagnostic{
-				Message: "alias: missing component call",
-				Primary: quickanno.Expected(p, p.Pos(), "a component call to alias"),
-			})
-		}
-
-		return &a, nil
 	}
 }
 

@@ -52,7 +52,7 @@ func TestComponent(t *testing.T) {
 			},
 		}, {
 			name: "with extend",
-			in: "comp foo() : bar() {\n" +
+			in: "comp foo() :bar {\n" +
 				"\tbr\n" +
 				"}",
 			want: &ast.Component{
@@ -60,39 +60,39 @@ func TestComponent(t *testing.T) {
 				Header: &ast.ComponentHeader{
 					Name: &ast.Identifier{
 						Name:     "foo",
-						Position: &ast.Position{Line: 1, Col: 6},
+						Position: &ast.Position{Line: 1, Col: 1 + len("comp ")},
 					},
 					Parameters: &ast.ComponentParameters{
-						LParen: &ast.Position{Line: 1, Col: 9},
-						RParen: &ast.Position{Line: 1, Col: 10},
+						LParen: &ast.Position{Line: 1, Col: 1 + len("comp foo")},
+						RParen: &ast.Position{Line: 1, Col: 1 + len("comp foo(")},
 					},
 				},
-				Colon: &ast.Position{Line: 1, Col: 12},
-				Extend: &ast.ComponentCallHeader{
-					Name: &ast.Identifier{
-						Name:     "bar",
-						Position: &ast.Position{Line: 1, Col: 14},
-					},
-					Arguments: &ast.Arguments{
-						LParen: &ast.Position{Line: 1, Col: 17},
-						RParen: &ast.Position{Line: 1, Col: 18},
-					},
-				},
-				Body: &ast.Scope{
-					LBrace: &ast.Position{Line: 1, Col: 20},
-					Nodes: []ast.ScopeNode{
-						&ast.Element{
-							Header: &ast.ElementHeader{
-								Name: &ast.ElementReference{
-									Name: &ast.ElementName{
-										Name:     "br",
-										Position: &ast.Position{Line: 2, Col: 2},
+				Body: &ast.Extend{
+					ComponentCall: &ast.ComponentCall{
+						Colon: &ast.Position{Line: 1, Col: 1 + len("comp foo() ")},
+						Header: &ast.ComponentCallHeader{
+							Name: &ast.Identifier{
+								Name:     "bar",
+								Position: &ast.Position{Line: 1, Col: 1 + len("comp foo() :")},
+							},
+						},
+						Body: &ast.Scope{
+							LBrace: &ast.Position{Line: 1, Col: 1 + len("comp foo() :bar ")},
+							Nodes: []ast.ScopeNode{
+								&ast.Element{
+									Header: &ast.ElementHeader{
+										Name: &ast.ElementReference{
+											Name: &ast.ElementName{
+												Name:     "br",
+												Position: &ast.Position{Line: 2, Col: 1 + len("\t")},
+											},
+										},
 									},
 								},
 							},
+							RBrace: &ast.Position{Line: 3, Col: 1},
 						},
 					},
-					RBrace: &ast.Position{Line: 3, Col: 1},
 				},
 			},
 		},
@@ -394,77 +394,6 @@ func TestParameter(t *testing.T) {
 			should.Equal(t, c.want, got)
 		})
 	}
-}
-
-func TestAlias(t *testing.T) {
-	t.Parallel()
-
-	in := "alias foo(s string) : bar(baz: s)"
-	want := &ast.Alias{
-		Alias: &ast.Position{Line: 1, Col: 1},
-		Header: &ast.ComponentHeader{
-			Name: &ast.Identifier{
-				Name:     "foo",
-				Position: &ast.Position{Line: 1, Col: 7},
-			},
-			Parameters: &ast.ComponentParameters{
-				LParen: &ast.Position{Line: 1, Col: 10},
-				List: []*ast.ComponentParameter{
-					{
-						Name: &ast.Identifier{
-							Name:     "s",
-							Position: &ast.Position{Line: 1, Col: 11},
-						},
-						Type: &ast.Type{
-							Parsed: &ast.NamedType{
-								Name: &ast.Identifier{
-									Name:     "string",
-									Position: &ast.Position{Line: 1, Col: 13},
-								},
-							},
-							Type:  "string",
-							From:  ast.Position{Line: 1, Col: 13},
-							Until: ast.Position{Line: 1, Col: 19},
-						},
-					},
-				},
-				RParen: &ast.Position{Line: 1, Col: 19},
-			},
-		},
-		ComponentCall: &ast.ComponentCall{
-			Colon: &ast.Position{Line: 1, Col: 21},
-			Header: &ast.ComponentCallHeader{
-				Name: &ast.Identifier{
-					Name:     "bar",
-					Position: &ast.Position{Line: 1, Col: 23},
-				},
-				Arguments: &ast.Arguments{
-					LParen: &ast.Position{Line: 1, Col: 26},
-					List: []ast.Argument{
-						&ast.ComponentArgument{
-							Name: &ast.Identifier{
-								Name:     "baz",
-								Position: &ast.Position{Line: 1, Col: 27},
-							},
-							Colon: &ast.Position{Line: 1, Col: 30},
-							Value: &ast.Expression{
-								Nodes: ast.Code{
-									&ast.GoCode{
-										Code:     "s",
-										Position: &ast.Position{Line: 1, Col: 32},
-									},
-								},
-							},
-						},
-					},
-					RParen: &ast.Position{Line: 1, Col: 33},
-				},
-			},
-		},
-	}
-
-	got := parsetest.ParsesFully(t, in, Alias())
-	should.Equal(t, want, got)
 }
 
 func TestBlock(t *testing.T) {

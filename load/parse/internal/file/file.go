@@ -39,8 +39,6 @@ func scopeNode(p *parser.Parser) (ast.ScopeNode, *diagnostic.Diagnostic) {
 		return n, nil
 	} else if n := parser.Try(p, component.Component()); n != nil {
 		return n, nil
-	} else if n := parser.Try(p, component.Alias()); n != nil {
-		return n, nil
 	} else if n := parser.Try(p, component.Block()); n != nil {
 		return n, nil
 	} else if n := parser.Try(p, code.Conditional()); n != nil {
@@ -136,8 +134,6 @@ func TopLevel() parser.Func[ast.TopLevel] {
 				scope = append(scope, sd)
 			} else if c := parser.TryOptional(p, component.Component(), nil); c != nil {
 				scope = append(scope, c)
-			} else if n := parser.TryOptional(p, component.Alias(), nil); n != nil {
-				scope = append(scope, n)
 			} else if ad := parser.TryOptional(p, attribute.Definition(), nil); ad != nil {
 				scope = append(scope, ad)
 			} else if ed := parser.TryOptional(p, element.Definition(), nil); ed != nil {

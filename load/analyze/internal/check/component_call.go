@@ -21,7 +21,7 @@ func (ch *checker) CheckComponentCalls() {
 		for _, cc := range f.ComponentCalls {
 			logger := logger.With(
 				slog.String("call_package", cc.Component.File.Package.Module+"/"+cc.Component.File.Package.PathInModule),
-				slog.String("call_name", cc.Component.Header().Name.Name),
+				slog.String("call_name", cc.Component.AST.Header.Name.Name),
 				slog.String("call_pos", cc.AST.Start().String()))
 
 			ch.CheckComponentArgsExist(logger, cc)
@@ -63,13 +63,11 @@ func (ch *checker) CheckComponentCallBody(logger *slog.Logger, cc *file.Componen
 	// todo: properly resolve so sc is always a scope, even if wrapped in
 	// a block shorthand etc
 	walk.WalkT(sc, func(ctx *walk.ContextT[ast.ScopeNode]) error {
-		switch n := ctx.Node.(type) {
+		switch ctx.Node.(type) {
 		case *ast.Conditional:
 		case *ast.Switch:
 		case *ast.And:
-		case *ast.For:
 		case *ast.With:
-			ch.CheckWithNotLooped(logger, cc, ctx.Parents, n)
 			return walk.NoDive
 		case *ast.ComponentCall:
 			return walk.NoDive
@@ -127,13 +125,13 @@ func (ch *checker) CheckUnreachableWiths(logger *slog.Logger, cc *file.Component
 		last := tws[len(tws)-1]
 
 		primaries := make([]diagnostic.Annotation, 1, len(tws)+len(cws))
-		primaries[0] = anno.Range(cc.File, last.Start(), last.Identifier.End(), "overwrites all of the above") // todo
+		primaries[0] = anno.Range(cc.File, last.Start(), last.Identifier.End(), "overwrites all of the above")
 
 		for _, tw := range tws[:len(tws)-1] {
-			primaries = append(primaries, anno.Range(cc.File, tw.Start(), tw.Identifier.End(), "never actually used")) // todo
+			primaries = append(primaries, anno.Range(cc.File, tw.Start(), tw.Identifier.End(), "never actually used"))
 		}
 		for _, cw := range cws {
-			primaries = append(primaries, anno.Range(cc.File, cw.Start(), cw.Identifier.End(), "never actually used")) // todo
+			primaries = append(primaries, anno.Range(cc.File, cw.Start(), cw.Identifier.End(), "never actually used"))
 		}
 
 		logger.With(slog.String("name", last.Name())).
@@ -148,79 +146,46 @@ func (ch *checker) CheckUnreachableWiths(logger *slog.Logger, cc *file.Component
 	}
 }
 
-func (ch *checker) CheckWithNotLooped(logger *slog.Logger, cc *file.ComponentCall, parents []*walk.Context, with *ast.With) {
-	logger = logger.WithGroup("with_not_looped")
-
-	if len(parents) == 0 {
-		return
-	}
-	loop := walk.Closest[*ast.For](parents)
-	if loop == nil {
-		return // not inside a for loop
-	}
-
-	logger.Error("Component call: looped with")
-	ch.Report(&diagnostic.Diagnostic{
-		Message: "component call: looped with",
-		Primary: []diagnostic.Annotation{
-			anno.Position(cc.File, with.Start(), "only the with block from the very last iteration is ever used"),
-		},
-		Secondary: []diagnostic.Annotation{
-			anno.Node(cc.File, loop, "in this for loop"),
-		},
-	})
-}
-
 func (ch *checker) CheckNoDuplicateComponentArgs(logger *slog.Logger, cc *file.ComponentCall) {
 	logger = logger.WithGroup("no_duplicate_args")
 
 	if cc.AST.Header.Arguments == nil || len(cc.AST.Header.Arguments.List) <= 1 {
 		return
 	}
-	args := cc.AST.Header.Arguments.List
 
-	reported := make(map[string]bool)
-	dupls := make([]*ast.ComponentArgument, 0, len(args)-1)
-
-	for ai, a := range args[:len(args)-1] {
-		aArg, _ := a.(*ast.ComponentArgument)
-		if aArg == nil {
+	args := make(map[string][]*ast.ComponentArgument, len(cc.AST.Header.Arguments.List))
+	for _, arg := range cc.AST.Header.Arguments.List {
+		carg, _ := arg.(*ast.ComponentArgument)
+		if carg == nil {
 			continue
 		}
-		name := aArg.Name.Name
-		if reported[name] {
-			continue
-		} else if cc.Component.ParameterByName(name) == nil {
+		if cc.Component.ParameterByName(carg.Name.Name) == nil {
 			// non-existent arguments are handled by CheckComponentArgsExist
 			continue
 		}
 
+		name := carg.Name.Name
+		args[name] = append(args[name], carg)
+	}
+
+	for _, dupls := range args {
+		if len(dupls) < 2 {
+			continue
+		}
+
 		logger := logger.With(
-			slog.String("arg_pos", aArg.Start().String()),
-			slog.String("arg_name", name))
+			slog.String("arg_name", dupls[0].Name.Name))
 
-		for _, b := range args[ai:] {
-			bArg, _ := b.(*ast.ComponentArgument)
-			if bArg != nil && name == bArg.Name.Name {
-				dupls = append(dupls, bArg)
-			}
+		primaries := make([]diagnostic.Annotation, len(dupls))
+		for i, dupl := range dupls {
+			primaries[i] = anno.Node(cc.File, dupl, "set here")
 		}
 
-		if len(dupls) > 0 {
-			primaries := make([]diagnostic.Annotation, 1, len(dupls)+1)
-			primaries[0] = anno.Node(cc.File, aArg, "first set here")
-			for _, bArg := range dupls {
-				primaries = append(primaries, anno.Node(cc.File, bArg, "then here again"))
-			}
-
-			logger.Error("Found duplicate component call argument")
-			ch.Report(&diagnostic.Diagnostic{
-				Message: "component call: argument specified twice",
-				Primary: primaries,
-			})
-			reported[name] = true
-			dupls = dupls[:0] // reset slice
-		}
+		logger.Error("Found duplicate component call argument")
+		ch.Report(&diagnostic.Diagnostic{
+			Message: "component call: argument specified multiple times",
+			Primary: primaries,
+		})
 	}
 }
 
