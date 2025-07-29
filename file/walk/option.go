@@ -24,7 +24,8 @@ type Option func(*Context) error
 
 // TopLevel prevents the function from diving into:
 //   - Elements
-//   - Component call withs that are not top-level.
+//   - Component call block setters where no instance of the
+//     referenced block top-level.
 //
 // Requires component calls to be analyzed and therefore, transitively, the
 // file's symbols to be built.
@@ -41,11 +42,11 @@ func TopLevel(f *file.File) Option {
 			if cc == nil {
 				panic(fmt.Sprintf("walk.TopLevel called without building symbols: %s:%s: file.ComponentCall not found for ast node", f.ModulePath(), cc.AST.Start()))
 			}
-			with := cc.WithByNode(n)
-			if with == nil {
-				panic(fmt.Sprintf("walk.TopLevel called without analyzing component calls: %s:%s: file.With not found for ast node", f.ModulePath(), n.Start()))
+			blockSetter := cc.BlockSetterByNode(n)
+			if blockSetter == nil {
+				panic(fmt.Sprintf("walk.TopLevel called without analyzing component calls: %s:%s: file.BlockSetter not found for ast node", f.ModulePath(), n.Start()))
 			}
-			if with.Block == nil || !with.Block.TopLevel(file.AtLeastOne) {
+			if blockSetter.Block == nil || !blockSetter.Block.TopLevel(file.AtLeastOne) {
 				return Skip
 			}
 			return nil

@@ -4,6 +4,7 @@ import (
 	"log/slog"
 
 	"github.com/mavolin/corgi/v2/file"
+	"github.com/mavolin/corgi/v2/file/ast"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
 	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
 )
@@ -32,56 +33,76 @@ func (z *analyzer) TrivialAnalyzeComponentCalls() {
 				slog.String("call_name", cc.Component.AST.Header.Name.Name),
 				slog.String("call_pos", cc.AST.Start().String()))
 
-			z.LinkWithBlocks(logger, cc)
+			z.LinkBlockSetterBlocks(logger, cc)
 		}
 	}
 }
 
 // ============================================================================
-// Link With's Blocks Field
+// Link Block Setter's Blocks Field
 // ======================================================================================
 
-// LinkWithBlocks links the Block field of the Withs of the given
+// LinkBlockSetterBlocks links the Block field of the BlockSetters of the given
 // component call.
 //
 // Depends on Checks: None
 //
 // Sets Fields:
-//   - ComponentCalls.Withs.Block
+//   - ComponentCalls.BlockSetters.Block
 //
 // Depends on Fields: None
-func (z *analyzer) LinkWithBlocks(logger *slog.Logger, cc *file.ComponentCall) {
-	logger = logger.WithGroup("link_with_blocks")
+func (z *analyzer) LinkBlockSetterBlocks(logger *slog.Logger, cc *file.ComponentCall) {
+	logger = logger.WithGroup("link_block_setter_blocks")
 
 	if !cc.Component.File.Package.Analyzed || cc.Component.AnalyzedWithErrors {
 		cc.AnalyzedWithErrors = true
 		return
 	}
 
-	for _, with := range cc.Withs {
-		logger := logger.With(slog.String("with_name", with.Name))
+	for _, blockSetter := range cc.BlockSetters {
+		logger := logger.With(slog.String("with_name", blockSetter.Name))
 
-		with.Block = cc.Component.BlockByName(with.Name)
-		if with.Block == nil {
-			cc.AnalyzedWithErrors = true
-			logger.Error("With block not found")
+		blockSetter.Block = cc.Component.BlockByName(blockSetter.Name)
+		if blockSetter.Block != nil {
+			continue
+		}
 
-			var primary diagnostic.Annotation
-			if with.Name == "" {
-				primary = anno.NRunes(cc.File, *with.Instances[0].AST.With, len("with"), "`"+cc.AST.Header.Name.Full()+"` defines no default block")
-			} else {
-				primary = anno.Node(cc.File, with.Instances[0].AST.Identifier, "`"+cc.AST.Header.Name.Full()+"` defines no block with this name")
+		cc.AnalyzedWithErrors = true
+		logger.Error("Block Setter block not found")
+
+		primaries := make([]diagnostic.Annotation, len(blockSetter.Instances))
+		for i, instance := range blockSetter.Instances {
+			var highlight anno.HighlightFunc
+			switch instance := instance.AST.(type) {
+			case *ast.With:
+				if instance.Identifier == nil {
+					highlight = anno.HighlightNRunes(*instance.With, len("with"))
+				} else {
+					highlight = anno.HighlightNode(instance.Identifier)
+				}
+			case *ast.DefaultBlockShorthand:
+				highlight = anno.HighlightPosition(instance.Body.Start())
 			}
 
-			z.Report(&diagnostic.Diagnostic{
-				Message: "component call: with references unknown block",
-				Primary: []diagnostic.Annotation{
-					primary,
-				},
-				Secondary: []diagnostic.Annotation{
-					anno.Node(cc.File, cc.AST, "in this component call"),
-				},
+			var annotation string
+			if blockSetter.Name == "" {
+				annotation = "`" + cc.AST.Header.Name.Full() + "` defines no default block"
+			} else {
+				annotation = "`" + cc.AST.Header.Name.Full() + "` defines no block with this name"
+			}
+
+			primaries[i] = anno.Anno(cc.File, anno.Annotation{
+				Highlight:  highlight,
+				Annotation: annotation,
 			})
 		}
+
+		z.Report(&diagnostic.Diagnostic{
+			Message: "component call: with references unknown block",
+			Primary: primaries,
+			Secondary: []diagnostic.Annotation{
+				anno.Node(cc.File, cc.AST, "in this component call"),
+			},
+		})
 	}
 }

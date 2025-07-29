@@ -47,7 +47,7 @@ func call(must bool) parser.Func[*ast.ComponentCall] {
 
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 
-		c.Body = parser.Try(p, body.Body())
+		c.Body = parser.Try(p, CallBody())
 		return &c, nil
 	}
 }

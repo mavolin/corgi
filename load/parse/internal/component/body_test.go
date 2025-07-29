@@ -12,6 +12,31 @@ import (
 func TestBody(t *testing.T) {
 	t.Parallel()
 	parsetest.AssertAlsoFulfils(t, Body(), testExtend)
+	t.Run("Body", func(t *testing.T) {
+		t.Parallel()
+		in := "{\n" +
+			"\tbr\n" +
+			"}"
+		want := &ast.Scope{
+			LBrace: &ast.Position{Line: 1, Col: 1},
+			Nodes: []ast.ScopeNode{
+				&ast.Element{
+					Header: &ast.ElementHeader{
+						Name: &ast.ElementReference{
+							Name: &ast.ElementName{
+								Name:     "br",
+								Position: &ast.Position{Line: 2, Col: 1 + len("\t")},
+							},
+						},
+					},
+				},
+			},
+			RBrace: &ast.Position{Line: 3, Col: 1},
+		}
+
+		got := parsetest.ParsesFully(t, in, Body())
+		should.Equal[ast.ComponentBody](t, want, got)
+	})
 }
 
 func TestExtend(t *testing.T) {

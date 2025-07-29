@@ -7,7 +7,7 @@ package ast
 type ComponentCall struct {
 	Colon  *Position
 	Header *ComponentCallHeader
-	Body   Body
+	Body   ComponentCallBody
 }
 
 var (
@@ -112,6 +112,93 @@ func (h *ComponentCallHeader) Walk(w func(Node)) {
 func (*ComponentCallHeader) _node() {}
 
 // ============================================================================
+// Component Call Body
+// ======================================================================================
+
+// ComponentCallBody is the body of a component, either [Scope], or
+// [DefaultBlockShorthand].
+type ComponentCallBody interface {
+	Node
+	_componentCallBody()
+}
+
+// if this is changed, change the comment above
+var (
+	_ ComponentCallBody = (*Scope)(nil)
+	_ ComponentCallBody = (*DefaultBlockShorthand)(nil)
+)
+
+// ============================================================================
+// Default Block Shorthand
+// ======================================================================================
+
+type DefaultBlockShorthand struct {
+	// Implicit, if set to true, indicates that this shorthand has no leading
+	// underscore.
+	// As of writing, this is only true for interpolation.
+	Implicit bool
+	Body     Body
+	Position *Position
+}
+
+var (
+	_ ComponentCallBody = (*DefaultBlockShorthand)(nil)
+	_ BlockSetter       = (*DefaultBlockShorthand)(nil)
+)
+
+func (s *DefaultBlockShorthand) Name() string {
+	return ""
+}
+
+func (s *DefaultBlockShorthand) Start() Position {
+	if s.Position != nil {
+		return *s.Position
+	} else if s.Body != nil {
+		return s.Body.Start()
+	}
+	return Position{}
+}
+
+func (s *DefaultBlockShorthand) End() Position {
+	if s.Body != nil {
+		return s.Body.End()
+	} else if s.Position != nil {
+		if s.Implicit {
+			return *s.Position
+		}
+		return deltaPos(*s.Position, len("_"))
+	}
+	return Position{}
+}
+
+func (s *DefaultBlockShorthand) Walk(w func(Node)) {
+	if s.Body != nil {
+		w(s.Body)
+	}
+}
+
+func (*DefaultBlockShorthand) _node()              {}
+func (*DefaultBlockShorthand) _with()              {}
+func (*DefaultBlockShorthand) _componentCallBody() {}
+
+// ============================================================================
+// BlockSetter
+// ======================================================================================
+
+// BlockSetter is either a [With] or a [DefaultBlockShorthand].
+type BlockSetter interface {
+	Node
+	_with()
+	Name() string
+}
+
+// if this is changed, change the comment above
+var (
+	_ BlockSetter = (*With)(nil)
+	_ BlockSetter = (*DefaultBlockShorthand)(nil)
+)
+
+// ============================================================================
 // With
 // ======================================================================================
 
@@ -122,6 +209,7 @@ type With struct {
 }
 
 var (
+	_ BlockSetter = (*With)(nil)
 	_ ScopeNode   = (*With)(nil)
 	_ Highlighter = (*With)(nil)
 )
@@ -178,4 +266,5 @@ func (w *With) Highlight() (start, end Position) {
 }
 
 func (*With) _node()      {}
+func (*With) _with()      {}
 func (*With) _scopeNode() {}

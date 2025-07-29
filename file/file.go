@@ -97,7 +97,7 @@ func buildSymbols(f *File) {
 	walk = func(n ast.Node) {
 		switch n := n.(type) {
 		case *ast.ComponentCall:
-			ccw := &ComponentCall{AST: n, File: f, Withs: make([]*With, 0, 24)}
+			ccw := &ComponentCall{AST: n, File: f, BlockSetters: make([]*BlockSetter, 0, 24)}
 			f.ComponentCalls = append(f.ComponentCalls, ccw)
 			f.componentCallsByNode[n] = ccw
 
@@ -106,20 +106,20 @@ func buildSymbols(f *File) {
 			n.Walk(walk)
 			cc = oldCC
 
-			ccw.Withs = slices.Clip(ccw.Withs)
-			for _, with := range ccw.Withs {
+			ccw.BlockSetters = slices.Clip(ccw.BlockSetters)
+			for _, with := range ccw.BlockSetters {
 				with.Instances = slices.Clip(with.Instances)
 			}
-		case *ast.With:
+		case ast.BlockSetter:
 			if cc == nil {
 				n.Walk(walk)
 				break
 			}
-			instance := &WithInstance{AST: n}
-			group := cc.WithByName(n.Name())
+			instance := &BlockSetterInstance{AST: n}
+			group := cc.BlockSetterByName(n.Name())
 			if group == nil {
-				group = &With{Name: n.Name(), Instances: make([]*WithInstance, 0, 16)}
-				cc.Withs = append(cc.Withs, group)
+				group = &BlockSetter{Name: n.Name(), Instances: make([]*BlockSetterInstance, 0, 16)}
+				cc.BlockSetters = append(cc.BlockSetters, group)
 			}
 			instance.Group = group
 			group.Instances = append(group.Instances, instance)

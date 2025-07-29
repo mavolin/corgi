@@ -17,7 +17,7 @@ import (
 // dontDiveFields is a list of fields that should not be traversed further
 // to prevent including fields that are otherwise included in the output.
 var dontDiveFields = []string{
-	"ComponentCalls.Withs.Block",
+	"ComponentCalls.BlockSetters.Block",
 }
 
 func getAllFields() ([]string, error) {

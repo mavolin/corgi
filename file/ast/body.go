@@ -7,8 +7,7 @@ import "slices"
 // ======================================================================================
 
 // A Body is a group of nodes.
-// It is a pointer to either a [Scope], [BracketText], or
-// [DefaultBlockShorthand].
+// It is a pointer to either a [Scope], or [BracketText].
 //
 // The Go spec calls this a "block", but that name is already taken.
 type Body interface {
@@ -21,7 +20,6 @@ type Body interface {
 var (
 	_ Body = (*Scope)(nil)
 	_ Body = (*BracketText)(nil)
-	_ Body = (*DefaultBlockShorthand)(nil)
 )
 
 // ============================================================================
@@ -124,9 +122,10 @@ func (s *Scope) Walk(w func(Node)) {
 	}
 }
 
-func (*Scope) _node()          {}
-func (*Scope) _body()          {}
-func (*Scope) _componentBody() {}
+func (*Scope) _node()              {}
+func (*Scope) _body()              {}
+func (*Scope) _componentBody()     {}
+func (*Scope) _componentCallBody() {}
 
 // ============================================================================
 // Scope Node
@@ -212,49 +211,3 @@ func (t *BracketText) Walk(w func(Node)) {
 func (*BracketText) _node()          {}
 func (*BracketText) _body()          {}
 func (*BracketText) _componentBody() {}
-
-// ============================================================================
-// Default Block Shorthand
-// ======================================================================================
-
-type DefaultBlockShorthand struct {
-	// Implicit, if set to true, indicates that this shorthand has no leading
-	// underscore.
-	// As of writing, this is only true for interpolation.
-	Implicit bool
-	Body     Body
-	Position *Position
-}
-
-var _ Body = (*DefaultBlockShorthand)(nil)
-
-func (s *DefaultBlockShorthand) Start() Position {
-	if s.Position != nil {
-		return *s.Position
-	} else if s.Body != nil {
-		return s.Body.Start()
-	}
-	return Position{}
-}
-
-func (s *DefaultBlockShorthand) End() Position {
-	if s.Body != nil {
-		return s.Body.End()
-	} else if s.Position != nil {
-		if s.Implicit {
-			return *s.Position
-		}
-		return deltaPos(*s.Position, len("_"))
-	}
-	return Position{}
-}
-
-func (s *DefaultBlockShorthand) Walk(w func(Node)) {
-	if s.Body != nil {
-		w(s.Body)
-	}
-}
-
-func (*DefaultBlockShorthand) _node()          {}
-func (*DefaultBlockShorthand) _body()          {}
-func (*DefaultBlockShorthand) _componentBody() {}

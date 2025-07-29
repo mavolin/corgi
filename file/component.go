@@ -205,7 +205,7 @@ func (cbi *BlockInstance) Required() bool {
 // This is the case if the component call sets this block or one of this
 // block's parent blocks.
 func (cbi *BlockInstance) DefaultOverwritten(cc *ComponentCall) bool {
-	if cc.WithByName(cbi.Group.Name) != nil {
+	if cc.BlockSetterByName(cbi.Group.Name) != nil {
 		return true
 	}
 	if cbi.ChildOf != nil {
@@ -227,11 +227,11 @@ type ComponentCall struct {
 	// File is the file the Component is defined in.
 	File *File
 
-	// Withs are the withs used in this component call.
+	// BlockSetters are the withs used in this component call.
 	//
 	// All withs and their instances are guaranteed to be correctly set after
 	// analyzing, even if [AnalyzedWithErrors] is true.
-	Withs []*With
+	BlockSetters []*BlockSetter
 
 	//
 	// LINKER
@@ -253,8 +253,8 @@ func (cc *ComponentCall) Local() bool {
 	return !cc.External()
 }
 
-func (cc *ComponentCall) WithByName(name string) *With {
-	for _, with := range cc.Withs {
+func (cc *ComponentCall) BlockSetterByName(name string) *BlockSetter {
+	for _, with := range cc.BlockSetters {
 		if with.Name == name {
 			return with
 		}
@@ -262,8 +262,8 @@ func (cc *ComponentCall) WithByName(name string) *With {
 	return nil
 }
 
-func (cc *ComponentCall) WithByNode(n *ast.With) *With {
-	w := cc.WithByName(n.Name())
+func (cc *ComponentCall) BlockSetterByNode(n ast.BlockSetter) *BlockSetter {
+	w := cc.BlockSetterByName(n.Name())
 	if w == nil {
 		return nil
 	}
@@ -274,12 +274,12 @@ func (cc *ComponentCall) WithByNode(n *ast.With) *With {
 	return nil
 }
 
-type With struct {
+type BlockSetter struct {
 	//
 	// BUILD SYMBOLS
 
 	Name      string
-	Instances []*WithInstance
+	Instances []*BlockSetterInstance
 
 	//
 	// ANALYZER
@@ -287,7 +287,7 @@ type With struct {
 	Block *Block
 }
 
-func (w *With) InstanceByNode(n *ast.With) *WithInstance {
+func (w *BlockSetter) InstanceByNode(n ast.BlockSetter) *BlockSetterInstance {
 	for _, instance := range w.Instances {
 		if instance.AST == n {
 			return instance
@@ -296,7 +296,7 @@ func (w *With) InstanceByNode(n *ast.With) *WithInstance {
 	return nil
 }
 
-type WithInstance struct {
-	Group *With
-	AST   *ast.With
+type BlockSetterInstance struct {
+	Group *BlockSetter
+	AST   ast.BlockSetter
 }

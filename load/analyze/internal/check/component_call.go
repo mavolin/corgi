@@ -40,28 +40,11 @@ func (ch *checker) CheckComponentCallBody(logger *slog.Logger, cc *file.Componen
 	ok = true
 	logger = logger.WithGroup("body")
 
-	bt, _ := cc.AST.Body.(*ast.BracketText)
-	if bt != nil {
-		logger.Error("Bracket text used as component call body")
-		ch.Report(&diagnostic.Diagnostic{
-			Message: "bracket text used as component call body",
-			Primary: []diagnostic.Annotation{
-				anno.Position(cc.File, cc.AST.Body.Start(), "cannot use a bracket text here"),
-			},
-			Hints: []diagnostic.Hint{
-				{Hint: "Did you mean to use a default block shorthand?", Example: "`_[ ... ]"},
-			},
-		})
-		return false
-	}
-
 	sc, _ := cc.AST.Body.(*ast.Scope)
 	if sc == nil {
-		return false
+		return true
 	}
 
-	// todo: properly resolve so sc is always a scope, even if wrapped in
-	// a block shorthand etc
 	walk.WalkT(sc, func(ctx *walk.ContextT[ast.ScopeNode]) error {
 		switch ctx.Node.(type) {
 		case *ast.Conditional:
@@ -94,7 +77,7 @@ func (ch *checker) CheckComponentCallBody(logger *slog.Logger, cc *file.Componen
 func (ch *checker) CheckUnreachableWiths(logger *slog.Logger, cc *file.ComponentCall) {
 	logger = logger.WithGroup("unreachable_withs")
 
-	if len(cc.Withs) == 0 {
+	if len(cc.BlockSetters) == 0 {
 		return
 	}
 
@@ -284,7 +267,7 @@ func (ch *checker) CheckRequiredBlocksAreSet(logger *slog.Logger, cc *file.Compo
 			continue
 		}
 
-		if cc.WithByName(block.Name) != nil {
+		if cc.BlockSetterByName(block.Name) != nil {
 			continue
 		}
 
