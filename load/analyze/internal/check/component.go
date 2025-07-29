@@ -22,6 +22,7 @@ func (ch *checker) CheckComponents() {
 
 		ch.CheckDuplicateComponentParams(logger, c)
 		ch.CheckReservedComponentNames(logger, c)
+		ch.CheckDataComponent(logger, c)
 
 		for _, param := range c.Parameters {
 			logger := logger.With(
@@ -152,5 +153,42 @@ func (ch *checker) CheckReservedComponentParamName(logger *slog.Logger, c *file.
 			anno.Node(c.File, param.AST.Name, "`"+name+"` is a reserved name"),
 		},
 		Hints: []diagnostic.Hint{{Hint: "Rename this parameter."}},
+	})
+}
+
+// ============================================================================
+// For Every Component Foo, No FooData Component Exists
+// ======================================================================================
+
+func (ch *checker) CheckDataComponent(logger *slog.Logger, c *file.Component) {
+	logger = logger.WithGroup("no_data_component")
+
+	name := c.AST.Header.Name.Name
+	if len(name) <= len("Data") || name[len(name)-len("Data"):] != "Data" {
+		return
+	}
+
+	name = name[:len(name)-len("Data")] // remove "Data" suffix
+	other := c.File.Package.ComponentByName(name)
+	if other == nil {
+		return
+	}
+
+	logger.Error("Component with suffix `Data` defined",
+		slog.String("other_file", other.File.Name),
+		slog.String("other_comp", other.AST.Header.Name.Name),
+		slog.String("other_comp_pos", other.AST.Start().String()))
+	ch.Report(&diagnostic.Diagnostic{
+		Message: "data component defined",
+		Primary: []diagnostic.Annotation{
+			anno.Node(c.File, c.AST.Header.Name, "cannot define component with suffix `Data`"),
+		},
+		Secondary: []diagnostic.Annotation{
+			anno.Node(other.File, other.AST.Header.Name, "because another component without the `Data` suffix exists"),
+		},
+		Explanation: "For every component `Foo`, corgi creates a struct `FooData` used for calling the component " +
+			"in Go code. Since `" + name + "`'s generated data struct and `" + name + "Data` would clash, " +
+			"you cannot define a component called `" + name + "Data`.",
+		Hints: []diagnostic.Hint{{Hint: "Rename `" + name + "Data`."}},
 	})
 }

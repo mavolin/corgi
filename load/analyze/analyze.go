@@ -69,9 +69,6 @@ import (
 // todo: looped with considers only direct children
 // todo: extend as part of body
 // todo: component call: body type-asserted as scope
-// todo: disallow fors in component call bodies and remove looped with check
-// todo: For every component Foo, no FooData component
-// todo: fix analyze test
 
 // todo: should withs include underscore block shorthand?? prob yes
 
