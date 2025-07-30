@@ -2,7 +2,8 @@
 package diagnostic
 
 import (
-	"fmt"
+	"strconv"
+	"strings"
 
 	"github.com/mavolin/corgi/v2/file"
 	"github.com/mavolin/corgi/v2/file/ast"
@@ -178,22 +179,26 @@ func (d *Diagnostic) Short() string {
 	if typ == "" {
 		typ = Error
 	}
-	if d.Cause == nil {
-		return fmt.Sprint(typ, ": ", d.Message)
-	}
-	return fmt.Sprint(typ, ": ", d.Message, ": ", d.Cause.Error())
+
+	return string(typ) + ": " + d.Error()
 }
 
 func (d *Diagnostic) Error() string {
-	message := d.Message
-	if d.Cause != nil {
-		message += ": " + d.Cause.Error()
-	}
-
+	var sb strings.Builder
 	if len(d.Primary) > 0 {
-		f := d.Primary[0]
-		return fmt.Sprint(f.File.PathInModule(), ":", f.Start, ": ", message)
+		p := d.Primary[0]
+		sb.WriteString(p.File.PathInModule())
+		sb.WriteString(":")
+		sb.WriteString(strconv.Itoa(p.Start.Line))
+		sb.WriteString(":")
+		sb.WriteString(strconv.Itoa(p.Start.Col))
+		sb.WriteString(": ")
+	}
+	sb.WriteString(d.Message)
+	if d.Cause != nil {
+		sb.WriteString(": ")
+		sb.WriteString(d.Cause.Error())
 	}
 
-	return message
+	return sb.String()
 }
