@@ -112,7 +112,9 @@ func Link(ctx context.Context, p *file.Package, o Options) diagnostic.List {
 		slog.String("module", p.Module),
 		slog.String("path_in_module", p.PathInModule))
 
-	file.BuildSymbols(p)
+	if p.PackageSymbols == nil {
+		file.BuildSymbols(p)
+	}
 
 	l := &linker{
 		p:                      p,
