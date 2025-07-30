@@ -128,15 +128,6 @@ func (s *Symbols) ImportByNamespace(namespace string) *Import {
 	return nil
 }
 
-func (s *Symbols) ImportByPackage(p *Package) *Import {
-	for _, imp := range s.Imports {
-		if imp.Package == p {
-			return imp
-		}
-	}
-	return nil
-}
-
 func (s *Symbols) ImportByPath(p string) *Import {
 	for _, imp := range s.Imports {
 		if imp.Path == p {

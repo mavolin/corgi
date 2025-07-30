@@ -44,7 +44,7 @@ func (l *linker) CheckDotImportComponentCollisions() {
 				if comp.File.Package == f.Package {
 					primaries[i] = anno.Node(f, comp.AST, "`"+name+"` defined locally")
 				} else {
-					primaries[i] = anno.Node(f, f.ImportByPackage(comp.File.Package).AST, "defines `"+name+"`")
+					primaries[i] = anno.Node(f, findImport(dotImports, comp.File.Package).AST, "defines `"+name+"`")
 					secondaries = append(secondaries, anno.Anno(comp.File, anno.Annotation{
 						Highlight:  anno.HighlightNode(comp.AST),
 						Context:    anno.ContextLines(comp.AST.Start(), comp.AST.Header.End()),
@@ -78,7 +78,10 @@ Components:
 
 		for _, dupl := range dupls[name] {
 			if dupl.File.Package == comp.File.Package {
-				continue Components // only report one collision per package
+				// don't report collisions within the same package or report
+				// the same component multiple times if there are duplicate
+				// dot imports
+				continue Components
 			}
 		}
 		dupls[name] = append(dupls[name], comp)
@@ -122,7 +125,7 @@ func (l *linker) CheckDotImportElementSpecCollisions() {
 				if elem.File.Package == f.Package {
 					primaries = appendElementSpecLocationAnnotations(primaries, nil, elem, "`"+elem.HTMLName()+"` defined locally")
 				} else {
-					primaries = append(primaries, anno.Node(f, f.ImportByPackage(elem.File.Package).AST, "defines `"+elem.HTMLName()+"`"))
+					primaries = append(primaries, anno.Node(f, findImport(dotImports, elem.File.Package).AST, "defines `"+elem.HTMLName()+"`"))
 					secondaries = appendElementSpecLocationAnnotations(secondaries, nil, elem, "defined here")
 				}
 			}
@@ -150,7 +153,10 @@ Specs:
 
 		for _, dupl := range dupls[name] {
 			if dupl.File.Package == elem.File.Package {
-				continue Specs // only report one collision per package
+				// don't report collisions within the same package or report
+				// the same spec multiple times if there are duplicate
+				// dot imports
+				continue Specs
 			}
 		}
 		dupls[name] = append(dupls[name], elem)
@@ -194,7 +200,7 @@ func (l *linker) CheckDotImportAttributeSpecCollisions() {
 				if attr.File.Package == f.Package {
 					primaries = appendAttrSpecLocationAnnotations(primaries, nil, attr, "`"+sel+"` defined locally")
 				} else {
-					primaries = append(primaries, anno.Node(f, f.ImportByPackage(attr.File.Package).AST, "defines `"+sel+"`"))
+					primaries = append(primaries, anno.Node(f, findImport(dotImports, attr.File.Package).AST, "defines `"+sel+"`"))
 					secondaries = appendAttrSpecLocationAnnotations(secondaries, nil, attr, "defined here")
 				}
 			}
@@ -223,9 +229,25 @@ Specs:
 
 		for _, dupl := range dupls[sel] {
 			if dupl.File.Package == attr.File.Package {
-				continue Specs // only report one collision per package
+				// don't report collisions within the same package or report
+				// the same spec multiple times if there are duplicate
+				// dot imports
+				continue Specs
 			}
 		}
 		dupls[sel] = append(dupls[sel], attr)
 	}
+}
+
+// ============================================================================
+// Helpers
+// ======================================================================================
+
+func findImport(imps []*file.Import, p *file.Package) *file.Import {
+	for _, imp := range imps {
+		if imp.Package == p {
+			return imp
+		}
+	}
+	return nil
 }
