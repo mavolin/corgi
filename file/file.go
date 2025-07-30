@@ -59,7 +59,6 @@ type Symbols struct {
 
 // AddBuiltinImport creates a new [Import] importing the given builtin package.
 // The import is marked as not forwarded by default.
-// You may choose to not use any alias at all.
 //
 // The file must not already have a builtin import or use the given alias.
 // The function returns a pointer to the created import, which may also be
@@ -67,6 +66,9 @@ type Symbols struct {
 //
 // The package must not contain any exported symbols.
 func (s *Symbols) AddBuiltinImport(alias string, builtin *Package) {
+	if alias == "" {
+		panic("cannot add builtin import with empty alias")
+	}
 	if builtinImp := s.BuiltinImport(); builtinImp != nil {
 		panic(fmt.Sprintf("symbols already contain builtin import for %q", builtinImp.Path))
 	}
@@ -226,12 +228,11 @@ type Import struct {
 	//
 	// All forwarded imports must have a valid namespace.
 	//
-	// For dot imports, this field is set to "."
+	// For dot imports, this field is set to the empty sting.
 	//
 	// For the builtin package, this field is set to the empty string.
 	// The builtin package is the only package where Namespace differs from the
-	// computed namespace, i.e. where Namespace is neither the Alias, if set,
-	// nor the package name as specified in the source files.
+	// computed namespace, i.e. Namespace != Alias.
 	//
 	// Therefore, when outputting the file, rely on Alias to produce correct
 	// import statement aliases.

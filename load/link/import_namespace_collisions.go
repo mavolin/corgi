@@ -22,7 +22,7 @@ func (l *linker) CheckImportNamespaceCollisions() {
 		dupls := make(map[namespace][]*file.Import)
 
 		for _, imp := range f.Imports {
-			if imp.Explicit() && imp.Namespace != "" && imp.Namespace != "." {
+			if imp.Explicit() && imp.Namespace != "" {
 				dupls[imp.Namespace] = append(dupls[imp.Namespace], imp)
 			}
 		}

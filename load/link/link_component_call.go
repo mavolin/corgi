@@ -69,7 +69,7 @@ func (l *linker) linkUnqualifiedComponentCall(logger *slog.Logger, f *file.File,
 				ignoreError = true
 			}
 			switch {
-			case !imp.Explicit() || imp.Namespace != ".":
+			case !imp.Explicit() || imp.Namespace != "":
 				continue
 			case imp.Package == nil || imp.Package.PackageSymbols == nil:
 				continue

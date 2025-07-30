@@ -154,7 +154,11 @@ func (loader *importLoader) loadImport(ctx context.Context, f *file.File, imp *f
 	}
 
 	if imp.Alias != "" {
-		imp.Namespace = imp.Alias
+		if imp.Alias != "." {
+			imp.Namespace = imp.Alias
+		} else {
+			imp.Namespace = ""
+		}
 	} else {
 		imp.Namespace = imp.Package.Name
 		if strings.HasPrefix(imp.Namespace, "__corgi_") {
