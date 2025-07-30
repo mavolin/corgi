@@ -275,6 +275,13 @@ type ElementReference struct {
 	Spec *ElementSpec
 }
 
+// HTMLName returns the name of the element.
+//
+// Can only be called after successful linking.
+func (r *ElementReference) HTMLName() string {
+	return r.Spec.FullName()
+}
+
 type AttributeReference struct {
 	//
 	// BUILD SYMBOLS
