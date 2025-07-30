@@ -9,7 +9,6 @@ import (
 	"path"
 
 	"github.com/mavolin/corgi/v2/escape/attrtype"
-	"github.com/mavolin/corgi/v2/escape/elemtype"
 	"github.com/mavolin/corgi/v2/file/ast"
 )
 
@@ -276,18 +275,6 @@ type ElementReference struct {
 	Spec *ElementSpec
 }
 
-// Type returns the type of the element.
-//
-// Only returns a valid type after linking.
-// Returns [elemtype.Unknown] if there was a linker error, or if called before
-// linking.
-func (r *ElementReference) Type() elemtype.Type {
-	if r.Spec != nil {
-		return r.Spec.Type
-	}
-	return elemtype.Unknown
-}
-
 type AttributeReference struct {
 	//
 	// BUILD SYMBOLS
@@ -316,10 +303,10 @@ type AttributeReference struct {
 	Type attrtype.Type
 }
 
-// Name returns the name of the attribute.
+// HTMLName returns the name of the attribute.
 //
 // Can only be called after successful linking.
-func (r *AttributeReference) Name() string {
+func (r *AttributeReference) HTMLName() string {
 	// possibly has a prefix
 	if r.AST.Package != nil {
 		if r.Spec == nil { // externally defined attribute, but no spec?
@@ -329,7 +316,7 @@ func (r *AttributeReference) Name() string {
 			// issue.
 			// Ergo, someone called this method before linking, or there are
 			// linker errors.
-			panic("AttributeReference.Name called before linking or with linker errors")
+			panic("AttributeReference.HTMLName called before linking or with linker errors")
 		}
 
 		// prepend the prefix
