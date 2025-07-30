@@ -147,7 +147,7 @@ func Reference() parser.Func[*ast.ElementReference] {
 			p.RestoreState(state)
 		} else if ref.Package == nil {
 			p.CaptureError(&diagnostic.Diagnostic{
-				Message: "attribute reference: missing package name",
+				Message: "element reference: missing package name",
 				Primary: quickanno.Expected(p, p.Pos(), "a package name before the `.`"),
 			})
 		}
