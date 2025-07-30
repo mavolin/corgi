@@ -149,7 +149,12 @@ func (s *Symbols) ImportByNode(node *ast.ImportSpec) *Import {
 }
 
 func (s *Symbols) BuiltinImport() *Import {
-	return s.ImportByNamespace("")
+	for _, imp := range s.Imports {
+		if imp.Namespace == "" && imp.Alias != "" {
+			return imp
+		}
+	}
+	return nil
 }
 
 func (s *Symbols) ComponentCallByNode(node *ast.ComponentCall) *ComponentCall {
