@@ -49,136 +49,43 @@ func (p *Package) ModulePath() string {
 	return p.PathInModule
 }
 
+// PackageSymbols contains the symbols of the package.
+//
+// The usual way of populating these is by using the [BuildSymbols] function.
+// Refer to its documentation for more information.
+//
+// Note that when you modify the slices in this struct and the corresponding
+// file symbols, you need to at least call [BuildSymbols] with the
+// [BuildSymbolsOptions.OnlyLookupTables] option set to true, to update the
+// lookup tables used by the methods on the respective types.
 type PackageSymbols struct {
-	Components     []*Component
-	State          []*State
-	ElementSpecs   []*ElementSpec
-	AttributeSpecs []*AttributeSpec // ordered by specificity, descending
-}
-
-func BuildSymbols(p *Package) {
-	var nComponents, nState, nElementDefinitions, nAttributeDefinitions int
-	for _, f := range p.Files {
-		for _, n := range f.AST.TopLevel {
-			switch n := n.(type) {
-			case *ast.Component:
-				nComponents++
-			case *ast.StateDeclaration:
-				for _, spec := range n.Specs {
-					nState += len(spec.Names)
-				}
-			case *ast.ElementDefinition:
-				nElementDefinitions += len(n.Specs)
-			case *ast.AttributeDefinition:
-				nAttributeDefinitions += len(n.Specs)
-			}
-		}
-	}
-	p.PackageSymbols = &PackageSymbols{
-		Components:     make([]*Component, 0, nComponents),
-		State:          make([]*State, 0, nState),
-		ElementSpecs:   make([]*ElementSpec, 0, nElementDefinitions),
-		AttributeSpecs: make([]*AttributeSpec, 0, nAttributeDefinitions),
-	}
-
-	for _, f := range p.Files {
-		for _, n := range f.AST.TopLevel {
-			switch n := n.(type) {
-			case *ast.Component:
-				c := &Component{
-					AST:  n,
-					File: f,
-				}
-				if n.Header != nil && n.Header.Parameters != nil && len(n.Header.Parameters.List) > 0 {
-					c.Parameters = make([]*ComponentParameter, len(n.Header.Parameters.List))
-					for i, param := range n.Header.Parameters.List {
-						c.Parameters[i] = &ComponentParameter{AST: param}
-					}
-				}
-				p.Components = append(p.Components, c)
-			case *ast.StateDeclaration:
-				for _, spec := range n.Specs {
-					if spec == nil {
-						continue
-					}
-					for i := range spec.Names {
-						s := &State{AST: spec, File: f, Index: i}
-						p.State = append(p.State, s)
-					}
-				}
-			case *ast.ElementDefinition:
-				for _, spec := range n.Specs {
-					if spec == nil {
-						continue
-					}
-					e := &ElementSpec{Definition: n, AST: spec, File: f}
-					if n.Prefix != nil {
-						e.lowerPrefix = strings.ToLower(n.Prefix.Name)
-					}
-					if spec.Name != nil {
-						e.lowerName = strings.ToLower(spec.Name.Name)
-					}
-					p.ElementSpecs = append(p.ElementSpecs, e)
-				}
-			case *ast.AttributeDefinition:
-				for _, spec := range n.Specs {
-					if spec == nil {
-						continue
-					}
-					a := &AttributeSpec{Definition: n, AST: spec, File: f}
-					a.Specificity = a.specificity()
-					p.AttributeSpecs = append(p.AttributeSpecs, a)
-				}
-			}
-		}
-	}
-
-	for _, f := range p.Files {
-		buildSymbols(f)
-	}
-
-	slices.SortFunc(p.AttributeSpecs, func(a, b *AttributeSpec) int {
-		return a.Specificity - b.Specificity
-	})
+	Components       []*Component
+	componentsByName map[string]*Component
+	componentByNode  map[*ast.Component]*Component
+	State            []*State
+	stateByName      map[string]*State
+	stateByNode      map[*ast.StateSpec][]*State
+	ElementSpecs     []*ElementSpec
+	AttributeSpecs   []*AttributeSpec // ordered by specificity, descending
 }
 
 func (s *PackageSymbols) ComponentByNode(c *ast.Component) *Component {
-	for _, comp := range s.Components {
-		if comp.AST == c {
-			return comp
-		}
-	}
-	return nil
+	return s.componentByNode[c]
 }
 
 func (s *PackageSymbols) ComponentByName(name string) *Component {
-	for _, comp := range s.Components {
-		h := comp.AST.Header
-		if h != nil && h.Name != nil && h.Name.Name == name {
-			return comp
-		}
-	}
-	return nil
+	return s.componentsByName[name]
 }
 
 func (s *PackageSymbols) StateByNode(spec *ast.StateSpec, index int) *State {
-	for i := 0; i < len(s.State); {
-		state := s.State[i]
-		if state.AST == spec {
-			return s.State[i+index]
-		}
-		i += len(state.AST.Names)
+	if states := s.stateByNode[spec]; states != nil && index < len(states) {
+		return states[index]
 	}
 	return nil
 }
 
 func (s *PackageSymbols) StateByName(name string) *State {
-	for _, state := range s.State {
-		if state.AST.Names[state.Index] != nil && state.AST.Names[state.Index].Name == name {
-			return state
-		}
-	}
-	return nil
+	return s.stateByName[name]
 }
 
 func (s *PackageSymbols) ElementSpecByNode(spec *ast.ElementSpec) *ElementSpec {
@@ -256,6 +163,52 @@ func (s *PackageSymbols) AttributeSpecByQualifiedName(name string) []*AttributeS
 		}
 	}
 	return matches
+}
+
+// RebuildLookupTables rebuilds the lookup tables used by the methods of this
+// type.
+// Note that this explicitly does not rebuild the lookup tables of the
+// [File] symbols.
+//
+// Every time you modify the slices of this struct, you should call this
+// method to ensure that the lookup tables are up-to-date.
+func (s *PackageSymbols) RebuildLookupTables() {
+	for _, c := range s.Components {
+		s.componentByNode[c.AST] = c
+
+		if c.AST.Header != nil && c.AST.Header.Name != nil {
+			s.componentsByName[c.AST.Header.Name.Name] = c
+		}
+	}
+
+	for _, state := range s.State {
+		states := s.stateByNode[state.AST]
+		if len(states) < len(state.AST.Names) {
+			states = slices.Grow(states, len(state.AST.Names)-len(states))
+		}
+		states[state.Index] = state
+		s.stateByNode[state.AST] = states
+
+		if name := state.Name(); name != nil {
+			s.stateByName[name.Name] = state
+		}
+	}
+
+	for _, spec := range s.ElementSpecs {
+		if spec.Definition.Prefix != nil {
+			spec.lowerPrefix = strings.ToLower(spec.Definition.Prefix.Name)
+		}
+		if spec.AST.Name != nil {
+			spec.lowerName = strings.ToLower(spec.AST.Name.Name)
+		}
+	}
+
+	for _, spec := range s.AttributeSpecs {
+		spec.Specificity = spec.specificity()
+	}
+	slices.SortFunc(s.AttributeSpecs, func(a, b *AttributeSpec) int {
+		return a.Specificity - b.Specificity
+	})
 }
 
 type State struct {

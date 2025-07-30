@@ -7,7 +7,6 @@ import (
 	"cmp"
 	"fmt"
 	"path"
-	"slices"
 
 	"github.com/mavolin/corgi/v2/escape/attrtype"
 	"github.com/mavolin/corgi/v2/escape/elemtype"
@@ -43,6 +42,9 @@ func (f *File) PathInModule() string {
 	return path.Join(f.Package.PathInModule, f.Name)
 }
 
+// Symbols contains the symbols of the file.
+//
+// Refer to [PackageSymbols] and [BuildSymbols] for more information.
 type Symbols struct {
 	Imports []*Import
 
@@ -54,130 +56,6 @@ type Symbols struct {
 
 	AttributeReferences       []*AttributeReference
 	attributeReferencesByNode map[*ast.AttributeReference]*AttributeReference
-}
-
-func buildSymbols(f *File) {
-	var nImports int
-	for _, imp := range f.AST.Imports {
-		nImports += len(imp.Specs)
-	}
-
-	f.Symbols = &Symbols{
-		Imports: make([]*Import, 0, nImports),
-
-		ComponentCalls:       make([]*ComponentCall, 0, 256),
-		componentCallsByNode: make(map[*ast.ComponentCall]*ComponentCall, 256),
-
-		ElementReferences:       make([]*ElementReference, 0, 256),
-		elementReferencesByNode: make(map[*ast.ElementReference]*ElementReference, 256),
-
-		AttributeReferences:       make([]*AttributeReference, 0, 512),
-		attributeReferencesByNode: make(map[*ast.AttributeReference]*AttributeReference, 512),
-	}
-
-	for _, impStmt := range f.AST.Imports {
-		for _, spec := range impStmt.Specs {
-			imp := &Import{AST: spec}
-			if spec.Alias != nil {
-				imp.Alias = spec.Alias.Name
-			}
-			if spec.Path != nil {
-				imp.Path = spec.Path.Unquote()
-			}
-			f.Imports = append(f.Imports, imp)
-		}
-	}
-
-	var (
-		cc          *ComponentCall
-		comp        *Component
-		parentBlock *BlockInstance
-	)
-	var walk func(n ast.Node)
-	walk = func(n ast.Node) {
-		switch n := n.(type) {
-		case *ast.ComponentCall:
-			ccw := &ComponentCall{AST: n, File: f, BlockSetters: make([]*BlockSetter, 0, 24)}
-			f.ComponentCalls = append(f.ComponentCalls, ccw)
-			f.componentCallsByNode[n] = ccw
-
-			oldCC := cc
-			cc = ccw
-			n.Walk(walk)
-			cc = oldCC
-
-			ccw.BlockSetters = slices.Clip(ccw.BlockSetters)
-			for _, with := range ccw.BlockSetters {
-				with.Instances = slices.Clip(with.Instances)
-			}
-		case ast.BlockSetter:
-			if cc == nil {
-				n.Walk(walk)
-				break
-			}
-			instance := &BlockSetterInstance{AST: n}
-			group := cc.BlockSetterByName(n.Name())
-			if group == nil {
-				group = &BlockSetter{Name: n.Name(), Instances: make([]*BlockSetterInstance, 0, 16)}
-				cc.BlockSetters = append(cc.BlockSetters, group)
-			}
-			instance.Group = group
-			group.Instances = append(group.Instances, instance)
-
-			n.Walk(walk)
-		case *ast.Block:
-			instance := &BlockInstance{AST: n, ChildOf: parentBlock}
-			if n.Default != nil {
-				instance.Default = &BlockInstanceDefault{AST: n.Default}
-			}
-			group := comp.BlockByName(n.Name())
-			if group == nil {
-				group = &Block{Name: n.Name(), Instances: make([]*BlockInstance, 0, 16)}
-				comp.Blocks = append(comp.Blocks, group)
-			}
-			instance.Group = group
-			group.Instances = append(group.Instances, instance)
-
-			oldParent := parentBlock
-			parentBlock = instance
-			n.Walk(walk)
-			parentBlock = oldParent
-		case *ast.ElementReference:
-			rw := &ElementReference{AST: n}
-			f.ElementReferences = append(f.ElementReferences, rw)
-			f.elementReferencesByNode[n] = rw
-			n.Walk(walk)
-		case *ast.AttributeReference:
-			rw := &AttributeReference{AST: n}
-			f.AttributeReferences = append(f.AttributeReferences, rw)
-			f.attributeReferencesByNode[n] = rw
-			n.Walk(walk)
-		}
-	}
-	for _, n := range f.AST.TopLevel {
-		astC, _ := n.(*ast.Component)
-		if astC == nil {
-			continue
-		}
-		c := f.Package.ComponentByNode(astC)
-		c.Blocks = make([]*Block, 0, 24)
-
-		ccsStart := len(f.ComponentCalls)
-		n.Walk(walk)
-		ccEnd := len(f.ComponentCalls)
-		if ccEnd > ccsStart {
-			c.ComponentCalls = f.ComponentCalls[ccsStart:ccEnd:ccEnd]
-		}
-
-		c.Blocks = slices.Clip(c.Blocks)
-		for _, block := range c.Blocks {
-			block.Instances = slices.Clip(block.Instances)
-		}
-	}
-
-	f.ComponentCalls = slices.Clip(f.ComponentCalls)
-	f.ElementReferences = slices.Clip(f.ElementReferences)
-	f.AttributeReferences = slices.Clip(f.AttributeReferences)
 }
 
 // AddBuiltinImport creates a new [Import] importing the given builtin package.
@@ -292,6 +170,28 @@ func (s *Symbols) ElementReferenceByNode(node *ast.ElementReference) *ElementRef
 
 func (s *Symbols) AttributeReferenceByNode(node *ast.AttributeReference) *AttributeReference {
 	return s.attributeReferencesByNode[node]
+}
+
+// RebuildLookupTables rebuilds the lookup tables used by the methods of this
+// type.
+//
+// Every you modify the slices of this struct directly, you must call this
+// method to ensure that the lookup tables are up-to-date.
+func (s *Symbols) RebuildLookupTables() {
+	s.componentCallsByNode = make(map[*ast.ComponentCall]*ComponentCall, len(s.ComponentCalls))
+	for _, cc := range s.ComponentCalls {
+		s.componentCallsByNode[cc.AST] = cc
+	}
+
+	s.elementReferencesByNode = make(map[*ast.ElementReference]*ElementReference, len(s.ElementReferences))
+	for _, ref := range s.ElementReferences {
+		s.elementReferencesByNode[ref.AST] = ref
+	}
+
+	s.attributeReferencesByNode = make(map[*ast.AttributeReference]*AttributeReference, len(s.AttributeReferences))
+	for _, ref := range s.AttributeReferences {
+		s.attributeReferencesByNode[ref.AST] = ref
+	}
 }
 
 type Import struct {
