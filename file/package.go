@@ -174,6 +174,9 @@ func (s *PackageSymbols) AttributeSpecByQualifiedName(name string) []*AttributeS
 // Every time you modify the slices of this struct, you should call this
 // method to ensure that the lookup tables are up-to-date.
 func (s *PackageSymbols) RebuildLookupTables() {
+	s.componentByNode = make(map[*ast.Component]*Component, len(s.Components))
+	s.componentsByName = make(map[string]*Component, len(s.Components))
+
 	for _, c := range s.Components {
 		s.componentByNode[c.AST] = c
 
@@ -182,10 +185,12 @@ func (s *PackageSymbols) RebuildLookupTables() {
 		}
 	}
 
+	s.stateByNode = make(map[*ast.StateSpec][]*State, len(s.State))
+	s.stateByName = make(map[string]*State, len(s.State))
 	for _, state := range s.State {
 		states := s.stateByNode[state.AST]
-		if len(states) < len(state.AST.Names) {
-			states = slices.Grow(states, len(state.AST.Names)-len(states))
+		if states == nil {
+			states = make([]*State, 0, len(state.AST.Names))
 		}
 		states[state.Index] = state
 		s.stateByNode[state.AST] = states
