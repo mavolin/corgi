@@ -2,32 +2,10 @@
 // attribute.
 package attrtype
 
-// Func is a function that returns the type for a given attribute on a given
-// element.
-//
-// If the Func cannot determine the type, it should return Unknown.
-type Func func(element, attr string) Type
-
-// Combine combines multiple Funcs into a single Func.
-func Combine(fs ...Func) Func {
-	return func(element, attr string) Type {
-		for _, f := range fs {
-			t := f(element, attr)
-			if t.IsValid() {
-				return t
-			}
-		}
-		return Unknown
-	}
-}
-
-// Type represents the type of attribute.
+// Type represents the type of an attribute.
 //
 // Never use the numeric values of a Type directly, but only the provided
 // constants.
-//
-// A Type is a single of the types, or a bitmask of TextList and at least one
-// of Comma, Semicolon, or Space as the delimiters.
 type Type uint8
 
 const (
@@ -38,11 +16,15 @@ const (
 	Unsafe
 	UnsafeBool
 	Bool
-	Text        // plain text with only HTML escapes
-	CSS         // CSS code with HTML escapes
-	JS          // JS code with HTML escapes
+	// Text is an attribute containing text consumed by humans.
+	// Effectively, its only difference from Innocuous is that Text attributes
+	// should be localized while Innocuous attributes should not.
+	Text
+	Innocuous   // text attribute containing text consumed by machines
+	CSS         // CSS code
+	JS          // JS code
 	URL         // a single URL
-	URLList     // space separated of URLs
+	URLList     // space separated list of URLs
 	ResourceURL // a URL loading a resource; stricter security requirements
 	Srcset      // a srcset-like attribute
 	invalid
@@ -53,17 +35,20 @@ func (t Type) IsValid() bool {
 }
 
 // String returns the string representation of t.
-//
-// For a text list, it returns the string "text list" followed by all the valid
-// delimiters for that list in square brackets.
 func (t Type) String() string {
 	switch t {
 	case Unknown:
 		return "<unknown>"
+	case Unsafe:
+		return "unsafe"
+	case UnsafeBool:
+		return "unsafe bool"
 	case Bool:
 		return "bool"
 	case Text:
 		return "text"
+	case Innocuous:
+		return "innocuous"
 	case CSS:
 		return "css"
 	case JS:
@@ -71,11 +56,13 @@ func (t Type) String() string {
 	case URL:
 		return "url"
 	case URLList:
-		return "url"
+		return "url list"
 	case ResourceURL:
 		return "resource url"
 	case Srcset:
 		return "srcset"
+	case invalid:
+		fallthrough
 	default:
 		return "<invalid>"
 	}
