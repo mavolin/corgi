@@ -45,7 +45,7 @@ func (ch *checker) CheckClassAlwaysInnocuous(logger *slog.Logger, f *file.File, 
 		return
 	case ref.Type == attrtype.Innocuous:
 		return
-	case ref.Name() != "class":
+	case ref.HTMLName() != "class":
 		return
 	}
 

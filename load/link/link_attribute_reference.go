@@ -55,7 +55,7 @@ func (l *linker) linkUnqualifiedAttributeReference(logger *slog.Logger, f *file.
 	)
 
 	// search in current package
-	equalSpecificityMatches = f.Package.AttributeSpecByFullName(name)
+	equalSpecificityMatches = f.Package.AttributeSpecByHTMLName(name)
 
 	// search in dot imports
 	var ignoreError bool
@@ -70,7 +70,7 @@ func (l *linker) linkUnqualifiedAttributeReference(logger *slog.Logger, f *file.
 			continue
 		}
 
-		packageMatches := imp.Package.AttributeSpecByFullName(name)
+		packageMatches := imp.Package.AttributeSpecByHTMLName(name)
 		if len(equalSpecificityMatches) == 0 || equalSpecificityMatches[0].Specificity < packageMatches[0].Specificity {
 			equalSpecificityMatches = packageMatches
 			bestImport = imp
@@ -114,7 +114,7 @@ func (l *linker) linkUnqualifiedAttributeReference(logger *slog.Logger, f *file.
 		return
 	}
 
-	packageMatches := builtinImp.Package.AttributeSpecByFullName(name)
+	packageMatches := builtinImp.Package.AttributeSpecByHTMLName(name)
 	if len(packageMatches) == 1 {
 		ref.Spec = packageMatches[0]
 		builtinImp.Forward = true

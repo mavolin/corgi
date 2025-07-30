@@ -44,7 +44,7 @@ func (l *linker) linkUnqualifiedElementReference(logger *slog.Logger, f *file.Fi
 	name := ref.AST.Name.Name
 
 	// search in current package
-	if def := f.Package.ElementSpecByFullName(name); def != nil {
+	if def := f.Package.ElementSpecByHTMLName(name); def != nil {
 		ref.Spec = def
 		return
 	}
@@ -62,7 +62,7 @@ func (l *linker) linkUnqualifiedElementReference(logger *slog.Logger, f *file.Fi
 			continue
 		}
 
-		if spec := imp.Package.ElementSpecByFullName(name); spec != nil {
+		if spec := imp.Package.ElementSpecByHTMLName(name); spec != nil {
 			ref.Spec = spec
 			imp.Forward = true
 			return
@@ -71,7 +71,7 @@ func (l *linker) linkUnqualifiedElementReference(logger *slog.Logger, f *file.Fi
 
 	builtinImp := f.BuiltinImport()
 	if builtinImp != nil && builtinImp.Package != nil && builtinImp.Package.PackageSymbols != nil {
-		if spec := builtinImp.Package.ElementSpecByFullName(name); spec != nil {
+		if spec := builtinImp.Package.ElementSpecByHTMLName(name); spec != nil {
 			ref.Spec = spec
 			builtinImp.Forward = true
 			return

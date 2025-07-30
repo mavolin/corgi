@@ -98,7 +98,7 @@ func (s *PackageSymbols) ElementSpecByNode(spec *ast.ElementSpec) *ElementSpec {
 	return nil
 }
 
-func (s *PackageSymbols) ElementSpecByFullName(name string) *ElementSpec {
+func (s *PackageSymbols) ElementSpecByHTMLName(name string) *ElementSpec {
 	name = strings.ToLower(name)
 	for _, def := range s.ElementSpecs {
 		if len(name) <= len(def.lowerPrefix) {
@@ -130,15 +130,15 @@ func (s *PackageSymbols) AttributeSpecByNode(spec *ast.AttributeSpec) *Attribute
 	return nil
 }
 
-// AttributeSpecByFullName returns the attribute spec that matches
+// AttributeSpecByHTMLName returns the attribute spec that matches
 // the given full name.
 //
 // It might return multiple definitions if there are multiple selectors with
 // the same specificity that both match the name.
-func (s *PackageSymbols) AttributeSpecByFullName(name string) []*AttributeSpec {
+func (s *PackageSymbols) AttributeSpecByHTMLName(name string) []*AttributeSpec {
 	var matches []*AttributeSpec
 	for _, def := range s.AttributeSpecs {
-		if def.MatchesFullName(name) {
+		if def.MatchesHTMLName(name) {
 			if def.Specificity > 0 {
 				return []*AttributeSpec{def}
 			}
@@ -281,33 +281,33 @@ func (spec *ElementSpec) MatchesQualifiedName(name string) bool {
 	return strings.EqualFold(spec.AST.Name.Name, name)
 }
 
-// FullName is the name of the element, including the prefix.
-func (d *ElementSpec) FullName() string {
-	if d.AST.Name == nil {
+// HTMLName is the name of the element, including the prefix.
+func (spec *ElementSpec) HTMLName() string {
+	if spec.AST.Name == nil {
 		return ""
 	}
-	if d.Definition != nil && d.Definition.Prefix != nil {
-		return d.Definition.Prefix.Name + d.AST.Name.Name
+	if spec.Definition != nil && spec.Definition.Prefix != nil {
+		return spec.Definition.Prefix.Name + spec.AST.Name.Name
 	}
-	return d.AST.Name.Name
+	return spec.AST.Name.Name
 }
 
-func (d *ElementSpec) MatchesFullName(name string) bool {
-	if d.AST.Name == nil {
+func (spec *ElementSpec) MatchesHTMLName(name string) bool {
+	if spec.AST.Name == nil {
 		return false
 	}
 
 	name = strings.ToLower(name)
-	if d.Definition != nil {
-		if d.Definition.Prefix != nil {
-			prefix := strings.ToLower(d.Definition.Prefix.Name)
+	if spec.Definition != nil {
+		if spec.Definition.Prefix != nil {
+			prefix := strings.ToLower(spec.Definition.Prefix.Name)
 			if !strings.HasPrefix(name, prefix) {
 				return false
 			}
 			name = name[len(prefix):]
 		}
 	}
-	return strings.ToLower(d.AST.Name.Name) == name
+	return strings.ToLower(spec.AST.Name.Name) == name
 }
 
 type AttributeSpec struct {

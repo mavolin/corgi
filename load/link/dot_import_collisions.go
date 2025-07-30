@@ -120,9 +120,9 @@ func (l *linker) CheckDotImportElementSpecCollisions() {
 			secondaries := make([]diagnostic.Annotation, 0, 2*len(elems))
 			for _, elem := range elems {
 				if elem.File.Package == f.Package {
-					primaries = appendElementSpecLocationAnnotations(primaries, nil, elem, "`"+elem.FullName()+"` defined locally")
+					primaries = appendElementSpecLocationAnnotations(primaries, nil, elem, "`"+elem.HTMLName()+"` defined locally")
 				} else {
-					primaries = append(primaries, anno.Node(f, f.ImportByPackage(elem.File.Package).AST, "defines `"+elem.FullName()+"`"))
+					primaries = append(primaries, anno.Node(f, f.ImportByPackage(elem.File.Package).AST, "defines `"+elem.HTMLName()+"`"))
 					secondaries = appendElementSpecLocationAnnotations(secondaries, nil, elem, "defined here")
 				}
 			}
@@ -143,7 +143,7 @@ func (l *linker) CheckDotImportElementSpecCollisions() {
 func addElementSpecsFromPackage(dupls map[fullElementName][]*file.ElementSpec, p *file.Package) {
 Specs:
 	for _, elem := range p.ElementSpecs {
-		name := elem.FullName()
+		name := elem.HTMLName()
 		if name == "" {
 			continue
 		}

@@ -76,7 +76,7 @@ func (l *linker) CheckElementSpecCollisions() {
 			continue
 		}
 
-		qualName, fullName := strings.ToLower(elem.QualifiedName()), strings.ToLower(elem.FullName())
+		qualName, fullName := strings.ToLower(elem.QualifiedName()), strings.ToLower(elem.HTMLName())
 		if qualName == "" {
 			continue
 		}

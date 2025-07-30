@@ -279,7 +279,7 @@ type ElementReference struct {
 //
 // Can only be called after successful linking.
 func (r *ElementReference) HTMLName() string {
-	return r.Spec.FullName()
+	return r.Spec.HTMLName()
 }
 
 type AttributeReference struct {
