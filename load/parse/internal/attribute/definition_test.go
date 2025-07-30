@@ -288,10 +288,12 @@ func TestRuleset(t *testing.T) {
 						},
 					}, {
 						Selector: &ast.ListElementSelector{
-							List: []*ast.ElementName{
+							List: []*ast.ElementReference{
 								{
-									Name:     "foo",
-									Position: &ast.Position{Line: 1, Col: 16},
+									Name: &ast.ElementName{
+										Name:     "foo",
+										Position: &ast.Position{Line: 1, Col: 16},
+									},
 								},
 							},
 						},
@@ -345,10 +347,12 @@ func TestRuleset(t *testing.T) {
 						},
 					}, {
 						Selector: &ast.ListElementSelector{
-							List: []*ast.ElementName{
+							List: []*ast.ElementReference{
 								{
-									Name:     "foo",
-									Position: &ast.Position{Line: 3, Col: 2},
+									Name: &ast.ElementName{
+										Name:     "foo",
+										Position: &ast.Position{Line: 3, Col: 2},
+									},
 								},
 							},
 						},
@@ -491,8 +495,10 @@ func testListElementSelector(t *testing.T, f parser.Func[*ast.ListElementSelecto
 			name: "single",
 			in:   "foo",
 			want: &ast.ListElementSelector{
-				List: []*ast.ElementName{
-					{Name: "foo", Position: &ast.Position{Line: 1, Col: 1}},
+				List: []*ast.ElementReference{
+					{
+						Name: &ast.ElementName{Name: "foo", Position: &ast.Position{Line: 1, Col: 1}},
+					},
 				},
 			},
 		}, {
@@ -500,10 +506,14 @@ func testListElementSelector(t *testing.T, f parser.Func[*ast.ListElementSelecto
 			in: "foo,\n" +
 				"\tbar, baz",
 			want: &ast.ListElementSelector{
-				List: []*ast.ElementName{
-					{Name: "foo", Position: &ast.Position{Line: 1, Col: 1}},
-					{Name: "bar", Position: &ast.Position{Line: 2, Col: 2}},
-					{Name: "baz", Position: &ast.Position{Line: 2, Col: 7}},
+				List: []*ast.ElementReference{
+					{
+						Name: &ast.ElementName{Name: "foo", Position: &ast.Position{Line: 1, Col: 1}},
+					}, {
+						Name: &ast.ElementName{Name: "bar", Position: &ast.Position{Line: 2, Col: 1 + len("\t")}},
+					}, {
+						Name: &ast.ElementName{Name: "baz", Position: &ast.Position{Line: 2, Col: 1 + len("\tbar, ")}},
+					},
 				},
 			},
 		},
@@ -523,8 +533,13 @@ func TestListElementSelectorItem(t *testing.T) {
 	t.Parallel()
 
 	in := "foo"
-	want := &ast.ElementName{Name: "foo", Position: &ast.Position{Line: 1, Col: 1}}
+	want := &ast.ElementReference{
+		Name: &ast.ElementName{
+			Name:     "foo",
+			Position: &ast.Position{Line: 1, Col: 1},
+		},
+	}
 
-	got := parsetest.ParsesFully(t, in, elementName())
+	got := parsetest.ParsesFully(t, in, elementReference)
 	should.Equal(t, want, got)
 }

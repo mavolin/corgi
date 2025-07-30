@@ -10,6 +10,7 @@ import (
 	"github.com/mavolin/corgi/v2/load/parse/internal/whitespace"
 )
 
+//nolint:gochecknoinits
 func init() {
 	SetTextLine(textLineStub)
 	// doesn't make the VerbatimBracketText very effective, but whatever

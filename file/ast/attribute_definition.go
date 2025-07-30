@@ -359,7 +359,7 @@ func (w *WildcardElementSelector) _elementSelector() {}
 // =============================== Element List Selector ================================
 
 type ListElementSelector struct {
-	List []*ElementName
+	List []*ElementReference
 }
 
 var _ ElementSelector = (*ListElementSelector)(nil)
@@ -388,15 +388,6 @@ func (l *ListElementSelector) Walk(w func(Node)) {
 			w(e)
 		}
 	}
-}
-
-func (l *ListElementSelector) Matches(s string) bool {
-	for _, e := range l.List {
-		if e != nil && e.Name == s {
-			return true
-		}
-	}
-	return false
 }
 
 func (l *ListElementSelector) _node()            {}

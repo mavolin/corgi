@@ -10,7 +10,6 @@ import (
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/mavolin/corgi/v2/load/parse/internal/comment"
 	"github.com/mavolin/corgi/v2/load/parse/internal/golang"
-	"github.com/mavolin/corgi/v2/load/parse/internal/html"
 	"github.com/mavolin/corgi/v2/load/parse/internal/list"
 	"github.com/mavolin/corgi/v2/load/parse/internal/quickanno"
 	"github.com/mavolin/corgi/v2/load/parse/internal/unexpected"
@@ -300,7 +299,7 @@ func ListElementSelector() parser.Func[*ast.ListElementSelector] {
 		var s ast.ListElementSelector
 
 		var err *diagnostic.Diagnostic
-		s.List, err = parser.TryErr(p, list.CommaList("element name", "element names", elementName()))
+		s.List, err = parser.TryErr(p, list.CommaList("element name", "element names", elementReference))
 		if err != nil {
 			return nil, err
 		}
@@ -309,19 +308,8 @@ func ListElementSelector() parser.Func[*ast.ListElementSelector] {
 	}
 }
 
-func elementName() parser.Func[*ast.ElementName] {
-	return func(p *parser.Parser) (*ast.ElementName, *diagnostic.Diagnostic) {
-		var n ast.ElementName
-		n.Position = p.PosPtr()
+var elementReference parser.Func[*ast.ElementReference]
 
-		n.Name = parser.Try(p, html.TagName())
-		if n.Name == "" {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing element name",
-				Primary: quickanno.Expected(p, *n.Position, "an html element name"),
-			}
-		}
-
-		return &n, nil
-	}
+func SetElementReference(f parser.Func[*ast.ElementReference]) {
+	elementReference = f
 }

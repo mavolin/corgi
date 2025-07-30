@@ -1,6 +1,7 @@
 package file
 
 import (
+	"fmt"
 	"path"
 	"slices"
 	"strings"
@@ -266,18 +267,18 @@ type ElementSpec struct {
 }
 
 // QualifiedName is the name of the element, without the prefix.
-func (d *ElementSpec) QualifiedName() string {
-	if d.AST.Name != nil {
-		return d.AST.Name.Name
+func (spec *ElementSpec) QualifiedName() string {
+	if spec.AST.Name != nil {
+		return spec.AST.Name.Name
 	}
 	return ""
 }
 
-func (d *ElementSpec) MatchesQualifiedName(name string) bool {
-	if d.AST.Name == nil {
+func (spec *ElementSpec) MatchesQualifiedName(name string) bool {
+	if spec.AST.Name == nil {
 		return false
 	}
-	return strings.EqualFold(d.AST.Name.Name, name)
+	return strings.EqualFold(spec.AST.Name.Name, name)
 }
 
 // FullName is the name of the element, including the prefix.
@@ -330,67 +331,82 @@ type AttributeSpec struct {
 	Specificity int
 }
 
-func (d *AttributeSpec) MatchesFullName(name string) bool {
-	if d.AST.Selector == nil {
+func (spec *AttributeSpec) MatchesHTMLName(name string) bool {
+	if spec.AST.Selector == nil {
 		return false
 	}
 
 	name = strings.ToLower(name)
-	if d.Definition != nil {
-		if d.Definition.Prefix != nil {
-			prefix := strings.ToLower(d.Definition.Prefix.Name)
+	if spec.Definition != nil {
+		if spec.Definition.Prefix != nil {
+			prefix := strings.ToLower(spec.Definition.Prefix.Name)
 			if !strings.HasPrefix(name, prefix) {
 				return false
 			}
 			name = name[len(prefix):]
 		}
 	}
-	return d.AST.Selector.Matches(name)
+	return spec.AST.Selector.Matches(name)
 }
 
-func (d *AttributeSpec) MatchesQualifiedName(name string) bool {
-	return d.AST.Selector.Matches(name)
+func (spec *AttributeSpec) MatchesQualifiedName(name string) bool {
+	return spec.AST.Selector.Matches(name)
 }
 
 // TypeFor returns the type of the attribute for the given element.
-func (d *AttributeSpec) TypeFor(elemDef *ElementSpec) attrtype.Type {
-	if d.AST.Ruleset == nil {
+func (spec *AttributeSpec) TypeFor(elemSpec *ElementSpec) attrtype.Type {
+	if spec.AST.Ruleset == nil {
 		return attrtype.Unknown
 	}
 
-	for elemDef != nil {
-		elemName := elemDef.FullName()
-
-		var wildcard attrtype.Type
-		for _, rule := range d.AST.Ruleset.List {
-			if rule == nil {
-				continue
-			}
-			switch sel := rule.Selector.(type) {
-			case *ast.WildcardElementSelector:
-				wildcard = rule.Type.Type
-			case *ast.ListElementSelector:
-				if sel.Matches(elemName) {
-					return rule.Type.Type
-				}
-			}
-		}
-		if wildcard != attrtype.Unknown {
-			return wildcard
+	for elemSpec != nil {
+		if t := spec.typeFor(elemSpec); t != attrtype.Unknown {
+			return t
 		}
 
-		if elemDef.AST == nil || elemDef.AST.Type == nil {
+		// If the passed element is an alias of another element, check if
+		// we match for that element.
+		if elemSpec.AST == nil || elemSpec.AST.Type == nil {
 			break
 		}
-		if alias, _ := elemDef.AST.Type.(*ast.AliasElementType); alias != nil {
-			elemRef := d.File.ElementReferenceByNode(alias.Name)
-			if elemRef != nil {
-				elemDef = elemRef.Spec
-			}
+		alias, _ := elemSpec.AST.Type.(*ast.AliasElementType)
+		if alias == nil {
+			break
 		}
+		elemRef := elemSpec.File.ElementReferenceByNode(alias.Name)
+		if elemRef == nil {
+			break
+		}
+		elemSpec = elemRef.Spec
 	}
 
 	return attrtype.Unknown
+}
+
+func (spec *AttributeSpec) typeFor(elemSpec *ElementSpec) attrtype.Type {
+	fallback := attrtype.Unknown
+
+	for _, rule := range spec.AST.Ruleset.List {
+		if rule == nil {
+			continue
+		}
+
+		switch sel := rule.Selector.(type) {
+		case *ast.WildcardElementSelector:
+			fallback = rule.Type.Type
+		case *ast.ListElementSelector:
+			for _, elemRefAST := range sel.List {
+				elemRef := spec.File.ElementReferenceByNode(elemRefAST)
+				if elemRef.Spec == elemSpec {
+					return rule.Type.Type
+				}
+			}
+		default:
+			panic(fmt.Sprintf("AttributeSpec.TypeFor: unexpected selector type: %T", sel))
+		}
+	}
+
+	return fallback
 }
 
 // GenericType returns the one type an attribute would have, regardless of the
@@ -398,16 +414,16 @@ func (d *AttributeSpec) TypeFor(elemDef *ElementSpec) attrtype.Type {
 //
 // In other words, it only returns a type if the attribute definition contains
 // a single wildcard selector rule.
-func (d *AttributeSpec) GenericType() attrtype.Type {
-	if d.AST.Ruleset == nil {
+func (spec *AttributeSpec) GenericType() attrtype.Type {
+	if spec.AST.Ruleset == nil {
 		return attrtype.Unknown
 	}
 
-	if len(d.AST.Ruleset.List) != 1 {
+	if len(spec.AST.Ruleset.List) != 1 {
 		return attrtype.Unknown
 	}
 
-	rule := d.AST.Ruleset.List[0]
+	rule := spec.AST.Ruleset.List[0]
 	if rule.Selector == nil || rule.Type == nil {
 		return attrtype.Unknown
 	}
@@ -419,16 +435,16 @@ func (d *AttributeSpec) GenericType() attrtype.Type {
 	return rule.Type.Type
 }
 
-func (d *AttributeSpec) specificity() int {
-	switch sel := d.AST.Selector.(type) {
+func (spec *AttributeSpec) specificity() int {
+	switch sel := spec.AST.Selector.(type) {
 	case *ast.BasicAttributeSelector:
-		if d.Definition != nil && d.Definition.Prefix != nil {
-			return len(d.Definition.Prefix.Name) + len(sel.Name)
+		if spec.Definition != nil && spec.Definition.Prefix != nil {
+			return len(spec.Definition.Prefix.Name) + len(sel.Name)
 		}
 		return len(sel.Name)
 	case *ast.RegexpAttributeSelector:
 		return 0
 	default:
-		return 0
+		panic(fmt.Sprintf("AttributeSpec.TypeFor: unexpected selector type: %T", sel))
 	}
 }

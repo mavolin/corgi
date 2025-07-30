@@ -2,7 +2,6 @@ package link
 
 import (
 	"log/slog"
-	"strings"
 
 	"github.com/mavolin/corgi/v2/file"
 	"github.com/mavolin/corgi/v2/file/ast"
@@ -11,14 +10,13 @@ import (
 )
 
 type duplicateAttributeRule struct {
-	rule *ast.AttributeRule
-	name string
-	pos  ast.Position
+	rule      *ast.AttributeRule
+	highlight ast.Node
 }
 
 func (l *linker) CheckAttributeRuleCollisions() {
 	logger := l.logger.WithGroup("checks.attribute_rule_collisions")
-	logger.Debug("Checking for duplicate elements within the same attribute spec but in different rules")
+	logger.Debug("Checking for duplicate elements within the same attribute spec")
 
 	for _, spec := range l.p.AttributeSpecs {
 		if spec.AST == nil || spec.AST.Ruleset == nil {
@@ -35,13 +33,13 @@ func (l *linker) CheckAttributeRuleCollisions() {
 
 		wildcardDupls := duplicateWildcardElementSelectors(spec)
 		if len(wildcardDupls) >= 2 {
-			reportDuplicateElements(l, logger, spec.File, wildcardDupls)
+			reportDuplicateElements(l, logger, spec.File, "*", wildcardDupls)
 		}
 
 		elemDupls := duplicateListElementSelectors(spec)
-		for _, dupls := range elemDupls {
+		for elemSpec, dupls := range elemDupls {
 			if len(dupls) >= 2 {
-				reportDuplicateElements(l, logger, spec.File, dupls)
+				reportDuplicateElements(l, logger, spec.File, elemSpec.HTMLName(), dupls)
 			}
 		}
 	}
@@ -61,17 +59,16 @@ func duplicateWildcardElementSelectors(spec *file.AttributeSpec) []*duplicateAtt
 		}
 
 		sels = append(sels, &duplicateAttributeRule{
-			rule: rule,
-			name: "*",
-			pos:  sel.Start(),
+			rule:      rule,
+			highlight: rule.Selector,
 		})
 	}
 
 	return sels
 }
 
-func duplicateListElementSelectors(spec *file.AttributeSpec) map[elementName][]*duplicateAttributeRule {
-	elemMap := make(map[elementName][]*duplicateAttributeRule)
+func duplicateListElementSelectors(spec *file.AttributeSpec) map[*file.ElementSpec][]*duplicateAttributeRule {
+	elemMap := make(map[*file.ElementSpec][]*duplicateAttributeRule)
 
 	for _, rule := range spec.AST.Ruleset.List {
 		if rule == nil || rule.Selector == nil {
@@ -83,16 +80,15 @@ func duplicateListElementSelectors(spec *file.AttributeSpec) map[elementName][]*
 			continue
 		}
 
-		for _, elem := range sel.List {
-			if elem == nil || elem.Name == "" {
+		for _, elemRefAST := range sel.List {
+			elemRef := spec.File.ElementReferenceByNode(elemRefAST)
+			if elemRef == nil {
 				continue
 			}
 
-			name := strings.ToLower(elem.Name)
-			elemMap[name] = append(elemMap[name], &duplicateAttributeRule{
-				rule: rule,
-				name: elem.Name,
-				pos:  elem.Start(),
+			elemMap[elemRef.Spec] = append(elemMap[elemRef.Spec], &duplicateAttributeRule{
+				rule:      rule,
+				highlight: elemRefAST,
 			})
 		}
 	}
@@ -100,16 +96,16 @@ func duplicateListElementSelectors(spec *file.AttributeSpec) map[elementName][]*
 	return elemMap
 }
 
-func reportDuplicateElements(l *linker, logger *slog.Logger, f *file.File, dupls []*duplicateAttributeRule) {
+func reportDuplicateElements(l *linker, logger *slog.Logger, f *file.File, name string, dupls []*duplicateAttributeRule) {
 	logger.Error("Found duplicate attribute rules",
-		slog.String("element_selector", dupls[0].name),
+		slog.String("element_selector", name),
 		slog.Int("count", len(dupls)))
 
 	primaries := make([]diagnostic.Annotation, len(dupls))
 	for i, dupl := range dupls {
 		primaries[i] = anno.Anno(f, anno.Annotation{
 			Context:    anno.ContextLines(dupl.rule.Start(), dupl.rule.End()),
-			Highlight:  anno.HighlightNRunes(dupl.pos, len(dupl.name)),
+			Highlight:  anno.HighlightNode(dupl.highlight),
 			Annotation: "used here",
 		})
 	}
