@@ -65,9 +65,6 @@ import (
 // todo: cc interpolation arg must only write text
 // todo: comp interpolation must only write text
 // todo: block is top-level
-// todo: nested typed attribute values
-// todo: ast.AttributeType as ParsedType only allowed on component call parameter
-// todo: extend: implement Highlighter
 
 type Options struct {
 	// Logger is the logger used by the analyzer.

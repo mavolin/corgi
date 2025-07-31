@@ -33,6 +33,44 @@ func (ch *checker) CheckArguments(logger *slog.Logger, f *file.File, _ []*walk.C
 }
 
 // ============================================================================
+// Nested Typed Attribute Values
+// ======================================================================================
+
+func (ch *checker) CheckNestedTypedAttributeValues(logger *slog.Logger, f *file.File, a *ast.NamedAttribute) {
+	logger = logger.WithGroup("nested_typed_attribute_values")
+
+	if a.Value == nil {
+		return
+	}
+
+	tval, _ := a.Value.(*ast.TypedAttributeValue)
+	if tval == nil {
+		return
+	}
+
+	start := tval.Value.Start()
+	end := tval.Value.End()
+	for {
+		tval, _ = tval.Value.(*ast.TypedAttributeValue)
+		if tval == nil {
+			break
+		}
+		end = *tval.LParen
+	}
+	if start == end {
+		return
+	}
+
+	logger.Error("Nested typed attribute values")
+	ch.Report(&diagnostic.Diagnostic{
+		Message: "attribute: nested typed attribute values",
+		Primary: []diagnostic.Annotation{
+			anno.Range(f, start, end, "expected only a single typed attribute value"),
+		},
+	})
+}
+
+// ============================================================================
 // Class Attribute is Always Typed as Innocuous
 // ======================================================================================
 
