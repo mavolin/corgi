@@ -205,7 +205,7 @@ at first glance, unfamiliar syntax:
     It has high redundancy, is arguably not that readable, and the added syntax of most template languages doesn't help.
     Corgi has less redundancy and a more concise syntax, that needs fewer escapes and keyboard acrobatics for 
     simple features.
-4. **Simplicity**: HTML is a pretty simple language, so naturally it is extremely easy to transfer you knowledge of
+4. **Simplicity**: HTML is a pretty simple language, so naturally it is extremely easy to transfer your knowledge of
     HTML to corgi, since syntax-wise there is not that much to learn.
     Once you know how to write elements and attributes, you're already good to go.
 
