@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/mavolin/corgi/v2/escape/elemtype"
 	"github.com/mavolin/corgi/v2/internal/test/should"
 )
 
@@ -94,6 +95,108 @@ func TestLinker_CheckDotImportComponentCollisions(t *testing.T) {
 		importedF := createFile(importedPkg, "imported.corgi")
 		createComponent(importedF, nil, "Test")
 		createComponent(importedF, nil, "Test")
+
+		mainPkg := createPackage("main")
+		mainF := createFile(mainPkg, "main.corgi")
+		createImport(mainF, nil, ".", importedPkg.ImportPath)
+
+		ds := Link(context.Background(), mainPkg, Options{
+			Importer: ImporterFor(importedPkg),
+		})
+
+		if !should.Equal(t, 0, len(ds)) {
+			t.Log(ds.Short())
+		}
+	})
+}
+
+func TestLinker_CheckDotImportElementSpecCollisions(t *testing.T) {
+	t.Parallel()
+
+	t.Run("with local import", func(t *testing.T) {
+		t.Parallel()
+
+		importedPkg := createPackage("imported")
+		importedF := createFile(importedPkg, "imported.corgi")
+		createElementSpec(importedF, nil, "prefix", "test", elemtype.Normal)
+
+		mainPkg := createPackage("main")
+		mainF := createFile(mainPkg, "main.corgi")
+		createImport(mainF, nil, ".", importedPkg.ImportPath)
+		createElementSpec(mainF, nil, "", "prefixTest", elemtype.Normal)
+
+		ds := Link(context.Background(), mainPkg, Options{
+			Importer: ImporterFor(importedPkg),
+		})
+
+		if should.Equal(t, 1, len(ds)) {
+			if !should.Equal(t, "dot import collision: multiple definitions for element of the same name", ds[0].Message) {
+				t.Log(ds[0].Short())
+			}
+		} else {
+			t.Log(ds.Short())
+		}
+	})
+
+	t.Run("two dot imports", func(t *testing.T) {
+		t.Parallel()
+
+		importedPkg := createPackage("imported")
+		importedF := createFile(importedPkg, "imported.corgi")
+		createElementSpec(importedF, nil, "", "prefixTest", elemtype.Normal)
+
+		imported2Pkg := createPackage("imported2")
+		importedF2 := createFile(imported2Pkg, "imported2.corgi")
+		createElementSpec(importedF2, nil, "prefix", "test", elemtype.Normal)
+
+		mainPkg := createPackage("main")
+		mainF := createFile(mainPkg, "main.corgi")
+		createImport(mainF, nil, ".", importedPkg.ImportPath)
+		createImport(mainF, nil, ".", imported2Pkg.ImportPath)
+
+		ds := Link(context.Background(), mainPkg, Options{
+			Importer: ImporterFor(importedPkg, imported2Pkg),
+		})
+		if should.Equal(t, 1, len(ds)) {
+			if !should.Equal(t, "dot import collision: multiple definitions for element of the same name", ds[0].Message) {
+				t.Log(ds[0].Short())
+			}
+		} else {
+			t.Log(ds.Short())
+		}
+	})
+
+	t.Run("two identical dot imports", func(t *testing.T) {
+		t.Parallel()
+
+		importedPkg := createPackage("imported")
+		importedF := createFile(importedPkg, "imported.corgi")
+		createElementSpec(importedF, nil, "", "test", elemtype.Normal)
+
+		mainPkg := createPackage("main")
+		mainF := createFile(mainPkg, "main.corgi")
+		createImport(mainF, nil, ".", importedPkg.ImportPath)
+		createImport(mainF, nil, ".", importedPkg.ImportPath)
+
+		ds := Link(context.Background(), mainPkg, Options{
+			Importer: ImporterFor(importedPkg),
+		})
+		if should.Equal(t, 1, len(ds)) {
+			if !should.NotEqual(t, "dot import collision: multiple definitions for element of the same name", ds[0].Message) {
+				t.Log(ds[0].Short())
+			}
+		} else {
+			t.Log(ds.Short())
+		}
+	})
+
+	t.Run("collision within same dot import", func(t *testing.T) {
+		t.Parallel()
+
+		importedPkg := createPackage("imported")
+		importedF := createFile(importedPkg, "imported.corgi")
+		createElementSpec(importedF, nil, "", "test", elemtype.Normal)
+		createElementSpec(importedF, nil, "", "test", elemtype.Normal)
 
 		mainPkg := createPackage("main")
 		mainF := createFile(mainPkg, "main.corgi")

@@ -2,6 +2,7 @@ package link
 
 import (
 	"log/slog"
+	"strings"
 
 	"github.com/mavolin/corgi/v2/file"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
@@ -154,7 +155,7 @@ func addElementSpecsFromPackage(dupls map[fullElementName][]*file.ElementSpec, p
 
 Specs:
 	for _, elem := range p.ElementSpecs {
-		name := elem.HTMLName()
+		name := strings.ToLower(elem.HTMLName())
 		if name == "" {
 			continue
 		}

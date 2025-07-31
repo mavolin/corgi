@@ -7,6 +7,7 @@ import (
 	"path"
 	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/mavolin/corgi/v2/escape/attrtype"
 	"github.com/mavolin/corgi/v2/escape/elemtype"
@@ -166,13 +167,17 @@ func createBasicAttributeSpec(f *file.File, start *ast.Position, prefix, name st
 		}
 	}
 
-	specAST := &ast.AttributeSpec{
-		Selector: &ast.BasicAttributeSelector{
-			Name:     name,
-			Position: spaceAfter(definitionAST),
-		},
-	}
+	specAST := &ast.AttributeSpec{}
 	definitionAST.Specs = []*ast.AttributeSpec{specAST}
+	selAST := &ast.BasicAttributeSelector{
+		Name:     name,
+		Position: spaceAfter(definitionAST),
+	}
+	specAST.Selector = selAST
+	if strings.HasSuffix(selAST.Name, "*") {
+		selAST.Name = strings.TrimSuffix(selAST.Name, "*")
+		selAST.Wildcard = true
+	}
 
 	specAST.Ruleset = &ast.AttributeRuleset{LBrace: spaceAfter(definitionAST)}
 
