@@ -80,8 +80,7 @@ func (s *Symbols) AddBuiltinImport(alias string, builtin *Package) {
 }
 
 // AddImport adds the given import to the file.
-// Always use this method over manipulating the [Symbols.Imports] slice
-// directly.
+// Always use this method if adding implicit imports.
 //
 // AddImport panics if any of the following conditions are violated:
 //   - If the import is a builtin import, the file must not already have a
@@ -89,8 +88,7 @@ func (s *Symbols) AddBuiltinImport(alias string, builtin *Package) {
 //   - The import's namespace must match the alias, if set.
 //   - If implicit, the import must not be a dot import.
 //   - The file must not already have an import with the namespace.
-//   - The import must be marked as forwarded, unless it is implicit or the
-//     builtin import.
+//   - The import must be marked as forwarded, unless it is explicit.
 func (s *Symbols) AddImport(imp *Import) {
 	switch {
 	case imp.Builtin && s.BuiltinImport() != nil:
@@ -101,7 +99,7 @@ func (s *Symbols) AddImport(imp *Import) {
 		panic(fmt.Sprintf("import alias %s does not match namespace %s", imp.Alias, imp.Namespace))
 	case s.ImportByNamespace(imp.Namespace) != nil:
 		panic(fmt.Sprintf("symbols already contain import with namespace %s: you need to chose a (different) alias", imp.Namespace))
-	case !imp.Implicit() && !imp.Builtin && !imp.Forward:
+	case !imp.Implicit() && !imp.Forward:
 		panic("cannot add implicit import that is not forwarded")
 	}
 
@@ -248,6 +246,24 @@ type Import struct {
 
 func (imp *Import) Explicit() bool { return imp.AST != nil }
 func (imp *Import) Implicit() bool { return !imp.Explicit() }
+
+// EnsureUniqueNamespace ensures that the import's namespace is unique
+// within the file's symbols.
+//
+// If the namespace is already taken, it appends underscores until it is
+// unique and returns false.
+// Otherwise, it returns true.
+func (imp *Import) EnsureUniqueNamespace(s *Symbols) (ok bool) {
+	if s.ImportByNamespace(imp.Namespace) == nil {
+		return true
+	}
+
+	for s.ImportByNamespace(imp.Namespace) != nil {
+		imp.Namespace += "_"
+	}
+	imp.Alias = imp.Namespace
+	return false
+}
 
 type ElementReference struct {
 	//

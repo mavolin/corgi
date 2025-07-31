@@ -29,17 +29,13 @@ func (ctx *Context) SafeImport(f *file.File) *file.Import {
 		return imp
 	}
 
-	alias := "__corgi_safe"
-	for f.ImportByNamespace(alias) != nil {
-		alias += "_"
-	}
-
 	imp := &file.Import{
-		Alias:     alias,
+		Alias:     "__corgi_safe",
 		Path:      file.SafeImport,
-		Namespace: alias,
+		Namespace: "__corgi_safe",
 		Forward:   true,
 	}
+	imp.EnsureUniqueNamespace(f.Symbols)
 	f.AddImport(imp)
 	return imp
 }
