@@ -141,9 +141,20 @@ type DefaultBlockShorthand struct {
 	Position *Position
 }
 
+func (s *DefaultBlockShorthand) Highlight() (start, end Position) {
+	if s.Position != nil {
+		if s.Implicit {
+			return *s.Position, deltaPos(*s.Position, len("{"))
+		}
+		return *s.Position, deltaPos(*s.Position, len("_{"))
+	}
+	return s.Body.Highlight()
+}
+
 var (
 	_ ComponentCallBody = (*DefaultBlockShorthand)(nil)
 	_ BlockSetter       = (*DefaultBlockShorthand)(nil)
+	_ Highlighter       = (*DefaultBlockShorthand)(nil)
 )
 
 func (s *DefaultBlockShorthand) Name() string {

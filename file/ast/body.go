@@ -12,6 +12,7 @@ import "slices"
 // The Go spec calls this a "block", but that name is already taken.
 type Body interface {
 	Node
+	Highlighter
 	_body()
 	_componentBody()
 }
