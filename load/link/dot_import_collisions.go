@@ -14,7 +14,7 @@ import (
 
 func (l *linker) CheckDotImportComponentCollisions() {
 	logger := l.logger.WithGroup("checks.dot_import_collisions.components")
-	logger.Debug("Checking for component collisions through dot import")
+	logger.Debug("Checking for component collisions through dot imports")
 
 	for _, f := range l.p.Files {
 		dotImports := l.dotImports[f]
@@ -66,6 +66,10 @@ func (l *linker) CheckDotImportComponentCollisions() {
 }
 
 func addComponentsFromPackage(dupls map[componentName][]*file.Component, p *file.Package) {
+	if p == nil || p.PackageSymbols == nil || p.Components == nil {
+		return
+	}
+
 Components:
 	for _, comp := range p.Components {
 		if comp.AST.Header == nil || comp.AST.Header.Name == nil {
@@ -94,7 +98,7 @@ Components:
 
 func (l *linker) CheckDotImportElementSpecCollisions() {
 	logger := l.logger.WithGroup("checks.dot_import_collisions.element_specs")
-	logger.Debug("Checking for element spec collisions through dot import")
+	logger.Debug("Checking for element spec collisions through dot imports")
 
 	for _, f := range l.p.Files {
 		dotImports := l.dotImports[f]
@@ -144,6 +148,10 @@ func (l *linker) CheckDotImportElementSpecCollisions() {
 }
 
 func addElementSpecsFromPackage(dupls map[fullElementName][]*file.ElementSpec, p *file.Package) {
+	if p == nil || p.PackageSymbols == nil || p.ElementSpecs == nil {
+		return
+	}
+
 Specs:
 	for _, elem := range p.ElementSpecs {
 		name := elem.HTMLName()
@@ -169,7 +177,7 @@ Specs:
 
 func (l *linker) CheckDotImportAttributeSpecCollisions() {
 	logger := l.logger.WithGroup("check.dot_import_collisions.attribute_specs")
-	logger.Debug("Checking for attribute spec collisions through dot import")
+	logger.Debug("Checking for attribute spec collisions through dot imports")
 
 	for _, f := range l.p.Files {
 		dotImports := l.dotImports[f]
@@ -219,6 +227,10 @@ func (l *linker) CheckDotImportAttributeSpecCollisions() {
 }
 
 func addAttributeSpecsFromPackage(dupls map[fullAttributeSelector][]*file.AttributeSpec, p *file.Package) {
+	if p == nil || p.PackageSymbols == nil || p.AttributeSpecs == nil {
+		return
+	}
+
 Specs:
 	for _, attr := range p.AttributeSpecs {
 		info := attrSpecInfo(attr)
