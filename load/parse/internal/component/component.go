@@ -53,7 +53,7 @@ func Header() parser.Func[*ast.ComponentHeader] {
 				Primary: quickanno.Expected(p, p.Pos(), "an identifier"),
 			})
 		}
-		h.TypeParams = parser.TryOptional(p, golang.TypeParameters(), comment.OrHorizontalWhitespace())
+		h.TypeParameters = parser.TryOptional(p, golang.TypeParameters(), comment.OrHorizontalWhitespace())
 		h.Parameters = parser.TryOptional(p, Parameters(), nil)
 		if h.Parameters == nil {
 			p.CaptureError(&diagnostic.Diagnostic{

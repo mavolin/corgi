@@ -66,9 +66,9 @@ func (*Component) _scopeNode() {}
 // ======================================================================================
 
 type ComponentHeader struct {
-	Name       *Identifier
-	TypeParams *TypeParameters // optional
-	Parameters *ComponentParameters
+	Name           *Identifier
+	TypeParameters *TypeParameters // optional
+	Parameters     *ComponentParameters
 }
 
 var _ Node = (*ComponentHeader)(nil)
@@ -77,8 +77,8 @@ func (h *ComponentHeader) Start() Position {
 	switch {
 	case h.Name != nil:
 		return h.Name.Start()
-	case h.TypeParams != nil:
-		return h.TypeParams.Start()
+	case h.TypeParameters != nil:
+		return h.TypeParameters.Start()
 	case h.Parameters != nil:
 		return h.Parameters.Start()
 	}
@@ -89,8 +89,8 @@ func (h *ComponentHeader) End() Position {
 	switch {
 	case h.Parameters != nil:
 		return h.Parameters.End()
-	case h.TypeParams != nil:
-		return h.TypeParams.End()
+	case h.TypeParameters != nil:
+		return h.TypeParameters.End()
 	case h.Name != nil:
 		return h.Name.End()
 	}
@@ -101,8 +101,8 @@ func (h *ComponentHeader) Walk(w func(Node)) {
 	if h.Name != nil {
 		w(h.Name)
 	}
-	if h.TypeParams != nil {
-		w(h.TypeParams)
+	if h.TypeParameters != nil {
+		w(h.TypeParameters)
 	}
 	if h.Parameters != nil {
 		w(h.Parameters)

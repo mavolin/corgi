@@ -136,7 +136,7 @@ func TestHeader(t *testing.T) {
 					Name:     "foo",
 					Position: &ast.Position{Line: 1, Col: 1},
 				},
-				TypeParams: &ast.TypeParameters{
+				TypeParameters: &ast.TypeParameters{
 					LBracket: &ast.Position{Line: 1, Col: 4},
 					Params: []*ast.TypeParameter{
 						{
