@@ -251,8 +251,8 @@ type (
 
 		Group *Block
 		AST   *ast.Block
-		// ChildOf is the instance of another block that contains this block.
-		ChildOf *BlockInstance
+		// Parent is the instance of another block that contains this block.
+		Parent *BlockInstance
 
 		Default *BlockInstanceDefault // nil if no default
 
@@ -285,8 +285,8 @@ func (cbi *BlockInstance) DefaultOverwritten(cc *ComponentCall) bool {
 	if cc.BlockSetterByName(cbi.Group.Name) != nil {
 		return true
 	}
-	if cbi.ChildOf != nil {
-		return cbi.ChildOf.DefaultOverwritten(cc)
+	if cbi.Parent != nil {
+		return cbi.Parent.DefaultOverwritten(cc)
 	}
 	return false
 }

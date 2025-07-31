@@ -68,7 +68,6 @@ import (
 // todo: nested typed attribute values
 // todo: ast.AttributeType as ParsedType only allowed on component call parameter
 // todo: extend: implement Highlighter
-// todo: rn BlockInstance.ChildOf to Parent
 
 type Options struct {
 	// Logger is the logger used by the analyzer.

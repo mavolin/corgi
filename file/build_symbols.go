@@ -146,7 +146,7 @@ func buildSymbols(f *File) {
 
 			n.Walk(walk)
 		case *ast.Block:
-			instance := &BlockInstance{AST: n, ChildOf: parentBlock}
+			instance := &BlockInstance{AST: n, Parent: parentBlock}
 			if n.Default != nil {
 				instance.Default = &BlockInstanceDefault{AST: n.Default}
 			}
