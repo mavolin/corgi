@@ -68,7 +68,7 @@ func (l *linker) CheckElementSpecCollisions() {
 	}
 
 	qualifiedDupls := make(map[elementName][]*file.ElementSpec)
-	fullDupls := make(map[fullElementName][]*file.ElementSpec)
+	htmlNameDupls := make(map[fullElementName][]*file.ElementSpec)
 
 	// Collect all element specs
 	for _, elem := range l.p.ElementSpecs {
@@ -76,14 +76,14 @@ func (l *linker) CheckElementSpecCollisions() {
 			continue
 		}
 
-		qualName, fullName := strings.ToLower(elem.QualifiedName()), strings.ToLower(elem.HTMLName())
+		qualName, htmlName := strings.ToLower(elem.QualifiedName()), strings.ToLower(elem.HTMLName())
 		if qualName == "" {
 			continue
 		}
 		qualifiedDupls[qualName] = append(qualifiedDupls[qualName], elem)
 
-		if fullName != qualName {
-			fullDupls[fullName] = append(fullDupls[fullName], elem)
+		if htmlName != qualName {
+			htmlNameDupls[htmlName] = append(htmlNameDupls[htmlName], elem)
 		}
 	}
 
@@ -107,11 +107,24 @@ func (l *linker) CheckElementSpecCollisions() {
 		})
 	}
 
-	for name, elems := range fullDupls {
+	for name, elems := range htmlNameDupls {
 		if len(elems) <= 1 {
 			continue
 		}
 
+		// Don't report again if exactly the same elements were already
+		// reported for clashing qualified names.
+		qualifiedElems := qualifiedDupls[strings.ToLower(elems[0].QualifiedName())]
+		if len(elems) == len(qualifiedElems) {
+			for i := range elems {
+				if elems[i] != qualifiedElems[i] {
+					goto Error
+				}
+			}
+			continue
+		}
+
+	Error:
 		logger.Error("Found duplicate element specs",
 			slog.String("full_name", name),
 			slog.Int("count", len(elems)))
