@@ -58,6 +58,8 @@ func (ch *checker) CheckScope() {
 				ch.CheckFallthrough(logger, f, ctx.Parents, n)
 			case *ast.Statement:
 				ch.CheckStatement(logger, f, ctx.Parents, n)
+			case *ast.Type:
+				ch.CheckAttributeTypeAliasOnlyOnComponentParams(logger, f, ctx.Parents, n)
 			}
 			return nil
 		})
