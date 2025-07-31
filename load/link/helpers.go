@@ -11,23 +11,23 @@ import (
 )
 
 type attrDefinitionInfo struct {
-	name     string // without prefix
-	fullName string // with prefix
-	wildcard bool
+	qualifiedName string // without prefix
+	htmlName      string // with prefix
+	wildcard      bool
 }
 
-func (i attrDefinitionInfo) selector() string {
+func (i attrDefinitionInfo) qualifiedSelector() string {
 	if i.wildcard {
-		return i.name + "*"
+		return i.qualifiedName + "*"
 	}
-	return i.name
+	return i.qualifiedName
 }
 
-func (i attrDefinitionInfo) fullSelector() string {
+func (i attrDefinitionInfo) htmlNameSelector() string {
 	if i.wildcard {
-		return i.fullName + "*"
+		return i.htmlName + "*"
 	}
-	return i.fullName
+	return i.htmlName
 }
 
 func attrSpecInfo(attr *file.AttributeSpec) *attrDefinitionInfo {
@@ -41,11 +41,11 @@ func attrSpecInfo(attr *file.AttributeSpec) *attrDefinitionInfo {
 	}
 
 	var info attrDefinitionInfo
-	info.name = strings.ToLower(sel.Name)
+	info.qualifiedName = strings.ToLower(sel.Name)
 	if attr.Definition != nil && attr.Definition.Prefix != nil {
-		info.fullName = strings.ToLower(attr.Definition.Prefix.Name) + info.name
+		info.htmlName = strings.ToLower(attr.Definition.Prefix.Name) + info.qualifiedName
 	} else {
-		info.fullName = info.name
+		info.htmlName = info.qualifiedName
 	}
 	info.wildcard = sel.Wildcard
 

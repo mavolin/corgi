@@ -174,10 +174,10 @@ func (l *linker) CheckAttributeSpecCollisions() {
 			continue
 		}
 
-		sel := info.selector()
+		sel := info.qualifiedSelector()
 		qualifiedDupls[sel] = append(qualifiedDupls[sel], attr)
 
-		fullSel := info.fullSelector()
+		fullSel := info.htmlNameSelector()
 		if fullSel != sel {
 			fullDupls[fullSel] = append(fullDupls[fullSel], attr)
 		}

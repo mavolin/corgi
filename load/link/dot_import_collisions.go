@@ -238,7 +238,7 @@ Specs:
 		if info == nil {
 			continue
 		}
-		sel := info.fullSelector()
+		sel := info.htmlNameSelector()
 
 		for _, dupl := range dupls[sel] {
 			if dupl.File.Package == attr.File.Package {
