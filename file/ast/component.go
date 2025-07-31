@@ -243,7 +243,10 @@ type Extend struct {
 	ComponentCall *ComponentCall
 }
 
-var _ ComponentBody = (*Extend)(nil)
+var (
+	_ ComponentBody = (*Extend)(nil)
+	_ Highlighter   = (*Extend)(nil)
+)
 
 func (e *Extend) Start() Position {
 	if e.ComponentCall != nil {
@@ -263,6 +266,13 @@ func (e *Extend) Walk(w func(Node)) {
 	if e.ComponentCall != nil {
 		w(e.ComponentCall)
 	}
+}
+
+func (e *Extend) Highlight() (start, end Position) {
+	if e.ComponentCall != nil {
+		return e.ComponentCall.Highlight()
+	}
+	return Position{}, Position{}
 }
 
 func (*Extend) _node()          {}
