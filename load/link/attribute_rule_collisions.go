@@ -27,10 +27,6 @@ func (l *linker) CheckAttributeRuleCollisions() {
 			slog.String("file", spec.File.Name),
 			slog.String("spec_pos", spec.AST.Start().String()))
 
-		if len(spec.AST.Ruleset.List) <= 1 {
-			continue
-		}
-
 		wildcardDupls := duplicateWildcardElementSelectors(spec)
 		if len(wildcardDupls) >= 2 {
 			reportDuplicateElements(l, logger, spec.File, "*", wildcardDupls)

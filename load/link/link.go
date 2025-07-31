@@ -145,13 +145,12 @@ func Link(ctx context.Context, p *file.Package, o Options) diagnostic.List {
 	l.CheckComponentCollisions()
 	l.LinkComponentCalls()
 
-	l.CheckAttributeSpecCollisions()
-	l.CheckAttributeRuleCollisions()
-	l.CheckAttributeRuleCollisions()
-	l.LinkAttributeReferences()
-
 	l.CheckElementSpecCollisions()
 	l.LinkElementReferences()
+
+	l.CheckAttributeSpecCollisions()
+	l.CheckAttributeRuleCollisions()
+	l.LinkAttributeReferences()
 
 	if len(l.diagnostics) > 0 {
 		return slices.Clip(l.diagnostics)
