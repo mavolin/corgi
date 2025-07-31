@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"path"
+	"regexp"
 	"strconv"
 
 	"github.com/mavolin/corgi/v2/escape/attrtype"
@@ -147,10 +148,10 @@ func createElementSpec(f *file.File, start *ast.Position, prefix, name string, t
 	return spec
 }
 
-// createAttributeSpec creates an attribute spec for testing
+// createBasicAttributeSpec creates an attribute spec for testing.
 //
 // if elemSpec is nil, the attribute spec will match all elements
-func createAttributeSpec(f *file.File, start *ast.Position, prefix, name string, elemSpec *file.ElementSpec, typ attrtype.Type) *file.AttributeSpec {
+func createBasicAttributeSpec(f *file.File, start *ast.Position, prefix, name string, elemSpec *file.ElementSpec, typ attrtype.Type) *file.AttributeSpec {
 	if start == nil {
 		start = &ast.Position{Line: 1, Col: 1}
 	}
@@ -158,7 +159,7 @@ func createAttributeSpec(f *file.File, start *ast.Position, prefix, name string,
 	definitionAST := &ast.AttributeDefinition{Attr: start}
 	if prefix != "" {
 		definitionAST.Prefix = &ast.AttributeName{
-			Name:     name,
+			Name:     prefix,
 			Position: spaceAfter(definitionAST),
 		}
 	}
@@ -170,6 +171,76 @@ func createAttributeSpec(f *file.File, start *ast.Position, prefix, name string,
 		},
 	}
 	definitionAST.Specs = []*ast.AttributeSpec{specAST}
+
+	specAST.Ruleset = &ast.AttributeRuleset{LBrace: spaceAfter(definitionAST)}
+
+	var ruleSelAST ast.ElementSelector
+	if elemSpec == nil {
+		ruleSelAST = &ast.WildcardElementSelector{Asterisk: spaceAfter(definitionAST)}
+	} else {
+		var namespace string
+		for _, imp := range f.Imports {
+			if imp.Package == elemSpec.File.Package {
+				namespace = imp.Namespace
+			}
+		}
+
+		ruleSelAST = &ast.ListElementSelector{
+			List: []*ast.ElementReference{
+				createElementReference(f, spaceAfter(definitionAST), namespace, elemSpec.HTMLName()).AST,
+			},
+		}
+	}
+
+	ruleAST := &ast.AttributeRule{Selector: ruleSelAST}
+	specAST.Ruleset.List = []*ast.AttributeRule{ruleAST}
+
+	ruleAST.Type = &ast.AttributeTypeName{
+		Name:     typ.String(),
+		Type:     typ,
+		Position: spaceAfter(definitionAST),
+	}
+	specAST.Ruleset.RBrace = spaceAfter(definitionAST)
+
+	spec := &file.AttributeSpec{
+		File:       f,
+		Definition: definitionAST,
+		AST:        specAST,
+	}
+
+	addAttributeSpec(f.Package, spec)
+	return spec
+}
+
+// createRegexpAttributeSpec creates an attribute spec for testing.
+//
+// if elemSpec is nil, the attribute spec will match all elements
+func createRegexpAttributeSpec(f *file.File, start *ast.Position, prefix, regex string, elemSpec *file.ElementSpec, typ attrtype.Type) *file.AttributeSpec {
+	if start == nil {
+		start = &ast.Position{Line: 1, Col: 1}
+	}
+
+	definitionAST := &ast.AttributeDefinition{Attr: start}
+	if prefix != "" {
+		definitionAST.Prefix = &ast.AttributeName{
+			Name:     prefix,
+			Position: spaceAfter(definitionAST),
+		}
+	}
+
+	selAST := &ast.RegexpAttributeSelector{Regexp: spaceAfter(definitionAST)}
+	specAST := &ast.AttributeSpec{Selector: selAST}
+	definitionAST.Specs = []*ast.AttributeSpec{specAST}
+
+	selAST.LParen = directlyAfter(definitionAST)
+	selAST.Raw = &ast.StaticString{
+		Open:     directlyAfter(selAST),
+		Quote:    '"',
+		Contents: strconv.Quote(regex),
+	}
+	selAST.Compiled = regexp.MustCompile(regex)
+	selAST.Raw.Close = deltaPos(*selAST.LParen, 0, len(`"`)+len(selAST.Raw.Contents))
+	selAST.RParen = directlyAfter(definitionAST)
 
 	specAST.Ruleset = &ast.AttributeRuleset{LBrace: spaceAfter(definitionAST)}
 
