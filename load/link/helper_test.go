@@ -31,10 +31,12 @@ func (m *mockImporter) Import(_ context.Context, path string) (*file.Package, di
 	return nil, nil, fmt.Errorf("package %q not found", path)
 }
 
-func ImporterFor(p *file.Package) Importer {
-	return (&mockImporter{
-		packages: map[string]*file.Package{p.ImportPath: p},
-	}).Import
+func ImporterFor(ps ...*file.Package) Importer {
+	packages := make(map[string]*file.Package)
+	for _, p := range ps {
+		packages[p.ImportPath] = p
+	}
+	return (&mockImporter{packages: packages}).Import
 }
 
 // createPackage is a helper to create a package for testing.
