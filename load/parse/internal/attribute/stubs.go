@@ -17,6 +17,7 @@ func init() {
 
 func elementReferenceStub(p *parser.Parser) (*ast.ElementReference, *diagnostic.Diagnostic) {
 	var n ast.ElementName
+	n.Position = p.PosPtr()
 	n.Name = parser.Try(p, html.TagName())
 	if n.Name == "" {
 		return nil, &diagnostic.Diagnostic{
