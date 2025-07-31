@@ -242,7 +242,7 @@ func (ch *checker) CheckComponentArgsExist(logger *slog.Logger, cc *file.Compone
 			Primary: []diagnostic.Annotation{
 				anno.Anno(cc.File, anno.Annotation{
 					Highlight:  anno.HighlightNode(carg.Name),
-					Context:    anno.ContextLines(cc.AST.Start(), cc.AST.Header.End()),
+					Context:    anno.ContextNode(cc.AST.Header),
 					Annotation: "component defines no parameter `" + name + "`",
 				}),
 			},
@@ -357,7 +357,7 @@ func (ch *checker) CheckComponentAcceptsAttributes(logger *slog.Logger, cc *file
 	}
 	for _, attr := range attributeArgs {
 		primaries = append(primaries, anno.Anno(cc.File, anno.Annotation{
-			Context:    anno.ContextLines(cc.AST.Header.Start(), cc.AST.Header.End()),
+			Context:    anno.ContextNode(cc.AST.Header),
 			Highlight:  anno.HighlightNode(attr),
 			Annotation: "but you pass it an attribute here",
 		}))

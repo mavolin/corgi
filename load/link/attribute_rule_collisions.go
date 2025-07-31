@@ -100,7 +100,7 @@ func reportDuplicateElements(l *linker, logger *slog.Logger, f *file.File, name 
 	primaries := make([]diagnostic.Annotation, len(dupls))
 	for i, dupl := range dupls {
 		primaries[i] = anno.Anno(f, anno.Annotation{
-			Context:    anno.ContextLines(dupl.rule.Start(), dupl.rule.End()),
+			Context:    anno.ContextNode(dupl.rule),
 			Highlight:  anno.HighlightNode(dupl.highlight),
 			Annotation: "used here",
 		})

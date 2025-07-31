@@ -48,7 +48,7 @@ func (l *linker) CheckDotImportComponentCollisions() {
 					primaries[i] = anno.Node(f, findImport(dotImports, comp.File.Package).AST, "defines `"+name+"`")
 					secondaries = append(secondaries, anno.Anno(comp.File, anno.Annotation{
 						Highlight:  anno.HighlightNode(comp.AST),
-						Context:    anno.ContextLines(comp.AST.Start(), comp.AST.Header.End()),
+						Context:    anno.ContextNode(comp.AST.Header),
 						Annotation: "defined here",
 					}))
 				}
