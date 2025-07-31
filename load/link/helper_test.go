@@ -124,7 +124,7 @@ func createElementSpec(f *file.File, start *ast.Position, prefix, name string, t
 	definitionAST := &ast.ElementDefinition{Elem: start}
 	if prefix != "" {
 		definitionAST.Prefix = &ast.ElementName{
-			Name:     name,
+			Name:     prefix,
 			Position: spaceAfter(definitionAST),
 		}
 	}
