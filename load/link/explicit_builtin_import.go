@@ -20,20 +20,17 @@ func (l *linker) CheckExplicitBuiltinImport() {
 		}
 
 		for _, imp := range f.Imports {
-			if imp.AST == nil || imp.Path == "" {
+			if !imp.Explicit() || imp.Path != builtin.Path {
 				continue
 			}
 
 			logger := logger.With(
 				slog.String("pos", imp.AST.Start().String()),
 				slog.String("import", imp.Path))
-			if imp.Path != builtin.Path {
-				continue
-			}
 
 			logger.Error("Explicit import of builtin package")
 			l.report(&diagnostic.Diagnostic{
-				Message: "import of builtin package not allowed",
+				Message: "explicit import of builtin package",
 				Primary: []diagnostic.Annotation{
 					anno.Node(f, imp.AST, "explicit import of builtin package"),
 				},
