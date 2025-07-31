@@ -244,6 +244,10 @@ func (loader *importLoader) setBuiltinImport(p *file.Package, d diagnostic.List,
 				continue
 			}
 
+			alias := BuiltinAlias
+			for f.ImportByNamespace(alias) != nil {
+				alias += "_"
+			}
 			f.AddBuiltinImport(alias, p)
 			if len(d) > 0 || err != nil {
 				f.BuiltinImport().LoadedWithErrors = true
