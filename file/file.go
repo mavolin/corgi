@@ -60,31 +60,23 @@ type Symbols struct {
 // AddBuiltinImport creates a new [Import] importing the given builtin package.
 // The import is marked as not forwarded by default.
 //
+// You needn't specify an alias, however, the alias must not be ".".
+//
 // The file must not already have a builtin import or use the given alias.
-// The function returns a pointer to the created import, which may also be
-// retrieved by calling [Symbols.BuiltinImport].
 //
 // The package must not contain any exported symbols.
+//
+// You must add a builtin import using this method, not by adding it to the
+// [Symbols.Imports] slice directly.
 func (s *Symbols) AddBuiltinImport(alias string, builtin *Package) {
-	if alias == "" {
-		panic("cannot add builtin import with empty alias")
-	}
-	if builtinImp := s.BuiltinImport(); builtinImp != nil {
-		panic(fmt.Sprintf("symbols already contain builtin import for %q", builtinImp.Path))
-	}
-
-	namespace := cmp.Or(alias, builtin.Name)
-	if imp := s.ImportByNamespace(namespace); imp != nil {
-		panic(fmt.Sprintf("symbols already contain import with namespace %s: you need to chose a (different) alias", namespace))
-	}
-
 	imp := &Import{
 		Alias:     alias,
 		Path:      builtin.ImportPath,
 		Package:   builtin,
-		Namespace: "",
+		Namespace: cmp.Or(alias, builtin.Name),
+		Builtin:   true,
 	}
-	s.Imports = append(s.Imports, imp)
+	s.AddImport(imp)
 }
 
 // AddImport adds the given import to the file.
@@ -92,24 +84,24 @@ func (s *Symbols) AddBuiltinImport(alias string, builtin *Package) {
 // directly.
 //
 // AddImport panics if any of the following conditions are violated:
+//   - If the import is a builtin import, the file must not already have a
+//     builtin import.
 //   - The import's namespace must match the alias, if set.
-//   - The import must not be a dot import
-//   - The import must not have the AST field set.
+//   - If implicit, the import must not be a dot import.
 //   - The file must not already have an import with the namespace.
-//   - The import must be marked as forwarded: There would be no point in
-//     adding an implicit import that is not forwarded, unless you are
-//     doing sketchy AST manipulation (that should've happened before building
-//     symbols instead).
+//   - The import must be marked as forwarded, unless it is implicit or the
+//     builtin import.
 func (s *Symbols) AddImport(imp *Import) {
-	if imp.Alias != "" && imp.Alias != imp.Namespace {
-		panic(fmt.Sprintf("import alias %s does not match namespace %s", imp.Alias, imp.Namespace))
-	} else if imp.Alias == "." {
+	switch {
+	case imp.Builtin && s.BuiltinImport() != nil:
+		panic(fmt.Sprintf("symbols already contain builtin import for %q", s.BuiltinImport().Path))
+	case imp.Implicit() && imp.Alias == ".":
 		panic("cannot add implicit dot import")
-	} else if fimp := s.ImportByNamespace(imp.Namespace); fimp != nil {
-		panic(fmt.Sprintf("symbols already contain import with namespace %s: you need to chose a (different) alias", fimp.Namespace))
-	} else if imp.AST != nil {
-		panic("cannot add implicit import with AST set")
-	} else if !imp.Forward {
+	case !imp.Builtin && imp.Alias != "" && imp.Alias != imp.Namespace:
+		panic(fmt.Sprintf("import alias %s does not match namespace %s", imp.Alias, imp.Namespace))
+	case s.ImportByNamespace(imp.Namespace) != nil:
+		panic(fmt.Sprintf("symbols already contain import with namespace %s: you need to chose a (different) alias", imp.Namespace))
+	case !imp.Implicit() && !imp.Builtin && !imp.Forward:
 		panic("cannot add implicit import that is not forwarded")
 	}
 
@@ -150,7 +142,7 @@ func (s *Symbols) ImportByNode(node *ast.ImportSpec) *Import {
 
 func (s *Symbols) BuiltinImport() *Import {
 	for _, imp := range s.Imports {
-		if imp.Namespace == "" && imp.Alias != "" {
+		if imp.Builtin {
 			return imp
 		}
 	}
@@ -227,6 +219,8 @@ type Import struct {
 	//
 	// For explicit imports, it is the linker's responsibility to set this
 	// field, as it loads the package and reads the package name.
+	// If the linker chooses not to load this import, the Namespace field
+	// may remain empty.
 	//
 	// For implicit imports, it is the responsibility of the adder of the
 	// import to set this field.
@@ -234,13 +228,6 @@ type Import struct {
 	// All forwarded imports must have a valid namespace.
 	//
 	// For dot imports, this field is set to the empty sting.
-	//
-	// For the builtin package, this field is set to the empty string.
-	// The builtin package is the only package where Namespace differs from the
-	// computed namespace, i.e. Namespace != Alias.
-	//
-	// Therefore, when outputting the file, rely on Alias to produce correct
-	// import statement aliases.
 	//
 	// The corgi module reserves all namespaces prefixed with "__corgi_".
 	Namespace string
@@ -254,6 +241,9 @@ type Import struct {
 	// All forwarded imports must have a valid, unique, namespace.
 	// All forwarded explicit imports must have a valid Package.
 	Forward bool
+
+	// Builtin indicates that this is the single builtin import for the file.
+	Builtin bool
 }
 
 func (imp *Import) Explicit() bool { return imp.AST != nil }
