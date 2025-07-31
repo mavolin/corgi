@@ -137,7 +137,7 @@ func (loader *importLoader) loadImport(ctx context.Context, f *file.File, imp *f
 				Message: "import: failed to load package",
 				Cause:   err,
 				Primary: []diagnostic.Annotation{
-					anno.Node(f, imp.AST, "failed to load import"),
+					anno.Node(f, imp.AST, "couldn't load this import"),
 				},
 			})
 		}

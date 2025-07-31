@@ -16,13 +16,18 @@ import (
 
 type mockImporter struct {
 	packages map[string]*file.Package
+	errors   map[string]error
 }
 
 func (m *mockImporter) Import(_ context.Context, path string) (*file.Package, diagnostic.List, error) {
 	if p, ok := m.packages[path]; ok {
-		return p, nil, nil
+		var err error
+		if m.errors != nil {
+			err = m.errors[path]
+		}
+		return p, nil, err
 	}
-	return nil, nil, fmt.Errorf("package %s not found", path)
+	return nil, nil, fmt.Errorf("package %q not found", path)
 }
 
 func ImporterFor(p *file.Package) Importer {

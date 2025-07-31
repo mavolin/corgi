@@ -55,8 +55,7 @@ func (l *linker) linkUnqualifiedComponentCall(logger *slog.Logger, f *file.File,
 				cc.Component = c
 				return
 			}
-		}
-		if l.builtinPath != "" {
+		} else if l.builtinPath != "" {
 			// The builtin import was not loaded, but should've been.
 			logger.Debug("Couldn't resolve reference, but builtin import was loaded with errors: not reporting error")
 			return
@@ -83,7 +82,7 @@ func (l *linker) linkUnqualifiedComponentCall(logger *slog.Logger, f *file.File,
 		}
 
 		if ignoreError {
-			logger.Debug("Couldn't resolve reference, but least one dot import was not loaded: not reporting error")
+			logger.Debug("Couldn't resolve reference, but at least one dot import was not loaded: not reporting error")
 			return
 		}
 	}
@@ -125,7 +124,7 @@ func (l *linker) linkQualifiedComponentCall(
 
 	// find import for package
 	imp := f.ImportByNamespace(ident.Package.Name)
-	if imp == nil || !imp.Explicit() {
+	if imp == nil {
 		logger.Error("Could not find import for package")
 		l.reportMissingImport(f, ident.Package.Name, &diagnostic.Diagnostic{
 			Message: "component call: unresolved reference to package",
