@@ -97,7 +97,7 @@ func GeneralComment() parser.Func[*ast.Comment] {
 					Message: "illegal placement of multiline block comment",
 					Primary: []diagnostic.Annotation{
 						anno.Anno(p.File, anno.Annotation{
-							Context:    anno.ContextLines(*c.Open, c.Until),
+							Context:    anno.ContextRange(*c.Open, c.Until),
 							Highlight:  anno.HighlightToEOL(*c.Open),
 							Annotation: "at this position, only single-line comments are allowed",
 						}),

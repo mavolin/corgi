@@ -108,14 +108,14 @@ func StaticContext(start, end int) ContextFunc {
 	return func(*file.File, Context, Highlight) Context { return Context{start, max(end, start+1)} }
 }
 
-// ContextNode is a shorthand for [ContextLines] that uses the start and end
+// ContextNode is a shorthand for [ContextRange] that uses the start and end
 // positions of the given node.
 func ContextNode(n ast.Node) ContextFunc {
-	return ContextLines(n.Start(), n.End())
+	return ContextRange(n.Start(), n.End())
 }
 
-// ContextLines returns a ContextFunc that includes the lines from start to end.
-func ContextLines(start, end ast.Position) ContextFunc {
+// ContextRange returns a ContextFunc that includes the lines from start to end.
+func ContextRange(start, end ast.Position) ContextFunc {
 	return func(f *file.File, _ Context, _ Highlight) Context {
 		start, end = normalizePos(f, start), normalizePos(f, end)
 		s, e := start.Line, end.Line+1
