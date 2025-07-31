@@ -50,7 +50,7 @@ func ScopeNode() parser.Func[ast.ScopeNode] {
 			return n, nil
 		}
 
-		if n := parser.Try(p, BadScopeNode()); n != nil {
+		if n := parser.Try(p, BadNode()); n != nil {
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "bad scope node",
 				Primary: []diagnostic.Annotation{
@@ -64,9 +64,9 @@ func ScopeNode() parser.Func[ast.ScopeNode] {
 	}
 }
 
-func BadScopeNode() parser.Func[*ast.BadScopeNode] {
-	return func(p *parser.Parser) (*ast.BadScopeNode, *diagnostic.Diagnostic) {
-		var b ast.BadScopeNode
+func BadNode() parser.Func[*ast.BadNode] {
+	return func(p *parser.Parser) (*ast.BadNode, *diagnostic.Diagnostic) {
+		var b ast.BadNode
 		b.From = p.Pos()
 
 		for {

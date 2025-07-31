@@ -1,6 +1,7 @@
 package file
 
 import (
+	"fmt"
 	"slices"
 
 	"github.com/mavolin/corgi/v2/file/ast"
@@ -33,13 +34,9 @@ func init() {
 }
 
 func scopeNode(p *parser.Parser) (ast.ScopeNode, *diagnostic.Diagnostic) {
-	if n := parser.Try(p, attribute.Definition()); n != nil {
-		return n, nil
-	} else if n := parser.Try(p, code.ImplicitCodeLine()); n != nil {
+	if n := parser.Try(p, code.ImplicitCodeLine()); n != nil {
 		return n, nil
 	} else if n := parser.Try(p, code.ExplicitCodeLine()); n != nil {
-		return n, nil
-	} else if n := parser.Try(p, component.Component()); n != nil {
 		return n, nil
 	} else if n := parser.Try(p, component.Block()); n != nil {
 		return n, nil
@@ -49,11 +46,7 @@ func scopeNode(p *parser.Parser) (ast.ScopeNode, *diagnostic.Diagnostic) {
 		return n, nil
 	} else if n := parser.Try(p, code.For()); n != nil {
 		return n, nil
-	} else if n := parser.Try(p, state.Declaration()); n != nil {
-		return n, nil
 	} else if n := parser.Try(p, text.ArrowBlock()); n != nil {
-		return n, nil
-	} else if n := parser.Try(p, element.Definition()); n != nil {
 		return n, nil
 	} else if n := parser.Try(p, element.And()); n != nil {
 		return n, nil
@@ -73,7 +66,7 @@ func scopeNode(p *parser.Parser) (ast.ScopeNode, *diagnostic.Diagnostic) {
 			},
 			Explanation: "This `else` is not part of an if statement.",
 		})
-		return &ast.BadScopeNode{
+		return &ast.BadNode{
 			From:  b.Start(),
 			Until: b.End(),
 		}, nil
@@ -85,7 +78,7 @@ func scopeNode(p *parser.Parser) (ast.ScopeNode, *diagnostic.Diagnostic) {
 			},
 			Explanation: "This `else if` is not part of an if statement.",
 		})
-		return &ast.BadScopeNode{
+		return &ast.BadNode{
 			From:  b.Start(),
 			Until: b.End(),
 		}, nil
@@ -93,6 +86,21 @@ func scopeNode(p *parser.Parser) (ast.ScopeNode, *diagnostic.Diagnostic) {
 
 	if n := parser.Try(p, element.Element()); n != nil {
 		return n, nil
+	}
+
+	if n := parser.Try(p, TopLevelNode()); n != nil {
+		p.CaptureError(&diagnostic.Diagnostic{
+			Message: "unexpected top level node",
+			Primary: []diagnostic.Annotation{
+				anno.Node(p.File, n, fmt.Sprintf("cannot place %T here", n)),
+			},
+			Explanation: "Top level nodes can only be place at the top level of a file, " +
+				"not inside of components.",
+		})
+		return &ast.BadNode{
+			From:  n.Start(),
+			Until: n.End(),
+		}, nil
 	}
 
 	return nil, &diagnostic.Diagnostic{
@@ -132,18 +140,10 @@ func TopLevel() parser.Func[ast.TopLevel] {
 		scope := make(ast.TopLevel, 0, 36)
 
 		for {
-			if sd := parser.TryOptional(p, state.Declaration(), nil); sd != nil {
-				scope = append(scope, sd)
-			} else if c := parser.TryOptional(p, component.Component(), nil); c != nil {
-				scope = append(scope, c)
-			} else if ad := parser.TryOptional(p, attribute.Definition(), nil); ad != nil {
-				scope = append(scope, ad)
-			} else if ed := parser.TryOptional(p, element.Definition(), nil); ed != nil {
-				scope = append(scope, ed)
-			} else if s := parser.TryOptional(p, code.Statement(code.Regular), nil); s != nil {
-				scope = append(scope, &ast.ImplicitCodeLine{Statement: s})
+			if n := parser.TryOptional(p, TopLevelNode(), nil); n != nil {
+				scope = append(scope, n)
 			} else if imp := parser.TryOptional(p, Import(), nil); imp != nil {
-				scope = append(scope, &ast.BadScopeNode{
+				scope = append(scope, &ast.BadNode{
 					From:  imp.Start(),
 					Until: imp.End(),
 				})
@@ -156,14 +156,28 @@ func TopLevel() parser.Func[ast.TopLevel] {
 						{Hint: "Imports must be placed at the top of the file, right below the package directive."},
 					},
 				})
-			} else if bn := parser.TryOptional(p, body.BadScopeNode(), nil); bn != nil {
+			} else if n := parser.TryOptional(p, body.ScopeNode(), nil); n != nil {
 				p.CaptureError(&diagnostic.Diagnostic{
-					Message: "bad scope node",
+					Message: "unexpected node",
+					Primary: []diagnostic.Annotation{
+						anno.Node(p.File, n, fmt.Sprintf("cannot place %T here", n)),
+					},
+					Hints: []diagnostic.Hint{
+						{Hint: "Expected a state declaration, a component, an attribute or element definition, or code"},
+					},
+				})
+				scope = append(scope, &ast.BadNode{
+					From:  n.Start(),
+					Until: n.End(),
+				})
+			} else if bn := parser.TryOptional(p, body.BadNode(), nil); bn != nil {
+				p.CaptureError(&diagnostic.Diagnostic{
+					Message: "bad node",
 					Primary: []diagnostic.Annotation{
 						anno.Range(p.File, bn.From, bn.Until, "unexpected tokens"),
 					},
 					Hints: []diagnostic.Hint{
-						{Hint: "Expected a state declaration, a component, component alias, an attribute or element definition, or code"},
+						{Hint: "Expected a state declaration, a component, an attribute or element definition, or code"},
 					},
 				})
 				scope = append(scope, bn)
@@ -171,7 +185,7 @@ func TopLevel() parser.Func[ast.TopLevel] {
 				from := p.Pos()
 				parser.TryRune(p, '}')
 				until := p.Pos()
-				scope = append(scope, &ast.BadScopeNode{
+				scope = append(scope, &ast.BadNode{
 					From:  from,
 					Until: until,
 				})
@@ -191,5 +205,26 @@ func TopLevel() parser.Func[ast.TopLevel] {
 		}
 
 		return slices.Clip(scope), nil
+	}
+}
+
+func TopLevelNode() parser.Func[ast.TopLevelNode] {
+	return func(p *parser.Parser) (ast.TopLevelNode, *diagnostic.Diagnostic) {
+		if sd := parser.TryOptional(p, state.Declaration(), nil); sd != nil {
+			return sd, nil
+		} else if c := parser.TryOptional(p, component.Component(), nil); c != nil {
+			return c, nil
+		} else if ad := parser.TryOptional(p, attribute.Definition(), nil); ad != nil {
+			return ad, nil
+		} else if ed := parser.TryOptional(p, element.Definition(), nil); ed != nil {
+			return ed, nil
+		} else if s := parser.TryOptional(p, code.Statement(code.Regular), nil); s != nil {
+			return &ast.ImplicitCodeLine{Statement: s}, nil
+		}
+
+		return nil, &diagnostic.Diagnostic{
+			Message: "missing top level node",
+			Primary: quickanno.Expected(p, p.Pos(), "a top level node"),
+		}
 	}
 }

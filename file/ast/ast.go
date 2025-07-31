@@ -88,3 +88,24 @@ func deltaPos(p Position, delta int) Position {
 	p.Col += delta
 	return p
 }
+
+// ============================================================================
+// Bad Node
+// ======================================================================================
+
+type BadNode struct {
+	From, Until Position
+}
+
+var (
+	_ ScopeNode    = (*BadNode)(nil)
+	_ TopLevelNode = (*BadNode)(nil)
+)
+
+func (b *BadNode) Start() Position   { return b.From }
+func (b *BadNode) End() Position     { return b.Until }
+func (b *BadNode) Walk(_ func(Node)) {}
+
+func (*BadNode) _node()         {}
+func (*BadNode) _scopeNode()    {}
+func (*BadNode) _topLevelNode() {}

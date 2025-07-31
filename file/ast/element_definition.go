@@ -15,8 +15,8 @@ type ElementDefinition struct {
 }
 
 var (
-	_ ScopeNode   = (*ElementDefinition)(nil)
-	_ Highlighter = (*ElementDefinition)(nil)
+	_ TopLevelNode = (*ElementDefinition)(nil)
+	_ Highlighter  = (*ElementDefinition)(nil)
 )
 
 func (d *ElementDefinition) Start() Position {
@@ -81,8 +81,8 @@ func (d *ElementDefinition) Highlight() (start, end Position) {
 	return start, end
 }
 
-func (*ElementDefinition) _node()      {}
-func (*ElementDefinition) _scopeNode() {}
+func (*ElementDefinition) _node()         {}
+func (*ElementDefinition) _topLevelNode() {}
 
 // ============================================================================
 // Element Spec

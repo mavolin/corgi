@@ -56,7 +56,7 @@ func TestFile(t *testing.T) {
 				RParen: &ast.Position{Line: 5, Col: 1},
 			},
 		},
-		TopLevel: []ast.ScopeNode{
+		TopLevel: []ast.TopLevelNode{
 			&ast.Component{
 				Comp: &ast.Position{Line: 8, Col: 1},
 				Header: &ast.ComponentHeader{

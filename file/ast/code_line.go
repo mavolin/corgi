@@ -8,7 +8,10 @@ type ImplicitCodeLine struct {
 	Statement *Statement
 }
 
-var _ ScopeNode = (*ImplicitCodeLine)(nil)
+var (
+	_ ScopeNode    = (*ImplicitCodeLine)(nil)
+	_ TopLevelNode = (*ImplicitCodeLine)(nil)
+)
 
 func (i *ImplicitCodeLine) Start() Position {
 	if i.Statement != nil {
@@ -30,8 +33,9 @@ func (i *ImplicitCodeLine) Walk(w func(Node)) {
 	}
 }
 
-func (*ImplicitCodeLine) _node()      {}
-func (*ImplicitCodeLine) _scopeNode() {}
+func (*ImplicitCodeLine) _node()         {}
+func (*ImplicitCodeLine) _scopeNode()    {}
+func (*ImplicitCodeLine) _topLevelNode() {}
 
 // ============================================================================
 // Explicit Code Line

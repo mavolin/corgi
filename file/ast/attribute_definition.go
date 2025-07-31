@@ -17,8 +17,8 @@ type AttributeDefinition struct {
 }
 
 var (
-	_ ScopeNode   = (*AttributeDefinition)(nil)
-	_ Highlighter = (*AttributeDefinition)(nil)
+	_ TopLevelNode = (*AttributeDefinition)(nil)
+	_ Highlighter  = (*AttributeDefinition)(nil)
 )
 
 func (d *AttributeDefinition) Start() Position {
@@ -79,8 +79,8 @@ func (d *AttributeDefinition) Walk(w func(Node)) {
 	}
 }
 
-func (*AttributeDefinition) _node()      {}
-func (*AttributeDefinition) _scopeNode() {}
+func (*AttributeDefinition) _node()         {}
+func (*AttributeDefinition) _topLevelNode() {}
 
 // ============================================================================
 // Attribute Rule

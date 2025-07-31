@@ -51,8 +51,11 @@ func NoMatch[T any](t *testing.T, input string, f parser.Func[T]) {
 
 	p := NewParser(t, input)
 	v, err := f(p)
-	t.Logf("parsed value: %#v", v)
-	should.NotEqual(t, err, nil) // want match error
+
+	// want match error
+	if !should.NotEqual(t, err, nil) {
+		t.Logf("parsed value: %#v", v)
+	}
 }
 
 func MatchesButError[T any](t *testing.T, input string, f parser.Func[T]) T {

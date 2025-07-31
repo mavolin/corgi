@@ -13,7 +13,7 @@ type StateDeclaration struct {
 	RParen *Position // nil if this is a single-line state
 }
 
-var _ ScopeNode = (*StateDeclaration)(nil)
+var _ TopLevelNode = (*StateDeclaration)(nil)
 
 func (s *StateDeclaration) Start() Position {
 	if s.State != nil {
@@ -68,8 +68,8 @@ func (s *StateDeclaration) Highlight() (start, end Position) {
 	return start, end
 }
 
-func (*StateDeclaration) _node()      {}
-func (*StateDeclaration) _scopeNode() {}
+func (*StateDeclaration) _node()         {}
+func (*StateDeclaration) _topLevelNode() {}
 
 // ============================================================================
 // StateDeclaration Var

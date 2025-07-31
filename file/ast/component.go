@@ -13,8 +13,8 @@ type Component struct {
 }
 
 var (
-	_ ScopeNode   = (*Component)(nil)
-	_ Highlighter = (*Component)(nil)
+	_ TopLevelNode = (*Component)(nil)
+	_ Highlighter  = (*Component)(nil)
 )
 
 func (c *Component) Start() Position {
@@ -58,8 +58,8 @@ func (c *Component) Walk(w func(Node)) {
 	}
 }
 
-func (*Component) _node()      {}
-func (*Component) _scopeNode() {}
+func (*Component) _node()         {}
+func (*Component) _topLevelNode() {}
 
 // ============================================================================
 // Component Header

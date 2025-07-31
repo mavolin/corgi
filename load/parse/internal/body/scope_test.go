@@ -97,13 +97,13 @@ func TestBadScopeNode(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			want := &ast.BadScopeNode{
+			want := &ast.BadNode{
 				From:  ast.Position{Line: 1, Col: 1},
 				Until: ast.Position{Line: 1, Col: 1 + len(c.in)},
 			}
 
 			p := parsetest.NewParser(t, c.in+" foo")
-			got := parsetest.AssertNoError(t, p, BadScopeNode())
+			got := parsetest.AssertNoError(t, p, BadNode())
 			should.Equal(t, want, got)
 
 			parsetest.AssertPosition(t, p, want.Until.Line, want.Until.Col, len(c.in))
