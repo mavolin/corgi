@@ -226,7 +226,7 @@ func inferStateVariableType(f *File, expr *ast.GoCode) string {
 		return ""
 	}
 
-	return state.ResolvedType()
+	return state.ResolvedType().GetOr("")
 }
 
 func inferLastGoCodeType(expr *ast.GoCode) (typ string, sure bool) {

@@ -43,7 +43,7 @@ type ComponentCall struct {
 
 	// FirstAnd is the first & that fills the components placeholder.
 	// Nil, if no such & exists.
-	FirstAnd *ast.And
+	FirstAnd Analysis[*ast.And]
 }
 
 func (cc *ComponentCall) External() bool { return cc.File.Package != cc.Component.File.Package }

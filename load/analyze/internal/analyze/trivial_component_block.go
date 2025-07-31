@@ -41,15 +41,18 @@ func (z *analyzer) TrivialAnalyzeBlocks(logger *slog.Logger, c *file.Component) 
 func (z *analyzer) AnalyzeBlockRequired(logger *slog.Logger, c *file.Component, b *file.Block) {
 	logger = logger.WithGroup("required")
 
-	b.Required = b.Instances[0].AST.Default == nil
+	b.Required.Set(b.Instances[0].AST.Default == nil)
 	for _, instance := range b.Instances[1:] {
-		if b.Required && instance.AST.Default != nil {
+		if b.Required.Result && instance.AST.Default != nil {
+			goto Erroneous
+		} else if !b.Required.Result && instance.AST.Default == nil {
 			goto Erroneous
 		}
 	}
 
 	return
 Erroneous:
+	b.Required.SetFailed()
 	primaries := make([]diagnostic.Annotation, len(b.Instances))
 	for i, instance := range b.Instances {
 		if instance.AST.Default == nil {

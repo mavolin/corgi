@@ -146,7 +146,7 @@ func createElementSpec(f *file.File, start *ast.Position, prefix, name string, t
 		File:       f,
 		Definition: definitionAST,
 		AST:        specAST,
-		Type:       typ,
+		Type:       file.Result(typ),
 	}
 
 	addElementSpec(f.Package, spec)
@@ -429,6 +429,42 @@ func createAttributeReference(f *file.File, start *ast.Position, namespace, name
 	ref := &file.AttributeReference{AST: refAST}
 	addAttributeReference(f, ref)
 	return ref
+}
+
+func createBlock(comp *file.Component, name string) *file.Block {
+	block := &file.Block{
+		Name: name,
+	}
+	comp.Blocks = append(comp.Blocks, block)
+	return block
+}
+
+func createBlockSetter(cc *file.ComponentCall, name string) *file.BlockSetter {
+	blockSetter := &file.BlockSetter{
+		Name: name,
+	}
+	cc.BlockSetters = append(cc.BlockSetters, blockSetter)
+	return blockSetter
+}
+
+func createWith(group *file.BlockSetter, start *ast.Position) *file.BlockSetterInstance {
+	if start == nil {
+		start = &ast.Position{Line: 1, Col: 1}
+	}
+
+	withAST := &ast.With{With: start}
+	withAST.Identifier = &ast.Identifier{
+		Name:     group.Name,
+		Position: spaceAfter(withAST),
+	}
+	bodyAST := &ast.Scope{LBrace: spaceAfter(withAST)}
+	withAST.Body = bodyAST
+	bodyAST.RBrace = directlyAfter(withAST)
+
+	return &file.BlockSetterInstance{
+		Group: group,
+		AST:   withAST,
+	}
 }
 
 func deltaPos(p ast.Position, dLine, dCol int) *ast.Position {

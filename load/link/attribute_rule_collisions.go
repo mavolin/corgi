@@ -78,7 +78,7 @@ func duplicateListElementSelectors(spec *file.AttributeSpec) map[*file.ElementSp
 
 		for _, elemRefAST := range sel.List {
 			elemRef := spec.File.ElementReferenceByNode(elemRefAST)
-			if elemRef == nil {
+			if elemRef == nil || elemRef.Spec == nil {
 				continue
 			}
 

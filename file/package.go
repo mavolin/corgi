@@ -246,13 +246,9 @@ type State struct {
 	// Analyzed indicates whether the State has been analyzed,
 	// albeit with errors.
 	Analyzed bool
-	// AnalyzedWithErrors indicates that the State has been
-	// analyzed, but at least one of the below fields could not be set without
-	// errors.
-	AnalyzedWithErrors bool
 
 	// The InferredType of this value, if there is no explicit type.
-	InferredType string
+	InferredType Analysis[string]
 }
 
 func (s *State) Name() *ast.Identifier {
@@ -266,9 +262,9 @@ func (s *State) Value() *ast.Expression {
 	return s.AST.Values[s.Index]
 }
 
-func (s *State) ResolvedType() string {
+func (s *State) ResolvedType() Analysis[string] {
 	if s.AST.Type != nil {
-		return s.AST.Type.Type
+		return Result(s.AST.Type.Type)
 	}
 	return s.InferredType
 }
@@ -286,9 +282,11 @@ type ElementSpec struct {
 	//
 	// ANALYZE
 
-	AnalyzedWithErrors bool
+	// Analyzed indicates whether the ElementSpec has been analyzed,
+	// albeit with errors.
+	Analyzed bool
 
-	Type elemtype.Type
+	Type Analysis[elemtype.Type]
 }
 
 // QualifiedName is the name of the element, without the prefix.

@@ -26,6 +26,10 @@ import (
 	"github.com/mavolin/corgi/v2/load/analyze/internal/context"
 )
 
+// todo: contextual escapes (e.g. url): don't allow strings with interpolation as part of a larger expression, to avoid confusion (?) (maybe only if not in parentheses?)
+// todo: set ElementSpec.Analyzed
+// todo: set ElementSpec.Type
+// todo: set AttributeReference.Analyzed
 // todo: no elements in script/style https://html.spec.whatwg.org/multipage/syntax.html#elements-2:raw-text-elements-3
 // todo: no elements in textarea/title https://html.spec.whatwg.org/multipage/syntax.html#elements-2:escapable-raw-text-elements-3
 // todo: no component call interpolations that can't write top-level attrs, but do
@@ -63,6 +67,8 @@ import (
 // todo: block is top-level
 // todo: nested typed attribute values
 // todo: ast.AttributeType as ParsedType only allowed on component call parameter
+// todo: extend: implement Highlighter
+// todo: rn BlockInstance.ChildOf to Parent
 
 type Options struct {
 	// Logger is the logger used by the analyzer.
@@ -77,11 +83,17 @@ func (o *Options) applyDefaults() {
 	}
 }
 
-// Analyze fills the package's State, and the remaining fields not set by
-// package link in the package's Components and ComponentCalls.
+// Analyze fills the fields in the package's and the package's file's symbols
+// that are marked as analyzer fields.
+//
+// The package must be linked.
 //
 // If it returns an error, it is always of type [fileerr.List].
 func Analyze(p *file.Package, o Options) diagnostic.List {
+	if !p.Linked {
+		panic("Analyze called with unlinked package")
+	}
+
 	o.applyDefaults()
 
 	logger := o.Logger.With(

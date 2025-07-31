@@ -49,45 +49,53 @@ func (z *analyzer) TrivialAnalyzeComponents() {
 //
 // Depends on Fields: None
 func (z *analyzer) CheckComponentCallCycles(c *file.Component) {
-	if c.AnalyzedWithErrors {
-		return
-	}
-
 	z.checkComponentCallCycles(c, make([]*file.ComponentCall, 0, 24), c)
 }
 
-func (z *analyzer) checkComponentCallCycles(root *file.Component, ccs []*file.ComponentCall, c *file.Component) {
+func (z *analyzer) checkComponentCallCycles(root *file.Component, chain []*file.ComponentCall, c *file.Component) {
 	for _, cc := range c.ComponentCalls {
-		if cc.Component == root {
-			ccs = append(ccs, cc)
-			secondaries := make([]diagnostic.Annotation, len(ccs))
-			prev := root
-			for i, cc := range ccs {
-				annotation := fmt.Sprint(i+1, ": `"+prev.AST.Header.Name.Name+"` calls `"+cc.AST.Header.Name.Full()+"`")
-				secondaries[i] = anno.Node(cc.File, cc.AST.Header.Name, annotation)
-				prev = cc.Component
-			}
-
-			z.Report(&diagnostic.Diagnostic{
-				Message: "component call cycle",
-				Primary: []diagnostic.Annotation{
-					anno.Node(root.File, root.AST, "this component calls itself"),
-				},
-				Secondary: secondaries,
-				Explanation: "This component recursively calls itself, which is not allowed.\n" +
-					"To fix this error, you need to break the chain of recursion.",
-			})
-			root.AnalyzedWithErrors = true
+		if cc.Component == nil {
 			continue
-		}
-
-		if cc.Component.File.Package != root.File.Package {
+		} else if cc.Component.File.Package != root.File.Package {
 			// The only way a component call causing a component call cycle can
 			// be in a different package is if we have an import cycle, which
 			// should've been caught elsewhere.
 			continue
 		}
 
-		z.checkComponentCallCycles(root, append(ccs, cc), cc.Component)
+		if cc.Component == root {
+			chain = append(chain, cc)
+			for _, call := range chain {
+				call.Circular = true
+			}
+
+			secondaries := make([]diagnostic.Annotation, 1, 1+len(chain))
+			secondaries[0] = anno.Node(root.File, root.AST, "in this component")
+
+			prev := cc.Component
+			for i, cc := range chain[1:] {
+				annotation := fmt.Sprint(i+1, ": `"+prev.AST.Header.Name.Name+"` calls `"+cc.AST.Header.Name.Full()+"`")
+				secondaries = append(secondaries, anno.Node(cc.File, cc.AST, annotation))
+				prev = cc.Component
+			}
+
+			annotation := "call to itself"
+			if len(chain) > 1 {
+				annotation = "calls `" + root.AST.Header.Name.Name + "`"
+			}
+
+			z.Report(&diagnostic.Diagnostic{
+				Message: "component call cycle",
+				Primary: []diagnostic.Annotation{
+					anno.Node(root.File, chain[0].AST, annotation),
+				},
+				Secondary: secondaries,
+				Explanation: "This component recursively calls itself, which is not allowed.\n" +
+					"To fix this error, you need to break the chain of recursion.",
+			})
+			continue
+		}
+
+		z.checkComponentCallCycles(root, append(chain, cc), cc.Component)
 	}
 }

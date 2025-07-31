@@ -48,7 +48,7 @@ func (z *analyzer) FindFirstPermanentTopLevelAndPlaceholder(logger *slog.Logger,
 func (z *analyzer) FindFirstPermanentAndPlaceholder(logger *slog.Logger, c *file.Component) {
 	logger = logger.WithGroup("first_permanent_and_placeholder")
 
-	if c.FirstPermanentTopLevelAndPlaceholder != nil {
+	if c.FirstPermanentTopLevelAndPlaceholder.NotZero() {
 		c.FirstPermanentAndPlaceholder = c.FirstPermanentTopLevelAndPlaceholder
 		return
 	}

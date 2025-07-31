@@ -43,9 +43,7 @@ func (ch *checker) CheckComponents() {
 func (ch *checker) CheckDuplicateComponentParams(logger *slog.Logger, c *file.Component) {
 	logger = logger.WithGroup("duplicate_params")
 
-	if c.AnalyzedWithErrors {
-		return
-	} else if len(c.Parameters) < 2 {
+	if len(c.Parameters) < 2 {
 		return
 	}
 

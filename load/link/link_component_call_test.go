@@ -281,6 +281,7 @@ func TestLinker_LinkBlockSetterBlocks(t *testing.T) {
 				t.Log(ds.Short())
 			}
 
+			should.True(t, blockSetter.Linked)
 			if !should.True(t, comp == call.Component) {
 				t.Log(cmp.Diff(comp, call.Component))
 			}
@@ -308,6 +309,7 @@ func TestLinker_LinkBlockSetterBlocks(t *testing.T) {
 				t.Log(ds.Short())
 			}
 
+			should.True(t, blockSetter.Linked)
 			if !should.True(t, comp == call.Component) {
 				t.Log(cmp.Diff(comp, call.Component))
 			}
@@ -337,6 +339,7 @@ func TestLinker_LinkBlockSetterBlocks(t *testing.T) {
 			t.Log(cmp.Diff(comp, call.Component))
 		}
 
+		should.True(t, blockSetter.Linked)
 		should.True(t, blockSetter.Block == nil)
 		if should.Equal(t, 1, len(ds)) {
 			if !should.True(t, ds[0].Message == "component call: block setter references unknown block") {

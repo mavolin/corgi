@@ -40,12 +40,9 @@ func (ch *checker) CheckClassAlwaysInnocuous(logger *slog.Logger, f *file.File, 
 	logger = logger.WithGroup("class_not_typed")
 
 	ref := f.AttributeReferenceByNode(attr.Name)
-	switch {
-	case ref.AnalyzedWithErrors:
+	if ref.Type.Failed || ref.Type.Result == attrtype.Innocuous {
 		return
-	case ref.Type == attrtype.Innocuous:
-		return
-	case ref.HTMLName() != "class":
+	} else if htmlName := ref.HTMLName(); htmlName.Failed || htmlName.Result != "class" {
 		return
 	}
 
@@ -56,16 +53,22 @@ func (ch *checker) CheckClassAlwaysInnocuous(logger *slog.Logger, f *file.File, 
 	if attr.Value != nil {
 		tval, _ := attr.Value.(*ast.TypedAttributeValue)
 		if tval != nil {
-			if tval.Type.Name.Type != ref.Type {
+			if tval.Type.Name.Type != ref.Type.Result {
+				primaries := []diagnostic.Annotation{
+					anno.Node(f, attr.Name, "typed by analyzer as `"+ref.Type.Result.String()+"`"),
+					anno.Node(f, tval.Type, "explicitly typed as `"+tval.Type.Name.Type.String()+"`"),
+				}
+				if ref.Spec.NotZero() && ref.Rule.NotZero() {
+					primaries = append(primaries,
+						anno.Node(ref.Spec.Result.File, ref.Rule.Result, "typed in definition as `"+ref.Rule.Result.Type.Type.String()+"`"))
+				}
+
 				ch.Report(&diagnostic.Diagnostic{
 					Type:    diagnostic.InternalError,
 					Message: "analyze.CheckClassAlwaysInnocuous: resolved type and explicit type do not match",
-					Primary: []diagnostic.Annotation{
-						anno.Node(f, attr.Name, "typed by analyzer as `"+ref.Type.String()+"`"),
-						anno.Node(ref.Spec.File, ref.Rule, "typed in definition as `"+ref.Rule.Type.Type.String()+"`"),
-						anno.Node(f, tval.Type, "explicitly typed as `"+tval.Type.Name.Type.String()+"`"),
-					},
-					Explanation: "Using the result of the analysis, which is safe, but the error following this will be confusing.\n\n" +
+					Primary: primaries,
+					Explanation: "Using the result of the analysis, which is safe, but the error following this will be confusing.\n" +
+						"\n" +
 						"You should not see this error, please open an issue, this is a bug in the analyzer.",
 				})
 			}
@@ -82,16 +85,17 @@ func (ch *checker) CheckClassAlwaysInnocuous(logger *slog.Logger, f *file.File, 
 		}
 	}
 
-	if ref.Rule != nil {
-		if ref.Rule.Type.Type != ref.Type {
+	if ref.Spec.NotZero() && ref.Rule.NotZero() {
+		if ref.Rule.Result.Type.Type != ref.Type.Result {
 			ch.Report(&diagnostic.Diagnostic{
 				Type:    diagnostic.InternalError,
 				Message: "analyze.CheckClassAlwaysInnocuous: resolved type and definition type do not match (found no explicit typing)",
 				Primary: []diagnostic.Annotation{
-					anno.Node(f, attr.Name, "typed by analyzer as `"+ref.Type.String()+"`"),
-					anno.Node(ref.Spec.File, ref.Rule, "typed in definition as `"+ref.Rule.Type.Type.String()+"`"),
+					anno.Node(f, attr.Name, "typed by analyzer as `"+ref.Type.Result.String()+"`"),
+					anno.Node(ref.Spec.Result.File, ref.Rule.Result, "typed in definition as `"+ref.Rule.Result.Type.Type.String()+"`"),
 				},
-				Explanation: "Using the result of the analysis, which is safe, but the error following this will be confusing.\n\n" +
+				Explanation: "Using the result of the analysis, which is safe, but the error following this will be confusing.\n" +
+					"\n" +
 					"You should not see this error, please open an issue, this is a bug in the analyzer.",
 			})
 			return
@@ -101,7 +105,7 @@ func (ch *checker) CheckClassAlwaysInnocuous(logger *slog.Logger, f *file.File, 
 			Message: "class attribute wrongly typed",
 			Primary: []diagnostic.Annotation{
 				anno.Node(f, attr.Name, "should be `innocuous`"),
-				anno.Node(ref.Spec.File, ref.Rule, "but defined here as `"+ref.Rule.Type.Type.String()+"`"),
+				anno.Node(ref.Spec.Result.File, ref.Rule.Result, "but defined here as `"+ref.Rule.Result.Type.Type.String()+"`"),
 			},
 			Explanation: "The `class` attribute must always be typed as `innocuous`, so that class shorthands" +
 				" work as expected.",
@@ -109,15 +113,16 @@ func (ch *checker) CheckClassAlwaysInnocuous(logger *slog.Logger, f *file.File, 
 		return
 	}
 
-	// AST was extended?
+	// AST types were extended?
 	ch.Report(&diagnostic.Diagnostic{
 		Type:    diagnostic.InternalError,
 		Message: "analyze.CheckClassAlwaysInnocuous: attribute is neither explicitly typed nor attached to a definition",
 		Primary: []diagnostic.Annotation{
-			anno.Node(f, attr.Name, "typed by analyzer as `"+ref.Type.String()+"`"),
+			anno.Node(f, attr.Name, "typed by analyzer as `"+ref.Type.Result.String()+"`"),
 		},
 		Explanation: "Using the result of the analysis, which is safe, but the error following this will be confusing.\n" +
-			"This might've occurred because the AST was extended, but the analyzer wasn't subsequently updated (correctly).\n\n" +
+			"This might've occurred because the AST was extended, but the analyzer wasn't subsequently updated (correctly).\n" +
+			"\n" +
 			"You should not see this error, please open an issue, this is a bug in the analyzer.",
 	})
 
@@ -143,9 +148,7 @@ func (ch *checker) CheckNoInterpolationInUnsafeAttribute(logger *slog.Logger, f 
 	}
 
 	ref := f.AttributeReferenceByNode(attr.Name)
-	if ref.AnalyzedWithErrors {
-		return
-	} else if ref.Type != attrtype.Unsafe {
+	if ref.Type.Failed || ref.Type.Result != attrtype.Unsafe {
 		return
 	}
 
@@ -200,14 +203,32 @@ func (ch *checker) CheckDefinedNonBoolAttributeSpecifiedAsBool(logger *slog.Logg
 	}
 
 	ref := f.AttributeReferenceByNode(attr.Name)
-	if ref.AnalyzedWithErrors {
+	if ref.Type.Failed {
 		return
-	} else if ref.Spec == nil {
+	} else if ref.Type.Result == attrtype.Bool || ref.Type.Result == attrtype.UnsafeBool {
 		return
 	}
 
-	if ref.Type == attrtype.Bool || ref.Type == attrtype.UnsafeBool {
-		return
+	var secondaries []diagnostic.Annotation
+	if ref.Spec.NotZero() && ref.Rule.NotZero() {
+		secondaries = []diagnostic.Annotation{
+			anno.Node(ref.Spec.Result.File, ref.Rule.Result, "attribute type defined here as `"+ref.Type.Result.String()+"`"),
+		}
+	} else {
+		ch.Report(&diagnostic.Diagnostic{
+			Type:    diagnostic.InternalError,
+			Message: "analyze.CheckDefinedNonBoolAttributeSpecifiedAsBool: attribute not attached to definition",
+			Primary: []diagnostic.Annotation{
+				anno.Node(f, attr.Name, "typed by analyzer as `"+ref.Type.Result.String()+"`"),
+			},
+			Explanation: "Using the result of the analysis, which is safe, but the error following this will be confusing.\n" +
+				"\n" +
+				"Either Spec or Rule are not set, the attribute is not explicitly typed, but the analyzer still " +
+				"managed to infer a type for it. " +
+				"Most likely, the AST was extended, but the analyzer wasn't subsequently updated (correctly).\n" +
+				"\n" +
+				"You should not see this error, please open an issue, this is a bug in the analyzer.",
+		})
 	}
 
 	logger.Error("Non-bool attribute set as using bool shorthand")
@@ -216,9 +237,7 @@ func (ch *checker) CheckDefinedNonBoolAttributeSpecifiedAsBool(logger *slog.Logg
 		Primary: []diagnostic.Annotation{
 			anno.Node(f, attr.Name, "not a bool attribute and can therefore not be set using a bool shorthand"),
 		},
-		Secondary: []diagnostic.Annotation{
-			anno.Node(ref.Spec.File, ref.Rule, "attribute type defined here as `"+ref.Type.String()+"`"),
-		},
+		Secondary: secondaries,
 	})
 }
 
@@ -234,9 +253,7 @@ func (ch *checker) CheckBoolAttributeSetToNonBoolExpression(logger *slog.Logger,
 	}
 
 	ref := f.AttributeReferenceByNode(attr.Name)
-	if ref.AnalyzedWithErrors {
-		return
-	} else if ref.Type != attrtype.Bool && ref.Type != attrtype.UnsafeBool {
+	if ref.Type.Failed || (ref.Type.Result != attrtype.Bool && ref.Type.Result != attrtype.UnsafeBool) {
 		return
 	}
 
@@ -250,15 +267,19 @@ func (ch *checker) CheckBoolAttributeSetToNonBoolExpression(logger *slog.Logger,
 	switch t {
 	case "bool":
 	case "int", "float", "string", "any", "interface{}":
+		var secondaries []diagnostic.Annotation
+		if ref.Spec.NotZero() && ref.Rule.NotZero() {
+			secondaries = []diagnostic.Annotation{
+				anno.Node(ref.Spec.Result.File, ref.Rule.Result, "attribute type defined here as `"+ref.Type.Result.String()+"`"),
+			}
+		}
 		logger.Error("Bool attribute set to non-bool expression")
 		ch.Report(&diagnostic.Diagnostic{
 			Message: "bool attribute set to non-bool expression",
 			Primary: []diagnostic.Annotation{
 				anno.Node(f, attr.Value, "this expression does not yield a bool, but is used for a bool attribute"),
 			},
-			Secondary: []diagnostic.Annotation{
-				anno.Node(ref.Spec.File, ref.Rule, "attribute type defined here as `"+ref.Type.String()+"`"),
-			},
+			Secondary: secondaries,
 		})
 	}
 }

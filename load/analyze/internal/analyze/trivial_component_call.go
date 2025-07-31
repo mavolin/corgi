@@ -28,8 +28,7 @@ func (z *analyzer) TrivialAnalyzeComponentCalls() {
 
 		for _, cc := range f.ComponentCalls {
 			logger := logger.With(
-				slog.String("call_package", cc.Component.File.Package.Module+"/"+cc.Component.File.Package.PathInModule),
-				slog.String("call_name", cc.Component.AST.Header.Name.Name),
+				slog.String("call_name", cc.AST.Header.Name.Full()),
 				slog.String("call_pos", cc.AST.Start().String()))
 
 			z.ComponentCallFindFirstAnd(logger, cc)
@@ -50,8 +49,8 @@ func (z *analyzer) TrivialAnalyzeComponentCalls() {
 //   - ComponentCalls.FirstAnd
 //
 // Depends on Fields: None
-func (z *analyzer) ComponentCallFindFirstAnd(logger *slog.Logger, cc *file.ComponentCall) {
-	logger = logger.WithGroup("find_first_and")
+func (z *analyzer) ComponentCallFindFirstAnd(_ *slog.Logger, cc *file.ComponentCall) {
+	cc.FirstAnd.SetZero()
 
 	if cc.AST.Body == nil {
 		return
@@ -62,7 +61,7 @@ func (z *analyzer) ComponentCallFindFirstAnd(logger *slog.Logger, cc *file.Compo
 	}
 
 	walk.WalkT(scope, func(ctx *walk.ContextT[*ast.And]) error {
-		cc.FirstAnd = ctx.Node
+		cc.FirstAnd.Set(ctx.Node)
 		return walk.Stop
 	}, walk.DontDive[ast.BlockSetter]())
 }

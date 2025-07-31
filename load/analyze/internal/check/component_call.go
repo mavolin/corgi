@@ -20,8 +20,7 @@ func (ch *checker) CheckComponentCalls() {
 
 		for _, cc := range f.ComponentCalls {
 			logger := logger.With(
-				slog.String("call_package", cc.Component.File.Package.Module+"/"+cc.Component.File.Package.PathInModule),
-				slog.String("call_name", cc.Component.AST.Header.Name.Name),
+				slog.String("call_name", cc.AST.Header.Name.Full()),
 				slog.String("call_pos", cc.AST.Start().String()))
 
 			ch.CheckComponentCallBody(logger, cc)
@@ -162,21 +161,18 @@ func (ch *checker) CheckWithNotLooped(logger *slog.Logger, cc *file.ComponentCal
 func (ch *checker) CheckRequiredBlocksAreSet(logger *slog.Logger, cc *file.ComponentCall) {
 	logger = logger.WithGroup("required_blocks_set")
 
-	if !cc.Component.File.Package.Analyzed || cc.Component.AnalyzedWithErrors {
+	if cc.Component == nil {
 		return
 	}
 
 	for _, block := range cc.Component.Blocks {
-		logger := logger.With(slog.String("block", block.Name))
-		if !block.Required {
+		if block.Required.Equal(false) {
+			continue
+		} else if cc.BlockSetterByName(block.Name) != nil {
 			continue
 		}
 
-		if cc.BlockSetterByName(block.Name) != nil {
-			continue
-		}
-
-		logger.Error("Required block not set")
+		logger.Error("Required block not set", slog.String("block", block.Name))
 		ch.Report(&diagnostic.Diagnostic{
 			Message: "required block not set",
 			Primary: []diagnostic.Annotation{

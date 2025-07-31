@@ -37,11 +37,11 @@ type Component struct {
 
 	// FirstPermanentAndPlaceholder is the first &-placeholder that is not
 	// part of a block default.
-	FirstPermanentAndPlaceholder *ast.AndPlaceholder
+	FirstPermanentAndPlaceholder Analysis[*ast.AndPlaceholder]
 	// FirstPermanentTopLevelAndPlaceholder is the first &-placeholder that is
 	// at the top-level of the component, i.e. not nested inside an element or
 	// part of a block default.
-	FirstPermanentTopLevelAndPlaceholder *ast.AndPlaceholder
+	FirstPermanentTopLevelAndPlaceholder Analysis[*ast.AndPlaceholder]
 }
 
 func (c *Component) ParameterByName(name string) *ComponentParameter {
@@ -102,16 +102,18 @@ func (c *Component) Exported() bool {
 //
 // Passing nil checks the general case, in which all block defaults are
 // included.
-func (c *Component) FirstIncludedAndPlaceholder(cc *ComponentCall) *ast.AndPlaceholder {
-	if c.FirstPermanentAndPlaceholder != nil {
-		return c.FirstPermanentAndPlaceholder
+func (c *Component) FirstIncludedAndPlaceholder(cc *ComponentCall) Analysis[*ast.AndPlaceholder] {
+	fpap := c.FirstPermanentTopLevelAndPlaceholder
+	if fpap.NotZero() {
+		return fpap
 	}
 
 	instance := c.FirstBlockIncludedAndPlaceholder(cc)
-	if instance != nil {
-		return instance.Default.FirstAndPlaceholder
+	if instance.NotZero() {
+		return instance.Result.Default.FirstAndPlaceholder
 	}
-	return nil
+
+	return ResultIf[*ast.AndPlaceholder](nil, !fpap.Failed && !instance.Failed)
 }
 
 // FirstBlockIncludedAndPlaceholder returns the first block instance with an
@@ -120,13 +122,17 @@ func (c *Component) FirstIncludedAndPlaceholder(cc *ComponentCall) *ast.AndPlace
 //
 // Passing nil checks the general case, in which all block defaults are
 // included.
-func (c *Component) FirstBlockIncludedAndPlaceholder(cc *ComponentCall) *BlockInstance {
+func (c *Component) FirstBlockIncludedAndPlaceholder(cc *ComponentCall) Analysis[*BlockInstance] {
+	var failed bool
 	for _, block := range c.Blocks {
-		if instance := block.FirstIncludedAndPlaceholder(cc); instance != nil {
+		instance := block.FirstIncludedAndPlaceholder(cc)
+		if instance.Failed {
+			failed = true
+		} else if instance.Result != nil {
 			return instance
 		}
 	}
-	return nil
+	return ResultIf[*BlockInstance](nil, !failed)
 }
 
 type ComponentParameter struct {
@@ -140,14 +146,14 @@ type ComponentParameter struct {
 
 	// The InferredType of this value, if there is no explicit type or if using
 	// a special type, like an attribute type.
-	InferredType  string
-	AttributeType attrtype.Type // if type is a safe.*
-	AttributeName string        // if type is safe.Unsafe*
+	InferredType  Analysis[string]
+	AttributeType Analysis[attrtype.Type] // if type is a safe.*
+	AttributeName Analysis[string]        // if type is safe.Unsafe*
 }
 
-func (p *ComponentParameter) ResolvedType() string {
+func (p *ComponentParameter) ResolvedType() Analysis[string] {
 	if p.AST.Type != nil {
-		return p.AST.Type.Type
+		return Result(p.AST.Type.Type)
 	}
 	return p.InferredType
 }
@@ -178,7 +184,7 @@ type Block struct {
 	//
 	// ANALYZER
 
-	Required bool
+	Required Analysis[bool]
 }
 
 func (b *Block) InstanceByNode(n *ast.Block) *BlockInstance {
@@ -196,29 +202,46 @@ func (b *Block) InstanceByNode(n *ast.Block) *BlockInstance {
 //
 // Passing nil checks the general case, in which all block defaults are
 // included.
-func (b *Block) FirstIncludedAndPlaceholder(cc *ComponentCall) *BlockInstance {
+func (b *Block) FirstIncludedAndPlaceholder(cc *ComponentCall) Analysis[*BlockInstance] {
+	var failed bool
 	for _, instance := range b.Instances {
-		if instance.Default.FirstAndPlaceholder != nil && (cc == nil || !instance.DefaultOverwritten(cc)) {
-			return instance
+		faph := instance.Default.FirstAndPlaceholder
+		if faph.Failed {
+			failed = true
+			continue
+		}
+		if faph.Result != nil && (cc == nil || !instance.DefaultOverwritten(cc)) {
+			return Result(instance)
 		}
 	}
 
-	return nil
+	return ResultIf[*BlockInstance](nil, !failed)
 }
 
 // TopLevel reports whether this block is top-level.
-func (b *Block) TopLevel(s AnalysisStrategy) bool {
+func (b *Block) TopLevel(s AnalysisStrategy) Analysis[bool] {
 	s.assertValid()
 
-	for _, instance := range b.Instances {
-		if instance.TopLevel && s == AtLeastOne {
-			return true
-		} else if !instance.TopLevel && s == All {
-			return false
+	if s == All {
+		for _, instance := range b.Instances {
+			if instance.TopLevel.Failed {
+				return FailedAnalysis[bool]()
+			} else if !instance.TopLevel.Result {
+				return Result(false)
+			}
 		}
+		return Result(true)
 	}
 
-	return s == All
+	var failed bool
+	for _, instance := range b.Instances {
+		if instance.TopLevel.Equal(true) {
+			return Result(true)
+		}
+		failed = failed || instance.TopLevel.Failed
+	}
+
+	return ResultIf[bool](false, !failed)
 }
 
 type (
@@ -238,7 +261,7 @@ type (
 
 		// TopLevel indicates whether this block instance is placed outside
 		// any element.
-		TopLevel bool
+		TopLevel Analysis[bool]
 	}
 
 	BlockInstanceDefault struct {
@@ -250,13 +273,9 @@ type (
 		//
 		// ANALYZER
 
-		FirstAndPlaceholder *ast.AndPlaceholder // nil if no &-placeholder
+		FirstAndPlaceholder Analysis[*ast.AndPlaceholder]
 	}
 )
-
-func (cbi *BlockInstance) Required() bool {
-	return cbi.AST.Default == nil
-}
 
 // DefaultOverwritten indicates whether the default of this block instance
 // is overwritten in the given component call.

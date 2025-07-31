@@ -335,7 +335,7 @@ type AttributeReference struct {
 	// nil.
 	// Hence, linker implementations should not report errors if they
 	// cannot resolve the spec that belongs to the reference.
-	Spec *AttributeSpec // may be nil
+	Spec Analysis[*AttributeSpec] // may be nil
 
 	//
 	// ANALYZER
@@ -344,35 +344,27 @@ type AttributeReference struct {
 	// albeit with errors.
 	Analyzed bool
 
-	Element *ElementSpec // nil if not attached to an element
+	Element Analysis[*ElementSpec] // nil if not attached to an element
 	// Rule is the rule that is relevant for the element/attribute pair.
-	Rule *ast.AttributeRule // nil if not attached to an element
-	Type attrtype.Type
+	Rule Analysis[*ast.AttributeRule] // nil if not attached to an element
+	Type Analysis[attrtype.Type]
 }
 
 // HTMLName returns the name of the attribute.
-//
-// Can only be called after successful linking.
-func (r *AttributeReference) HTMLName() string {
+func (r *AttributeReference) HTMLName() Analysis[string] {
 	// possibly has a prefix
 	if r.AST.Package != nil {
-		if r.Spec == nil { // externally defined attribute, but no spec?
-			// Every attribute reference with a package name set, will have its
-			// spec set by the linker, because the package name alone means
-			// that the attribute is defined in the package, making it a linker
-			// issue.
-			// Ergo, someone called this method before linking, or there are
-			// linker errors.
-			panic("AttributeReference.HTMLName called before linking or with linker errors")
+		if r.Spec.Equal(nil) { // externally defined attribute, but no spec?
+			return FailedAnalysis[string]()
 		}
 
 		// prepend the prefix
-		if r.Spec.Definition.Prefix != nil {
-			return r.Spec.Definition.Prefix.Name + r.AST.Name.Name
+		if r.Spec.Result.Definition.Prefix != nil {
+			return Result(r.Spec.Result.Definition.Prefix.Name + r.AST.Name.Name)
 		}
 
 		// fallthrough, no prefix
 	}
 
-	return r.AST.Name.Name
+	return Result(r.AST.Name.Name)
 }

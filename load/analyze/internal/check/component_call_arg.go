@@ -23,7 +23,9 @@ func (ch *checker) CheckComponentCallArguments(logger *slog.Logger, cc *file.Com
 func (ch *checker) CheckNoDuplicateComponentArgs(logger *slog.Logger, cc *file.ComponentCall) {
 	logger = logger.WithGroup("no_duplicate_args")
 
-	if cc.AST.Header.Arguments == nil || len(cc.AST.Header.Arguments.List) <= 1 {
+	if cc.Component == nil {
+		return
+	} else if cc.AST.Header.Arguments == nil || len(cc.AST.Header.Arguments.List) <= 1 {
 		return
 	}
 
@@ -67,7 +69,7 @@ func (ch *checker) CheckComponentArgsExist(logger *slog.Logger, cc *file.Compone
 	logger = logger.WithGroup("args_exist")
 	logger.Debug("Checking that all component call arguments exist")
 
-	if !cc.Component.File.Package.Analyzed || cc.Component.AnalyzedWithErrors {
+	if cc.Component == nil {
 		return
 	} else if cc.AST.Header.Arguments == nil || len(cc.AST.Header.Arguments.List) == 0 {
 		return
@@ -107,8 +109,7 @@ func (ch *checker) CheckComponentArgsExist(logger *slog.Logger, cc *file.Compone
 func (ch *checker) CheckRequiredComponentParamsSet(logger *slog.Logger, cc *file.ComponentCall) {
 	logger = logger.WithGroup("required_params_set")
 
-	if !cc.Component.File.Package.Analyzed || cc.Component.AnalyzedWithErrors {
-		logger.Debug("Component analyzed with errors, skipping check")
+	if cc.Component == nil {
 		return
 	}
 
@@ -148,12 +149,11 @@ Params:
 func (ch *checker) CheckComponentAcceptsAttributes(logger *slog.Logger, cc *file.ComponentCall) {
 	logger = logger.WithGroup("component_accepts_attributes")
 
-	if !cc.Component.File.Package.Analyzed || cc.Component.AnalyzedWithErrors {
+	if cc.Component == nil {
 		return
 	}
 
-	acceptsAndPlaceholder := cc.Component.FirstIncludedAndPlaceholder(cc) != nil
-	if acceptsAndPlaceholder {
+	if cc.Component.FirstIncludedAndPlaceholder(cc).NotZero() {
 		return
 	}
 
@@ -168,15 +168,15 @@ func (ch *checker) CheckComponentAcceptsAttributes(logger *slog.Logger, cc *file
 		}
 	}
 
-	hasAttributes := cc.FirstAnd != nil || len(attributeArgs) > 0
+	hasAttributes := cc.FirstAnd.NotZero() || len(attributeArgs) > 0
 	if !hasAttributes {
 		return
 	}
 
 	primaries := make([]diagnostic.Annotation, 1, 2+len(attributeArgs))
 	primaries[0] = anno.Node(cc.File, cc.AST.Header.Name, "this component does not accept any attributes")
-	if cc.FirstAnd != nil {
-		primaries = append(primaries, anno.Node(cc.File, cc.FirstAnd, "but you hand it attributes here"))
+	if cc.FirstAnd.NotZero() {
+		primaries = append(primaries, anno.Node(cc.File, cc.FirstAnd.Result, "but you hand it attributes here"))
 	}
 	for _, attr := range attributeArgs {
 		primaries = append(primaries, anno.Anno(cc.File, anno.Annotation{
@@ -196,7 +196,7 @@ func (ch *checker) CheckComponentAcceptsAttributes(logger *slog.Logger, cc *file
 			"you cannot hand attributes to it.",
 		Docs: "attribute-placeholder",
 	}
-	couldAcceptAttributes := cc.Component.FirstIncludedAndPlaceholder(nil) != nil
+	couldAcceptAttributes := cc.Component.FirstIncludedAndPlaceholder(nil).NotZero()
 	if couldAcceptAttributes {
 		diag.Hints = []diagnostic.Hint{
 			{
@@ -213,7 +213,9 @@ func (ch *checker) CheckComponentAcceptsAttributes(logger *slog.Logger, cc *file
 func (ch *checker) CheckNoInterpolationInUnsafeTypedArguments(logger *slog.Logger, cc *file.ComponentCall) {
 	logger = logger.WithGroup("no_interpolation_in_unsafe_typed_args")
 
-	if cc.AST.Header.Arguments == nil {
+	if cc.Component == nil {
+		return
+	} else if cc.AST.Header.Arguments == nil {
 		return
 	}
 
@@ -224,7 +226,9 @@ func (ch *checker) CheckNoInterpolationInUnsafeTypedArguments(logger *slog.Logge
 		}
 
 		param := cc.Component.ParameterByName(carg.Name.Name)
-		if param.AttributeType != attrtype.Unsafe && param.AttributeType != attrtype.UnsafeBool {
+		if param.AttributeType.Failed {
+			continue
+		} else if param.AttributeType.Result != attrtype.Unsafe && param.AttributeType.Result != attrtype.UnsafeBool {
 			continue
 		}
 
@@ -251,7 +255,7 @@ func (ch *checker) CheckNoInterpolationInUnsafeTypedArguments(logger *slog.Logge
 					anno.Anno(cc.Component.File, anno.Annotation{
 						Context:    anno.ContextNode(cc.Component.AST.Header),
 						Highlight:  anno.HighlightNode(param.AST),
-						Annotation: "typed as `" + param.AttributeType.String() + "`",
+						Annotation: "typed as `" + param.AttributeType.Result.String() + "`",
 					}),
 				},
 				Hints: []diagnostic.Hint{

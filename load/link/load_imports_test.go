@@ -201,7 +201,7 @@ func TestLinker_LoadImports(t *testing.T) {
 			t.Log(ds.Short())
 		}
 		should.True(t, imp.Loaded)
-		should.True(t, imp.LoadedWithErrors())
+		should.Equal(t, nil, imp.Package)
 	})
 
 	t.Run("builtin import", func(t *testing.T) {

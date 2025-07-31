@@ -47,6 +47,9 @@ func (z *analyzer) AnalyzeComponentParameters(logger *slog.Logger, c *file.Compo
 func (z *analyzer) AnalyzeAttrTypeComponentParam(logger *slog.Logger, c *file.Component, param *file.ComponentParameter) {
 	logger = logger.WithGroup("attr_type_param")
 
+	param.AttributeType.SetZero()
+	param.AttributeName.SetZero()
+
 	if param.AST.Type == nil || param.AST.Type.Parsed == nil {
 		return
 	}
@@ -81,36 +84,38 @@ func (z *analyzer) AnalyzeAttrTypeComponentParam(logger *slog.Logger, c *file.Co
 					"That way, it can be ensured that an unsafe value deemed safe for one attribute isn't used for another" +
 					"kind of attribute, where it might not be safe.",
 			})
+			param.AttributeName.SetFailed()
 		} else {
-			param.AttributeName = t.Attribute.Name
+			param.AttributeName.Set(t.Attribute.Name)
 		}
 	}
 
-	param.AttributeType = t.Name.Type
-	param.InferredType = z.SafeImport(c.File).Namespace + "."
+	param.AttributeType.SetIf(t.Name.Type, t.Name.Type.IsValid())
+
+	param.InferredType.Set(z.SafeImport(c.File).Namespace + ".")
 	switch t.Name.Type {
 	case attrtype.Unsafe:
-		param.InferredType += "Unsafe"
+		param.InferredType.Result += "Unsafe"
 	case attrtype.UnsafeBool:
-		param.InferredType += "UnsafeBool"
+		param.InferredType.Result += "UnsafeBool"
 	case attrtype.Bool:
-		param.InferredType += "Bool"
+		param.InferredType.Result += "Bool"
 	case attrtype.Innocuous:
 		// already handled above
 	case attrtype.Text:
-		param.InferredType = "string"
+		param.InferredType.Result = "string"
 	case attrtype.CSS:
-		param.InferredType += "CSS"
+		param.InferredType.Result += "CSS"
 	case attrtype.JS:
-		param.InferredType += "JS"
+		param.InferredType.Result += "JS"
 	case attrtype.URL:
-		param.InferredType += "URL"
+		param.InferredType.Result += "URL"
 	case attrtype.URLList:
-		param.InferredType += "URLList"
+		param.InferredType.Result += "URLList"
 	case attrtype.ResourceURL:
-		param.InferredType += "ResourceURL"
+		param.InferredType.Result += "ResourceURL"
 	case attrtype.Srcset:
-		param.InferredType += "Srcset"
+		param.InferredType.Result += "Srcset"
 	case attrtype.Unknown:
 		fallthrough
 	default:
@@ -125,9 +130,11 @@ func (z *analyzer) AnalyzeAttrTypeComponentParam(logger *slog.Logger, c *file.Co
 				"If you are not running the corgi CLI, most likely, at some place in the program, " +
 				"the value for this attribute type was set to an illegal value.\n" +
 				"It could also be that the parser was extended to support a new attribute type, " +
-				"but the analyzer was not updated to support it.\n\n" +
+				"but the analyzer was not updated to support it.\n" +
+				"\n" +
 				"In any case: If you are running the corgi CLI, please open an issue, this is a bug.",
 		})
+		return
 	}
 }
 
@@ -150,12 +157,12 @@ func (z *analyzer) InferTypeFromComponentParamDefault(logger *slog.Logger, c *fi
 			slog.String("param_pos", param.AST.Name.Start().String()))
 
 	if param.AST.Type != nil {
-		return
-	} else if param.InferredType != "" {
+		param.InferredType.SetZero()
 		return
 	}
 
 	if param.AST.Default == nil {
+		param.InferredType.SetFailed()
 		logger.Error("No default value set for untyped component parameter")
 		z.Report(&diagnostic.Diagnostic{
 			Message: "component parameter: neither type nor default value set",
@@ -177,21 +184,23 @@ func (z *analyzer) InferTypeFromComponentParamDefault(logger *slog.Logger, c *fi
 		return
 	}
 
-	param.InferredType, _ = file.InferType(c.File, param.AST.Default)
-	if param.InferredType == "" {
-		logger.Error("Unable to infer type from default value")
-		z.Report(&diagnostic.Diagnostic{
-			Message: "component parameter: unable to infer type from default value",
-			Primary: []diagnostic.Annotation{
-				anno.Node(c.File, param.AST.Default, "cannot infer type of this expression"),
-				anno.Node(c.File, param.AST.Name, "has no explicit type"),
-			},
-			Explanation: "A component parameter's type is only optional, if the type can be " +
-				"inferred from the default value. If that is not possible, specify the type as you" +
-				"normally would behind the parameter's name.",
-			Examples: []diagnostic.Example{
-				{Example: "`" + param.AST.Name.Name + " MyType = ...`"},
-			},
-		})
+	t, _ := file.InferType(c.File, param.AST.Default)
+	if t != "" {
+		param.InferredType.Set(t)
 	}
+
+	logger.Error("Unable to infer type from default value")
+	z.Report(&diagnostic.Diagnostic{
+		Message: "component parameter: unable to infer type from default value",
+		Primary: []diagnostic.Annotation{
+			anno.Node(c.File, param.AST.Default, "cannot infer type of this expression"),
+			anno.Node(c.File, param.AST.Name, "has no explicit type"),
+		},
+		Explanation: "A component parameter's type is only optional, if the type can be " +
+			"inferred from the default value. If that is not possible, specify the type as you" +
+			"normally would behind the parameter's name.",
+		Examples: []diagnostic.Example{
+			{Example: "`" + param.AST.Name.Name + " MyType = ...`"},
+		},
+	})
 }

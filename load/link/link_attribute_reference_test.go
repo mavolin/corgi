@@ -79,8 +79,8 @@ func testLinker_LinkAttributeReferences_success(t *testing.T) {
 						if !should.Equal(t, 0, len(ds)) {
 							t.Log(ds.Short())
 						}
-						if !should.True(t, spec == ref.Spec) {
-							t.Log(cmp.Diff(spec, ref.Spec))
+						if !should.True(t, spec == ref.Spec.GetOr(nil)) {
+							t.Log(cmp.Diff(spec, ref.Spec.GetOr(nil)))
 						}
 					})
 
@@ -113,8 +113,8 @@ func testLinker_LinkAttributeReferences_success(t *testing.T) {
 						if !should.Equal(t, 0, len(ds)) {
 							t.Log(ds.Short())
 						}
-						if !should.True(t, spec == ref.Spec) {
-							t.Log(cmp.Diff(spec, ref.Spec))
+						if !should.True(t, spec == ref.Spec.GetOr(nil)) {
+							t.Log(cmp.Diff(spec, ref.Spec.GetOr(nil)))
 						}
 					})
 
@@ -175,8 +175,8 @@ func testLinker_LinkAttributeReferences_success(t *testing.T) {
 							if !should.Equal(t, 0, len(ds)) {
 								t.Log(ds.Short())
 							}
-							if !should.True(t, importedSpec == ref.Spec) {
-								t.Log(cmp.Diff(importedSpec, ref.Spec))
+							if !should.True(t, importedSpec == ref.Spec.GetOr(nil)) {
+								t.Log(cmp.Diff(importedSpec, ref.Spec.GetOr(nil)))
 							}
 						})
 					}

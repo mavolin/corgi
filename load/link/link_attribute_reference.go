@@ -22,6 +22,7 @@ func (l *linker) LinkAttributeReferences() {
 		logger := logger.With(slog.String("file", f.Name))
 
 		for _, ref := range f.AttributeReferences {
+			ref.Linked = true
 			if ref.AST.Name == nil {
 				continue
 			}
@@ -60,7 +61,7 @@ func (l *linker) linkUnqualifiedAttributeReference(logger *slog.Logger, f *file.
 	// search in dot imports
 	var ignoreError bool
 	for _, imp := range l.dotImports[f] {
-		if imp.LoadedWithErrors() || imp.Package.PackageSymbols == nil {
+		if imp.Package == nil || imp.Package.PackageSymbols == nil {
 			ignoreError = true
 		}
 		switch {
@@ -80,12 +81,13 @@ func (l *linker) linkUnqualifiedAttributeReference(logger *slog.Logger, f *file.
 	}
 
 	if len(equalSpecificityMatches) == 1 {
-		ref.Spec = equalSpecificityMatches[0]
+		ref.Spec.Set(equalSpecificityMatches[0])
 		if bestImport != nil {
 			bestImport.Forward = true
 		}
 		return
 	} else if len(equalSpecificityMatches) > 1 {
+		ref.Spec.SetFailed()
 		if ignoreError {
 			logger.Debug("Found multiple attribute definitions with same specificity, but at least one dot import was not loaded without error: not reporting error")
 			return
@@ -111,15 +113,17 @@ func (l *linker) linkUnqualifiedAttributeReference(logger *slog.Logger, f *file.
 	builtinImp := f.BuiltinImport()
 	if builtinImp == nil || builtinImp.Package == nil || builtinImp.Package.PackageSymbols == nil {
 		// Not defined explicitly, analyzer needs to determine whether there is explicit typing
+		ref.Spec.SetZero()
 		return
 	}
 
 	packageMatches := builtinImp.Package.AttributeSpecByHTMLName(name)
 	if len(packageMatches) == 1 {
-		ref.Spec = packageMatches[0]
+		ref.Spec.Set(packageMatches[0])
 		builtinImp.Forward = true
 		return
 	} else if len(packageMatches) > 1 {
+		ref.Spec.SetFailed()
 		logger.Error("Found multiple attribute definitions with same specificity in builtin package")
 		l.report(&diagnostic.Diagnostic{
 			Type:    diagnostic.InternalError,
@@ -139,11 +143,14 @@ func (l *linker) linkUnqualifiedAttributeReference(logger *slog.Logger, f *file.
 		})
 		return
 	}
+
+	ref.Spec.SetZero()
 }
 
 func (l *linker) linkQualifiedAttributeReference(logger *slog.Logger, f *file.File, ref *file.AttributeReference) {
 	imp := f.ImportByNamespace(ref.AST.Package.Name)
 	if imp == nil {
+		ref.Spec.SetFailed()
 		logger.Error("Could not find import for package")
 		l.reportMissingImport(f, ref.AST.Package.Name, &diagnostic.Diagnostic{
 			Message: "attribute: unresolved reference to package",
@@ -155,6 +162,7 @@ func (l *linker) linkQualifiedAttributeReference(logger *slog.Logger, f *file.Fi
 	}
 
 	if !l.implicitImportCheck(logger, f, imp, ref.AST.Package, "an", "attribute") {
+		ref.Spec.SetFailed()
 		return
 	}
 
@@ -162,13 +170,15 @@ func (l *linker) linkQualifiedAttributeReference(logger *slog.Logger, f *file.Fi
 	if imp.Package != nil && imp.Package.PackageSymbols != nil {
 		matches = imp.Package.AttributeSpecByQualifiedName(ref.AST.Name.Name)
 		if len(matches) == 1 {
-			ref.Spec = matches[0]
+			ref.Spec.Set(matches[0])
 			imp.Forward = true
 			return
 		}
 	}
 
-	if imp.LoadedWithErrors() || imp.Package.PackageSymbols == nil {
+	ref.Spec.SetFailed()
+
+	if imp.Package == nil || imp.Package.PackageSymbols == nil {
 		logger.Debug("Couldn't resolve reference, but package was loaded with errors: not reporting error")
 		return
 	}

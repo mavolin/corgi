@@ -41,15 +41,17 @@ func (z *analyzer) AnalyzeState() {
 // Depends on Fields: None
 func (z *analyzer) InferStateType(logger *slog.Logger, s *file.State) {
 	if s.AST.Type != nil {
+		s.InferredType.SetZero()
 		return
 	}
 
-	s.InferredType, _ = file.InferType(s.File, s.Value())
-	if s.InferredType != "" {
+	t, _ := file.InferType(s.File, s.Value())
+	if t != "" {
+		s.InferredType.Set(t)
 		return
 	}
 
-	s.AnalyzedWithErrors = true
+	s.InferredType.SetFailed()
 	logger.Error("Unable to infer type")
 	z.Report(&diagnostic.Diagnostic{
 		Message: "state: unable to infer type",
