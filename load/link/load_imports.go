@@ -153,17 +153,16 @@ func (loader *importLoader) loadImport(ctx context.Context, f *file.File, imp *f
 		return
 	}
 
-	if imp.Alias != "" {
-		if imp.Alias != "." {
-			imp.Namespace = imp.Alias
-		} else {
-			imp.Namespace = ""
-		}
-	} else {
+	switch {
+	case imp.Alias == ".":
+		imp.Namespace = ""
+	case imp.Alias != "":
+		imp.Namespace = imp.Alias
+	default:
 		imp.Namespace = imp.Package.Name
 		if strings.HasPrefix(imp.Namespace, "__corgi_") {
 			logger.Error("Import has package name with reserved prefix",
-				slog.String("alias", imp.Namespace),
+				slog.String("namespace", imp.Namespace),
 				slog.String("import_path", imp.Path))
 
 			loader.reportMut.Lock()
