@@ -37,6 +37,7 @@ import (
 // todo: ccs in cc bodies only attach attributes, no content
 // todo: no top-level attributes
 // todo: top-level and-placeholders not filled, if not in element
+// todo: only attr in args, if component has and placeholder
 // todo: attributes inside withs
 // todo: top-level attributes through block defaults
 // todo: use of & after writing to body
@@ -53,7 +54,6 @@ import (
 // todo: component block required
 // todo: component first permanent and placeholder
 // todo: component: block: first and placeholder
-// todo: component call: first and
 // todo: attr ref: element
 // todo: attr ref: rule
 // todo: attr ref: type

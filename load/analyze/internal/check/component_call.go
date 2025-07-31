@@ -27,8 +27,10 @@ func (ch *checker) CheckComponentCalls() {
 			ch.CheckComponentArgsExist(logger, cc)
 			ch.CheckNoDuplicateComponentArgs(logger, cc)
 			ch.CheckRequiredComponentParamsSet(logger, cc)
+			ch.CheckComponentAcceptsAttributes(logger, cc)
 			if ch.CheckComponentCallBody(logger, cc) {
 				ch.CheckUnreachableWiths(logger, cc)
+				ch.CheckWithNotLooped(logger, cc)
 			}
 
 			ch.CheckRequiredBlocksAreSet(logger, cc)
@@ -42,7 +44,7 @@ func (ch *checker) CheckComponentCallBody(logger *slog.Logger, cc *file.Componen
 
 	sc, _ := cc.AST.Body.(*ast.Scope)
 	if sc == nil {
-		return true
+		return false
 	}
 
 	walk.WalkT(sc, func(ctx *walk.ContextT[ast.ScopeNode]) error {
@@ -50,6 +52,7 @@ func (ch *checker) CheckComponentCallBody(logger *slog.Logger, cc *file.Componen
 		case *ast.Conditional:
 		case *ast.Switch:
 		case *ast.And:
+		case *ast.For:
 		case *ast.With:
 			return walk.NoDive
 		case *ast.ComponentCall:
@@ -111,10 +114,10 @@ func (ch *checker) CheckUnreachableWiths(logger *slog.Logger, cc *file.Component
 		primaries[0] = anno.Range(cc.File, last.Start(), last.Identifier.End(), "overwrites all of the above")
 
 		for _, tw := range tws[:len(tws)-1] {
-			primaries = append(primaries, anno.Range(cc.File, tw.Start(), tw.Identifier.End(), "never actually used"))
+			primaries = append(primaries, anno.Node(cc.File, tw, "never actually used"))
 		}
 		for _, cw := range cws {
-			primaries = append(primaries, anno.Range(cc.File, cw.Start(), cw.Identifier.End(), "never actually used"))
+			primaries = append(primaries, anno.Node(cc.File, cw, "never actually used"))
 		}
 
 		logger.With(slog.String("name", last.Name())).
@@ -127,6 +130,41 @@ func (ch *checker) CheckUnreachableWiths(logger *slog.Logger, cc *file.Component
 				"because the last `with` always takes precedence over all the previous ones.",
 		})
 	}
+}
+
+func (ch *checker) CheckWithNotLooped(logger *slog.Logger, cc *file.ComponentCall) {
+	logger = logger.WithGroup("with_not_looped")
+
+	if len(cc.BlockSetters) == 0 {
+		return
+	}
+
+	sc, _ := cc.AST.Body.(*ast.Scope)
+	if sc == nil {
+		return
+	}
+
+	walk.WalkT(cc.AST.Body, func(ctx *walk.ContextT[*ast.With]) error {
+		if len(ctx.Parents) == 0 {
+			return nil
+		}
+		forLoop, _ := ctx.Parents[len(ctx.Parents)-1].Node.(*ast.For)
+		if forLoop == nil {
+			return nil
+		}
+
+		logger.Error("Component call: looped with")
+		ch.Report(&diagnostic.Diagnostic{
+			Message: "component call: looped with",
+			Primary: []diagnostic.Annotation{
+				anno.Position(cc.File, ctx.Node.Start(), "only the with block from the very last iteration is ever used"),
+			},
+			Secondary: []diagnostic.Annotation{
+				anno.Node(cc.File, forLoop, "in this for loop"),
+			},
+		})
+		return walk.NoDive
+	}, walk.DontDiveAny(&ast.ComponentCall{}))
 }
 
 func (ch *checker) CheckNoDuplicateComponentArgs(logger *slog.Logger, cc *file.ComponentCall) {
@@ -282,4 +320,69 @@ func (ch *checker) CheckRequiredBlocksAreSet(logger *slog.Logger, cc *file.Compo
 			Docs: "component-call",
 		})
 	}
+}
+
+func (ch *checker) CheckComponentAcceptsAttributes(logger *slog.Logger, cc *file.ComponentCall) {
+	logger = logger.WithGroup("component_accepts_attributes")
+
+	if !cc.Component.File.Package.Analyzed || cc.Component.AnalyzedWithErrors {
+		return
+	}
+
+	acceptsAndPlaceholder := cc.Component.FirstIncludedAndPlaceholder(cc) != nil
+	if acceptsAndPlaceholder {
+		return
+	}
+
+	var attributeArgs []ast.Attribute
+	if cc.AST.Header.Arguments != nil {
+		attributeArgs = make([]ast.Attribute, 0, len(cc.AST.Header.Arguments.List))
+		for _, arg := range cc.AST.Header.Arguments.List {
+			attr, _ := arg.(ast.Attribute)
+			if attr != nil {
+				attributeArgs = append(attributeArgs, attr)
+			}
+		}
+	}
+
+	hasAttributes := cc.FirstAnd != nil || len(attributeArgs) > 0
+	if !hasAttributes {
+		return
+	}
+
+	primaries := make([]diagnostic.Annotation, 1, 2+len(attributeArgs))
+	primaries[0] = anno.Node(cc.File, cc.AST.Header.Name, "this component does not accept any attributes")
+	if cc.FirstAnd != nil {
+		primaries = append(primaries, anno.Node(cc.File, cc.FirstAnd, "but you hand it attributes here"))
+	}
+	for _, attr := range attributeArgs {
+		primaries = append(primaries, anno.Anno(cc.File, anno.Annotation{
+			Context:    anno.ContextLines(cc.AST.Header.Start(), cc.AST.Header.End()),
+			Highlight:  anno.HighlightNode(attr),
+			Annotation: "but you pass it an attribute here",
+		}))
+	}
+
+	logger.Error("Component does not accept attributes")
+	diag := &diagnostic.Diagnostic{
+		Message: "component call: component does not accept attributes",
+		Primary: primaries,
+		Explanation: "Components need to specify an &-placeholder somewhere in their body " +
+			"for them to accept attributes. Since this component does not specify any " +
+			"(or you have overwritten all block defaults that contain one), " +
+			"you cannot hand attributes to it.",
+		Docs: "attribute-placeholder",
+	}
+	couldAcceptAttributes := cc.Component.FirstIncludedAndPlaceholder(nil) != nil
+	if couldAcceptAttributes {
+		diag.Hints = []diagnostic.Hint{
+			{
+				Hint: "The only &-placeholders of this component are specified in defaults of blocks, " +
+					"that you are overwriting. " +
+					"Perhaps, you could add the attributes in those blocks directly, " +
+					"to achieve the same result?",
+			},
+		}
+	}
+	ch.Report(diag)
 }

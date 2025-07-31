@@ -2,8 +2,8 @@ package ast
 
 import "slices"
 
-// Attribute is a pointer to either a [IDShorthand], a [ClassShorthand], or a
-// [NamedAttribute].
+// Attribute is a pointer to either an [AndPlaceholder], a [IDShorthand], a
+// [ClassShorthand], or a [NamedAttribute].
 type Attribute interface {
 	Argument
 	_attribute()
@@ -11,10 +11,47 @@ type Attribute interface {
 
 // if this is changed, change the comment above
 var (
+	_ Attribute = (*AndPlaceholder)(nil)
 	_ Attribute = (*IDShorthand)(nil)
 	_ Attribute = (*ClassShorthand)(nil)
 	_ Attribute = (*NamedAttribute)(nil)
 )
+
+// ============================================================================
+// And Placeholder
+// ======================================================================================
+
+// AndPlaceholder is an attribute 'named' `&` that is used as a placeholder for
+// the attributes attached to a Component call.
+//
+//	comp foo() {
+//	  div { span(&) [ foo ] }
+//	}
+type AndPlaceholder struct {
+	And *Position
+}
+
+var _ Attribute = (*AndPlaceholder)(nil)
+
+func (p *AndPlaceholder) Start() Position {
+	if p.And != nil {
+		return *p.And
+	}
+	return Position{}
+}
+
+func (p *AndPlaceholder) End() Position {
+	if p.And != nil {
+		return deltaPos(*p.And, len("&"))
+	}
+	return Position{}
+}
+
+func (*AndPlaceholder) Walk(func(Node)) {}
+
+func (*AndPlaceholder) _node()      {}
+func (*AndPlaceholder) _argument()  {}
+func (*AndPlaceholder) _attribute() {}
 
 // ============================================================================
 // ID Shorthand

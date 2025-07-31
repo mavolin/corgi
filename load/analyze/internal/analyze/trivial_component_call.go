@@ -8,6 +8,7 @@ import (
 	"github.com/mavolin/corgi/v2/file/ast"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
 	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
+	"github.com/mavolin/corgi/v2/file/walk"
 )
 
 // TrivialAnalyzeComponentCalls runs all trivial analyses on the components
@@ -35,6 +36,7 @@ func (z *analyzer) TrivialAnalyzeComponentCalls() {
 				slog.String("call_pos", cc.AST.Start().String()))
 
 			z.LinkBlockSetterBlocks(logger, cc)
+			z.ComponentCallFindFirstAnd(logger, cc)
 		}
 	}
 }
@@ -117,5 +119,39 @@ func (z *analyzer) LinkBlockSetterBlocks(logger *slog.Logger, cc *file.Component
 				anno.Node(cc.File, cc.AST, "in this component call"),
 			},
 		})
+	}
+}
+
+// ============================================================================
+// Find First And
+// ======================================================================================
+
+// ComponentCallFindFirstAnd finds the first & in the body of the given
+// component call.
+//
+// Depends on Checks: None
+//
+// Sets Fields:
+//   - ComponentCalls.FirstAnd
+//
+// Depends on Fields: None
+func (z *analyzer) ComponentCallFindFirstAnd(logger *slog.Logger, cc *file.ComponentCall) {
+	logger = logger.WithGroup("find_first_and")
+
+	if cc.AST.Body == nil {
+		return
+	}
+	scope, _ := cc.AST.Body.(*ast.Scope)
+	if scope == nil {
+		return
+	}
+
+	walk.WalkT(scope, func(ctx *walk.ContextT[*ast.And]) error {
+		cc.FirstAnd = ctx.Node
+		return walk.Stop
+	}, walk.DontDiveAny(&ast.With{}))
+
+	if cc.FirstAnd == nil {
+		return
 	}
 }

@@ -68,6 +68,18 @@ func TestArguments(t *testing.T) {
 				RParen: &ast.Position{Line: 1, Col: 6},
 			},
 		}, {
+			name: "single and placeholder",
+			in:   "(&)",
+			want: &ast.Arguments{
+				LParen: &ast.Position{Line: 1, Col: 1},
+				List: []ast.Argument{
+					&ast.AndPlaceholder{
+						And: &ast.Position{Line: 1, Col: 2},
+					},
+				},
+				RParen: &ast.Position{Line: 1, Col: 3},
+			},
+		}, {
 			name: "single named boolean attribute",
 			in:   "(disabled)",
 			want: &ast.Arguments{
@@ -136,21 +148,21 @@ func TestArguments(t *testing.T) {
 			},
 		}, {
 			name: "mix",
-			in:   "(arg1: arg1Value, arg2: arg2Value, .class1 class2, #id, booleanAttr, valueAttr=valueAttrValue)",
+			in:   "(arg1: arg1Value, arg2: arg2Value, &, .class1 class2, #id, booleanAttr, valueAttr=valueAttrValue)",
 			want: &ast.Arguments{
 				LParen: &ast.Position{Line: 1, Col: 1},
 				List: []ast.Argument{
 					&ast.ComponentArgument{
 						Name: &ast.Identifier{
 							Name:     "arg1",
-							Position: &ast.Position{Line: 1, Col: 1 + len("(")},
+							Position: &ast.Position{Line: 1, Col: 2},
 						},
-						Colon: &ast.Position{Line: 1, Col: 1 + len("(arg1")},
+						Colon: &ast.Position{Line: 1, Col: 6},
 						Value: &ast.Expression{
 							Nodes: ast.Code{
 								&ast.GoCode{
 									Code:     "arg1Value",
-									Position: &ast.Position{Line: 1, Col: 1 + len("(arg1: ")},
+									Position: &ast.Position{Line: 1, Col: 8},
 								},
 							},
 						},
@@ -158,92 +170,73 @@ func TestArguments(t *testing.T) {
 					&ast.ComponentArgument{
 						Name: &ast.Identifier{
 							Name:     "arg2",
-							Position: &ast.Position{Line: 1, Col: 1 + len("(arg1: arg1Value, ")},
+							Position: &ast.Position{Line: 1, Col: 19},
 						},
-						Colon: &ast.Position{Line: 1, Col: 1 + len("(arg1: arg1Value, arg2")},
+						Colon: &ast.Position{Line: 1, Col: 23},
 						Value: &ast.Expression{
 							Nodes: ast.Code{
 								&ast.GoCode{
 									Code:     "arg2Value",
-									Position: &ast.Position{Line: 1, Col: 1 + len("(arg1: arg1Value, arg2: ")},
+									Position: &ast.Position{Line: 1, Col: 25},
 								},
 							},
 						},
 					},
+					&ast.AndPlaceholder{
+						And: &ast.Position{Line: 1, Col: 36},
+					},
 					&ast.ClassShorthand{
-						Dot: &ast.Position{Line: 1, Col: 1 + len("(arg1: arg1Value, arg2: arg2Value, ")},
+						Dot: &ast.Position{Line: 1, Col: 39},
 						Names: []ast.Shorthand{
 							{
 								&ast.ShorthandText{
-									Text: "class1",
-									Position: &ast.Position{
-										Line: 1, Col: 1 + len("(arg1: arg1Value, arg2: arg2Value, ."),
-									},
+									Text:     "class1",
+									Position: &ast.Position{Line: 1, Col: 40},
 								},
 							}, {
 								&ast.ShorthandText{
-									Text: "class2",
-									Position: &ast.Position{
-										Line: 1, Col: 1 + len("(arg1: arg1Value, arg2: arg2Value, .class1 "),
-									},
+									Text:     "class2",
+									Position: &ast.Position{Line: 1, Col: 47},
 								},
 							},
 						},
 					},
 					&ast.IDShorthand{
-						Hash: &ast.Position{
-							Line: 1, Col: 1 + len("(arg1: arg1Value, arg2: arg2Value, .class1 class2, "),
-						},
 						ID: ast.Shorthand{
 							&ast.ShorthandText{
-								Text: "id",
-								Position: &ast.Position{
-									Line: 1, Col: 1 + len("(arg1: arg1Value, arg2: arg2Value, .class1 class2, #"),
-								},
+								Text:     "id",
+								Position: &ast.Position{Line: 1, Col: 56},
+							},
+						},
+						Hash: &ast.Position{Line: 1, Col: 55},
+					},
+					&ast.NamedAttribute{
+						Name: &ast.AttributeReference{
+							Name: &ast.AttributeName{
+								Name:     "booleanAttr",
+								Position: &ast.Position{Line: 1, Col: 60},
 							},
 						},
 					},
 					&ast.NamedAttribute{
 						Name: &ast.AttributeReference{
 							Name: &ast.AttributeName{
-								Name: "booleanAttr",
-								Position: &ast.Position{
-									Line: 1, Col: 1 + len("(arg1: arg1Value, arg2: arg2Value, .class1 class2, #id, "),
-								},
+								Name:     "valueAttr",
+								Position: &ast.Position{Line: 1, Col: 73},
 							},
 						},
-					},
-					&ast.NamedAttribute{
-						Name: &ast.AttributeReference{
-							Name: &ast.AttributeName{
-								Name: "valueAttr",
-								Position: &ast.Position{
-									Line: 1,
-									Col:  1 + len("(arg1: arg1Value, arg2: arg2Value, .class1 class2, #id, booleanAttr, "),
-								},
-							},
-						},
-						EqualSign: &ast.Position{
-							Line: 1,
-							Col:  1 + len("(arg1: arg1Value, arg2: arg2Value, .class1 class2, #id, booleanAttr, valueAttr"),
-						},
+						EqualSign: &ast.Position{Line: 1, Col: 82},
 						Value: &ast.ExpressionAttributeValue{
 							Nodes: ast.Code{
 								&ast.GoCode{
-									Code: "valueAttrValue",
-									Position: &ast.Position{
-										Line: 1,
-										Col:  1 + len("(arg1: arg1Value, arg2: arg2Value, .class1 class2, #id, booleanAttr, valueAttr="),
-									},
+									Code:     "valueAttrValue",
+									Position: &ast.Position{Line: 1, Col: 83},
 								},
 							},
 						},
 					},
 				},
-				RParen: &ast.Position{
-					Line: 1,
-					Col:  1 + len("(arg1: arg1Value, arg2: arg2Value, .class1 class2, #id, booleanAttr, valueAttr=valueAttrValue"),
-				},
+				RParen: &ast.Position{Line: 1, Col: 97},
 			},
 		},
 	}

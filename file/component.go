@@ -37,6 +37,14 @@ type Component struct {
 	// is a circular alias, which needs to be checked in the linker, not the
 	// analyzer to allow successful parameter linking.
 	AnalyzedWithErrors bool
+
+	// FirstPermanentAndPlaceholder is the first &-placeholder that is not
+	// part of a block default.
+	FirstPermanentAndPlaceholder *ast.AndPlaceholder
+	// FirstPermanentTopLevelAndPlaceholder is the first &-placeholder that is
+	// at the top-level of the component, i.e. not nested inside an element or
+	// part of a block default.
+	FirstPermanentTopLevelAndPlaceholder *ast.AndPlaceholder
 }
 
 func (c *Component) ParameterByName(name string) *ComponentParameter {
@@ -90,6 +98,38 @@ func (c *Component) BlockInstanceByNode(b *ast.Block) *BlockInstance {
 
 func (c *Component) Exported() bool {
 	return IsExported(c.AST.Header.Name.Name)
+}
+
+// FirstIncludedAndPlaceholder returns the first &-placeholder that is included
+// in the output of the component for the given component call.
+//
+// Passing nil checks the general case, in which all block defaults are
+// included.
+func (c *Component) FirstIncludedAndPlaceholder(cc *ComponentCall) *ast.AndPlaceholder {
+	if c.FirstPermanentAndPlaceholder != nil {
+		return c.FirstPermanentAndPlaceholder
+	}
+
+	instance := c.FirstBlockIncludedAndPlaceholder(cc)
+	if instance != nil {
+		return instance.Default.FirstAndPlaceholder
+	}
+	return nil
+}
+
+// FirstBlockIncludedAndPlaceholder returns the first block instance with an
+// &-placeholder in its default that is included in the output of the component
+// for the given component call.
+//
+// Passing nil checks the general case, in which all block defaults are
+// included.
+func (c *Component) FirstBlockIncludedAndPlaceholder(cc *ComponentCall) *BlockInstance {
+	for _, block := range c.Blocks {
+		if instance := block.FirstIncludedAndPlaceholder(cc); instance != nil {
+			return instance
+		}
+	}
+	return nil
 }
 
 type ComponentParameter struct {
@@ -153,6 +193,22 @@ func (b *Block) InstanceByNode(n *ast.Block) *BlockInstance {
 	return nil
 }
 
+// FirstIncludedAndPlaceholder returns the first instance of an &-placeholder
+// in a block default that is included in the output of the component for the
+// given component call.
+//
+// Passing nil checks the general case, in which all block defaults are
+// included.
+func (b *Block) FirstIncludedAndPlaceholder(cc *ComponentCall) *BlockInstance {
+	for _, instance := range b.Instances {
+		if instance.Default.FirstAndPlaceholder != nil && (cc == nil || !instance.DefaultOverwritten(cc)) {
+			return instance
+		}
+	}
+
+	return nil
+}
+
 // TopLevel reports whether this block is top-level.
 func (b *Block) TopLevel(s AnalysisStrategy) bool {
 	s.assertValid()
@@ -193,6 +249,11 @@ type (
 		// BUILD SYMBOLS
 
 		AST ast.Body
+
+		//
+		// ANALYZER
+
+		FirstAndPlaceholder *ast.AndPlaceholder // nil if no &-placeholder
 	}
 )
 
@@ -212,91 +273,4 @@ func (cbi *BlockInstance) DefaultOverwritten(cc *ComponentCall) bool {
 		return cbi.ChildOf.DefaultOverwritten(cc)
 	}
 	return false
-}
-
-// ============================================================================
-// Component Call
-// ======================================================================================
-
-type ComponentCall struct {
-	//
-	// BUILD SYMBOLS
-
-	AST *ast.ComponentCall
-
-	// File is the file the Component is defined in.
-	File *File
-
-	// BlockSetters are the withs used in this component call.
-	//
-	// All withs and their instances are guaranteed to be correctly set after
-	// analyzing, even if [AnalyzedWithErrors] is true.
-	BlockSetters []*BlockSetter
-
-	//
-	// LINKER
-
-	// Component is the Component being called.
-	Component *Component
-
-	//
-	// ANALYZER
-
-	AnalyzedWithErrors bool
-}
-
-func (cc *ComponentCall) External() bool {
-	return cc.File.Package != cc.Component.File.Package
-}
-
-func (cc *ComponentCall) Local() bool {
-	return !cc.External()
-}
-
-func (cc *ComponentCall) BlockSetterByName(name string) *BlockSetter {
-	for _, with := range cc.BlockSetters {
-		if with.Name == name {
-			return with
-		}
-	}
-	return nil
-}
-
-func (cc *ComponentCall) BlockSetterByNode(n ast.BlockSetter) *BlockSetter {
-	w := cc.BlockSetterByName(n.Name())
-	if w == nil {
-		return nil
-	}
-
-	if w.InstanceByNode(n) != nil {
-		return w
-	}
-	return nil
-}
-
-type BlockSetter struct {
-	//
-	// BUILD SYMBOLS
-
-	Name      string
-	Instances []*BlockSetterInstance
-
-	//
-	// ANALYZER
-
-	Block *Block
-}
-
-func (w *BlockSetter) InstanceByNode(n ast.BlockSetter) *BlockSetterInstance {
-	for _, instance := range w.Instances {
-		if instance.AST == n {
-			return instance
-		}
-	}
-	return nil
-}
-
-type BlockSetterInstance struct {
-	Group *BlockSetter
-	AST   ast.BlockSetter
 }

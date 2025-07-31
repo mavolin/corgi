@@ -16,7 +16,9 @@ import (
 
 func Attribute() parser.Func[ast.Attribute] {
 	return func(p *parser.Parser) (ast.Attribute, *diagnostic.Diagnostic) {
-		if a := parser.Try(p, IDShorthand()); a != nil {
+		if a := parser.Try(p, AndPlaceholder()); a != nil {
+			return a, nil
+		} else if a := parser.Try(p, IDShorthand()); a != nil {
 			return a, nil
 		} else if a := parser.Try(p, ClassShorthand()); a != nil {
 			return a, nil
@@ -33,6 +35,22 @@ func Attribute() parser.Func[ast.Attribute] {
 				{Title: "class shorthand", Example: "`.bark`"},
 			},
 		}
+	}
+}
+
+func AndPlaceholder() parser.Func[*ast.AndPlaceholder] {
+	return func(p *parser.Parser) (*ast.AndPlaceholder, *diagnostic.Diagnostic) {
+		var ap ast.AndPlaceholder
+
+		ap.And = parser.TryRuneAt(p, '&')
+		if ap.And == nil {
+			return nil, &diagnostic.Diagnostic{
+				Message: "missing `&`",
+				Primary: quickanno.Expected(p, p.Pos(), "an and placeholder (`&`)"),
+			}
+		}
+
+		return &ap, nil
 	}
 }
 
