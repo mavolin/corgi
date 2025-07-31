@@ -2,6 +2,7 @@ package link
 
 import (
 	"log/slog"
+	"slices"
 	"strings"
 
 	"github.com/mavolin/corgi/v2/file"
@@ -102,7 +103,7 @@ func (l *linker) CheckElementSpecCollisions() {
 		}
 
 		l.report(&diagnostic.Diagnostic{
-			Message: "element defined multiple times",
+			Message: "multiple elements with same qualified name",
 			Primary: primaries,
 		})
 	}
@@ -115,16 +116,10 @@ func (l *linker) CheckElementSpecCollisions() {
 		// Don't report again if exactly the same elements were already
 		// reported for clashing qualified names.
 		qualifiedElems := qualifiedDupls[strings.ToLower(elems[0].QualifiedName())]
-		if len(elems) == len(qualifiedElems) {
-			for i := range elems {
-				if elems[i] != qualifiedElems[i] {
-					goto Error
-				}
-			}
+		if slices.Equal(elems, qualifiedElems) {
 			continue
 		}
 
-	Error:
 		logger.Error("Found duplicate element specs",
 			slog.String("full_name", name),
 			slog.Int("count", len(elems)))
@@ -136,7 +131,7 @@ func (l *linker) CheckElementSpecCollisions() {
 		}
 
 		l.report(&diagnostic.Diagnostic{
-			Message: "element defined multiple times",
+			Message: "multiple elements with same html name",
 			Primary: primaries,
 		})
 	}
