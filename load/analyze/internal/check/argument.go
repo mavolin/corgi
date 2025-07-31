@@ -162,44 +162,29 @@ func (ch *checker) CheckNoInterpolationInUnsafeAttribute(logger *slog.Logger, f 
 	for _, n := range s.Contents {
 		switch n.(type) {
 		case *ast.ExpressionInterpolation:
-			logger.Error("Unsafe attribute contains interpolation")
-			ch.Report(&diagnostic.Diagnostic{
-				Message: "unsafe attribute contains interpolation",
-				Primary: []diagnostic.Annotation{
-					anno.Node(f, n, "cannot use interpolation here"),
-				},
-				Hints: []diagnostic.Hint{
-					{
-						Hint: "If you are sure, the value you are constructing is safe, " +
-							"wrap the entire expression in a `safe.TrustedUnsafe` call. " +
-							"Make sure to read the documentation of `safe.TrustedUnsafe` before doing so!",
-					},
-				},
-				Explanation: "Attributes marked as `unsafe` must not use any interpolation, " +
-					"even if the expression you are interpolating is of type `safe.Unsafe`. " +
-					"Either the entire attribute value must be a `safe.Unsafe` value, " +
-					"or it must be a literal.",
-			})
 		case *ast.ComponentCallInterpolation:
-			logger.Error("Unsafe attribute contains interpolation")
-			ch.Report(&diagnostic.Diagnostic{
-				Message: "unsafe attribute contains interpolation",
-				Primary: []diagnostic.Annotation{
-					anno.Node(f, n, "cannot use interpolation here"),
-				},
-				Hints: []diagnostic.Hint{
-					{
-						Hint: "If you are sure, the value you are constructing is safe, " +
-							"wrap the entire expression in a `safe.TrustedUnsafe` call. " +
-							"Make sure to read the documentation of `safe.TrustedUnsafe` before doing so!",
-					},
-				},
-				Explanation: "Attributes marked as `unsafe` must not use any interpolation, " +
-					"even if the expression you are interpolating is of type `safe.Unsafe`. " +
-					"Either the entire attribute value must be a `safe.Unsafe` value, " +
-					"or it must be a literal.",
-			})
+		default:
+			continue
 		}
+
+		logger.Error("Unsafe attribute contains interpolation")
+		ch.Report(&diagnostic.Diagnostic{
+			Message: "unsafe attribute contains interpolation",
+			Primary: []diagnostic.Annotation{
+				anno.Node(f, n, "cannot use interpolation here"),
+			},
+			Hints: []diagnostic.Hint{
+				{
+					Hint: "If you are sure, the value you are constructing is safe, " +
+						"wrap the entire expression in a `safe.TrustedUnsafe` call. " +
+						"Make sure to read the documentation of `safe.TrustedUnsafe` before doing so!",
+				},
+			},
+			Explanation: "Attributes marked as `unsafe` must not use any interpolation, " +
+				"even if the expression you are interpolating is of type `safe.Unsafe`. " +
+				"Either the entire attribute value must be a `safe.Unsafe` value, " +
+				"or it must be a literal.",
+		})
 	}
 }
 
