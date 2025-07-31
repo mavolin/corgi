@@ -92,7 +92,7 @@ func (ch *checker) CheckUnreachableWiths(logger *slog.Logger, cc *file.Component
 		}
 
 		return walk.NoDive
-	}, walk.DontDiveAny(&ast.ComponentCall{}))
+	}, walk.DontDive[*ast.ComponentCall]())
 
 	for _, tws := range topLevelWiths {
 		cws := conditionalWiths[tws[0].Name()]
@@ -156,7 +156,7 @@ func (ch *checker) CheckWithNotLooped(logger *slog.Logger, cc *file.ComponentCal
 			},
 		})
 		return walk.NoDive
-	}, walk.DontDiveAny(&ast.ComponentCall{}))
+	}, walk.DontDive[*ast.ComponentCall]())
 }
 
 func (ch *checker) CheckRequiredBlocksAreSet(logger *slog.Logger, cc *file.ComponentCall) {

@@ -64,9 +64,5 @@ func (z *analyzer) ComponentCallFindFirstAnd(logger *slog.Logger, cc *file.Compo
 	walk.WalkT(scope, func(ctx *walk.ContextT[*ast.And]) error {
 		cc.FirstAnd = ctx.Node
 		return walk.Stop
-	}, walk.DontDiveAny(&ast.With{}))
-
-	if cc.FirstAnd == nil {
-		return
-	}
+	}, walk.DontDive[ast.BlockSetter]())
 }

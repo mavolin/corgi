@@ -2,7 +2,6 @@ package walk
 
 import (
 	"fmt"
-	"reflect"
 
 	"github.com/mavolin/corgi/v2/file"
 	"github.com/mavolin/corgi/v2/file/ast"
@@ -46,7 +45,7 @@ func TopLevel(f *file.File) Option {
 			if blockSetter == nil {
 				panic(fmt.Sprintf("walk.TopLevel called without analyzing component calls: %s:%s: file.BlockSetter not found for ast node", f.ModulePath(), n.Start()))
 			}
-			if blockSetter.Block == nil || !blockSetter.Block.TopLevel(file.AtLeastOne) {
+			if blockSetter.Block == nil || blockSetter.Block.TopLevel(file.AtLeastOne).Equal(false) {
 				return Skip
 			}
 			return nil
@@ -55,22 +54,11 @@ func TopLevel(f *file.File) Option {
 	}
 }
 
-// DontDiveAny prevents the function from diving if the current item is of
-// the passed types.
-func DontDiveAny(types ...ast.Node) Option {
-	rTypes := make([]reflect.Type, len(types))
-	for i, t := range types {
-		rTypes[i] = reflect.TypeOf(t)
-	}
-
-	return func(wctx *Context) error {
-		t := reflect.TypeOf(wctx.Node)
-		for _, rType := range rTypes {
-			if rType == t {
-				return NoDive
-			}
+func DontDive[N ast.Node]() Option {
+	return func(ctx *Context) error {
+		if _, ok := ctx.Node.(N); ok {
+			return NoDive
 		}
-
 		return nil
 	}
 }
