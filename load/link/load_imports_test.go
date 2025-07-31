@@ -174,9 +174,34 @@ func TestLinker_LoadImports(t *testing.T) {
 		} else {
 			t.Log(ds.Short())
 		}
-		if !should.True(t, imp.LoadedWithErrors) {
-			t.Error("Expected import to be marked as loaded with errors")
+		should.True(t, imp.Loaded)
+	})
+
+	t.Run("import with errors", func(t *testing.T) {
+		t.Parallel()
+
+		importedPkg := createPackage("imported")
+		mainPkg := createPackage("main")
+		mainF := createFile(mainPkg, "main.corgi")
+		imp := createImport(mainF, nil, "", importedPkg.ImportPath)
+
+		ds := Link(context.Background(), mainPkg, Options{
+			Importer: (&mockImporter{
+				errors: map[importPath]error{
+					importedPkg.ImportPath: errors.New("test error"),
+				},
+			}).Import,
+		})
+
+		if should.Equal(t, 1, len(ds)) {
+			if !should.Equal(t, "import: failed to load package", ds[0].Message) {
+				t.Log(ds[0].Short())
+			}
+		} else {
+			t.Log(ds.Short())
 		}
+		should.True(t, imp.Loaded)
+		should.True(t, imp.LoadedWithErrors())
 	})
 
 	t.Run("builtin import", func(t *testing.T) {

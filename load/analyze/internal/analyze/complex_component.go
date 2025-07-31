@@ -6,6 +6,14 @@ import (
 	"github.com/mavolin/corgi/v2/file"
 )
 
+// ComplexAnalyzeComponent performs complex analysis on the given component.
+//
+// An analysis is complex, if it depends on the analysis of a component
+// call or the analysis of another component.
+func (z *analyzer) ComplexAnalyzeComponent() {
+
+}
+
 // ============================================================================
 // Analyze First Permanent Top-Level &-Placeholder
 // ======================================================================================

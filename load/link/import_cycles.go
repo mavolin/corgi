@@ -68,7 +68,7 @@ func (l *linker) CheckImportCycles(ctx context.Context) {
 						"Break the cycle by removing one of the imports.",
 				})
 
-				imp.LoadedWithErrors = true
+				imp.Loaded = true
 				reported[imp.Path] = true
 
 				// once we've found a cycle for this import, no need to check more parent packages

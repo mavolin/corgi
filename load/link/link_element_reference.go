@@ -52,7 +52,7 @@ func (l *linker) linkUnqualifiedElementReference(logger *slog.Logger, f *file.Fi
 	// search in dot imports
 	var ignoreError bool
 	for _, imp := range f.Imports {
-		if imp.LoadedWithErrors {
+		if imp.LoadedWithErrors() || imp.Package.PackageSymbols == nil {
 			ignoreError = true
 		}
 		switch {
@@ -126,7 +126,7 @@ func (l *linker) linkQualifiedElementReference(logger *slog.Logger, f *file.File
 		}
 	}
 
-	if imp.LoadedWithErrors {
+	if imp.LoadedWithErrors() || imp.Package.PackageSymbols == nil {
 		logger.Debug("Couldn't resolve reference, but package was loaded with errors: not reporting error")
 		return
 	}

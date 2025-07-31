@@ -17,11 +17,13 @@ import (
 )
 
 type mockImporter struct {
-	packages map[string]*file.Package
-	errors   map[string]error
+	packages map[importPath]*file.Package
+	errors   map[importPath]error
 }
 
-func (m *mockImporter) Import(_ context.Context, path string) (*file.Package, diagnostic.List, error) {
+var _ Importer = (*mockImporter)(nil).Import
+
+func (m *mockImporter) Import(_ context.Context, path importPath) (*file.Package, diagnostic.List, error) {
 	if p, ok := m.packages[path]; ok {
 		var err error
 		if m.errors != nil {

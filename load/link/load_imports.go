@@ -97,7 +97,7 @@ func (loader *importLoader) loadImports(ctx context.Context) {
 
 	for _, f := range loader.l.p.Files {
 		for _, imp := range f.Imports {
-			if !imp.Explicit() || imp.Path == "" || imp.LoadedWithErrors {
+			if !imp.Explicit() || imp.Path == "" || imp.Loaded {
 				continue
 			}
 
@@ -123,12 +123,12 @@ func (loader *importLoader) loadImport(ctx context.Context, f *file.File, imp *f
 		slog.String("import_pos", imp.AST.Start().String()))
 	logger.Debug("Loading import")
 
+	imp.Loaded = true
+
 	var d diagnostic.List
 	var err error
 	imp.Package, d, err = loader.l.importer(ctx, imp.Path)
 	if len(d) > 0 || err != nil {
-		imp.LoadedWithErrors = true
-
 		loader.reportMut.Lock()
 
 		if err != nil {
@@ -249,9 +249,6 @@ func (loader *importLoader) setBuiltinImport(p *file.Package, d diagnostic.List,
 				alias += "_"
 			}
 			f.AddBuiltinImport(alias, p)
-			if len(d) > 0 || err != nil {
-				f.BuiltinImport().LoadedWithErrors = true
-			}
 		}
 	}
 }

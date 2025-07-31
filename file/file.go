@@ -58,7 +58,8 @@ type Symbols struct {
 }
 
 // AddBuiltinImport creates a new [Import] importing the given builtin package.
-// The import is marked as not forwarded by default.
+// The import is marked as not forwarded by default. It is automatically marked
+// as loaded.
 //
 // You needn't specify an alias, however, the alias must not be ".".
 //
@@ -75,6 +76,7 @@ func (s *Symbols) AddBuiltinImport(alias string, builtin *Package) {
 		Package:   builtin,
 		Namespace: cmp.Or(alias, builtin.Name),
 		Builtin:   true,
+		Loaded:    true,
 	}
 	s.AddImport(imp)
 }
@@ -198,17 +200,18 @@ type Import struct {
 	//
 	// LINKER
 
+	// Loaded indicates the linker determined that this import is
+	// relevant, and it attempted to load the package.
+	//
+	// If true, but Package is nil, the linker encountered an error while
+	// loading the package.
+	Loaded bool
+
 	// Package is the package this import resolves to.
 	//
 	// The linker will not load the packages of implicitly imported packages,
 	// the only exception being a builtin package, if provided.
 	Package *Package
-
-	// LoadedWithErrors indicates that the linker wanted to load the package,
-	// but encountered an error while doing so.
-	//
-	// Details will be available in the diagnostics returned by the linker.
-	LoadedWithErrors bool
 
 	// Namespace is the namespace of the import.
 	//
@@ -246,6 +249,17 @@ type Import struct {
 
 func (imp *Import) Explicit() bool { return imp.AST != nil }
 func (imp *Import) Implicit() bool { return !imp.Explicit() }
+
+func (imp *Import) LoadedWithErrors() bool {
+	// If the import is not loaded, it cannot have been loaded with errors.
+	if !imp.Loaded {
+		return false
+	}
+
+	// If the import is loaded, but the package is nil, it was loaded with
+	// errors.
+	return imp.Package == nil
+}
 
 // EnsureUniqueNamespace ensures that the import's namespace is unique
 // within the file's symbols.

@@ -161,6 +161,7 @@ func testLinker_LinkComponentCalls_failure(t *testing.T) {
 			message: "import: failed to load package",
 			setup: func() (p *file.Package, packages []*file.Package, packageErrors map[importPath]error) {
 				importedPkg := createPackage("imported")
+				importedPkg.PackageSymbols = nil
 				createFile(importedPkg, "imported.corgi")
 
 				p = createPackage("test")

@@ -59,8 +59,8 @@ func (l *linker) linkUnqualifiedAttributeReference(logger *slog.Logger, f *file.
 
 	// search in dot imports
 	var ignoreError bool
-	for _, imp := range f.Imports {
-		if imp.LoadedWithErrors {
+	for _, imp := range l.dotImports[f] {
+		if imp.LoadedWithErrors() || imp.Package.PackageSymbols == nil {
 			ignoreError = true
 		}
 		switch {
@@ -168,7 +168,7 @@ func (l *linker) linkQualifiedAttributeReference(logger *slog.Logger, f *file.Fi
 		}
 	}
 
-	if imp.LoadedWithErrors {
+	if imp.LoadedWithErrors() || imp.Package.PackageSymbols == nil {
 		logger.Debug("Couldn't resolve reference, but package was loaded with errors: not reporting error")
 		return
 	}

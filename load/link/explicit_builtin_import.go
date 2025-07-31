@@ -37,7 +37,7 @@ func (l *linker) CheckExplicitBuiltinImport() {
 				Explanation: "The builtin package is implicitly imported in every file. " +
 					"Explicitly importing it serves no purpose and is not allowed.",
 			})
-			imp.LoadedWithErrors = true
+			imp.Loaded, imp.Package = true, nil
 		}
 	}
 }
