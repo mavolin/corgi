@@ -31,6 +31,9 @@ func (l *linker) LinkComponentCalls() {
 			case *ast.QualifiedIdentifier:
 				l.linkQualifiedComponentCall(logger, f, cc, ident)
 			}
+			if cc.Component != nil {
+				l.linkBlockSetterBlocks(logger, cc)
+			}
 		}
 	}
 }
@@ -163,4 +166,41 @@ func (l *linker) linkQualifiedComponentCall(
 		},
 		Explanation: "The component you are trying to call does not exist in the package.",
 	})
+}
+
+// linkBlockSetterBlocks links the Block field of the BlockSetters of the given
+// component call.
+func (l *linker) linkBlockSetterBlocks(logger *slog.Logger, cc *file.ComponentCall) {
+	logger = logger.WithGroup("block_setter_blocks")
+
+	for _, blockSetter := range cc.BlockSetters {
+		logger := logger.With(slog.String("with_name", blockSetter.Name))
+
+		blockSetter.Block = cc.Component.BlockByName(blockSetter.Name)
+		if blockSetter.Block != nil {
+			continue
+		}
+
+		logger.Error("Block Setter block not found")
+
+		primaries := make([]diagnostic.Annotation, len(blockSetter.Instances))
+		for i, instance := range blockSetter.Instances {
+			var annotation string
+			if blockSetter.Name == "" {
+				annotation = "`" + cc.AST.Header.Name.Full() + "` defines no default block"
+			} else {
+				annotation = "`" + cc.AST.Header.Name.Full() + "` defines no block with this name"
+			}
+
+			primaries[i] = anno.Node(cc.File, instance.AST, annotation)
+		}
+
+		l.report(&diagnostic.Diagnostic{
+			Message: "component call: block setter references unknown block",
+			Primary: primaries,
+			Secondary: []diagnostic.Annotation{
+				anno.Node(cc.File, cc.AST, "in this component call"),
+			},
+		})
+	}
 }

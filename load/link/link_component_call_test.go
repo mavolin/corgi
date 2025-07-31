@@ -257,3 +257,93 @@ func testLinker_LinkComponentCalls_failure(t *testing.T) {
 		})
 	}
 }
+
+func TestLinker_LinkBlockSetterBlocks(t *testing.T) {
+	t.Parallel()
+
+	t.Run("success", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("named block", func(t *testing.T) {
+			t.Parallel()
+
+			p := createPackage("test")
+			f := createFile(p, "test.corgi")
+			comp := createComponent(f, nil, "Test")
+			block := createBlock(comp, "content")
+
+			call := createComponentCall(f, nil, "", comp.AST.Header.Name.Name)
+			blockSetter := createBlockSetter(call, block.Name)
+			createWith(blockSetter, nil)
+
+			ds := Link(context.Background(), p, Options{})
+			if !should.Equal(t, 0, len(ds)) {
+				t.Log(ds.Short())
+			}
+
+			if !should.True(t, comp == call.Component) {
+				t.Log(cmp.Diff(comp, call.Component))
+			}
+
+			if !should.True(t, block == blockSetter.Block) {
+				t.Log(cmp.Diff(block, blockSetter.Block))
+			}
+		})
+
+		t.Run("default block", func(t *testing.T) {
+			t.Parallel()
+
+			p := createPackage("test")
+			f := createFile(p, "test.corgi")
+
+			comp := createComponent(f, nil, "Test")
+			block := createBlock(comp, "")
+
+			call := createComponentCall(f, nil, "", comp.AST.Header.Name.Name)
+			blockSetter := createBlockSetter(call, block.Name)
+
+			ds := Link(context.Background(), p, Options{})
+
+			if !should.Equal(t, 0, len(ds)) {
+				t.Log(ds.Short())
+			}
+
+			if !should.True(t, comp == call.Component) {
+				t.Log(cmp.Diff(comp, call.Component))
+			}
+
+			if !should.True(t, blockSetter.Block == block) {
+				t.Log(cmp.Diff(block, blockSetter.Block))
+			}
+		})
+	})
+
+	t.Run("unknown block", func(t *testing.T) {
+		t.Parallel()
+
+		p := createPackage("test")
+		f := createFile(p, "test.corgi")
+
+		comp := createComponent(f, nil, "Test")
+		createBlock(comp, "sidebar")
+
+		call := createComponentCall(f, nil, "", comp.AST.Header.Name.Name)
+		blockSetter := createBlockSetter(call, "nonexistent")
+		createWith(blockSetter, nil)
+
+		ds := Link(context.Background(), p, Options{})
+
+		if !should.True(t, comp == call.Component) {
+			t.Log(cmp.Diff(comp, call.Component))
+		}
+
+		should.True(t, blockSetter.Block == nil)
+		if should.Equal(t, 1, len(ds)) {
+			if !should.True(t, ds[0].Message == "component call: block setter references unknown block") {
+				t.Log(ds[0].Short())
+			}
+		} else {
+			t.Log(ds.Short())
+		}
+	})
+}
