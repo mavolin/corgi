@@ -96,7 +96,7 @@ func (l *linker) CheckElementSpecCollisions() {
 			slog.String("qualified_name", name),
 			slog.Int("count", len(elems)))
 
-		primaries := make([]diagnostic.Annotation, 0, len(elems))
+		primaries := make([]diagnostic.Annotation, len(elems))
 		for i, elem := range elems {
 			primaries[i] = anno.Node(elem.File, elem.AST.Name, "defined here")
 		}
@@ -184,9 +184,9 @@ func (l *linker) CheckAttributeSpecCollisions() {
 			slog.String("selector", sel),
 			slog.Int("count", len(attrs)))
 
-		primaries := make([]diagnostic.Annotation, 0, len(attrs))
-		for _, attr := range attrs {
-			primaries = append(primaries, anno.Node(attr.File, attr.AST.Selector, "defined here"))
+		primaries := make([]diagnostic.Annotation, len(attrs))
+		for i, attr := range attrs {
+			primaries[i] = anno.Node(attr.File, attr.AST.Selector, "defined here")
 		}
 
 		l.report(&diagnostic.Diagnostic{
