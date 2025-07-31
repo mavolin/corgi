@@ -72,6 +72,7 @@ linters:
       - path: '[^/]+_test.go$'
         linters:
           - errcheck
+          - unparam
     paths:
       - third_party$
       - builtin$
