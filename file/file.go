@@ -45,6 +45,11 @@ func (f *File) PathInModule() string {
 //
 // Refer to [PackageSymbols] and [BuildSymbols] for more information.
 type Symbols struct {
+	// Imports are the imports of the file.
+	//
+	// It is recommended to use [Symbols.AddImport] and
+	// [Symbols.AddBuiltinImport] to add imports to the file, as these
+	// methods provide additional safeguards to prevent illegal states.
 	Imports []*Import
 
 	ComponentCalls       []*ComponentCall
@@ -55,6 +60,20 @@ type Symbols struct {
 
 	AttributeReferences       []*AttributeReference
 	attributeReferencesByNode map[*ast.AttributeReference]*AttributeReference
+
+	//
+	// LINKER
+
+	// Linked indicates that the entire file has been linked, i.e. all symbols
+	// have Linked set to true.
+	Linked bool
+
+	//
+	// ANALYZER
+
+	// Analyzed indicates that the entire file has been analyzed, i.e. all
+	// symbols have Analyzed set to true.
+	Analyzed bool
 }
 
 // AddBuiltinImport creates a new [Import] importing the given builtin package.
@@ -250,17 +269,6 @@ type Import struct {
 func (imp *Import) Explicit() bool { return imp.AST != nil }
 func (imp *Import) Implicit() bool { return !imp.Explicit() }
 
-func (imp *Import) LoadedWithErrors() bool {
-	// If the import is not loaded, it cannot have been loaded with errors.
-	if !imp.Loaded {
-		return false
-	}
-
-	// If the import is loaded, but the package is nil, it was loaded with
-	// errors.
-	return imp.Package == nil
-}
-
 // EnsureUniqueNamespace ensures that the import's namespace is unique
 // within the file's symbols.
 //
@@ -288,6 +296,13 @@ type ElementReference struct {
 	//
 	// LINKER
 
+	// Linked indicates whether the ElementReference has been seen by the
+	// linker, and it attempted to link it.
+	//
+	// If true, but Spec is nil, the linker encountered an error while
+	// linking the ElementReference.
+	Linked bool
+
 	// Spec is the spec providing the type of the Element.
 	Spec *ElementSpec
 }
@@ -308,6 +323,12 @@ type AttributeReference struct {
 	//
 	// LINKER
 
+	// Linked indicates whether the AttributeReference has been seen by the
+	// linker, and it attempted to link it.
+	// If true, but Spec is nil, the linker encountered an error while
+	// linking the AttributeReference.
+	Linked bool
+
 	// Spec is the spec declaring the attribute.
 	//
 	// Since attributes can also be explicitly typed, this field may be
@@ -319,7 +340,9 @@ type AttributeReference struct {
 	//
 	// ANALYZER
 
-	AnalyzedWithErrors bool
+	// Analyzed indicates whether the AttributeReference has been analyzed,
+	// albeit with errors.
+	Analyzed bool
 
 	Element *ElementSpec // nil if not attached to an element
 	// Rule is the rule that is relevant for the element/attribute pair.

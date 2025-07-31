@@ -68,6 +68,20 @@ type PackageSymbols struct {
 	stateByNode      map[*ast.StateSpec][]*State
 	ElementSpecs     []*ElementSpec
 	AttributeSpecs   []*AttributeSpec // ordered by specificity, descending
+
+	//
+	// LINKER
+
+	// Linked indicates that the entire file has been linked, i.e. all symbols
+	// have Linked/Loaded set to true.
+	Linked bool
+
+	//
+	// ANALYZER
+
+	// Analyzed indicates that the entire file has been analyzed, i.e. all
+	// symbols have Analyzed set to true.
+	Analyzed bool
 }
 
 func (s *PackageSymbols) ComponentByNode(c *ast.Component) *Component {
@@ -229,6 +243,12 @@ type State struct {
 	//
 	// ANALYZER
 
+	// Analyzed indicates whether the State has been analyzed,
+	// albeit with errors.
+	Analyzed bool
+	// AnalyzedWithErrors indicates that the State has been
+	// analyzed, but at least one of the below fields could not be set without
+	// errors.
 	AnalyzedWithErrors bool
 
 	// The InferredType of this value, if there is no explicit type.

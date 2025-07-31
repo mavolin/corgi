@@ -31,12 +31,9 @@ type Component struct {
 	//
 	// ANALYZER
 
-	// AnalyzedWithErrors indicates whether this component could not be fully
-	// analyzed without errors.
-	// It might also be set by the linker, if there
-	// is a circular alias, which needs to be checked in the linker, not the
-	// analyzer to allow successful parameter linking.
-	AnalyzedWithErrors bool
+	// Analyzed indicates whether the Component has been analyzed,
+	// albeit with errors.
+	Analyzed bool
 
 	// FirstPermanentAndPlaceholder is the first &-placeholder that is not
 	// part of a block default.

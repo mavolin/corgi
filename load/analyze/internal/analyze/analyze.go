@@ -42,4 +42,9 @@ func Analyze(ctx *context.Context) {
 	z.TrivialAnalyzeComponentCalls()
 
 	z.ComplexAnalysis()
+
+	ctx.P.Analyzed = true
+	for _, f := range ctx.P.Files {
+		f.Analyzed = true
+	}
 }

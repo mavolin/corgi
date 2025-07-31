@@ -20,26 +20,34 @@ type ComponentCall struct {
 	//
 	// LINKER
 
+	// Linked indicates whether this ComponentCall has been seen by the linker,
+	// and it attempted to link it.
+	//
+	// If this is true, but [Component] is nil, the linker encountered an error
+	// while linking the ComponentCall.
+	Linked bool
+
 	// Component is the Component being called.
 	Component *Component
 
 	//
 	// ANALYZER
 
-	AnalyzedWithErrors bool
+	// Analyzed indicates whether the ComponentCall has been analyzed,
+	// albeit with errors.
+	Analyzed bool
+
+	// Circular indicates this call's component calls itself.
+	// In other words, this component call is part of a recursion.
+	Circular bool
 
 	// FirstAnd is the first & that fills the components placeholder.
 	// Nil, if no such & exists.
 	FirstAnd *ast.And
 }
 
-func (cc *ComponentCall) External() bool {
-	return cc.File.Package != cc.Component.File.Package
-}
-
-func (cc *ComponentCall) Local() bool {
-	return !cc.External()
-}
+func (cc *ComponentCall) External() bool { return cc.File.Package != cc.Component.File.Package }
+func (cc *ComponentCall) Local() bool    { return !cc.External() }
 
 func (cc *ComponentCall) BlockSetterByName(name string) *BlockSetter {
 	for _, with := range cc.BlockSetters {
@@ -70,7 +78,14 @@ type BlockSetter struct {
 	Instances []*BlockSetterInstance
 
 	//
-	// ANALYZER
+	// LINKER
+
+	// Linked indicates whether this BlockSetter has been seen by the
+	// linker, and it attempted to link it.
+	//
+	// If this is true, but [Block] is nil, the linker encountered an error
+	// while linking the BlockSetter.
+	Linked bool
 
 	Block *Block
 }

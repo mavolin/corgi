@@ -25,6 +25,8 @@ func (z *analyzer) AnalyzeState() {
 			slog.String("name", s.Name().Name))
 
 		z.InferStateType(logger, s)
+
+		s.Analyzed = true
 	}
 }
 

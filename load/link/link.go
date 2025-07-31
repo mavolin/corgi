@@ -152,6 +152,11 @@ func Link(ctx context.Context, p *file.Package, o Options) diagnostic.List {
 	l.CheckAttributeRuleCollisions()
 	l.LinkAttributeReferences()
 
+	p.Linked = true
+	for _, f := range p.Files {
+		f.Linked = true
+	}
+
 	if len(l.diagnostics) > 0 {
 		return slices.Clip(l.diagnostics)
 	}
