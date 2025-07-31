@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/mavolin/corgi/v2/escape/attrtype"
 	"github.com/mavolin/corgi/v2/escape/elemtype"
 	"github.com/mavolin/corgi/v2/internal/test/should"
 )
@@ -41,7 +42,7 @@ func TestLinker_CheckElementSpecCollisions(t *testing.T) {
 		ds := Link(context.Background(), pkg, Options{})
 
 		if should.Equal(t, 1, len(ds)) {
-			if !should.Equal(t, "element defined multiple times", ds[0].Message) {
+			if !should.Equal(t, "multiple elements with same qualified name", ds[0].Message) {
 				t.Log(ds[0].Short())
 			}
 		} else {
@@ -60,7 +61,7 @@ func TestLinker_CheckElementSpecCollisions(t *testing.T) {
 		ds := Link(context.Background(), pkg, Options{})
 
 		if should.Equal(t, 1, len(ds)) {
-			if !should.Equal(t, "element defined multiple times", ds[0].Message) {
+			if !should.Equal(t, "multiple elements with same html name", ds[0].Message) {
 				t.Log(ds[0].Short())
 			}
 		} else {
@@ -79,7 +80,68 @@ func TestLinker_CheckElementSpecCollisions(t *testing.T) {
 		ds := Link(context.Background(), pkg, Options{})
 
 		if should.Equal(t, 1, len(ds)) {
-			if !should.Equal(t, "element defined multiple times", ds[0].Message) {
+			if !should.Equal(t, "multiple elements with same qualified name", ds[0].Message) {
+				t.Log(ds[0].Short())
+			}
+		} else {
+			t.Log(ds.Short())
+		}
+	})
+}
+
+func TestLinker_CheckAttributeSpecCollisions(t *testing.T) {
+	t.Parallel()
+
+	t.Run("qualified collision", func(t *testing.T) {
+		t.Parallel()
+
+		pkg := createPackage("test")
+		f := createFile(pkg, "test.corgi")
+
+		createBasicAttributeSpec(f, nil, "foo", "Same", nil, attrtype.Innocuous)
+		createBasicAttributeSpec(f, nil, "bar", "Same", nil, attrtype.Innocuous)
+		ds := Link(context.Background(), pkg, Options{})
+
+		if should.Equal(t, 1, len(ds)) {
+			if !should.Equal(t, "multiple attributes with same qualified selector", ds[0].Message) {
+				t.Log(ds[0].Short())
+			}
+		} else {
+			t.Log(ds.Short())
+		}
+	})
+
+	t.Run("html name collision", func(t *testing.T) {
+		t.Parallel()
+
+		pkg := createPackage("test")
+		f := createFile(pkg, "test.corgi")
+
+		createBasicAttributeSpec(f, nil, "foo", "same", nil, attrtype.Innocuous)
+		createBasicAttributeSpec(f, nil, "foos", "ame", nil, attrtype.Innocuous)
+		ds := Link(context.Background(), pkg, Options{})
+
+		if should.Equal(t, 1, len(ds)) {
+			if !should.Equal(t, "multiple attributes with same html name selector", ds[0].Message) {
+				t.Log(ds[0].Short())
+			}
+		} else {
+			t.Log(ds.Short())
+		}
+	})
+
+	t.Run("both", func(t *testing.T) {
+		t.Parallel()
+
+		pkg := createPackage("test")
+		f := createFile(pkg, "test.corgi")
+
+		createBasicAttributeSpec(f, nil, "foo", "same", nil, attrtype.Innocuous)
+		createBasicAttributeSpec(f, nil, "foo", "same", nil, attrtype.Innocuous)
+		ds := Link(context.Background(), pkg, Options{})
+
+		if should.Equal(t, 1, len(ds)) {
+			if !should.Equal(t, "multiple attributes with same qualified selector", ds[0].Message) {
 				t.Log(ds[0].Short())
 			}
 		} else {

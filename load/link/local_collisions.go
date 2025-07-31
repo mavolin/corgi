@@ -159,14 +159,14 @@ func appendElementSpecLocationAnnotations(
 
 func (l *linker) CheckAttributeSpecCollisions() {
 	logger := l.logger.WithGroup("checks.collisions.attribute_specs")
+	logger.Debug("Checking for attribute spec collisions")
 
 	if len(l.p.AttributeSpecs) <= 1 {
-		logger.Info("One or no attribute spec, skipping")
 		return
 	}
 
 	qualifiedDupls := make(map[attributeSelector][]*file.AttributeSpec)
-	fullDupls := make(map[fullAttributeSelector][]*file.AttributeSpec)
+	htmlNameDupls := make(map[fullAttributeSelector][]*file.AttributeSpec)
 
 	for _, attr := range l.p.AttributeSpecs {
 		info := attrSpecInfo(attr)
@@ -179,7 +179,7 @@ func (l *linker) CheckAttributeSpecCollisions() {
 
 		fullSel := info.htmlNameSelector()
 		if fullSel != sel {
-			fullDupls[fullSel] = append(fullDupls[fullSel], attr)
+			htmlNameDupls[fullSel] = append(htmlNameDupls[fullSel], attr)
 		}
 	}
 
@@ -206,8 +206,15 @@ func (l *linker) CheckAttributeSpecCollisions() {
 		})
 	}
 
-	for sel, attrs := range fullDupls {
+	for sel, attrs := range htmlNameDupls {
 		if len(attrs) <= 1 {
+			continue
+		}
+
+		// Don't report again if exactly the same elements were already
+		// reported for clashing qualified names.
+		qualifiedElems := qualifiedDupls[attrSpecInfo(attrs[0]).qualifiedSelector()]
+		if slices.Equal(attrs, qualifiedElems) {
 			continue
 		}
 
@@ -222,7 +229,7 @@ func (l *linker) CheckAttributeSpecCollisions() {
 		}
 
 		l.report(&diagnostic.Diagnostic{
-			Message: "multiple attributes with same full selector",
+			Message: "multiple attributes with same html name selector",
 			Primary: primaries,
 			Hints: []diagnostic.Hint{
 				{Hint: "Remember that attribute names are case-insensitive."},
