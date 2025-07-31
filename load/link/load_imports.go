@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/mavolin/corgi/v2/file"
+	"github.com/mavolin/corgi/v2/file/ast"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
 	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
 	"github.com/sourcegraph/conc"
@@ -187,6 +188,30 @@ func (loader *importLoader) loadBuiltin(ctx context.Context) (*file.Package, dia
 	}
 	logger := loader.logger.With(slog.String("import", loader.l.builtinPath))
 
+	var needBuiltin bool
+	for _, f := range loader.l.p.Files {
+		if f.BuiltinImport() == nil {
+			needBuiltin = true
+			continue
+		}
+
+		logger.Error("File already has a builtin import",
+			slog.String("file", f.Name))
+		loader.l.report(&diagnostic.Diagnostic{
+			Type:    diagnostic.InternalError,
+			Message: "file already has a builtin import",
+			Primary: []diagnostic.Annotation{
+				anno.Position(f, ast.Position{Line: 1, Col: 1}, "file's builtin import already set"),
+			},
+			Explanation: "This file already has a builtin import set, but the linker was given a non-empty builtin path " +
+				"to load.",
+		})
+	}
+	if !needBuiltin {
+		logger.Debug("All files already have a builtin import, no need to load it again")
+		return nil, nil, nil // no builtin import needed, nothing to load
+	}
+
 	logger.Debug("Loading builtin import in current goroutine")
 
 	p, d, err := loader.l.importer(ctx, loader.l.builtinPath)
@@ -215,7 +240,11 @@ func (loader *importLoader) setBuiltinImport(p *file.Package, d diagnostic.List,
 	}
 	if p != nil {
 		for _, f := range loader.l.p.Files {
-			f.AddBuiltinImport(BuiltinAlias, p)
+			if f.BuiltinImport() != nil {
+				continue
+			}
+
+			f.AddBuiltinImport(alias, p)
 			if len(d) > 0 || err != nil {
 				f.BuiltinImport().LoadedWithErrors = true
 			}
