@@ -42,7 +42,9 @@ func (z *analyzer) AnalyzeComponentCall(ctx context.Context, cc *file.ComponentC
 	}
 
 	z.AnalyzeCallComponent(cc)
-	z.ComponentCallFindFirstDelegatedAttributes(ctx, logger, cc)
+	z.FindFirstDelegatedAttributes(ctx, logger, cc)
+	z.AnalyzeAcceptsAttributes(cc)
+	z.AnalyzeForwardsDelegatedAttributes(cc)
 }
 
 func (z *analyzer) checkNoInfiniteRecursion(logger *slog.Logger, cc *file.ComponentCall, callerChain []*file.Component) {
@@ -289,4 +291,58 @@ func (z *analyzer) AnalyzeForwardsDelegatedAttributes(cc *file.ComponentCall) {
 	}
 
 	cc.ForwardsDelegatedAttributes.SetIf(false, !failed)
+}
+
+// ============================================================================
+// Accepts Attributes
+// ======================================================================================
+
+// AnalyzeAcceptsAttributes analyzes whether the call's component accepts
+// attributes.
+//
+// Depends on Checks: None
+//
+// Sets Fields:
+//   - ComponentCalls.AcceptsAttributes
+//
+// Depends on Fields:
+//   - ComponentCalls.ForwardsDelegatedAttributes
+func (z *analyzer) AnalyzeAcceptsAttributes(cc *file.ComponentCall) {
+	if cc.Component == nil {
+		cc.AcceptsAttributes.SetFailed()
+		return
+	}
+
+	if cc.ForwardsDelegatedAttributes.NotZero() {
+		cc.AcceptsAttributes.Set(true)
+		return
+	} else if cc.Component.CouldAcceptAttributes.Equal(false) {
+		cc.AcceptsAttributes.Set(false)
+		return
+	}
+
+	ap := cc.Component.FirstPermanentAndPlaceholder
+	if ap.NotZero() {
+		cc.AcceptsAttributes.Set(true)
+		return
+	}
+
+	failed := ap.Failed
+	for _, block := range cc.Component.Blocks {
+		for _, instance := range block.Instances {
+			if instance.Default == nil {
+				continue
+			} else if instance.DefaultOverwritten(cc) {
+				continue
+			}
+
+			if instance.Default.FirstAndPlaceholder.NotZero() {
+				cc.AcceptsAttributes.Set(true)
+				return
+			}
+			failed = failed || instance.Default.FirstAndPlaceholder.Failed
+		}
+	}
+
+	cc.AcceptsAttributes.SetIf(false, !failed)
 }

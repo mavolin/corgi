@@ -58,6 +58,11 @@ type ComponentCall struct {
 	//    comp Foo() { &(&) }
 	// Where Foo is called with a delegated attribute.
 	ForwardsDelegatedAttributes Analysis[bool]
+	// AcceptsAttributes indicates whether the call's component accepts
+	// attributes.
+	//
+	// ForwardsDelegatedAttributes implies AcceptsAttributes.
+	AcceptsAttributes Analysis[bool]
 
 	// FirstTopLevelAttributeWriter is the first attribute writer producing
 	// top-level attributes.
