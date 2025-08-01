@@ -46,7 +46,7 @@ type ComponentCall struct {
 	FirstDelegatedAttributeWriter Analysis[ast.AttributeWriter]
 	// FirstDelegatedContentWriter is the first content writer filling
 	// the &-placeholder of the called component outside a block setter.
-	FirstDelegatedAndPlaceholder Analysis[*ast.AndPlaceholder]
+	FirstDelegatedAndPlaceholderWriter Analysis[ast.AndPlaceholderWriter]
 }
 
 func (cc *ComponentCall) External() bool { return cc.File.Package != cc.Component.File.Package }
@@ -73,84 +73,118 @@ func (cc *ComponentCall) BlockSetterByNode(n ast.BlockSetter) *BlockSetter {
 	return nil
 }
 
-// FirstBlockAndPlaceholder returns the first block setter instance that has a
-// &-placeholder in any of its instances.
-func (cc *ComponentCall) FirstBlockAndPlaceholder() Analysis[*BlockSetterInstance] {
-	var failed bool
-	for _, s := range cc.BlockSetters {
-		ap := s.FirstAndPlaceholder()
-		if ap.Failed {
-			failed = true
-			continue
-		} else if ap.Result != nil {
-			return ap
+// WritesTopLevelAttributes whether this component call writes to the attributes
+// of its containing element.
+//
+// If the call's component is not linked or insufficiently analyzed,
+// WritesTopLevelAttributes returns with a failed analysis.
+func (cc *ComponentCall) WritesTopLevelAttributes() Analysis[bool] {
+	if cc.Component == nil {
+		return FailedAnalysis[bool]()
+	}
+
+	aw := cc.Component.FirstPermanentTopLevelAttributeWriter
+	if aw.NotZero() {
+		return Result(true)
+	}
+
+	fillsAndPlaceholder := cc.fillsTopLevelAndPlaceholder()
+	if fillsAndPlaceholder.Equal(true) {
+		return Result(true)
+	}
+
+	failed := aw.Failed || fillsAndPlaceholder.Failed
+
+	for _, block := range cc.Component.Blocks {
+		s := cc.BlockSetterByName(block.Name)
+		if s == nil {
+			for _, instance := range block.Instances {
+				if instance.Default == nil {
+					continue
+				} else if instance.DefaultOverwritten(cc) {
+					continue
+				}
+
+				writesTopLevelAttrs := cc.blockDefaultWritesTopLevelAttributes(instance)
+				if writesTopLevelAttrs.Equal(true) {
+					return Result(true)
+				}
+
+				failed = failed || writesTopLevelAttrs.Failed
+			}
+		} else {
+			writesTopLevelAttrs := cc.blockSetterWritesTopLevelAttributes(s)
+			if writesTopLevelAttrs.Equal(true) {
+				return Result(true)
+			}
+
+			failed = failed || writesTopLevelAttrs.Failed
 		}
 	}
-	return ResultIf[*BlockSetterInstance](nil, !failed)
+
+	return ResultIf(false, !failed)
 }
 
-// FirstBlockTopLevelAndPlaceholder returns the first block setter instance that
-// has a top-level &-placeholder in any of its instances.
-func (cc *ComponentCall) FirstBlockTopLevelAndPlaceholder() Analysis[*BlockSetterInstance] {
-	var failed bool
-	for _, s := range cc.BlockSetters {
-		ap := s.FirstTopLevelAndPlaceholder()
-		if ap.Failed {
-			failed = true
-			continue
-		} else if ap.Result != nil {
-			return ap
-		}
+func (cc *ComponentCall) fillsTopLevelAndPlaceholder() Analysis[bool] {
+	firstAndPlaceholder := cc.Component.FirstIncludedTopLevelAndPlaceholder(cc)
+	switch {
+	case firstAndPlaceholder.NotZero() && cc.FirstDelegatedAttributeWriter.NotZero():
+		return Result(true)
+	case firstAndPlaceholder.Equal(nil):
+		return Result(false)
+	case cc.FirstDelegatedAttributeWriter.Equal(nil):
+		return Result(false)
 	}
-	return ResultIf[*BlockSetterInstance](nil, !failed)
+
+	return FailedAnalysis[bool]()
 }
 
-// FirstBlockTopLevelAttributeWriter returns the first block setter instance
-// that has a top-level attribute writer in any of its instances.
-func (cc *ComponentCall) FirstBlockTopLevelAttributeWriter() Analysis[*BlockSetterInstance] {
-	var failed bool
-	for _, s := range cc.BlockSetters {
-		aw := s.FirstTopLevelAttributeWriter()
-		if aw.Failed {
-			failed = true
-			continue
-		} else if aw.Result != nil {
-			return aw
-		}
+func (cc *ComponentCall) blockDefaultWritesTopLevelAttributes(instance *BlockInstance) Analysis[bool] {
+	switch {
+	case instance.Default.FirstTopLevelAttributeWriter.NotZero() && instance.TopLevel.Equal(true):
+		return Result(true)
+	case instance.Default.FirstTopLevelAttributeWriter.Equal(nil):
+		return Result(false)
+	case instance.TopLevel.Equal(false):
+		return Result(false)
 	}
-	return ResultIf[*BlockSetterInstance](nil, !failed)
+
+	return FailedAnalysis[bool]()
 }
 
-// FirstBlockContentWriter returns the first block setter instance that has a
-// content writer in any of its instances.
-func (cc *ComponentCall) FirstBlockContentWriter() Analysis[*BlockSetterInstance] {
-	var failed bool
-	for _, s := range cc.BlockSetters {
-		cw := s.FirstContentWriter()
-		if cw.Failed {
-			failed = true
-			continue
-		} else if cw.Result != nil {
-			return cw
-		}
+func (cc *ComponentCall) blockSetterWritesTopLevelAttributes(s *BlockSetter) Analysis[bool] {
+	topLevel := s.Block.TopLevel(AtLeastOne)
+	taw := s.FirstTopLevelAttributeWriter()
+	switch {
+	case topLevel.Equal(true) && taw.NotZero():
+		return Result(true)
+	case taw.Equal(nil):
+		return Result(false)
+	case topLevel.Equal(false):
+		return Result(false)
 	}
-	return ResultIf[*BlockSetterInstance](nil, !failed)
+
+	return FailedAnalysis[bool]()
 }
 
-// FirstBlockElementWriter returns the first block setter instance that has an
-// element writer in any of its instances.
-func (cc *ComponentCall) FirstBlockElementWriter() Analysis[*BlockSetterInstance] {
-	var failed bool
-	for _, s := range cc.BlockSetters {
-		ew := s.FirstElementWriter()
-		if ew.Failed {
-			failed = true
-			continue
-		} else if ew.Result != nil {
-			return ew
-		}
+// ForwardsTopLevelAndPlaceholder indicates that this component call receives
+// an &-placeholder and outputs it to the top-level of the component.
+func (cc *ComponentCall) ForwardsTopLevelAndPlaceholder() Analysis[bool] {
+	if cc.Component == nil {
+		return FailedAnalysis[bool]()
 	}
-	return ResultIf[*BlockSetterInstance](nil, !failed)
+
+	if cc.FirstDelegatedAndPlaceholderWriter.Equal(nil) {
+		return Result(false)
+	} else if cc.FirstDelegatedAndPlaceholderWriter.Failed {
+		return FailedAnalysis[bool]()
+	}
+
+	placeholder := cc.Component.FirstIncludedTopLevelAndPlaceholder(cc)
+	if placeholder.Failed {
+		return FailedAnalysis[bool]()
+	}
+	return Result(placeholder.Result != nil)
 }
 
 type BlockSetter struct {

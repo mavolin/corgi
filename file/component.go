@@ -145,88 +145,27 @@ func (c *Component) FirstIncludedTopLevelAndPlaceholder(cc *ComponentCall) Analy
 
 	failed := ap.Failed
 	for _, block := range c.Blocks {
-		instance := block.FirstIncludedTopLevelAndPlaceholder(cc)
-		if instance.Failed {
+		for _, instance := range block.Instances {
+			if instance.Default == nil {
+				continue
+			} else if instance.DefaultOverwritten(cc) {
+				continue
+			}
+
+			switch {
+			case instance.TopLevel.Equal(true) && instance.Default.FirstTopLevelAndPlaceholder.NotZero():
+				return instance.Default.FirstTopLevelAndPlaceholder
+			case instance.TopLevel.Equal(false):
+				continue
+			case instance.Default.FirstAndPlaceholder.Equal(nil):
+				continue
+			}
+
 			failed = true
-		} else if instance.Result != nil {
-			return instance.Result.Default.FirstTopLevelAndPlaceholder
 		}
 	}
 
 	return ResultIf[*ast.AndPlaceholder](nil, !failed)
-}
-
-// FirstIncludedTopLevelAttributeWriter returns the first top-level attribute
-// writer in the component that is included in the output of the component for
-// the given component call.
-//
-// Passing nil checks the general case, in which all block defaults are
-// included.
-func (c *Component) FirstIncludedTopLevelAttributeWriter(cc *ComponentCall) Analysis[ast.AttributeWriter] {
-	aw := c.FirstPermanentTopLevelAttributeWriter
-	if aw.NotZero() {
-		return aw
-	}
-
-	failed := aw.Failed
-	for _, block := range c.Blocks {
-		instance := block.FirstIncludedTopLevelAttributeWriter(cc)
-		if instance.Failed {
-			failed = true
-		} else if instance.Result != nil {
-			return instance.Result.Default.FirstTopLevelAttributeWriter
-		}
-	}
-
-	return ResultIf[ast.AttributeWriter](nil, !failed)
-}
-
-// FirstIncludedContentWriter returns the first content writer in the component
-// that is included in the output of the component for the given component call.
-//
-// Passing nil checks the general case, in which all block defaults are
-// included.
-func (c *Component) FirstIncludedContentWriter(cc *ComponentCall) Analysis[ast.ContentWriter] {
-	cw := c.FirstPermanentContentWriter
-	if cw.NotZero() {
-		return cw
-	}
-
-	failed := cw.Failed
-	for _, block := range c.Blocks {
-		instance := block.FirstIncludedContentWriter(cc)
-		if instance.Failed {
-			failed = true
-		} else if instance.Result != nil {
-			return instance.Result.Default.FirstContentWriter
-		}
-	}
-
-	return ResultIf[ast.ContentWriter](nil, !failed)
-}
-
-// FirstIncludedElementWriter returns the first element writer in the component
-// that is included in the output of the component for the given component call.
-//
-// Passing nil checks the general case, in which all block defaults are
-// included.
-func (c *Component) FirstIncludedElementWriter(cc *ComponentCall) Analysis[ast.ElementWriter] {
-	fpew := c.FirstPermanentElementWriter
-	if fpew.NotZero() {
-		return fpew
-	}
-
-	failed := fpew.Failed
-	for _, block := range c.Blocks {
-		instance := block.FirstIncludedElementWriter(cc)
-		if instance.Failed {
-			failed = true
-		} else if instance.Result != nil {
-			return instance.Result.Default.FirstElementWriter
-		}
-	}
-
-	return ResultIf[ast.ElementWriter](nil, !failed)
 }
 
 type ComponentParameter struct {

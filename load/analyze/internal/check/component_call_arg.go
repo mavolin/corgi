@@ -157,7 +157,7 @@ func (ch *checker) CheckComponentAcceptsAttributes(logger *slog.Logger, cc *file
 		return
 	}
 
-	if cc.FirstDelegatedAttributeWriter.Equal(nil) && cc.FirstDelegatedAndPlaceholder.Equal(nil) {
+	if cc.FirstDelegatedAttributeWriter.Equal(nil) && cc.FirstDelegatedAndPlaceholderWriter.Equal(nil) {
 		return
 	}
 
@@ -165,7 +165,7 @@ func (ch *checker) CheckComponentAcceptsAttributes(logger *slog.Logger, cc *file
 	if cc.FirstDelegatedAttributeWriter.NotZero() {
 		primaries[0] = anno.Node(cc.File, cc.FirstDelegatedAttributeWriter.Result, "but you hand it attributes here")
 	} else {
-		primaries[0] = anno.Node(cc.File, cc.FirstDelegatedAndPlaceholder.Result, "but you hand it attributes here")
+		primaries[0] = anno.Node(cc.File, cc.FirstDelegatedAndPlaceholderWriter.Result, "but you hand it attributes here")
 	}
 
 	logger.Error("Component does not accept attributes")

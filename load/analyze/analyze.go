@@ -30,6 +30,7 @@ import (
 // todo: set ElementSpec.Analyzed
 // todo: set ElementSpec.Type
 // todo: set AttributeReference.Analyzed
+// todo: duplicate and placeholder (as in attrs would be written twice)
 // todo: no elements in script/style https://html.spec.whatwg.org/multipage/syntax.html#elements-2:raw-text-elements-3
 // todo: no elements in textarea/title https://html.spec.whatwg.org/multipage/syntax.html#elements-2:escapable-raw-text-elements-3
 // todo: no component call interpolations that can't write top-level attrs, but do

@@ -60,3 +60,21 @@ var (
 	_ AttributeWriter = (*IDShorthand)(nil)
 	_ AttributeWriter = (*NamedAttribute)(nil)
 )
+
+// ============================================================================
+// And Placeholder Writer
+// ======================================================================================
+
+// AndPlaceholderWriter is a node that can produce attributes if the
+// &-placeholder is set:
+// [AndPlaceholder], [ComponentCall].
+type AndPlaceholderWriter interface {
+	Node
+	_andPlaceholderWriter()
+}
+
+// if changed, change the comment above
+var (
+	_ AndPlaceholderWriter = (*AndPlaceholder)(nil)
+	_ AndPlaceholderWriter = (*ComponentCall)(nil)
+)

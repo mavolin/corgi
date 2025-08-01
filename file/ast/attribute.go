@@ -31,7 +31,10 @@ type AndPlaceholder struct {
 	And *Position
 }
 
-var _ Attribute = (*AndPlaceholder)(nil)
+var (
+	_ Attribute            = (*AndPlaceholder)(nil)
+	_ AndPlaceholderWriter = (*AndPlaceholder)(nil)
+)
 
 func (p *AndPlaceholder) Start() Position {
 	if p.And != nil {
@@ -49,9 +52,10 @@ func (p *AndPlaceholder) End() Position {
 
 func (*AndPlaceholder) Walk(func(Node)) {}
 
-func (*AndPlaceholder) _node()      {}
-func (*AndPlaceholder) _argument()  {}
-func (*AndPlaceholder) _attribute() {}
+func (*AndPlaceholder) _node()                 {}
+func (*AndPlaceholder) _argument()             {}
+func (*AndPlaceholder) _attribute()            {}
+func (*AndPlaceholder) _andPlaceholderWriter() {}
 
 // ============================================================================
 // ID Shorthand

@@ -4,14 +4,6 @@ import "github.com/mavolin/corgi/v2/file/ast"
 
 // Block provides information about a block used in a
 // Component.
-//
-// If a block B (with or without default) is nested inside another block A's
-// default, we automatically, for the sake of simplicity, set
-// DefaultWritesBody, DefaultWritesElements, and
-// DefaultWritesTopLevelAttributes of block A to true.
-// The DefaultTopLevelAndPlaceholder, if not true regardless, will be set
-// to true, if that exact placement of block B is top-level and has a
-// top-level and placeholder.
 type Block struct {
 	//
 	// BUILD SYMBOLS
@@ -43,6 +35,10 @@ func (b *Block) InstanceByNode(n *ast.Block) *BlockInstance {
 // Passing nil checks the general case, in which all block defaults are
 // included.
 func (b *Block) FirstIncludedAndPlaceholder(cc *ComponentCall) Analysis[*BlockInstance] {
+	if cc != nil && cc.BlockSetterByName(b.Name) != nil {
+		return Result[*BlockInstance](nil)
+	}
+
 	var failed bool
 	for _, instance := range b.Instances {
 		ap := instance.Default.FirstAndPlaceholder
@@ -58,54 +54,14 @@ func (b *Block) FirstIncludedAndPlaceholder(cc *ComponentCall) Analysis[*BlockIn
 	return ResultIf[*BlockInstance](nil, !failed)
 }
 
-// FirstIncludedTopLevelAndPlaceholder returns the first instance of an
-// &-placeholder at the top-level in a block default that is included in the
-// output of the component for the given component call.
-//
-// Passing nil checks the general case, in which all block defaults are
-// included.
-func (b *Block) FirstIncludedTopLevelAndPlaceholder(cc *ComponentCall) Analysis[*BlockInstance] {
-	var failed bool
-	for _, instance := range b.Instances {
-		ap := instance.Default.FirstTopLevelAndPlaceholder
-		if ap.Failed {
-			failed = true
-			continue
-		}
-		if ap.Result != nil && (cc == nil || !instance.DefaultOverwritten(cc)) {
-			return Result(instance)
-		}
-	}
-
-	return ResultIf[*BlockInstance](nil, !failed)
-}
-
-// FirstIncludedTopLevelAttributeWriter returns the first instance of a top-level
-// attribute writer in a block default that is included in the output of the
-// component for the given component call.
-//
-// Passing nil checks the general case, in which all block defaults are
-// included.
-func (b *Block) FirstIncludedTopLevelAttributeWriter(cc *ComponentCall) Analysis[*BlockInstance] {
-	var failed bool
-	for _, instance := range b.Instances {
-		aw := instance.Default.FirstTopLevelAttributeWriter
-		if aw.Failed {
-			failed = true
-			continue
-		}
-		if aw.Result != nil && (cc == nil || !instance.DefaultOverwritten(cc)) {
-			return Result(instance)
-		}
-	}
-
-	return ResultIf[*BlockInstance](nil, !failed)
-}
-
-// FirstIncludedContentWriter returns the first instance of a content writer in a block
-// default that is included in the output of the component for the given
+// FirstIncludedContentWriter returns the first instance of a content writer in
+// a block default that is included in the output of the component for the given
 // component call.
 func (b *Block) FirstIncludedContentWriter(cc *ComponentCall) Analysis[*BlockInstance] {
+	if cc != nil && cc.BlockSetterByName(b.Name) != nil {
+		return Result[*BlockInstance](nil)
+	}
+
 	var failed bool
 	for _, instance := range b.Instances {
 		cw := instance.Default.FirstContentWriter
@@ -121,10 +77,14 @@ func (b *Block) FirstIncludedContentWriter(cc *ComponentCall) Analysis[*BlockIns
 	return ResultIf[*BlockInstance](nil, !failed)
 }
 
-// FirstIncludedElementWriter returns the first instance of an element writer in a block
-// default that is included in the output of the component for the given
+// FirstIncludedElementWriter returns the first instance of an element writer in
+// a block default that is included in the output of the component for the given
 // component call.
 func (b *Block) FirstIncludedElementWriter(cc *ComponentCall) Analysis[*BlockInstance] {
+	if cc != nil && cc.BlockSetterByName(b.Name) != nil {
+		return Result[*BlockInstance](nil)
+	}
+
 	var failed bool
 	for _, instance := range b.Instances {
 		ew := instance.Default.FirstElementWriter
