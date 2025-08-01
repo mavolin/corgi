@@ -42,6 +42,21 @@ func (z *analyzer) AnalyzeComponent(logger *slog.Logger, c *file.Component) {
 
 	z.AnalyzeComponentParameters(logger, c)
 	z.AnalyzeBlocks(logger, c)
+
+	c.Analyzed = true
+}
+
+// AnalyzeCallComponent analyzes the component of the passed component call.
+//
+// It does nothing if the component has already been analyzed or the component
+// call is part of a cycle.
+func (z *analyzer) AnalyzeCallComponent(cc *file.ComponentCall) {
+	if cc.Component == nil || cc.Component.Analyzed || cc.Circular {
+		return
+	}
+
+	logger := z.Logger.WithGroup("components")
+	z.AnalyzeComponent(logger, cc.Component)
 }
 
 // ============================================================================

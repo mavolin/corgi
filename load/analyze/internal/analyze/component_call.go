@@ -42,6 +42,7 @@ func (z *analyzer) AnalyzeComponentCall(ctx context.Context, cc *file.ComponentC
 		ctx = context.WithValue(ctx, callerChainKey{}, callerChain)
 	}
 
+	z.AnalyzeCallComponent(cc)
 	z.ComponentCallFindFirstDelegatedAttributes(ctx, logger, cc)
 }
 
