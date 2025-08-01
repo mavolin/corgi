@@ -197,7 +197,7 @@ func (s *BlockSetter) FirstTopLevelAndPlaceholderWriter() Analysis[*BlockSetterI
 func (s *BlockSetter) FirstTopLevelAttributeWriter() Analysis[*BlockSetterInstance] {
 	var failed bool
 	for _, instance := range s.Instances {
-		aw := instance.FirstTopLevelAttributeWriter
+		aw := instance.FirstForwardedAttributeWriter
 		if aw.Failed {
 			failed = true
 		} else if aw.Result != nil {
@@ -244,7 +244,7 @@ type BlockSetterInstance struct {
 	FirstAndPlaceholderWriter          Analysis[ast.AndPlaceholderWriter]
 	FirstForwardedAndPlaceholderWriter Analysis[ast.AndPlaceholderWriter]
 
-	FirstTopLevelAttributeWriter Analysis[ast.AttributeWriter]
-	FirstContentWriter           Analysis[ast.ContentWriter]
-	FirstElementWriter           Analysis[ast.ElementWriter]
+	FirstForwardedAttributeWriter Analysis[ast.AttributeWriter]
+	FirstContentWriter            Analysis[ast.ContentWriter]
+	FirstElementWriter            Analysis[ast.ElementWriter]
 }
