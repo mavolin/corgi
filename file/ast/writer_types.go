@@ -68,6 +68,15 @@ var (
 // AndPlaceholderWriter is a node that can produce attributes if the
 // &-placeholder is set:
 // [AndPlaceholder], [ComponentCall].
+//
+// This is either an [AndPlaceholder] directly, or a [ComponentCall] that
+// forwards the &-placeholder it is called with to the element containing the
+// component call again:
+//
+//	comp Foo() {
+//	  &(&)
+//	}
+//	:Foo(&)
 type AndPlaceholderWriter interface {
 	Node
 	_andPlaceholderWriter()
