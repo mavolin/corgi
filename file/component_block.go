@@ -17,6 +17,12 @@ type Block struct {
 	// ANALYZER
 
 	Required Analysis[bool]
+	// TopLevel indicates at least one instance of this block is placed
+	// outside any element.
+	TopLevel Analysis[bool]
+	// CanWriteAttributes indicates that all instances of this block can write
+	// to the list of attributes of their containing element.
+	CanWriteAttributes Analysis[bool]
 }
 
 func (b *Block) InstanceByNode(n *ast.Block) *BlockInstance {
@@ -26,32 +32,6 @@ func (b *Block) InstanceByNode(n *ast.Block) *BlockInstance {
 		}
 	}
 	return nil
-}
-
-// TopLevel reports whether this block is top-level.
-func (b *Block) TopLevel(s AnalysisStrategy) Analysis[bool] {
-	s.assertValid()
-
-	if s == All {
-		for _, instance := range b.Instances {
-			if instance.TopLevel.Failed {
-				return FailedAnalysis[bool]()
-			} else if !instance.TopLevel.Result {
-				return Result(false)
-			}
-		}
-		return Result(true)
-	}
-
-	var failed bool
-	for _, instance := range b.Instances {
-		if instance.TopLevel.Equal(true) {
-			return Result(true)
-		}
-		failed = failed || instance.TopLevel.Failed
-	}
-
-	return ResultIf[bool](false, !failed)
 }
 
 type (
