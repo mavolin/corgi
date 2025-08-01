@@ -39,7 +39,7 @@ import (
 
 	"github.com/mavolin/corgi/v2/file"
 	"github.com/mavolin/corgi/v2/file/ast"
-	diagnostic2 "github.com/mavolin/corgi/v2/file/diagnostic"
+	"github.com/mavolin/corgi/v2/file/diagnostic"
 )
 
 const EOF rune = 0
@@ -102,10 +102,10 @@ func (p *Parser) DoInline(f func()) {
 	f()
 	p.state.inline = false
 }
-func (p *Parser) CaptureError(err *diagnostic2.Diagnostic) { p.state.CaptureError(err) }
-func (p *Parser) Errors() diagnostic2.List                 { return p.state.Errors() }
-func (p *Parser) CaptureComment(g *ast.CommentGroup)       { p.state.CaptureComment(g) }
-func (p *Parser) CloneState() *State                       { return p.state.Clone() }
+func (p *Parser) CaptureError(err *diagnostic.Diagnostic) { p.state.CaptureError(err) }
+func (p *Parser) Errors() diagnostic.List                 { return p.state.Errors() }
+func (p *Parser) CaptureComment(g *ast.CommentGroup)      { p.state.CaptureComment(g) }
+func (p *Parser) CloneState() *State                      { return p.state.Clone() }
 
 func (p *Parser) RestoreState(s *State) {
 	p.state = s
@@ -124,12 +124,12 @@ type (
 	// those should be captured using the `CaptureError` method of the parser.
 	//
 	// Funcs must not be called directly, but only using [TryErr] and [Must].
-	Func[T any] func(p *Parser) (T, *diagnostic2.Diagnostic)
+	Func[T any] func(p *Parser) (T, *diagnostic.Diagnostic)
 
 	// A WhitespaceFunc is a special [Func] that parses whitespace.
 	// It semantically differs, in that consumed whitespace is rolled back, if
 	// the next call to [TryErr] or [Must] (and its derivatives) fails.
-	WhitespaceFunc func(p *Parser) *diagnostic2.Diagnostic
+	WhitespaceFunc func(p *Parser) *diagnostic.Diagnostic
 )
 
 // Matches reports whether f would match.
@@ -171,7 +171,7 @@ func MatchesRunePredicate(p *Parser, pred func(rune) bool) bool {
 	return pred(p.peek())
 }
 
-func TryErr[T any](p *Parser, f Func[T]) (T, *diagnostic2.Diagnostic) {
+func TryErr[T any](p *Parser, f Func[T]) (T, *diagnostic.Diagnostic) {
 	restore := p.state.takeWSStart()
 	v, err := f(p)
 	if err != nil {
@@ -186,7 +186,7 @@ func Try[T any](p *Parser, f Func[T]) T {
 	return v
 }
 
-func TryOptionalErr[T any](p *Parser, f Func[T], ws WhitespaceFunc) (T, *diagnostic2.Diagnostic) {
+func TryOptionalErr[T any](p *Parser, f Func[T], ws WhitespaceFunc) (T, *diagnostic.Diagnostic) {
 	state := p.CloneState()
 	p.state.commitWS()
 	v, err := f(p)
@@ -237,7 +237,7 @@ func TrySkip(p *Parser, f WhitespaceFunc) bool {
 	return TrySkipErr(p, f) == nil
 }
 
-func TrySkipErr(p *Parser, f WhitespaceFunc) *diagnostic2.Diagnostic {
+func TrySkipErr(p *Parser, f WhitespaceFunc) *diagnostic.Diagnostic {
 	state := p.CloneState()
 	if !p.state.parsingWS {
 		p.state.markWSStart()
