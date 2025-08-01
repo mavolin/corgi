@@ -35,6 +35,11 @@ type Component struct {
 	// albeit with errors.
 	Analyzed bool
 
+	// CouldForwardAttributes indicates whether the component could forward
+	// attributes it receives to the element containing a component call
+	// to it.
+	CouldForwardAttributes Analysis[bool]
+
 	// FirstPermanentAndPlaceholder is the first &-placeholder that is not
 	// part of a block default.
 	FirstPermanentAndPlaceholder Analysis[*ast.AndPlaceholder]

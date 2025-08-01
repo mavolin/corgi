@@ -43,6 +43,8 @@ func (z *analyzer) AnalyzeComponent(logger *slog.Logger, c *file.Component) {
 	z.AnalyzeComponentParameters(logger, c)
 	z.AnalyzeBlocks(logger, c)
 
+	z.AnalyzeCouldForwardAttributes(c)
+
 	c.Analyzed = true
 }
 
@@ -124,7 +126,44 @@ func (z *analyzer) checkComponentCallCycles(root *file.Component, chain []*file.
 }
 
 // ============================================================================
-// Analyze First Permanent Top-Level &-Placeholder
+// Could Forward Attributes
+// ======================================================================================
+
+// AnalyzeCouldForwardAttributes attempts to see if the given component could
+// forward the attributes it receives to the element containing it.
+//
+// Depends on Checks: None
+//
+// Sets Fields:
+//   - Components.CouldForwardAttributes
+//
+// Depends on Fields:
+//   - Components.Blocks.Instances.TopLevel
+//   - Components.Blocks.Instances.Default.FirstTopLevelAndPlaceholder
+func (z *analyzer) AnalyzeCouldForwardAttributes(c *file.Component) {
+	ap := c.FirstPermanentTopLevelAndPlaceholder
+	if ap.NotZero() {
+		c.CouldForwardAttributes.Set(true)
+		return
+	}
+	failed := ap.Failed
+
+	for _, block := range c.Blocks {
+		for _, instance := range block.Instances {
+			firstTopLevelAndPlaceholder := file.ConditionalAnalysis(instance.TopLevel, instance.Default.FirstTopLevelAndPlaceholder)
+			if firstTopLevelAndPlaceholder.NotZero() {
+				c.CouldForwardAttributes.Set(true)
+				return
+			}
+			failed = failed || firstTopLevelAndPlaceholder.Failed
+		}
+	}
+
+	c.CouldForwardAttributes.SetIf(false, !failed)
+}
+
+// ============================================================================
+// First Permanent Top-Level &-Placeholder
 // ======================================================================================
 
 // FindFirstPermanentTopLevelAndPlaceholder attempts to find the first
@@ -136,7 +175,7 @@ func (z *analyzer) checkComponentCallCycles(root *file.Component, chain []*file.
 //   - Components.FirstPermanentTopLevelAndPlaceholder
 //
 // Depends on Fields: None
-func (z *analyzer) FindFirstPermanentTopLevelAndPlaceholder(logger *slog.Logger, c *file.Component) {
+func (z *analyzer) FindFirstPermanentTopLevelAndPlaceholder(c *file.Component) {
 	// todo
 }
 
@@ -154,9 +193,7 @@ func (z *analyzer) FindFirstPermanentTopLevelAndPlaceholder(logger *slog.Logger,
 //
 // Depends on Fields:
 //   - Components.FirstPermanentTopLevelAndPlaceholder
-func (z *analyzer) FindFirstPermanentAndPlaceholder(logger *slog.Logger, c *file.Component) {
-	logger = logger.WithGroup("first_permanent_and_placeholder")
-
+func (z *analyzer) FindFirstPermanentAndPlaceholder(c *file.Component) {
 	if c.FirstPermanentTopLevelAndPlaceholder.NotZero() {
 		c.FirstPermanentAndPlaceholder = c.FirstPermanentTopLevelAndPlaceholder
 		return
