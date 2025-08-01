@@ -48,14 +48,14 @@ type Component struct {
 	// FirstPermanentAndPlaceholderWriter is the first &-placeholder writer that is
 	// not part of a block default.
 	FirstPermanentAndPlaceholderWriter Analysis[ast.AndPlaceholderWriter]
-	// FirstPermanentTopLevelAndPlaceholderWriter is the first &-placeholder writer
+	// FirstPermanentForwardedAndPlaceholderWriter is the first &-placeholder writer
 	// that is at the top-level of the component, i.e. not nested inside an element
 	// or part of a block default.
-	FirstPermanentTopLevelAndPlaceholderWriter Analysis[ast.AndPlaceholderWriter]
+	FirstPermanentForwardedAndPlaceholderWriter Analysis[ast.AndPlaceholderWriter]
 
-	// FirstPermanentTopLevelAttributeWriter is the first attribute writer that is
+	// FirstPermanentForwardedAttributeWriter is the first attribute writer that is
 	// not part of a block default.
-	FirstPermanentTopLevelAttributeWriter Analysis[ast.AttributeWriter]
+	FirstPermanentForwardedAttributeWriter Analysis[ast.AttributeWriter]
 	// FirstPermanentContentWriter is the first content writer that is not part
 	// of a block default.
 	FirstPermanentContentWriter Analysis[ast.ContentWriter]

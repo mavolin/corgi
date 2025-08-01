@@ -46,12 +46,12 @@ type ComponentCall struct {
 	//
 	// It is either directly set to an attribute, or set to a component call.
 	// In case of the latter, the attribute writer causing the
-	// delegation is the FirstTopLevelAttributeWriter of that component call.
+	// delegation is the FirstForwardedAttributeWriter of that component call.
 	//
 	// Note that if the component call and the component call's
-	// FirstTopLevelAttributeWriter are the same, the component call
+	// FirstForwardedAttributeWriter are the same, the component call
 	// itself is the one filling the &-placeholder.
-	// Refer to the documentation of FirstTopLevelAttributeWriter for more
+	// Refer to the documentation of FirstForwardedAttributeWriter for more
 	// information.
 	FirstDelegatedAttributeWriter Analysis[ast.AttributeWriter]
 	// FirstDelegatedAndPlaceholderWriter is the first &-placeholder writer
@@ -59,12 +59,12 @@ type ComponentCall struct {
 	//
 	// It is either directly set to an &-placeholder, or set to a component call.
 	// In case of the latter, the &-placeholder writer causing the delegation
-	// is the FirstTopLevelAndPlaceholderWriter of that component call.
+	// is the FirstForwardedAndPlaceholderWriter of that component call.
 	//
 	// Note that if the component call and the component call's
-	// FirstTopLevelAndPlaceholderWriter are the same, the component call
+	// FirstForwardedAndPlaceholderWriter are the same, the component call
 	// itself is the one filling the &-placeholder.
-	// Refer to the documentation of FirstTopLevelAndPlaceholderWriter for more
+	// Refer to the documentation of FirstForwardedAndPlaceholderWriter for more
 	// information.
 	FirstDelegatedAndPlaceholderWriter Analysis[ast.AndPlaceholderWriter]
 	// ForwardsDelegatedAttributes indicates whether the component call
@@ -84,7 +84,7 @@ type ComponentCall struct {
 	// ForwardsDelegatedAttributes implies AcceptsAttributes.
 	AcceptsAttributes Analysis[bool]
 
-	// FirstTopLevelAttributeWriter is the first attribute writer producing
+	// FirstForwardedAttributeWriter is the first attribute writer producing
 	// top-level attributes.
 	//
 	// For attribute writers in the body of this component call, i.e.
@@ -100,13 +100,13 @@ type ComponentCall struct {
 	// itself, the only place adding top-level attributes is the
 	// component call itself, through block setters or the component's
 	// top-level &-placeholder.
-	FirstTopLevelAttributeWriter Analysis[ast.AttributeWriter]
-	// FirstTopLevelAndPlaceholderWriter is the first &-placeholder writer producing
+	FirstForwardedAttributeWriter Analysis[ast.AttributeWriter]
+	// FirstForwardedAndPlaceholderWriter is the first &-placeholder writer producing
 	// top-level attributes if filled.
 	//
 	// This fields considers &-placeholder writers in top-level block setters
 	// and &-placeholders delegated to the component.
-	FirstTopLevelAndPlaceholderWriter Analysis[ast.AndPlaceholderWriter]
+	FirstForwardedAndPlaceholderWriter Analysis[ast.AndPlaceholderWriter]
 }
 
 func (cc *ComponentCall) External() bool { return cc.File.Package != cc.Component.File.Package }

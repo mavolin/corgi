@@ -42,8 +42,8 @@ func (z *analyzer) AnalyzeComponentCall(ctx context.Context, cc *file.ComponentC
 	}
 
 	z.AnalyzeCallComponent(cc)
-	z.FindFirstTopLevelAttributeWriter(cc)
-	z.FindFirstTopLevelAndPlaceholderWriter(cc)
+	z.FindFirstForwardedAttributeWriter(cc)
+	z.FindFirstForwardedAndPlaceholderWriter(cc)
 	z.FindFirstDelegatedAttributes(ctx, cc)
 	z.AnalyzeAcceptsAttributes(cc)
 	z.AnalyzeForwardsDelegatedAttributes(cc)
@@ -107,7 +107,7 @@ func (z *analyzer) AnalyzeForwardsDelegatedAttributes(cc *file.ComponentCall) {
 		return
 	}
 
-	ap := cc.Component.FirstPermanentTopLevelAndPlaceholderWriter
+	ap := cc.Component.FirstPermanentForwardedAndPlaceholderWriter
 	if ap.NotZero() {
 		cc.ForwardsDelegatedAttributes.Set(true)
 		return
@@ -192,32 +192,32 @@ func (z *analyzer) AnalyzeAcceptsAttributes(cc *file.ComponentCall) {
 // First Top-Level Attribute Writer
 // ======================================================================================
 
-// FindFirstTopLevelAttributeWriter finds the first top-level
+// FindFirstForwardedAttributeWriter finds the first top-level
 // attribute writer in the component call.
 // It prefers attribute writers inside the component call's component.
 //
 // Depends on Checks: None
 //
 // Sets Fields:
-//   - ComponentCalls.FirstTopLevelAttributeWriter
+//   - ComponentCalls.FirstForwardedAttributeWriter
 //
 // Depends on Fields:
-//   - ComponentCalls.Blocks.Instances.FirstTopLevelAttributeWriter
+//   - ComponentCalls.Blocks.Instances.FirstForwardedAttributeWriter
 //   - ComponentCalls.Blocks.Instances.TopLevel
 //   - ComponentCalls.FirstDelegatedAttributeWriter
 //   - ComponentCalls.ForwardsDelegatedAttributes
-func (z *analyzer) FindFirstTopLevelAttributeWriter(cc *file.ComponentCall) {
+func (z *analyzer) FindFirstForwardedAttributeWriter(cc *file.ComponentCall) {
 	if cc.Component == nil {
-		cc.FirstTopLevelAttributeWriter.SetFailed()
+		cc.FirstForwardedAttributeWriter.SetFailed()
 		return
 	}
 
-	aw := cc.Component.FirstPermanentTopLevelAttributeWriter
+	aw := cc.Component.FirstPermanentForwardedAttributeWriter
 	if aw.NotZero() {
-		cc.FirstTopLevelAttributeWriter.Set(cc.AST)
+		cc.FirstForwardedAttributeWriter.Set(cc.AST)
 		return
 	}
-	failed := cc.Component.FirstPermanentTopLevelAttributeWriter.Failed
+	failed := cc.Component.FirstPermanentForwardedAttributeWriter.Failed
 
 	for _, block := range cc.Component.Blocks {
 		for _, instance := range block.Instances {
@@ -227,7 +227,7 @@ func (z *analyzer) FindFirstTopLevelAttributeWriter(cc *file.ComponentCall) {
 
 			topLevelAttr := file.ConditionalAnalysis(instance.TopLevel, instance.Default.FirstTopLevelAttributeWriter)
 			if topLevelAttr.NotZero() {
-				cc.FirstTopLevelAttributeWriter.Set(cc.AST)
+				cc.FirstForwardedAttributeWriter.Set(cc.AST)
 				return
 			}
 			failed = failed || topLevelAttr.Failed
@@ -236,7 +236,7 @@ func (z *analyzer) FindFirstTopLevelAttributeWriter(cc *file.ComponentCall) {
 
 	topLevelAndPlaceholderFiller := file.ConditionalAnalysis(cc.ForwardsDelegatedAttributes, cc.FirstDelegatedAttributeWriter)
 	if topLevelAndPlaceholderFiller.NotZero() {
-		cc.FirstTopLevelAttributeWriter.Set(cc.AST)
+		cc.FirstForwardedAttributeWriter.Set(cc.AST)
 		return
 	}
 	failed = failed || topLevelAndPlaceholderFiller.Failed
@@ -250,20 +250,20 @@ func (z *analyzer) FindFirstTopLevelAttributeWriter(cc *file.ComponentCall) {
 
 		topLevelAttr := file.ConditionalAnalysis(s.Block.TopLevel(file.AtLeastOne), topLevelBlockAttr)
 		if topLevelAttr.NotZero() {
-			cc.FirstTopLevelAttributeWriter.Set(cc.AST)
+			cc.FirstForwardedAttributeWriter.Set(cc.AST)
 			return
 		}
 		failed = failed || topLevelAttr.Failed
 	}
 
-	cc.FirstTopLevelAttributeWriter.SetIf(nil, !failed)
+	cc.FirstForwardedAttributeWriter.SetIf(nil, !failed)
 }
 
 // ============================================================================
 // First Top-Level &-Placeholder
 // ======================================================================================
 
-// FindFirstTopLevelAndPlaceholderWriter finds the first &-placeholder that fills the
+// FindFirstForwardedAndPlaceholderWriter finds the first &-placeholder that fills the
 // &-placeholder of the called component.
 //
 // Depends on Checks: None
@@ -276,10 +276,10 @@ func (z *analyzer) FindFirstTopLevelAttributeWriter(cc *file.ComponentCall) {
 //   - ComponentCalls.Blocks.Instances.FirstTopLevelAndPlaceholderWriter
 //   - ComponentCalls.FirstDelegatedAndPlaceholderWriter
 //   - ComponentCalls.ForwardsDelegatedAttributes
-func (z *analyzer) FindFirstTopLevelAndPlaceholderWriter(cc *file.ComponentCall) {
+func (z *analyzer) FindFirstForwardedAndPlaceholderWriter(cc *file.ComponentCall) {
 	firstTopLevelAndPlaceholder := file.ConditionalAnalysis(cc.ForwardsDelegatedAttributes, cc.FirstDelegatedAndPlaceholderWriter)
 	if firstTopLevelAndPlaceholder.NotZero() {
-		cc.FirstTopLevelAndPlaceholderWriter.Set(cc.AST)
+		cc.FirstForwardedAndPlaceholderWriter.Set(cc.AST)
 		return
 	}
 
@@ -293,13 +293,13 @@ func (z *analyzer) FindFirstTopLevelAndPlaceholderWriter(cc *file.ComponentCall)
 
 		topLevelAndPlaceholder := file.ConditionalAnalysis(s.Block.TopLevel(file.AtLeastOne), topLevelBlockAndPlaceholder)
 		if topLevelAndPlaceholder.NotZero() {
-			cc.FirstTopLevelAttributeWriter.Set(cc.AST)
+			cc.FirstForwardedAttributeWriter.Set(cc.AST)
 			return
 		}
 		failed = failed || topLevelAndPlaceholder.Failed
 	}
 
-	cc.FirstTopLevelAndPlaceholderWriter.SetIf(nil, !failed)
+	cc.FirstForwardedAndPlaceholderWriter.SetIf(nil, !failed)
 }
 
 // ============================================================================
@@ -352,17 +352,17 @@ func (z *analyzer) FindFirstDelegatedAttributes(ctx context.Context, cc *file.Co
 			z.AnalyzeComponentCall(ctx, subCC)
 
 			if !cc.FirstDelegatedAttributeWriter.NotZero() {
-				if subCC.FirstTopLevelAttributeWriter.NotZero() {
+				if subCC.FirstForwardedAttributeWriter.NotZero() {
 					cc.FirstDelegatedAttributeWriter.Set(subCC.AST)
-				} else if subCC.FirstTopLevelAttributeWriter.Failed {
+				} else if subCC.FirstForwardedAttributeWriter.Failed {
 					cc.FirstDelegatedAttributeWriter.SetFailed()
 				}
 			}
 
 			if !cc.FirstDelegatedAndPlaceholderWriter.NotZero() {
-				if subCC.FirstTopLevelAndPlaceholderWriter.NotZero() {
+				if subCC.FirstForwardedAndPlaceholderWriter.NotZero() {
 					cc.FirstDelegatedAndPlaceholderWriter.Set(subCC.AST)
-				} else if subCC.FirstTopLevelAndPlaceholderWriter.Failed {
+				} else if subCC.FirstForwardedAndPlaceholderWriter.Failed {
 					cc.FirstDelegatedAndPlaceholderWriter.SetFailed()
 				}
 			}
