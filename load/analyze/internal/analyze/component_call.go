@@ -219,8 +219,7 @@ func (z *analyzer) ComponentCallFindFirstTopLevelAttributeWriter(cc *file.Compon
 		}
 	}
 
-	firstTopLevelAndPlaceholder := cc.Component.FirstIncludedTopLevelAndPlaceholder(cc)
-	topLevelAndPlaceholderFiller := file.ConditionalAnalysis(firstTopLevelAndPlaceholder, cc.FirstDelegatedAttributeWriter)
+	topLevelAndPlaceholderFiller := file.ConditionalAnalysis(cc.ForwardsDelegatedAttributes, cc.FirstDelegatedAttributeWriter)
 	if topLevelAndPlaceholderFiller.NotZero() {
 		cc.FirstTopLevelAttributeWriter.Set(cc.AST)
 		return
@@ -243,4 +242,51 @@ func (z *analyzer) ComponentCallFindFirstTopLevelAttributeWriter(cc *file.Compon
 	}
 
 	cc.FirstTopLevelAttributeWriter.SetIf(nil, !failed)
+}
+
+// AnalyzeForwardsDelegatedAttributes analyzes whether the component call
+// forwards delegated attributes.
+//
+// Depends on Checks: None
+//
+// Sets Fields:
+//   - ComponentCalls.ForwardsDelegatedAttributes
+//
+// Depends on Fields: None
+func (z *analyzer) AnalyzeForwardsDelegatedAttributes(cc *file.ComponentCall) {
+	if cc.Component == nil {
+		cc.ForwardsDelegatedAttributes.SetFailed()
+		return
+	}
+
+	if cc.Component.CouldForwardAttributes.Equal(false) {
+		cc.ForwardsDelegatedAttributes.Set(false)
+		return
+	}
+
+	ap := cc.Component.FirstPermanentTopLevelAndPlaceholder
+	if ap.NotZero() {
+		cc.ForwardsDelegatedAttributes.Set(true)
+		return
+	}
+
+	failed := ap.Failed
+	for _, block := range cc.Component.Blocks {
+		for _, instance := range block.Instances {
+			if instance.Default == nil {
+				continue
+			} else if instance.DefaultOverwritten(cc) {
+				continue
+			}
+
+			firstTopLevelAndPlaceholder := file.ConditionalAnalysis(instance.TopLevel, instance.Default.FirstTopLevelAndPlaceholder)
+			if firstTopLevelAndPlaceholder.NotZero() {
+				cc.ForwardsDelegatedAttributes.Set(true)
+				return
+			}
+			failed = failed || firstTopLevelAndPlaceholder.Failed
+		}
+	}
+
+	cc.ForwardsDelegatedAttributes.SetIf(false, !failed)
 }

@@ -131,43 +131,6 @@ func (c *Component) FirstIncludedAndPlaceholder(cc *ComponentCall) Analysis[*ast
 	return ResultIf[*ast.AndPlaceholder](nil, !failed)
 }
 
-// FirstIncludedTopLevelAndPlaceholder returns the first &-placeholder at the
-// top-level in the component that is included in the output of the component
-// for the given component call.
-//
-// Passing nil checks the general case, in which all block defaults are
-// included.
-func (c *Component) FirstIncludedTopLevelAndPlaceholder(cc *ComponentCall) Analysis[*ast.AndPlaceholder] {
-	ap := c.FirstPermanentTopLevelAndPlaceholder
-	if ap.NotZero() {
-		return ap
-	}
-
-	failed := ap.Failed
-	for _, block := range c.Blocks {
-		for _, instance := range block.Instances {
-			if instance.Default == nil {
-				continue
-			} else if instance.DefaultOverwritten(cc) {
-				continue
-			}
-
-			switch {
-			case instance.TopLevel.Equal(true) && instance.Default.FirstTopLevelAndPlaceholder.NotZero():
-				return instance.Default.FirstTopLevelAndPlaceholder
-			case instance.TopLevel.Equal(false):
-				continue
-			case instance.Default.FirstAndPlaceholder.Equal(nil):
-				continue
-			}
-
-			failed = true
-		}
-	}
-
-	return ResultIf[*ast.AndPlaceholder](nil, !failed)
-}
-
 type ComponentParameter struct {
 	//
 	// BUILD SYMBOLS

@@ -47,16 +47,17 @@ type ComponentCall struct {
 	// FirstDelegatedContentWriter is the first and placeholder writer filling
 	// the &-placeholder of the called component.
 	FirstDelegatedAndPlaceholderWriter Analysis[ast.AndPlaceholderWriter]
-	// ForwardsDelegatedAndPlaceholder indicates whether the component call
-	// forwards attributes of the AndPlaceholderWriter to the element containing
-	// the component call.
+	// ForwardsDelegatedAttributes indicates whether the component call
+	// forwards attributes the attributes it receives through a top-level
+	// &-placeholder to the element containing the component call again.
 	//
-	// Only set if FirstDelegatedAndPlaceholderWriter is not nil.
-	// If FirstDelegatedAndPlaceholderWriter is a component call, you can use
-	// that component call's FirstDelegatedAndPlaceholderWriter, possibly
-	// recursively, to retrieve the actual AndPlaceholder that is being
-	// forwarded by that component call.
-	ForwardsDelegatedAndPlaceholder Analysis[bool]
+	// In other words, whether the component call would output the attributes
+	// it receives (that are delegated to it) at its top-level.
+	//
+	// The most simple example of that is:
+	//    comp Foo() { &(&) }
+	// Where Foo is called with a delegated attribute.
+	ForwardsDelegatedAttributes Analysis[bool]
 
 	// FirstTopLevelAttributeWriter is the first attribute writer producing
 	// top-level attributes.
