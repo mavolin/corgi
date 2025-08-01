@@ -44,6 +44,7 @@ func (z *analyzer) AnalyzeComponent(logger *slog.Logger, c *file.Component) {
 	z.AnalyzeBlocks(logger, c)
 
 	z.AnalyzeCouldForwardAttributes(c)
+	z.AnalyzeCouldAcceptAttributes(c)
 
 	c.Analyzed = true
 }
@@ -160,6 +161,48 @@ func (z *analyzer) AnalyzeCouldForwardAttributes(c *file.Component) {
 	}
 
 	c.CouldForwardAttributes.SetIf(false, !failed)
+}
+
+// ============================================================================
+// Could Accept Attributes
+// ======================================================================================
+
+// AnalyzeCouldAcceptAttributes attempts to see if the given component could
+// accept attributes.
+//
+// Depends on Checks: None
+//
+// Sets Fields:
+//   - Components.CouldAcceptAttributes
+//
+// Depends on Fields:
+//   - Components.CouldForwardAttributes
+//   - Components.Blocks.Instances.Default.FirstAndPlaceholder
+func (z *analyzer) AnalyzeCouldAcceptAttributes(c *file.Component) {
+	if c.CouldForwardAttributes.NotZero() {
+		c.CouldAcceptAttributes.Set(true)
+		return
+	}
+
+	ap := c.FirstPermanentAndPlaceholder
+	if ap.NotZero() {
+		c.CouldAcceptAttributes.Set(true)
+		return
+	}
+	failed := ap.Failed
+
+	for _, block := range c.Blocks {
+		for _, instance := range block.Instances {
+			firstAndPlaceholder := file.ConditionalAnalysis(instance.TopLevel, instance.Default.FirstAndPlaceholder)
+			if firstAndPlaceholder.NotZero() {
+				c.CouldAcceptAttributes.Set(true)
+				return
+			}
+			failed = failed || firstAndPlaceholder.Failed
+		}
+	}
+
+	c.CouldAcceptAttributes.SetIf(false, !failed)
 }
 
 // ============================================================================

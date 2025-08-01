@@ -35,9 +35,14 @@ type Component struct {
 	// albeit with errors.
 	Analyzed bool
 
+	// CouldAcceptAttributes indicates whether the component could accept
+	// attributes passed to it.
+	CouldAcceptAttributes Analysis[bool]
 	// CouldForwardAttributes indicates whether the component could forward
 	// attributes it receives to the element containing a component call
 	// to it.
+	//
+	// CouldForwardAttributes implies CouldAcceptAttributes.
 	CouldForwardAttributes Analysis[bool]
 
 	// FirstPermanentAndPlaceholder is the first &-placeholder that is not
