@@ -43,9 +43,29 @@ type ComponentCall struct {
 
 	// FirstDelegatedAttributeWriter is the first attribute writer filling
 	// the &-placeholder of the called component.
+	//
+	// It is either directly set to an attribute, or set to a component call.
+	// In case of the latter, the attribute writer causing the
+	// delegation is the FirstTopLevelAttributeWriter of that component call.
+	//
+	// Note that if the component call and the component call's
+	// FirstTopLevelAttributeWriter are the same, the component call
+	// itself is the one filling the &-placeholder.
+	// Refer to the documentation of FirstTopLevelAttributeWriter for more
+	// information.
 	FirstDelegatedAttributeWriter Analysis[ast.AttributeWriter]
-	// FirstDelegatedContentWriter is the first and placeholder writer filling
-	// the &-placeholder of the called component.
+	// FirstDelegatedAndPlaceholderWriter is the first &-placeholder writer
+	// filling the &-placeholder of the called component.
+	//
+	// It is either directly set to an &-placeholder, or set to a component call.
+	// In case of the latter, the &-placeholder writer causing the delegation
+	// is the FirstTopLevelAndPlaceholderWriter of that component call.
+	//
+	// Note that if the component call and the component call's
+	// FirstTopLevelAndPlaceholderWriter are the same, the component call
+	// itself is the one filling the &-placeholder.
+	// Refer to the documentation of FirstTopLevelAndPlaceholderWriter for more
+	// information.
 	FirstDelegatedAndPlaceholderWriter Analysis[ast.AndPlaceholderWriter]
 	// ForwardsDelegatedAttributes indicates whether the component call
 	// forwards attributes the attributes it receives through a top-level
@@ -73,12 +93,20 @@ type ComponentCall struct {
 	//
 	// For attribute writers in the component's body, it is set to the
 	// component call itself.
+	//
 	// Values referencing the component call itself are preferred.
+	//
 	// This also means, if this is not zero, but not set to the component call
 	// itself, the only place adding top-level attributes is the
 	// component call itself, through block setters or the component's
 	// top-level &-placeholder.
 	FirstTopLevelAttributeWriter Analysis[ast.AttributeWriter]
+	// FirstTopLevelAndPlaceholderWriter is the first &-placeholder writer producing
+	// top-level attributes if filled.
+	//
+	// This fields considers &-placeholder writers in top-level block setters
+	// and &-placeholders delegated to the component.
+	FirstTopLevelAndPlaceholderWriter Analysis[ast.AndPlaceholderWriter]
 }
 
 func (cc *ComponentCall) External() bool { return cc.File.Package != cc.Component.File.Package }
@@ -103,26 +131,6 @@ func (cc *ComponentCall) BlockSetterByNode(n ast.BlockSetter) *BlockSetter {
 		return w
 	}
 	return nil
-}
-
-// ForwardsTopLevelAndPlaceholder indicates that this component call receives
-// an &-placeholder and outputs it to the top-level of the component.
-func (cc *ComponentCall) ForwardsTopLevelAndPlaceholder() Analysis[bool] {
-	if cc.Component == nil {
-		return FailedAnalysis[bool]()
-	}
-
-	if cc.FirstDelegatedAndPlaceholderWriter.Equal(nil) {
-		return Result(false)
-	} else if cc.FirstDelegatedAndPlaceholderWriter.Failed {
-		return FailedAnalysis[bool]()
-	}
-
-	placeholder := cc.Component.FirstIncludedTopLevelAndPlaceholder(cc)
-	if placeholder.Failed {
-		return FailedAnalysis[bool]()
-	}
-	return Result(placeholder.Result != nil)
 }
 
 type BlockSetter struct {
@@ -154,12 +162,12 @@ func (s *BlockSetter) InstanceByNode(n ast.BlockSetter) *BlockSetterInstance {
 	return nil
 }
 
-// FirstAndPlaceholder returns the first &-placeholder in any of the block
+// FirstAndPlaceholderWriter returns the first &-placeholder in any of the block
 // setter's instances.
-func (s *BlockSetter) FirstAndPlaceholder() Analysis[*BlockSetterInstance] {
+func (s *BlockSetter) FirstAndPlaceholderWriter() Analysis[*BlockSetterInstance] {
 	var failed bool
 	for _, instance := range s.Instances {
-		ap := instance.FirstAndPlaceholder
+		ap := instance.FirstAndPlaceholderWriter
 		if ap.Failed {
 			failed = true
 		} else if ap.Result != nil {
@@ -169,12 +177,12 @@ func (s *BlockSetter) FirstAndPlaceholder() Analysis[*BlockSetterInstance] {
 	return ResultIf[*BlockSetterInstance](nil, !failed)
 }
 
-// FirstTopLevelAndPlaceholder returns the first top-level &-placeholder in any
+// FirstTopLevelAndPlaceholderWriter returns the first top-level &-placeholder in any
 // of the block setter's instances.
-func (s *BlockSetter) FirstTopLevelAndPlaceholder() Analysis[*BlockSetterInstance] {
+func (s *BlockSetter) FirstTopLevelAndPlaceholderWriter() Analysis[*BlockSetterInstance] {
 	var failed bool
 	for _, instance := range s.Instances {
-		ap := instance.FirstTopLevelAndPlaceholder
+		ap := instance.FirstTopLevelAndPlaceholderWriter
 		if ap.Failed {
 			failed = true
 		} else if ap.Result != nil {
@@ -233,8 +241,8 @@ type BlockSetterInstance struct {
 	Group *BlockSetter
 	AST   ast.BlockSetter
 
-	FirstAndPlaceholder         Analysis[*ast.AndPlaceholder]
-	FirstTopLevelAndPlaceholder Analysis[*ast.AndPlaceholder]
+	FirstAndPlaceholderWriter         Analysis[ast.AndPlaceholderWriter]
+	FirstTopLevelAndPlaceholderWriter Analysis[ast.AndPlaceholderWriter]
 
 	FirstTopLevelAttributeWriter Analysis[ast.AttributeWriter]
 	FirstContentWriter           Analysis[ast.ContentWriter]
