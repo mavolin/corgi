@@ -42,11 +42,37 @@ type ComponentCall struct {
 	Circular bool
 
 	// FirstDelegatedAttributeWriter is the first attribute writer filling
-	// the &-placeholder of the called component outside a block setter.
+	// the &-placeholder of the called component.
 	FirstDelegatedAttributeWriter Analysis[ast.AttributeWriter]
-	// FirstDelegatedContentWriter is the first content writer filling
-	// the &-placeholder of the called component outside a block setter.
+	// FirstDelegatedContentWriter is the first and placeholder writer filling
+	// the &-placeholder of the called component.
 	FirstDelegatedAndPlaceholderWriter Analysis[ast.AndPlaceholderWriter]
+	// ForwardsDelegatedAndPlaceholder indicates whether the component call
+	// forwards attributes of the AndPlaceholderWriter to the element containing
+	// the component call.
+	//
+	// Only set if FirstDelegatedAndPlaceholderWriter is not nil.
+	// If FirstDelegatedAndPlaceholderWriter is a component call, you can use
+	// that component call's FirstDelegatedAndPlaceholderWriter, possibly
+	// recursively, to retrieve the actual AndPlaceholder that is being
+	// forwarded by that component call.
+	ForwardsDelegatedAndPlaceholder Analysis[bool]
+
+	// FirstTopLevelAttributeWriter is the first attribute writer producing
+	// top-level attributes.
+	//
+	// For attribute writers in the body of this component call, i.e.
+	// those passed to the component's top-level &-placeholder, or those in
+	// top-level block setters, it is set to that attribute writer directly.
+	//
+	// For attribute writers in the component's body, it is set to the
+	// component call itself.
+	// Values referencing the component call itself are preferred.
+	// This also means, if this is not zero, but not set to the component call
+	// itself, the only place adding top-level attributes is the
+	// component call itself, through block setters or the component's
+	// top-level &-placeholder.
+	FirstTopLevelAttributeWriter Analysis[ast.AttributeWriter]
 }
 
 func (cc *ComponentCall) External() bool { return cc.File.Package != cc.Component.File.Package }
@@ -71,100 +97,6 @@ func (cc *ComponentCall) BlockSetterByNode(n ast.BlockSetter) *BlockSetter {
 		return w
 	}
 	return nil
-}
-
-// WritesTopLevelAttributes whether this component call writes to the attributes
-// of its containing element.
-//
-// If the call's component is not linked or insufficiently analyzed,
-// WritesTopLevelAttributes returns with a failed analysis.
-func (cc *ComponentCall) WritesTopLevelAttributes() Analysis[bool] {
-	if cc.Component == nil {
-		return FailedAnalysis[bool]()
-	}
-
-	aw := cc.Component.FirstPermanentTopLevelAttributeWriter
-	if aw.NotZero() {
-		return Result(true)
-	}
-
-	fillsAndPlaceholder := cc.fillsTopLevelAndPlaceholder()
-	if fillsAndPlaceholder.Equal(true) {
-		return Result(true)
-	}
-
-	failed := aw.Failed || fillsAndPlaceholder.Failed
-
-	for _, block := range cc.Component.Blocks {
-		s := cc.BlockSetterByName(block.Name)
-		if s == nil {
-			for _, instance := range block.Instances {
-				if instance.Default == nil {
-					continue
-				} else if instance.DefaultOverwritten(cc) {
-					continue
-				}
-
-				writesTopLevelAttrs := cc.blockDefaultWritesTopLevelAttributes(instance)
-				if writesTopLevelAttrs.Equal(true) {
-					return Result(true)
-				}
-
-				failed = failed || writesTopLevelAttrs.Failed
-			}
-		} else {
-			writesTopLevelAttrs := cc.blockSetterWritesTopLevelAttributes(s)
-			if writesTopLevelAttrs.Equal(true) {
-				return Result(true)
-			}
-
-			failed = failed || writesTopLevelAttrs.Failed
-		}
-	}
-
-	return ResultIf(false, !failed)
-}
-
-func (cc *ComponentCall) fillsTopLevelAndPlaceholder() Analysis[bool] {
-	firstAndPlaceholder := cc.Component.FirstIncludedTopLevelAndPlaceholder(cc)
-	switch {
-	case firstAndPlaceholder.NotZero() && cc.FirstDelegatedAttributeWriter.NotZero():
-		return Result(true)
-	case firstAndPlaceholder.Equal(nil):
-		return Result(false)
-	case cc.FirstDelegatedAttributeWriter.Equal(nil):
-		return Result(false)
-	}
-
-	return FailedAnalysis[bool]()
-}
-
-func (cc *ComponentCall) blockDefaultWritesTopLevelAttributes(instance *BlockInstance) Analysis[bool] {
-	switch {
-	case instance.Default.FirstTopLevelAttributeWriter.NotZero() && instance.TopLevel.Equal(true):
-		return Result(true)
-	case instance.Default.FirstTopLevelAttributeWriter.Equal(nil):
-		return Result(false)
-	case instance.TopLevel.Equal(false):
-		return Result(false)
-	}
-
-	return FailedAnalysis[bool]()
-}
-
-func (cc *ComponentCall) blockSetterWritesTopLevelAttributes(s *BlockSetter) Analysis[bool] {
-	topLevel := s.Block.TopLevel(AtLeastOne)
-	taw := s.FirstTopLevelAttributeWriter()
-	switch {
-	case topLevel.Equal(true) && taw.NotZero():
-		return Result(true)
-	case taw.Equal(nil):
-		return Result(false)
-	case topLevel.Equal(false):
-		return Result(false)
-	}
-
-	return FailedAnalysis[bool]()
 }
 
 // ForwardsTopLevelAndPlaceholder indicates that this component call receives

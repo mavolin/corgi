@@ -2,7 +2,6 @@ package analyze
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"slices"
 	"strings"
@@ -125,13 +124,8 @@ func (z *analyzer) ComponentCallFindFirstDelegatedAttributes(ctx context.Context
 			subCC := cc.File.ComponentCallByNode(n)
 			z.AnalyzeComponentCall(ctx, subCC)
 
-			if cc.FirstDelegatedAttributeWriter.Failed || cc.FirstDelegatedAndPlaceholderWriter.Result == nil {
-				writesTopLevelAttributes := subCC.WritesTopLevelAttributes()
-				if writesTopLevelAttributes.Equal(true) {
-					cc.FirstDelegatedAttributeWriter.Set(n)
-				} else if writesTopLevelAttributes.Failed {
-					cc.FirstDelegatedAttributeWriter.SetFailed()
-				}
+			if !cc.FirstDelegatedAttributeWriter.NotZero() {
+				cc.FirstDelegatedAttributeWriter = subCC.FirstTopLevelAttributeWriter
 			}
 
 			if cc.FirstDelegatedAndPlaceholderWriter.Failed || cc.FirstDelegatedAndPlaceholderWriter.Result == nil {
@@ -184,4 +178,69 @@ func (z *analyzer) componentCallFindFirstDelegatedAttributesInArgs(cc *file.Comp
 			}
 		}
 	}
+}
+
+// ComponentCallFindFirstTopLevelAttributeWriter finds the first top-level
+// attribute writer in the component call.
+// It prefers attribute writers inside the component call's component.
+//
+// Depends on Checks: None
+//
+// Sets Fields:
+//   - ComponentCalls.FirstTopLevelAttributeWriter
+//
+// Depends on Fields:
+//   - ComponentCalls.FirstDelegatedAttributeWriter
+func (z *analyzer) ComponentCallFindFirstTopLevelAttributeWriter(cc *file.ComponentCall) {
+	if cc.Component == nil {
+		cc.FirstTopLevelAttributeWriter.SetFailed()
+		return
+	}
+
+	aw := cc.Component.FirstPermanentTopLevelAttributeWriter
+	if aw.NotZero() {
+		cc.FirstTopLevelAttributeWriter.Set(cc.AST)
+		return
+	}
+	failed := cc.Component.FirstPermanentTopLevelAttributeWriter.Failed
+
+	for _, block := range cc.Component.Blocks {
+		for _, instance := range block.Instances {
+			if instance.Default == nil || instance.DefaultOverwritten(cc) {
+				continue
+			}
+
+			topLevelAttr := file.ConditionalAnalysis(instance.TopLevel, instance.Default.FirstTopLevelAttributeWriter)
+			if topLevelAttr.NotZero() {
+				cc.FirstTopLevelAttributeWriter.Set(cc.AST)
+				return
+			}
+			failed = failed || topLevelAttr.Failed
+		}
+	}
+
+	firstTopLevelAndPlaceholder := cc.Component.FirstIncludedTopLevelAndPlaceholder(cc)
+	topLevelAndPlaceholderFiller := file.ConditionalAnalysis(firstTopLevelAndPlaceholder, cc.FirstDelegatedAttributeWriter)
+	if topLevelAndPlaceholderFiller.NotZero() {
+		cc.FirstTopLevelAttributeWriter.Set(cc.AST)
+		return
+	}
+	failed = failed || topLevelAndPlaceholderFiller.Failed
+
+	for _, s := range cc.BlockSetters {
+		topLevelBlockAttr := s.FirstTopLevelAttributeWriter()
+		if s.Block == nil {
+			failed = failed || topLevelBlockAttr.Failed || topLevelBlockAttr.Result != nil
+			continue
+		}
+
+		topLevelAttr := file.ConditionalAnalysis(s.Block.TopLevel(file.AtLeastOne), topLevelBlockAttr)
+		if topLevelAttr.NotZero() {
+			cc.FirstTopLevelAttributeWriter.Set(cc.AST)
+			return
+		}
+		failed = failed || topLevelAttr.Failed
+	}
+
+	cc.FirstTopLevelAttributeWriter.SetIf(nil, !failed)
 }
