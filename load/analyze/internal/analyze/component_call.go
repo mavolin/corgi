@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"slices"
+	"strings"
 
 	"github.com/mavolin/corgi/v2/file"
 	"github.com/mavolin/corgi/v2/file/ast"
@@ -32,9 +33,10 @@ func (z *analyzer) AnalyzeComponentCall(ctx context.Context, cc *file.ComponentC
 
 	if cc.Component != nil {
 		callerChain, _ := ctx.Value(callerChainKey{}).([]*file.Component)
-		z.secondaryCircularComponentCallCheck(logger, cc, callerChain)
 		if len(callerChain) == 0 {
-			callerChain = make([]*file.Component, 0, 1024)
+			callerChain = make([]*file.Component, 0, 100)
+		} else {
+			z.checkNoInfiniteRecursion(logger, cc, callerChain)
 		}
 		callerChain = append(callerChain, cc.Component)
 		ctx = context.WithValue(ctx, callerChainKey{}, callerChain)
@@ -43,36 +45,36 @@ func (z *analyzer) AnalyzeComponentCall(ctx context.Context, cc *file.ComponentC
 	z.ComponentCallFindFirstDelegatedAttributes(ctx, logger, cc)
 }
 
-func (z *analyzer) secondaryCircularComponentCallCheck(logger *slog.Logger, cc *file.ComponentCall, callerChain []*file.Component) {
-	if cc.Circular {
+func (z *analyzer) checkNoInfiniteRecursion(logger *slog.Logger, cc *file.ComponentCall, callerChain []*file.Component) {
+	if len(callerChain) < 2048 {
 		return
 	}
 
-	for i, c := range slices.Backward(callerChain) {
-		if c != cc.Component {
-			continue
-		}
-		cc.Circular = true
-
-		logger.Error("Undetected circular component call")
-
-		secondaries := make([]diagnostic.Annotation, len(callerChain)-i)
-		for i, c := range callerChain[i:] {
-			secondaries[i] = anno.Node(c.File, c.AST.Header.Name, fmt.Sprint(i+1, ": `", c.AST.Header.Name.Name, "`"))
-		}
-		z.Report(&diagnostic.Diagnostic{
-			Type:    diagnostic.InternalError,
-			Message: "AnalyzeComponentCall: undetected circular component call",
-			Primary: []diagnostic.Annotation{
-				anno.Node(cc.File, cc.AST, "circular component call"),
-			},
-			Secondary: secondaries,
-			Explanation: "Although this does not affect the correctness of the program, " +
-				"this should've been caught earlier.\n" +
-				"\n" +
-				"This is a bug in the analyzer, please open an issue and report it.",
-		})
+	var sb strings.Builder
+	sb.Grow(48 * len("github.com/mavolin/corgi/v2/mycomponents/foo/bar.Baz\n"))
+	for _, c := range slices.Backward(callerChain[2000:]) {
+		sb.WriteByte('\n')
+		sb.WriteString(c.File.Package.ImportPath)
+		sb.WriteByte('.')
+		sb.WriteString(c.AST.Header.Name.Name)
 	}
+
+	logger.Error("AnalyzeComponentCall: Recursion depth exceeded")
+	z.Report(&diagnostic.Diagnostic{
+		Type:    diagnostic.InternalError,
+		Message: "AnalyzeComponent: recursion depth exceeded",
+		Primary: []diagnostic.Annotation{
+			anno.Node(cc.File, callerChain[0].AST, "while analyzing this component"),
+		},
+		Explanation: "Components are analyzed recursively, with a maximum recursion depth of 2048. " +
+			"The component being analyzed either calls 2048 different components, exceeding this " +
+			"maximum, or a component call cycle was undetected. " +
+			"If there is a component call cycle that led to this, otherwise infinite, recursion " +
+			"in the analyzer, it should've been caught elsewhere. " +
+			"This is a bug, please report it. " +
+			"And if you actually called 2048 different components, you ought to rethink what you are doing.\n" +
+			sb.String(),
+	})
 }
 
 type callerChainKey struct{}
