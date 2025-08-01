@@ -7,6 +7,7 @@ import (
 )
 
 func NextRune(p *Parser) rune {
+	p.state.commitWS()
 	return p.next()
 }
 
@@ -31,7 +32,7 @@ func TryOptionalToken(p *Parser, s string, ws WhitespaceFunc) (ok bool) {
 		return false
 	}
 
-	p.state.ws = nil
+	p.state.commitWS()
 	for range s {
 		p.next()
 	}
@@ -103,7 +104,7 @@ func TryOptionalRune(p *Parser, r rune, ws WhitespaceFunc) (ok bool) {
 		p.RestoreState(state)
 		return false
 	}
-	p.state.ws = nil
+	p.state.commitWS()
 	p.next()
 	if ws != nil {
 		TrySkip(p, ws)
@@ -176,7 +177,7 @@ func TokenWhile(p *Parser, pred func() bool) string {
 		}
 		i = p.Index()
 	}
-	p.state.ws = nil // the predicate might've set a restore point
+	p.state.commitWS() // the predicate might've set a restore point
 	return p.AST.Raw[start:p.Index()]
 }
 

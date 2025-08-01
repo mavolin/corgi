@@ -136,7 +136,7 @@ type (
 // It does not consume any input.
 func Matches[T any](p *Parser, f Func[T]) bool {
 	state := p.CloneState()
-	p.state.ws = nil
+	p.state.commitWS()
 	_, err := f(p)
 	p.RestoreState(state)
 	return err == nil
@@ -144,7 +144,7 @@ func Matches[T any](p *Parser, f Func[T]) bool {
 
 func MatchesWS(p *Parser, f WhitespaceFunc) bool {
 	state := p.CloneState()
-	p.state.ws = nil
+	p.state.commitWS()
 	err := f(p)
 	p.RestoreState(state)
 	return err == nil
@@ -188,7 +188,7 @@ func Try[T any](p *Parser, f Func[T]) T {
 
 func TryOptionalErr[T any](p *Parser, f Func[T], ws WhitespaceFunc) (T, *diagnostic2.Diagnostic) {
 	state := p.CloneState()
-	p.state.ws = nil
+	p.state.commitWS()
 	v, err := f(p)
 	if err != nil {
 		p.RestoreState(state)
@@ -210,7 +210,7 @@ func TryOptional[T any](p *Parser, f Func[T], ws WhitespaceFunc) T {
 // If none match, it returns false.
 func TryInOrder[T any](p *Parser, fs ...Func[T]) T {
 	state := p.CloneState()
-	p.state.ws = nil
+	p.state.commitWS()
 	for _, f := range fs {
 		v, err := f(p)
 		if err == nil { // IS nil
@@ -271,7 +271,7 @@ func MustSkip(p *Parser, f WhitespaceFunc) {
 }
 
 func CommitWS(p *Parser) {
-	p.state.ws = nil
+	p.state.commitWS()
 }
 
 // RestoreWS restores all whitespace consumed by the last calls to [TrySkip]
