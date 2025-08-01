@@ -140,9 +140,9 @@ func (z *analyzer) checkComponentCallCycles(root *file.Component, chain []*file.
 //
 // Depends on Fields:
 //   - Components.Blocks.Instances.TopLevel
-//   - Components.Blocks.Instances.Default.FirstTopLevelAndPlaceholder
+//   - Components.Blocks.Instances.Default.FirstTopLevelAndPlaceholderWriter
 func (z *analyzer) AnalyzeCouldForwardAttributes(c *file.Component) {
-	ap := c.FirstPermanentTopLevelAndPlaceholder
+	ap := c.FirstPermanentTopLevelAndPlaceholderWriter
 	if ap.NotZero() {
 		c.CouldForwardAttributes.Set(true)
 		return
@@ -151,7 +151,7 @@ func (z *analyzer) AnalyzeCouldForwardAttributes(c *file.Component) {
 
 	for _, block := range c.Blocks {
 		for _, instance := range block.Instances {
-			firstTopLevelAndPlaceholder := file.ConditionalAnalysis(instance.TopLevel, instance.Default.FirstTopLevelAndPlaceholder)
+			firstTopLevelAndPlaceholder := file.ConditionalAnalysis(instance.TopLevel, instance.Default.FirstTopLevelAndPlaceholderWriter)
 			if firstTopLevelAndPlaceholder.NotZero() {
 				c.CouldForwardAttributes.Set(true)
 				return
@@ -177,14 +177,14 @@ func (z *analyzer) AnalyzeCouldForwardAttributes(c *file.Component) {
 //
 // Depends on Fields:
 //   - Components.CouldForwardAttributes
-//   - Components.Blocks.Instances.Default.FirstAndPlaceholder
+//   - Components.Blocks.Instances.Default.FirstAndPlaceholderWriter
 func (z *analyzer) AnalyzeCouldAcceptAttributes(c *file.Component) {
 	if c.CouldForwardAttributes.NotZero() {
 		c.CouldAcceptAttributes.Set(true)
 		return
 	}
 
-	ap := c.FirstPermanentAndPlaceholder
+	ap := c.FirstPermanentAndPlaceholderWriter
 	if ap.NotZero() {
 		c.CouldAcceptAttributes.Set(true)
 		return
@@ -193,7 +193,7 @@ func (z *analyzer) AnalyzeCouldAcceptAttributes(c *file.Component) {
 
 	for _, block := range c.Blocks {
 		for _, instance := range block.Instances {
-			firstAndPlaceholder := file.ConditionalAnalysis(instance.TopLevel, instance.Default.FirstAndPlaceholder)
+			firstAndPlaceholder := file.ConditionalAnalysis(instance.TopLevel, instance.Default.FirstAndPlaceholderWriter)
 			if firstAndPlaceholder.NotZero() {
 				c.CouldAcceptAttributes.Set(true)
 				return
@@ -215,7 +215,7 @@ func (z *analyzer) AnalyzeCouldAcceptAttributes(c *file.Component) {
 // Depends on Checks: None
 //
 // Sets Fields:
-//   - Components.FirstPermanentTopLevelAndPlaceholder
+//   - Components.FirstPermanentTopLevelAndPlaceholderWriter
 //
 // Depends on Fields: None
 func (z *analyzer) FindFirstPermanentTopLevelAndPlaceholder(c *file.Component) {
@@ -232,13 +232,13 @@ func (z *analyzer) FindFirstPermanentTopLevelAndPlaceholder(c *file.Component) {
 // Depends on Checks: None
 //
 // Sets Fields:
-//   - Components.FirstPermanentAndPlaceholder
+//   - Components.FirstPermanentAndPlaceholderWriter
 //
 // Depends on Fields:
-//   - Components.FirstPermanentTopLevelAndPlaceholder
+//   - Components.FirstPermanentTopLevelAndPlaceholderWriter
 func (z *analyzer) FindFirstPermanentAndPlaceholder(c *file.Component) {
-	if c.FirstPermanentTopLevelAndPlaceholder.NotZero() {
-		c.FirstPermanentAndPlaceholder = c.FirstPermanentTopLevelAndPlaceholder
+	if c.FirstPermanentTopLevelAndPlaceholderWriter.NotZero() {
+		c.FirstPermanentAndPlaceholderWriter = c.FirstPermanentTopLevelAndPlaceholderWriter
 		return
 	}
 

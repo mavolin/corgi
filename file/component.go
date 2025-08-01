@@ -45,13 +45,13 @@ type Component struct {
 	// CouldForwardAttributes implies CouldAcceptAttributes.
 	CouldForwardAttributes Analysis[bool]
 
-	// FirstPermanentAndPlaceholder is the first &-placeholder that is not
-	// part of a block default.
-	FirstPermanentAndPlaceholder Analysis[*ast.AndPlaceholder]
-	// FirstPermanentTopLevelAndPlaceholder is the first &-placeholder that is
-	// at the top-level of the component, i.e. not nested inside an element or
-	// part of a block default.
-	FirstPermanentTopLevelAndPlaceholder Analysis[*ast.AndPlaceholder]
+	// FirstPermanentAndPlaceholderWriter is the first &-placeholder writer that is
+	// not part of a block default.
+	FirstPermanentAndPlaceholderWriter Analysis[ast.AndPlaceholderWriter]
+	// FirstPermanentTopLevelAndPlaceholderWriter is the first &-placeholder writer
+	// that is at the top-level of the component, i.e. not nested inside an element
+	// or part of a block default.
+	FirstPermanentTopLevelAndPlaceholderWriter Analysis[ast.AndPlaceholderWriter]
 
 	// FirstPermanentTopLevelAttributeWriter is the first attribute writer that is
 	// not part of a block default.
@@ -115,30 +115,6 @@ func (c *Component) BlockInstanceByNode(b *ast.Block) *BlockInstance {
 
 func (c *Component) Exported() bool {
 	return IsExported(c.AST.Header.Name.Name)
-}
-
-// FirstIncludedAndPlaceholder returns the first &-placeholder that is included
-// in the output of the component for the given component call.
-//
-// Passing nil checks the general case, in which all block defaults are
-// included.
-func (c *Component) FirstIncludedAndPlaceholder(cc *ComponentCall) Analysis[*ast.AndPlaceholder] {
-	ap := c.FirstPermanentTopLevelAndPlaceholder
-	if ap.NotZero() {
-		return ap
-	}
-
-	failed := ap.Failed
-	for _, block := range c.Blocks {
-		instance := block.FirstIncludedAndPlaceholder(cc)
-		if instance.Failed {
-			failed = true
-		} else if instance.Result != nil {
-			return instance.Result.Default.FirstAndPlaceholder
-		}
-	}
-
-	return ResultIf[*ast.AndPlaceholder](nil, !failed)
 }
 
 type ComponentParameter struct {

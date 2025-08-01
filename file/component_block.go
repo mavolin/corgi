@@ -41,7 +41,7 @@ func (b *Block) FirstIncludedAndPlaceholder(cc *ComponentCall) Analysis[*BlockIn
 
 	var failed bool
 	for _, instance := range b.Instances {
-		ap := instance.Default.FirstAndPlaceholder
+		ap := instance.Default.FirstAndPlaceholderWriter
 		if ap.Failed {
 			failed = true
 			continue
@@ -160,8 +160,8 @@ type (
 		//
 		// ANALYZER
 
-		FirstAndPlaceholder         Analysis[*ast.AndPlaceholder]
-		FirstTopLevelAndPlaceholder Analysis[*ast.AndPlaceholder]
+		FirstAndPlaceholderWriter         Analysis[ast.AndPlaceholderWriter]
+		FirstTopLevelAndPlaceholderWriter Analysis[ast.AndPlaceholderWriter]
 
 		FirstTopLevelAttributeWriter Analysis[ast.AttributeWriter]
 		FirstContentWriter           Analysis[ast.ContentWriter]

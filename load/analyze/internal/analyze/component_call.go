@@ -107,7 +107,7 @@ func (z *analyzer) AnalyzeForwardsDelegatedAttributes(cc *file.ComponentCall) {
 		return
 	}
 
-	ap := cc.Component.FirstPermanentTopLevelAndPlaceholder
+	ap := cc.Component.FirstPermanentTopLevelAndPlaceholderWriter
 	if ap.NotZero() {
 		cc.ForwardsDelegatedAttributes.Set(true)
 		return
@@ -122,7 +122,7 @@ func (z *analyzer) AnalyzeForwardsDelegatedAttributes(cc *file.ComponentCall) {
 				continue
 			}
 
-			firstTopLevelAndPlaceholder := file.ConditionalAnalysis(instance.TopLevel, instance.Default.FirstTopLevelAndPlaceholder)
+			firstTopLevelAndPlaceholder := file.ConditionalAnalysis(instance.TopLevel, instance.Default.FirstTopLevelAndPlaceholderWriter)
 			if firstTopLevelAndPlaceholder.NotZero() {
 				cc.ForwardsDelegatedAttributes.Set(true)
 				return
@@ -162,7 +162,7 @@ func (z *analyzer) AnalyzeAcceptsAttributes(cc *file.ComponentCall) {
 		return
 	}
 
-	ap := cc.Component.FirstPermanentAndPlaceholder
+	ap := cc.Component.FirstPermanentAndPlaceholderWriter
 	if ap.NotZero() {
 		cc.AcceptsAttributes.Set(true)
 		return
@@ -177,11 +177,11 @@ func (z *analyzer) AnalyzeAcceptsAttributes(cc *file.ComponentCall) {
 				continue
 			}
 
-			if instance.Default.FirstAndPlaceholder.NotZero() {
+			if instance.Default.FirstAndPlaceholderWriter.NotZero() {
 				cc.AcceptsAttributes.Set(true)
 				return
 			}
-			failed = failed || instance.Default.FirstAndPlaceholder.Failed
+			failed = failed || instance.Default.FirstAndPlaceholderWriter.Failed
 		}
 	}
 

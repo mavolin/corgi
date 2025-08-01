@@ -31,6 +31,7 @@ import (
 // todo: set ElementSpec.Type
 // todo: set AttributeReference.Analyzed
 // todo: duplicate and placeholder (as in attrs would be written twice)
+// todo: ccs in cc must not write text
 // todo: no elements in script/style https://html.spec.whatwg.org/multipage/syntax.html#elements-2:raw-text-elements-3
 // todo: no elements in textarea/title https://html.spec.whatwg.org/multipage/syntax.html#elements-2:escapable-raw-text-elements-3
 // todo: no component call interpolations that can't write top-level attrs, but do
@@ -68,6 +69,7 @@ import (
 // todo: block is top-level
 // todo: BlockInstanceDefault has top-level and, but it's BlockInstance can't write
 //       attributes (same for top-level and placeholder)
+// todo: CheckComponentAcceptsAttributes: follow the chain of AttributeWriters
 
 type Options struct {
 	// Logger is the logger used by the analyzer.

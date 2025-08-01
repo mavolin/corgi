@@ -153,7 +153,7 @@ func (ch *checker) CheckComponentAcceptsAttributes(logger *slog.Logger, cc *file
 		return
 	}
 
-	if cc.Component.FirstIncludedAndPlaceholder(cc).NotZero() {
+	if cc.AcceptsAttributes.Equal(true) {
 		return
 	}
 
@@ -162,7 +162,7 @@ func (ch *checker) CheckComponentAcceptsAttributes(logger *slog.Logger, cc *file
 	}
 
 	primaries := make([]diagnostic.Annotation, 1)
-	if cc.FirstDelegatedAttributeWriter.NotZero() {
+	if cc.FirstDelegatedAttributeWriter.NotZero() { // todo
 		primaries[0] = anno.Node(cc.File, cc.FirstDelegatedAttributeWriter.Result, "but you hand it attributes here")
 	} else {
 		primaries[0] = anno.Node(cc.File, cc.FirstDelegatedAndPlaceholderWriter.Result, "but you hand it attributes here")
@@ -180,7 +180,7 @@ func (ch *checker) CheckComponentAcceptsAttributes(logger *slog.Logger, cc *file
 			"you cannot hand attributes to it.",
 		Docs: "attribute-placeholder",
 	}
-	couldAcceptAttributes := cc.Component.FirstIncludedAndPlaceholder(nil).NotZero()
+	couldAcceptAttributes := cc.Component.CouldAcceptAttributes.NotZero()
 	if couldAcceptAttributes {
 		diag.Hints = []diagnostic.Hint{
 			{
