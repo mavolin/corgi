@@ -176,7 +176,6 @@ func (ch *checker) CheckComponentAcceptsAttributes(logger *slog.Logger, cc *file
 		},
 		Explanation: "Components need to specify an &-placeholder somewhere in their body " +
 			"for them to accept attributes. Since this component does not specify any " +
-			"(or you have overwritten all block defaults that contain one), " +
 			"you cannot hand attributes to it.",
 		Docs: "attribute-placeholder",
 	}
