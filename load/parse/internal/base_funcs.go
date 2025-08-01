@@ -19,9 +19,7 @@ func TryToken(p *Parser, s string) (ok bool) {
 		return false
 	}
 
-	for range s {
-		p.next()
-	}
+	p.skipString(s)
 	return true
 }
 
@@ -33,9 +31,7 @@ func TryOptionalToken(p *Parser, s string, ws WhitespaceFunc) (ok bool) {
 	}
 
 	p.state.commitWS()
-	for range s {
-		p.next()
-	}
+	p.skipString(s)
 	if ws != nil {
 		TrySkip(p, ws)
 	}
@@ -46,9 +42,7 @@ func TryAnyToken(p *Parser, ss ...string) string {
 	restore := p.state.takeWSStart()
 	for _, s := range ss {
 		if MatchesToken(p, s) {
-			for range s {
-				p.next()
-			}
+			p.skipString(s)
 			return s
 		}
 	}

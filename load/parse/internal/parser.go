@@ -80,6 +80,12 @@ func (p *Parser) peek() rune {
 	return r
 }
 
+func (p *Parser) skipString(s string) {
+	for range s {
+		p.next()
+	}
+}
+
 func (p *Parser) Line() int         { return p.state.line }
 func (p *Parser) Col() int          { return p.state.col }
 func (p *Parser) Pos() ast.Position { return p.state.Pos() }
