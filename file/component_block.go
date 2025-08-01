@@ -20,9 +20,9 @@ type Block struct {
 	// TopLevel indicates at least one instance of this block is placed
 	// outside any element.
 	TopLevel Analysis[bool]
-	// CanWriteAttributes indicates that all instances of this block can write
+	// ForwardsAttributes indicates that all instances of this block can write
 	// to the list of attributes of their containing element.
-	CanWriteAttributes Analysis[bool]
+	ForwardsAttributes Analysis[bool]
 }
 
 func (b *Block) InstanceByNode(n *ast.Block) *BlockInstance {
@@ -52,11 +52,11 @@ type (
 		// TopLevel indicates whether this block instance is placed outside
 		// any element.
 		TopLevel Analysis[bool]
-		// CanWriteAttributes indicates whether this block instance can write
+		// ForwardsAttributes indicates whether this block instance can write
 		// to the list of attributes of it's containing element.
 		//
-		// TopLevel implies CanWriteAttributes.
-		CanWriteAttributes Analysis[bool]
+		// TopLevel implies ForwardsAttributes.
+		ForwardsAttributes Analysis[bool]
 	}
 
 	BlockInstanceDefault struct {
@@ -68,8 +68,8 @@ type (
 		//
 		// ANALYZER
 
-		FirstAndPlaceholderWriter         Analysis[ast.AndPlaceholderWriter]
-		FirstTopLevelAndPlaceholderWriter Analysis[ast.AndPlaceholderWriter]
+		FirstAndPlaceholderWriter          Analysis[ast.AndPlaceholderWriter]
+		FirstForwardedAndPlaceholderWriter Analysis[ast.AndPlaceholderWriter]
 
 		FirstTopLevelAttributeWriter Analysis[ast.AttributeWriter]
 		FirstContentWriter           Analysis[ast.ContentWriter]

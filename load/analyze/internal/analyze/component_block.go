@@ -25,10 +25,11 @@ func (z *analyzer) AnalyzeBlocks(logger *slog.Logger, c *file.Component) {
 	for _, block := range c.Blocks {
 		logger := logger.With(slog.String("block", block.Name))
 
-		z.AnalyzeBlockRequired(logger, c, block)
-
 		// todo: instance top-level
+		// todo: instance forwards attributes
+		z.AnalyzeBlockRequired(logger, c, block)
 		z.BlockTopLevel(block)
+		z.AnalyzeBlockForwardsAttributes(block)
 	}
 }
 
@@ -106,4 +107,32 @@ func (z *analyzer) BlockTopLevel(b *file.Block) {
 	}
 
 	b.TopLevel.SetIf(false, !failed)
+}
+
+// ============================================================================
+// Forwards Attributes
+// ======================================================================================
+
+// AnalyzeBlockForwardsAttributes determines whether the given component block
+// forwards attributes to the element containing it.
+//
+// Depends on Checks: None
+//
+// Sets Fields:
+//   - Components.Blocks.ForwardsAttributes
+//
+// Depends on Fields:
+//   - Components.Blocks.Instances.ForwardsAttributes
+func (z *analyzer) AnalyzeBlockForwardsAttributes(b *file.Block) {
+	for _, instance := range b.Instances {
+		if instance.ForwardsAttributes.Failed {
+			b.ForwardsAttributes.SetFailed()
+			return
+		} else if instance.ForwardsAttributes.Equal(false) {
+			b.ForwardsAttributes.Set(false)
+			return
+		}
+	}
+	b.ForwardsAttributes.Set(true)
+
 }

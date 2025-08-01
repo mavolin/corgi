@@ -140,7 +140,7 @@ func (z *analyzer) checkComponentCallCycles(root *file.Component, chain []*file.
 //
 // Depends on Fields:
 //   - Components.Blocks.Instances.BlockTopLevel
-//   - Components.Blocks.Instances.Default.FirstTopLevelAndPlaceholderWriter
+//   - Components.Blocks.Instances.Default.FirstForwardedAndPlaceholderWriter
 func (z *analyzer) AnalyzeCouldForwardAttributes(c *file.Component) {
 	ap := c.FirstPermanentForwardedAndPlaceholderWriter
 	if ap.NotZero() {
@@ -151,7 +151,7 @@ func (z *analyzer) AnalyzeCouldForwardAttributes(c *file.Component) {
 
 	for _, block := range c.Blocks {
 		for _, instance := range block.Instances {
-			firstTopLevelAndPlaceholder := file.ConditionalAnalysis(instance.TopLevel, instance.Default.FirstTopLevelAndPlaceholderWriter)
+			firstTopLevelAndPlaceholder := file.ConditionalAnalysis(instance.TopLevel, instance.Default.FirstForwardedAndPlaceholderWriter)
 			if firstTopLevelAndPlaceholder.NotZero() {
 				c.CouldForwardAttributes.Set(true)
 				return

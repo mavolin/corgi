@@ -122,7 +122,7 @@ func (z *analyzer) AnalyzeForwardsDelegatedAttributes(cc *file.ComponentCall) {
 				continue
 			}
 
-			firstTopLevelAndPlaceholder := file.ConditionalAnalysis(instance.TopLevel, instance.Default.FirstTopLevelAndPlaceholderWriter)
+			firstTopLevelAndPlaceholder := file.ConditionalAnalysis(instance.TopLevel, instance.Default.FirstForwardedAndPlaceholderWriter)
 			if firstTopLevelAndPlaceholder.NotZero() {
 				cc.ForwardsDelegatedAttributes.Set(true)
 				return
@@ -269,11 +269,11 @@ func (z *analyzer) FindFirstForwardedAttributeWriter(cc *file.ComponentCall) {
 // Depends on Checks: None
 //
 // Sets Fields:
-//   - ComponentCalls.FirstTopLevelAndPlaceholderWriter
+//   - ComponentCalls.FirstForwardedAndPlaceholderWriter
 //
 // Depends on Fields:
 //   - ComponentCalls.Blocks.BlockTopLevel
-//   - ComponentCalls.Blocks.Instances.FirstTopLevelAndPlaceholderWriter
+//   - ComponentCalls.Blocks.Instances.FirstForwardedAndPlaceholderWriter
 //   - ComponentCalls.FirstDelegatedAndPlaceholderWriter
 //   - ComponentCalls.ForwardsDelegatedAttributes
 func (z *analyzer) FindFirstForwardedAndPlaceholderWriter(cc *file.ComponentCall) {
