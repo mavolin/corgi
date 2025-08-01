@@ -7,30 +7,28 @@ import (
 )
 
 func NextRune(p *Parser) rune {
-	p.state.commitWS()
+	CommitWS(p)
 	return p.next()
 }
 
 // TryToken attempts to match the given token verbatim.
 func TryToken(p *Parser, s string) (ok bool) {
-	restore := p.state.takeWSStart()
 	if !MatchesToken(p, s) {
-		p.RestoreState(restore)
+		RestoreWS(p)
 		return false
 	}
 
+	CommitWS(p)
 	p.skipString(s)
 	return true
 }
 
 func TryOptionalToken(p *Parser, s string, ws WhitespaceFunc) (ok bool) {
-	state := p.CloneState()
 	if !MatchesToken(p, s) {
-		p.RestoreState(state)
 		return false
 	}
 
-	p.state.commitWS()
+	CommitWS(p)
 	p.skipString(s)
 	if ws != nil {
 		TrySkip(p, ws)
@@ -39,20 +37,22 @@ func TryOptionalToken(p *Parser, s string, ws WhitespaceFunc) (ok bool) {
 }
 
 func TryAnyToken(p *Parser, ss ...string) string {
-	restore := p.state.takeWSStart()
 	for _, s := range ss {
 		if MatchesToken(p, s) {
+			CommitWS(p)
 			p.skipString(s)
 			return s
 		}
 	}
-	p.RestoreState(restore)
+	RestoreWS(p)
 	return ""
 }
 
 func TryKeywordAt(p *Parser, k string, ws WhitespaceFunc) *ast.Position {
 	pos := p.Pos()
+	restore := p.takeWSStart()
 	if !TryToken(p, k) || (!MatchesAnyRune(p, EOF, ':', '(', ';', '}', '\n', '\r') && !TrySkip(p, ws)) {
+		p.RestoreState(restore)
 		return nil
 	}
 	return &pos
@@ -75,11 +75,12 @@ func TryTokenAt(p *Parser, s string) *ast.Position {
 }
 
 func TryRune(p *Parser, r rune) (ok bool) {
-	restore := p.state.takeWSStart()
 	if r != p.peek() {
-		p.RestoreState(restore)
+		RestoreWS(p)
 		return false
 	}
+
+	CommitWS(p)
 	p.next()
 	return true
 }
@@ -93,12 +94,11 @@ func TryRuneAt(p *Parser, r rune) *ast.Position {
 }
 
 func TryOptionalRune(p *Parser, r rune, ws WhitespaceFunc) (ok bool) {
-	state := p.CloneState()
 	if r != p.peek() {
-		p.RestoreState(state)
 		return false
 	}
-	p.state.commitWS()
+
+	CommitWS(p)
 	p.next()
 	if ws != nil {
 		TrySkip(p, ws)
@@ -131,15 +131,12 @@ func TryAnyRune(p *Parser, rs ...rune) rune {
 // TryRunePredicate attempts to match the next rune against the predicate.
 // If successful, it returns the matched rune, otherwise, it returns -1.
 func TryRunePredicate(p *Parser, pred func(rune) bool) rune {
-	restore := p.state.takeWSStart()
 	peek := p.peek()
-	if peek == EOF {
+	if peek == EOF || !pred(peek) {
+		RestoreWS(p)
 		return -1
 	}
-	if !pred(peek) {
-		p.RestoreState(restore)
-		return -1
-	}
+	CommitWS(p)
 	return p.next()
 }
 
@@ -150,7 +147,7 @@ func TryRunePredicate(p *Parser, pred func(rune) bool) rune {
 // If TokenWhile doesn't consume any runes, previously consumed whitespace is
 // rolled back.
 func TokenWhile(p *Parser, pred func() bool) string {
-	restore := p.state.takeWSStart()
+	restore := p.takeWSStart()
 	start := p.Index()
 	if !pred() {
 		if p.Index() != start {
@@ -171,7 +168,7 @@ func TokenWhile(p *Parser, pred func() bool) string {
 		}
 		i = p.Index()
 	}
-	p.state.commitWS() // the predicate might've set a restore point
+	CommitWS(p) // the predicate might've set a restore point
 	return p.AST.Raw[start:p.Index()]
 }
 

@@ -73,7 +73,9 @@ func (s *State) markWSStart() {
 
 // commitWS commits the whitespace, preventing rollback.
 func (s *State) commitWS() {
-	s.ws = nil
+	if !s.parsingWS {
+		s.ws = nil
+	}
 }
 
 func (s *State) takeWSStart() *State {
@@ -81,8 +83,8 @@ func (s *State) takeWSStart() *State {
 		return s.Clone()
 	}
 	wsStart := s.ws
-	s.commitWS()
-	return wsStart
+	s.ws = nil
+	return wsStart.Clone()
 }
 
 func (s State) Clone() *State {
