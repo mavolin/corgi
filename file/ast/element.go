@@ -12,7 +12,10 @@ type Doctype struct {
 	RParen  *Position
 }
 
-var _ ScopeNode = (*Doctype)(nil)
+var (
+	_ ScopeNode     = (*Doctype)(nil)
+	_ ContentWriter = (*Doctype)(nil)
+)
 
 func (d *Doctype) Start() Position {
 	switch {
@@ -42,8 +45,9 @@ func (d *Doctype) End() Position {
 
 func (d *Doctype) Walk(func(Node)) {}
 
-func (*Doctype) _node()      {}
-func (*Doctype) _scopeNode() {}
+func (*Doctype) _node()          {}
+func (*Doctype) _contentWriter() {}
+func (*Doctype) _scopeNode()     {}
 
 // ============================================================================
 // Element
@@ -56,8 +60,10 @@ type Element struct {
 }
 
 var (
-	_ ScopeNode   = (*Element)(nil)
-	_ Highlighter = (*Element)(nil)
+	_ ScopeNode     = (*Element)(nil)
+	_ ContentWriter = (*Element)(nil)
+	_ ElementWriter = (*Element)(nil)
+	_ Highlighter   = (*Element)(nil)
 )
 
 func (e *Element) Start() Position {
@@ -94,8 +100,10 @@ func (e *Element) Highlight() (start, end Position) {
 	return e.Start(), e.End()
 }
 
-func (*Element) _node()      {}
-func (*Element) _scopeNode() {}
+func (*Element) _node()          {}
+func (*Element) _contentWriter() {}
+func (*Element) _elementWriter() {}
+func (*Element) _scopeNode()     {}
 
 // ============================================================================
 // Element Header

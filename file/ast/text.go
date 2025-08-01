@@ -139,7 +139,10 @@ type Text struct {
 	Position *Position
 }
 
-var _ TextNode = (*Text)(nil)
+var (
+	_ TextNode      = (*Text)(nil)
+	_ ContentWriter = (*Text)(nil)
+)
 
 func (t *Text) Start() Position {
 	if t.Position != nil {
@@ -156,8 +159,9 @@ func (t *Text) End() Position {
 }
 func (t *Text) Walk(func(Node)) {}
 
-func (t *Text) _node()   {}
-func (*Text) _textNode() {}
+func (t *Text) _node()        {}
+func (*Text) _textNode()      {}
+func (*Text) _contentWriter() {}
 
 // ============================================================================
 // Text Interpolation

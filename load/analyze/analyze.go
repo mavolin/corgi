@@ -65,6 +65,8 @@ import (
 // todo: cc interpolation arg must only write text
 // todo: comp interpolation must only write text
 // todo: block is top-level
+// todo: BlockInstanceDefault has top-level and, but it's BlockInstance can't write
+//       attributes (same for top-level and placeholder)
 
 type Options struct {
 	// Logger is the logger used by the analyzer.

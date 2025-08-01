@@ -8,7 +8,7 @@ import (
 	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
 )
 
-// TrivialAnalyzeBlocks runs trivial analyses on the blocks of the given
+// AnalyzeBlocks runs trivial analyses on the blocks of the given
 // component.
 //
 // An analysis is trivial, if it does not depend on the analysis of a component
@@ -19,7 +19,7 @@ import (
 // Sets Fields: None
 //
 // Depends on Fields: None
-func (z *analyzer) TrivialAnalyzeBlocks(logger *slog.Logger, c *file.Component) {
+func (z *analyzer) AnalyzeBlocks(logger *slog.Logger, c *file.Component) {
 	logger = logger.WithGroup("blocks")
 
 	for _, block := range c.Blocks {

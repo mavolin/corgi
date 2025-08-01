@@ -42,6 +42,16 @@ type Component struct {
 	// at the top-level of the component, i.e. not nested inside an element or
 	// part of a block default.
 	FirstPermanentTopLevelAndPlaceholder Analysis[*ast.AndPlaceholder]
+
+	// FirstPermanentTopLevelAttributeWriter is the first attribute writer that is
+	// not part of a block default.
+	FirstPermanentTopLevelAttributeWriter Analysis[ast.AttributeWriter]
+	// FirstPermanentContentWriter is the first content writer that is not part
+	// of a block default.
+	FirstPermanentContentWriter Analysis[ast.ContentWriter]
+	// FirstPermanentElementWriter is the first element writer that is not part
+	// of a block default.
+	FirstPermanentElementWriter Analysis[ast.ElementWriter]
 }
 
 func (c *Component) ParameterByName(name string) *ComponentParameter {
@@ -103,36 +113,120 @@ func (c *Component) Exported() bool {
 // Passing nil checks the general case, in which all block defaults are
 // included.
 func (c *Component) FirstIncludedAndPlaceholder(cc *ComponentCall) Analysis[*ast.AndPlaceholder] {
-	fpap := c.FirstPermanentTopLevelAndPlaceholder
-	if fpap.NotZero() {
-		return fpap
+	ap := c.FirstPermanentTopLevelAndPlaceholder
+	if ap.NotZero() {
+		return ap
 	}
 
-	instance := c.FirstBlockIncludedAndPlaceholder(cc)
-	if instance.NotZero() {
-		return instance.Result.Default.FirstAndPlaceholder
-	}
-
-	return ResultIf[*ast.AndPlaceholder](nil, !fpap.Failed && !instance.Failed)
-}
-
-// FirstBlockIncludedAndPlaceholder returns the first block instance with an
-// &-placeholder in its default that is included in the output of the component
-// for the given component call.
-//
-// Passing nil checks the general case, in which all block defaults are
-// included.
-func (c *Component) FirstBlockIncludedAndPlaceholder(cc *ComponentCall) Analysis[*BlockInstance] {
-	var failed bool
+	failed := ap.Failed
 	for _, block := range c.Blocks {
 		instance := block.FirstIncludedAndPlaceholder(cc)
 		if instance.Failed {
 			failed = true
 		} else if instance.Result != nil {
-			return instance
+			return instance.Result.Default.FirstAndPlaceholder
 		}
 	}
-	return ResultIf[*BlockInstance](nil, !failed)
+
+	return ResultIf[*ast.AndPlaceholder](nil, !failed)
+}
+
+// FirstIncludedTopLevelAndPlaceholder returns the first &-placeholder at the
+// top-level in the component that is included in the output of the component
+// for the given component call.
+//
+// Passing nil checks the general case, in which all block defaults are
+// included.
+func (c *Component) FirstIncludedTopLevelAndPlaceholder(cc *ComponentCall) Analysis[*ast.AndPlaceholder] {
+	ap := c.FirstPermanentTopLevelAndPlaceholder
+	if ap.NotZero() {
+		return ap
+	}
+
+	failed := ap.Failed
+	for _, block := range c.Blocks {
+		instance := block.FirstIncludedTopLevelAndPlaceholder(cc)
+		if instance.Failed {
+			failed = true
+		} else if instance.Result != nil {
+			return instance.Result.Default.FirstTopLevelAndPlaceholder
+		}
+	}
+
+	return ResultIf[*ast.AndPlaceholder](nil, !failed)
+}
+
+// FirstIncludedTopLevelAttributeWriter returns the first top-level attribute
+// writer in the component that is included in the output of the component for
+// the given component call.
+//
+// Passing nil checks the general case, in which all block defaults are
+// included.
+func (c *Component) FirstIncludedTopLevelAttributeWriter(cc *ComponentCall) Analysis[ast.AttributeWriter] {
+	aw := c.FirstPermanentTopLevelAttributeWriter
+	if aw.NotZero() {
+		return aw
+	}
+
+	failed := aw.Failed
+	for _, block := range c.Blocks {
+		instance := block.FirstIncludedTopLevelAttributeWriter(cc)
+		if instance.Failed {
+			failed = true
+		} else if instance.Result != nil {
+			return instance.Result.Default.FirstTopLevelAttributeWriter
+		}
+	}
+
+	return ResultIf[ast.AttributeWriter](nil, !failed)
+}
+
+// FirstIncludedContentWriter returns the first content writer in the component
+// that is included in the output of the component for the given component call.
+//
+// Passing nil checks the general case, in which all block defaults are
+// included.
+func (c *Component) FirstIncludedContentWriter(cc *ComponentCall) Analysis[ast.ContentWriter] {
+	cw := c.FirstPermanentContentWriter
+	if cw.NotZero() {
+		return cw
+	}
+
+	failed := cw.Failed
+	for _, block := range c.Blocks {
+		instance := block.FirstIncludedContentWriter(cc)
+		if instance.Failed {
+			failed = true
+		} else if instance.Result != nil {
+			return instance.Result.Default.FirstContentWriter
+		}
+	}
+
+	return ResultIf[ast.ContentWriter](nil, !failed)
+}
+
+// FirstIncludedElementWriter returns the first element writer in the component
+// that is included in the output of the component for the given component call.
+//
+// Passing nil checks the general case, in which all block defaults are
+// included.
+func (c *Component) FirstIncludedElementWriter(cc *ComponentCall) Analysis[ast.ElementWriter] {
+	fpew := c.FirstPermanentElementWriter
+	if fpew.NotZero() {
+		return fpew
+	}
+
+	failed := fpew.Failed
+	for _, block := range c.Blocks {
+		instance := block.FirstIncludedElementWriter(cc)
+		if instance.Failed {
+			failed = true
+		} else if instance.Result != nil {
+			return instance.Result.Default.FirstElementWriter
+		}
+	}
+
+	return ResultIf[ast.ElementWriter](nil, !failed)
 }
 
 type ComponentParameter struct {
@@ -160,133 +254,4 @@ func (p *ComponentParameter) ResolvedType() Analysis[string] {
 
 func (p *ComponentParameter) Required() bool {
 	return p.AST.Colon != nil || p.AST.Default != nil
-}
-
-// Block provides information about a block used in a
-// Component.
-//
-// If a block B (with or without default) is nested inside another block A's
-// default, we automatically, for the sake of simplicity, set
-// DefaultWritesBody, DefaultWritesElements, and
-// DefaultWritesTopLevelAttributes of block A to true.
-// The DefaultTopLevelAndPlaceholder, if not true regardless, will be set
-// to true, if that exact placement of block B is top-level and has a
-// top-level and placeholder.
-type Block struct {
-	//
-	// BUILD SYMBOLS
-
-	// Name is the name of the block.
-	Name string
-
-	Instances []*BlockInstance
-
-	//
-	// ANALYZER
-
-	Required Analysis[bool]
-}
-
-func (b *Block) InstanceByNode(n *ast.Block) *BlockInstance {
-	for _, instance := range b.Instances {
-		if instance.AST == n {
-			return instance
-		}
-	}
-	return nil
-}
-
-// FirstIncludedAndPlaceholder returns the first instance of an &-placeholder
-// in a block default that is included in the output of the component for the
-// given component call.
-//
-// Passing nil checks the general case, in which all block defaults are
-// included.
-func (b *Block) FirstIncludedAndPlaceholder(cc *ComponentCall) Analysis[*BlockInstance] {
-	var failed bool
-	for _, instance := range b.Instances {
-		faph := instance.Default.FirstAndPlaceholder
-		if faph.Failed {
-			failed = true
-			continue
-		}
-		if faph.Result != nil && (cc == nil || !instance.DefaultOverwritten(cc)) {
-			return Result(instance)
-		}
-	}
-
-	return ResultIf[*BlockInstance](nil, !failed)
-}
-
-// TopLevel reports whether this block is top-level.
-func (b *Block) TopLevel(s AnalysisStrategy) Analysis[bool] {
-	s.assertValid()
-
-	if s == All {
-		for _, instance := range b.Instances {
-			if instance.TopLevel.Failed {
-				return FailedAnalysis[bool]()
-			} else if !instance.TopLevel.Result {
-				return Result(false)
-			}
-		}
-		return Result(true)
-	}
-
-	var failed bool
-	for _, instance := range b.Instances {
-		if instance.TopLevel.Equal(true) {
-			return Result(true)
-		}
-		failed = failed || instance.TopLevel.Failed
-	}
-
-	return ResultIf[bool](false, !failed)
-}
-
-type (
-	BlockInstance struct {
-		//
-		// BUILD SYMBOLS
-
-		Group *Block
-		AST   *ast.Block
-		// Parent is the instance of another block that contains this block.
-		Parent *BlockInstance
-
-		Default *BlockInstanceDefault // nil if no default
-
-		//
-		// ANALYZER
-
-		// TopLevel indicates whether this block instance is placed outside
-		// any element.
-		TopLevel Analysis[bool]
-	}
-
-	BlockInstanceDefault struct {
-		//
-		// BUILD SYMBOLS
-
-		AST ast.Body
-
-		//
-		// ANALYZER
-
-		FirstAndPlaceholder Analysis[*ast.AndPlaceholder]
-	}
-)
-
-// DefaultOverwritten indicates whether the default of this block instance
-// is overwritten in the given component call.
-// This is the case if the component call sets this block or one of this
-// block's parent blocks.
-func (cbi *BlockInstance) DefaultOverwritten(cc *ComponentCall) bool {
-	if cc.BlockSetterByName(cbi.Group.Name) != nil {
-		return true
-	}
-	if cbi.Parent != nil {
-		return cbi.Parent.DefaultOverwritten(cc)
-	}
-	return false
 }

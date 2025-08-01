@@ -62,7 +62,10 @@ type IDShorthand struct {
 	ID   Shorthand
 }
 
-var _ Attribute = (*IDShorthand)(nil)
+var (
+	_ Attribute       = (*IDShorthand)(nil)
+	_ AttributeWriter = (*IDShorthand)(nil)
+)
 
 func (s *IDShorthand) Start() Position {
 	if s.Hash != nil {
@@ -86,9 +89,10 @@ func (s *IDShorthand) Walk(w func(Node)) {
 	}
 }
 
-func (*IDShorthand) _node()      {}
-func (*IDShorthand) _argument()  {}
-func (*IDShorthand) _attribute() {}
+func (*IDShorthand) _node()            {}
+func (*IDShorthand) _argument()        {}
+func (*IDShorthand) _attribute()       {}
+func (*IDShorthand) _attributeWriter() {}
 
 // ============================================================================
 // Class Shorthand
@@ -133,9 +137,10 @@ func (s *ClassShorthand) Walk(w func(Node)) {
 	}
 }
 
-func (*ClassShorthand) _node()     {}
-func (*ClassShorthand) _argument() {}
-func (ClassShorthand) _attribute() {}
+func (*ClassShorthand) _node()            {}
+func (*ClassShorthand) _argument()        {}
+func (*ClassShorthand) _attribute()       {}
+func (*ClassShorthand) _attributeWriter() {}
 
 // ============================================================================
 // Shorthand
@@ -281,9 +286,10 @@ func (a *NamedAttribute) Walk(w func(Node)) {
 	}
 }
 
-func (*NamedAttribute) _node()      {}
-func (*NamedAttribute) _argument()  {}
-func (*NamedAttribute) _attribute() {}
+func (*NamedAttribute) _node()            {}
+func (*NamedAttribute) _argument()        {}
+func (*NamedAttribute) _attribute()       {}
+func (*NamedAttribute) _attributeWriter() {}
 
 // ============================================================================
 // Attribute Value

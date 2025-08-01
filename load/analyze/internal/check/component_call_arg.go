@@ -157,39 +157,23 @@ func (ch *checker) CheckComponentAcceptsAttributes(logger *slog.Logger, cc *file
 		return
 	}
 
-	var attributeArgs []ast.Attribute
-	if cc.AST.Header.Arguments != nil {
-		attributeArgs = make([]ast.Attribute, 0, len(cc.AST.Header.Arguments.List))
-		for _, arg := range cc.AST.Header.Arguments.List {
-			attr, _ := arg.(ast.Attribute)
-			if attr != nil {
-				attributeArgs = append(attributeArgs, attr)
-			}
-		}
-	}
-
-	hasAttributes := cc.FirstAnd.NotZero() || len(attributeArgs) > 0
-	if !hasAttributes {
+	if cc.FirstDelegatedAttributeWriter.Equal(nil) && cc.FirstDelegatedAndPlaceholder.Equal(nil) {
 		return
 	}
 
-	primaries := make([]diagnostic.Annotation, 1, 2+len(attributeArgs))
-	primaries[0] = anno.Node(cc.File, cc.AST.Header.Name, "this component does not accept any attributes")
-	if cc.FirstAnd.NotZero() {
-		primaries = append(primaries, anno.Node(cc.File, cc.FirstAnd.Result, "but you hand it attributes here"))
-	}
-	for _, attr := range attributeArgs {
-		primaries = append(primaries, anno.Anno(cc.File, anno.Annotation{
-			Context:    anno.ContextNode(cc.AST.Header),
-			Highlight:  anno.HighlightNode(attr),
-			Annotation: "but you pass it an attribute here",
-		}))
+	primaries := make([]diagnostic.Annotation, 1)
+	if cc.FirstDelegatedAttributeWriter.NotZero() {
+		primaries[0] = anno.Node(cc.File, cc.FirstDelegatedAttributeWriter.Result, "but you hand it attributes here")
+	} else {
+		primaries[0] = anno.Node(cc.File, cc.FirstDelegatedAndPlaceholder.Result, "but you hand it attributes here")
 	}
 
 	logger.Error("Component does not accept attributes")
 	diag := &diagnostic.Diagnostic{
 		Message: "component call: component does not accept attributes",
-		Primary: primaries,
+		Primary: []diagnostic.Annotation{
+			anno.Node(cc.File, cc.FirstDelegatedAttributeWriter.Result, "but you hand it attributes here"),
+		},
 		Explanation: "Components need to specify an &-placeholder somewhere in their body " +
 			"for them to accept attributes. Since this component does not specify any " +
 			"(or you have overwritten all block defaults that contain one), " +

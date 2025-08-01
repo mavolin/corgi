@@ -38,6 +38,7 @@ type EscapedHash struct { // ##
 var (
 	_ TextInterpolation   = (*EscapedHash)(nil)
 	_ StringInterpolation = (*EscapedHash)(nil)
+	_ ContentWriter       = (*EscapedHash)(nil)
 )
 
 func (h *EscapedHash) Start() Position {
@@ -59,6 +60,7 @@ func (*EscapedHash) _node()          {}
 func (*EscapedHash) _interpolation() {}
 func (*EscapedHash) _textNode()      {}
 func (*EscapedHash) _stringNode()    {}
+func (*EscapedHash) _contentWriter() {}
 
 // ============================================================================
 // Hash Space
@@ -68,7 +70,10 @@ type HashSpace struct { // #_
 	Hash *Position
 }
 
-var _ TextInterpolation = (*HashSpace)(nil)
+var (
+	_ TextInterpolation = (*HashSpace)(nil)
+	_ ContentWriter     = (*HashSpace)(nil)
+)
 
 func (h *HashSpace) Start() Position {
 	if h.Hash != nil {
@@ -88,6 +93,7 @@ func (h *HashSpace) Walk(func(Node)) {}
 func (*HashSpace) _node()          {}
 func (*HashSpace) _interpolation() {}
 func (*HashSpace) _textNode()      {}
+func (*HashSpace) _contentWriter() {}
 
 // ============================================================================
 // Hash Right Bracket
@@ -97,7 +103,10 @@ type EscapedRBracket struct { // #]
 	Hash *Position
 }
 
-var _ TextInterpolation = (*EscapedRBracket)(nil)
+var (
+	_ TextInterpolation = (*EscapedRBracket)(nil)
+	_ ContentWriter     = (*EscapedRBracket)(nil)
+)
 
 func (h *EscapedRBracket) Start() Position {
 	if h.Hash != nil {
@@ -117,6 +126,7 @@ func (h *EscapedRBracket) Walk(func(Node)) {}
 func (*EscapedRBracket) _node()          {}
 func (*EscapedRBracket) _interpolation() {}
 func (*EscapedRBracket) _textNode()      {}
+func (*EscapedRBracket) _contentWriter() {}
 
 // ============================================================================
 // Expression Interpolation
@@ -133,6 +143,7 @@ type ExpressionInterpolation struct {
 var (
 	_ TextInterpolation   = (*ExpressionInterpolation)(nil)
 	_ StringInterpolation = (*ExpressionInterpolation)(nil)
+	_ ContentWriter       = (*ExpressionInterpolation)(nil)
 )
 
 func (interp *ExpressionInterpolation) Start() Position {
@@ -176,6 +187,7 @@ func (*ExpressionInterpolation) _node()          {}
 func (*ExpressionInterpolation) _interpolation() {}
 func (*ExpressionInterpolation) _textNode()      {}
 func (*ExpressionInterpolation) _stringNode()    {}
+func (*ExpressionInterpolation) _contentWriter() {}
 
 // ============================================================================
 // Element TextInterpolation
@@ -272,6 +284,7 @@ type CharacterReference struct {
 var (
 	_ TextInterpolation   = (*CharacterReference)(nil)
 	_ StringInterpolation = (*CharacterReference)(nil)
+	_ ContentWriter       = (*CharacterReference)(nil)
 )
 
 func (c *CharacterReference) Start() Position {
@@ -293,3 +306,4 @@ func (*CharacterReference) _node()          {}
 func (*CharacterReference) _interpolation() {}
 func (*CharacterReference) _textNode()      {}
 func (*CharacterReference) _stringNode()    {}
+func (*CharacterReference) _contentWriter() {}
