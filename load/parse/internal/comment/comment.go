@@ -40,16 +40,15 @@ func LineComment() parser.Func[*ast.Comment] {
 
 func lineCommentWithoutEOL() parser.Func[*ast.Comment] {
 	return func(p *parser.Parser) (*ast.Comment, *diagnostic.Diagnostic) {
-		var c ast.Comment
-
-		c.Open = parser.TryTokenAt(p, "//")
-		if c.Open == nil {
+		open := parser.TryTokenAt(p, "//")
+		if open == nil {
 			return nil, &diagnostic.Diagnostic{
 				Message: "missing line comment",
 				Primary: quickanno.Expected(p, p.Pos(), "a line comment"),
 			}
 		}
-
+		var c ast.Comment
+		c.Open = open
 		c.Comment = parser.TokenWhile(p, func() bool {
 			return !parser.MatchesWS(p, whitespace.EOL())
 		})
@@ -61,16 +60,17 @@ func lineCommentWithoutEOL() parser.Func[*ast.Comment] {
 
 func GeneralComment() parser.Func[*ast.Comment] {
 	return func(p *parser.Parser) (*ast.Comment, *diagnostic.Diagnostic) {
-		var c ast.Comment
-		c.General = true
-
-		c.Open = parser.TryTokenAt(p, "/*")
-		if c.Open == nil {
+		open := parser.TryTokenAt(p, "/*")
+		if open == nil {
 			return nil, &diagnostic.Diagnostic{
 				Message: "missing block comment",
 				Primary: quickanno.Expected(p, p.Pos(), "a general comment"),
 			}
 		}
+
+		var c ast.Comment
+		c.General = true
+		c.Open = open
 
 		c.Comment = parser.TokenWhile(p, func() bool {
 			return !parser.MatchesToken(p, "*/")

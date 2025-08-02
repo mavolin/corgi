@@ -18,15 +18,13 @@ func Any() parser.WhitespaceFunc {
 			return Horizontal()(p)
 		}
 
-		pos := p.Pos()
-
 		h := parser.TrySkip(p, Horizontal())
 		v := parser.TrySkip(p, Vertical())
 
 		if !h && !v {
 			return &diagnostic.Diagnostic{
 				Message: "missing whitespace",
-				Primary: quickanno.Expected(p, pos, "a space, tab, or line ending"),
+				Primary: quickanno.Expected(p, p.Pos(), "a space, tab, or line ending"),
 			}
 		}
 
@@ -40,12 +38,10 @@ func Any() parser.WhitespaceFunc {
 
 func Horizontal() parser.WhitespaceFunc {
 	return func(p *parser.Parser) *diagnostic.Diagnostic {
-		pos := p.Pos()
-
 		if parser.TryAnyRune(p, ' ', '\t') <= 0 {
 			return &diagnostic.Diagnostic{
 				Message: "missing horizontal whitespace",
-				Primary: quickanno.Expected(p, pos, "a space or tab"),
+				Primary: quickanno.Expected(p, p.Pos(), "a space or tab"),
 			}
 		}
 
@@ -57,12 +53,10 @@ func Horizontal() parser.WhitespaceFunc {
 
 func Vertical() parser.WhitespaceFunc {
 	return func(p *parser.Parser) *diagnostic.Diagnostic {
-		pos := p.Pos()
-
 		if parser.TryAnyToken(p, "\n", "\r\n") == "" {
 			return &diagnostic.Diagnostic{
 				Message: "missing vertical whitespace",
-				Primary: quickanno.Expected(p, pos, "a line ending"),
+				Primary: quickanno.Expected(p, p.Pos(), "a line ending"),
 			}
 		}
 
@@ -74,12 +68,10 @@ func Vertical() parser.WhitespaceFunc {
 
 func SingleVertical() parser.WhitespaceFunc {
 	return func(p *parser.Parser) *diagnostic.Diagnostic {
-		pos := p.Pos()
-
 		if parser.TryAnyToken(p, "\n", "\r\n") == "" {
 			return &diagnostic.Diagnostic{
 				Message: "missing vertical whitespace",
-				Primary: quickanno.Expected(p, pos, "a line ending"),
+				Primary: quickanno.Expected(p, p.Pos(), "a line ending"),
 			}
 		}
 

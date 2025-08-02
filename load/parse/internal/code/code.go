@@ -111,14 +111,14 @@ func goCode(o Options) parser.Func[*codeResult] {
 	return func(p *parser.Parser) (*codeResult, *diagnostic.Diagnostic) {
 		c := &ast.GoCode{Position: p.PosPtr()}
 
-		exps := make([]ast.CodeNode, 0, 8)
+		var exps []ast.CodeNode
 
 		start := p.Index()
 		type paren struct {
 			opening byte
 			pos     ast.Position
 		}
-		parenStack := make([]paren, 0, 12)
+		var parenStack []paren
 
 		var (
 			bodyState *parser.State
