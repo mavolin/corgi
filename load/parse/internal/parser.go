@@ -50,16 +50,34 @@ type Parser struct {
 	*file.File
 	Preload Preloader
 
-	state *State
-	pool  pool
+	state     *State
+	statePool pool[State]
+	posPool   pool[ast.Position]
+}
+
+type pool[T any] []*T
+
+func (p *pool[T]) Get() *T {
+	if len(*p) == 0 {
+		return new(T)
+	}
+
+	s := (*p)[len(*p)-1]
+	*p = (*p)[:len(*p)-1]
+	return s
+}
+
+func (p *pool[T]) Put(s *T) {
+	*p = append(*p, s)
 }
 
 func New(f *file.File) *Parser {
 	return &Parser{
-		File:    f,
-		Preload: func(string) {},
-		state:   newState(),
-		pool:    make(pool, 0, 32),
+		File:      f,
+		Preload:   func(string) {},
+		state:     newState(),
+		statePool: make(pool[State], 0, 32),
+		posPool:   make(pool[ast.Position], 0, 32),
 	}
 }
 
@@ -92,8 +110,9 @@ func (p *Parser) Line() int         { return p.state.line }
 func (p *Parser) Col() int          { return p.state.col }
 func (p *Parser) Pos() ast.Position { return p.state.Pos() }
 func (p *Parser) PosPtr() *ast.Position {
-	pos := p.Pos()
-	return &pos
+	pos := p.posPool.Get()
+	pos.Line, pos.Col = p.state.line, p.state.col
+	return pos
 }
 func (p *Parser) Index() int { return p.state.Index() }
 func (p *Parser) Inline() bool {
@@ -115,20 +134,20 @@ func (p *Parser) Errors() diagnostic.List                 { return p.state.Error
 func (p *Parser) CaptureComment(g *ast.CommentGroup)      { p.state.CaptureComment(g) }
 
 func (p *Parser) CloneState() *State {
-	return p.state.Clone(&p.pool)
+	return p.state.Clone(&p.statePool)
 }
 
 func (p *Parser) RestoreState(s *State) {
-	p.pool.Put(p.state)
+	p.statePool.Put(p.state)
 	p.state = s
 }
 
 func (p *Parser) markWSStart() {
-	p.state.markWSStart(&p.pool)
+	p.state.markWSStart(&p.statePool)
 }
 
 func (p *Parser) takeWSStart() *State {
-	return p.state.takeWSStart(&p.pool)
+	return p.state.takeWSStart(&p.statePool)
 }
 
 type (
@@ -198,7 +217,7 @@ func TryErr[T any](p *Parser, f Func[T]) (T, *diagnostic.Diagnostic) {
 		p.RestoreState(restore)
 		return v, err
 	}
-	p.pool.Put(restore)
+	p.statePool.Put(restore)
 	return v, err
 }
 
@@ -215,7 +234,7 @@ func TryOptionalErr[T any](p *Parser, f Func[T], ws WhitespaceFunc) (T, *diagnos
 		p.RestoreState(restore)
 		return v, err
 	}
-	p.pool.Put(restore)
+	p.statePool.Put(restore)
 	if ws != nil {
 		TrySkip(p, ws)
 	}
@@ -235,7 +254,7 @@ func TryInOrder[T any](p *Parser, fs ...Func[T]) T {
 	for _, f := range fs {
 		v, err := TryErr(p, f)
 		if err == nil { // IS nil
-			p.pool.Put(restore)
+			p.statePool.Put(restore)
 			return v
 		}
 	}
@@ -270,7 +289,7 @@ func TrySkipErr(p *Parser, f WhitespaceFunc) *diagnostic.Diagnostic {
 		p.RestoreState(restore)
 		return err
 	}
-	p.pool.Put(restore)
+	p.statePool.Put(restore)
 	return nil
 }
 

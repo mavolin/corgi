@@ -71,14 +71,14 @@ func (s *State) commitWS() {
 	}
 }
 
-func (s *State) markWSStart(p *pool) {
+func (s *State) markWSStart(p *pool[State]) {
 	if s.ws != nil {
 		return
 	}
 	s.ws = s.Clone(p)
 }
 
-func (s *State) takeWSStart(p *pool) *State {
+func (s *State) takeWSStart(p *pool[State]) *State {
 	if s.ws == nil || s.parsingWS {
 		return s.Clone(p)
 	}
@@ -87,7 +87,7 @@ func (s *State) takeWSStart(p *pool) *State {
 	return wsStart
 }
 
-func (s *State) Clone(p *pool) *State {
+func (s *State) Clone(p *pool[State]) *State {
 	s2 := p.Get()
 	s2.line = s.line
 	s2.col = s.col
@@ -98,20 +98,4 @@ func (s *State) Clone(p *pool) *State {
 	s2.inline = s.inline
 	s2.parsingWS = s.parsingWS
 	return s2
-}
-
-type pool []*State
-
-func (p *pool) Get() *State {
-	if len(*p) == 0 {
-		return new(State)
-	}
-
-	s := (*p)[len(*p)-1]
-	*p = (*p)[:len(*p)-1]
-	return s
-}
-
-func (p *pool) Put(s *State) {
-	*p = append(*p, s)
 }

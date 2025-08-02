@@ -49,27 +49,30 @@ func TryAnyToken(p *Parser, ss ...string) string {
 }
 
 func TryKeywordAt(p *Parser, k string, ws WhitespaceFunc) *ast.Position {
-	pos := p.Pos()
+	pos := p.PosPtr()
 	if !TryToken(p, k) || (!MatchesAnyRune(p, EOF, ':', '(', ';', '}', '\n', '\r') && !TrySkip(p, ws)) {
+		p.posPool.Put(pos)
 		return nil
 	}
-	return &pos
+	return pos
 }
 
 func TryOptionalKeywordAt(p *Parser, k string, ws WhitespaceFunc) *ast.Position {
-	pos := p.Pos()
+	pos := p.PosPtr()
 	if !TryOptionalToken(p, k, nil) || (!MatchesAnyRune(p, EOF, '(', ';', '}', '\n', '\r') && !TrySkip(p, ws)) {
+		p.posPool.Put(pos)
 		return nil
 	}
-	return &pos
+	return pos
 }
 
 func TryTokenAt(p *Parser, s string) *ast.Position {
-	pos := p.Pos()
+	pos := p.PosPtr()
 	if !TryToken(p, s) {
+		p.posPool.Put(pos)
 		return nil
 	}
-	return &pos
+	return pos
 }
 
 func TryRune(p *Parser, r rune) (ok bool) {
@@ -84,11 +87,12 @@ func TryRune(p *Parser, r rune) (ok bool) {
 }
 
 func TryRuneAt(p *Parser, r rune) *ast.Position {
-	pos := p.Pos()
+	pos := p.PosPtr()
 	if !TryRune(p, r) {
+		p.posPool.Put(pos)
 		return nil
 	}
-	return &pos
+	return pos
 }
 
 func TryOptionalRune(p *Parser, r rune, ws WhitespaceFunc) (ok bool) {
@@ -105,11 +109,12 @@ func TryOptionalRune(p *Parser, r rune, ws WhitespaceFunc) (ok bool) {
 }
 
 func TryOptionalRuneAt(p *Parser, r rune, ws WhitespaceFunc) *ast.Position {
-	pos := p.Pos()
+	pos := p.PosPtr()
 	if !TryOptionalRune(p, r, ws) {
+		p.posPool.Put(pos)
 		return nil
 	}
-	return &pos
+	return pos
 }
 
 // TryAnyRune attempts to match the next rune against any of the passed runes.
@@ -167,7 +172,7 @@ func TokenWhile(p *Parser, pred func() bool) string {
 		i = p.Index()
 	}
 	CommitWS(p) // the predicate might've set a restore point
-	p.pool.Put(restore)
+	p.statePool.Put(restore)
 	return p.AST.Raw[start:p.Index()]
 }
 
