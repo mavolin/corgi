@@ -232,13 +232,10 @@ func goCode(o Options) parser.Func[*codeResult] {
 				//nolint:gocritic
 				if !o.statements() &&
 					(parser.MatchesAnyRune(p, ',', ':') || parser.Matches(p, golang.AssignOp())) {
-					p.RestoreState(state)
 					break
 				} else if parser.MatchesAnyRune(p, ';', '?') || parser.MatchesToken(p, "--") || parser.MatchesToken(p, "++") {
-					p.RestoreState(state)
 					break
 				} else if parser.Matches(p, golang.Keyword()) {
-					p.RestoreState(state)
 					break
 				}
 			}

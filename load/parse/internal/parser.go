@@ -215,17 +215,15 @@ func TryOptional[T any](p *Parser, f Func[T], ws WhitespaceFunc) T {
 //
 // If none match, it returns false.
 func TryInOrder[T any](p *Parser, fs ...Func[T]) T {
-	state := p.CloneState()
-	CommitWS(p)
+	restore := p.state.takeWSStart()
 	for _, f := range fs {
-		v, err := f(p)
+		v, err := TryErr(p, f)
 		if err == nil { // IS nil
 			return v
 		}
-		p.RestoreState(state)
 	}
-	if state.ws != nil {
-		p.RestoreState(state.ws)
+	if restore.ws != nil {
+		p.RestoreState(restore.ws)
 	}
 
 	var z T
