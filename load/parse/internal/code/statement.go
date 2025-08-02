@@ -556,7 +556,7 @@ func ConstDeclaration() parser.Func[*ast.ConstDeclaration] {
 				break
 			}
 
-			parser.MustSkip(p, comment.AndEOS())
+			parser.Must(p, comment.AndEOS())
 		}
 		if len(d.Specs) == 0 {
 			d.Specs = nil
@@ -746,7 +746,7 @@ func VarDeclaration() parser.Func[*ast.VarDeclaration] {
 				break
 			}
 
-			parser.MustSkip(p, comment.AndEOS())
+			parser.Must(p, comment.AndEOS())
 		}
 		if len(d.Specs) == 0 {
 			d.Specs = nil

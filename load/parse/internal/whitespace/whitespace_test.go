@@ -19,7 +19,7 @@ func TestAny(t *testing.T) {
 			t.Parallel()
 
 			p := parsetest.NewParser(t, in)
-			should.Equal(t, nil, Any()(p))
+			should.True(t, Any()(p))
 			line, col, index := parsetest.CalcEnd(1, 1, 0, in)
 			parsetest.AssertPosition(t, p, line, col, index)
 		})
@@ -49,7 +49,7 @@ func testHorizontal(t *testing.T, f parser.WhitespaceFunc, trail string) {
 			t.Parallel()
 
 			p := parsetest.NewParser(t, in+trail)
-			should.Equal(t, nil, f(p))
+			should.True(t, f(p))
 			line, col, index := parsetest.CalcEnd(1, 1, 0, in)
 			parsetest.AssertPosition(t, p, line, col, index)
 		})
@@ -69,7 +69,7 @@ func testVertical(t *testing.T, f parser.WhitespaceFunc, trail string) {
 			t.Parallel()
 
 			p := parsetest.NewParser(t, in+trail)
-			should.Equal(t, nil, f(p))
+			should.True(t, f(p))
 			line, col, index := parsetest.CalcEnd(1, 1, 0, in)
 			parsetest.AssertPosition(t, p, line, col, index)
 		})
@@ -86,7 +86,7 @@ func TestSingleVertical(t *testing.T) {
 			t.Parallel()
 
 			p := parsetest.NewParser(t, in+"\n")
-			should.Equal(t, nil, SingleVertical()(p))
+			should.True(t, SingleVertical()(p))
 			line, col, index := parsetest.CalcEnd(1, 1, 0, in)
 			parsetest.AssertPosition(t, p, line, col, index)
 		})

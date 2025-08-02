@@ -114,7 +114,7 @@ func IfHeader() parser.Func[*ast.IfHeader] {
 		state := p.CloneState()
 
 		h.Statement = parser.TryOptional(p, SimpleStatement(BodyFollows), nil)
-		if parser.TrySkip(p, comment.AndEOS()) {
+		if _, err := parser.TryErr(p, comment.AndEOS()); err == nil { // IS nil
 			parser.TrySkip(p, comment.OrAnyWhitespace())
 		} else {
 			p.RestoreState(state)
@@ -381,7 +381,7 @@ func ForClauseHeader() parser.Func[*ast.ForClauseHeader] {
 		}
 
 		h.Init = parser.TryOptional(p, SimpleStatement(BodyFollows), nil)
-		if !parser.TrySkip(p, comment.AndEOS()) {
+		if _, err := parser.TryErr(p, comment.AndEOS()); err != nil {
 			return nil, &diagnostic.Diagnostic{
 				Message: "for-clause header: missing init clause",
 				Primary: quickanno.Expected(p, p.Pos(), "a simple statement or a semicolon"),
@@ -389,7 +389,7 @@ func ForClauseHeader() parser.Func[*ast.ForClauseHeader] {
 		}
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 		h.Condition = parser.TryOptional(p, Expression(BodyFollows), nil)
-		if !parser.TrySkip(p, comment.AndEOS()) {
+		if _, err := parser.TryErr(p, comment.AndEOS()); err != nil {
 			return nil, &diagnostic.Diagnostic{
 				Message: "for-clause header: missing condition clause",
 				Primary: quickanno.Expected(p, p.Pos(), "an expression or a semicolon"),

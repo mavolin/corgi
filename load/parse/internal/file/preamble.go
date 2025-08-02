@@ -70,7 +70,7 @@ func Import() parser.Func[*ast.Import] {
 				break
 			}
 
-			parser.MustSkip(p, comment.AndEOS())
+			parser.Must(p, comment.AndEOS())
 		}
 		if len(imp.Specs) == 0 {
 			imp.Specs = nil

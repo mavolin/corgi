@@ -60,7 +60,7 @@ func Definition() parser.Func[*ast.ElementDefinition] {
 			if parser.MatchesAnyRune(p, ')') {
 				break
 			}
-			parser.MustSkip(p, comment.AndEOS())
+			parser.Must(p, comment.AndEOS())
 		}
 		if len(def.Specs) == 0 {
 			def.Specs = nil

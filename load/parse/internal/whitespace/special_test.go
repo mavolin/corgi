@@ -27,7 +27,7 @@ func testEOL(t *testing.T, f parser.WhitespaceFunc) {
 			t.Parallel()
 
 			p := parsetest.NewParser(t, in)
-			should.Equal(t, nil, f(p))
+			should.True(t, f(p))
 			line, col, index := parsetest.CalcEnd(1, 1, 0, in)
 			parsetest.AssertPosition(t, p, line, col, index)
 		})
@@ -47,7 +47,7 @@ func testEOF(t *testing.T, f parser.WhitespaceFunc) {
 			t.Parallel()
 
 			p := parsetest.NewParser(t, in)
-			should.Equal(t, nil, f(p))
+			should.True(t, f(p))
 			line, col, index := parsetest.CalcEnd(1, 1, 0, in)
 			parsetest.AssertPosition(t, p, line, col, index)
 		})

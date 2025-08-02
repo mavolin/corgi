@@ -168,7 +168,7 @@ type (
 	// A WhitespaceFunc is a special [Func] that parses whitespace.
 	// It semantically differs, in that consumed whitespace is rolled back, if
 	// the next call to [TryErr] or [Must] (and its derivatives) fails.
-	WhitespaceFunc func(p *Parser) *diagnostic.Diagnostic
+	WhitespaceFunc func(p *Parser) bool
 )
 
 // Matches reports whether f would match.
@@ -184,9 +184,9 @@ func Matches[T any](p *Parser, f Func[T]) bool {
 func MatchesWS(p *Parser, f WhitespaceFunc) bool {
 	restore := p.CloneState()
 	CommitWS(p)
-	err := f(p)
+	ok := f(p)
 	p.RestoreState(restore)
-	return err == nil
+	return ok
 }
 
 func MatchesToken(p *Parser, s string) bool {
@@ -274,10 +274,6 @@ func TryInOrder[T any](p *Parser, fs ...Func[T]) T {
 // Even if TrySkip fails to match, it does not affect a previous restore
 // point.
 func TrySkip(p *Parser, f WhitespaceFunc) bool {
-	return TrySkipErr(p, f) == nil
-}
-
-func TrySkipErr(p *Parser, f WhitespaceFunc) *diagnostic.Diagnostic {
 	restore := p.CloneState()
 	if !p.state.parsingWS {
 		p.markWSStart()
@@ -285,12 +281,12 @@ func TrySkipErr(p *Parser, f WhitespaceFunc) *diagnostic.Diagnostic {
 		defer func() { p.state.parsingWS = false }()
 	}
 
-	if err := f(p); err != nil {
+	if !f(p) {
 		p.RestoreState(restore)
-		return err
+		return false
 	}
 	p.statePool.Put(restore)
-	return nil
+	return true
 }
 
 // Must tries to parse using the given [Func].
@@ -302,13 +298,6 @@ func Must[T any](p *Parser, f Func[T]) T {
 		p.CaptureError(err)
 	}
 	return v
-}
-
-// MustSkip is the [Must] equivalent of [TrySkip].
-func MustSkip(p *Parser, f WhitespaceFunc) {
-	if err := TrySkipErr(p, f); err != nil {
-		p.CaptureError(err)
-	}
 }
 
 func CommitWS(p *Parser) {

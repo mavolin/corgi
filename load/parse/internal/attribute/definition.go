@@ -64,7 +64,7 @@ func Definition() parser.Func[*ast.AttributeDefinition] {
 			if parser.MatchesAnyRune(p, ')') {
 				break
 			}
-			parser.MustSkip(p, comment.AndEOS())
+			parser.Must(p, comment.AndEOS())
 		}
 		if len(def.Specs) == 0 {
 			def.Specs = nil
@@ -127,7 +127,7 @@ func Ruleset() parser.Func[*ast.AttributeRuleset] {
 			if r == nil {
 				break
 			}
-			parser.MustSkip(p, comment.AndMustEOS())
+			parser.TrySkip(p, comment.AndForceEOS())
 			rs.List = append(rs.List, r)
 		}
 		rs.List = slices.Clip(rs.List)

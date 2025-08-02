@@ -60,8 +60,8 @@ func TestOrHorizontalWhitespace(t *testing.T) {
 				t.Parallel()
 
 				p := parsetest.NewParser(t, c.in)
-				err := parser.TrySkipErr(p, OrHorizontalWhitespace())
-				should.Equal(t, nil, err)
+				skipped := parser.TrySkip(p, OrHorizontalWhitespace())
+				should.True(t, skipped)
 				parsetest.AssertEOF(t, p)
 
 				wantGroups := make([]*ast.CommentGroup, len(c.wantComments))
@@ -82,8 +82,8 @@ func TestOrHorizontalWhitespace(t *testing.T) {
 			t.Run(testName(c), func(t *testing.T) {
 				t.Parallel()
 				p := parsetest.NewParser(t, c)
-				err := OrHorizontalWhitespace()(p)
-				should.NotEqual(t, nil, err) // want match error
+				skipped := parser.TrySkip(p, OrHorizontalWhitespace())
+				should.False(t, skipped) // want match error
 			})
 		}
 	})
@@ -162,7 +162,7 @@ func TestAndEOS(t *testing.T) {
 			}
 
 			p := parsetest.NewParser(t, c.in)
-			err := parser.TrySkipErr(p, AndEOS())
+			_, err := parser.TryErr(p, AndEOS())
 			should.Equal(t, nil, err)
 			should.Equal(t, c.wantIndex, p.Index())
 
@@ -185,8 +185,8 @@ func TestAndEOL(t *testing.T) {
 			t.Parallel()
 
 			p := parsetest.NewParser(t, "")
-			err := parser.TrySkipErr(p, AndEOL())
-			should.Equal(t, nil, err)
+			skipped := parser.TrySkip(p, AndEOL())
+			should.True(t, skipped)
 			parsetest.AssertEOF(t, p)
 		})
 	})
@@ -251,8 +251,8 @@ func testOrEOL(t *testing.T, f parser.WhitespaceFunc) {
 			t.Parallel()
 
 			p := parsetest.NewParser(t, c.in)
-			err := parser.TrySkipErr(p, f)
-			should.Equal(t, nil, err)
+			skipped := parser.TrySkip(p, f)
+			should.True(t, skipped)
 			parsetest.AssertEOF(t, p)
 
 			wantGroups := make([]*ast.CommentGroup, len(c.wantComments))
@@ -324,8 +324,8 @@ func TestOrAnyWhitespace(t *testing.T) {
 			t.Parallel()
 
 			p := parsetest.NewParser(t, c.in)
-			err := parser.TrySkipErr(p, OrAnyWhitespace())
-			should.Equal(t, nil, err)
+			skipped := parser.TrySkip(p, OrAnyWhitespace())
+			should.True(t, skipped)
 			parsetest.AssertEOF(t, p)
 
 			wantGroups := make([]*ast.CommentGroup, len(c.wantComments))
@@ -422,8 +422,8 @@ func TestOrLoneWS(t *testing.T) {
 			t.Parallel()
 
 			p := parsetest.NewParser(t, c.in)
-			err := parser.TrySkipErr(p, OrLoneWS())
-			should.Equal(t, nil, err)
+			skipped := parser.TrySkip(p, OrLoneWS())
+			should.True(t, skipped)
 			parsetest.AssertEOF(t, p)
 
 			wantGroups := make([]*ast.CommentGroup, len(c.wantComments))

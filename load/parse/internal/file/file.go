@@ -200,7 +200,7 @@ func TopLevel() parser.Func[ast.TopLevel] {
 				break
 			}
 
-			parser.MustSkip(p, comment.AndMustEOS())
+			parser.TrySkip(p, comment.AndForceEOS())
 			parser.TrySkip(p, comment.OrAnyWhitespace())
 		}
 

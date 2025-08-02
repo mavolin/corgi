@@ -1,9 +1,7 @@
 package whitespace
 
 import (
-	"github.com/mavolin/corgi/v2/file/diagnostic"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
-	"github.com/mavolin/corgi/v2/load/parse/internal/quickanno"
 )
 
 var (
@@ -13,7 +11,7 @@ var (
 )
 
 func Any() parser.WhitespaceFunc {
-	return func(p *parser.Parser) *diagnostic.Diagnostic {
+	return func(p *parser.Parser) bool {
 		if p.Inline() {
 			return Horizontal()(p)
 		}
@@ -22,59 +20,47 @@ func Any() parser.WhitespaceFunc {
 		v := parser.TrySkip(p, Vertical())
 
 		if !h && !v {
-			return &diagnostic.Diagnostic{
-				Message: "missing whitespace",
-				Primary: quickanno.Expected(p, p.Pos(), "a space, tab, or line ending"),
-			}
+			return false
 		}
 
 		for h || v {
 			h = parser.TrySkip(p, Horizontal())
 			v = parser.TrySkip(p, Vertical())
 		}
-		return nil
+		return true
 	}
 }
 
 func Horizontal() parser.WhitespaceFunc {
-	return func(p *parser.Parser) *diagnostic.Diagnostic {
+	return func(p *parser.Parser) bool {
 		if parser.TryAnyRune(p, ' ', '\t') <= 0 {
-			return &diagnostic.Diagnostic{
-				Message: "missing horizontal whitespace",
-				Primary: quickanno.Expected(p, p.Pos(), "a space or tab"),
-			}
+			return false
 		}
 
 		for parser.TryAnyRune(p, ' ', '\t') > 0 { //nolint:revive
 		}
-		return nil
+		return true
 	}
 }
 
 func Vertical() parser.WhitespaceFunc {
-	return func(p *parser.Parser) *diagnostic.Diagnostic {
+	return func(p *parser.Parser) bool {
 		if parser.TryAnyToken(p, "\n", "\r\n") == "" {
-			return &diagnostic.Diagnostic{
-				Message: "missing vertical whitespace",
-				Primary: quickanno.Expected(p, p.Pos(), "a line ending"),
-			}
+			return false
 		}
 
 		for parser.TryAnyToken(p, "\n", "\r\n") != "" { //nolint:revive
 		}
-		return nil
+		return true
 	}
 }
 
 func SingleVertical() parser.WhitespaceFunc {
-	return func(p *parser.Parser) *diagnostic.Diagnostic {
+	return func(p *parser.Parser) bool {
 		if parser.TryAnyToken(p, "\n", "\r\n") == "" {
-			return &diagnostic.Diagnostic{
-				Message: "missing vertical whitespace",
-				Primary: quickanno.Expected(p, p.Pos(), "a line ending"),
-			}
+			return false
 		}
 
-		return nil
+		return true
 	}
 }

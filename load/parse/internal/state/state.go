@@ -57,7 +57,7 @@ func Declaration() parser.Func[*ast.StateDeclaration] {
 				break
 			}
 
-			parser.MustSkip(p, comment.AndEOS())
+			parser.Must(p, comment.AndEOS())
 		}
 		if len(d.Specs) == 0 {
 			d.Specs = nil
