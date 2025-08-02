@@ -124,7 +124,7 @@ func File() parser.Func[struct{}] {
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 		p.AST.TopLevel = parser.Must(p, TopLevel())
 		parser.TrySkip(p, comment.OrAnyWhitespace())
-		p.AST.Comments = p.CloneState().Comments()
+		p.AST.Comments = p.Comments()
 		if !parser.MatchesAnyRune(p, parser.EOF) {
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "unexpected tokens",

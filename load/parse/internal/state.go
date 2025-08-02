@@ -2,18 +2,17 @@ package parser
 
 import (
 	"github.com/mavolin/corgi/v2/file/ast"
-	"github.com/mavolin/corgi/v2/file/diagnostic"
 )
 
 type (
 	State struct {
-		line, col int
-		index     int
-
-		errs     diagnostic.List
-		comments []*ast.CommentGroup
-
 		ws *State
+
+		index     int
+		line, col uint16
+
+		commentLen uint16
+		errLen     uint8
 
 		inline    bool
 		parsingWS bool
@@ -22,21 +21,18 @@ type (
 
 func newState() *State {
 	return &State{
-		line:     1,
-		col:      1,
-		index:    0,
-		errs:     make(diagnostic.List, 0, 48),
-		comments: make([]*ast.CommentGroup, 0, 128),
+		line:  1,
+		col:   1,
+		index: 0,
 	}
 }
 
 func (s *State) Pos() ast.Position {
-	return ast.Position{Line: s.line, Col: s.col}
+	return ast.Position{Line: int(s.line), Col: int(s.col)}
 }
 
-func (s *State) Index() int {
-	return s.index
-}
+func (s *State) Index() int       { return s.index }
+func (s *State) NumErrors() uint8 { return s.errLen }
 
 func (s *State) advance(size int, isNL bool) {
 	if isNL {
@@ -46,22 +42,6 @@ func (s *State) advance(size int, isNL bool) {
 		s.col++
 	}
 	s.index += size
-}
-
-func (s *State) Errors() diagnostic.List {
-	return s.errs
-}
-
-func (s *State) Comments() []*ast.CommentGroup {
-	return s.comments
-}
-
-func (s *State) CaptureError(err *diagnostic.Diagnostic) {
-	s.errs = append(s.errs, err)
-}
-
-func (s *State) CaptureComment(cg *ast.CommentGroup) {
-	s.comments = append(s.comments, cg)
 }
 
 // commitWS commits the whitespace, preventing rollback.
@@ -92,8 +72,8 @@ func (s *State) Clone(p *pool[State]) *State {
 	s2.line = s.line
 	s2.col = s.col
 	s2.index = s.index
-	s2.errs = s.errs
-	s2.comments = s.comments
+	s2.errLen = s.errLen
+	s2.commentLen = s.commentLen
 	s2.ws = s.ws
 	s2.inline = s.inline
 	s2.parsingWS = s.parsingWS

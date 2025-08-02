@@ -119,9 +119,9 @@ func CalcEndPos(in string) ast.Position {
 
 func AssertPosition(t *testing.T, p *parser.Parser, line, col, index int) {
 	t.Helper()
-	should.Equal(t, line, p.Line())   // position: line mismatch
-	should.Equal(t, col, p.Col())     // position: col mismatch
-	should.Equal(t, index, p.Index()) // position: index mismatch
+	should.Equal(t, line, int(p.Line())) // position: line mismatch
+	should.Equal(t, col, int(p.Col()))   // position: col mismatch
+	should.Equal(t, index, p.Index())    // position: index mismatch
 }
 
 func CoerceFunc[I, O any](t *testing.T, in parser.Func[I]) parser.Func[O] {

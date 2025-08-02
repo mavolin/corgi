@@ -35,6 +35,7 @@
 package parser
 
 import (
+	"math"
 	"unicode/utf8"
 
 	"github.com/mavolin/corgi/v2/file"
@@ -50,7 +51,10 @@ type Parser struct {
 	*file.File
 	Preload Preloader
 
-	state     *State
+	state    *State
+	errs     diagnostic.List
+	comments []*ast.CommentGroup
+
 	statePool pool[State]
 	posPool   pool[ast.Position]
 }
@@ -76,6 +80,8 @@ func New(f *file.File) *Parser {
 		File:      f,
 		Preload:   func(string) {},
 		state:     newState(),
+		errs:      make(diagnostic.List, 0, 48),
+		comments:  make([]*ast.CommentGroup, 0, 128),
 		statePool: make(pool[State], 0, 32),
 		posPool:   make(pool[ast.Position], 0, 32),
 	}
@@ -106,12 +112,12 @@ func (p *Parser) skipString(s string) {
 	}
 }
 
-func (p *Parser) Line() int         { return p.state.line }
-func (p *Parser) Col() int          { return p.state.col }
+func (p *Parser) Line() uint16      { return p.state.line }
+func (p *Parser) Col() uint16       { return p.state.col }
 func (p *Parser) Pos() ast.Position { return p.state.Pos() }
 func (p *Parser) PosPtr() *ast.Position {
 	pos := p.posPool.Get()
-	pos.Line, pos.Col = p.state.line, p.state.col
+	pos.Line, pos.Col = int(p.state.line), int(p.state.col)
 	return pos
 }
 func (p *Parser) Index() int { return p.state.Index() }
@@ -129,9 +135,29 @@ func (p *Parser) DoInline(f func()) {
 	f()
 	p.state.inline = false
 }
-func (p *Parser) CaptureError(err *diagnostic.Diagnostic) { p.state.CaptureError(err) }
-func (p *Parser) Errors() diagnostic.List                 { return p.state.Errors() }
-func (p *Parser) CaptureComment(g *ast.CommentGroup)      { p.state.CaptureComment(g) }
+func (p *Parser) CaptureError(err *diagnostic.Diagnostic) {
+	if len(p.errs) < math.MaxUint8 {
+		p.errs = append(p.errs, err)
+		p.state.errLen = uint8(len(p.errs))
+	}
+}
+
+func (p *Parser) Errors() diagnostic.List { return p.errs }
+
+func (p *Parser) NumErrors() uint8 {
+	return p.state.NumErrors()
+}
+
+func (p *Parser) Comments() []*ast.CommentGroup {
+	return p.comments
+}
+
+func (p *Parser) CaptureComment(g *ast.CommentGroup) {
+	if len(p.comments) < math.MaxUint16 {
+		p.comments = append(p.comments, g)
+		p.state.commentLen = uint16(len(p.comments))
+	}
+}
 
 func (p *Parser) CloneState() *State {
 	return p.state.Clone(&p.statePool)

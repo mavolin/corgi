@@ -36,7 +36,7 @@ func Definition() parser.Func[*ast.ElementDefinition] {
 		def.LParen = parser.TryOptionalRuneAt(p, '(', comment.OrAnyWhitespace())
 		if def.LParen == nil {
 			spec := parser.Try(p, Spec())
-			if (spec == nil || len(p.Errors()) > len(beforePrefix.Errors())) && def.Prefix != nil {
+			if (spec == nil || p.NumErrors() > beforePrefix.NumErrors()) && def.Prefix != nil {
 				p.RestoreState(beforePrefix)
 				def.Prefix = nil
 				spec = parser.Must(p, Spec())

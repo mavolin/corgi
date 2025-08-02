@@ -48,7 +48,7 @@ func componentCallHeaderStub(p *parser.Parser) (*ast.ComponentCallHeader, *diagn
 	h := &ast.ComponentCallHeader{Name: name}
 
 	h.Arguments = &ast.Arguments{
-		LParen: &ast.Position{Line: 1, Col: p.Col()},
+		LParen: &ast.Position{Line: 1, Col: int(p.Col())},
 	}
 	if !parser.TryRune(p, '(') {
 		return nil, &diagnostic.Diagnostic{
