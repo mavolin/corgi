@@ -64,13 +64,6 @@ func (s *State) CaptureComment(cg *ast.CommentGroup) {
 	s.comments = append(s.comments, cg)
 }
 
-func (s *State) markWSStart() {
-	if s.ws != nil {
-		return
-	}
-	s.ws = s.Clone()
-}
-
 // commitWS commits the whitespace, preventing rollback.
 func (s *State) commitWS() {
 	if !s.parsingWS {
@@ -78,16 +71,47 @@ func (s *State) commitWS() {
 	}
 }
 
-func (s *State) takeWSStart() *State {
+func (s *State) markWSStart(p *pool) {
+	if s.ws != nil {
+		return
+	}
+	s.ws = s.Clone(p)
+}
+
+func (s *State) takeWSStart(p *pool) *State {
 	if s.ws == nil || s.parsingWS {
-		return s.Clone()
+		return s.Clone(p)
 	}
 	wsStart := s.ws
 	s.ws = nil
-	return wsStart.Clone()
+	return wsStart
 }
 
-func (s State) Clone() *State {
-	s2 := s
-	return &s2
+func (s *State) Clone(p *pool) *State {
+	s2 := p.Get()
+	s2.line = s.line
+	s2.col = s.col
+	s2.index = s.index
+	s2.errs = s.errs
+	s2.comments = s.comments
+	s2.ws = s.ws
+	s2.inline = s.inline
+	s2.parsingWS = s.parsingWS
+	return s2
+}
+
+type pool []*State
+
+func (p *pool) Get() *State {
+	if len(*p) == 0 {
+		return new(State)
+	}
+
+	s := (*p)[len(*p)-1]
+	*p = (*p)[:len(*p)-1]
+	return s
+}
+
+func (p *pool) Put(s *State) {
+	*p = append(*p, s)
 }

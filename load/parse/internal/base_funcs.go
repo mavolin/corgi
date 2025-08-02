@@ -50,9 +50,7 @@ func TryAnyToken(p *Parser, ss ...string) string {
 
 func TryKeywordAt(p *Parser, k string, ws WhitespaceFunc) *ast.Position {
 	pos := p.Pos()
-	restore := p.takeWSStart()
 	if !TryToken(p, k) || (!MatchesAnyRune(p, EOF, ':', '(', ';', '}', '\n', '\r') && !TrySkip(p, ws)) {
-		p.RestoreState(restore)
 		return nil
 	}
 	return &pos
@@ -169,6 +167,7 @@ func TokenWhile(p *Parser, pred func() bool) string {
 		i = p.Index()
 	}
 	CommitWS(p) // the predicate might've set a restore point
+	p.pool.Put(restore)
 	return p.AST.Raw[start:p.Index()]
 }
 

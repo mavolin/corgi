@@ -51,6 +51,7 @@ type Parser struct {
 	Preload Preloader
 
 	state *State
+	pool  pool
 }
 
 func New(f *file.File) *Parser {
@@ -58,6 +59,7 @@ func New(f *file.File) *Parser {
 		File:    f,
 		Preload: func(string) {},
 		state:   newState(),
+		pool:    make(pool, 0, 32),
 	}
 }
 
@@ -111,10 +113,22 @@ func (p *Parser) DoInline(f func()) {
 func (p *Parser) CaptureError(err *diagnostic.Diagnostic) { p.state.CaptureError(err) }
 func (p *Parser) Errors() diagnostic.List                 { return p.state.Errors() }
 func (p *Parser) CaptureComment(g *ast.CommentGroup)      { p.state.CaptureComment(g) }
-func (p *Parser) CloneState() *State                      { return p.state.Clone() }
+
+func (p *Parser) CloneState() *State {
+	return p.state.Clone(&p.pool)
+}
 
 func (p *Parser) RestoreState(s *State) {
+	p.pool.Put(p.state)
 	p.state = s
+}
+
+func (p *Parser) markWSStart() {
+	p.state.markWSStart(&p.pool)
+}
+
+func (p *Parser) takeWSStart() *State {
+	return p.state.takeWSStart(&p.pool)
 }
 
 type (
@@ -141,18 +155,18 @@ type (
 // Matches reports whether f would match.
 // It does not consume any input.
 func Matches[T any](p *Parser, f Func[T]) bool {
-	state := p.CloneState()
+	restore := p.CloneState()
 	CommitWS(p)
 	_, err := f(p)
-	p.RestoreState(state)
+	p.RestoreState(restore)
 	return err == nil
 }
 
 func MatchesWS(p *Parser, f WhitespaceFunc) bool {
-	state := p.CloneState()
+	restore := p.CloneState()
 	CommitWS(p)
 	err := f(p)
-	p.RestoreState(state)
+	p.RestoreState(restore)
 	return err == nil
 }
 
@@ -178,12 +192,13 @@ func MatchesRunePredicate(p *Parser, pred func(rune) bool) bool {
 }
 
 func TryErr[T any](p *Parser, f Func[T]) (T, *diagnostic.Diagnostic) {
-	restore := p.state.takeWSStart()
+	restore := p.takeWSStart()
 	v, err := f(p)
 	if err != nil {
 		p.RestoreState(restore)
 		return v, err
 	}
+	p.pool.Put(restore)
 	return v, err
 }
 
@@ -193,13 +208,14 @@ func Try[T any](p *Parser, f Func[T]) T {
 }
 
 func TryOptionalErr[T any](p *Parser, f Func[T], ws WhitespaceFunc) (T, *diagnostic.Diagnostic) {
-	state := p.CloneState()
+	restore := p.CloneState()
 	CommitWS(p)
 	v, err := f(p)
 	if err != nil {
-		p.RestoreState(state)
+		p.RestoreState(restore)
 		return v, err
 	}
+	p.pool.Put(restore)
 	if ws != nil {
 		TrySkip(p, ws)
 	}
@@ -215,10 +231,11 @@ func TryOptional[T any](p *Parser, f Func[T], ws WhitespaceFunc) T {
 //
 // If none match, it returns false.
 func TryInOrder[T any](p *Parser, fs ...Func[T]) T {
-	restore := p.state.takeWSStart()
+	restore := p.takeWSStart()
 	for _, f := range fs {
 		v, err := TryErr(p, f)
 		if err == nil { // IS nil
+			p.pool.Put(restore)
 			return v
 		}
 	}
@@ -242,17 +259,18 @@ func TrySkip(p *Parser, f WhitespaceFunc) bool {
 }
 
 func TrySkipErr(p *Parser, f WhitespaceFunc) *diagnostic.Diagnostic {
-	state := p.CloneState()
+	restore := p.CloneState()
 	if !p.state.parsingWS {
-		p.state.markWSStart()
+		p.markWSStart()
 		p.state.parsingWS = true
 		defer func() { p.state.parsingWS = false }()
 	}
 
 	if err := f(p); err != nil {
-		p.RestoreState(state)
+		p.RestoreState(restore)
 		return err
 	}
+	p.pool.Put(restore)
 	return nil
 }
 
