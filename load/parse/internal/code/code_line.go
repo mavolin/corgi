@@ -9,32 +9,32 @@ import (
 )
 
 func ImplicitCodeLine() parser.Func[*ast.ImplicitCodeLine] {
-	return func(p *parser.Parser) (*ast.ImplicitCodeLine, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.ImplicitCodeLine {
 		s := parser.Try(p, ParsedStatement())
 		if s == nil {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing implicit code line",
-				Primary: quickanno.Expected(p, p.Pos(), "an implicit code line"),
-			}
+			return nil
 		}
 
-		return &ast.ImplicitCodeLine{Statement: s}, nil
+		return &ast.ImplicitCodeLine{Statement: s}
 	}
 }
 
 func ExplicitCodeLine() parser.Func[*ast.ExplicitCodeLine] {
-	return func(p *parser.Parser) (*ast.ExplicitCodeLine, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.ExplicitCodeLine {
 		var e ast.ExplicitCodeLine
 
 		e.Minus = parser.TryKeywordAt(p, "-", whitespace.Horizontal())
 		if e.Minus == nil {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing explicit code line",
-				Primary: quickanno.Expected(p, p.Pos(), "an explicit code line"),
-			}
+			return nil
 		}
 
-		e.Statement = parser.Must(p, Statement(Regular))
-		return &e, nil
+		e.Statement = parser.Try(p, Statement(Regular))
+		if e.Statement == nil {
+			p.CaptureError(&diagnostic.Diagnostic{
+				Message: "explicit code line: missing statement",
+				Primary: quickanno.Expected(p, p.Pos(), "a statement"),
+			})
+		}
+		return &e
 	}
 }

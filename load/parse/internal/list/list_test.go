@@ -6,11 +6,9 @@ import (
 	"testing"
 
 	"github.com/mavolin/corgi/v2/file/ast"
-	"github.com/mavolin/corgi/v2/file/diagnostic"
 	"github.com/mavolin/corgi/v2/internal/test/should"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/mavolin/corgi/v2/load/parse/internal/parsetest"
-	"github.com/mavolin/corgi/v2/load/parse/internal/quickanno"
 )
 
 func TestParenList(t *testing.T) {
@@ -24,19 +22,12 @@ func TestBracketList(t *testing.T) {
 }
 
 func testList(t *testing.T, name string, opening, closing rune) {
-	elemFunc := func(p *parser.Parser) (string, *diagnostic.Diagnostic) {
-		s := parser.TokenWhile(p, func() bool {
+	elemFunc := func(p *parser.Parser) string {
+		return parser.TokenWhile(p, func() bool {
 			return parser.MatchesRunePredicate(p, func(r rune) bool {
 				return r >= 'a' && r <= 'z'
 			})
 		})
-		if s == "" {
-			return "", &diagnostic.Diagnostic{
-				Message: "missing test element",
-				Primary: quickanno.Expected(p, p.Pos(), "a test element"),
-			}
-		}
-		return s, nil
 	}
 
 	successCases := []struct {
@@ -87,7 +78,7 @@ func testList(t *testing.T, name string, opening, closing rune) {
 					want.Close.Col = len(in[strings.LastIndex(in, "\n")+1:])
 				}
 
-				got := parsetest.ParsesFully(t, in, list(name, opening, closing, elemFunc))
+				got := parsetest.ParsesFully(t, in, list(name, name, opening, closing, elemFunc))
 				should.Equal(t, want, got)
 			})
 		}
@@ -146,7 +137,7 @@ func testList(t *testing.T, name string, opening, closing rune) {
 					gotIn += " other"
 				}
 				p := parsetest.NewParser(t, gotIn)
-				got := parsetest.AssertMatchesButError(t, p, list(name, opening, closing, elemFunc))
+				got := parsetest.AssertMatchesButError(t, p, list(name, name, opening, closing, elemFunc))
 				if should.Equal(t, want, got) {
 					should.Equal(t, p.Index(), len(in))
 				}
@@ -158,19 +149,12 @@ func testList(t *testing.T, name string, opening, closing rune) {
 func TestCommaList(t *testing.T) {
 	t.Parallel()
 
-	elemFunc := func(p *parser.Parser) (string, *diagnostic.Diagnostic) {
-		s := parser.TokenWhile(p, func() bool {
+	elemFunc := func(p *parser.Parser) string {
+		return parser.TokenWhile(p, func() bool {
 			return parser.MatchesRunePredicate(p, func(r rune) bool {
 				return r >= 'a' && r <= 'z'
 			})
 		})
-		if s == "" {
-			return "", &diagnostic.Diagnostic{
-				Message: "missing test element",
-				Primary: quickanno.Expected(p, p.Pos(), "a test element"),
-			}
-		}
-		return s, nil
 	}
 
 	successCases := []struct {

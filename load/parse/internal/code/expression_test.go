@@ -4,31 +4,26 @@ import (
 	"testing"
 
 	"github.com/mavolin/corgi/v2/file/ast"
-	"github.com/mavolin/corgi/v2/file/diagnostic"
 	"github.com/mavolin/corgi/v2/internal/test/should"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/mavolin/corgi/v2/load/parse/internal/parsetest"
-	"github.com/mavolin/corgi/v2/load/parse/internal/quickanno"
 )
 
 func TestExpression(t *testing.T) {
 	t.Parallel()
 
 	parsetest.AssertAlsoFulfils(t, Expression(Regular), func(t *testing.T, f parser.Func[*ast.Expression]) {
-		testZeroCoalescing(t, func(p *parser.Parser) (*ast.ZeroCoalescing, *diagnostic.Diagnostic) {
-			e, err := f(p)
-			if err != nil {
-				return nil, err
+		testZeroCoalescing(t, func(p *parser.Parser) *ast.ZeroCoalescing {
+			e := f(p)
+			if e == nil {
+				return nil
 			}
 
 			if len(e.Nodes) != 1 {
-				return nil, &diagnostic.Diagnostic{
-					Message: "expected exactly one expression node",
-					Primary: quickanno.Expected(p, p.Pos(), "an expression node"),
-				}
+				return nil
 			}
 
-			return e.Nodes[0].(*ast.ZeroCoalescing), nil
+			return e.Nodes[0].(*ast.ZeroCoalescing)
 		})
 	})
 	parsetest.AssertAlsoFulfils(t, Expression(Regular), testNonZCExpression)
@@ -202,35 +197,32 @@ func testNonZCExpression(t *testing.T, f parser.Func[*ast.Expression]) {
 
 func nodesAsExpression(subTest func(t *testing.T, f parser.Func[[]ast.CodeNode])) func(*testing.T, parser.Func[*ast.Expression]) {
 	return func(t *testing.T, f parser.Func[*ast.Expression]) {
-		subTest(t, func(p *parser.Parser) ([]ast.CodeNode, *diagnostic.Diagnostic) {
-			e, err := f(p)
-			if err != nil {
-				return nil, err
+		subTest(t, func(p *parser.Parser) []ast.CodeNode {
+			e := f(p)
+			if e == nil {
+				return nil
 			}
 			ns := make([]ast.CodeNode, len(e.Nodes))
 			copy(ns, e.Nodes)
-			return ns, err
+			return ns
 		})
 	}
 }
 
 func nodeAsNodes[N ast.CodeNode](subTest func(t *testing.T, f parser.Func[N])) func(*testing.T, parser.Func[[]ast.CodeNode]) {
 	return func(t *testing.T, f parser.Func[[]ast.CodeNode]) {
-		subTest(t, func(p *parser.Parser) (N, *diagnostic.Diagnostic) {
+		subTest(t, func(p *parser.Parser) N {
 			var zero N
-			ns, err := f(p)
-			if err != nil {
-				return zero, err
+			ns := f(p)
+			if ns == nil {
+				return zero
 			}
 
 			if len(ns) != 1 {
-				return zero, &diagnostic.Diagnostic{
-					Message: "expected exactly one expression node",
-					Primary: quickanno.Expected(p, p.Pos(), "an expression node"),
-				}
+				return zero
 			}
 
-			return ns[0].(N), nil
+			return ns[0].(N)
 		})
 	}
 }

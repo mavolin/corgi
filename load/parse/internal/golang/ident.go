@@ -8,17 +8,13 @@ import (
 )
 
 func Identifier() parser.Func[*ast.Identifier] { // https://go.dev/ref/spec#Identifiers
-	return func(p *parser.Parser) (*ast.Identifier, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.Identifier {
 		var ident ast.Identifier
 		ident.Position = p.PosPtr()
 
 		r := parser.TryRunePredicate(p, Letter)
-		if r < 0 {
-			return nil, &diagnostic.Diagnostic{
-				Message:  "missing identifier",
-				Primary:  quickanno.Expected(p, p.Pos(), "an identifier"),
-				Examples: []diagnostic.Example{{Example: "`woof`"}},
-			}
+		if r == 0 {
+			return nil
 		}
 
 		trail := parser.Try(p, identTrail())
@@ -34,7 +30,7 @@ func Identifier() parser.Func[*ast.Identifier] { // https://go.dev/ref/spec#Iden
 			})
 		}
 
-		return &ident, nil
+		return &ident
 	}
 }
 
@@ -42,12 +38,12 @@ func Identifier() parser.Func[*ast.Identifier] { // https://go.dev/ref/spec#Iden
 // It always matches, as the single, previously captured, rune is already a
 // valid identifier.
 func identTrail() parser.Func[string] {
-	return func(p *parser.Parser) (string, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) string {
 		s := parser.TokenWhile(p, func() bool {
 			return parser.MatchesRunePredicate(p, func(r rune) bool {
 				return Letter(r) || Unicode_Digit(r)
 			})
 		})
-		return s, nil
+		return s
 	}
 }

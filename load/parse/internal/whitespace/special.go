@@ -12,10 +12,7 @@ func EOL() parser.WhitespaceFunc {
 		}
 
 		parser.TrySkip(p, Horizontal())
-		if parser.TrySkip(p, SingleVertical()) {
-			return true
-		}
-		return false
+		return parser.TrySkip(p, SingleVertical())
 	}
 }
 
@@ -23,10 +20,6 @@ func EOL() parser.WhitespaceFunc {
 func EOF() parser.WhitespaceFunc {
 	return func(p *parser.Parser) bool {
 		parser.TrySkip(p, Horizontal())
-		if parser.TryRune(p, parser.EOF) {
-			return true
-		}
-
-		return false
+		return parser.TryRune(p, parser.EOF)
 	}
 }

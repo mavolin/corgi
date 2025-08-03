@@ -17,15 +17,12 @@ import (
 )
 
 func Definition() parser.Func[*ast.AttributeDefinition] {
-	return func(p *parser.Parser) (*ast.AttributeDefinition, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.AttributeDefinition {
 		var def ast.AttributeDefinition
 
 		def.Attr = parser.TryKeywordAt(p, "attr", comment.OrAnyWhitespace())
 		if def.Attr == nil {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing attribute definition",
-				Primary: quickanno.Expected(p, p.Pos(), "an attribute definition"),
-			}
+			return nil
 		}
 
 		beforePrefix := p.CloneState()
@@ -44,11 +41,17 @@ func Definition() parser.Func[*ast.AttributeDefinition] {
 				p.RestoreState(beforePrefix)
 			}
 
-			s := parser.Must(p, Spec())
-			if s != nil {
-				def.Specs = []*ast.AttributeSpec{s}
+			spec := parser.Try(p, Spec())
+			if spec != nil {
+				def.Specs = []*ast.AttributeSpec{spec}
+			} else {
+				p.CaptureError(&diagnostic.Diagnostic{
+					Message:  "attribute definition: missing attribute name",
+					Primary:  quickanno.Expected(p, p.Pos(), "an attribute name"),
+					Examples: []diagnostic.Example{{Example: "`attr hx-foo { ... }`"}},
+				})
 			}
-			return &def, nil
+			return &def
 		}
 
 		def.Specs = make([]*ast.AttributeSpec, 0, 64)
@@ -64,7 +67,7 @@ func Definition() parser.Func[*ast.AttributeDefinition] {
 			if parser.MatchesAnyRune(p, ')') {
 				break
 			}
-			parser.Must(p, comment.AndEOS())
+			parser.Try(p, comment.AndMustEOS())
 		}
 		if len(def.Specs) == 0 {
 			def.Specs = nil
@@ -86,38 +89,39 @@ func Definition() parser.Func[*ast.AttributeDefinition] {
 			})
 		}
 
-		return &def, nil
+		return &def
 	}
 }
 
 func Spec() parser.Func[*ast.AttributeSpec] {
-	return func(p *parser.Parser) (*ast.AttributeSpec, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.AttributeSpec {
 		var spec ast.AttributeSpec
 
 		spec.Selector = parser.Try(p, Selector())
 		if spec.Selector == nil {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing attribute spec",
-				Primary: quickanno.Expected(p, p.Pos(), "an attribute selector"),
-			}
+			return nil
 		}
 
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
-		spec.Ruleset = parser.Must(p, Ruleset())
-		return &spec, nil
+		spec.Ruleset = parser.Try(p, Ruleset())
+		if spec.Ruleset == nil {
+			p.CaptureError(&diagnostic.Diagnostic{
+				Message:  "attribute spec: missing ruleset",
+				Primary:  quickanno.Expected(p, p.Pos(), "an attribute ruleset"),
+				Examples: []diagnostic.Example{{Example: "`{ * innocuous }`"}},
+			})
+		}
+		return &spec
 	}
 }
 
 func Ruleset() parser.Func[*ast.AttributeRuleset] {
-	return func(p *parser.Parser) (*ast.AttributeRuleset, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.AttributeRuleset {
 		var rs ast.AttributeRuleset
 
 		rs.LBrace = parser.TryRuneAt(p, '{')
 		if rs.LBrace == nil {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing attribute ruleset",
-				Primary: quickanno.Expected(p, p.Pos(), "an opening brace"),
-			}
+			return nil
 		}
 
 		rs.List = make([]*ast.AttributeRule, 0, 64)
@@ -127,7 +131,7 @@ func Ruleset() parser.Func[*ast.AttributeRuleset] {
 			if r == nil {
 				break
 			}
-			parser.TrySkip(p, comment.AndForceEOS())
+			parser.Try(p, comment.AndForceEOS())
 			rs.List = append(rs.List, r)
 		}
 		rs.List = slices.Clip(rs.List)
@@ -140,53 +144,51 @@ func Ruleset() parser.Func[*ast.AttributeRuleset] {
 			})
 		}
 
-		return &rs, nil
+		return &rs
 	}
 }
 
 func Rule() parser.Func[*ast.AttributeRule] {
-	return func(p *parser.Parser) (*ast.AttributeRule, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.AttributeRule {
 		var r ast.AttributeRule
 
 		r.Selector = parser.Try(p, ElementSelector())
 		if r.Selector == nil {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing attribute rule",
-				Primary: quickanno.Expected(p, p.Pos(), "an element selector"),
-			}
+			return nil
 		}
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 
-		r.Type = parser.Must(p, TypeName())
-		return &r, nil
+		r.Type = parser.Try(p, TypeName())
+		if r.Type == nil {
+			p.CaptureError(&diagnostic.Diagnostic{
+				Message:  "attribute rule: missing type",
+				Primary:  quickanno.Expected(p, p.Pos(), "a type name"),
+				Examples: []diagnostic.Example{{Example: "`div innocuous`"}},
+			})
+		}
+		return &r
 	}
 }
 
 func Selector() parser.Func[ast.AttributeSelector] {
-	return func(p *parser.Parser) (ast.AttributeSelector, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) ast.AttributeSelector {
 		if bs := parser.Try(p, BasicSelector()); bs != nil {
-			return bs, nil
+			return bs
 		} else if rs := parser.Try(p, RegexpSelector()); rs != nil {
-			return rs, nil
+			return rs
 		}
-		return nil, &diagnostic.Diagnostic{
-			Message: "missing attribute selector",
-			Primary: quickanno.Expected(p, p.Pos(), "an attribute selector"),
-		}
+		return nil
 	}
 }
 
 func BasicSelector() parser.Func[*ast.BasicAttributeSelector] {
-	return func(p *parser.Parser) (*ast.BasicAttributeSelector, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.BasicAttributeSelector {
 		var s ast.BasicAttributeSelector
 		s.Position = p.PosPtr()
 
 		name := parser.Try(p, Name())
 		if name == nil {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing basic attribute selector",
-				Primary: quickanno.Expected(p, p.Pos(), "an attribute name"),
-			}
+			return nil
 		}
 		s.Name = name.Name
 
@@ -202,31 +204,23 @@ func BasicSelector() parser.Func[*ast.BasicAttributeSelector] {
 			}
 		}
 
-		return &s, nil
+		return &s
 	}
 }
 
 func RegexpSelector() parser.Func[*ast.RegexpAttributeSelector] {
-	return func(p *parser.Parser) (*ast.RegexpAttributeSelector, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.RegexpAttributeSelector {
 		var s ast.RegexpAttributeSelector
 
 		s.Regexp = parser.TryTokenAt(p, "'regexp")
 		if s.Regexp == nil {
-			return nil, &diagnostic.Diagnostic{
-				Message:  "missing regexp attribute selector",
-				Primary:  quickanno.Expected(p, p.Pos(), "a regexp attribute selector"),
-				Examples: []diagnostic.Example{{Example: "'regexp(`hx-\\d{3}`)"}},
-			}
+			return nil
 		}
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 
 		s.LParen = parser.TryRuneAt(p, '(')
 		if s.LParen == nil {
-			return nil, &diagnostic.Diagnostic{
-				Message:  "regexp attribute selector: missing arguments",
-				Primary:  quickanno.Expected(p, p.Pos(), "an opening parenthesis"),
-				Examples: []diagnostic.Example{{Example: "'regexp(`hx-\\d{3}`)"}},
-			}
+			return nil
 		}
 		parser.TrySkip(p, whitespace.Any())
 
@@ -237,15 +231,15 @@ func RegexpSelector() parser.Func[*ast.RegexpAttributeSelector] {
 				Primary:  quickanno.Expected(p, p.Pos(), "a string containing a regular expression"),
 				Examples: []diagnostic.Example{{Example: "'regexp(`hx-\\d{3}`)"}},
 			})
-		}
-
-		var err error
-		s.Compiled, err = regexp.Compile(s.Raw.Unquote())
-		if err != nil {
-			p.CaptureError(&diagnostic.Diagnostic{
-				Message: "invalid regular expression: " + err.Error(),
-				Primary: quickanno.Expected(p, s.Raw.Start(), "a valid regular expression"),
-			})
+		} else {
+			var err error
+			s.Compiled, err = regexp.Compile(s.Raw.Unquote())
+			if err != nil {
+				p.CaptureError(&diagnostic.Diagnostic{
+					Message: "invalid regular expression: " + err.Error(),
+					Primary: quickanno.Expected(p, s.Raw.Start(), "a valid regular expression"),
+				})
+			}
 		}
 
 		parser.TrySkip(p, whitespace.Any())
@@ -257,54 +251,43 @@ func RegexpSelector() parser.Func[*ast.RegexpAttributeSelector] {
 			})
 		}
 
-		return &s, nil
+		return &s
 	}
 }
 
 func ElementSelector() parser.Func[ast.ElementSelector] {
-	return func(p *parser.Parser) (ast.ElementSelector, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) ast.ElementSelector {
 		if ws := parser.Try(p, WildcardElementSelector()); ws != nil {
-			return ws, nil
+			return ws
 		} else if ls := parser.Try(p, ListElementSelector()); ls != nil {
-			return ls, nil
+			return ls
 		}
-		return nil, &diagnostic.Diagnostic{
-			Message: "missing element selector",
-			Primary: quickanno.Expected(p, p.Pos(), "an element selector"),
-			Examples: []diagnostic.Example{
-				{Example: "*", Title: "wildcard selector"},
-				{Example: "div, span", Title: "list selector"},
-			},
-		}
+		return nil
 	}
 }
 
 func WildcardElementSelector() parser.Func[*ast.WildcardElementSelector] {
-	return func(p *parser.Parser) (*ast.WildcardElementSelector, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.WildcardElementSelector {
 		var s ast.WildcardElementSelector
 
 		s.Asterisk = parser.TryRuneAt(p, '*')
 		if s.Asterisk == nil {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing wildcard element selector",
-				Primary: quickanno.Expected(p, p.Pos(), "an asterisk"),
-			}
+			return nil
 		}
-		return &s, nil
+		return &s
 	}
 }
 
 func ListElementSelector() parser.Func[*ast.ListElementSelector] {
-	return func(p *parser.Parser) (*ast.ListElementSelector, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.ListElementSelector {
 		var s ast.ListElementSelector
 
-		var err *diagnostic.Diagnostic
-		s.List, err = parser.TryErr(p, list.CommaList("element name", "element names", elementReference))
-		if err != nil {
-			return nil, err
+		s.List = parser.Try(p, list.CommaList("element name", "element names", elementReference))
+		if len(s.List) == 0 {
+			return nil
 		}
 
-		return &s, nil
+		return &s
 	}
 }
 

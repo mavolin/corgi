@@ -5,24 +5,19 @@ import (
 	"strings"
 
 	"github.com/mavolin/corgi/v2/file/ast"
-	"github.com/mavolin/corgi/v2/file/diagnostic"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/mavolin/corgi/v2/load/parse/internal/interpolation"
-	"github.com/mavolin/corgi/v2/load/parse/internal/quickanno"
 	"github.com/mavolin/corgi/v2/load/parse/internal/whitespace"
 )
 
 func ArrowBlock() parser.Func[*ast.ArrowBlock] {
-	return func(p *parser.Parser) (*ast.ArrowBlock, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.ArrowBlock {
 		var b ast.ArrowBlock
 		refCol := p.Col()
 
 		b.Arrow = parser.TryRuneAt(p, '>')
 		if b.Arrow == nil {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing arrow block",
-				Primary: quickanno.Expected(p, p.Pos(), "an arrow block"),
-			}
+			return nil
 		}
 		parser.TrySkip(p, whitespace.Horizontal())
 
@@ -46,43 +41,37 @@ func ArrowBlock() parser.Func[*ast.ArrowBlock] {
 			b.Lines = slices.Clip(b.Lines)
 		}
 
-		return &b, nil
+		return &b
 	}
 }
 
 // Line parses a text line until the terminator rune or the EOL.
 func Line(term rune) parser.Func[ast.TextLine] {
-	return func(p *parser.Parser) (ast.TextLine, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) ast.TextLine {
 		l := parser.Collect(p, Node(term), 8, nil)
 		if len(l) == 0 {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing text line",
-				Primary: quickanno.Expected(p, p.Pos(), "text"),
-			}
+			return nil
 		}
-		return l, nil
+		return l
 	}
 }
 
 func Node(term rune) parser.Func[ast.TextNode] {
-	return func(p *parser.Parser) (ast.TextNode, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) ast.TextNode {
 		if t := parser.Try(p, Text(term)); t != nil {
-			return t, nil
+			return t
 		} else if interp := parser.Try(p, interpolation.TextInterpolation()); interp != nil {
-			return interp, nil
+			return interp
 		} else if bi := parser.Try(p, interpolation.BadInterpolation()); bi != nil {
-			return bi, nil
+			return bi
 		}
 
-		return nil, &diagnostic.Diagnostic{
-			Message: "missing text node",
-			Primary: quickanno.Expected(p, p.Pos(), "text or interpolation"),
-		}
+		return nil
 	}
 }
 
 func Text(term rune) parser.Func[*ast.Text] {
-	return func(p *parser.Parser) (*ast.Text, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.Text {
 		var t ast.Text
 		t.Position = p.PosPtr()
 
@@ -92,13 +81,10 @@ func Text(term rune) parser.Func[*ast.Text] {
 		})
 		t.Text = strings.TrimRight(t.Text, " \t")
 		if t.Text == "" {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing text",
-				Primary: quickanno.Expected(p, p.Pos(), "text"),
-			}
+			return nil
 		}
 
-		return &t, nil
+		return &t
 	}
 }
 
@@ -107,15 +93,12 @@ func Text(term rune) parser.Func[*ast.Text] {
 // other nodes, such as interpolation, will be included in text nodes.
 // The only exception are HashBrackets.
 func VerbatimLine(term rune) parser.Func[ast.TextLine] {
-	return func(p *parser.Parser) (ast.TextLine, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) ast.TextLine {
 		l := parser.Collect(p, VerbatimNode(term), 8, nil)
 		if len(l) == 0 {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing text line",
-				Primary: quickanno.Expected(p, p.Pos(), "text"),
-			}
+			return nil
 		}
-		return l, nil
+		return l
 	}
 }
 
@@ -124,17 +107,14 @@ func VerbatimLine(term rune) parser.Func[ast.TextLine] {
 // other nodes, such as interpolation, will be included in text nodes.
 // The only exception are escaped right brackets.
 func VerbatimNode(term rune) parser.Func[ast.TextNode] {
-	return func(p *parser.Parser) (ast.TextNode, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) ast.TextNode {
 		if t := parser.Try(p, VerbatimText(term)); t != nil {
-			return t, nil
+			return t
 		} else if escapedRBracket := parser.Try(p, interpolation.EscapedRBracket()); escapedRBracket != nil {
-			return escapedRBracket, nil
+			return escapedRBracket
 		}
 
-		return nil, &diagnostic.Diagnostic{
-			Message: "missing text node",
-			Primary: quickanno.Expected(p, p.Pos(), "text or an escaped right bracket"),
-		}
+		return nil
 	}
 }
 
@@ -143,7 +123,7 @@ func VerbatimNode(term rune) parser.Func[ast.TextNode] {
 // allow parsing interpolation, will be included in text nodes.
 // The only exception are escaped right brackets.
 func VerbatimText(term rune) parser.Func[*ast.Text] {
-	return func(p *parser.Parser) (*ast.Text, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.Text {
 		var t ast.Text
 		t.Position = p.PosPtr()
 
@@ -152,12 +132,9 @@ func VerbatimText(term rune) parser.Func[*ast.Text] {
 		})
 		t.Text = strings.TrimRight(t.Text, " \t")
 		if t.Text == "" {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing text",
-				Primary: quickanno.Expected(p, p.Pos(), "text"),
-			}
+			return nil
 		}
 
-		return &t, nil
+		return &t
 	}
 }

@@ -475,7 +475,7 @@ func testMapType(t *testing.T, f parser.Func[*ast.Type]) {
 	})
 
 	recoverCases := []string{
-		"map", "map int", "map[int", "map[int]",
+		"map", "map[int", "map[int]",
 	}
 
 	t.Run("recover", func(t *testing.T) {

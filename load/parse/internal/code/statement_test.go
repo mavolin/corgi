@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/mavolin/corgi/v2/file/ast"
-	"github.com/mavolin/corgi/v2/file/diagnostic"
 	"github.com/mavolin/corgi/v2/internal/test/should"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/mavolin/corgi/v2/load/parse/internal/parsetest"
@@ -15,17 +14,17 @@ func TestStatement(t *testing.T) {
 
 	parsetest.AssertAlsoFulfils(t, ParsedStatement(), testParsedStatement)
 	parsetest.AssertAlsoFulfils(t, Statement(Regular), func(t *testing.T, f parser.Func[*ast.Statement]) {
-		testSimpleStatement(t, func(p *parser.Parser) (*ast.SimpleStatement, *diagnostic.Diagnostic) {
-			s, err := f(p)
-			if err != nil {
-				return nil, err
+		testSimpleStatement(t, func(p *parser.Parser) *ast.SimpleStatement {
+			s := f(p)
+			if s == nil {
+				return nil
 			}
 
 			ss := &ast.SimpleStatement{Nodes: make(ast.Code, len(s.Nodes))}
 			copy(ss.Nodes, s.Nodes)
 			ss.Parsed = s.Parsed.(ast.ParsedSimpleStatement)
 
-			return ss, nil
+			return ss
 		})
 	})
 }
@@ -53,21 +52,19 @@ func testParsedStatement(t *testing.T, f parser.Func[*ast.Statement]) {
 
 func parsedStatementAsStatement[PS ast.ParsedStatement](subTest func(*testing.T, parser.Func[PS])) func(*testing.T, parser.Func[*ast.Statement]) {
 	return func(t *testing.T, f parser.Func[*ast.Statement]) {
-		subTest(t, func(p *parser.Parser) (PS, *diagnostic.Diagnostic) {
+		subTest(t, func(p *parser.Parser) PS {
 			var zero PS
 
-			s, err := f(p)
-			if err != nil {
-				return zero, err
+			s := f(p)
+			if s == nil {
+				return zero
 			}
 
 			if s.Parsed == nil {
-				return zero, &diagnostic.Diagnostic{
-					Message: "missing parsed statement",
-				}
+				return zero
 			}
 
-			return s.Parsed.(PS), nil
+			return s.Parsed.(PS)
 		})
 	}
 }
@@ -95,21 +92,19 @@ func testParsedSimpleStatement(t *testing.T, f parser.Func[*ast.SimpleStatement]
 
 func parsedSimpleStatementAsSimpleStatement[PS ast.ParsedSimpleStatement](subTest func(*testing.T, parser.Func[PS])) func(*testing.T, parser.Func[*ast.SimpleStatement]) {
 	return func(t *testing.T, f parser.Func[*ast.SimpleStatement]) {
-		subTest(t, func(p *parser.Parser) (PS, *diagnostic.Diagnostic) {
+		subTest(t, func(p *parser.Parser) PS {
 			var zero PS
 
-			s, err := f(p)
-			if err != nil {
-				return zero, err
+			s := f(p)
+			if s == nil {
+				return zero
 			}
 
 			if s.Parsed == nil {
-				return zero, &diagnostic.Diagnostic{
-					Message: "missing parsed statement",
-				}
+				return zero
 			}
 
-			return s.Parsed.(PS), nil
+			return s.Parsed.(PS)
 		})
 	}
 }

@@ -16,15 +16,12 @@ import (
 )
 
 func Doctype() parser.Func[*ast.Doctype] {
-	return func(p *parser.Parser) (*ast.Doctype, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.Doctype {
 		var d ast.Doctype
 
 		d.Doctype = parser.TryTokenAt(p, "!doctype")
 		if d.Doctype == nil {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing doctype",
-				Primary: quickanno.Expected(p, p.Pos(), "a doctype"),
-			}
+			return nil
 		}
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 
@@ -37,7 +34,7 @@ func Doctype() parser.Func[*ast.Doctype] {
 					{Example: "`!doctype(html)`"},
 				},
 			})
-			return &d, nil
+			return &d
 		}
 		d.LParen, d.RParen = args.LParen, args.RParen
 		switch {
@@ -92,50 +89,44 @@ func Doctype() parser.Func[*ast.Doctype] {
 		}
 		d.RParen = args.RParen
 
-		return &d, nil
+		return &d
 	}
 }
 
 func Element() parser.Func[*ast.Element] {
-	return func(p *parser.Parser) (*ast.Element, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.Element {
 		var e ast.Element
 
 		e.Header = parser.Try(p, Header())
 		if e.Header == nil {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing element",
-				Primary: quickanno.Expected(p, p.Pos(), "an element"),
-			}
+			return nil
 		}
 
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 		e.Body = parser.Try(p, body.Body())
-		return &e, nil
+		return &e
 	}
 }
 
 func Header() parser.Func[*ast.ElementHeader] {
-	return func(p *parser.Parser) (*ast.ElementHeader, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.ElementHeader {
 		var h ast.ElementHeader
 
 		h.Name = parser.Try(p, Reference())
 		if h.Name == nil {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing element header",
-				Primary: quickanno.Expected(p, p.Pos(), "an element name"),
-			}
+			return nil
 		}
 		if !p.Inline() {
 			parser.TrySkip(p, comment.OrHorizontalWhitespace())
 		}
 
 		h.Attributes = parser.Try(p, argument.Arguments())
-		return &h, nil
+		return &h
 	}
 }
 
 func Reference() parser.Func[*ast.ElementReference] {
-	return func(p *parser.Parser) (*ast.ElementReference, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.ElementReference {
 		var ref ast.ElementReference
 
 		state := p.CloneState()
@@ -152,42 +143,35 @@ func Reference() parser.Func[*ast.ElementReference] {
 			})
 		}
 
-		var err *diagnostic.Diagnostic
-		ref.Name, err = parser.TryErr(p, Name())
-		if err != nil {
-			return nil, err
+		ref.Name = parser.Try(p, Name())
+		if ref.Name == nil {
+			return nil
 		}
-		return &ref, nil
+		return &ref
 	}
 }
 
 func Name() parser.Func[*ast.ElementName] {
-	return func(p *parser.Parser) (*ast.ElementName, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.ElementName {
 		var n ast.ElementName
 		n.Position = p.PosPtr()
 
 		n.Name = parser.Try(p, html.TagName())
 		if n.Name == "" {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing element name",
-				Primary: quickanno.Expected(p, *n.Position, "an html element name"),
-			}
+			return nil
 		}
 
-		return &n, nil
+		return &n
 	}
 }
 
 func Raw() parser.Func[*ast.RawElement] {
-	return func(p *parser.Parser) (*ast.RawElement, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.RawElement {
 		var e ast.RawElement
 
 		e.Raw = parser.TryTokenAt(p, "!raw")
 		if e.Raw == nil {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing raw element",
-				Primary: quickanno.Expected(p, p.Pos(), "a raw element"),
-			}
+			return nil
 		}
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 
@@ -224,20 +208,17 @@ func Raw() parser.Func[*ast.RawElement] {
 			}
 		}
 
-		return &e, nil
+		return &e
 	}
 }
 
 func And() parser.Func[*ast.And] {
-	return func(p *parser.Parser) (*ast.And, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.And {
 		var a ast.And
 
 		a.And = parser.TryTokenAt(p, "&")
 		if a.And == nil {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing &-attributes",
-				Primary: quickanno.Expected(p, p.Pos(), "&"),
-			}
+			return nil
 		}
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 
@@ -252,6 +233,6 @@ func And() parser.Func[*ast.And] {
 			})
 		}
 
-		return &a, nil
+		return &a
 	}
 }

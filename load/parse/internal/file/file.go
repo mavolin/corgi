@@ -33,29 +33,29 @@ func init() {
 	body.SetScopeNode(scopeNode)
 }
 
-func scopeNode(p *parser.Parser) (ast.ScopeNode, *diagnostic.Diagnostic) {
+func scopeNode(p *parser.Parser) ast.ScopeNode {
 	if n := parser.Try(p, code.ImplicitCodeLine()); n != nil {
-		return n, nil
+		return n
 	} else if n := parser.Try(p, code.ExplicitCodeLine()); n != nil {
-		return n, nil
+		return n
 	} else if n := parser.Try(p, component.Block()); n != nil {
-		return n, nil
+		return n
 	} else if n := parser.Try(p, code.Conditional()); n != nil {
-		return n, nil
+		return n
 	} else if n := parser.Try(p, code.Switch()); n != nil {
-		return n, nil
+		return n
 	} else if n := parser.Try(p, code.For()); n != nil {
-		return n, nil
+		return n
 	} else if n := parser.Try(p, text.ArrowBlock()); n != nil {
-		return n, nil
+		return n
 	} else if n := parser.Try(p, element.And()); n != nil {
-		return n, nil
+		return n
 	} else if n := parser.Try(p, element.Doctype()); n != nil {
-		return n, nil
+		return n
 	} else if n := parser.Try(p, element.Raw()); n != nil {
-		return n, nil
+		return n
 	} else if n := parser.Try(p, component.Call()); n != nil {
-		return n, nil
+		return n
 	}
 
 	if b := parser.Try(p, code.Else()); b != nil {
@@ -69,23 +69,23 @@ func scopeNode(p *parser.Parser) (ast.ScopeNode, *diagnostic.Diagnostic) {
 		return &ast.BadNode{
 			From:  b.Start(),
 			Until: b.End(),
-		}, nil
+		}
 	} else if b := parser.Try(p, code.ElseIf()); b != nil {
 		p.CaptureError(&diagnostic.Diagnostic{
 			Message: "unexpected `else if`",
 			Primary: []diagnostic.Annotation{
-				anno.Range(p.File, *b.Else, quickanno.DeltaPos(*b.If, 0, len("if")), "unexpected `else if`"),
+				anno.Range(p.File, *b.Else, quickanno.DeltaPos(*b.If, 0, len("if")), "unexpected `else if"),
 			},
 			Explanation: "This `else if` is not part of an if statement.",
 		})
 		return &ast.BadNode{
 			From:  b.Start(),
 			Until: b.End(),
-		}, nil
+		}
 	}
 
 	if n := parser.Try(p, element.Element()); n != nil {
-		return n, nil
+		return n
 	}
 
 	if n := parser.Try(p, TopLevelNode()); n != nil {
@@ -100,19 +100,23 @@ func scopeNode(p *parser.Parser) (ast.ScopeNode, *diagnostic.Diagnostic) {
 		return &ast.BadNode{
 			From:  n.Start(),
 			Until: n.End(),
-		}, nil
+		}
 	}
 
-	return nil, &diagnostic.Diagnostic{
-		Message: "missing scope node",
-		Primary: quickanno.Expected(p, p.Pos(), "a scope node"),
-	}
+	return nil
 }
 
 func File() parser.Func[struct{}] {
-	return func(p *parser.Parser) (struct{}, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) struct{} {
 		parser.TrySkip(p, comment.OrAnyWhitespace())
-		p.AST.Package = parser.Must(p, PackageDirective())
+		p.AST.Package = parser.Try(p, PackageDirective())
+		if p.AST.Package == nil {
+			p.CaptureError(&diagnostic.Diagnostic{
+				Message:  "missing package directive",
+				Primary:  quickanno.Expected(p, p.Pos(), "a package directive"),
+				Examples: []diagnostic.Example{{Example: "`package main`"}},
+			})
+		}
 		p.AST.Imports = parser.Collect(p, Import(), 8, comment.OrAnyWhitespace())
 		for _, imp := range p.AST.Imports {
 			for _, spec := range imp.Specs {
@@ -122,7 +126,7 @@ func File() parser.Func[struct{}] {
 			}
 		}
 		parser.TrySkip(p, comment.OrAnyWhitespace())
-		p.AST.TopLevel = parser.Must(p, TopLevel())
+		p.AST.TopLevel = parser.Try(p, TopLevel())
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 		p.AST.Comments = p.Comments()
 		if !parser.MatchesAnyRune(p, parser.EOF) {
@@ -131,12 +135,12 @@ func File() parser.Func[struct{}] {
 				Primary: quickanno.Expected(p, p.Pos(), "end of file"),
 			})
 		}
-		return struct{}{}, nil
+		return struct{}{}
 	}
 }
 
 func TopLevel() parser.Func[ast.TopLevel] {
-	return func(p *parser.Parser) (ast.TopLevel, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) ast.TopLevel {
 		scope := make(ast.TopLevel, 0, 36)
 
 		for {
@@ -200,31 +204,28 @@ func TopLevel() parser.Func[ast.TopLevel] {
 				break
 			}
 
-			parser.TrySkip(p, comment.AndForceEOS())
+			parser.Try(p, comment.AndForceEOS())
 			parser.TrySkip(p, comment.OrAnyWhitespace())
 		}
 
-		return slices.Clip(scope), nil
+		return slices.Clip(scope)
 	}
 }
 
 func TopLevelNode() parser.Func[ast.TopLevelNode] {
-	return func(p *parser.Parser) (ast.TopLevelNode, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) ast.TopLevelNode {
 		if sd := parser.TryOptional(p, state.Declaration(), nil); sd != nil {
-			return sd, nil
+			return sd
 		} else if c := parser.TryOptional(p, component.Component(), nil); c != nil {
-			return c, nil
+			return c
 		} else if ad := parser.TryOptional(p, attribute.Definition(), nil); ad != nil {
-			return ad, nil
+			return ad
 		} else if ed := parser.TryOptional(p, element.Definition(), nil); ed != nil {
-			return ed, nil
+			return ed
 		} else if s := parser.TryOptional(p, code.Statement(code.Regular), nil); s != nil {
-			return &ast.ImplicitCodeLine{Statement: s}, nil
+			return &ast.ImplicitCodeLine{Statement: s}
 		}
 
-		return nil, &diagnostic.Diagnostic{
-			Message: "missing top level node",
-			Primary: quickanno.Expected(p, p.Pos(), "a top level node"),
-		}
+		return nil
 	}
 }

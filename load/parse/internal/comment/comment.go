@@ -5,47 +5,40 @@ import (
 	"github.com/mavolin/corgi/v2/file/diagnostic"
 	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
-	"github.com/mavolin/corgi/v2/load/parse/internal/quickanno"
 	"github.com/mavolin/corgi/v2/load/parse/internal/whitespace"
 )
 
 func Comment() parser.Func[*ast.Comment] {
-	return func(p *parser.Parser) (*ast.Comment, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.Comment {
 		if p.Inline() {
 			return GeneralComment()(p)
 		}
 
 		c := parser.TryInOrder(p, LineComment(), GeneralComment())
 		if c != nil {
-			return c, nil
+			return c
 		}
 
-		return nil, &diagnostic.Diagnostic{
-			Message: "missing comment",
-			Primary: quickanno.Expected(p, p.Pos(), "a block or line comment"),
-		}
+		return nil
 	}
 }
 
 func LineComment() parser.Func[*ast.Comment] {
-	return func(p *parser.Parser) (*ast.Comment, *diagnostic.Diagnostic) {
-		c, err := parser.TryErr(p, lineCommentWithoutEOL())
-		if err != nil {
-			return nil, err
+	return func(p *parser.Parser) *ast.Comment {
+		c := parser.Try(p, lineCommentWithoutEOL())
+		if c == nil {
+			return nil
 		}
 		parser.TrySkip(p, whitespace.EOL())
-		return c, nil
+		return c
 	}
 }
 
 func lineCommentWithoutEOL() parser.Func[*ast.Comment] {
-	return func(p *parser.Parser) (*ast.Comment, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.Comment {
 		open := parser.TryTokenAt(p, "//")
 		if open == nil {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing line comment",
-				Primary: quickanno.Expected(p, p.Pos(), "a line comment"),
-			}
+			return nil
 		}
 		var c ast.Comment
 		c.Open = open
@@ -54,18 +47,15 @@ func lineCommentWithoutEOL() parser.Func[*ast.Comment] {
 		})
 		c.Until = p.Pos()
 
-		return &c, nil
+		return &c
 	}
 }
 
 func GeneralComment() parser.Func[*ast.Comment] {
-	return func(p *parser.Parser) (*ast.Comment, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.Comment {
 		open := parser.TryTokenAt(p, "/*")
 		if open == nil {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing block comment",
-				Primary: quickanno.Expected(p, p.Pos(), "a general comment"),
-			}
+			return nil
 		}
 
 		var c ast.Comment
@@ -107,6 +97,6 @@ func GeneralComment() parser.Func[*ast.Comment] {
 			}
 		}
 
-		return &c, nil
+		return &c
 	}
 }

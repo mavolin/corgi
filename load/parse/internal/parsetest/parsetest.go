@@ -1,7 +1,6 @@
 package parsetest
 
 import (
-	"fmt"
 	"reflect"
 	"slices"
 	"strings"
@@ -9,7 +8,6 @@ import (
 
 	"github.com/mavolin/corgi/v2/file"
 	"github.com/mavolin/corgi/v2/file/ast"
-	"github.com/mavolin/corgi/v2/file/diagnostic"
 	"github.com/mavolin/corgi/v2/internal/test/should"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 )
@@ -50,10 +48,9 @@ func NoMatch[T any](t *testing.T, input string, f parser.Func[T]) {
 	t.Helper()
 
 	p := NewParser(t, input)
-	v, err := f(p)
+	v := f(p)
 
-	// want match error
-	if !should.NotEqual(t, err, nil) {
+	if !should.True(t, isZero(v)) {
 		t.Logf("parsed value: %#v", v)
 	}
 }
@@ -68,11 +65,11 @@ func MatchesButError[T any](t *testing.T, input string, f parser.Func[T]) T {
 func AssertMatchesButError[T any](t *testing.T, p *parser.Parser, f parser.Func[T]) T {
 	t.Helper()
 
-	v, err := f(p)
-	should.Equal(t, err, nil) // match error
+	v := f(p)
+	should.False(t, isZero(v)) // match error
 
 	// diagnostic.List
-	errors := p.CloneState().Errors()
+	errors := p.Errors()
 	should.True(t, len(errors) > 0)
 	should.False(t, slices.Contains(errors, nil)) // nil error was captured
 
@@ -82,10 +79,10 @@ func AssertMatchesButError[T any](t *testing.T, p *parser.Parser, f parser.Func[
 func AssertNoError[T any](t *testing.T, p *parser.Parser, f parser.Func[T]) T {
 	t.Helper()
 
-	v, err := f(p)
-	should.Equal(t, err, nil) // match error
+	v := f(p)
+	should.False(t, isZero(v)) // match error
 
-	for _, err = range p.CloneState().Errors() {
+	for _, err := range p.Errors() {
 		should.NotEqual(t, err, nil) // diagnostic.List: nil error was captured
 		should.Equal(t, err, nil)    // diagnostic.List: unexpected error
 	}
@@ -127,22 +124,20 @@ func AssertPosition(t *testing.T, p *parser.Parser, line, col, index int) {
 func CoerceFunc[I, O any](t *testing.T, in parser.Func[I]) parser.Func[O] {
 	t.Helper()
 
-	return func(p *parser.Parser) (O, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) O {
 		var zero O
 
-		v, err := in(p)
-		if err != nil {
-			return zero, err
+		v := in(p)
+		if isZero(v) {
+			return zero
 		}
 
 		t, ok := any(v).(O)
 		if !ok {
-			return zero, &diagnostic.Diagnostic{
-				Message: fmt.Sprintf("expected %T, found %T", zero, v),
-			}
+			return zero
 		}
 
-		return t, nil
+		return t
 	}
 }
 
@@ -160,4 +155,8 @@ func AssertAlsoFulfils[I, O any](t *testing.T, f parser.Func[I], subTest func(*t
 		t.Helper()
 		subTest(t, CoerceFunc[I, O](t, f))
 	})
+}
+
+func isZero[T any](t T) bool {
+	return reflect.ValueOf(&t).Elem().IsZero()
 }

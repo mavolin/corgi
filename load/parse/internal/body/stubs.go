@@ -4,9 +4,7 @@ package body
 
 import (
 	"github.com/mavolin/corgi/v2/file/ast"
-	"github.com/mavolin/corgi/v2/file/diagnostic"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
-	"github.com/mavolin/corgi/v2/load/parse/internal/quickanno"
 	"github.com/mavolin/corgi/v2/load/parse/internal/whitespace"
 )
 
@@ -19,40 +17,35 @@ func init() {
 }
 
 func textLineStub(term rune) parser.Func[ast.TextLine] {
-	return func(p *parser.Parser) (ast.TextLine, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) ast.TextLine {
 		pos := p.Pos()
 		line := parser.TokenWhile(p, func() bool {
 			return !parser.Matches(p, textLineEnd(term))
 		})
 		if line == "" {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing text line",
-				Primary: quickanno.Expected(p, p.Pos(), "a text line"),
-			}
+			return nil
 		}
 		return ast.TextLine{
 			&ast.Text{
 				Text:     line,
 				Position: &pos,
 			},
-		}, nil
+		}
 	}
 }
 
-func textLineEnd(term rune) parser.Func[struct{}] {
-	return func(p *parser.Parser) (struct{}, *diagnostic.Diagnostic) {
+func textLineEnd(term rune) parser.Func[bool] {
+	return func(p *parser.Parser) bool {
 		parser.TrySkip(p, whitespace.Horizontal())
 		if parser.MatchesAnyRune(p, term, '\n') {
-			return struct{}{}, nil
+			return true
 		}
 
-		return struct{}{}, &diagnostic.Diagnostic{
-			Message: "missing text line end",
-		}
+		return false
 	}
 }
 
-func scopeNodeStub(p *parser.Parser) (ast.ScopeNode, *diagnostic.Diagnostic) {
+func scopeNodeStub(p *parser.Parser) ast.ScopeNode {
 	pos := p.Pos()
 	name := parser.TokenWhile(p, func() bool {
 		return parser.MatchesRunePredicate(p, func(r rune) bool {
@@ -60,10 +53,7 @@ func scopeNodeStub(p *parser.Parser) (ast.ScopeNode, *diagnostic.Diagnostic) {
 		})
 	})
 	if name == "" {
-		return nil, &diagnostic.Diagnostic{
-			Message: "missing scope node",
-			Primary: quickanno.Expected(p, p.Pos(), "a scope node"),
-		}
+		return nil
 	}
 	return &ast.Element{
 		Header: &ast.ElementHeader{
@@ -74,5 +64,5 @@ func scopeNodeStub(p *parser.Parser) (ast.ScopeNode, *diagnostic.Diagnostic) {
 				},
 			},
 		},
-	}, nil
+	}
 }

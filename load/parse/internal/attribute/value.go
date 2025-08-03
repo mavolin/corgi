@@ -10,47 +10,33 @@ import (
 )
 
 func Value() parser.Func[ast.AttributeValue] {
-	return func(p *parser.Parser) (ast.AttributeValue, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) ast.AttributeValue {
 		if v := parser.Try(p, TypedAttributeValue()); v != nil {
-			return v, nil
+			return v
 		} else if v := parser.Try(p, ExpressionValue()); v != nil {
-			return v, nil
+			return v
 		}
-		return nil, &diagnostic.Diagnostic{
-			Message: "missing attribute value",
-			Primary: quickanno.Expected(p, p.Pos(), "an attribute value"),
-			Examples: []diagnostic.Example{
-				{Title: "expression", Example: "`class=\"woof\"`"},
-				{Title: "typed attribute", Example: "`data-website=url(\"https://mavolin.co\")`"},
-			},
-		}
+		return nil
 	}
 }
 
 func ExpressionValue() parser.Func[*ast.ExpressionAttributeValue] {
-	return func(p *parser.Parser) (*ast.ExpressionAttributeValue, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.ExpressionAttributeValue {
 		expr := parser.Try(p, code.Expression(code.Regular))
 		if expr == nil {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing expression",
-				Primary: quickanno.Expected(p, p.Pos(), "an expression"),
-			}
+			return nil
 		}
-
-		return (*ast.ExpressionAttributeValue)(expr), nil
+		return (*ast.ExpressionAttributeValue)(expr)
 	}
 }
 
 func TypedAttributeValue() parser.Func[*ast.TypedAttributeValue] {
-	return func(p *parser.Parser) (*ast.TypedAttributeValue, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.TypedAttributeValue {
 		var v ast.TypedAttributeValue
 
 		v.Type = parser.Try(p, Type())
 		if v.Type == nil {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing typed attribute value",
-				Primary: quickanno.Expected(p, p.Pos(), "an attribute type"),
-			}
+			return nil
 		}
 
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
@@ -61,11 +47,18 @@ func TypedAttributeValue() parser.Func[*ast.TypedAttributeValue] {
 				Message: "typed attribute value: missing opening parenthesis",
 				Primary: quickanno.Expected(p, p.Pos(), "an opening parenthesis"),
 			})
-			return &v, nil
+			return &v
 		}
 
 		parser.TrySkip(p, comment.OrAnyWhitespace())
-		v.Value = parser.Must(p, ExpressionValue())
+		v.Value = parser.Try(p, ExpressionValue())
+		if v.Value == nil {
+			p.CaptureError(&diagnostic.Diagnostic{
+				Message: "typed attribute value: missing value",
+				Primary: quickanno.Expected(p, p.Pos(), "an attribute value"),
+			})
+			return &v
+		}
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 
 		v.RParen = parser.TryRuneAt(p, ')')
@@ -76,6 +69,6 @@ func TypedAttributeValue() parser.Func[*ast.TypedAttributeValue] {
 			})
 		}
 
-		return &v, nil
+		return &v
 	}
 }

@@ -1,10 +1,8 @@
 package golang
 
 import (
-	"github.com/mavolin/corgi/v2/file/diagnostic"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/mavolin/corgi/v2/load/parse/internal/comment"
-	"github.com/mavolin/corgi/v2/load/parse/internal/quickanno"
 )
 
 // IsKeyword returns whether the given string is a Go keyword.
@@ -49,63 +47,60 @@ func IsKeyword(s string) bool { // https://go.dev/ref/spec#Keywords
 }
 
 func Keyword() parser.Func[string] {
-	return func(p *parser.Parser) (string, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) string {
 		switch {
 		case parser.TryToken(p, "break") && parser.MatchesWS(p, comment.OrHorizontalWhitespace()):
-			return "break", nil
+			return "break"
 		case parser.TryToken(p, "case") && parser.MatchesWS(p, comment.OrAnyWhitespace()):
-			return "case", nil
+			return "case"
 		case parser.TryToken(p, "chan") && parser.MatchesWS(p, comment.OrAnyWhitespace()):
-			return "chan", nil
+			return "chan"
 		case parser.TryToken(p, "const") && parser.MatchesWS(p, comment.OrAnyWhitespace()):
-			return "const", nil
+			return "const"
 		case parser.TryToken(p, "continue") && parser.MatchesWS(p, comment.OrHorizontalWhitespace()):
-			return "continue", nil
+			return "continue"
 		case parser.TryToken(p, "default") && parser.MatchesWS(p, comment.OrAnyWhitespace()):
-			return "default", nil
+			return "default"
 		case parser.TryToken(p, "defer") && parser.MatchesWS(p, comment.OrAnyWhitespace()):
-			return "defer", nil
+			return "defer"
 		case parser.TryToken(p, "else") && parser.MatchesWS(p, comment.OrAnyWhitespace()):
-			return "else", nil
+			return "else"
 		case parser.TryToken(p, "fallthrough") && parser.MatchesWS(p, comment.OrHorizontalWhitespace()):
-			return "fallthrough", nil
+			return "fallthrough"
 		case parser.TryToken(p, "for") && parser.MatchesWS(p, comment.OrAnyWhitespace()):
-			return "for", nil
+			return "for"
 		case parser.TryToken(p, "func") && parser.MatchesWS(p, comment.OrAnyWhitespace()):
-			return "func", nil
+			return "func"
 		case parser.TryToken(p, "go") && parser.MatchesWS(p, comment.OrAnyWhitespace()):
-			return "go", nil
+			return "go"
 		case parser.TryToken(p, "goto") && parser.MatchesWS(p, comment.OrAnyWhitespace()):
-			return "goto", nil
+			return "goto"
 		case parser.TryToken(p, "if") && parser.MatchesWS(p, comment.OrAnyWhitespace()):
-			return "if", nil
+			return "if"
 		case parser.TryToken(p, "import") && parser.MatchesWS(p, comment.OrAnyWhitespace()):
-			return "import", nil
+			return "import"
 		case parser.TryToken(p, "interface") && parser.MatchesWS(p, comment.OrAnyWhitespace()):
-			return "interface", nil
+			return "interface"
 		case parser.TryToken(p, "map") && parser.MatchesWS(p, comment.OrAnyWhitespace()):
-			return "map", nil
+			return "map"
 		case parser.TryToken(p, "package") && parser.MatchesWS(p, comment.OrAnyWhitespace()):
-			return "package", nil
+			return "package"
 		case parser.TryToken(p, "range") && parser.MatchesWS(p, comment.OrAnyWhitespace()):
-			return "range", nil
+			return "range"
 		case parser.TryToken(p, "return") && parser.MatchesWS(p, comment.OrHorizontalWhitespace()):
-			return "return", nil
+			return "return"
 		case parser.TryToken(p, "select") && parser.MatchesWS(p, comment.OrAnyWhitespace()):
-			return "select", nil
+			return "select"
 		case parser.TryToken(p, "struct") && parser.MatchesWS(p, comment.OrAnyWhitespace()):
-			return "struct", nil
+			return "struct"
 		case parser.TryToken(p, "switch") && parser.MatchesWS(p, comment.OrAnyWhitespace()):
-			return "switch", nil
+			return "switch"
 		case parser.TryToken(p, "type") && parser.MatchesWS(p, comment.OrAnyWhitespace()):
-			return "type", nil
+			return "type"
 		case parser.TryToken(p, "var") && parser.MatchesWS(p, comment.OrAnyWhitespace()):
-			return "var", nil
+			return "var"
 		default:
-			return "", &diagnostic.Diagnostic{
-				Message: "missing keyword",
-				Primary: quickanno.Expected(p, p.Pos(), "a keyword"),
-			}
+			return ""
 		}
 	}
 }

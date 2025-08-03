@@ -15,16 +15,12 @@ import (
 // ======================================================================================
 
 func QualifiedIdent() parser.Func[*ast.QualifiedIdentifier] { // https://go.dev/ref/spec#QualifiedIdent
-	return func(p *parser.Parser) (*ast.QualifiedIdentifier, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.QualifiedIdentifier {
 		var ident ast.QualifiedIdentifier
 
 		ident.Package = parser.Try(p, PackageName())
 		if ident.Package == nil {
-			return nil, &diagnostic.Diagnostic{
-				Message:  "missing qualified identifier",
-				Primary:  quickanno.Expected(p, p.Pos(), "an identifier"),
-				Examples: []diagnostic.Example{{Example: "`woof.Bark`"}},
-			}
+			return nil
 		}
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 
@@ -38,7 +34,7 @@ func QualifiedIdent() parser.Func[*ast.QualifiedIdentifier] { // https://go.dev/
 					"You are missing the dot and the name of the symbol.",
 				Examples: []diagnostic.Example{{Example: "`" + ident.Package.Name + ".Woof`"}},
 			})
-			return &ident, nil
+			return &ident
 		}
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 
@@ -50,7 +46,7 @@ func QualifiedIdent() parser.Func[*ast.QualifiedIdentifier] { // https://go.dev/
 			})
 		}
 
-		return &ident, nil
+		return &ident
 	}
 }
 
@@ -59,33 +55,27 @@ func QualifiedIdent() parser.Func[*ast.QualifiedIdentifier] { // https://go.dev/
 // ======================================================================================
 
 func AddOp() parser.Func[string] {
-	return func(p *parser.Parser) (string, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) string {
 		r := parser.TryAnyRune(p, '+', '-', '|', '^')
-		if r < 0 {
-			return "", &diagnostic.Diagnostic{
-				Message: "missing add op",
-				Primary: quickanno.Expected(p, p.Pos(), "`+`, `-`, `|`, `^`"),
-			}
+		if r == 0 {
+			return ""
 		}
 
-		return string(r), nil
+		return string(r)
 	}
 }
 
 func MulOp() parser.Func[string] {
-	return func(p *parser.Parser) (string, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) string {
 		if op := parser.TryAnyToken(p, "<<", ">>", "&^"); op != "" {
-			return op, nil
+			return op
 		}
 
 		r := parser.TryAnyRune(p, '*', '/', '%', '&')
-		if r < 0 {
-			return "", &diagnostic.Diagnostic{
-				Message: "missing mul op",
-				Primary: quickanno.Expected(p, p.Pos(), "`*`, `/`, `%`, `<<`, `>>`, `&`, `&^`"),
-			}
+		if r == 0 {
+			return ""
 		}
 
-		return string(r), nil
+		return string(r)
 	}
 }

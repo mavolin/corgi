@@ -12,45 +12,44 @@ import (
 )
 
 func Type() parser.Func[*ast.AttributeType] {
-	return func(p *parser.Parser) (*ast.AttributeType, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.AttributeType {
 		var t ast.AttributeType
 
 		t.Quote = parser.TryRuneAt(p, '\'')
 		if t.Quote == nil {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing attribute type",
-				Primary: quickanno.Expected(p, p.Pos(), "a single quote and then an attribute type"),
-			}
+			return nil
 		}
 
 		t.Name = parser.Try(p, TypeName())
 		if t.Name == nil {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing attribute type name",
-				Primary: quickanno.Expected(p, p.Pos(), "an attribute type name"),
-			}
+			return nil
 		}
 
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 
 		// make sure this isn't actually a rune literal
 		if parser.MatchesToken(p, "'") {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing attribute type",
-				Primary: []diagnostic.Annotation{
-					anno.Range(p.File, *t.Quote, p.Pos(),
-						"expected a single quote and then an attribute type, but found a rune literal instead"),
-				},
-			}
+			return nil
 		}
 
 		t.LBracket = parser.TryRuneAt(p, '[')
 		if t.LBracket == nil {
-			return &t, nil
+			return &t
 		}
 
 		parser.TrySkip(p, comment.OrAnyWhitespace())
-		t.Attribute = parser.Must(p, Name())
+		pos := p.Pos()
+		t.Attribute = parser.Try(p, Name())
+		if t.Attribute == nil {
+			p.CaptureError(&diagnostic.Diagnostic{
+				Message: "attribute type: missing attribute name",
+				Primary: quickanno.Expected(p, pos, "an attribute name"),
+				Secondary: []diagnostic.Annotation{
+					anno.Position(p.File, *t.LBracket, "because of this opening bracket"),
+				},
+			})
+			return &t
+		}
 
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 		t.RBracket = parser.TryRuneAt(p, ']')
@@ -62,24 +61,21 @@ func Type() parser.Func[*ast.AttributeType] {
 					anno.Position(p.File, *t.LBracket, "because of this opening bracket"),
 				},
 			})
-			return &t, nil
+			return &t
 		}
 
-		return &t, nil
+		return &t
 	}
 }
 
 func TypeName() parser.Func[*ast.AttributeTypeName] {
-	return func(p *parser.Parser) (*ast.AttributeTypeName, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.AttributeTypeName {
 		var n ast.AttributeTypeName
 		n.Position = p.PosPtr()
 
 		ident := parser.Try(p, golang.Identifier())
 		if ident == nil {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing attribute type name",
-				Primary: quickanno.Expected(p, *n.Position, "an attribute type name"),
-			}
+			return nil
 		}
 		n.Name = ident.Name
 
@@ -121,6 +117,6 @@ func TypeName() parser.Func[*ast.AttributeTypeName] {
 				},
 			})
 		}
-		return &n, nil
+		return &n
 	}
 }

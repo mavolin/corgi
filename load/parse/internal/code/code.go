@@ -33,17 +33,17 @@ func (o Options) bodyFollows() bool { return o&BodyFollows != 0 }
 func (o Options) firstParen() bool  { return o&FirstParen != 0 }
 
 func Code(o Options) parser.Func[ast.Code] {
-	return func(p *parser.Parser) (ast.Code, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) ast.Code {
 		if zc := parser.Try(p, ZeroCoalescing()); zc != nil {
-			return ast.Code{zc}, nil
+			return ast.Code{zc}
 		}
 
-		return parser.TryErr(p, NonZCCode(o))
+		return parser.Try(p, NonZCCode(o))
 	}
 }
 
 func NonZCCode(o Options) parser.Func[ast.Code] {
-	return func(p *parser.Parser) (ast.Code, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) ast.Code {
 		c := make(ast.Code, 0, 24)
 		for {
 			n := parser.Try(p, nonZCNode(o))
@@ -57,14 +57,11 @@ func NonZCCode(o Options) parser.Func[ast.Code] {
 			parser.TrySkip(p, comment.OrHorizontalWhitespace())
 		}
 		if len(c) == 0 {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing code node",
-				Primary: quickanno.Expected(p, p.Pos(), "a code node"),
-			}
+			return nil
 		}
 
 		c = slices.Clip(c)
-		return c, nil
+		return c
 	}
 }
 
@@ -76,20 +73,17 @@ type codeResult struct {
 // nonZCNode tries to capture as few as possible []ast.CodeNode.
 // See the doc of [GoCode] on why it may return more than one node.
 func nonZCNode(o Options) parser.Func[*codeResult] {
-	return func(p *parser.Parser) (*codeResult, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *codeResult {
 		if gc := parser.Try(p, goCode(o)); gc != nil {
-			return gc, nil
+			return gc
 		} else if bf := parser.Try(p, BlockFunction()); bf != nil {
-			return &codeResult{Nodes: []ast.CodeNode{bf}}, nil
+			return &codeResult{Nodes: []ast.CodeNode{bf}}
 		} else if s := parser.Try(p, String()); s != nil {
-			return &codeResult{Nodes: []ast.CodeNode{s}}, nil
+			return &codeResult{Nodes: []ast.CodeNode{s}}
 		} else if t := parser.Try(p, Ternary()); t != nil {
-			return &codeResult{Nodes: []ast.CodeNode{t}}, nil
+			return &codeResult{Nodes: []ast.CodeNode{t}}
 		}
-		return nil, &diagnostic.Diagnostic{
-			Message: "missing code node",
-			Primary: quickanno.Expected(p, p.Pos(), "a code node"),
-		}
+		return nil
 	}
 }
 
@@ -98,17 +92,17 @@ func nonZCNode(o Options) parser.Func[*codeResult] {
 // The only case in which more than one ExpressionNode is returned, is when
 // the parsed code contains corgi language extensions within parenthesis.
 func GoCode(o Options) parser.Func[[]ast.CodeNode] {
-	return func(p *parser.Parser) ([]ast.CodeNode, *diagnostic.Diagnostic) {
-		res, err := parser.TryErr(p, goCode(o))
-		if err != nil {
-			return nil, err
+	return func(p *parser.Parser) []ast.CodeNode {
+		res := parser.Try(p, goCode(o))
+		if res == nil {
+			return nil
 		}
-		return res.Nodes, nil
+		return res.Nodes
 	}
 }
 
 func goCode(o Options) parser.Func[*codeResult] {
-	return func(p *parser.Parser) (*codeResult, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *codeResult {
 		c := &ast.GoCode{Position: p.PosPtr()}
 
 		var exps []ast.CodeNode
@@ -193,7 +187,7 @@ func goCode(o Options) parser.Func[*codeResult] {
 			} else if parser.MatchesToken(p, "block") && parser.Matches(p, BlockFunction()) {
 				if len(parenStack) > 0 {
 					c.Code = p.AST.Raw[start:state.Index()]
-					exps = append(exps, c, parser.Must(p, BlockFunction()))
+					exps = append(exps, c, parser.Try(p, BlockFunction()))
 					parser.TrySkip(p, comment.OrHorizontalWhitespace())
 					start = p.Index()
 					c = &ast.GoCode{Position: p.PosPtr()}
@@ -203,7 +197,7 @@ func goCode(o Options) parser.Func[*codeResult] {
 			} else if parser.MatchesAnyRune(p, '"', '`') {
 				if len(parenStack) > 0 {
 					c.Code = p.AST.Raw[start:state.Index()]
-					exps = append(exps, c, parser.Must(p, String()))
+					exps = append(exps, c, parser.Try(p, String()))
 					parser.TrySkip(p, comment.OrHorizontalWhitespace())
 					start = p.Index()
 					c = &ast.GoCode{Position: p.PosPtr()}
@@ -256,21 +250,15 @@ func goCode(o Options) parser.Func[*codeResult] {
 			p.RestoreState(bodyState)
 			exps = exps[:bodyEnd]
 			if len(exps) == 0 {
-				return nil, &diagnostic.Diagnostic{
-					Message: "missing go code",
-					Primary: quickanno.Expected(p, p.Pos(), "go code"),
-				}
+				return nil
 			}
-			return &codeResult{Nodes: exps, Stop: true}, nil
+			return &codeResult{Nodes: exps, Stop: true}
 		}
 
 		p.RestoreState(state)
 		if start == p.Index() {
 			if len(exps) == 0 {
-				return nil, &diagnostic.Diagnostic{
-					Message: "missing go code",
-					Primary: quickanno.Expected(p, p.Pos(), "go code"),
-				}
+				return nil
 			}
 		} else {
 			c.Code = p.AST.Raw[start:p.Index()]
@@ -298,27 +286,24 @@ func goCode(o Options) parser.Func[*codeResult] {
 			}
 		}
 
-		return &codeResult{Nodes: exps}, nil
+		return &codeResult{Nodes: exps}
 	}
 }
 
 func BlockFunction() parser.Func[*ast.BlockFunction] {
-	return func(p *parser.Parser) (*ast.BlockFunction, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.BlockFunction {
 		var bf ast.BlockFunction
 
 		bf.Block = parser.TryTokenAt(p, "block")
 		if bf.Block == nil {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing block function",
-				Primary: quickanno.Expected(p, p.Pos(), "a block function"),
-			}
+			return nil
 		}
 
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 
-		l, err := parser.TryErr(p, list.ParenList("block function arguments", golang.Identifier()))
-		if err != nil {
-			return nil, err
+		l := parser.Try(p, list.ParenList("argument", "block function arguments", golang.Identifier()))
+		if l == nil {
+			return nil
 		}
 
 		bf.LParen, bf.RParen = l.Open, l.Close
@@ -336,32 +321,24 @@ func BlockFunction() parser.Func[*ast.BlockFunction] {
 			})
 		}
 
-		return &bf, nil
+		return &bf
 	}
 }
 
 func Ternary() parser.Func[*ast.Ternary] {
-	return func(p *parser.Parser) (*ast.Ternary, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.Ternary {
 		var t ast.Ternary
 
 		t.QuestionMark = parser.TryRuneAt(p, '?')
 		if t.QuestionMark == nil {
-			return nil, &diagnostic.Diagnostic{
-				Message:  "missing ternary function",
-				Primary:  quickanno.Expected(p, p.Pos(), "a ternary function"),
-				Examples: []diagnostic.Example{{Example: "?(condition, ifTrue, ifFalse)"}},
-			}
+			return nil
 		}
 
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 
-		l, err := parser.TryErr(p, list.ParenList("ternary function arguments", NonZCExpression(Regular)))
-		if err != nil {
-			return nil, &diagnostic.Diagnostic{
-				Message:  "missing ternary function",
-				Primary:  quickanno.Expected(p, p.Pos(), "a ternary function"),
-				Examples: []diagnostic.Example{{Example: "?(condition, ifTrue, ifFalse)"}},
-			}
+		l := parser.Try(p, list.ParenList("argument", "ternary function arguments", NonZCExpression(Regular)))
+		if l == nil {
+			return nil
 		}
 
 		t.LParen, t.RParen = l.Open, l.Close
@@ -414,6 +391,6 @@ func Ternary() parser.Func[*ast.Ternary] {
 			})
 		}
 
-		return &t, nil
+		return &t
 	}
 }

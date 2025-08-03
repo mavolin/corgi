@@ -11,15 +11,12 @@ import (
 )
 
 func Scope() parser.Func[*ast.Scope] {
-	return func(p *parser.Parser) (*ast.Scope, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.Scope {
 		var s ast.Scope
 
 		s.LBrace = parser.TryRuneAt(p, '{')
 		if s.LBrace == nil {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing scope",
-				Primary: quickanno.Expected(p, p.Pos(), "a opening brace"),
-			}
+			return nil
 		}
 
 		s.Nodes = parser.Collect(p, ScopeNode(), 24, comment.OrAnyWhitespace())
@@ -33,7 +30,7 @@ func Scope() parser.Func[*ast.Scope] {
 			})
 		}
 
-		return &s, nil
+		return &s
 	}
 }
 
@@ -44,10 +41,10 @@ func SetScopeNode(f parser.Func[ast.ScopeNode]) {
 }
 
 func ScopeNode() parser.Func[ast.ScopeNode] {
-	return func(p *parser.Parser) (ast.ScopeNode, *diagnostic.Diagnostic) {
-		n, err := parser.TryErr(p, scopeNode)
-		if err == nil {
-			return n, nil
+	return func(p *parser.Parser) ast.ScopeNode {
+		n := parser.Try(p, scopeNode)
+		if n != nil {
+			return n
 		}
 
 		if n := parser.Try(p, BadNode()); n != nil {
@@ -57,15 +54,15 @@ func ScopeNode() parser.Func[ast.ScopeNode] {
 					anno.Range(p.File, n.From, n.Until, "unexpected tokens"),
 				},
 			})
-			return n, nil
+			return n
 		}
 
-		return nil, err
+		return nil
 	}
 }
 
 func BadNode() parser.Func[*ast.BadNode] {
-	return func(p *parser.Parser) (*ast.BadNode, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.BadNode {
 		var b ast.BadNode
 		b.From = p.Pos()
 
@@ -101,11 +98,8 @@ func BadNode() parser.Func[*ast.BadNode] {
 		parser.RestoreWS(p)
 		b.Until = p.Pos()
 		if b.Until == b.From {
-			return nil, &diagnostic.Diagnostic{
-				Message: "empty bad scope node",
-				Primary: quickanno.Expected(p, b.From, "a bad scope node"),
-			}
+			return nil
 		}
-		return &b, nil
+		return &b
 	}
 }

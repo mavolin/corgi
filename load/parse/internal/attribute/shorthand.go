@@ -13,42 +13,47 @@ import (
 )
 
 func IDShorthand() parser.Func[*ast.IDShorthand] {
-	return func(p *parser.Parser) (*ast.IDShorthand, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.IDShorthand {
 		var s ast.IDShorthand
 
 		s.Hash = parser.TryRuneAt(p, '#')
 		if s.Hash == nil {
-			return nil, &diagnostic.Diagnostic{
-				Message:  "missing id shorthand",
-				Primary:  quickanno.Expected(p, p.Pos(), "an id shorthand"),
-				Examples: []diagnostic.Example{{Example: "`#woof`"}},
-			}
+			return nil
 		}
 
-		s.ID = parser.Must(p, Shorthand())
-		return &s, nil
+		s.ID = parser.Try(p, Shorthand())
+		if s.ID == nil {
+			p.CaptureError(&diagnostic.Diagnostic{
+				Message:  "id shorthand: missing id",
+				Primary:  quickanno.Expected(p, p.Pos(), "an id"),
+				Examples: []diagnostic.Example{{Example: "`#woof`"}},
+			})
+			return nil
+		}
+		return &s
 	}
 }
 
 func ClassShorthand() parser.Func[*ast.ClassShorthand] {
-	return func(p *parser.Parser) (*ast.ClassShorthand, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.ClassShorthand {
 		var s ast.ClassShorthand
 
 		s.Dot = parser.TryRuneAt(p, '.')
 		if s.Dot == nil {
-			return nil, &diagnostic.Diagnostic{
-				Message:  "missing class shorthand",
-				Primary:  quickanno.Expected(p, p.Pos(), "a class shorthand"),
-				Examples: []diagnostic.Example{{Example: "`.woof`"}},
-			}
+			return nil
 		}
 
-		s.Names = make([]ast.Shorthand, 1, 16)
-		var err *diagnostic.Diagnostic
-		s.Names[0], err = parser.TryErr(p, Shorthand())
-		if err != nil {
-			p.CaptureError(err)
+		name0 := parser.Try(p, Shorthand())
+		if name0 == nil {
+			p.CaptureError(&diagnostic.Diagnostic{
+				Message:  "class shorthand: missing class name",
+				Primary:  quickanno.Expected(p, p.Pos(), "a class name"),
+				Examples: []diagnostic.Example{{Example: "`.woof`"}},
+			})
+			return nil
 		}
+		s.Names = make([]ast.Shorthand, 1, 16)
+		s.Names[0] = name0
 
 		for parser.TrySkip(p, whitespace.Horizontal()) {
 			name := parser.Try(p, Shorthand())
@@ -59,47 +64,33 @@ func ClassShorthand() parser.Func[*ast.ClassShorthand] {
 		}
 		s.Names = slices.Clip(s.Names)
 
-		return &s, nil
+		return &s
 	}
 }
 
 func Shorthand() parser.Func[ast.Shorthand] {
-	return func(p *parser.Parser) (ast.Shorthand, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) ast.Shorthand {
 		s := parser.Collect(p, ShorthandNode(), 16, nil)
 		if len(s) == 0 {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing shorthand name",
-				Primary: quickanno.Expected(p, p.Pos(), "text or interpolation"),
-				Examples: []diagnostic.Example{
-					{Title: "just text", Example: "`.woof` or `#bark`"},
-					{Title: "with interpolation", Example: "`.button--#{size}` or `#button-#{i}`"},
-				},
-			}
+			return nil
 		}
-		return s, nil
+		return s
 	}
 }
 
 func ShorthandNode() parser.Func[ast.ShorthandNode] {
-	return func(p *parser.Parser) (ast.ShorthandNode, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) ast.ShorthandNode {
 		if txt := parser.Try(p, ShorthandText()); txt != nil {
-			return txt, nil
+			return txt
 		} else if interp := parser.Try(p, ShorthandInterpolation()); interp != nil {
-			return interp, nil
+			return interp
 		}
-		return nil, &diagnostic.Diagnostic{
-			Message: "missing shorthand node",
-			Primary: quickanno.Expected(p, p.Pos(), "shorthand text or interpolation"),
-			Examples: []diagnostic.Example{
-				{Title: "text", Example: "`.woof`"},
-				{Title: "interpolation", Example: "`#{bark}`"},
-			},
-		}
+		return nil
 	}
 }
 
 func ShorthandText() parser.Func[*ast.ShorthandText] {
-	return func(p *parser.Parser) (*ast.ShorthandText, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.ShorthandText {
 		var txt ast.ShorthandText
 		txt.Position = p.PosPtr()
 
@@ -109,18 +100,15 @@ func ShorthandText() parser.Func[*ast.ShorthandText] {
 				!codepoint.MatchesAny(p, codepoint.ASCIIWhitespace) // includes FF
 		})
 		if txt.Text == "" {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing shorthand text",
-				Primary: quickanno.Expected(p, p.Pos(), "text, but not interpolation"),
-			}
+			return nil
 		}
 
-		return &txt, nil
+		return &txt
 	}
 }
 
 func ShorthandInterpolation() parser.Func[*ast.ShorthandInterpolation] {
-	return func(p *parser.Parser) (*ast.ShorthandInterpolation, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.ShorthandInterpolation {
 		interp := parser.Try(p, interpolation.ExpressionInterpolation())
 		if interp == nil {
 			if parser.MatchesToken(p, "#") {
@@ -134,15 +122,12 @@ func ShorthandInterpolation() parser.Func[*ast.ShorthandInterpolation] {
 						},
 					},
 				})
-				return (*ast.ShorthandInterpolation)(interp), nil
+				return (*ast.ShorthandInterpolation)(interp)
 			}
 
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing interpolation",
-				Primary: quickanno.Expected(p, p.Pos(), "an interpolation"),
-			}
+			return nil
 		}
 
-		return (*ast.ShorthandInterpolation)(interp), nil
+		return (*ast.ShorthandInterpolation)(interp)
 	}
 }

@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/mavolin/corgi/v2/file/ast"
-	"github.com/mavolin/corgi/v2/internal/test/must"
 	"github.com/mavolin/corgi/v2/internal/test/should"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/mavolin/corgi/v2/load/parse/internal/parsetest"
@@ -105,8 +104,6 @@ func TestFile(t *testing.T) {
 	}
 
 	p := parsetest.NewParser(t, in)
-	_, err := parser.TryErr(p, File())
-	must.Equal(t, nil, err) // parse(File)
-
+	parser.Try(p, File())
 	should.Equal(t, want, p.AST)
 }

@@ -16,7 +16,7 @@ func Call() parser.Func[*ast.ComponentCall] {
 }
 
 func call(must bool) parser.Func[*ast.ComponentCall] {
-	return func(p *parser.Parser) (*ast.ComponentCall, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.ComponentCall {
 		var c ast.ComponentCall
 
 		c.Colon = parser.TryRuneAt(p, ':')
@@ -27,10 +27,7 @@ func call(must bool) parser.Func[*ast.ComponentCall] {
 					Primary: quickanno.Expected(p, p.Pos(), "a colon"),
 				})
 			} else {
-				return nil, &diagnostic.Diagnostic{
-					Message: "missing component call",
-					Primary: quickanno.Expected(p, p.Pos(), "a colon"),
-				}
+				return nil
 			}
 		}
 		if !p.Inline() {
@@ -39,28 +36,27 @@ func call(must bool) parser.Func[*ast.ComponentCall] {
 
 		c.Header = parser.Try(p, CallHeader())
 		if c.Header == nil {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing component call",
-				Primary: quickanno.Expected(p, p.Pos(), "a component call header"),
-			}
+			return nil
 		}
 
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 
 		c.Body = parser.Try(p, CallBody())
-		return &c, nil
+		return &c
 	}
 }
 
 func CallHeader() parser.Func[*ast.ComponentCallHeader] {
-	return func(p *parser.Parser) (*ast.ComponentCallHeader, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.ComponentCallHeader {
 		var h ast.ComponentCallHeader
 
 		h.Name = parser.Try(p, golang.FullIdent())
+		if h.Name == nil {
+			return nil
+		}
 		if !p.Inline() {
 			parser.TrySkip(p, comment.OrHorizontalWhitespace())
 		}
-
 		h.TypeArguments = parser.TryOptional(p, golang.TypeArgs(), nil)
 		if h.TypeArguments != nil && !p.Inline() {
 			parser.TrySkip(p, comment.OrHorizontalWhitespace())
@@ -68,30 +64,38 @@ func CallHeader() parser.Func[*ast.ComponentCallHeader] {
 
 		h.Arguments = parser.Try(p, argument.Arguments())
 		if h.Name == nil && h.Arguments == nil {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing component call header",
-				Primary: quickanno.Expected(p, p.Pos(), "a name of a component"),
-			}
+			return nil
 		}
 
-		return &h, nil
+		return &h
 	}
 }
 
 func With() parser.Func[*ast.With] {
-	return func(p *parser.Parser) (*ast.With, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.With {
 		var w ast.With
 
 		w.With = parser.TryKeywordAt(p, "with", comment.OrAnyWhitespace())
 		if w.With == nil {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing with",
-				Primary: quickanno.Expected(p, *w.With, "a `with` here"),
-			}
+			return nil
 		}
 
 		w.Identifier = parser.TryOptional(p, golang.Identifier(), comment.OrHorizontalWhitespace())
-		w.Body = parser.Must(p, body.Body())
-		return &w, nil
+		pos := p.Pos()
+		w.Body = parser.Try(p, body.Body())
+		if w.Body == nil {
+			p.CaptureError(&diagnostic.Diagnostic{
+				Message: "with: missing body",
+				Primary: quickanno.Expected(p, pos, "a body for the `with`"),
+				Examples: []diagnostic.Example{
+					{Example: "with woof { ... }"},
+				},
+				Hints: []diagnostic.Hint{
+					{Hint: "If you want to inhibit the block default, use an empty scope.", Example: "`with woof {}`"},
+				},
+			})
+		}
+
+		return &w
 	}
 }

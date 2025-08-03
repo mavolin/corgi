@@ -11,16 +11,13 @@ import (
 )
 
 func String() parser.Func[*ast.String] {
-	return func(p *parser.Parser) (*ast.String, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.String {
 		var s ast.String
 		s.Open = p.PosPtr()
 
 		q := parser.TryAnyRune(p, '"', '`')
-		if q < 0 {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing string",
-				Primary: quickanno.Expected(p, p.Pos(), "a string"),
-			}
+		if q == 0 {
+			return nil
 		}
 		s.Quote = byte(q)
 
@@ -30,7 +27,7 @@ func String() parser.Func[*ast.String] {
 			stringContents(p, &s)
 		}
 
-		return &s, nil
+		return &s
 	}
 }
 
@@ -43,8 +40,8 @@ func stringContents(p *parser.Parser, s *ast.String) {
 			break
 		}
 
-		node, err := parser.TryErr(p, StringNode(s.Quote))
-		if err != nil {
+		node := parser.Try(p, StringNode(s.Quote))
+		if node == nil {
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "string: missing closing quote",
 				Primary: quickanno.Expected(p, p.Pos(), "a closing quote for the opening quote here"),
@@ -62,21 +59,18 @@ func stringContents(p *parser.Parser, s *ast.String) {
 }
 
 func StringNode(quote byte) parser.Func[ast.StringNode] {
-	return func(p *parser.Parser) (ast.StringNode, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) ast.StringNode {
 		if txt := parser.Try(p, StringText(quote)); txt != nil {
-			return txt, nil
+			return txt
 		} else if interp := parser.Try(p, interpolation.StringInterpolation()); interp != nil {
-			return interp, nil
+			return interp
 		}
-		return nil, &diagnostic.Diagnostic{
-			Message: "missing string node",
-			Primary: quickanno.Expected(p, p.Pos(), "text or interpolation"),
-		}
+		return nil
 	}
 }
 
 func StringText(quote byte) parser.Func[*ast.StringText] {
-	return func(p *parser.Parser) (*ast.StringText, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.StringText {
 		var t ast.StringText
 		t.Position = p.PosPtr()
 
@@ -92,12 +86,9 @@ func StringText(quote byte) parser.Func[*ast.StringText] {
 			})
 		}
 		if t.Text == "" {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing string text",
-				Primary: quickanno.Expected(p, *t.Position, "string text"),
-			}
+			return nil
 		}
 
-		return &t, nil
+		return &t
 	}
 }

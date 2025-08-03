@@ -54,6 +54,6 @@ func Parse(input string, o Options) (*file.File, diagnostic.List) {
 		p.Preload = o.Preloader
 	}
 
-	parser.Must(p, fileparser.File())
+	parser.Try(p, fileparser.File())
 	return f, p.Errors()
 }

@@ -1,8 +1,6 @@
 package parser
 
 import (
-	"slices"
-
 	"github.com/mavolin/corgi/v2/file/ast"
 )
 
@@ -119,7 +117,7 @@ func TryOptionalRuneAt(p *Parser, r rune, ws WhitespaceFunc) *ast.Position {
 
 // TryAnyRune attempts to match the next rune against any of the passed runes.
 //
-// It returns the matched rune, or -1 if none matched.
+// It returns the matched rune, or 0 if none matched.
 func TryAnyRune(p *Parser, rs ...rune) rune {
 	return TryRunePredicate(p, func(r rune) bool {
 		for _, rr := range rs {
@@ -132,12 +130,12 @@ func TryAnyRune(p *Parser, rs ...rune) rune {
 }
 
 // TryRunePredicate attempts to match the next rune against the predicate.
-// If successful, it returns the matched rune, otherwise, it returns -1.
+// If successful, it returns the matched rune, otherwise, it returns 0.
 func TryRunePredicate(p *Parser, pred func(rune) bool) rune {
 	peek := p.peek()
 	if peek == EOF || !pred(peek) {
 		RestoreWS(p)
-		return -1
+		return 0
 	}
 	CommitWS(p)
 	return p.next()
@@ -174,22 +172,4 @@ func TokenWhile(p *Parser, pred func() bool) string {
 	CommitWS(p) // the predicate might've set a restore point
 	p.statePool.Put(restore)
 	return p.AST.Raw[start:p.Index()]
-}
-
-func Collect[T any](p *Parser, f Func[T], capacity int, ws WhitespaceFunc) []T {
-	ts := make([]T, 0, capacity)
-	for {
-		if ws != nil {
-			TrySkip(p, ws)
-		}
-		t, err := TryErr(p, f)
-		if err != nil {
-			break
-		}
-		ts = append(ts, t)
-	}
-	if len(ts) == 0 {
-		return nil
-	}
-	return slices.Clip(ts)
 }

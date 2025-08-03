@@ -8,7 +8,7 @@
 // drawback.
 //
 // We use special functions for consuming whitespace, which is rolled back, if
-// the next call to TryErr or Must in the same function fails.
+// the next call to Try* in the same function fails.
 // This is incredibly convenient, but can be tricky if you skip WS and then
 // try a bunch of functions.
 // For example, consider the buggy code below:
@@ -22,20 +22,13 @@
 //
 // If a fails, the consumed whitespace is rolled back and b is tried with
 // whitespace in front.
-// To remedy, either use TryInOrder, TryOptional*, or, if a and b return
-// different types, wrap them in a Func like this:
-//
-//	parser.MustSkip(p, whitespace.Any())
-//	v, ok := parser.TryErr(p, func(p *parser.Parser) (parentType, *diagnostic.Diagnostic) {
-//		if res1, ok := parser.Try(p, a()); ok {
-//			return parentType(res1), nil
-//		}
-//		return parser.TryErr(p, b())
-//	})
+// To remedy, either use TryInOrder or TryOptional*.
 package parser
 
 import (
 	"math"
+	"reflect"
+	"slices"
 	"unicode/utf8"
 
 	"github.com/mavolin/corgi/v2/file"
@@ -135,6 +128,7 @@ func (p *Parser) DoInline(f func()) {
 	f()
 	p.state.inline = false
 }
+
 func (p *Parser) CaptureError(err *diagnostic.Diagnostic) {
 	if len(p.errs) < math.MaxUint8 {
 		p.errs = append(p.errs, err)
@@ -142,7 +136,7 @@ func (p *Parser) CaptureError(err *diagnostic.Diagnostic) {
 	}
 }
 
-func (p *Parser) Errors() diagnostic.List { return p.errs }
+func (p *Parser) Errors() diagnostic.List { return slices.Clip(p.errs) }
 
 func (p *Parser) NumErrors() uint8 {
 	return p.state.NumErrors()
@@ -166,6 +160,8 @@ func (p *Parser) CloneState() *State {
 func (p *Parser) RestoreState(s *State) {
 	p.statePool.Put(p.state)
 	p.state = s
+	p.errs = p.errs[:p.state.NumErrors()]
+	p.comments = p.comments[:p.state.commentLen]
 }
 
 func (p *Parser) markWSStart() {
@@ -180,20 +176,20 @@ type (
 	// Func represents a sub-parser that can be tried to see if it matches.
 	//
 	// While the implementation is up to the function itself, a typical
-	// indicator of whether the function matches is the present of a unique
+	// indicator of whether the function matches is the presence of a unique
 	// prefix, such as `comp` for a component declaration.
 	//
-	// If the func does not match, it should return an error.
+	// If the func does not match, it should return the zero value.
 	//
 	// If the func matches, but the parsed value contains syntactical errors,
 	// those should be captured using the `CaptureError` method of the parser.
 	//
-	// Funcs must not be called directly, but only using [TryErr] and [Must].
-	Func[T any] func(p *Parser) (T, *diagnostic.Diagnostic)
+	// Funcs must not be called directly, but only using Try*.
+	Func[T any] func(p *Parser) T
 
 	// A WhitespaceFunc is a special [Func] that parses whitespace.
 	// It semantically differs, in that consumed whitespace is rolled back, if
-	// the next call to [TryErr] or [Must] (and its derivatives) fails.
+	// the next call to Try* (except for TryOptional*) fails.
 	WhitespaceFunc func(p *Parser) bool
 )
 
@@ -202,9 +198,9 @@ type (
 func Matches[T any](p *Parser, f Func[T]) bool {
 	restore := p.CloneState()
 	CommitWS(p)
-	_, err := f(p)
+	v := f(p)
 	p.RestoreState(restore)
-	return err == nil
+	return !isZero(v)
 }
 
 func MatchesWS(p *Parser, f WhitespaceFunc) bool {
@@ -236,39 +232,33 @@ func MatchesRunePredicate(p *Parser, pred func(rune) bool) bool {
 	return pred(p.peek())
 }
 
-func TryErr[T any](p *Parser, f Func[T]) (T, *diagnostic.Diagnostic) {
+func Try[T any](p *Parser, f Func[T]) T {
+	var zero T
+
 	restore := p.takeWSStart()
-	v, err := f(p)
-	if err != nil {
+	v := f(p)
+	if isZero(v) {
 		p.RestoreState(restore)
-		return v, err
+		return zero
 	}
 	p.statePool.Put(restore)
-	return v, err
-}
-
-func Try[T any](p *Parser, f Func[T]) T {
-	v, _ := TryErr(p, f)
 	return v
 }
 
-func TryOptionalErr[T any](p *Parser, f Func[T], ws WhitespaceFunc) (T, *diagnostic.Diagnostic) {
+func TryOptional[T any](p *Parser, f Func[T], ws WhitespaceFunc) T {
+	var zero T
+
 	restore := p.CloneState()
 	CommitWS(p)
-	v, err := f(p)
-	if err != nil {
+	v := f(p)
+	if isZero(v) {
 		p.RestoreState(restore)
-		return v, err
+		return zero
 	}
 	p.statePool.Put(restore)
 	if ws != nil {
 		TrySkip(p, ws)
 	}
-	return v, nil
-}
-
-func TryOptional[T any](p *Parser, f Func[T], ws WhitespaceFunc) T {
-	v, _ := TryOptionalErr(p, f, ws)
 	return v
 }
 
@@ -276,10 +266,12 @@ func TryOptional[T any](p *Parser, f Func[T], ws WhitespaceFunc) T {
 //
 // If none match, it returns false.
 func TryInOrder[T any](p *Parser, fs ...Func[T]) T {
+	var zero T
+
 	restore := p.takeWSStart()
 	for _, f := range fs {
-		v, err := TryErr(p, f)
-		if err == nil { // IS nil
+		v := Try(p, f)
+		if !isZero(v) {
 			p.statePool.Put(restore)
 			return v
 		}
@@ -288,14 +280,13 @@ func TryInOrder[T any](p *Parser, fs ...Func[T]) T {
 		p.RestoreState(restore.ws)
 	}
 
-	var z T
-	return z
+	return zero
 }
 
 // TrySkip attempts to skip whitespace using the given [WhitespaceFunc].
 //
-// Calls to TrySkip can be stacked, so that the next call to [TryErr] or [Must]
-// (and friends) rolls back to the first TrySkip call in a chain of many.
+// Calls to TrySkip can be stacked, so that the next call to Try* rolls back to
+// the first TrySkip call in a chain of many.
 //
 // Even if TrySkip fails to match, it does not affect a previous restore
 // point.
@@ -315,17 +306,6 @@ func TrySkip(p *Parser, f WhitespaceFunc) bool {
 	return true
 }
 
-// Must tries to parse using the given [Func].
-// If the func returns an error, Must captures it and returns the value
-// returned by Func, most commonly the zero value.
-func Must[T any](p *Parser, f Func[T]) T {
-	v, err := TryErr(p, f)
-	if err != nil {
-		p.CaptureError(err)
-	}
-	return v
-}
-
 func CommitWS(p *Parser) {
 	p.state.commitWS()
 }
@@ -336,4 +316,26 @@ func RestoreWS(p *Parser) {
 	if p.state.ws != nil && !p.state.parsingWS {
 		p.RestoreState(p.state.ws)
 	}
+}
+
+func Collect[T any](p *Parser, f Func[T], capacity int, ws WhitespaceFunc) []T {
+	ts := make([]T, 0, capacity)
+	for {
+		if ws != nil {
+			TrySkip(p, ws)
+		}
+		v := Try(p, f)
+		if isZero(v) {
+			break
+		}
+		ts = append(ts, v)
+	}
+	if len(ts) == 0 {
+		return nil
+	}
+	return slices.Clip(ts)
+}
+
+func isZero[T any](t T) bool {
+	return reflect.ValueOf(&t).Elem().IsZero()
 }

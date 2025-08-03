@@ -2,46 +2,32 @@ package argument
 
 import (
 	"github.com/mavolin/corgi/v2/file/ast"
-	"github.com/mavolin/corgi/v2/file/diagnostic"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/mavolin/corgi/v2/load/parse/internal/attribute"
 	"github.com/mavolin/corgi/v2/load/parse/internal/list"
-	"github.com/mavolin/corgi/v2/load/parse/internal/quickanno"
 )
 
 func Argument() parser.Func[ast.Argument] {
-	return func(p *parser.Parser) (ast.Argument, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) ast.Argument {
 		if a := parser.Try(p, ComponentArgument()); a != nil {
-			return a, nil
+			return a
 		} else if a := parser.Try(p, attribute.Attribute()); a != nil {
-			return a, nil
+			return a
 		}
-
-		return nil, &diagnostic.Diagnostic{
-			Message: "missing argument",
-			Primary: quickanno.Expected(p, p.Pos(), "an argument"),
-			Examples: []diagnostic.Example{
-				{Title: "component argument", Example: "`foo: 123`"},
-				{Title: "attribute", Example: "`class=\"woof\"`"},
-			},
-		}
+		return nil
 	}
 }
 
 func Arguments() parser.Func[*ast.Arguments] {
-	return func(p *parser.Parser) (*ast.Arguments, *diagnostic.Diagnostic) {
-		l := parser.Try(p, list.ParenList("arguments", Argument()))
+	return func(p *parser.Parser) *ast.Arguments {
+		l := parser.Try(p, list.ParenList("argument", "arguments", Argument()))
 		if l == nil {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing arguments",
-				Primary: quickanno.Expected(p, p.Pos(), "a list of arguments"),
-			}
+			return nil
 		}
-
 		return &ast.Arguments{
 			LParen: l.Open,
 			List:   l.Elems,
 			RParen: l.Close,
-		}, nil
+		}
 	}
 }

@@ -15,15 +15,12 @@ import (
 )
 
 func Component() parser.Func[*ast.Component] {
-	return func(p *parser.Parser) (*ast.Component, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.Component {
 		var c ast.Component
 
 		c.Comp = parser.TryKeywordAt(p, "comp", comment.OrAnyWhitespace())
 		if c.Comp == nil {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing component",
-				Primary: quickanno.Expected(p, p.Pos(), "a component"),
-			}
+			return nil
 		}
 
 		c.Header = parser.TryOptional(p, Header(), comment.OrHorizontalWhitespace())
@@ -37,19 +34,28 @@ func Component() parser.Func[*ast.Component] {
 			})
 		}
 
-		c.Body = parser.Must(p, Body())
-		return &c, nil
+		c.Body = parser.Try(p, Body())
+		if c.Body == nil {
+			p.CaptureError(&diagnostic.Diagnostic{
+				Message: "component: missing body",
+				Primary: quickanno.Expected(p, p.Pos(), "a component body"),
+				Examples: []diagnostic.Example{
+					{Example: "comp Hello(name string) { ... }"},
+				},
+			})
+		}
+		return &c
 	}
 }
 
 func Header() parser.Func[*ast.ComponentHeader] {
-	return func(p *parser.Parser) (*ast.ComponentHeader, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.ComponentHeader {
 		var h ast.ComponentHeader
 
 		h.Name = parser.TryOptional(p, golang.Identifier(), comment.OrHorizontalWhitespace())
 		if h.Name == nil {
 			p.CaptureError(&diagnostic.Diagnostic{
-				Message: "component header: missing name",
+				Message: "component: header: missing name",
 				Primary: quickanno.Expected(p, p.Pos(), "an identifier"),
 			})
 		}
@@ -57,7 +63,7 @@ func Header() parser.Func[*ast.ComponentHeader] {
 		h.Parameters = parser.TryOptional(p, Parameters(), nil)
 		if h.Parameters == nil {
 			p.CaptureError(&diagnostic.Diagnostic{
-				Message: "component header: missing parameters",
+				Message: "component: header: missing parameters",
 				Primary: quickanno.Expected(p, p.Pos(), "a parameter list"),
 				Examples: []diagnostic.Example{
 					{Example: "Hello(name string)"},
@@ -66,32 +72,29 @@ func Header() parser.Func[*ast.ComponentHeader] {
 		}
 
 		if h.Name == nil && h.Parameters == nil {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing component header",
-				Primary: quickanno.Expected(p, h.Start(), "an identifier and a list of parameters"),
-			}
+			return nil
 		}
 
-		return &h, nil
+		return &h
 	}
 }
 
 func Parameters() parser.Func[*ast.ComponentParameters] {
-	return func(p *parser.Parser) (*ast.ComponentParameters, *diagnostic.Diagnostic) {
-		l, err := parser.TryErr(p, list.ParenList("component parameters", Parameter()))
-		if err != nil {
-			return nil, err
+	return func(p *parser.Parser) *ast.ComponentParameters {
+		l := parser.Try(p, list.ParenList("parameter", "component parameters", Parameter()))
+		if l == nil {
+			return nil
 		}
 		return &ast.ComponentParameters{
 			LParen: l.Open,
 			List:   l.Elems,
 			RParen: l.Close,
-		}, nil
+		}
 	}
 }
 
 func Parameter() parser.Func[*ast.ComponentParameter] {
-	return func(p *parser.Parser) (*ast.ComponentParameter, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.ComponentParameter {
 		var param ast.ComponentParameter
 
 		param.Name = parser.TryOptional(p, golang.Identifier(), comment.OrHorizontalWhitespace())
@@ -105,10 +108,7 @@ func Parameter() parser.Func[*ast.ComponentParameter] {
 		param.Colon = parser.TryOptionalRuneAt(p, ':', comment.OrAnyWhitespace())
 
 		if param.Name == nil && param.Type == nil && param.Colon == nil {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing component parameter",
-				Primary: quickanno.Expected(p, p.Pos(), "a parameter name"),
-			}
+			return nil
 		}
 
 		param.Default = parser.Try(p, code.Expression(code.Regular))
@@ -149,12 +149,12 @@ func Parameter() parser.Func[*ast.ComponentParameter] {
 			})
 		}
 
-		return &param, nil
+		return &param
 	}
 }
 
 func ParameterType() parser.Func[*ast.Type] {
-	return func(p *parser.Parser) (*ast.Type, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.Type {
 		startI := p.Index()
 		startPos := p.Pos()
 		at := parser.Try(p, attribute.Type())
@@ -164,28 +164,25 @@ func ParameterType() parser.Func[*ast.Type] {
 				Parsed: at,
 				From:   startPos,
 				Until:  p.Pos(),
-			}, nil
+			}
 		}
 
-		return parser.TryErr(p, golang.Type())
+		return parser.Try(p, golang.Type())
 	}
 }
 
 func Block() parser.Func[*ast.Block] {
-	return func(p *parser.Parser) (*ast.Block, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.Block {
 		var b ast.Block
 
 		b.Block = parser.TryKeywordAt(p, "block", comment.OrAnyWhitespace())
 		if b.Block == nil {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing block",
-				Primary: quickanno.Expected(p, p.Pos(), "a block"),
-			}
+			return nil
 		}
 
 		b.Identifier = parser.TryOptional(p, golang.Identifier(), comment.OrHorizontalWhitespace())
 		b.Default = parser.Try(p, body.Body())
 
-		return &b, nil
+		return &b
 	}
 }

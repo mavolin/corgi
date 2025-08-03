@@ -15,15 +15,12 @@ import (
 )
 
 func Definition() parser.Func[*ast.ElementDefinition] {
-	return func(p *parser.Parser) (*ast.ElementDefinition, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.ElementDefinition {
 		var def ast.ElementDefinition
 
 		def.Elem = parser.TryKeywordAt(p, "elem", comment.OrAnyWhitespace())
 		if def.Elem == nil {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing element definition",
-				Primary: quickanno.Expected(p, p.Pos(), "an element definition"),
-			}
+			return nil
 		}
 
 		beforePrefix := p.CloneState()
@@ -39,12 +36,19 @@ func Definition() parser.Func[*ast.ElementDefinition] {
 			if (spec == nil || p.NumErrors() > beforePrefix.NumErrors()) && def.Prefix != nil {
 				p.RestoreState(beforePrefix)
 				def.Prefix = nil
-				spec = parser.Must(p, Spec())
+				spec = parser.Try(p, Spec())
+				if spec == nil {
+					p.CaptureError(&diagnostic.Diagnostic{
+						Message:  "element definition: missing element name",
+						Primary:  quickanno.Expected(p, p.Pos(), "an element name"),
+						Examples: []diagnostic.Example{{Example: "`div normal`"}},
+					})
+				}
 			}
 			if spec != nil {
 				def.Specs = []*ast.ElementSpec{spec}
 			}
-			return &def, nil
+			return &def
 		}
 
 		def.Specs = make([]*ast.ElementSpec, 0, 64)
@@ -60,7 +64,7 @@ func Definition() parser.Func[*ast.ElementDefinition] {
 			if parser.MatchesAnyRune(p, ')') {
 				break
 			}
-			parser.Must(p, comment.AndEOS())
+			parser.Try(p, comment.AndMustEOS())
 		}
 		if len(def.Specs) == 0 {
 			def.Specs = nil
@@ -76,18 +80,15 @@ func Definition() parser.Func[*ast.ElementDefinition] {
 
 		def.RParen = parser.TryOptionalRuneAt(p, ')', nil)
 		if def.RParen == nil {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing closing parenthesis",
-				Primary: quickanno.Expected(p, p.Pos(), "a closing parenthesis"),
-			}
+			return nil
 		}
 
-		return &def, nil
+		return &def
 	}
 }
 
 func Spec() parser.Func[*ast.ElementSpec] {
-	return func(p *parser.Parser) (*ast.ElementSpec, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.ElementSpec {
 		var s ast.ElementSpec
 
 		s.Name = parser.TryOptional(p, Name(), comment.OrHorizontalWhitespace())
@@ -106,79 +107,67 @@ func Spec() parser.Func[*ast.ElementSpec] {
 		}
 
 		if s.Name == nil && s.Type == nil {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing element spec",
-				Primary: quickanno.Expected(p, p.Pos(), "an element spec"),
-				Examples: []diagnostic.Example{
-					{Title: "element spec", Example: "div normal"},
-				},
-			}
+			return nil
 		}
-		return &s, nil
+		return &s
 	}
 }
 
 func Type() parser.Func[ast.ElementType] {
-	return func(p *parser.Parser) (ast.ElementType, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) ast.ElementType {
 		if bt := parser.Try(p, BasicType()); bt != nil {
-			return bt, nil
+			return bt
 		} else if at := parser.Try(p, AliasType()); at != nil {
-			return at, nil
+			return at
 		}
-		return nil, &diagnostic.Diagnostic{
-			Message: "missing element type",
-			Primary: quickanno.Expected(p, p.Pos(), "an element type"),
-			Examples: []diagnostic.Example{
-				{Title: "named type", Example: "text"},
-				{Title: "alias", Example: "= div"},
-			},
-		}
+		return nil
 	}
 }
 
 func BasicType() parser.Func[*ast.BasicElementType] {
-	return func(p *parser.Parser) (*ast.BasicElementType, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.BasicElementType {
 		typ := parser.Try(p, TypeName())
 		if typ == nil {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing basic element type",
-				Primary: quickanno.Expected(p, p.Pos(), "an element type name"),
-			}
+			return nil
 		}
 
-		return &ast.BasicElementType{Type: typ}, nil
+		return &ast.BasicElementType{Type: typ}
 	}
 }
 
 func AliasType() parser.Func[*ast.AliasElementType] {
-	return func(p *parser.Parser) (*ast.AliasElementType, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.AliasElementType {
 		var t ast.AliasElementType
 
 		t.EqualSign = parser.TryRuneAt(p, '=')
 		if t.EqualSign == nil {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing alias element type",
-				Primary: quickanno.Expected(p, p.Pos(), "expected an `=` here"),
-			}
+			return nil
 		}
 		parser.TrySkip(p, comment.OrAnyWhitespace())
-
-		t.Name = parser.Must(p, Reference())
-		return &t, nil
+		pos := p.Pos()
+		t.Name = parser.Try(p, Reference())
+		if t.Name == nil {
+			p.CaptureError(&diagnostic.Diagnostic{
+				Message: "alias type: missing element type",
+				Primary: quickanno.Expected(p, pos, "an element reference"),
+				Examples: []diagnostic.Example{
+					{Example: "`= div`"},
+					{Example: "`= mypkg.div`"},
+				},
+			})
+		}
+		return &t
 	}
 }
 
 func TypeName() parser.Func[*ast.ElementTypeName] {
-	return func(p *parser.Parser) (*ast.ElementTypeName, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.ElementTypeName {
 		var n ast.ElementTypeName
 		n.Position = p.PosPtr()
 
 		name := parser.Try(p, golang.Identifier())
 		if name == nil {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing type name",
-				Primary: quickanno.Expected(p, *n.Position, "a type name"),
-			}
+			return nil
 		}
 		n.Name = name.Name
 		switch name.Name {
@@ -206,6 +195,6 @@ func TypeName() parser.Func[*ast.ElementTypeName] {
 			})
 		}
 
-		return &n, nil
+		return &n
 	}
 }

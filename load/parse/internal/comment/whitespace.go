@@ -39,9 +39,8 @@ func OrHorizontalWhitespace() parser.WhitespaceFunc {
 // It consumes trailing horizontal whitespace; it doesn't consume the EOL.
 // If the line ends with a line comment, AndEOS accepts, but does not consume
 // it.
-func AndEOS() parser.Func[struct{}] {
-	return func(p *parser.Parser) (struct{}, *diagnostic.Diagnostic) {
-		pos := p.Pos()
+func AndEOS() parser.Func[bool] {
+	return func(p *parser.Parser) bool {
 		for {
 			parser.TrySkip(p, whitespace.Horizontal())
 			c := parser.TryOptional(p, GeneralComment(), nil)
@@ -53,26 +52,43 @@ func AndEOS() parser.Func[struct{}] {
 
 		switch {
 		case parser.TryOptionalRune(p, ';', nil):
-			return struct{}{}, nil
+			return true
 		case parser.MatchesWS(p, whitespace.EOL()):
-			return struct{}{}, nil
+			return true
 		case parser.MatchesToken(p, "}"):
-			return struct{}{}, nil
+			return true
 		case parser.MatchesToken(p, "//"):
-			return struct{}{}, nil
+			return true
 		}
 
-		return struct{}{}, &diagnostic.Diagnostic{
-			Message: "expected end of statement",
-			Primary: quickanno.Expected(p, pos, "a semicolon, EOL, or a line comment"),
-		}
+		return false
 	}
 }
 
-func AndForceEOS() parser.WhitespaceFunc {
+// AndMustEOS matches the end of statement, optionally preceded by block
+// comments.
+// If not at the end of statement, it captures an error and returns at the
+// current position.
+func AndMustEOS() parser.Func[struct{}] {
+	return func(p *parser.Parser) struct{} {
+		matches := parser.Try(p, AndEOS())
+		if !matches {
+			p.CaptureError(&diagnostic.Diagnostic{
+				Message: "expected end of statement",
+				Primary: quickanno.Expected(p, p.Pos(), "a semicolon, EOL, or a line comment"),
+			})
+		}
+		return struct{}{}
+	}
+}
+
+// AndForceEOS guarantees that the end of statement is reached.
+// If it encounters unexpected tokens before the end of statement, it consumes
+// them, captures an error, and then continues to parse the end of statement.
+func AndForceEOS() parser.Func[bool] {
 	return func(p *parser.Parser) bool {
 		parser.TrySkip(p, OrHorizontalWhitespace())
-		if _, err := parser.TryOptionalErr(p, AndEOS(), nil); err == nil { // fast path
+		if matches := parser.TryOptional(p, AndEOS(), nil); matches { // fast path
 			return true
 		}
 

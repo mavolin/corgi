@@ -17,15 +17,12 @@ import (
 )
 
 func Declaration() parser.Func[*ast.StateDeclaration] {
-	return func(p *parser.Parser) (*ast.StateDeclaration, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.StateDeclaration {
 		var d ast.StateDeclaration
 
 		d.State = parser.TryTokenAt(p, "state")
 		if d.State == nil {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing state declaration",
-				Primary: quickanno.Expected(p, d.Start(), "a state declaration"),
-			}
+			return nil
 		}
 
 		hasWS := parser.TrySkip(p, comment.OrAnyWhitespace())
@@ -33,14 +30,23 @@ func Declaration() parser.Func[*ast.StateDeclaration] {
 		d.LParen = parser.TryOptionalRuneAt(p, '(', nil)
 		if d.LParen == nil {
 			if !hasWS {
-				return nil, &diagnostic.Diagnostic{
-					Message: "missing state declaration",
-					Primary: quickanno.Expected(p, d.Start(), "a state declaration"),
-				}
+				return nil
 			}
 
-			d.Specs = []*ast.StateSpec{parser.Must(p, Spec())}
-			return &d, nil
+			spec := parser.Try(p, Spec())
+			if spec != nil {
+				d.Specs = []*ast.StateSpec{spec}
+			} else {
+				p.CaptureError(&diagnostic.Diagnostic{
+					Message: "missing state spec",
+					Primary: quickanno.Expected(p, p.Pos(), "one or more identifiers"),
+					Examples: []diagnostic.Example{
+						{Example: "`bark = \"woof\"`"},
+					},
+				})
+			}
+
+			return &d
 		}
 
 		d.Specs = make([]*ast.StateSpec, 0, 18)
@@ -57,7 +63,7 @@ func Declaration() parser.Func[*ast.StateDeclaration] {
 				break
 			}
 
-			parser.Must(p, comment.AndEOS())
+			parser.Try(p, comment.AndMustEOS())
 		}
 		if len(d.Specs) == 0 {
 			d.Specs = nil
@@ -79,23 +85,17 @@ func Declaration() parser.Func[*ast.StateDeclaration] {
 			})
 		}
 
-		return &d, nil
+		return &d
 	}
 }
 
 func Spec() parser.Func[*ast.StateSpec] {
-	return func(p *parser.Parser) (*ast.StateSpec, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.StateSpec {
 		var s ast.StateSpec
 
 		s.Names = parser.Try(p, list.CommaList("state name", "state names", golang.Identifier()))
 		if s.Names == nil {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing state spec",
-				Primary: quickanno.Expected(p, p.Pos(), "one or more identifiers"),
-				Examples: []diagnostic.Example{
-					{Example: "`bark = \"woof\"`"},
-				},
-			}
+			return nil
 		}
 
 		var pos ast.Position
@@ -112,7 +112,7 @@ func Spec() parser.Func[*ast.StateSpec] {
 					Primary: quickanno.Expected(p, pos, "either a type or an equal sign"),
 				})
 			}
-			return &s, nil
+			return &s
 		}
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 
@@ -151,6 +151,6 @@ func Spec() parser.Func[*ast.StateSpec] {
 			}
 		}
 
-		return &s, nil
+		return &s
 	}
 }

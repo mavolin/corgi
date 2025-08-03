@@ -4,10 +4,8 @@ package interpolation
 
 import (
 	"github.com/mavolin/corgi/v2/file/ast"
-	"github.com/mavolin/corgi/v2/file/diagnostic"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/mavolin/corgi/v2/load/parse/internal/golang"
-	"github.com/mavolin/corgi/v2/load/parse/internal/quickanno"
 )
 
 func init() {
@@ -16,16 +14,13 @@ func init() {
 	SetExpression(expressionStub)
 }
 
-func elementHeaderStub(p *parser.Parser) (*ast.ElementHeader, *diagnostic.Diagnostic) {
+func elementHeaderStub(p *parser.Parser) *ast.ElementHeader {
 	pos := p.Pos()
 	name := parser.TokenWhile(p, func() bool {
 		return parser.MatchesRunePredicate(p, isInRange('a', 'z'))
 	})
 	if name == "" {
-		return nil, &diagnostic.Diagnostic{
-			Message: "missing element name",
-			Primary: quickanno.Expected(p, pos, "an element name"),
-		}
+		return nil
 	}
 	return &ast.ElementHeader{
 		Name: &ast.ElementReference{
@@ -34,16 +29,13 @@ func elementHeaderStub(p *parser.Parser) (*ast.ElementHeader, *diagnostic.Diagno
 				Position: &pos,
 			},
 		},
-	}, nil
+	}
 }
 
-func componentCallHeaderStub(p *parser.Parser) (*ast.ComponentCallHeader, *diagnostic.Diagnostic) {
-	name, err := parser.TryErr(p, golang.Identifier())
-	if err != nil {
-		return nil, &diagnostic.Diagnostic{
-			Message: "missing component name",
-			Primary: quickanno.Expected(p, p.Pos(), "a component name"),
-		}
+func componentCallHeaderStub(p *parser.Parser) *ast.ComponentCallHeader {
+	name := parser.Try(p, golang.Identifier())
+	if name == nil {
+		return nil
 	}
 	h := &ast.ComponentCallHeader{Name: name}
 
@@ -51,32 +43,23 @@ func componentCallHeaderStub(p *parser.Parser) (*ast.ComponentCallHeader, *diagn
 		LParen: &ast.Position{Line: 1, Col: int(p.Col())},
 	}
 	if !parser.TryRune(p, '(') {
-		return nil, &diagnostic.Diagnostic{
-			Message: "missing opening parenthesis",
-			Primary: quickanno.Expected(p, p.Pos(), "opening parenthesis"),
-		}
+		return nil
 	}
 	h.Arguments.RParen = p.PosPtr()
 	if !parser.TryRune(p, ')') {
-		return nil, &diagnostic.Diagnostic{
-			Message: "missing closing parenthesis",
-			Primary: quickanno.Expected(p, p.Pos(), "closing parenthesis"),
-		}
+		return nil
 	}
 
-	return h, nil
+	return h
 }
 
-func expressionStub(p *parser.Parser) (*ast.Expression, *diagnostic.Diagnostic) {
+func expressionStub(p *parser.Parser) *ast.Expression {
 	pos := p.Pos()
 	code := parser.TokenWhile(p, func() bool {
 		return !parser.MatchesAnyRune(p, '}')
 	})
 	if code == "" {
-		return nil, &diagnostic.Diagnostic{
-			Message: "missing expression",
-			Primary: quickanno.Expected(p, pos, "an expression"),
-		}
+		return nil
 	}
 	return &ast.Expression{
 		Nodes: ast.Code{
@@ -85,5 +68,5 @@ func expressionStub(p *parser.Parser) (*ast.Expression, *diagnostic.Diagnostic) 
 				Position: &pos,
 			},
 		},
-	}, nil
+	}
 }

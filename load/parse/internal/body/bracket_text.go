@@ -9,15 +9,12 @@ import (
 )
 
 func BracketText() parser.Func[*ast.BracketText] {
-	return func(p *parser.Parser) (*ast.BracketText, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.BracketText {
 		var bt ast.BracketText
 
 		bt.LBracket = parser.TryRuneAt(p, '[')
 		if bt.LBracket == nil {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing bracket text",
-				Primary: quickanno.Expected(p, p.Pos(), "expected a `[` here"),
-			}
+			return nil
 		}
 
 		bt.Lines = parser.Collect(p, textLine(']'), 24, whitespace.Any())
@@ -31,7 +28,7 @@ func BracketText() parser.Func[*ast.BracketText] {
 			})
 		}
 
-		return &bt, nil
+		return &bt
 	}
 }
 
@@ -40,15 +37,12 @@ func BracketText() parser.Func[*ast.BracketText] {
 // other nodes, such as interpolation, will be included in text nodes.
 // The only exception are HashBrackets.
 func VerbatimBracketText() parser.Func[*ast.BracketText] {
-	return func(p *parser.Parser) (*ast.BracketText, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.BracketText {
 		var bt ast.BracketText
 
 		bt.LBracket = parser.TryRuneAt(p, '[')
 		if bt.LBracket == nil {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing bracket text",
-				Primary: quickanno.Expected(p, p.Pos(), "expected a `[` here"),
-			}
+			return nil
 		}
 
 		bt.Lines = parser.Collect(p, verbatimTextLine(']'), 24, whitespace.Any())
@@ -62,7 +56,7 @@ func VerbatimBracketText() parser.Func[*ast.BracketText] {
 			})
 		}
 
-		return &bt, nil
+		return &bt
 	}
 }
 

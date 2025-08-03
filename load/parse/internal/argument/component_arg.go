@@ -12,31 +12,22 @@ import (
 )
 
 func ComponentArgument() parser.Func[*ast.ComponentArgument] {
-	return func(p *parser.Parser) (*ast.ComponentArgument, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.ComponentArgument {
 		var arg ast.ComponentArgument
 
 		arg.Name = parser.TryOptional(p, golang.Identifier(), nil)
 		if arg.Name == nil {
-			p.CaptureError(&diagnostic.Diagnostic{
-				Message: "component argument: missing name",
-				Primary: quickanno.Expected(p, p.Pos(), "an argument name"),
-			})
+			return nil
 		}
 		hasPreColonWS := parser.TrySkip(p, comment.OrHorizontalWhitespace())
 		arg.Colon = parser.TryOptionalRuneAt(p, ':', nil)
 		if arg.Colon == nil {
-			return nil, &diagnostic.Diagnostic{
-				Message: "component argument: missing colon",
-				Primary: quickanno.Expected(p, p.Pos(), "a colon separating the argument name and value"),
-			}
+			return nil
 		}
 		hasPostColonWS := parser.TrySkip(p, comment.OrAnyWhitespace())
 
 		if arg.Name == nil && !hasPostColonWS {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing component argument",
-				Primary: quickanno.Expected(p, p.Pos(), "an argument name"),
-			}
+			return nil
 		}
 
 		if !hasPostColonWS {
@@ -57,18 +48,12 @@ func ComponentArgument() parser.Func[*ast.ComponentArgument] {
 		arg.Value = parser.Try(p, code.Expression(code.Regular))
 		if arg.Value == nil {
 			if arg.Name == nil { // only a colon
-				return nil, &diagnostic.Diagnostic{
-					Message: "missing component argument",
-					Primary: quickanno.Expected(p, arg.Start(), "a valid component argument"),
-				}
+				return nil
 			}
 
 			// just as likely a named argument with a trailing colon
 			if !hasPreColonWS && (parser.MatchesWS(p, whitespace.EOL()) || parser.MatchesAnyRune(p, ',', ')')) {
-				return nil, &diagnostic.Diagnostic{
-					Message: "missing component argument",
-					Primary: quickanno.Expected(p, arg.Start(), "a valid component argument"),
-				}
+				return nil
 			}
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "component argument: missing value",
@@ -88,13 +73,7 @@ func ComponentArgument() parser.Func[*ast.ComponentArgument] {
 					switch prev {
 					case '!', '<', '>', '=':
 					default:
-						return nil, &diagnostic.Diagnostic{
-							Message: "missing component argument",
-							Primary: quickanno.Expected(p, arg.Start(), "an argument name"),
-							Hints: []diagnostic.Hint{
-								{Hint: "If this is supposed to be a named attribute, add a space after the colon."},
-							},
-						}
+						return nil
 					}
 				case ' ', '\t', '\n':
 					if !haveWS {
@@ -103,12 +82,12 @@ func ComponentArgument() parser.Func[*ast.ComponentArgument] {
 				default:
 					if haveWS {
 						// the ws we have is non-trailing
-						return &arg, nil
+						return &arg
 					}
 				}
 			}
 		}
 
-		return &arg, nil
+		return &arg
 	}
 }

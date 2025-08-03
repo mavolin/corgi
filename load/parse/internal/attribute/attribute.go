@@ -15,47 +15,35 @@ import (
 )
 
 func Attribute() parser.Func[ast.Attribute] {
-	return func(p *parser.Parser) (ast.Attribute, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) ast.Attribute {
 		if a := parser.Try(p, AndPlaceholder()); a != nil {
-			return a, nil
+			return a
 		} else if a := parser.Try(p, IDShorthand()); a != nil {
-			return a, nil
+			return a
 		} else if a := parser.Try(p, ClassShorthand()); a != nil {
-			return a, nil
+			return a
 		} else if a := parser.Try(p, NamedAttribute()); a != nil {
-			return a, nil
+			return a
 		}
 
-		return nil, &diagnostic.Diagnostic{
-			Message: "missing attribute",
-			Primary: quickanno.Expected(p, p.Pos(), "an attribute"),
-			Examples: []diagnostic.Example{
-				{Title: "value attribute", Example: "`class=\"woof\"`"},
-				{Title: "boolean attribute", Example: "`async`"},
-				{Title: "class shorthand", Example: "`.bark`"},
-			},
-		}
+		return nil
 	}
 }
 
 func AndPlaceholder() parser.Func[*ast.AndPlaceholder] {
-	return func(p *parser.Parser) (*ast.AndPlaceholder, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.AndPlaceholder {
 		var ap ast.AndPlaceholder
 
 		ap.And = parser.TryRuneAt(p, '&')
 		if ap.And == nil {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing `&`",
-				Primary: quickanno.Expected(p, p.Pos(), "an and placeholder (`&`)"),
-			}
+			return nil
 		}
-
-		return &ap, nil
+		return &ap
 	}
 }
 
 func NamedAttribute() parser.Func[*ast.NamedAttribute] {
-	return func(p *parser.Parser) (*ast.NamedAttribute, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.NamedAttribute {
 		var attr ast.NamedAttribute
 
 		attr.Name = parser.TryOptional(p, Reference(), comment.OrHorizontalWhitespace())
@@ -93,26 +81,30 @@ func NamedAttribute() parser.Func[*ast.NamedAttribute] {
 		attr.EqualSign = parser.TryOptionalRuneAt(p, '=', comment.OrAnyWhitespace())
 		if attr.EqualSign == nil {
 			if attr.Name == nil { // we have neither a name nor a =, this is not an attr
-				return nil, &diagnostic.Diagnostic{
-					Message: "missing named attribute",
-					Primary: quickanno.Expected(p, attr.Start(), "an attribute"),
-					Examples: []diagnostic.Example{
-						{Title: "value attribute", Example: "`class=\"woof\"`"},
-						{Title: "boolean attribute", Example: "`async`"},
-					},
-				}
+				return nil
 			}
 
-			return &attr, nil
+			return &attr
 		}
 
-		attr.Value = parser.Must(p, Value())
-		return &attr, nil
+		attr.Value = parser.Try(p, Value())
+		if attr.Value == nil {
+			p.CaptureError(&diagnostic.Diagnostic{
+				Message: "named attribute: missing value",
+				Primary: quickanno.Expected(p, p.Pos(), "a value for the attribute"),
+				Secondary: []diagnostic.Annotation{
+					anno.Position(p.File, *attr.EqualSign, "because of this equal sign"),
+				},
+				Hints: []diagnostic.Hint{{Hint: "If you don't want to provide a value, remove the equal sign."}},
+			})
+			return &attr
+		}
+		return &attr
 	}
 }
 
 func Reference() parser.Func[*ast.AttributeReference] {
-	return func(p *parser.Parser) (*ast.AttributeReference, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.AttributeReference {
 		var ref ast.AttributeReference
 
 		state := p.CloneState()
@@ -129,17 +121,16 @@ func Reference() parser.Func[*ast.AttributeReference] {
 			})
 		}
 
-		var err *diagnostic.Diagnostic
-		ref.Name, err = parser.TryErr(p, Name())
-		if err != nil {
-			return nil, err
+		ref.Name = parser.Try(p, Name())
+		if ref.Name == nil {
+			return nil
 		}
-		return &ref, nil
+		return &ref
 	}
 }
 
 func Name() parser.Func[*ast.AttributeName] {
-	return func(p *parser.Parser) (*ast.AttributeName, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.AttributeName {
 		var name ast.AttributeName
 		name.Position = p.PosPtr()
 
@@ -161,10 +152,7 @@ func Name() parser.Func[*ast.AttributeName] {
 		})
 
 		if name.Name == "" {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing attribute name",
-				Primary: quickanno.Expected(p, name.Start(), "an attribute name"),
-			}
+			return nil
 		} else if parenCount > 0 {
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "attribute name: unbalanced parentheses/brackets",
@@ -178,6 +166,6 @@ func Name() parser.Func[*ast.AttributeName] {
 			})
 		}
 
-		return &name, nil
+		return &name
 	}
 }

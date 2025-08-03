@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/mavolin/corgi/v2/file/ast"
-	"github.com/mavolin/corgi/v2/file/diagnostic"
 	"github.com/mavolin/corgi/v2/internal/test/should"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/mavolin/corgi/v2/load/parse/internal/parsetest"
@@ -38,18 +37,16 @@ func TestUnicodeValue(t *testing.T) {
 	parsetest.AssertAlsoFulfils(t, UnicodeValue('\''), testBigUValue)
 	parsetest.AssertAlsoFulfils(t, UnicodeValue('\''), testEscapedChar('\''))
 	parsetest.AssertAlsoFulfils(t, UnicodeValue('\''), func(t *testing.T, f parser.Func[string]) {
-		testUnicodeChar(t, '\'', func(p *parser.Parser) (rune, *diagnostic.Diagnostic) {
-			s, err := parser.TryErr(p, f)
-			if err != nil {
-				return 0, err
+		testUnicodeChar(t, '\'', func(p *parser.Parser) rune {
+			s := parser.Try(p, f)
+			if s == "" {
+				return 0
 			}
 			rs := []rune(s)
 			if len(rs) != 1 {
-				return 0, &diagnostic.Diagnostic{
-					Message: "expected a single rune",
-				}
+				return 0
 			}
-			return rs[0], nil
+			return rs[0]
 		})
 	})
 
@@ -57,18 +54,16 @@ func TestUnicodeValue(t *testing.T) {
 	parsetest.AssertAlsoFulfils(t, UnicodeValue('"'), testBigUValue)
 	parsetest.AssertAlsoFulfils(t, UnicodeValue('"'), testEscapedChar('"'))
 	parsetest.AssertAlsoFulfils(t, UnicodeValue('"'), func(t *testing.T, f parser.Func[string]) {
-		testUnicodeChar(t, '"', func(p *parser.Parser) (rune, *diagnostic.Diagnostic) {
-			s, err := parser.TryErr(p, f)
-			if err != nil {
-				return 0, err
+		testUnicodeChar(t, '"', func(p *parser.Parser) rune {
+			s := parser.Try(p, f)
+			if s == "" {
+				return 0
 			}
 			rs := []rune(s)
 			if len(rs) != 1 {
-				return 0, &diagnostic.Diagnostic{
-					Message: "expected a single rune",
-				}
+				return 0
 			}
-			return rs[0], nil
+			return rs[0]
 		})
 	})
 }

@@ -33,7 +33,7 @@ func Any() parser.WhitespaceFunc {
 
 func Horizontal() parser.WhitespaceFunc {
 	return func(p *parser.Parser) bool {
-		if parser.TryAnyRune(p, ' ', '\t') <= 0 {
+		if parser.TryAnyRune(p, ' ', '\t') == 0 {
 			return false
 		}
 

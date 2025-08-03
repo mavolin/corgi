@@ -547,12 +547,15 @@ func TestCaseBody(t *testing.T) {
 		{
 			name: "empty",
 			in:   "",
+			want: []ast.ScopeNode{},
 		}, {
 			name:   "empty with case",
 			suffix: "case 1:",
+			want:   []ast.ScopeNode{},
 		}, {
 			name:   "empty with default",
 			suffix: "default:",
+			want:   []ast.ScopeNode{},
 		}, {
 			name:   "case",
 			in:     "br",

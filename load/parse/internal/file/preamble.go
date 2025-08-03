@@ -13,32 +13,29 @@ import (
 )
 
 func PackageDirective() parser.Func[*ast.PackageDirective] {
-	return func(p *parser.Parser) (*ast.PackageDirective, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.PackageDirective {
 		var d ast.PackageDirective
 
 		d.Package = parser.TryKeywordAt(p, "package", comment.OrAnyWhitespace())
 		if d.Package == nil {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing package directive",
-				Primary: quickanno.Expected(p, p.Pos(), "a package directive"),
-			}
+			return nil
 		}
 
-		d.Name = parser.Must(p, golang.Identifier())
-		return &d, nil
+		d.Name = parser.Try(p, golang.Identifier())
+		if d.Name == nil {
+			return nil
+		}
+		return &d
 	}
 }
 
 func Import() parser.Func[*ast.Import] {
-	return func(p *parser.Parser) (*ast.Import, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.Import {
 		var imp ast.Import
 
 		imp.Import = p.PosPtr()
 		if !parser.TryToken(p, "import") {
-			return nil, &diagnostic.Diagnostic{
-				Message: "missing import directive",
-				Primary: quickanno.Expected(p, p.Pos(), "an import directive"),
-			}
+			return nil
 		}
 
 		hasWS := parser.TrySkip(p, comment.OrAnyWhitespace())
@@ -46,14 +43,20 @@ func Import() parser.Func[*ast.Import] {
 		imp.LParen = parser.TryOptionalRuneAt(p, '(', nil)
 		if imp.LParen == nil {
 			if !hasWS {
-				return nil, &diagnostic.Diagnostic{
-					Message: "missing import directive",
-					Primary: quickanno.Expected(p, *imp.Import, "an import directive"),
-				}
+				return nil
 			}
 
-			imp.Specs = []*ast.ImportSpec{parser.Must(p, ImportSpec())}
-			return &imp, nil
+			spec := parser.Try(p, ImportSpec())
+			if spec != nil {
+				imp.Specs = []*ast.ImportSpec{spec}
+			} else {
+				p.CaptureError(&diagnostic.Diagnostic{
+					Message:  "missing import spec",
+					Primary:  quickanno.Expected(p, p.Pos(), "an import specs"),
+					Examples: []diagnostic.Example{{Example: "`import bark \"woof\"`"}},
+				})
+			}
+			return &imp
 		}
 
 		imp.Specs = make([]*ast.ImportSpec, 0, 36)
@@ -70,7 +73,7 @@ func Import() parser.Func[*ast.Import] {
 				break
 			}
 
-			parser.Must(p, comment.AndEOS())
+			parser.Try(p, comment.AndMustEOS())
 		}
 		if len(imp.Specs) == 0 {
 			imp.Specs = nil
@@ -92,22 +95,19 @@ func Import() parser.Func[*ast.Import] {
 			})
 		}
 
-		return &imp, nil
+		return &imp
 	}
 }
 
 func ImportSpec() parser.Func[*ast.ImportSpec] {
-	return func(p *parser.Parser) (*ast.ImportSpec, *diagnostic.Diagnostic) {
+	return func(p *parser.Parser) *ast.ImportSpec {
 		var spec ast.ImportSpec
 
 		spec.Alias = parser.TryOptional(p, golang.Identifier(), comment.OrHorizontalWhitespace())
 		spec.Path = parser.Try(p, golang.StringLit())
 		if spec.Path == nil {
 			if spec.Alias == nil {
-				return nil, &diagnostic.Diagnostic{
-					Message: "missing import spec",
-					Primary: quickanno.Expected(p, p.Pos(), "an import path"),
-				}
+				return nil
 			}
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "import spec: missing path",
@@ -115,6 +115,6 @@ func ImportSpec() parser.Func[*ast.ImportSpec] {
 			})
 		}
 
-		return &spec, nil
+		return &spec
 	}
 }
