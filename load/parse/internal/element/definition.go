@@ -51,7 +51,6 @@ func Definition() parser.Func[*ast.ElementDefinition] {
 			return &def
 		}
 
-		def.Specs = make([]*ast.ElementSpec, 0, 64)
 		for {
 			parser.TrySkip(p, comment.OrAnyWhitespace())
 			spec := parser.Try(p, Spec())

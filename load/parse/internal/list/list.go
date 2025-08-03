@@ -37,7 +37,6 @@ func list[T comparable](singular, plural string, opening, closing rune, elemFunc
 
 		var zero T
 
-		l.Elems = make([]T, 0, 64)
 		for {
 			parser.TrySkip(p, comment.OrAnyWhitespace())
 
@@ -110,11 +109,7 @@ func list[T comparable](singular, plural string, opening, closing rune, elemFunc
 			parser.TryRune(p, ',')
 		}
 
-		if len(l.Elems) == 0 {
-			l.Elems = nil
-		} else {
-			l.Elems = slices.Clip(l.Elems)
-		}
+		l.Elems = slices.Clip(l.Elems)
 		return &l
 	}
 }
@@ -134,7 +129,7 @@ func CommaList[T comparable](singular, plural string, elemFunc parser.Func[T]) p
 				return nil
 			}
 		}
-		elems := make([]T, 1, 64)
+		elems := make([]T, 1, 32)
 		elems[0] = elem0
 
 		for {

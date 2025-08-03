@@ -21,7 +21,6 @@ func ArrowBlock() parser.Func[*ast.ArrowBlock] {
 		}
 		parser.TrySkip(p, whitespace.Horizontal())
 
-		b.Lines = make(ast.TextBlock, 0, 36)
 		for {
 			line := parser.Try(p, Line('\n'))
 			if line == nil {

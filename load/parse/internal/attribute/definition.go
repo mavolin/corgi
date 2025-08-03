@@ -54,7 +54,6 @@ func Definition() parser.Func[*ast.AttributeDefinition] {
 			return &def
 		}
 
-		def.Specs = make([]*ast.AttributeSpec, 0, 64)
 		for {
 			parser.TrySkip(p, comment.OrAnyWhitespace())
 			s := parser.TryOptional(p, Spec(), nil)
@@ -69,11 +68,7 @@ func Definition() parser.Func[*ast.AttributeDefinition] {
 			}
 			parser.Try(p, comment.AndMustEOS())
 		}
-		if len(def.Specs) == 0 {
-			def.Specs = nil
-		} else {
-			def.Specs = slices.Clip(def.Specs)
-		}
+		def.Specs = slices.Clip(def.Specs)
 
 		err := unexpected.UntilAnyRune(p, comment.OrAnyWhitespace(), ')')
 		if err != nil {

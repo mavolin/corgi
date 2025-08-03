@@ -36,7 +36,7 @@ func ZeroCoalescing() parser.Func[*ast.ZeroCoalescing] {
 		zc.CheckRoot = parser.TryOptionalRuneAt(p, '?', comment.OrHorizontalWhitespace())
 
 		var chainHasCheck bool
-		zc.Chain = make([]ast.ZeroCoalescingNode, 0, 12)
+		zc.Chain = make([]ast.ZeroCoalescingNode, 0, 6)
 		for {
 			parser.TrySkip(p, comment.OrHorizontalWhitespace())
 			n := parser.TryOptional(p, zeroCoalescingNode(), nil)

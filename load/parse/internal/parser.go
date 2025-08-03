@@ -132,7 +132,7 @@ func (p *Parser) DoInline(f func()) {
 func (p *Parser) CaptureError(err *diagnostic.Diagnostic) {
 	if len(p.errs) < math.MaxUint8 {
 		p.errs = append(p.errs, err)
-		p.state.errLen = uint8(len(p.errs))
+		p.state.errLen = uint8(len(p.errs)) //nolint:gosec
 	}
 }
 
@@ -149,7 +149,7 @@ func (p *Parser) Comments() []*ast.CommentGroup {
 func (p *Parser) CaptureComment(g *ast.CommentGroup) {
 	if len(p.comments) < math.MaxUint16 {
 		p.comments = append(p.comments, g)
-		p.state.commentLen = uint16(len(p.comments))
+		p.state.commentLen = uint16(len(p.comments)) //nolint:gosec
 	}
 }
 
@@ -219,12 +219,7 @@ func MatchesToken(p *Parser, s string) bool {
 
 func MatchesAnyRune(p *Parser, rs ...rune) bool {
 	return MatchesRunePredicate(p, func(cmp rune) bool {
-		for _, r := range rs {
-			if r == cmp {
-				return true
-			}
-		}
-		return false
+		return slices.Contains(rs, cmp)
 	})
 }
 

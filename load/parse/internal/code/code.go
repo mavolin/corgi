@@ -44,7 +44,7 @@ func Code(o Options) parser.Func[ast.Code] {
 
 func NonZCCode(o Options) parser.Func[ast.Code] {
 	return func(p *parser.Parser) ast.Code {
-		c := make(ast.Code, 0, 24)
+		var c ast.Code
 		for {
 			n := parser.Try(p, nonZCNode(o))
 			if n == nil {

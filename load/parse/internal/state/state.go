@@ -49,7 +49,6 @@ func Declaration() parser.Func[*ast.StateDeclaration] {
 			return &d
 		}
 
-		d.Specs = make([]*ast.StateSpec, 0, 18)
 		for {
 			parser.TrySkip(p, comment.OrAnyWhitespace())
 			spec := parser.Try(p, Spec())
@@ -65,11 +64,7 @@ func Declaration() parser.Func[*ast.StateDeclaration] {
 
 			parser.Try(p, comment.AndMustEOS())
 		}
-		if len(d.Specs) == 0 {
-			d.Specs = nil
-		} else {
-			d.Specs = slices.Clip(d.Specs)
-		}
+		d.Specs = slices.Clip(d.Specs)
 
 		err := unexpected.UntilAnyRune(p, comment.OrAnyWhitespace(), ')')
 		if err != nil {

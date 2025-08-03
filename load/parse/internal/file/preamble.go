@@ -59,7 +59,6 @@ func Import() parser.Func[*ast.Import] {
 			return &imp
 		}
 
-		imp.Specs = make([]*ast.ImportSpec, 0, 36)
 		for {
 			parser.TrySkip(p, comment.OrAnyWhitespace())
 			spec := parser.Try(p, ImportSpec())
@@ -75,11 +74,7 @@ func Import() parser.Func[*ast.Import] {
 
 			parser.Try(p, comment.AndMustEOS())
 		}
-		if len(imp.Specs) == 0 {
-			imp.Specs = nil
-		} else {
-			imp.Specs = slices.Clip(imp.Specs)
-		}
+		imp.Specs = slices.Clip(imp.Specs)
 
 		err := unexpected.UntilAnyRune(p, comment.OrAnyWhitespace(), ')')
 		if err != nil {

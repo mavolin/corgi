@@ -174,10 +174,7 @@ func OrLoneWS() parser.WhitespaceFunc {
 
 		c = parser.Try(p, LineComment())
 		if c == nil {
-			if hasWS {
-				return true
-			}
-			return false
+			return hasWS
 		}
 
 		cs := make([]*ast.Comment, 0, 48)
