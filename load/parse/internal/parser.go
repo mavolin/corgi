@@ -331,6 +331,12 @@ func Collect[T any](p *Parser, f Func[T], capacity int, ws WhitespaceFunc) []T {
 	return slices.Clip(ts)
 }
 
+// isZero reports whether the value t is the zero value of its type.
+//
+// We need this function, because Go has no native way to check if a generic
+// type is the zero value.
+// We could limit the type param to only cover comparable types, but that would
+// exclude slices, which we use a lot.
 func isZero[T any](t T) bool {
 	return reflect.ValueOf(&t).Elem().IsZero()
 }
