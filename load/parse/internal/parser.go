@@ -108,14 +108,17 @@ func (p *Parser) skipString(s string) {
 func (p *Parser) Line() uint16      { return p.state.line }
 func (p *Parser) Col() uint16       { return p.state.col }
 func (p *Parser) Pos() ast.Position { return p.state.Pos() }
-func (p *Parser) PosPtr() *ast.Position {
+func (p *Parser) Index() int        { return p.state.Index() }
+func (p *Parser) Inline() bool      { return p.state.inline }
+
+func (p *Parser) pooledPosPtr() *ast.Position {
 	pos := p.posPool.Get()
 	pos.Line, pos.Col = int(p.state.line), int(p.state.col)
 	return pos
 }
-func (p *Parser) Index() int { return p.state.Index() }
-func (p *Parser) Inline() bool {
-	return p.state.inline
+
+func (p *Parser) PosPtr() *ast.Position {
+	return &ast.Position{Line: int(p.state.line), Col: int(p.state.col)}
 }
 
 func (p *Parser) DoInline(f func()) {

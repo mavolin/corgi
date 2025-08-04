@@ -47,7 +47,7 @@ func TryAnyToken(p *Parser, ss ...string) string {
 }
 
 func TryKeywordAt(p *Parser, k string, ws WhitespaceFunc) *ast.Position {
-	pos := p.PosPtr()
+	pos := p.pooledPosPtr()
 	if !TryToken(p, k) || (!MatchesAnyRune(p, EOF, ':', '(', ';', '}', '\n', '\r') && !TrySkip(p, ws)) {
 		p.posPool.Put(pos)
 		return nil
@@ -56,7 +56,7 @@ func TryKeywordAt(p *Parser, k string, ws WhitespaceFunc) *ast.Position {
 }
 
 func TryOptionalKeywordAt(p *Parser, k string, ws WhitespaceFunc) *ast.Position {
-	pos := p.PosPtr()
+	pos := p.pooledPosPtr()
 	if !TryOptionalToken(p, k, nil) || (!MatchesAnyRune(p, EOF, '(', ';', '}', '\n', '\r') && !TrySkip(p, ws)) {
 		p.posPool.Put(pos)
 		return nil
@@ -65,7 +65,7 @@ func TryOptionalKeywordAt(p *Parser, k string, ws WhitespaceFunc) *ast.Position 
 }
 
 func TryTokenAt(p *Parser, s string) *ast.Position {
-	pos := p.PosPtr()
+	pos := p.pooledPosPtr()
 	if !TryToken(p, s) {
 		p.posPool.Put(pos)
 		return nil
@@ -85,7 +85,7 @@ func TryRune(p *Parser, r rune) (ok bool) {
 }
 
 func TryRuneAt(p *Parser, r rune) *ast.Position {
-	pos := p.PosPtr()
+	pos := p.pooledPosPtr()
 	if !TryRune(p, r) {
 		p.posPool.Put(pos)
 		return nil
@@ -107,7 +107,7 @@ func TryOptionalRune(p *Parser, r rune, ws WhitespaceFunc) (ok bool) {
 }
 
 func TryOptionalRuneAt(p *Parser, r rune, ws WhitespaceFunc) *ast.Position {
-	pos := p.PosPtr()
+	pos := p.pooledPosPtr()
 	if !TryOptionalRune(p, r, ws) {
 		p.posPool.Put(pos)
 		return nil
