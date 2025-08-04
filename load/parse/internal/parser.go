@@ -167,10 +167,6 @@ func (p *Parser) RestoreState(s *State) {
 	p.comments = p.comments[:p.state.commentLen]
 }
 
-func (p *Parser) markWSStart() {
-	p.state.markWSStart(&p.statePool)
-}
-
 func (p *Parser) takeWSStart() *State {
 	return p.state.takeWSStart(&p.statePool)
 }
@@ -291,7 +287,7 @@ func TryInOrder[T any](p *Parser, fs ...Func[T]) T {
 func TrySkip(p *Parser, f WhitespaceFunc) bool {
 	restore := p.CloneState()
 	if !p.state.parsingWS {
-		p.markWSStart()
+		p.state.markWSStart(restore)
 		p.state.parsingWS = true
 		defer func() { p.state.parsingWS = false }()
 	}
@@ -300,7 +296,6 @@ func TrySkip(p *Parser, f WhitespaceFunc) bool {
 		p.RestoreState(restore)
 		return false
 	}
-	p.statePool.Put(restore)
 	return true
 }
 

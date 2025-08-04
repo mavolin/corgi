@@ -51,11 +51,11 @@ func (s *State) commitWS() {
 	}
 }
 
-func (s *State) markWSStart(p *pool[State]) {
+func (s *State) markWSStart(start *State) {
 	if s.ws != nil {
 		return
 	}
-	s.ws = s.Clone(p)
+	s.ws = start
 }
 
 func (s *State) takeWSStart(p *pool[State]) *State {
