@@ -291,9 +291,7 @@ func TryInOrder[T any](p *Parser, fs ...Func[T]) T {
 			return v
 		}
 	}
-	if restore.ws != nil {
-		p.RestoreState(restore.ws)
-	}
+	p.RestoreState(restore)
 
 	return zero
 }
