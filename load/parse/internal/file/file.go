@@ -106,8 +106,8 @@ func scopeNode(p *parser.Parser) ast.ScopeNode {
 	return nil
 }
 
-func File() parser.Func[struct{}] {
-	return func(p *parser.Parser) struct{} {
+func File() parser.Func[bool] {
+	return func(p *parser.Parser) bool {
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 		p.AST.Package = parser.Try(p, PackageDirective())
 		if p.AST.Package == nil {
@@ -135,7 +135,7 @@ func File() parser.Func[struct{}] {
 				Primary: quickanno.Expected(p, p.Pos(), "end of file"),
 			})
 		}
-		return struct{}{}
+		return true
 	}
 }
 

@@ -69,8 +69,8 @@ func AndEOS() parser.Func[bool] {
 // comments.
 // If not at the end of statement, it captures an error and returns at the
 // current position.
-func AndMustEOS() parser.Func[struct{}] {
-	return func(p *parser.Parser) struct{} {
+func AndMustEOS() parser.Func[bool] {
+	return func(p *parser.Parser) bool {
 		matches := parser.Try(p, AndEOS())
 		if !matches {
 			p.CaptureError(&diagnostic.Diagnostic{
@@ -78,7 +78,7 @@ func AndMustEOS() parser.Func[struct{}] {
 				Primary: quickanno.Expected(p, p.Pos(), "a semicolon, EOL, or a line comment"),
 			})
 		}
-		return struct{}{}
+		return true
 	}
 }
 
