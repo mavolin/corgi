@@ -18,14 +18,15 @@ import (
 
 func Definition() parser.Func[*ast.AttributeDefinition] {
 	return func(p *parser.Parser) *ast.AttributeDefinition {
-		var def ast.AttributeDefinition
-
-		def.Attr = parser.TryKeywordAt(p, "attr", comment.OrAnyWhitespace())
-		if def.Attr == nil {
+		attr := parser.TryKeywordAt(p, "attr", comment.OrAnyWhitespace())
+		if attr == nil {
 			return nil
 		}
 
 		beforePrefix := p.CloneState()
+
+		var def ast.AttributeDefinition
+		def.Attr = attr
 
 		// technically '(' would be a valid attribute name, so check that we
 		// don't accidentally consume a '(' as a prefix here
@@ -90,12 +91,13 @@ func Definition() parser.Func[*ast.AttributeDefinition] {
 
 func Spec() parser.Func[*ast.AttributeSpec] {
 	return func(p *parser.Parser) *ast.AttributeSpec {
-		var spec ast.AttributeSpec
-
-		spec.Selector = parser.Try(p, Selector())
-		if spec.Selector == nil {
+		selector := parser.Try(p, Selector())
+		if selector == nil {
 			return nil
 		}
+
+		var spec ast.AttributeSpec
+		spec.Selector = selector
 
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 		spec.Ruleset = parser.Try(p, Ruleset())
@@ -112,12 +114,13 @@ func Spec() parser.Func[*ast.AttributeSpec] {
 
 func Ruleset() parser.Func[*ast.AttributeRuleset] {
 	return func(p *parser.Parser) *ast.AttributeRuleset {
-		var rs ast.AttributeRuleset
-
-		rs.LBrace = parser.TryRuneAt(p, '{')
-		if rs.LBrace == nil {
+		lBrace := parser.TryRuneAt(p, '{')
+		if lBrace == nil {
 			return nil
 		}
+
+		var rs ast.AttributeRuleset
+		rs.LBrace = lBrace
 
 		rs.List = make([]*ast.AttributeRule, 0, 64)
 		for {
@@ -145,12 +148,13 @@ func Ruleset() parser.Func[*ast.AttributeRuleset] {
 
 func Rule() parser.Func[*ast.AttributeRule] {
 	return func(p *parser.Parser) *ast.AttributeRule {
-		var r ast.AttributeRule
-
-		r.Selector = parser.Try(p, ElementSelector())
-		if r.Selector == nil {
+		selector := parser.Try(p, ElementSelector())
+		if selector == nil {
 			return nil
 		}
+
+		var r ast.AttributeRule
+		r.Selector = selector
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 
 		r.Type = parser.Try(p, TypeName())
@@ -178,13 +182,14 @@ func Selector() parser.Func[ast.AttributeSelector] {
 
 func BasicSelector() parser.Func[*ast.BasicAttributeSelector] {
 	return func(p *parser.Parser) *ast.BasicAttributeSelector {
-		var s ast.BasicAttributeSelector
-		s.Position = p.PosPtr()
-
+		pos := p.Pos()
 		name := parser.Try(p, Name())
 		if name == nil {
 			return nil
 		}
+
+		var s ast.BasicAttributeSelector
+		s.Position = &pos
 		s.Name = name.Name
 
 		s.Wildcard = strings.HasSuffix(s.Name, "*")
@@ -205,19 +210,22 @@ func BasicSelector() parser.Func[*ast.BasicAttributeSelector] {
 
 func RegexpSelector() parser.Func[*ast.RegexpAttributeSelector] {
 	return func(p *parser.Parser) *ast.RegexpAttributeSelector {
-		var s ast.RegexpAttributeSelector
-
-		s.Regexp = parser.TryTokenAt(p, "'regexp")
-		if s.Regexp == nil {
+		re := parser.TryTokenAt(p, "'regexp")
+		if re == nil {
 			return nil
 		}
+
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 
-		s.LParen = parser.TryRuneAt(p, '(')
-		if s.LParen == nil {
+		lParen := parser.TryRuneAt(p, '(')
+		if lParen == nil {
 			return nil
 		}
 		parser.TrySkip(p, whitespace.Any())
+
+		var s ast.RegexpAttributeSelector
+		s.Regexp = re
+		s.LParen = lParen
 
 		s.Raw = parser.Try(p, golang.StringLit())
 		if s.Raw == nil || s.Raw.Contents == "" {
@@ -263,26 +271,23 @@ func ElementSelector() parser.Func[ast.ElementSelector] {
 
 func WildcardElementSelector() parser.Func[*ast.WildcardElementSelector] {
 	return func(p *parser.Parser) *ast.WildcardElementSelector {
-		var s ast.WildcardElementSelector
-
-		s.Asterisk = parser.TryRuneAt(p, '*')
-		if s.Asterisk == nil {
+		asterisk := parser.TryRuneAt(p, '*')
+		if asterisk == nil {
 			return nil
 		}
-		return &s
+
+		return &ast.WildcardElementSelector{Asterisk: asterisk}
 	}
 }
 
 func ListElementSelector() parser.Func[*ast.ListElementSelector] {
 	return func(p *parser.Parser) *ast.ListElementSelector {
-		var s ast.ListElementSelector
-
-		s.List = parser.Try(p, list.CommaList("element name", "element names", elementReference))
-		if len(s.List) == 0 {
+		list := parser.Try(p, list.CommaList("element name", "element names", elementReference))
+		if len(list) == 0 {
 			return nil
 		}
 
-		return &s
+		return &ast.ListElementSelector{List: list}
 	}
 }
 

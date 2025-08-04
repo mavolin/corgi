@@ -184,13 +184,14 @@ func StringLit() parser.Func[*ast.StaticString] {
 
 func RawStringLit() parser.Func[*ast.StaticString] {
 	return func(p *parser.Parser) *ast.StaticString {
-		var s ast.StaticString
-		s.Quote = '`'
-
-		s.Open = parser.TryRuneAt(p, '`')
-		if s.Open == nil {
+		open := parser.TryRuneAt(p, '`')
+		if open == nil {
 			return nil
 		}
+
+		var s ast.StaticString
+		s.Quote = '`'
+		s.Open = open
 
 		s.Contents = parser.TokenWhile(p, func() bool {
 			return !parser.MatchesAnyRune(p, '`')
@@ -209,13 +210,14 @@ func RawStringLit() parser.Func[*ast.StaticString] {
 
 func InterpretedStringLit() parser.Func[*ast.StaticString] {
 	return func(p *parser.Parser) *ast.StaticString {
-		var s ast.StaticString
-		s.Quote = '"'
-
-		s.Open = parser.TryRuneAt(p, '"')
-		if s.Open == nil {
+		open := parser.TryRuneAt(p, '"')
+		if open == nil {
 			return nil
 		}
+
+		var s ast.StaticString
+		s.Quote = '"'
+		s.Open = open
 
 		index := p.Index()
 		//nolint:revive

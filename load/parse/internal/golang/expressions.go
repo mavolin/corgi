@@ -16,13 +16,14 @@ import (
 
 func QualifiedIdent() parser.Func[*ast.QualifiedIdentifier] { // https://go.dev/ref/spec#QualifiedIdent
 	return func(p *parser.Parser) *ast.QualifiedIdentifier {
-		var ident ast.QualifiedIdentifier
-
-		ident.Package = parser.Try(p, PackageName())
-		if ident.Package == nil {
+		pkg := parser.Try(p, PackageName())
+		if pkg == nil {
 			return nil
 		}
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
+
+		var ident ast.QualifiedIdentifier
+		ident.Package = pkg
 
 		ident.Dot = parser.TryRuneAt(p, '.')
 		if ident.Dot == nil {

@@ -21,12 +21,13 @@ func ImplicitCodeLine() parser.Func[*ast.ImplicitCodeLine] {
 
 func ExplicitCodeLine() parser.Func[*ast.ExplicitCodeLine] {
 	return func(p *parser.Parser) *ast.ExplicitCodeLine {
-		var e ast.ExplicitCodeLine
-
-		e.Minus = parser.TryKeywordAt(p, "-", whitespace.Horizontal())
-		if e.Minus == nil {
+		minus := parser.TryKeywordAt(p, "-", whitespace.Horizontal())
+		if minus == nil {
 			return nil
 		}
+
+		var e ast.ExplicitCodeLine
+		e.Minus = minus
 
 		e.Statement = parser.Try(p, Statement(Regular))
 		if e.Statement == nil {

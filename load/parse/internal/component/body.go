@@ -20,13 +20,11 @@ func Body() parser.Func[ast.ComponentBody] {
 
 func Extend() parser.Func[*ast.Extend] {
 	return func(p *parser.Parser) *ast.Extend {
-		var e ast.Extend
-
-		e.ComponentCall = parser.Try(p, Call())
-		if e.ComponentCall == nil {
+		cc := parser.Try(p, Call())
+		if cc == nil {
 			return nil
 		}
 
-		return &e
+		return &ast.Extend{ComponentCall: cc}
 	}
 }

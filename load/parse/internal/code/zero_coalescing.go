@@ -15,22 +15,25 @@ import (
 
 func ZeroCoalescing() parser.Func[*ast.ZeroCoalescing] {
 	return func(p *parser.Parser) *ast.ZeroCoalescing {
-		var zc ast.ZeroCoalescing
-
-		zc.DerefPosition = p.PosPtr()
-		zc.DerefCount = len(parser.TokenWhile(p, func() bool {
+		derefPosition := p.PosPtr()
+		derefCount := len(parser.TokenWhile(p, func() bool {
 			return parser.MatchesAnyRune(p, '*')
 		}))
-		if zc.DerefCount > 0 {
+		if derefCount > 0 {
 			parser.TrySkip(p, comment.OrAnyWhitespace())
 		} else {
-			zc.DerefPosition = nil
+			derefPosition = nil
 		}
 
-		zc.Root = parser.Try(p, zeroCoalescingRoot())
-		if zc.Root == nil {
+		root := parser.Try(p, zeroCoalescingRoot())
+		if root == nil {
 			return nil
 		}
+
+		var zc ast.ZeroCoalescing
+		zc.DerefPosition = derefPosition
+		zc.DerefCount = derefCount
+		zc.Root = root
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 
 		zc.CheckRoot = parser.TryOptionalRuneAt(p, '?', comment.OrHorizontalWhitespace())
@@ -148,12 +151,13 @@ func ZCIndexExpression() parser.Func[*ast.ZCIndexExpression] {
 
 func zcIndexExpression() parser.Func[*zeroCoalescingNodeData[*ast.ZCIndexExpression]] {
 	return func(p *parser.Parser) *zeroCoalescingNodeData[*ast.ZCIndexExpression] {
-		var ie ast.ZCIndexExpression
-
-		ie.LBracket = parser.TryRuneAt(p, '[')
-		if ie.LBracket == nil {
+		lBracket := parser.TryRuneAt(p, '[')
+		if lBracket == nil {
 			return nil
 		}
+
+		var ie ast.ZCIndexExpression
+		ie.LBracket = lBracket
 
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 		pos := p.Pos()
@@ -203,18 +207,20 @@ func ZCSelectorExpression() parser.Func[*ast.ZCSelectorExpression] {
 
 func zcSelectorExpression() parser.Func[*zeroCoalescingNodeData[*ast.ZCSelectorExpression]] {
 	return func(p *parser.Parser) *zeroCoalescingNodeData[*ast.ZCSelectorExpression] {
-		var se ast.ZCSelectorExpression
-
-		se.Dot = parser.TryRuneAt(p, '.')
-		if se.Dot == nil {
+		dot := parser.TryRuneAt(p, '.')
+		if dot == nil {
 			return nil
 		}
 
 		parser.TrySkip(p, comment.OrAnyWhitespace())
-		se.Ident = parser.Try(p, golang.Identifier())
-		if se.Ident == nil {
+		ident := parser.Try(p, golang.Identifier())
+		if ident == nil {
 			return nil
 		}
+
+		var se ast.ZCSelectorExpression
+		se.Dot = dot
+		se.Ident = ident
 
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 		se.Check = parser.TryRuneAt(p, '?')
@@ -238,12 +244,12 @@ func ZCParenExpression() parser.Func[*ast.ZCParenExpression] {
 
 func zcParenExpression() parser.Func[*zeroCoalescingNodeData[*ast.ZCParenExpression]] {
 	return func(p *parser.Parser) *zeroCoalescingNodeData[*ast.ZCParenExpression] {
-		var pe ast.ZCParenExpression
-
 		l := parser.Try(p, list.ParenList("argument", "arguments", NonZCExpression(Regular)))
 		if l == nil {
 			return nil
 		}
+
+		var pe ast.ZCParenExpression
 		pe.LParen, pe.Args, pe.RParen = l.Open, l.Elems, l.Close
 
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
@@ -268,19 +274,21 @@ func ZCTypeAssertionExpression() parser.Func[*ast.ZCTypeAssertionExpression] {
 
 func zcTypeAssertionExpression() parser.Func[*zeroCoalescingNodeData[*ast.ZCTypeAssertionExpression]] {
 	return func(p *parser.Parser) *zeroCoalescingNodeData[*ast.ZCTypeAssertionExpression] {
-		var tae ast.ZCTypeAssertionExpression
-
-		tae.Dot = parser.TryRuneAt(p, '.')
-		if tae.Dot == nil {
+		dot := parser.TryRuneAt(p, '.')
+		if dot == nil {
 			return nil
 		}
 
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 
-		tae.LParen = parser.TryRuneAt(p, '(')
-		if tae.LParen == nil {
+		lParen := parser.TryRuneAt(p, '(')
+		if lParen == nil {
 			return nil
 		}
+
+		var tae ast.ZCTypeAssertionExpression
+		tae.Dot = dot
+		tae.LParen = lParen
 
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 		tae.PointerCount = len(parser.TokenWhile(p, func() bool {

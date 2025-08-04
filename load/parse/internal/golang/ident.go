@@ -9,13 +9,15 @@ import (
 
 func Identifier() parser.Func[*ast.Identifier] { // https://go.dev/ref/spec#Identifiers
 	return func(p *parser.Parser) *ast.Identifier {
-		var ident ast.Identifier
-		ident.Position = p.PosPtr()
+		pos := p.Pos()
 
 		r := parser.TryRunePredicate(p, Letter)
 		if r == 0 {
 			return nil
 		}
+
+		var ident ast.Identifier
+		ident.Position = &pos
 
 		trail := parser.Try(p, identTrail())
 		ident.Name = string(r) + trail

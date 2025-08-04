@@ -40,6 +40,7 @@ func lineCommentWithoutEOL() parser.Func[*ast.Comment] {
 		if open == nil {
 			return nil
 		}
+
 		var c ast.Comment
 		c.Open = open
 		c.Comment = parser.TokenWhile(p, func() bool {

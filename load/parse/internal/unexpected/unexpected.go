@@ -26,26 +26,28 @@ func UntilAnyRune(p *parser.Parser, wsFunc parser.WhitespaceFunc, runes ...rune)
 	var start, end ast.Position
 
 	if wsFunc == nil {
-		state := p.CloneState()
+		restore := p.CloneState()
+
 		start = p.Pos()
 		s := parser.TokenWhile(p, func() bool {
 			return !parser.MatchesAnyRune(p, runes...) && !parser.MatchesAnyRune(p, whitespace.Runes...)
 		})
 		if s == "" {
-			p.RestoreState(state)
+			p.RestoreState(restore)
 			return nil
 		}
 		end = p.Pos()
 	} else {
 		parser.TrySkip(p, wsFunc)
-		state := p.CloneState()
+		restore := p.CloneState()
+
 		start = p.Pos()
 		for {
 			s := parser.TokenWhile(p, func() bool {
 				return !parser.MatchesAnyRune(p, runes...) && !parser.MatchesAnyRune(p, whitespace.Runes...)
 			})
 			if s == "" {
-				p.RestoreState(state)
+				p.RestoreState(restore)
 				return nil
 			}
 			end = p.Pos()

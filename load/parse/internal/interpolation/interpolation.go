@@ -147,54 +147,45 @@ func StringInterpolation() parser.Func[ast.StringInterpolation] {
 // that a valid interpolation was expected.
 func BadInterpolation() parser.Func[*ast.BadInterpolation] {
 	return func(p *parser.Parser) *ast.BadInterpolation {
-		var bi ast.BadInterpolation
-
-		bi.From = p.Pos()
-		if !parser.TryRune(p, '#') {
+		from := parser.TryRuneAt(p, '#')
+		if from == nil {
 			return nil
 		}
-		bi.Until = p.Pos()
 
-		return &bi
+		return &ast.BadInterpolation{From: *from, Until: p.Pos()}
 	}
 }
 
 func EscapedHash() parser.Func[*ast.EscapedHash] {
 	return func(p *parser.Parser) *ast.EscapedHash {
-		var eh ast.EscapedHash
-
-		eh.Hash = parser.TryTokenAt(p, "##")
-		if eh.Hash == nil {
+		hash := parser.TryTokenAt(p, "##")
+		if hash == nil {
 			return nil
 		}
 
-		return &eh
+		return &ast.EscapedHash{Hash: hash}
 	}
 }
 
 func HashSpace() parser.Func[*ast.HashSpace] {
 	return func(p *parser.Parser) *ast.HashSpace {
-		var hs ast.HashSpace
-
-		hs.Hash = parser.TryTokenAt(p, "#_")
-		if hs.Hash == nil {
+		hs := parser.TryTokenAt(p, "#_")
+		if hs == nil {
 			return nil
 		}
 
-		return &hs
+		return &ast.HashSpace{Hash: hs}
 	}
 }
 
 func EscapedRBracket() parser.Func[*ast.EscapedRBracket] {
 	return func(p *parser.Parser) *ast.EscapedRBracket {
-		var erb ast.EscapedRBracket
-
-		erb.Hash = parser.TryTokenAt(p, "#]")
-		if erb.Hash == nil {
+		erb := parser.TryTokenAt(p, "#]")
+		if erb == nil {
 			return nil
 		}
 
-		return &erb
+		return &ast.EscapedRBracket{Hash: erb}
 	}
 }
 
@@ -214,12 +205,13 @@ func UnambiguousHash() parser.Func[bool] {
 
 func CharacterReference() parser.Func[*ast.CharacterReference] {
 	return func(p *parser.Parser) *ast.CharacterReference {
-		var r ast.CharacterReference
-
-		r.Hash = parser.TryTokenAt(p, "#")
-		if r.Hash == nil {
+		hash := parser.TryTokenAt(p, "#")
+		if hash == nil {
 			return nil
 		}
+
+		var r ast.CharacterReference
+		r.Hash = hash
 
 		r.Name = parser.TokenWhile(p, func() bool {
 			return parser.MatchesRunePredicate(p, codepoint.ASCIIAlphanumeric)
@@ -263,12 +255,13 @@ func SetElementHeader(f parser.Func[*ast.ElementHeader]) {
 
 func ElementInterpolation() parser.Func[*ast.ElementInterpolation] {
 	return func(p *parser.Parser) *ast.ElementInterpolation {
-		var ei ast.ElementInterpolation
-
-		ei.Hash = parser.TryRuneAt(p, '#')
-		if ei.Hash == nil {
+		hash := parser.TryRuneAt(p, '#')
+		if hash == nil {
 			return nil
 		}
+
+		var ei ast.ElementInterpolation
+		ei.Hash = hash
 
 		var header *ast.ElementHeader
 		p.DoInline(func() { header = parser.Try(p, elementHeader) })
@@ -279,7 +272,7 @@ func ElementInterpolation() parser.Func[*ast.ElementInterpolation] {
 		ei.Element = &ast.Element{Header: header}
 		p.DoInline(func() {
 			bt := parser.Try(p, body.BracketText())
-			if bt != nil { // can't assign directly: any(nil) != (*ast.BracketText)(nil)
+			if bt != nil {
 				ei.Element.Body = bt
 			}
 		})
@@ -295,20 +288,23 @@ func SetComponentCallHeader(f parser.Func[*ast.ComponentCallHeader]) {
 
 func ComponentCallInterpolation() parser.Func[*ast.ComponentCallInterpolation] {
 	return func(p *parser.Parser) *ast.ComponentCallInterpolation {
-		var cci ast.ComponentCallInterpolation
-
-		cci.Hash = parser.TryTokenAt(p, "#:")
-		if cci.Hash == nil {
+		hash := parser.TryRuneAt(p, '#')
+		if hash == nil {
 			return nil
 		}
-		cci.ComponentCall = new(ast.ComponentCall)
-		cci.ComponentCall.Colon = new(ast.Position)
-		*cci.ComponentCall.Colon = *cci.Hash
-		cci.ComponentCall.Colon.Col++
 
-		cci.ComponentCall.Header = parser.Try(p, componentCallHeader)
-		if cci.ComponentCall.Header == nil {
+		colon := parser.TryRuneAt(p, ':')
+
+		header := parser.Try(p, componentCallHeader)
+		if header == nil {
 			return nil
+		}
+
+		var cci ast.ComponentCallInterpolation
+		cci.Hash = hash
+		cci.ComponentCall = &ast.ComponentCall{
+			Colon:  colon,
+			Header: header,
 		}
 
 		p.DoInline(func() {
@@ -334,12 +330,13 @@ func SetExpression(f parser.Func[*ast.Expression]) {
 
 func ExpressionInterpolation() parser.Func[*ast.ExpressionInterpolation] {
 	return func(p *parser.Parser) *ast.ExpressionInterpolation {
-		var ei ast.ExpressionInterpolation
-
-		ei.Hash = parser.TryRuneAt(p, '#')
-		if ei.Hash == nil {
+		hash := parser.TryRuneAt(p, '#')
+		if hash == nil {
 			return nil
 		}
+
+		var ei ast.ExpressionInterpolation
+		ei.Hash = hash
 
 		ei.FormatDirective = parser.Try(p, formatDirective())
 

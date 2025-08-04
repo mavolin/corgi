@@ -888,6 +888,7 @@ func testAssignment(t *testing.T, f parser.Func[*ast.Assignment]) {
 						},
 					},
 				},
+				Operator:         "=",
 				OperatorPosition: &ast.Position{Line: 1, Col: 5},
 				RHS: []*ast.Expression{
 					{
@@ -912,6 +913,7 @@ func testAssignment(t *testing.T, f parser.Func[*ast.Assignment]) {
 						},
 					},
 				},
+				Operator:         "=",
 				OperatorPosition: &ast.Position{Line: 1, Col: 10},
 				RHS: []*ast.Expression{
 					{
@@ -941,6 +943,7 @@ func testAssignment(t *testing.T, f parser.Func[*ast.Assignment]) {
 					},
 				},
 				OperatorPosition: &ast.Position{Line: 1, Col: 10},
+				Operator:         "=",
 				RHS: []*ast.Expression{
 					{
 						Nodes: ast.Code{
@@ -961,7 +964,7 @@ func testAssignment(t *testing.T, f parser.Func[*ast.Assignment]) {
 					},
 				},
 				OperatorPosition: &ast.Position{Line: 1, Col: 5},
-				SpecialOperator:  "+",
+				Operator:         "+=",
 				RHS: []*ast.Expression{
 					{
 						Nodes: ast.Code{

@@ -17,12 +17,13 @@ import (
 
 func Doctype() parser.Func[*ast.Doctype] {
 	return func(p *parser.Parser) *ast.Doctype {
-		var d ast.Doctype
-
-		d.Doctype = parser.TryTokenAt(p, "!doctype")
-		if d.Doctype == nil {
+		doctype := parser.TryTokenAt(p, "!doctype")
+		if doctype == nil {
 			return nil
 		}
+
+		var d ast.Doctype
+		d.Doctype = doctype
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 
 		args := parser.Try(p, argument.Arguments())
@@ -95,12 +96,13 @@ func Doctype() parser.Func[*ast.Doctype] {
 
 func Element() parser.Func[*ast.Element] {
 	return func(p *parser.Parser) *ast.Element {
-		var e ast.Element
-
-		e.Header = parser.Try(p, Header())
-		if e.Header == nil {
+		header := parser.Try(p, Header())
+		if header == nil {
 			return nil
 		}
+
+		var e ast.Element
+		e.Header = header
 
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 		e.Body = parser.Try(p, body.Body())
@@ -110,15 +112,16 @@ func Element() parser.Func[*ast.Element] {
 
 func Header() parser.Func[*ast.ElementHeader] {
 	return func(p *parser.Parser) *ast.ElementHeader {
-		var h ast.ElementHeader
-
-		h.Name = parser.Try(p, Reference())
-		if h.Name == nil {
+		name := parser.Try(p, Reference())
+		if name == nil {
 			return nil
 		}
 		if !p.Inline() {
 			parser.TrySkip(p, comment.OrHorizontalWhitespace())
 		}
+
+		var h ast.ElementHeader
+		h.Name = name
 
 		h.Attributes = parser.Try(p, argument.Arguments())
 		return &h
@@ -127,54 +130,57 @@ func Header() parser.Func[*ast.ElementHeader] {
 
 func Reference() parser.Func[*ast.ElementReference] {
 	return func(p *parser.Parser) *ast.ElementReference {
-		var ref ast.ElementReference
+		restore := p.CloneState()
 
-		state := p.CloneState()
-
-		ref.Package = parser.TryOptional(p, golang.Identifier(), comment.OrHorizontalWhitespace())
-		ref.Dot = parser.TryOptionalRuneAt(p, '.', comment.OrAnyWhitespace())
-		if ref.Dot == nil {
-			ref.Package = nil
-			p.RestoreState(state)
-		} else if ref.Package == nil {
+		pkg := parser.TryOptional(p, golang.Identifier(), comment.OrHorizontalWhitespace())
+		dot := parser.TryOptionalRuneAt(p, '.', comment.OrAnyWhitespace())
+		if dot == nil {
+			pkg = nil
+			p.RestoreState(restore)
+		} else if pkg == nil {
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "element reference: missing package name",
 				Primary: quickanno.Expected(p, p.Pos(), "a package name before the `.`"),
 			})
 		}
 
-		ref.Name = parser.Try(p, Name())
-		if ref.Name == nil {
+		name := parser.Try(p, Name())
+		if name == nil {
 			return nil
 		}
-		return &ref
+
+		return &ast.ElementReference{
+			Package: pkg,
+			Dot:     dot,
+			Name:    name,
+		}
 	}
 }
 
 func Name() parser.Func[*ast.ElementName] {
 	return func(p *parser.Parser) *ast.ElementName {
-		var n ast.ElementName
-		n.Position = p.PosPtr()
+		pos := p.Pos()
 
-		n.Name = parser.Try(p, html.TagName())
-		if n.Name == "" {
+		name := parser.Try(p, html.TagName())
+		if name == "" {
 			return nil
 		}
 
-		return &n
+		return &ast.ElementName{Name: name, Position: &pos}
 	}
 }
 
 func Raw() parser.Func[*ast.RawElement] {
 	return func(p *parser.Parser) *ast.RawElement {
-		var e ast.RawElement
-
-		e.Raw = parser.TryTokenAt(p, "!raw")
-		if e.Raw == nil {
+		raw := parser.TryTokenAt(p, "!raw")
+		if raw == nil {
 			return nil
 		}
-		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 
+		var e ast.RawElement
+		e.Raw = raw
+
+		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 		args := parser.TryOptional(p, argument.Arguments(), comment.OrHorizontalWhitespace())
 		if args != nil {
 			p.CaptureError(&diagnostic.Diagnostic{
@@ -214,13 +220,14 @@ func Raw() parser.Func[*ast.RawElement] {
 
 func And() parser.Func[*ast.And] {
 	return func(p *parser.Parser) *ast.And {
-		var a ast.And
-
-		a.And = parser.TryTokenAt(p, "&")
-		if a.And == nil {
+		and := parser.TryTokenAt(p, "&")
+		if and == nil {
 			return nil
 		}
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
+
+		var a ast.And
+		a.And = and
 
 		a.Attributes = parser.Try(p, argument.Arguments())
 		if a.Attributes == nil {

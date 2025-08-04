@@ -222,12 +222,14 @@ func parsedSimpleStatement(o Options) parser.Func[*ast.SimpleStatement] {
 
 func Return() parser.Func[*ast.Return] {
 	return func(p *parser.Parser) *ast.Return {
-		var r ast.Return
-
-		r.Return = parser.TryKeywordAt(p, "return", comment.OrHorizontalWhitespace())
-		if r.Return == nil {
+		ret := parser.TryKeywordAt(p, "return", comment.OrHorizontalWhitespace())
+		if ret == nil {
 			return nil
 		}
+
+		var r ast.Return
+		r.Return = ret
+
 		r.Error = parser.TryOptional(p, Expression(Regular), nil)
 
 		return &r
@@ -247,14 +249,15 @@ func ReturnAsCode(r *ast.Return) ast.Code {
 
 func Break() parser.Func[*ast.Break] {
 	return func(p *parser.Parser) *ast.Break {
-		var b ast.Break
-
-		b.Break = parser.TryKeywordAt(p, "break", comment.OrHorizontalWhitespace())
-		if b.Break == nil {
+		brk := parser.TryKeywordAt(p, "break", comment.OrHorizontalWhitespace())
+		if brk == nil {
 			return nil
 		}
-		b.Label = parser.TryOptional(p, golang.Identifier(), nil)
 
+		var b ast.Break
+		b.Break = brk
+
+		b.Label = parser.TryOptional(p, golang.Identifier(), nil)
 		return &b
 	}
 }
@@ -271,12 +274,14 @@ func BreakAsCode(b *ast.Break) ast.Code {
 
 func Continue() parser.Func[*ast.Continue] {
 	return func(p *parser.Parser) *ast.Continue {
-		var c ast.Continue
-
-		c.Continue = parser.TryKeywordAt(p, "continue", comment.OrHorizontalWhitespace())
-		if c.Continue == nil {
+		_continue := parser.TryKeywordAt(p, "continue", comment.OrHorizontalWhitespace())
+		if _continue == nil {
 			return nil
 		}
+
+		var c ast.Continue
+		c.Continue = _continue
+
 		c.Label = parser.TryOptional(p, golang.Identifier(), nil)
 
 		return &c
@@ -295,12 +300,14 @@ func ContinueAsCode(c *ast.Continue) ast.Code {
 
 func Fallthrough() parser.Func[*ast.Fallthrough] {
 	return func(p *parser.Parser) *ast.Fallthrough {
-		var f ast.Fallthrough
-
-		f.Fallthrough = parser.TryKeywordAt(p, "fallthrough", comment.OrHorizontalWhitespace())
-		if f.Fallthrough == nil {
+		_fallthrough := parser.TryKeywordAt(p, "fallthrough", comment.OrHorizontalWhitespace())
+		if _fallthrough == nil {
 			return nil
 		}
+
+		var f ast.Fallthrough
+		f.Fallthrough = _fallthrough
+
 		f.Label = parser.TryOptional(p, golang.Identifier(), nil)
 
 		return &f
@@ -319,12 +326,13 @@ func FallthroughAsCode(f *ast.Fallthrough) ast.Code {
 
 func Defer() parser.Func[*ast.Defer] {
 	return func(p *parser.Parser) *ast.Defer {
-		var d ast.Defer
-
-		d.Defer = parser.TryKeywordAt(p, "defer", comment.OrAnyWhitespace())
-		if d.Defer == nil {
+		deferKeyword := parser.TryKeywordAt(p, "defer", comment.OrAnyWhitespace())
+		if deferKeyword == nil {
 			return nil
 		}
+
+		var d ast.Defer
+		d.Defer = deferKeyword
 
 		pos := p.Pos()
 		d.Expression = parser.Try(p, Expression(Regular))
@@ -493,12 +501,13 @@ func IncDecAsCode(incDec *ast.IncDec) ast.Code {
 
 func ConstDeclaration() parser.Func[*ast.ConstDeclaration] {
 	return func(p *parser.Parser) *ast.ConstDeclaration {
-		var d ast.ConstDeclaration
-
-		d.Const = parser.TryKeywordAt(p, "const", comment.OrAnyWhitespace())
-		if d.Const == nil {
+		constKeyword := parser.TryKeywordAt(p, "const", comment.OrAnyWhitespace())
+		if constKeyword == nil {
 			return nil
 		}
+
+		var d ast.ConstDeclaration
+		d.Const = constKeyword
 
 		d.LParen = parser.TryOptionalRuneAt(p, '(', comment.OrAnyWhitespace())
 		if d.LParen == nil {
@@ -546,9 +555,8 @@ func ConstDeclaration() parser.Func[*ast.ConstDeclaration] {
 			p.CaptureError(err)
 		}
 
-		d.RParen = p.PosPtr()
-		if !parser.TryRune(p, ')') {
-			d.RParen = nil
+		d.RParen = parser.TryRuneAt(p, ')')
+		if d.RParen == nil {
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "const declaration: missing ')'",
 				Primary: quickanno.Expected(p, *d.LParen, "a closing ')' for the '(' here"),
@@ -561,12 +569,13 @@ func ConstDeclaration() parser.Func[*ast.ConstDeclaration] {
 
 func ConstSpec() parser.Func[*ast.ConstSpec] {
 	return func(p *parser.Parser) *ast.ConstSpec {
-		var s ast.ConstSpec
-
-		s.Names = parser.Try(p, list.CommaList("const name", "const names", golang.Identifier()))
-		if s.Names == nil {
+		names := parser.Try(p, list.CommaList("const name", "const names", golang.Identifier()))
+		if names == nil {
 			return nil
 		}
+
+		var s ast.ConstSpec
+		s.Names = names
 
 		if parser.TrySkip(p, comment.OrHorizontalWhitespace()) {
 			s.Type = parser.TryOptional(p, golang.Type(), comment.OrHorizontalWhitespace())
@@ -685,12 +694,13 @@ func ConstDeclarationAsCode(d *ast.ConstDeclaration) ast.Code {
 
 func VarDeclaration() parser.Func[*ast.VarDeclaration] {
 	return func(p *parser.Parser) *ast.VarDeclaration {
-		var d ast.VarDeclaration
-
-		d.Var = parser.TryKeywordAt(p, "var", comment.OrAnyWhitespace())
-		if d.Var == nil {
+		varKeyword := parser.TryKeywordAt(p, "var", comment.OrAnyWhitespace())
+		if varKeyword == nil {
 			return nil
 		}
+
+		var d ast.VarDeclaration
+		d.Var = varKeyword
 
 		d.LParen = parser.TryOptionalRuneAt(p, '(', comment.OrAnyWhitespace())
 		if d.LParen == nil {
@@ -738,9 +748,8 @@ func VarDeclaration() parser.Func[*ast.VarDeclaration] {
 			p.CaptureError(err)
 		}
 
-		d.RParen = p.PosPtr()
-		if !parser.TryRune(p, ')') {
-			d.RParen = nil
+		d.RParen = parser.TryRuneAt(p, ')')
+		if d.RParen == nil {
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "var declaration: missing ')'",
 				Primary: quickanno.Expected(p, *d.LParen, "a closing ')' for the '(' here"),
@@ -753,12 +762,13 @@ func VarDeclaration() parser.Func[*ast.VarDeclaration] {
 
 func VarSpec() parser.Func[*ast.VarSpec] {
 	return func(p *parser.Parser) *ast.VarSpec {
-		var s ast.VarSpec
-
-		s.Names = parser.Try(p, list.CommaList("var name", "var names", golang.Identifier()))
-		if s.Names == nil {
+		names := parser.Try(p, list.CommaList("var name", "var names", golang.Identifier()))
+		if names == nil {
 			return nil
 		}
+
+		var s ast.VarSpec
+		s.Names = names
 
 		pos := p.Pos()
 		if parser.TrySkip(p, comment.OrHorizontalWhitespace()) {
@@ -880,12 +890,13 @@ func VarDeclarationAsCode(d *ast.VarDeclaration) ast.Code {
 
 func ShortVarDeclaration() parser.Func[*ast.ShortVarDeclaration] {
 	return func(p *parser.Parser) *ast.ShortVarDeclaration {
-		var d ast.ShortVarDeclaration
-
-		d.Names = parser.Try(p, list.CommaList("identifier", "identifiers", golang.Identifier()))
-		if d.Names == nil {
+		names := parser.Try(p, list.CommaList("identifier", "identifiers", golang.Identifier()))
+		if names == nil {
 			return nil
 		}
+
+		var d ast.ShortVarDeclaration
+		d.Names = names
 
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 
@@ -1008,7 +1019,7 @@ func Assignment() parser.Func[*ast.Assignment] {
 
 func assignment(e *ast.Expression, o Options) parser.Func[*ast.Assignment] {
 	return func(p *parser.Parser) *ast.Assignment {
-		var a ast.Assignment
+		var lhs []*ast.Expression
 		if e != nil {
 			parser.TrySkip(p, comment.OrHorizontalWhitespace())
 			if parser.TryOptionalRune(p, ',', nil) {
@@ -1021,25 +1032,29 @@ func assignment(e *ast.Expression, o Options) parser.Func[*ast.Assignment] {
 						Primary: quickanno.Expected(p, p.Pos(), "one or more assignees being assigned to"),
 					})
 				}
-				a.LHS = append([]*ast.Expression{e}, es...)
+				lhs = append([]*ast.Expression{e}, es...)
 			} else {
-				a.LHS = []*ast.Expression{e}
+				lhs = []*ast.Expression{e}
 			}
 		} else {
-			a.LHS = parser.Try(p, list.CommaList("expression", "expressions", Expression(Regular)))
-			if a.LHS == nil {
+			lhs = parser.Try(p, list.CommaList("expression", "expressions", Expression(Regular)))
+			if lhs == nil {
 				return nil
 			}
 		}
 
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 
-		a.OperatorPosition = p.PosPtr()
-		a.SpecialOperator = parser.Try(p, golang.AssignOp())
-		if a.SpecialOperator == "" {
+		opPos := p.Pos()
+		op := parser.Try(p, golang.AssignOp())
+		if op == "" {
 			return nil
 		}
-		a.SpecialOperator = a.SpecialOperator[:len(a.SpecialOperator)-1]
+
+		var a ast.Assignment
+		a.LHS = lhs
+		a.Operator = op
+		a.OperatorPosition = &opPos
 
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 		pos := p.Pos()
@@ -1094,7 +1109,7 @@ func AssignmentAsCode(a *ast.Assignment) ast.Code {
 		}
 	}
 	if a.OperatorPosition != nil {
-		c[i] = &ast.GoCode{Code: a.SpecialOperator + "=", Position: a.OperatorPosition}
+		c[i] = &ast.GoCode{Code: a.Operator + "=", Position: a.OperatorPosition}
 		i++
 	}
 	for eI, e := range a.RHS {

@@ -782,7 +782,7 @@ func (*Label) _parsedStatement() {}
 
 type Assignment struct {
 	LHS              []*Expression
-	SpecialOperator  string // optional, ("+", ">>", "*", etc.)
+	Operator         string
 	OperatorPosition *Position
 	RHS              []*Expression
 }
@@ -816,7 +816,7 @@ func (a *Assignment) End() Position {
 		}
 	}
 	if a.OperatorPosition != nil {
-		return deltaPos(*a.OperatorPosition, len(a.SpecialOperator)+len("="))
+		return deltaPos(*a.OperatorPosition, len(a.Operator)+len("="))
 	}
 	for _, e := range slices.Backward(a.LHS) {
 		if e != nil {

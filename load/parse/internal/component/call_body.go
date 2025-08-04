@@ -30,12 +30,14 @@ func CallBody() parser.Func[ast.ComponentCallBody] {
 
 func DefaultBlockShorthand() parser.Func[*ast.DefaultBlockShorthand] {
 	return func(p *parser.Parser) *ast.DefaultBlockShorthand {
-		var s ast.DefaultBlockShorthand
-		s.Position = p.PosPtr()
+		pos := p.Pos()
 
 		if !parser.TryRune(p, '_') {
 			return nil
 		}
+
+		var s ast.DefaultBlockShorthand
+		s.Position = &pos
 
 		// Handle the special case of a nested default block shorthand, i.e.
 		// __{ ... }, because the error message of body(false) might be misleading.

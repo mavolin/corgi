@@ -102,10 +102,9 @@ func TypeLit() parser.Func[*ast.Type] { // https://go.dev/ref/spec#TypeLit
 
 func ArrayType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#ArrayType
 	return func(p *parser.Parser) *ast.Type {
-		var t ast.Type
-		t.From = p.Pos()
-
 		startIndex := p.Index()
+		from := p.Pos()
+
 		if !parser.TryRune(p, '[') {
 			return nil
 		}
@@ -115,6 +114,9 @@ func ArrayType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#ArrayType
 		if l == "" {
 			return nil
 		}
+
+		var t ast.Type
+		t.From = from
 
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 		if !parser.TryRune(p, ']') {
@@ -214,9 +216,8 @@ func ElementType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#ElementTy
 // spec.
 func StructType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#StructType
 	return func(p *parser.Parser) *ast.Type {
-		var t ast.Type
-		t.From = p.Pos()
 		startIndex := p.Index()
+		from := p.Pos()
 
 		if !parser.TryToken(p, "struct") {
 			return nil
@@ -234,6 +235,9 @@ func StructType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#StructType
 				Examples: []diagnostic.Example{{Example: "`struct { Woof string }`"}},
 			})
 		}
+
+		var t ast.Type
+		t.From = from
 
 		// see array length on why this is necessary
 		var braceCount int
@@ -287,12 +291,15 @@ func StructType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#StructType
 
 func PointerType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#PointerType
 	return func(p *parser.Parser) *ast.Type {
-		t := &ast.Type{From: p.Pos()}
+		pos := p.Pos()
 		startIndex := p.Index()
 
 		if !parser.TryRune(p, '*') {
 			return nil
 		}
+
+		var t ast.Type
+		t.From = pos
 
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 
@@ -307,7 +314,7 @@ func PointerType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#PointerTy
 
 		t.Type = p.AST.Raw[startIndex:p.Index()]
 		t.Until = p.Pos()
-		return t
+		return &t
 	}
 }
 
@@ -329,12 +336,15 @@ func BaseType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#BaseType
 // spec.
 func FunctionType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#FunctionType
 	return func(p *parser.Parser) *ast.Type {
-		t := &ast.Type{From: p.Pos()}
+		pos := p.Pos()
 		startIndex := p.Index()
 
 		if !parser.TryToken(p, "func") {
 			return nil
 		}
+
+		var t ast.Type
+		t.From = pos
 
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 		signature := parser.Try(p, Signature())
@@ -348,7 +358,7 @@ func FunctionType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#Function
 
 		t.Type = p.AST.Raw[startIndex:p.Index()]
 		t.Until = p.Pos()
-		return t
+		return &t
 	}
 }
 
@@ -454,12 +464,15 @@ func UnnamedParameterDecl() parser.Func[string] { // https://go.dev/ref/spec#Par
 
 func InterfaceType() parser.Func[*ast.Type] {
 	return func(p *parser.Parser) *ast.Type {
-		t := &ast.Type{From: p.Pos()}
+		pos := p.Pos()
 		startIndex := p.Index()
 
 		if !parser.TryToken(p, "interface") {
 			return nil
 		}
+
+		var t ast.Type
+		t.From = pos
 
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 		lBracePos := parser.TryRuneAt(p, '{')
@@ -513,7 +526,7 @@ func InterfaceType() parser.Func[*ast.Type] {
 
 		t.Type = p.AST.Raw[startIndex:p.Index()]
 		t.Until = p.Pos()
-		return t
+		return &t
 	}
 }
 
@@ -523,12 +536,15 @@ func InterfaceType() parser.Func[*ast.Type] {
 
 func SliceType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#SliceType
 	return func(p *parser.Parser) *ast.Type {
+		pos := p.Pos()
 		startIndex := p.Index()
-		t := &ast.Type{From: p.Pos()}
 
 		if !parser.TryRune(p, '[') {
 			return nil
 		}
+
+		var t ast.Type
+		t.From = pos
 
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 		if !parser.TryRune(p, ']') {
@@ -553,7 +569,7 @@ func SliceType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#SliceType
 
 		t.Type = p.AST.Raw[startIndex:p.Index()]
 		t.Until = p.Pos()
-		return t
+		return &t
 	}
 }
 
@@ -563,12 +579,15 @@ func SliceType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#SliceType
 
 func MapType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#MapType
 	return func(p *parser.Parser) *ast.Type {
+		pos := p.Pos()
 		startIndex := p.Index()
-		t := &ast.Type{From: p.Pos()}
 
 		if !parser.TryToken(p, "map") {
 			return nil
 		}
+
+		var t ast.Type
+		t.From = pos
 
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 
@@ -601,7 +620,7 @@ func MapType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#MapType
 			})
 			t.Type = p.AST.Raw[startIndex:p.Index()]
 			t.Until = p.Pos()
-			return t
+			return &t
 		}
 
 		parser.TrySkip(p, comment.OrAnyWhitespace())
@@ -616,7 +635,7 @@ func MapType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#MapType
 
 		t.Type = p.AST.Raw[startIndex:p.Index()]
 		t.Until = p.Pos()
-		return t
+		return &t
 	}
 }
 
@@ -636,8 +655,8 @@ func KeyType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#KeyType
 
 func ChannelType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#ChannelType
 	return func(p *parser.Parser) *ast.Type {
+		pos := p.Pos()
 		startIndex := p.Index()
-		t := &ast.Type{From: p.Pos()}
 
 		if parser.TryToken(p, "<-") {
 			parser.TrySkip(p, comment.OrAnyWhitespace())
@@ -659,6 +678,9 @@ func ChannelType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#ChannelTy
 			parser.TryToken(p, "<-")
 		}
 
+		var t ast.Type
+		t.From = pos
+
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 		elemType := parser.Try(p, ElementType())
 		if elemType == nil {
@@ -671,7 +693,7 @@ func ChannelType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#ChannelTy
 
 		t.Type = p.AST.Raw[startIndex:p.Index()]
 		t.Until = p.Pos()
-		return t
+		return &t
 	}
 }
 
@@ -681,12 +703,13 @@ func ChannelType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#ChannelTy
 
 func NamedType() parser.Func[*ast.NamedType] { // essentially the first of https://go.dev/ref/spec#Type
 	return func(p *parser.Parser) *ast.NamedType {
-		var t ast.NamedType
-
-		t.Name = parser.Try(p, TypeName())
-		if t.Name == nil {
+		name := parser.Try(p, TypeName())
+		if name == nil {
 			return nil
 		}
+
+		var t ast.NamedType
+		t.Name = name
 
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 		t.TypeArgs = parser.Try(p, TypeArgs())
@@ -716,12 +739,13 @@ func TypeParameters() parser.Func[*ast.TypeParameters] {
 
 func TypeParameterDecl() parser.Func[*ast.TypeParameter] {
 	return func(p *parser.Parser) *ast.TypeParameter {
-		var tp ast.TypeParameter
-
-		tp.Names = parser.Try(p, list.CommaList("type parameter name", "type parameter names", Identifier()))
-		if tp.Names == nil {
+		names := parser.Try(p, list.CommaList("type parameter name", "type parameter names", Identifier()))
+		if names == nil {
 			return nil
 		}
+
+		var tp ast.TypeParameter
+		tp.Names = names
 
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 		pos := p.Pos()

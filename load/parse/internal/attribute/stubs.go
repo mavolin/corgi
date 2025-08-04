@@ -14,12 +14,11 @@ func init() {
 }
 
 func elementReferenceStub(p *parser.Parser) *ast.ElementReference {
-	var n ast.ElementName
-	n.Position = p.PosPtr()
-	n.Name = parser.Try(p, html.TagName())
-	if n.Name == "" {
+	pos := p.Pos()
+	name := parser.Try(p, html.TagName())
+	if name == "" {
 		return nil
 	}
 
-	return &ast.ElementReference{Name: &n}
+	return &ast.ElementReference{Name: &ast.ElementName{Name: name, Position: &pos}}
 }

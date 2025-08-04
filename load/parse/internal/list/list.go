@@ -28,12 +28,13 @@ func BracketList[T comparable](singular, plural string, elemFunc parser.Func[T])
 
 func list[T comparable](singular, plural string, opening, closing rune, elemFunc parser.Func[T]) parser.Func[*List[T]] {
 	return func(p *parser.Parser) *List[T] {
-		var l List[T]
-
-		l.Open = parser.TryRuneAt(p, opening)
-		if l.Open == nil {
+		open := parser.TryRuneAt(p, opening)
+		if open == nil {
 			return nil
 		}
+
+		var l List[T]
+		l.Open = open
 
 		var zero T
 

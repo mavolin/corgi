@@ -13,27 +13,25 @@ import (
 
 func ComponentArgument() parser.Func[*ast.ComponentArgument] {
 	return func(p *parser.Parser) *ast.ComponentArgument {
-		var arg ast.ComponentArgument
-
-		arg.Name = parser.TryOptional(p, golang.Identifier(), nil)
-		if arg.Name == nil {
+		name := parser.TryOptional(p, golang.Identifier(), nil)
+		if name == nil {
 			return nil
 		}
 		hasPreColonWS := parser.TrySkip(p, comment.OrHorizontalWhitespace())
-		arg.Colon = parser.TryOptionalRuneAt(p, ':', nil)
-		if arg.Colon == nil {
+		colon := parser.TryOptionalRuneAt(p, ':', nil)
+		if colon == nil {
 			return nil
 		}
 		hasPostColonWS := parser.TrySkip(p, comment.OrAnyWhitespace())
 
-		if arg.Name == nil && !hasPostColonWS {
+		if name == nil && !hasPostColonWS {
 			return nil
 		}
 
 		if !hasPostColonWS {
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "missing whitespace after colon",
-				Primary: quickanno.Expected(p, *arg.Colon, "a space, tab, or an inline block comment"),
+				Primary: quickanno.Expected(p, *colon, "a space, tab, or an inline block comment"),
 			})
 
 			// A string directly after the colon is one of two cases where we
@@ -45,9 +43,9 @@ func ComponentArgument() parser.Func[*ast.ComponentArgument] {
 
 		pos := p.Pos()
 		start := p.Index()
-		arg.Value = parser.Try(p, code.Expression(code.Regular))
-		if arg.Value == nil {
-			if arg.Name == nil { // only a colon
+		value := parser.Try(p, code.Expression(code.Regular))
+		if value == nil {
+			if name == nil { // only a colon
 				return nil
 			}
 
@@ -60,6 +58,11 @@ func ComponentArgument() parser.Func[*ast.ComponentArgument] {
 				Primary: quickanno.Expected(p, pos, "a value for the argument"),
 			})
 		}
+
+		var arg ast.ComponentArgument
+		arg.Name = name
+		arg.Colon = colon
+		arg.Value = value
 
 		if !hasPreColonWS && !hasPostColonWS {
 			// The only other way we can be sure this is not a named attribute,

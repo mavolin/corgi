@@ -45,8 +45,8 @@ func componentCallHeaderStub(p *parser.Parser) *ast.ComponentCallHeader {
 	if !parser.TryRune(p, '(') {
 		return nil
 	}
-	h.Arguments.RParen = p.PosPtr()
-	if !parser.TryRune(p, ')') {
+	h.Arguments.RParen = parser.TryRuneAt(p, ')')
+	if h.Arguments.RParen == nil {
 		return nil
 	}
 

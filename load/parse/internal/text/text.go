@@ -12,14 +12,16 @@ import (
 
 func ArrowBlock() parser.Func[*ast.ArrowBlock] {
 	return func(p *parser.Parser) *ast.ArrowBlock {
-		var b ast.ArrowBlock
 		refCol := p.Col()
 
-		b.Arrow = parser.TryRuneAt(p, '>')
-		if b.Arrow == nil {
+		arrow := parser.TryRuneAt(p, '>')
+		if arrow == nil {
 			return nil
 		}
 		parser.TrySkip(p, whitespace.Horizontal())
+
+		var b ast.ArrowBlock
+		b.Arrow = arrow
 
 		for {
 			line := parser.Try(p, Line('\n'))
@@ -71,19 +73,18 @@ func Node(term rune) parser.Func[ast.TextNode] {
 
 func Text(term rune) parser.Func[*ast.Text] {
 	return func(p *parser.Parser) *ast.Text {
-		var t ast.Text
-		t.Position = p.PosPtr()
+		pos := p.Pos()
 
-		t.Text = parser.TokenWhile(p, func() bool {
+		text := parser.TokenWhile(p, func() bool {
 			return !parser.MatchesAnyRune(p, term, '\r', '\n') &&
 				(parser.Matches(p, interpolation.UnambiguousHash()) || !parser.MatchesAnyRune(p, '#'))
 		})
-		t.Text = strings.TrimRight(t.Text, " \t")
-		if t.Text == "" {
+		text = strings.TrimRight(text, " \t")
+		if text == "" {
 			return nil
 		}
 
-		return &t
+		return &ast.Text{Text: text, Position: &pos}
 	}
 }
 
@@ -123,17 +124,16 @@ func VerbatimNode(term rune) parser.Func[ast.TextNode] {
 // The only exception are escaped right brackets.
 func VerbatimText(term rune) parser.Func[*ast.Text] {
 	return func(p *parser.Parser) *ast.Text {
-		var t ast.Text
-		t.Position = p.PosPtr()
+		pos := p.Pos()
 
-		t.Text = parser.TokenWhile(p, func() bool {
+		text := parser.TokenWhile(p, func() bool {
 			return !parser.MatchesAnyRune(p, term, '\r', '\n') && !parser.MatchesToken(p, "#]")
 		})
-		t.Text = strings.TrimRight(t.Text, " \t")
-		if t.Text == "" {
+		text = strings.TrimRight(text, " \t")
+		if text == "" {
 			return nil
 		}
 
-		return &t
+		return &ast.Text{Text: text, Position: &pos}
 	}
 }

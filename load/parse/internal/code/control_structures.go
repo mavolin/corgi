@@ -15,13 +15,13 @@ import (
 
 func Conditional() parser.Func[*ast.Conditional] {
 	return func(p *parser.Parser) *ast.Conditional {
-		var c ast.Conditional
-
-		c.If = parser.Try(p, If())
-		if c.If == nil {
+		ifNode := parser.Try(p, If())
+		if ifNode == nil {
 			return nil
 		}
 
+		var c ast.Conditional
+		c.If = ifNode
 		c.ElseIfs = parser.Collect(p, ElseIf(), 24, comment.OrAnyWhitespace())
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 		c.Else = parser.Try(p, Else())
@@ -32,13 +32,13 @@ func Conditional() parser.Func[*ast.Conditional] {
 
 func If() parser.Func[*ast.If] {
 	return func(p *parser.Parser) *ast.If {
-		var i ast.If
-
-		i.If = parser.TryKeywordAt(p, "if", comment.OrAnyWhitespace())
-		if i.If == nil {
+		ifKw := parser.TryKeywordAt(p, "if", comment.OrAnyWhitespace())
+		if ifKw == nil {
 			return nil
 		}
 
+		var i ast.If
+		i.If = ifKw
 		i.Header = parser.Try(p, IfHeader())
 		if i.Header == nil {
 			return nil
@@ -55,14 +55,15 @@ func If() parser.Func[*ast.If] {
 
 func ElseIf() parser.Func[*ast.ElseIf] {
 	return func(p *parser.Parser) *ast.ElseIf {
-		var ei ast.ElseIf
-
-		ei.Else = parser.TryKeywordAt(p, "else", comment.OrAnyWhitespace())
-		ei.If = parser.TryKeywordAt(p, "if", comment.OrAnyWhitespace())
-		if ei.Else == nil || ei.If == nil {
+		elseKw := parser.TryKeywordAt(p, "else", comment.OrAnyWhitespace())
+		ifKw := parser.TryKeywordAt(p, "if", comment.OrAnyWhitespace())
+		if elseKw == nil || ifKw == nil {
 			return nil
 		}
 
+		var ei ast.ElseIf
+		ei.Else = elseKw
+		ei.If = ifKw
 		ei.Header = parser.Try(p, IfHeader())
 		if ei.Header == nil {
 			return nil
@@ -79,13 +80,13 @@ func ElseIf() parser.Func[*ast.ElseIf] {
 
 func Else() parser.Func[*ast.Else] {
 	return func(p *parser.Parser) *ast.Else {
-		var e ast.Else
-
-		e.Else = parser.TryKeywordAt(p, "else", comment.OrAnyWhitespace())
-		if e.Else == nil {
+		elseKw := parser.TryKeywordAt(p, "else", comment.OrAnyWhitespace())
+		if elseKw == nil {
 			return nil
 		}
 
+		var e ast.Else
+		e.Else = elseKw
 		e.Then = parser.Try(p, body.Body())
 		if e.Then == nil {
 			return nil
@@ -124,13 +125,13 @@ func IfHeader() parser.Func[*ast.IfHeader] {
 
 func Switch() parser.Func[*ast.Switch] {
 	return func(p *parser.Parser) *ast.Switch {
-		var s ast.Switch
-
-		s.Switch = parser.TryKeywordAt(p, "switch", comment.OrAnyWhitespace())
-		if s.Switch == nil {
+		switchKw := parser.TryKeywordAt(p, "switch", comment.OrAnyWhitespace())
+		if switchKw == nil {
 			return nil
 		}
 
+		var s ast.Switch
+		s.Switch = switchKw
 		s.Comparator = parser.TryOptional(p, SimpleStatement(BodyFollows), comment.OrHorizontalWhitespace())
 
 		s.LBrace = parser.TryRuneAt(p, '{')
@@ -160,10 +161,9 @@ func Switch() parser.Func[*ast.Switch] {
 		}
 		if len(annos) > 0 {
 			p.CaptureError(&diagnostic.Diagnostic{
-				Message: "switch: multiple default cases",
-				Primary: slices.Clip(annos),
-				Explanation: "A switch statement can only have one default case. " +
-					"Remove all but one default case.",
+				Message:     "switch: multiple default cases",
+				Primary:     slices.Clip(annos),
+				Explanation: "A switch statement can only have one default case. Remove all but one default case.",
 			})
 		}
 
@@ -198,12 +198,13 @@ func SwitchCase() parser.Func[*ast.Case] {
 
 func Case() parser.Func[*ast.Case] {
 	return func(p *parser.Parser) *ast.Case {
-		var c ast.Case
-
-		c.Case = parser.TryKeywordAt(p, "case", comment.OrAnyWhitespace())
-		if c.Case == nil {
+		caseKw := parser.TryKeywordAt(p, "case", comment.OrAnyWhitespace())
+		if caseKw == nil {
 			return nil
 		}
+
+		var c ast.Case
+		c.Case = caseKw
 
 		c.Expression = parser.Try(p, Expression(Regular))
 		if c.Expression == nil {
@@ -228,12 +229,13 @@ func Case() parser.Func[*ast.Case] {
 
 func Default() parser.Func[*ast.Case] {
 	return func(p *parser.Parser) *ast.Case {
-		var c ast.Case
-
-		c.Default = parser.TryKeywordAt(p, "default", comment.OrAnyWhitespace())
-		if c.Default == nil {
+		defaultKw := parser.TryKeywordAt(p, "default", comment.OrAnyWhitespace())
+		if defaultKw == nil {
 			return nil
 		}
+
+		var c ast.Case
+		c.Default = defaultKw
 
 		c.Colon = parser.TryOptionalRuneAt(p, ':', comment.OrAnyWhitespace())
 		if c.Colon == nil {
@@ -278,12 +280,13 @@ func CaseBody() parser.Func[[]ast.ScopeNode] {
 
 func For() parser.Func[*ast.For] {
 	return func(p *parser.Parser) *ast.For {
-		var f ast.For
-
-		f.For = parser.TryKeywordAt(p, "for", comment.OrAnyWhitespace())
-		if f.For == nil {
+		forKw := parser.TryKeywordAt(p, "for", comment.OrAnyWhitespace())
+		if forKw == nil {
 			return nil
 		}
+
+		var f ast.For
+		f.For = forKw
 		f.Header = parser.Try(p, ForHeader())
 
 		err := unexpected.UntilAnyRune(p, comment.OrHorizontalWhitespace(), '{', '[')
@@ -328,11 +331,11 @@ func ForConditionHeader() parser.Func[*ast.ForConditionHeader] {
 
 func ForClauseHeader() parser.Func[*ast.ForClauseHeader] {
 	return func(p *parser.Parser) *ast.ForClauseHeader {
-		var h ast.ForClauseHeader
-
 		if parser.MatchesAnyRune(p, '{', '[') {
 			return nil
 		}
+
+		var h ast.ForClauseHeader
 
 		h.Init = parser.TryOptional(p, SimpleStatement(BodyFollows), nil)
 		if matches := parser.Try(p, comment.AndEOS()); !matches {

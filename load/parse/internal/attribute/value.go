@@ -32,12 +32,13 @@ func ExpressionValue() parser.Func[*ast.ExpressionAttributeValue] {
 
 func TypedAttributeValue() parser.Func[*ast.TypedAttributeValue] {
 	return func(p *parser.Parser) *ast.TypedAttributeValue {
-		var v ast.TypedAttributeValue
-
-		v.Type = parser.Try(p, Type())
-		if v.Type == nil {
+		attrType := parser.Try(p, Type())
+		if attrType == nil {
 			return nil
 		}
+
+		var v ast.TypedAttributeValue
+		v.Type = attrType
 
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 

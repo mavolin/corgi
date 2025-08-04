@@ -14,32 +14,26 @@ import (
 
 func IDShorthand() parser.Func[*ast.IDShorthand] {
 	return func(p *parser.Parser) *ast.IDShorthand {
-		var s ast.IDShorthand
-
-		s.Hash = parser.TryRuneAt(p, '#')
-		if s.Hash == nil {
+		hash := parser.TryRuneAt(p, '#')
+		if hash == nil {
 			return nil
 		}
 
+		var s ast.IDShorthand
+		s.Hash = hash
 		s.ID = parser.Try(p, Shorthand())
 		if s.ID == nil {
-			p.CaptureError(&diagnostic.Diagnostic{
-				Message:  "id shorthand: missing id",
-				Primary:  quickanno.Expected(p, p.Pos(), "an id"),
-				Examples: []diagnostic.Example{{Example: "`#woof`"}},
-			})
 			return nil
 		}
+
 		return &s
 	}
 }
 
 func ClassShorthand() parser.Func[*ast.ClassShorthand] {
 	return func(p *parser.Parser) *ast.ClassShorthand {
-		var s ast.ClassShorthand
-
-		s.Dot = parser.TryRuneAt(p, '.')
-		if s.Dot == nil {
+		dot := parser.TryRuneAt(p, '.')
+		if dot == nil {
 			return nil
 		}
 
@@ -52,6 +46,9 @@ func ClassShorthand() parser.Func[*ast.ClassShorthand] {
 			})
 			return nil
 		}
+
+		var s ast.ClassShorthand
+		s.Dot = dot
 		s.Names = make([]ast.Shorthand, 1, 16)
 		s.Names[0] = name0
 
@@ -91,18 +88,20 @@ func ShorthandNode() parser.Func[ast.ShorthandNode] {
 
 func ShorthandText() parser.Func[*ast.ShorthandText] {
 	return func(p *parser.Parser) *ast.ShorthandText {
-		var txt ast.ShorthandText
-		txt.Position = p.PosPtr()
+		pos := p.Pos()
 
-		txt.Text = parser.TokenWhile(p, func() bool {
+		text := parser.TokenWhile(p, func() bool {
 			return !parser.MatchesWS(p, whitespace.Any()) && !parser.MatchesAnyRune(p, '#', ',', ')') &&
 				// https://html.spec.whatwg.org/multipage/common-microsyntaxes.html#set-of-space-separated-tokens
 				!codepoint.MatchesAny(p, codepoint.ASCIIWhitespace) // includes FF
 		})
-		if txt.Text == "" {
+		if text == "" {
 			return nil
 		}
 
+		var txt ast.ShorthandText
+		txt.Position = &pos
+		txt.Text = text
 		return &txt
 	}
 }

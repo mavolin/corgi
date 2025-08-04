@@ -12,13 +12,14 @@ import (
 
 func String() parser.Func[*ast.String] {
 	return func(p *parser.Parser) *ast.String {
-		var s ast.String
-		s.Open = p.PosPtr()
-
+		pos := p.Pos()
 		q := parser.TryAnyRune(p, '"', '`')
 		if q == 0 {
 			return nil
 		}
+
+		var s ast.String
+		s.Open = &pos
 		s.Quote = byte(q)
 
 		if s.Quote == '"' {
@@ -71,24 +72,24 @@ func StringNode(quote byte) parser.Func[ast.StringNode] {
 
 func StringText(quote byte) parser.Func[*ast.StringText] {
 	return func(p *parser.Parser) *ast.StringText {
-		var t ast.StringText
-		t.Position = p.PosPtr()
+		pos := p.Pos()
 
+		var text string
 		if p.Inline() {
-			t.Text = parser.TokenWhile(p, func() bool {
+			text = parser.TokenWhile(p, func() bool {
 				return !parser.MatchesAnyRune(p, '#', '\n', rune(quote)) ||
 					parser.Matches(p, interpolation.UnambiguousHash())
 			})
 		} else {
-			t.Text = parser.TokenWhile(p, func() bool {
+			text = parser.TokenWhile(p, func() bool {
 				return !parser.MatchesAnyRune(p, '#', rune(quote)) ||
 					parser.Matches(p, interpolation.UnambiguousHash())
 			})
 		}
-		if t.Text == "" {
+		if text == "" {
 			return nil
 		}
 
-		return &t
+		return &ast.StringText{Text: text, Position: &pos}
 	}
 }

@@ -292,10 +292,8 @@ func goCode(o Options) parser.Func[*codeResult] {
 
 func BlockFunction() parser.Func[*ast.BlockFunction] {
 	return func(p *parser.Parser) *ast.BlockFunction {
-		var bf ast.BlockFunction
-
-		bf.Block = parser.TryTokenAt(p, "block")
-		if bf.Block == nil {
+		block := parser.TryTokenAt(p, "block")
+		if block == nil {
 			return nil
 		}
 
@@ -306,6 +304,8 @@ func BlockFunction() parser.Func[*ast.BlockFunction] {
 			return nil
 		}
 
+		var bf ast.BlockFunction
+		bf.Block = block
 		bf.LParen, bf.RParen = l.Open, l.Close
 
 		if len(l.Elems) > 0 {
@@ -327,10 +327,8 @@ func BlockFunction() parser.Func[*ast.BlockFunction] {
 
 func Ternary() parser.Func[*ast.Ternary] {
 	return func(p *parser.Parser) *ast.Ternary {
-		var t ast.Ternary
-
-		t.QuestionMark = parser.TryRuneAt(p, '?')
-		if t.QuestionMark == nil {
+		questionMark := parser.TryRuneAt(p, '?')
+		if questionMark == nil {
 			return nil
 		}
 
@@ -341,7 +339,10 @@ func Ternary() parser.Func[*ast.Ternary] {
 			return nil
 		}
 
+		var t ast.Ternary
+		t.QuestionMark = questionMark
 		t.LParen, t.RParen = l.Open, l.Close
+
 		switch {
 		case len(l.Elems) == 0:
 			p.CaptureError(&diagnostic.Diagnostic{

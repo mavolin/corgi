@@ -18,12 +18,13 @@ import (
 
 func Declaration() parser.Func[*ast.StateDeclaration] {
 	return func(p *parser.Parser) *ast.StateDeclaration {
-		var d ast.StateDeclaration
-
-		d.State = parser.TryTokenAt(p, "state")
-		if d.State == nil {
+		state := parser.TryTokenAt(p, "state")
+		if state == nil {
 			return nil
 		}
+
+		var d ast.StateDeclaration
+		d.State = state
 
 		hasWS := parser.TrySkip(p, comment.OrAnyWhitespace())
 
@@ -86,12 +87,13 @@ func Declaration() parser.Func[*ast.StateDeclaration] {
 
 func Spec() parser.Func[*ast.StateSpec] {
 	return func(p *parser.Parser) *ast.StateSpec {
-		var s ast.StateSpec
-
-		s.Names = parser.Try(p, list.CommaList("state name", "state names", golang.Identifier()))
-		if s.Names == nil {
+		names := parser.Try(p, list.CommaList("state name", "state names", golang.Identifier()))
+		if names == nil {
 			return nil
 		}
+
+		var s ast.StateSpec
+		s.Names = names
 
 		var pos ast.Position
 		if parser.TrySkip(p, comment.OrHorizontalWhitespace()) {

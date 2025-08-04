@@ -12,12 +12,13 @@ import (
 
 func Scope() parser.Func[*ast.Scope] {
 	return func(p *parser.Parser) *ast.Scope {
-		var s ast.Scope
-
-		s.LBrace = parser.TryRuneAt(p, '{')
-		if s.LBrace == nil {
+		lBrace := parser.TryRuneAt(p, '{')
+		if lBrace == nil {
 			return nil
 		}
+
+		var s ast.Scope
+		s.LBrace = lBrace
 
 		s.Nodes = parser.Collect(p, ScopeNode(), 24, comment.OrAnyWhitespace())
 		parser.TrySkip(p, comment.OrAnyWhitespace())

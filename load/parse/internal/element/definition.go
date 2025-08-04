@@ -16,12 +16,13 @@ import (
 
 func Definition() parser.Func[*ast.ElementDefinition] {
 	return func(p *parser.Parser) *ast.ElementDefinition {
-		var def ast.ElementDefinition
-
-		def.Elem = parser.TryKeywordAt(p, "elem", comment.OrAnyWhitespace())
-		if def.Elem == nil {
+		elem := parser.TryKeywordAt(p, "elem", comment.OrAnyWhitespace())
+		if elem == nil {
 			return nil
 		}
+
+		var def ast.ElementDefinition
+		def.Elem = elem
 
 		beforePrefix := p.CloneState()
 		// technically '(' would be a valid element name, so check that we
@@ -88,27 +89,30 @@ func Definition() parser.Func[*ast.ElementDefinition] {
 
 func Spec() parser.Func[*ast.ElementSpec] {
 	return func(p *parser.Parser) *ast.ElementSpec {
-		var s ast.ElementSpec
-
-		s.Name = parser.TryOptional(p, Name(), comment.OrHorizontalWhitespace())
-		if s.Name == nil {
+		name := parser.TryOptional(p, Name(), comment.OrHorizontalWhitespace())
+		if name == nil {
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "element spec: missing element name",
 				Primary: quickanno.Expected(p, p.Pos(), "an element name"),
 			})
 		}
-		s.Type = parser.Try(p, Type())
-		if s.Type == nil {
+
+		typ := parser.Try(p, Type())
+		if typ == nil {
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "element spec: missing element type",
 				Primary: quickanno.Expected(p, p.Pos(), "an element type"),
 			})
 		}
 
-		if s.Name == nil && s.Type == nil {
+		if name == nil && typ == nil {
 			return nil
 		}
-		return &s
+
+		return &ast.ElementSpec{
+			Name: name,
+			Type: typ,
+		}
 	}
 }
 
@@ -136,13 +140,15 @@ func BasicType() parser.Func[*ast.BasicElementType] {
 
 func AliasType() parser.Func[*ast.AliasElementType] {
 	return func(p *parser.Parser) *ast.AliasElementType {
-		var t ast.AliasElementType
-
-		t.EqualSign = parser.TryRuneAt(p, '=')
-		if t.EqualSign == nil {
+		equalSign := parser.TryRuneAt(p, '=')
+		if equalSign == nil {
 			return nil
 		}
 		parser.TrySkip(p, comment.OrAnyWhitespace())
+
+		var t ast.AliasElementType
+		t.EqualSign = equalSign
+
 		pos := p.Pos()
 		t.Name = parser.Try(p, Reference())
 		if t.Name == nil {
@@ -155,19 +161,23 @@ func AliasType() parser.Func[*ast.AliasElementType] {
 				},
 			})
 		}
+
 		return &t
 	}
 }
 
 func TypeName() parser.Func[*ast.ElementTypeName] {
 	return func(p *parser.Parser) *ast.ElementTypeName {
-		var n ast.ElementTypeName
-		n.Position = p.PosPtr()
+		pos := p.Pos()
 
 		name := parser.Try(p, golang.Identifier())
 		if name == nil {
 			return nil
 		}
+
+		var n ast.ElementTypeName
+		n.Position = &pos
+
 		n.Name = name.Name
 		switch name.Name {
 		case "void":

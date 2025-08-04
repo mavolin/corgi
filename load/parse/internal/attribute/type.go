@@ -13,15 +13,13 @@ import (
 
 func Type() parser.Func[*ast.AttributeType] {
 	return func(p *parser.Parser) *ast.AttributeType {
-		var t ast.AttributeType
-
-		t.Quote = parser.TryRuneAt(p, '\'')
-		if t.Quote == nil {
+		quote := parser.TryRuneAt(p, '\'')
+		if quote == nil {
 			return nil
 		}
 
-		t.Name = parser.Try(p, TypeName())
-		if t.Name == nil {
+		name := parser.Try(p, TypeName())
+		if name == nil {
 			return nil
 		}
 
@@ -31,6 +29,10 @@ func Type() parser.Func[*ast.AttributeType] {
 		if parser.MatchesToken(p, "'") {
 			return nil
 		}
+
+		var t ast.AttributeType
+		t.Quote = quote
+		t.Name = name
 
 		t.LBracket = parser.TryRuneAt(p, '[')
 		if t.LBracket == nil {
@@ -70,13 +72,15 @@ func Type() parser.Func[*ast.AttributeType] {
 
 func TypeName() parser.Func[*ast.AttributeTypeName] {
 	return func(p *parser.Parser) *ast.AttributeTypeName {
-		var n ast.AttributeTypeName
-		n.Position = p.PosPtr()
+		pos := p.Pos()
 
 		ident := parser.Try(p, golang.Identifier())
 		if ident == nil {
 			return nil
 		}
+
+		var n ast.AttributeTypeName
+		n.Position = &pos
 		n.Name = ident.Name
 
 		switch n.Name {

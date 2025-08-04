@@ -14,37 +14,37 @@ import (
 
 func PackageDirective() parser.Func[*ast.PackageDirective] {
 	return func(p *parser.Parser) *ast.PackageDirective {
-		var d ast.PackageDirective
-
-		d.Package = parser.TryKeywordAt(p, "package", comment.OrAnyWhitespace())
-		if d.Package == nil {
+		pkg := parser.TryKeywordAt(p, "package", comment.OrAnyWhitespace())
+		if pkg == nil {
 			return nil
 		}
 
-		d.Name = parser.Try(p, golang.Identifier())
-		if d.Name == nil {
+		name := parser.Try(p, golang.Identifier())
+		if name == nil {
 			return nil
 		}
-		return &d
+
+		return &ast.PackageDirective{Package: pkg, Name: name}
 	}
 }
 
 func Import() parser.Func[*ast.Import] {
 	return func(p *parser.Parser) *ast.Import {
-		var imp ast.Import
-
-		imp.Import = p.PosPtr()
-		if !parser.TryToken(p, "import") {
+		pos := parser.TryTokenAt(p, "import")
+		if pos == nil {
 			return nil
 		}
 
 		hasWS := parser.TrySkip(p, comment.OrAnyWhitespace())
 
-		imp.LParen = parser.TryOptionalRuneAt(p, '(', nil)
-		if imp.LParen == nil {
+		lParen := parser.TryOptionalRuneAt(p, '(', nil)
+		if lParen == nil {
 			if !hasWS {
 				return nil
 			}
+
+			var imp ast.Import
+			imp.Import = pos
 
 			spec := parser.Try(p, ImportSpec())
 			if spec != nil {
@@ -58,6 +58,10 @@ func Import() parser.Func[*ast.Import] {
 			}
 			return &imp
 		}
+
+		var imp ast.Import
+		imp.Import = pos
+		imp.LParen = lParen
 
 		for {
 			parser.TrySkip(p, comment.OrAnyWhitespace())
@@ -96,12 +100,10 @@ func Import() parser.Func[*ast.Import] {
 
 func ImportSpec() parser.Func[*ast.ImportSpec] {
 	return func(p *parser.Parser) *ast.ImportSpec {
-		var spec ast.ImportSpec
-
-		spec.Alias = parser.TryOptional(p, golang.Identifier(), comment.OrHorizontalWhitespace())
-		spec.Path = parser.Try(p, golang.StringLit())
-		if spec.Path == nil {
-			if spec.Alias == nil {
+		alias := parser.TryOptional(p, golang.Identifier(), comment.OrHorizontalWhitespace())
+		path := parser.Try(p, golang.StringLit())
+		if path == nil {
+			if alias == nil {
 				return nil
 			}
 			p.CaptureError(&diagnostic.Diagnostic{
@@ -110,6 +112,6 @@ func ImportSpec() parser.Func[*ast.ImportSpec] {
 			})
 		}
 
-		return &spec
+		return &ast.ImportSpec{Alias: alias, Path: path}
 	}
 }

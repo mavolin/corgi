@@ -10,12 +10,13 @@ import (
 
 func BracketText() parser.Func[*ast.BracketText] {
 	return func(p *parser.Parser) *ast.BracketText {
-		var bt ast.BracketText
-
-		bt.LBracket = parser.TryRuneAt(p, '[')
-		if bt.LBracket == nil {
+		lBracket := parser.TryRuneAt(p, '[')
+		if lBracket == nil {
 			return nil
 		}
+
+		var bt ast.BracketText
+		bt.LBracket = lBracket
 
 		bt.Lines = parser.Collect(p, textLine(']'), 24, whitespace.Any())
 
@@ -38,12 +39,13 @@ func BracketText() parser.Func[*ast.BracketText] {
 // The only exception are HashBrackets.
 func VerbatimBracketText() parser.Func[*ast.BracketText] {
 	return func(p *parser.Parser) *ast.BracketText {
-		var bt ast.BracketText
-
-		bt.LBracket = parser.TryRuneAt(p, '[')
-		if bt.LBracket == nil {
+		lBracket := parser.TryRuneAt(p, '[')
+		if lBracket == nil {
 			return nil
 		}
+
+		var bt ast.BracketText
+		bt.LBracket = lBracket
 
 		bt.Lines = parser.Collect(p, verbatimTextLine(']'), 24, whitespace.Any())
 
