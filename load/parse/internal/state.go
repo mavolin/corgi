@@ -44,38 +44,13 @@ func (s *State) advance(size uint32, isNL bool) {
 	s.index += size
 }
 
-// commitWS commits the whitespace, preventing rollback.
-func (s *State) commitWS() {
-	if !s.parsingWS {
-		s.ws = nil
-	}
-}
-
-func (s *State) markWSStart(start *State) {
-	if s.ws != nil {
-		return
-	}
-	s.ws = start
-}
-
-func (s *State) takeWSStart(p *pool[State]) *State {
-	if s.ws == nil || s.parsingWS {
-		return s.Clone(p)
-	}
-	wsStart := s.ws
-	s.ws = nil
-	return wsStart
-}
-
-func (s *State) Clone(p *pool[State]) *State {
-	s2 := p.Get()
-	s2.line = s.line
-	s2.col = s.col
-	s2.index = s.index
-	s2.errLen = s.errLen
-	s2.commentLen = s.commentLen
-	s2.ws = s.ws
-	s2.inline = s.inline
-	s2.parsingWS = s.parsingWS
-	return s2
+func (s *State) Copy(into *State) {
+	into.ws = s.ws
+	into.index = s.index
+	into.line = s.line
+	into.col = s.col
+	into.commentLen = s.commentLen
+	into.errLen = s.errLen
+	into.inline = s.inline
+	into.parsingWS = s.parsingWS
 }

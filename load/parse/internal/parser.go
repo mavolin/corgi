@@ -157,7 +157,9 @@ func (p *Parser) CaptureComment(g *ast.CommentGroup) {
 }
 
 func (p *Parser) CloneState() *State {
-	return p.state.Clone(&p.statePool)
+	s := p.statePool.Get()
+	p.state.Copy(s)
+	return s
 }
 
 func (p *Parser) RestoreState(s *State) {
@@ -167,8 +169,27 @@ func (p *Parser) RestoreState(s *State) {
 	p.comments = p.comments[:p.state.commentLen]
 }
 
+// commitWS commits the whitespace, preventing rollback.
+func (p *Parser) commitWS() {
+	if !p.state.parsingWS {
+		p.state.ws = nil
+	}
+}
+
+func (p *Parser) markWSStart(start *State) {
+	if p.state.ws != nil {
+		return
+	}
+	p.state.ws = start
+}
+
 func (p *Parser) takeWSStart() *State {
-	return p.state.takeWSStart(&p.statePool)
+	if p.state.ws == nil || p.state.parsingWS {
+		return p.CloneState()
+	}
+	wsStart := p.state.ws
+	p.state.ws = nil
+	return wsStart
 }
 
 type (
@@ -287,7 +308,7 @@ func TryInOrder[T any](p *Parser, fs ...Func[T]) T {
 func TrySkip(p *Parser, f WhitespaceFunc) bool {
 	restore := p.CloneState()
 	if !p.state.parsingWS {
-		p.state.markWSStart(restore)
+		p.markWSStart(restore)
 		p.state.parsingWS = true
 		defer func() { p.state.parsingWS = false }()
 	}
@@ -300,7 +321,7 @@ func TrySkip(p *Parser, f WhitespaceFunc) bool {
 }
 
 func CommitWS(p *Parser) {
-	p.state.commitWS()
+	p.commitWS()
 }
 
 // RestoreWS restores all whitespace consumed by the last calls to [TrySkip]
