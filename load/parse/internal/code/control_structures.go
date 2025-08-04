@@ -22,7 +22,7 @@ func Conditional() parser.Func[*ast.Conditional] {
 
 		var c ast.Conditional
 		c.If = ifNode
-		c.ElseIfs = parser.Collect(p, ElseIf(), 24, comment.OrAnyWhitespace())
+		c.ElseIfs = parser.Collect(p, ElseIf(), comment.OrAnyWhitespace())
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 		c.Else = parser.Try(p, Else())
 
@@ -143,21 +143,14 @@ func Switch() parser.Func[*ast.Switch] {
 			return &s
 		}
 		parser.TrySkip(p, comment.OrAnyWhitespace())
-		s.Cases = parser.Collect(p, SwitchCase(), 24, comment.OrAnyWhitespace())
+		s.Cases = parser.Collect(p, SwitchCase(), comment.OrAnyWhitespace())
 
-		annos := make([]diagnostic.Annotation, 0, len(s.Cases))
+		var annos []diagnostic.Annotation
 		for _, c := range s.Cases {
 			if c.Default == nil {
 				continue
 			}
-			switch len(annos) {
-			case 0:
-				annos = append(annos, anno.NRunes(p.File, *c.Default, len("default"), "first default case"))
-			case 1:
-				annos = append(annos, anno.NRunes(p.File, *c.Default, len("default"), "second default case"))
-			default:
-				annos[1] = anno.NRunes(p.File, *c.Default, len("default"), "another default case")
-			}
+			annos = append(annos, anno.Node(p.File, c, "here"))
 		}
 		if len(annos) > 0 {
 			p.CaptureError(&diagnostic.Diagnostic{
@@ -252,7 +245,7 @@ func Default() parser.Func[*ast.Case] {
 
 func CaseBody() parser.Func[[]ast.ScopeNode] {
 	return func(p *parser.Parser) []ast.ScopeNode {
-		ns := make([]ast.ScopeNode, 0, 64)
+		var ns []ast.ScopeNode
 		for {
 			stop := parser.Matches(p, func(p *parser.Parser) bool {
 				if parser.TryKeywordAt(p, "case", comment.OrAnyWhitespace()) != nil {
@@ -273,6 +266,9 @@ func CaseBody() parser.Func[[]ast.ScopeNode] {
 			}
 			ns = append(ns, n)
 			parser.TrySkip(p, comment.OrAnyWhitespace())
+		}
+		if len(ns) == 0 {
+			return []ast.ScopeNode{}
 		}
 		return slices.Clip(ns)
 	}

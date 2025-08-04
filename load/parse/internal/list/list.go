@@ -130,8 +130,7 @@ func CommaList[T comparable](singular, plural string, elemFunc parser.Func[T]) p
 				return nil
 			}
 		}
-		elems := make([]T, 1, 32)
-		elems[0] = elem0
+		elems := []T{elem0}
 
 		for {
 			parser.TrySkip(p, comment.OrHorizontalWhitespace())

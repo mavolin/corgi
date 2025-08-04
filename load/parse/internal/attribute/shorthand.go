@@ -49,8 +49,7 @@ func ClassShorthand() parser.Func[*ast.ClassShorthand] {
 
 		var s ast.ClassShorthand
 		s.Dot = dot
-		s.Names = make([]ast.Shorthand, 1, 16)
-		s.Names[0] = name0
+		s.Names = []ast.Shorthand{name0}
 
 		for parser.TrySkip(p, whitespace.Horizontal()) {
 			name := parser.Try(p, Shorthand())
@@ -67,7 +66,7 @@ func ClassShorthand() parser.Func[*ast.ClassShorthand] {
 
 func Shorthand() parser.Func[ast.Shorthand] {
 	return func(p *parser.Parser) ast.Shorthand {
-		s := parser.Collect(p, ShorthandNode(), 16, nil)
+		s := parser.Collect(p, ShorthandNode(), nil)
 		if len(s) == 0 {
 			return nil
 		}

@@ -117,7 +117,7 @@ func File() parser.Func[struct{}] {
 				Examples: []diagnostic.Example{{Example: "`package main`"}},
 			})
 		}
-		p.AST.Imports = parser.Collect(p, Import(), 8, comment.OrAnyWhitespace())
+		p.AST.Imports = parser.Collect(p, Import(), comment.OrAnyWhitespace())
 		for _, imp := range p.AST.Imports {
 			for _, spec := range imp.Specs {
 				if spec.Path != nil {

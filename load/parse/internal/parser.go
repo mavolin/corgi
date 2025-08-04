@@ -332,8 +332,8 @@ func RestoreWS(p *Parser) {
 	}
 }
 
-func Collect[T any](p *Parser, f Func[T], capacity int, ws WhitespaceFunc) []T {
-	ts := make([]T, 0, capacity)
+func Collect[T any](p *Parser, f Func[T], ws WhitespaceFunc) []T {
+	var ts []T
 	for {
 		if ws != nil {
 			TrySkip(p, ws)

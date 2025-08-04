@@ -33,8 +33,6 @@ func String() parser.Func[*ast.String] {
 }
 
 func stringContents(p *parser.Parser, s *ast.String) {
-	s.Contents = make([]ast.StringNode, 0, 6)
-
 	for {
 		if parser.MatchesAnyRune(p, rune(s.Quote)) {
 			s.Close = parser.TryRuneAt(p, rune(s.Quote))

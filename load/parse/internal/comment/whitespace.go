@@ -177,7 +177,7 @@ func OrLoneWS() parser.WhitespaceFunc {
 			return hasWS
 		}
 
-		cs := make([]*ast.Comment, 0, 48)
+		var cs []*ast.Comment
 		for c != nil {
 			cs = append(cs, c)
 

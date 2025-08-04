@@ -371,7 +371,10 @@ type Case struct {
 	Then       []ScopeNode
 }
 
-var _ Node = (*Case)(nil)
+var (
+	_ Node        = (*Case)(nil)
+	_ Highlighter = (*Case)(nil)
+)
 
 func (c *Case) Start() Position {
 	switch {

@@ -122,7 +122,6 @@ func Ruleset() parser.Func[*ast.AttributeRuleset] {
 		var rs ast.AttributeRuleset
 		rs.LBrace = lBrace
 
-		rs.List = make([]*ast.AttributeRule, 0, 64)
 		for {
 			parser.TrySkip(p, comment.OrAnyWhitespace())
 			r := parser.TryOptional(p, Rule(), nil)

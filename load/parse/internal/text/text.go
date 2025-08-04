@@ -49,7 +49,7 @@ func ArrowBlock() parser.Func[*ast.ArrowBlock] {
 // Line parses a text line until the terminator rune or the EOL.
 func Line(term rune) parser.Func[ast.TextLine] {
 	return func(p *parser.Parser) ast.TextLine {
-		l := parser.Collect(p, Node(term), 8, nil)
+		l := parser.Collect(p, Node(term), nil)
 		if len(l) == 0 {
 			return nil
 		}
@@ -94,7 +94,7 @@ func Text(term rune) parser.Func[*ast.Text] {
 // The only exception are HashBrackets.
 func VerbatimLine(term rune) parser.Func[ast.TextLine] {
 	return func(p *parser.Parser) ast.TextLine {
-		l := parser.Collect(p, VerbatimNode(term), 8, nil)
+		l := parser.Collect(p, VerbatimNode(term), nil)
 		if len(l) == 0 {
 			return nil
 		}

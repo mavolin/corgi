@@ -526,7 +526,6 @@ func ConstDeclaration() parser.Func[*ast.ConstDeclaration] {
 			return &d
 		}
 
-		d.Specs = make([]*ast.ConstSpec, 0, 18)
 		for {
 			parser.TrySkip(p, comment.OrAnyWhitespace())
 
@@ -719,7 +718,6 @@ func VarDeclaration() parser.Func[*ast.VarDeclaration] {
 			return &d
 		}
 
-		d.Specs = make([]*ast.VarSpec, 0, 18)
 		for {
 			parser.TrySkip(p, comment.OrAnyWhitespace())
 

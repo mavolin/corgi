@@ -18,7 +18,7 @@ func BracketText() parser.Func[*ast.BracketText] {
 		var bt ast.BracketText
 		bt.LBracket = lBracket
 
-		bt.Lines = parser.Collect(p, textLine(']'), 24, whitespace.Any())
+		bt.Lines = parser.Collect(p, textLine(']'), whitespace.Any())
 
 		parser.TrySkip(p, whitespace.Any())
 		bt.RBracket = parser.TryRuneAt(p, ']')
@@ -47,7 +47,7 @@ func VerbatimBracketText() parser.Func[*ast.BracketText] {
 		var bt ast.BracketText
 		bt.LBracket = lBracket
 
-		bt.Lines = parser.Collect(p, verbatimTextLine(']'), 24, whitespace.Any())
+		bt.Lines = parser.Collect(p, verbatimTextLine(']'), whitespace.Any())
 
 		parser.TrySkip(p, whitespace.Any())
 		bt.RBracket = parser.TryRuneAt(p, ']')
