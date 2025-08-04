@@ -8,7 +8,7 @@ type (
 	State struct {
 		ws *State
 
-		index     int
+		index     uint32
 		line, col uint16
 
 		commentLen uint16
@@ -31,10 +31,10 @@ func (s *State) Pos() ast.Position {
 	return ast.Position{Line: int(s.line), Col: int(s.col)}
 }
 
-func (s *State) Index() int       { return s.index }
+func (s *State) Index() int       { return int(s.index) }
 func (s *State) NumErrors() uint8 { return s.errLen }
 
-func (s *State) advance(size int, isNL bool) {
+func (s *State) advance(size uint32, isNL bool) {
 	if isNL {
 		s.line++
 		s.col = 1

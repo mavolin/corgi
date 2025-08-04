@@ -86,7 +86,7 @@ func (p *Parser) next() rune {
 	}
 
 	r, size := utf8.DecodeRuneInString(p.AST.Raw[p.Index():])
-	p.state.advance(size, r == '\n')
+	p.state.advance(uint32(size), r == '\n') //nolint:gosec
 	return r
 }
 
