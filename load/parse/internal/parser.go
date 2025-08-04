@@ -308,13 +308,22 @@ func TrySkip(p *Parser, f WhitespaceFunc) bool {
 	if !p.state.parsingWS {
 		p.markWSStart(restore)
 		p.state.parsingWS = true
-		defer func() { p.state.parsingWS = false }()
+
+		matches := f(p)
+		if !matches {
+			p.RestoreState(restore)
+		}
+
+		p.state.parsingWS = false
+		return matches
 	}
 
 	if !f(p) {
 		p.RestoreState(restore)
 		return false
 	}
+
+	p.statePool.Put(restore)
 	return true
 }
 
