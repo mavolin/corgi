@@ -22,7 +22,7 @@ type Options struct {
 	Preloader func(importPath string)
 }
 
-// Parse parses the given input file and returns a [file.File] with its AST set.
+// Parse parses the given input and returns a [file.File] with its AST set.
 // The remaining fields of the returned file are left empty and are expected to
 // be set by the caller.
 //
@@ -32,6 +32,7 @@ type Options struct {
 // syntax errors.
 // Therefore, Parse may return both a non-nil file and an error, indicating
 // that the passed input is erroneous, but could be recovered from.
+// The number of errors is capped at 255, additional errors are discarded.
 func Parse(input string, o Options) (*file.File, diagnostic.List) {
 	lines := strings.Split(input, "\n")
 	for i, line := range lines {
@@ -42,7 +43,7 @@ func Parse(input string, o Options) (*file.File, diagnostic.List) {
 	}
 
 	f := &file.File{
-		Name: "<string_input>",
+		Name: "<string input>",
 		AST: &ast.File{
 			Raw:   input,
 			Lines: lines,
