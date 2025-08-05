@@ -4,20 +4,15 @@ import (
 	"github.com/mavolin/corgi/v2/file/ast"
 )
 
-type (
-	State struct {
-		ws *State
+type State struct {
+	ws *State
 
-		index     uint32
-		line, col uint16
+	index     uint32
+	line, col uint16
 
-		commentLen uint16
-		errLen     uint8
-
-		inline    bool
-		parsingWS bool
-	}
-)
+	commentLen uint16
+	errLen     uint8
+}
 
 func newState() *State {
 	return &State{
@@ -51,6 +46,4 @@ func (s *State) Copy(into *State) {
 	into.col = s.col
 	into.commentLen = s.commentLen
 	into.errLen = s.errLen
-	into.inline = s.inline
-	into.parsingWS = s.parsingWS
 }

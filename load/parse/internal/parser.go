@@ -50,6 +50,9 @@ type Parser struct {
 
 	statePool pool[State]
 	posPool   pool[ast.Position]
+
+	inline    bool
+	parsingWS bool
 }
 
 type pool[T any] []*T
@@ -109,7 +112,7 @@ func (p *Parser) Line() uint16      { return p.state.line }
 func (p *Parser) Col() uint16       { return p.state.col }
 func (p *Parser) Pos() ast.Position { return p.state.Pos() }
 func (p *Parser) Index() int        { return p.state.Index() }
-func (p *Parser) Inline() bool      { return p.state.inline }
+func (p *Parser) Inline() bool      { return p.inline }
 
 func (p *Parser) pooledPosPtr() *ast.Position {
 	pos := p.posPool.Get()
@@ -122,14 +125,14 @@ func (p *Parser) PosPtr() *ast.Position {
 }
 
 func (p *Parser) DoInline(f func()) {
-	if p.state.inline {
+	if p.inline {
 		f()
 		return
 	}
 
-	p.state.inline = true
+	p.inline = true
 	f()
-	p.state.inline = false
+	p.inline = false
 }
 
 func (p *Parser) CaptureError(err *diagnostic.Diagnostic) {
@@ -171,7 +174,7 @@ func (p *Parser) RestoreState(s *State) {
 
 // commitWS commits the whitespace, preventing rollback.
 func (p *Parser) commitWS() {
-	if !p.state.parsingWS {
+	if !p.parsingWS {
 		p.state.ws = nil
 	}
 }
@@ -184,7 +187,7 @@ func (p *Parser) markWSStart(start *State) {
 }
 
 func (p *Parser) takeWSStart() *State {
-	if p.state.ws == nil || p.state.parsingWS {
+	if p.state.ws == nil || p.parsingWS {
 		return p.CloneState()
 	}
 	wsStart := p.state.ws
@@ -305,16 +308,16 @@ func TryInOrder[T any](p *Parser, fs ...Func[T]) T {
 // point.
 func TrySkip(p *Parser, f WhitespaceFunc) bool {
 	restore := p.CloneState()
-	if !p.state.parsingWS {
+	if !p.parsingWS {
 		p.markWSStart(restore)
-		p.state.parsingWS = true
+		p.parsingWS = true
 
 		matches := f(p)
 		if !matches {
 			p.RestoreState(restore)
 		}
 
-		p.state.parsingWS = false
+		p.parsingWS = false
 		return matches
 	}
 
@@ -334,7 +337,7 @@ func CommitWS(p *Parser) {
 // RestoreWS restores all whitespace consumed by the last calls to [TrySkip]
 // and friends.
 func RestoreWS(p *Parser) {
-	if p.state.ws != nil && !p.state.parsingWS {
+	if p.state.ws != nil && !p.parsingWS {
 		p.RestoreState(p.state.ws)
 	}
 }
