@@ -10,8 +10,8 @@ type State struct {
 	index     uint32
 	line, col uint16
 
-	commentLen uint16
-	errLen     uint8
+	numComments uint16
+	numErrs     uint8
 }
 
 func newState() *State {
@@ -27,7 +27,7 @@ func (s *State) Pos() ast.Position {
 }
 
 func (s *State) Index() int       { return int(s.index) }
-func (s *State) NumErrors() uint8 { return s.errLen }
+func (s *State) NumErrors() uint8 { return s.numErrs }
 
 func (s *State) advance(size uint32, isNL bool) {
 	if isNL {
@@ -40,10 +40,5 @@ func (s *State) advance(size uint32, isNL bool) {
 }
 
 func (s *State) Copy(into *State) {
-	into.ws = s.ws
-	into.index = s.index
-	into.line = s.line
-	into.col = s.col
-	into.commentLen = s.commentLen
-	into.errLen = s.errLen
+	*into = *s
 }

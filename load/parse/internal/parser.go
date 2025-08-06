@@ -114,6 +114,10 @@ func (p *Parser) Pos() ast.Position { return p.state.Pos() }
 func (p *Parser) Index() int        { return p.state.Index() }
 func (p *Parser) Inline() bool      { return p.inline }
 
+func (p *Parser) NumErrors() uint8              { return p.state.numErrs }
+func (p *Parser) Errors() diagnostic.List       { return slices.Clip(p.errs) }
+func (p *Parser) Comments() []*ast.CommentGroup { return p.comments }
+
 func (p *Parser) pooledPosPtr() *ast.Position {
 	pos := p.posPool.Get()
 	pos.Line, pos.Col = int(p.state.line), int(p.state.col)
@@ -121,7 +125,8 @@ func (p *Parser) pooledPosPtr() *ast.Position {
 }
 
 func (p *Parser) PosPtr() *ast.Position {
-	return &ast.Position{Line: int(p.state.line), Col: int(p.state.col)}
+	pos := p.Pos()
+	return &pos
 }
 
 func (p *Parser) DoInline(f func()) {
@@ -138,24 +143,14 @@ func (p *Parser) DoInline(f func()) {
 func (p *Parser) CaptureError(err *diagnostic.Diagnostic) {
 	if len(p.errs) < math.MaxUint8 {
 		p.errs = append(p.errs, err)
-		p.state.errLen = uint8(len(p.errs)) //nolint:gosec
+		p.state.numErrs = uint8(len(p.errs)) //nolint:gosec
 	}
-}
-
-func (p *Parser) Errors() diagnostic.List { return slices.Clip(p.errs) }
-
-func (p *Parser) NumErrors() uint8 {
-	return p.state.NumErrors()
-}
-
-func (p *Parser) Comments() []*ast.CommentGroup {
-	return p.comments
 }
 
 func (p *Parser) CaptureComment(g *ast.CommentGroup) {
 	if len(p.comments) < math.MaxUint16 {
 		p.comments = append(p.comments, g)
-		p.state.commentLen = uint16(len(p.comments)) //nolint:gosec
+		p.state.numComments = uint16(len(p.comments)) //nolint:gosec
 	}
 }
 
@@ -168,8 +163,8 @@ func (p *Parser) CloneState() *State {
 func (p *Parser) RestoreState(s *State) {
 	p.statePool.Put(p.state)
 	p.state = s
-	p.errs = p.errs[:p.state.NumErrors()]
-	p.comments = p.comments[:p.state.commentLen]
+	p.errs = p.errs[:p.state.numErrs]
+	p.comments = p.comments[:p.state.numComments]
 }
 
 // commitWS commits the whitespace, preventing rollback.
