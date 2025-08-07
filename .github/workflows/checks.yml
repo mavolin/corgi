@@ -3,7 +3,7 @@ on: [push]
 
 jobs:
   test:
-    name: Test
+    name: Check
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
