@@ -8,15 +8,21 @@ import (
 	"github.com/mavolin/corgi/v2/cmd/corgi/debug"
 	fmtcmd "github.com/mavolin/corgi/v2/cmd/corgi/fmt"
 	"github.com/mavolin/corgi/v2/cmd/corgi/help"
+	"github.com/mavolin/corgi/v2/cmd/corgi/version"
 )
 
-//goland:noinspection GoImportUsedAsName
-func main() {
-	command.Group(command.Meta{
+var (
+	meta = command.Meta{
 		Name: "corgi",
 		LongDescription: "The CLI for the corgi html templating language.\n" +
 			"\n" +
 			"GitHub: github.com/mavolin/corgi",
-	}, help.Command, fmtcmd.Command, compile.Command, debug.Group).
-		Run(os.Args[1:])
+	}
+
+	Group = command.Group(meta,
+		help.Command, compile.Command, debug.Group, fmtcmd.Command, version.Command)
+)
+
+func main() {
+	Group.Run(os.Args[1:])
 }
