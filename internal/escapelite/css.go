@@ -1,4 +1,4 @@
-package escape
+package escapelite
 
 import (
 	"bytes"
@@ -6,93 +6,17 @@ import (
 	"strings"
 	"unicode"
 	"unicode/utf8"
-
-	"github.com/mavolin/corgi/escape/safe"
 )
-
-// CSSValue escapes CSS special characters using \<hex>+ escapes.
-func CSSValue(val any) (safe.CSSValue, error) {
-	if css, ok := val.(safe.CSSValue); ok {
-		return css, nil
-	}
-
-	s, err := stringify(val, escapeCSS)
-	return safe.TrustedCSSValue(s), err
-}
-
-// CSSValueAttr escapes CSS special characters using \<hex>+ escapes and
-// is safe to use in HTML attribute values quoted with double quotes.
-func CSSValueAttr(val any) (safe.CSSValueAttr, error) {
-	switch val := val.(type) {
-	case safe.CSSValueAttr:
-		return val, nil
-	case safe.CSSValue:
-		return safe.TrustedCSSValueAttr(plainAttrEscaper.Replace(val.Escaped())), nil
-	}
-
-	s, err := stringify(val, escapeCSS)
-	return safe.TrustedCSSValueAttr(s), err
-}
 
 var (
 	expressionBytes = []byte("expression")
 	mozBindingBytes = []byte("mozbinding")
 )
 
-// FilterCSSValue allows innocuous CSSValue values in the output including CSSValue
-// quantities (10px or 25%), ID or class literals (#foo, .bar), keyword values
-// (inherit, blue), and colors (#888).
-// It filters out unsafe values, such as those that affect token boundaries,
-// and anything that might execute scripts.
-func FilterCSSValue(val any) (safe.CSSValue, error) {
-	if css, ok := val.(safe.CSSValue); ok {
-		return css, nil
-	}
-
-	s, err := stringify(val, func(s string) string {
-		b, id := decodeCSS([]byte(s)), make([]byte, 0, 64)
-
-		// CSS3 error handling is specified as honoring string boundaries per
-		// https://www.w3.org/TR/css3-syntax/#error-handling :
-		//     Malformed declarations. User agents must handle unexpected
-		//     tokens encountered while parsing a declaration by reading until
-		//     the end of the declaration, while observing the rules for
-		//     matching pairs of (), [], {}, "", and '', and correctly handling
-		//     escapes. For example, a malformed declaration may be missing a
-		//     property, colon (:) or value.
-		// So we need to make sure that values do not have mismatched bracket
-		// or quote characters to prevent the browser from restarting parsing
-		// inside a string that might embed JavaScript source.
-		for i, c := range b {
-			switch c {
-			case 0, '"', '\'', '(', ')', '/', ';', '@', '[', '\\', ']', '`', '{', '}', '<', '>':
-				return safe.UnsafeReplacement
-			case '-':
-				// Disallow <!-- or -->.
-				// -- should not appear in valid identifiers.
-				if i != 0 && b[i-1] == '-' {
-					return safe.UnsafeReplacement
-				}
-			default:
-				if c < utf8.RuneSelf && isCSSNmchar(rune(c)) {
-					id = append(id, c)
-				}
-			}
-		}
-		id = bytes.ToLower(id)
-		if bytes.Contains(id, expressionBytes) || bytes.Contains(id, mozBindingBytes) {
-			return safe.UnsafeReplacement
-		}
-		return escapeCSS(string(b))
-	})
-	return safe.TrustedCSSValue(s), err
-}
-
-func escapeCSS(s string) string {
+// CSSValue escapes CSS special characters using \<hex>+ escapes.
+func CSSValue(s unescaped) string {
 	var b strings.Builder
-	r, w, written := rune(0), 0, 0 //nolint:wastedassign
-
-Loop:
+	r, w, written := rune(0), 0, 0
 	for i := 0; i < len(s); i += w {
 		// See comment in htmlEscaper.
 		r, w = utf8.DecodeRuneInString(s[i:])
@@ -101,7 +25,7 @@ Loop:
 		case int(r) < len(cssReplacementTable) && cssReplacementTable[r] != "":
 			repl = cssReplacementTable[r]
 		default:
-			continue Loop
+			continue
 		}
 		if written == 0 {
 			b.Grow(len(s))
@@ -118,6 +42,48 @@ Loop:
 	}
 	b.WriteString(s[written:])
 	return b.String()
+}
+
+// FilterCSSValue allows innocuous CSS values in the output including CSS
+// quantities (10px or 25%), ID or class literals (#foo, .bar), keyword values
+// (inherit, blue), and colors (#888).
+// It filters out unsafe values, such as those that affect token boundaries,
+// and anything that might execute scripts.
+func FilterCSSValue(s string) string {
+	b, id := decodeCSS([]byte(s)), make([]byte, 0, 64)
+
+	// CSS3 error handling is specified as honoring string boundaries per
+	// https://www.w3.org/TR/css3-syntax/#error-handling :
+	//     Malformed declarations. User agents must handle unexpected
+	//     tokens encountered while parsing a declaration by reading until
+	//     the end of the declaration, while observing the rules for
+	//     matching pairs of (), [], {}, "", and '', and correctly handling
+	//     escapes. For example, a malformed declaration may be missing a
+	//     property, colon (:) or value.
+	// So we need to make sure that values do not have mismatched bracket
+	// or quote characters to prevent the browser from restarting parsing
+	// inside a string that might embed JavaScript source.
+	for i, c := range b {
+		switch c {
+		case 0, '"', '\'', '(', ')', '/', ';', '@', '[', '\\', ']', '`', '{', '}', '<', '>':
+			return Replacement
+		case '-':
+			// Disallow <!-- or -->.
+			// -- should not appear in valid identifiers.
+			if i != 0 && b[i-1] == '-' {
+				return Replacement
+			}
+		default:
+			if c < utf8.RuneSelf && isCSSNmchar(rune(c)) {
+				id = append(id, c)
+			}
+		}
+	}
+	id = bytes.ToLower(id)
+	if bytes.Contains(id, expressionBytes) || bytes.Contains(id, mozBindingBytes) {
+		return Replacement
+	}
+	return string(b)
 }
 
 // isCSSNmchar reports whether rune is allowed anywhere in a CSSValue identifier.

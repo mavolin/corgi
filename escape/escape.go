@@ -17,7 +17,7 @@
 // parts with a safe replacement or delete unsafe parts, changing or fully
 // replacing the data to ensure safety.
 // Filters won't return an error if they find unsafe parts, but will instead
-// replace them with [safe.UnsafeReplacement].
+// replace them with [Replacement].
 //
 // Normalizers take trusted data and escape sequences that are not yet escaped.
 // It differs from escapers in that it trusts already present escape sequences
@@ -36,6 +36,10 @@ import (
 	"github.com/mavolin/corgi/v2/escape/safe"
 	"github.com/mavolin/corgi/v2/internal/escapelite"
 )
+
+// Replacement is the replacement value used by filters to replace unsafe
+// content or parts.
+const Replacement = escapelite.Replacement
 
 type unescaped = string
 
@@ -68,4 +72,18 @@ var VoidElements = map[string]struct{}{
 // It should only be used to escape the content of an element's body.
 func HTML(val unescaped) safe.HTML {
 	return safe.TrustedHTML(escapelite.Content(val))
+}
+
+// CSSValue escapes CSS special characters using \<hex>+ escapes.
+func CSSValue(s unescaped) safe.CSSValue {
+	return safe.TrustedCSSValue(escapelite.CSSValue(s))
+}
+
+// FilterCSSValue allows innocuous CSS values in the output including CSS
+// quantities (10px or 25%), ID or class literals (#foo, .bar), keyword values
+// (inherit, blue), and colors (#888).
+// It filters out unsafe values, such as those that affect token boundaries,
+// and anything that might execute scripts.
+func FilterCSSValue(s string) safe.CSSValue {
+	return safe.TrustedCSSValue(escapelite.FilterCSSValue(s))
 }
