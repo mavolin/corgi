@@ -129,6 +129,28 @@ func (c *Cmd) CommandName() string {
 	return sb.String()
 }
 
+// SubcommandName returns the name of this, and it's parent commands, excluding
+// the root command.
+func (c *Cmd) SubcommandName() string {
+	chain := c.Chain()[1:] // skip the root command
+
+	var n int
+	for _, cmd := range chain {
+		n += len(cmd.Name) + len(" ")
+	}
+
+	var sb strings.Builder
+	sb.Grow(n - len(" ")) // one space too many
+
+	for i, cmd := range chain {
+		if i > 0 {
+			sb.WriteByte(' ')
+		}
+		sb.WriteString(cmd.Name)
+	}
+	return sb.String()
+}
+
 var indent = strings.Repeat(" ", 3)
 
 // Usage prints the help message for the command to the given writer.
