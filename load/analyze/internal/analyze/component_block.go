@@ -28,7 +28,7 @@ func (z *analyzer) AnalyzeBlocks(logger *slog.Logger, c *file.Component) {
 		// todo: instance top-level
 		// todo: instance forwards attributes
 		z.AnalyzeBlockRequired(logger, c, block)
-		z.BlockTopLevel(block)
+		z.AnalyzeBlockTopLevel(block)
 		z.AnalyzeBlockForwardsAttributes(block)
 	}
 }
@@ -87,17 +87,17 @@ Erroneous:
 // Top Level
 // ======================================================================================
 
-// BlockTopLevel determines whether the given component block is top-level,
+// AnalyzeBlockTopLevel determines whether the given component block is top-level,
 // i.e. it contains at least one instance that is top-level.
 //
 // Depends on Checks: None
 //
 // Sets Fields:
-//   - Components.Blocks.BlockTopLevel
+//   - Components.Blocks.AnalyzeBlockTopLevel
 //
 // Depends on Fields:
-//   - Components.Blocks.Instances.BlockTopLevel
-func (z *analyzer) BlockTopLevel(b *file.Block) {
+//   - Components.Blocks.Instances.AnalyzeBlockTopLevel
+func (z *analyzer) AnalyzeBlockTopLevel(b *file.Block) {
 	var failed bool
 	for _, instance := range b.Instances {
 		if instance.TopLevel.Equal(true) {

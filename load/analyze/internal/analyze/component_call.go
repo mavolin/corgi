@@ -203,7 +203,7 @@ func (z *analyzer) AnalyzeAcceptsAttributes(cc *file.ComponentCall) {
 //
 // Depends on Fields:
 //   - ComponentCalls.Blocks.Instances.FirstForwardedAttributeWriter
-//   - ComponentCalls.Blocks.Instances.BlockTopLevel
+//   - ComponentCalls.Blocks.Instances.AnalyzeBlockTopLevel
 //   - ComponentCalls.FirstDelegatedAttributeWriter
 //   - ComponentCalls.ForwardsDelegatedAttributes
 func (z *analyzer) FindFirstForwardedAttributeWriter(cc *file.ComponentCall) {
@@ -272,7 +272,7 @@ func (z *analyzer) FindFirstForwardedAttributeWriter(cc *file.ComponentCall) {
 //   - ComponentCalls.FirstForwardedAndPlaceholderWriter
 //
 // Depends on Fields:
-//   - ComponentCalls.Blocks.BlockTopLevel
+//   - ComponentCalls.Blocks.AnalyzeBlockTopLevel
 //   - ComponentCalls.Blocks.Instances.FirstForwardedAndPlaceholderWriter
 //   - ComponentCalls.FirstDelegatedAndPlaceholderWriter
 //   - ComponentCalls.ForwardsDelegatedAttributes
