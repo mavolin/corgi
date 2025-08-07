@@ -1,28 +1,85 @@
-import "strings"
+package example
 
-use "fmt"
+import (
+    "strings"
 
-func LearnCorgi(name string, knowsPug bool, friends []string)
+    // corgi has a stdlib with a couple of useful components
+    "corgi/fmt"
+)
 
-mixin greet(name string) Hello, #{name}!
+// A component is the basic building block of corgi, akin to a function.
+// In fact, this and all other components get compiled to functions.
+comp HelloWorld(name string) {
+    !doctype(html)
+    html(lang="en") { // <html lang="en">
+        head { // <head>
+            title [ Hello World! ]
+        }
+        body {
+            // <p class="hello-world">
+            p(.hello-world) [ Hello World! ]
+            // <p id="greeting">
+            p(#greeting) [ How are you, #{name}? ]
+        }
+    } // </html>
+}
 
-doctype html
-html(lang="en")
-  head
-    title Learn Corgi
-  body
-    h1 Learn Corgi
-    p#greeting.greeting
-      // the & allows you to add additional attributes to an element
-      if strings.HasPrefix(name, "M"): &.font-size--big
-      +greet(name=name)
+// Components can also be passed blocks, essentially HTML placeholders, to use
+// in their body.
+// base accepts two blocks, title and body.
+//
+// This makes it easy to create components used as layouts.
+// It also replaces the inheritance model some template languages have: 
+// Everything is simply a component.
+comp base() {
+    !doctype(html)
+    html(lang="en") {
+        head {
+            link(rel="stylesheet", href="style.css")
+            title { block title }
+        }
+          
+        body { 
+            h1 { block title }
+            block body
+        }
+    }
+}
 
-    p
-      if knowsPug
-        > #{name}, since you already know pug,
-          learning corgi will be even more of #strong[a breeze] for you!#[ ]
+// Components have a couple of neat features, like default parameters.
+// In the example below, friends has the default value nil, and needn't be 
+// passed when calling the component.
+//
+// To save ourselves a top-level call to base, which adds an unnecessary level 
+// of indentation, we can place the call to base directly behind LearnCorgi's
+// signature.
+comp LearnCorgi(name string, friends []string: nil) : base {
+    with title [ Learn Corgi ]
+    with body {
+        p(.greeting) { // <p class="greeting"> 
+            :bigM(name: name) // can modify the parent element: <p class="greeting font-size--big">
+            :greeting(name: name)
+        }
+        
+        p {
+            if len(friends) >= 3 [
+                You have a lot of friends, #{name}!
+                Make sure to tell #:fmt.List(val: friends) about corgi too!
+            ]
+            
+            // another way to write text, besides [ bracket text ], are arrow blocks
+            > Head over to #a(href="https://mavolin.gitbook.io/corgi")[GitBook]
+              to learn it.
+        }
+    }
+}
 
-      > Head over to #a(href="https://mavolin.gitbook.io/corgi")[GitBook]
-        to learn it.
+// bigM conditionally adds the font-size--big class to the calling element,
+// if name starts with the letter 'M'.
+comp bigM(name string) {
+    if strings.HasPrefix(name, "M") {
+        &(.font-size--big)
+    }
+}
 
-    p And make sure to tell #+fmt.List(val=friends) about corgi too!
+comp greeting(name string) [ Hello, #{name}! ]
