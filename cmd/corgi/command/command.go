@@ -52,23 +52,22 @@ func Group(meta Meta, cmds ...*Cmd) *Cmd {
 //
 // To indicate no flags, use the [NoFlags] type.
 func Command[F Flags](meta Meta, flags F, run func(cmd *Cmd, flags F, args []string)) *Cmd {
-	c := &Cmd{Meta: meta}
+	c := &Cmd{
+		Meta:  meta,
+		flags: flag.NewFlagSet(meta.Name, flag.ExitOnError),
+	}
+
+	c.flags.Usage = func() {
+		c.Usage(os.Stderr)
+	}
+
 	var flagZero F
 	if flags != flagZero {
-		c.flags = flag.NewFlagSet(meta.Name, flag.ExitOnError)
-		c.flags.Usage = func() {
-			c.Usage(os.Stderr)
-		}
 		flags.Bind(c.flags)
 	}
 
 	c.run = func(args []string) {
-		if c.flags != nil {
-			if err := c.flags.Parse(args); err != nil {
-				fmt.Fprintln(os.Stderr, err.Error())
-				os.Exit(2)
-			}
-		}
+		_ = c.flags.Parse(args) // we're using ExitOnError
 		run(c, flags, c.flags.Args())
 	}
 	return c
