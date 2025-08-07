@@ -43,30 +43,6 @@ const Replacement = escapelite.Replacement
 
 type unescaped = string
 
-type (
-	Func[T safe.Fragment]        func(any) (T, error)
-	ContextFunc[T safe.Fragment] func(...any) (T, error)
-)
-
-// VoidElements is a set of all HTML void elements.
-// https://developer.mozilla.org/en-US/docs/Glossary/Empty_element
-var VoidElements = map[string]struct{}{
-	"area":   {},
-	"base":   {},
-	"br":     {},
-	"col":    {},
-	"embed":  {},
-	"hr":     {},
-	"img":    {},
-	"input":  {},
-	"link":   {},
-	"meta":   {},
-	"param":  {},
-	"source": {},
-	"track":  {},
-	"wbr":    {},
-}
-
 // HTML replaces [&<] with escape sequences.
 //
 // It should only be used to escape the content of an element's body.
@@ -84,6 +60,15 @@ func CSSValue(s unescaped) safe.CSSValue {
 // (inherit, blue), and colors (#888).
 // It filters out unsafe values, such as those that affect token boundaries,
 // and anything that might execute scripts.
-func FilterCSSValue(s string) safe.CSSValue {
+func FilterCSSValue(s unescaped) safe.CSSValue {
 	return safe.TrustedCSSValue(escapelite.FilterCSSValue(s))
+}
+
+// JSLiteral converts the passed value to a JavaScript literal.
+func JSLiteral(val any) (safe.JSLiteral, error) {
+	esc, err := escapelite.JS(val)
+	if err != nil {
+		return safe.JSLiteral{}, err
+	}
+	return safe.TrustedJSLiteral(esc), err
 }
