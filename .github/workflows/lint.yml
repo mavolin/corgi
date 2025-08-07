@@ -1,6 +1,12 @@
 name: Lint
 
-on: [pull_request]
+on:
+  pull_request:
+  push:
+    branches: [v2]
+
+permissions:
+  contents: read
 
 jobs:
   review:
@@ -9,7 +15,9 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-      - name: Lint Project
-        uses: reviewdog/action-golangci-lint@v2
+      - name: Setup Go
+        uses: actions/setup-go@v5
         with:
-          reporter: github-pr-review
+          go-version-file: go.mod
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v8
