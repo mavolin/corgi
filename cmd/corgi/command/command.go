@@ -94,22 +94,31 @@ func (c *Cmd) Run(args []string) {
 	c.Usage(os.Stderr)
 }
 
-func (c *Cmd) FullName() string {
-	var n int
-
+// Chain returns the chain of commands from the root command to this command.
+func (c *Cmd) Chain() []*Cmd {
 	cmds := make([]*Cmd, 0, 8)
 	cmd := c
 	for cmd != nil {
 		cmds = append(cmds, cmd)
-		n += len(cmd.Name)
 		cmd = cmd.Parent
 	}
-	n += len(cmds) - 1
+
+	slices.Reverse(cmds)
+	return cmds
+}
+
+func (c *Cmd) FullName() string {
+	chain := c.Chain()
+
+	var n int
+	for _, cmd := range chain {
+		n += len(cmd.Name) + len(" ")
+	}
 
 	var sb strings.Builder
-	sb.Grow(n)
+	sb.Grow(n - len(" ")) // one space too many
 
-	for i, cmd := range slices.Backward(cmds) {
+	for i, cmd := range chain {
 		if i > 0 {
 			sb.WriteByte(' ')
 		}
