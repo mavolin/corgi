@@ -425,7 +425,7 @@ func (spec *AttributeSpec) typeFor(elemSpec *ElementSpec) attrtype.Type {
 				}
 			}
 		default:
-			panic(fmt.Sprintf("AttributeSpec.TypeFor: unexpected selector type: %T", sel))
+			panic(fmt.Sprintf("AttributeSpec.TypeFor: unknown selector type: %T", sel))
 		}
 	}
 
@@ -468,6 +468,6 @@ func (spec *AttributeSpec) specificity() int {
 	case *ast.RegexpAttributeSelector:
 		return 0
 	default:
-		panic(fmt.Sprintf("AttributeSpec.TypeFor: unexpected selector type: %T", sel))
+		panic(fmt.Sprintf("AttributeSpec.TypeFor: unknown selector type: %T", sel))
 	}
 }
