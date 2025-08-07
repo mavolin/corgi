@@ -11,6 +11,6 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod
+          go-version: 'stable'
       - name: Check If Generated Files Need To Be Regenerated
         run: ./scripts/check_need_regenerate.sh
