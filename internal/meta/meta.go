@@ -9,40 +9,61 @@ import (
 const Module = "github.com/mavolin/corgi/v2"
 
 // Version is the version of the binary.
-//
-// This should be set during compilation using
-// `-ldflags "-X github.com/mavolin/corgi/internal/meta.Version=1.2.3"`.
-var Version = DevelopVersion
-
-// DevelopVersion is the version string used for development builds.
-const DevelopVersion = "devel"
-
-func init() {
-	// If corgi was installed using 'go install' (as opposed to downloaded
-	// from GitHub Releases), we have no release information.
-	// In that case we can read version and commit from the build info.
-	if Version != DevelopVersion {
-		return
+var Version = func() string {
+	if buildInfo == nil {
+		return DevelVersion
 	}
 
-	i, ok := debug.ReadBuildInfo()
-	if !ok {
-		return
+	if buildInfo.Main.Version != "" && buildInfo.Main.Version != "(devel)" {
+		return strings.TrimPrefix(buildInfo.Main.Version, "v")
+	} else if commit != "" {
+		commit := commit
+		if len(commit) > 7 {
+			commit = commit[:7]
+		}
+		if dirty {
+			commit += ".dirty"
+		}
+
+		return DevelVersion + "+" + commit
 	}
 
-	if i.Main.Version != "" && i.Main.Version != "(devel)" {
-		Version = strings.TrimPrefix(i.Main.Version, "v")
-		return
+	return DevelVersion
+}()
+
+var commit = func() string {
+	if buildInfo == nil {
+		return ""
 	}
 
-	// not a tagged release, try to find the commit hash, so we can set version
-	// to 'devel-{commit}'
-	for _, s := range i.Settings {
+	for _, s := range buildInfo.Settings {
 		if s.Key == "vcs.revision" {
-			if s.Value != "" {
-				Version += DevelopVersion + "-" + s.Value
-			}
-			return
+			return s.Value
 		}
 	}
-}
+	return ""
+}()
+
+var dirty = func() bool {
+	if buildInfo == nil {
+		return false
+	}
+
+	for _, s := range buildInfo.Settings {
+		if s.Key == "vcs.modified" && s.Value == "true" {
+			return true
+		}
+	}
+	return false
+}()
+
+var buildInfo = func() *debug.BuildInfo {
+	info, ok := debug.ReadBuildInfo()
+	if !ok {
+		return nil
+	}
+	return info
+}()
+
+// DevelVersion is the version string used for development builds.
+const DevelVersion = "devel"
