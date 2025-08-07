@@ -105,10 +105,11 @@ func (s *Symbols) AddBuiltinImport(alias string, builtin *Package) {
 //
 // AddImport panics if any of the following conditions are violated:
 //   - If the import is a builtin import, the file must not already have a
-//     builtin import.
+//     builtin import, i.e. BuiltinImport() == nil.
 //   - The import's namespace must match the alias, if set.
 //   - If implicit, the import must not be a dot import.
 //   - The file must not already have an import with the namespace.
+//     You can ensure a unique namespace using [Import.EnsureUniqueNamespace].
 //   - The import must be marked as forwarded, unless it is explicit.
 func (s *Symbols) AddImport(imp *Import) {
 	switch {
