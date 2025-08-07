@@ -120,6 +120,7 @@ func (c *Cmd) FullName() string {
 
 var indent = strings.Repeat(" ", 3)
 
+// Usage prints the help message for the command to the given writer.
 func (c *Cmd) Usage(w io.Writer) {
 	fmt.Fprintln(w, c.LongDescription)
 	fmt.Fprintln(w)
