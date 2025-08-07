@@ -58,7 +58,7 @@ func Command[F Flags](meta Meta, flags F, run func(cmd *Cmd, flags F, args []str
 	}
 
 	c.flags.Usage = func() {
-		c.Usage(os.Stderr)
+		c.HelpNotice(os.Stderr)
 	}
 
 	var flagZero F
@@ -80,7 +80,8 @@ func (c *Cmd) Run(args []string) {
 	}
 
 	if len(args) == 0 {
-		c.Usage(os.Stderr)
+		fmt.Fprintln(os.Stderr, "no subcommand provided")
+		c.HelpNotice(os.Stderr)
 		return
 	}
 
@@ -91,7 +92,8 @@ func (c *Cmd) Run(args []string) {
 		}
 	}
 
-	c.Usage(os.Stderr)
+	fmt.Fprintln(os.Stderr, "unknown subcommand", args[0])
+	c.HelpNotice(os.Stderr)
 }
 
 // Chain returns the chain of commands from the root command to this command.
@@ -149,6 +151,11 @@ func (c *Cmd) SubcommandName() string {
 		sb.WriteString(cmd.Name)
 	}
 	return sb.String()
+}
+
+// HelpNotice prints a notice about how to get help for the command.
+func (c *Cmd) HelpNotice(w io.Writer) {
+	fmt.Fprintf(w, "Run '%s help %s' for help.\n", os.Args[0], c.SubcommandName())
 }
 
 var indent = strings.Repeat(" ", 3)
