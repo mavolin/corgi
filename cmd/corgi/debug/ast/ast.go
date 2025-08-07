@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 
+	"github.com/k0kubun/pp"
 	"github.com/mavolin/corgi/v2/cmd/corgi/command"
 	"github.com/mavolin/corgi/v2/cmd/corgi/flags"
 	"github.com/mavolin/corgi/v2/file"
@@ -38,21 +39,22 @@ func (f *Flags) Bind(s *flag.FlagSet) {
 
 func run(_ *command.Cmd, f *Flags, args []string) {
 	var data []byte
-	if len(args) == 0 {
+	switch {
+	case len(args) == 0:
 		var err error
 		data, err = io.ReadAll(os.Stdin)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "failed to read from stdin: %v\n", err)
 			os.Exit(1)
 		}
-	} else if len(args) == 1 {
+	case len(args) == 1:
 		var err error
 		data, err = os.ReadFile(args[0])
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "failed to read file %q: %v\n", args[0], err)
 			os.Exit(1)
 		}
-	} else {
+	default:
 		fmt.Fprintln(os.Stderr, "expected at most 1 argument")
 		os.Exit(2)
 	}
@@ -72,7 +74,7 @@ func run(_ *command.Cmd, f *Flags, args []string) {
 	}
 
 	if fi != nil {
-		// pp.Println(fi)
+		pp.Println(fi)
 	}
 
 	_ = os.Stdout.Close() // so that errs appear at the bottom
