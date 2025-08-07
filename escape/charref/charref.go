@@ -3,7 +3,7 @@
 // (Legacy) characters without a semicolon are not supported.
 package charref
 
-//go:generate go run github.com/mavolin/corgi/v2/tools/codegen/charrefexport
+//go:generate go run github.com/mavolin/corgi/v2/tools/codegen/charrefexport chars.go
 
 // Is returns true, if name is a named character reference.
 //
