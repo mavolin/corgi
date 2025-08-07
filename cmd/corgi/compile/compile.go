@@ -20,10 +20,10 @@ var (
 		ShortDescription: "Compile corgi files or directories.",
 		LongDescription: `Compiles a list of corgi files or a directory into a single Go file.
 
-In directory mode, all corgi files (*.corgi) in directory will be compiled into
-a single Go file named package.corgi.go and placed in the same directory. If
-you set -o to another directory, the file will be placed there instead. If -o
-is set to a file, or the path does not exist, the output will be written to
+In directory mode, all corgi files (*.corgi) in that directory will be compiled
+into a single Go file named package.corgi.go and placed in the same directory.
+If you set -o to another directory, the file will be placed there instead. If 
+-o is set to a file, or the path does not exist, the output will be written to
 that file. You may direct the output to stdout using the -stdout flag.
 
 Similarly, if one or more file paths are specified, all corgi files will be
