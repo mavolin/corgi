@@ -10,12 +10,13 @@ import (
 
 	"github.com/mavolin/corgi/v2/escape/attrtype"
 	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/internal/meta"
 )
 
 const (
-	EscapeImport  = "github.com/mavolin/corgi/v2/escape"
-	SafeImport    = "github.com/mavolin/corgi/v2/escape/safe"
-	RuntimeImport = "github.com/mavolin/corgi/v2/runtime"
+	EscapeImport  = meta.Module + "/escape"
+	SafeImport    = EscapeImport + "/safe"
+	RuntimeImport = meta.Module + "/runtime"
 )
 
 // File represents a parsed corgi file.
