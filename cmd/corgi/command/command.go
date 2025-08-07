@@ -107,7 +107,9 @@ func (c *Cmd) Chain() []*Cmd {
 	return cmds
 }
 
-func (c *Cmd) FullName() string {
+// CommandName returns the name of this, and it's parent commands, including
+// the root command.
+func (c *Cmd) CommandName() string {
 	chain := c.Chain()
 
 	var n int
@@ -134,7 +136,7 @@ func (c *Cmd) Usage(w io.Writer) {
 	fmt.Fprintln(w, c.LongDescription)
 	fmt.Fprintln(w)
 
-	name := c.FullName()
+	name := c.CommandName()
 
 	if len(c.Commands) > 0 {
 		fmt.Fprintln(w, "Usage:")
