@@ -6,6 +6,9 @@ import (
 	"strings"
 )
 
+// develVersion is the version string used for development builds.
+const develVersion = "devel"
+
 const Module = "github.com/mavolin/corgi/v2"
 
 // Version is the version of the binary.
@@ -55,6 +58,4 @@ func buildInfoSetting(name string) string {
 		}
 	}
 	return ""
-
-// DevelVersion is the version string used for development builds.
-const DevelVersion = "devel"
+}
