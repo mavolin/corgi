@@ -67,7 +67,6 @@ func (ch *checker) CheckNoDuplicateComponentArgs(logger *slog.Logger, cc *file.C
 
 func (ch *checker) CheckComponentArgsExist(logger *slog.Logger, cc *file.ComponentCall) {
 	logger = logger.WithGroup("args_exist")
-	logger.Debug("Checking that all component call arguments exist")
 
 	if cc.Component == nil {
 		return
