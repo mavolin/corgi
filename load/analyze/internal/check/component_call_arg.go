@@ -160,11 +160,21 @@ func (ch *checker) CheckComponentAcceptsAttributes(logger *slog.Logger, cc *file
 		return
 	}
 
-	primaries := make([]diagnostic.Annotation, 1)
-	if cc.FirstDelegatedAttributeWriter.NotZero() { // todo
-		primaries[0] = anno.Node(cc.File, cc.FirstDelegatedAttributeWriter.Result, "but you hand it attributes here")
+	var primaries []diagnostic.Annotation
+	if cc.FirstDelegatedAttributeWriter.NotZero() {
+		chain := cc.FirstDelegatedAttributeWriterChain()
+		primaries = make([]diagnostic.Annotation, len(chain))
+		for i, n := range chain[:len(chain)-1] {
+			primaries[i] = anno.Node(cc.File, n, "through this component call")
+		}
+		primaries[len(chain)-1] = anno.Node(cc.File, chain[len(chain)-1], "you hand it attributes here")
 	} else {
-		primaries[0] = anno.Node(cc.File, cc.FirstDelegatedAndPlaceholderWriter.Result, "but you hand it attributes here")
+		chain := cc.FirstDelegatedAndPlaceholderWriterChain()
+		primaries = make([]diagnostic.Annotation, len(chain))
+		for i, n := range chain[:len(chain)-1] {
+			primaries[i] = anno.Node(cc.File, n, "through this component call")
+		}
+		primaries[len(chain)-1] = anno.Node(cc.File, chain[len(chain)-1], "you hand it attributes here")
 	}
 
 	logger.Error("Component does not accept attributes")
