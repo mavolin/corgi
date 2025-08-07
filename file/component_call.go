@@ -50,7 +50,7 @@ type ComponentCall struct {
 	//
 	// Note that if the component call and the component call's
 	// FirstForwardedAttributeWriter are the same, the component call
-	// itself is the one filling the &-placeholder.
+	// itself is the one writing attributes, as opposed to a block setter.
 	// Refer to the documentation of FirstForwardedAttributeWriter for more
 	// information.
 	FirstDelegatedAttributeWriter Analysis[ast.AttributeWriter]
@@ -63,7 +63,7 @@ type ComponentCall struct {
 	//
 	// Note that if the component call and the component call's
 	// FirstForwardedAndPlaceholderWriter are the same, the component call
-	// itself is the one filling the &-placeholder.
+	// itself is the one filling the &-placeholder, as opposed to an &.
 	// Refer to the documentation of FirstForwardedAndPlaceholderWriter for more
 	// information.
 	FirstDelegatedAndPlaceholderWriter Analysis[ast.AndPlaceholderWriter]
@@ -131,6 +131,58 @@ func (cc *ComponentCall) BlockSetterByNode(n ast.BlockSetter) *BlockSetter {
 		return w
 	}
 	return nil
+}
+
+// FirstDelegatedAttributeWriterChain returns the chain of component calls
+// that are responsible for the first delegated attribute writer of this
+// component call.
+func (cc *ComponentCall) FirstDelegatedAttributeWriterChain() []ast.AttributeWriter {
+	if cc.FirstDelegatedAttributeWriter.Equal(nil) {
+		return nil
+	}
+
+	curAST, _ := cc.FirstDelegatedAttributeWriter.Result.(*ast.ComponentCall)
+	if curAST == nil {
+		return []ast.AttributeWriter{cc.FirstDelegatedAttributeWriter.Result}
+	}
+
+	var chain []ast.AttributeWriter
+	for {
+		chain = append(chain, curAST)
+
+		prevAST := curAST
+		prev := cc.File.ComponentCallByNode(curAST)
+		curAST, _ = prev.FirstForwardedAttributeWriter.Result.(*ast.ComponentCall)
+		if curAST == nil || curAST == prevAST {
+			return chain
+		}
+	}
+}
+
+// FirstDelegatedAndPlaceholderWriterChain returns the chain of component calls
+// that are responsible for the first delegated &-placeholder writer of this
+// component call.
+func (cc *ComponentCall) FirstDelegatedAndPlaceholderWriterChain() []ast.AndPlaceholderWriter {
+	if cc.FirstDelegatedAndPlaceholderWriter.Equal(nil) {
+		return nil
+	}
+
+	curAST, _ := cc.FirstDelegatedAndPlaceholderWriter.Result.(*ast.ComponentCall)
+	if curAST == nil {
+		return []ast.AndPlaceholderWriter{cc.FirstDelegatedAndPlaceholderWriter.Result}
+	}
+
+	var chain []ast.AndPlaceholderWriter
+	for {
+		chain = append(chain, curAST)
+
+		prevAST := curAST
+		prev := cc.File.ComponentCallByNode(curAST)
+		curAST, _ = prev.FirstForwardedAndPlaceholderWriter.Result.(*ast.ComponentCall)
+		if curAST == nil || curAST == prevAST {
+			return chain
+		}
+	}
 }
 
 type BlockSetter struct {
