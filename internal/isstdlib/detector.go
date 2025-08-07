@@ -1,8 +1,8 @@
-package load
+package isstdlib
 
-// isStdlib heuristically detects already known Go stdlib packages, so that
+// IsStdlib heuristically detects already known Go stdlib packages, so that
 // we don't unnecessarily preload them.
-func isStdlib(path string) bool {
+func IsStdlib(path string) bool {
 	switch path {
 	case "archive":
 	case "archive/tar":

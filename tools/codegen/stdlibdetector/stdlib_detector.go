@@ -98,9 +98,9 @@ func collectPackages(goroot string) ([]string, error) {
 func writeFile(w io.Writer, pkg string, stdlib []string) {
 	fmt.Fprintln(w, "package", pkg)
 	fmt.Fprintln(w)
-	fmt.Fprintln(w, "// isStdlib heuristically detects already known Go stdlib packages, so that")
+	fmt.Fprintln(w, "// IsStdlib heuristically detects already known Go stdlib packages, so that")
 	fmt.Fprintln(w, "// we don't unnecessarily preload them.")
-	fmt.Fprintln(w, "func isStdlib(path string) bool {")
+	fmt.Fprintln(w, "func IsStdlib(path string) bool {")
 	fmt.Fprintln(w, "\tswitch path {")
 	for _, pkg := range stdlib {
 		fmt.Fprintf(w, "\tcase %q:\n", pkg)

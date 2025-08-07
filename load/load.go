@@ -11,12 +11,11 @@ import (
 
 	"github.com/mavolin/corgi/v2/file"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
+	"github.com/mavolin/corgi/v2/internal/isstdlib"
 	"github.com/mavolin/corgi/v2/load/analyze"
 	"github.com/mavolin/corgi/v2/load/link"
 	"github.com/mavolin/corgi/v2/load/parse"
 )
-
-//go:generate go run github.com/mavolin/corgi/v2/tools/codegen/stdlibdetector stdlib_detector.go
 
 const Ext = ".corgi"
 
@@ -352,7 +351,7 @@ func (l *loader) newPreloadHook(ctx context.Context, logger *slog.Logger) func(i
 		logger := logger.With(slog.String("import", impPath))
 		logger.Info("Received preload request")
 
-		if isStdlib(impPath) {
+		if isstdlib.IsStdlib(impPath) {
 			logger.Debug("Discarding Go stdlib import")
 			return
 		}
@@ -367,7 +366,7 @@ func (l *loader) newPreloadHook(ctx context.Context, logger *slog.Logger) func(i
 func (l *loader) importHook(ctx context.Context, impPath importPath) (*file.Package, diagnostic.List, error) {
 	logger := l.logger.WithGroup("import_hook")
 
-	if isStdlib(impPath) {
+	if isstdlib.IsStdlib(impPath) {
 		logger.Debug("Immediately returning nil package for Go stdlib import without loading",
 			slog.String("import", impPath))
 		return nil, nil, nil
