@@ -31,10 +31,12 @@ type (
 	}
 )
 
+// NoFlags is a no-op implementation of the Flags interface.
 type NoFlags struct{}
 
 func (NoFlags) Bind(*flag.FlagSet) {}
 
+// Group creates a new command group with the given metadata and subcommands.
 func Group(meta Meta, cmds ...*Cmd) *Cmd {
 	c := &Cmd{
 		Meta:     meta,
@@ -46,6 +48,9 @@ func Group(meta Meta, cmds ...*Cmd) *Cmd {
 	return c
 }
 
+// Command creates a new command with the given metadata, flags, and run function.
+//
+// To indicate no flags, use the [NoFlags] type.
 func Command[F Flags](meta Meta, flags F, run func(cmd *Cmd, flags F, args []string)) *Cmd {
 	c := &Cmd{Meta: meta}
 	var flagZero F
