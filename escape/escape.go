@@ -33,6 +33,8 @@
 package escape
 
 import (
+	"strings"
+
 	"github.com/mavolin/corgi/v2/escape/safe"
 	"github.com/mavolin/corgi/v2/internal/escapelite"
 )
@@ -40,6 +42,43 @@ import (
 // Replacement is the replacement value used by filters to replace unsafe
 // content or parts.
 const Replacement = escapelite.Replacement
+
+var (
+	// URLSchemes is a list of trusted URL schemes.
+	URLSchemes = []string{"http", "https", "ws", "wss", "mailto", "tel"}
+	// ResourceURLSchemes is a list of trusted schemes for resource URLs.
+	// It must be a subset of URLSchemes.
+	ResourceURLSchemes = []string{"https", "wss"}
+	// DevelopmentResourceURLSchemes is a list of trusted schemes for resource URLs
+	// that is more permissive than ResourceURLSchemes and allows http.
+	// It is intended for use in development environments only and can be used
+	// by calling [github.com/mavolin/corgi.DevelopmentMode()].
+	//
+	// Using this list instead does not affect static resource URLs, which are
+	// never allowed to use http.
+	DevelopmentResourceURLSchemes = []string{"http", "https", "ws", "wss"}
+)
+
+// IsSafeURLScheme returns whether the given scheme is a known safe URL scheme
+// as defined by the [URLSchemes] global variable.
+func IsSafeURLScheme(probe string) bool {
+	return isSafeURLScheme(probe, URLSchemes)
+}
+
+// IsSafeResourceURLScheme returns whether the given scheme is a known safe
+// ResourceURL scheme as defined by the [ResourceURLSchemes] global variable.
+func IsSafeResourceURLScheme(probe string) bool {
+	return isSafeURLScheme(probe, ResourceURLSchemes)
+}
+
+func isSafeURLScheme(probe string, safeSchemes []string) bool {
+	for _, scheme := range safeSchemes {
+		if strings.EqualFold(scheme, probe) {
+			return true
+		}
+	}
+	return false
+}
 
 type unescaped = string
 
