@@ -9,10 +9,13 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/lmittmann/tint"
-	"github.com/mavolin/corgi/v2/internal/nopslog"
 	"golang.org/x/term"
 )
 
+// Width is the width of the terminal, or a sensible default.
+//
+// Minimums and maximums are enforced, never being less than 40 or more than
+// 120.
 var Width = func() int {
 	width, _, err := term.GetSize(int(os.Stdout.Fd()))
 	if err != nil {
@@ -28,7 +31,7 @@ type ParseFlags struct {
 }
 
 func (f *ParseFlags) Bind(s *flag.FlagSet) {
-	f.Logger = nopslog.Logger
+	f.Logger = slog.New(slog.DiscardHandler)
 
 	s.BoolVar(&f.Color, "color", !color.NoColor,
 		"Whether to colorize error output.\n"+
