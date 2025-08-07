@@ -31,10 +31,11 @@ func isStdlib(path string) bool {
 	case "cmd/objdump":
 	case "cmd/pack":
 	case "cmd/pprof":
+	case "cmd/preprofile":
+	case "cmd/relnote":
 	case "cmd/test2json":
 	case "cmd/tools":
 	case "cmd/trace":
-	case "cmd/trace/v2":
 	case "cmd/vet":
 	case "cmp":
 	case "compress":
@@ -58,13 +59,20 @@ func isStdlib(path string) bool {
 	case "crypto/ecdsa":
 	case "crypto/ed25519":
 	case "crypto/elliptic":
+	case "crypto/fips140":
+	case "crypto/hkdf":
 	case "crypto/hmac":
 	case "crypto/md5":
+	case "crypto/md5/_asm":
+	case "crypto/mlkem":
+	case "crypto/pbkdf2":
 	case "crypto/rand":
 	case "crypto/rc4":
 	case "crypto/rsa":
 	case "crypto/sha1":
+	case "crypto/sha1/_asm":
 	case "crypto/sha256":
+	case "crypto/sha3":
 	case "crypto/sha512":
 	case "crypto/subtle":
 	case "crypto/tls":
@@ -121,7 +129,7 @@ func isStdlib(path string) bool {
 	case "hash/fnv":
 	case "hash/maphash":
 	case "html":
-	case "html/runtime":
+	case "html/template":
 	case "image":
 	case "image/color":
 	case "image/color/palette":
@@ -188,6 +196,7 @@ func isStdlib(path string) bool {
 	case "sort":
 	case "strconv":
 	case "strings":
+	case "structs":
 	case "sync":
 	case "sync/atomic":
 	case "syscall":
@@ -197,6 +206,7 @@ func isStdlib(path string) bool {
 	case "testing/iotest":
 	case "testing/quick":
 	case "testing/slogtest":
+	case "testing/synctest":
 	case "text":
 	case "text/scanner":
 	case "text/tabwriter":
@@ -207,7 +217,9 @@ func isStdlib(path string) bool {
 	case "unicode":
 	case "unicode/utf16":
 	case "unicode/utf8":
+	case "unique":
 	case "unsafe":
+	case "weak":
 	default:
 		return false
 	}

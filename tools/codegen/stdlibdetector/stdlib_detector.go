@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path"
@@ -10,23 +11,64 @@ import (
 	"strings"
 )
 
-const (
-	packageName = "load"
-	outFile     = "stdlib_detector.go"
-)
-
 func main() {
-	if err := run(); err != nil {
-		panic(err)
+	args, err := resolveArgs()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
+	if err := run(args); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
 	}
 }
 
-func run() error {
-	goroot := os.Getenv("GOROOT")
-	if goroot == "" {
-		return errors.New("GOROOT is not set")
+type args struct {
+	GOROOT  string
+	Package string
+
+	Out string
+}
+
+func resolveArgs() (*args, error) {
+	var a args
+
+	a.GOROOT = os.Getenv("GOROOT")
+	if a.GOROOT == "" {
+		return nil, errors.New("GOROOT is not set")
 	}
 
+	a.Package = os.Getenv("GOPACKAGE")
+	if a.Package == "" {
+		return nil, errors.New("GOPACKAGE is not set")
+	}
+
+	if len(os.Args) != 2 {
+		return nil, fmt.Errorf("expected exactly one argument, got %d", len(os.Args)-1)
+	}
+
+	a.Out = os.Args[1]
+	return &a, nil
+}
+
+func run(args *args) error {
+	packages, err := collectPackages(args.GOROOT)
+	if err != nil {
+		return err
+	}
+
+	f, err := os.Create(args.Out)
+	if err != nil {
+		return fmt.Errorf("opening output file: %w", err)
+	}
+	defer f.Close()
+
+	writeFile(f, args.Package, packages)
+	return nil
+}
+
+func collectPackages(goroot string) ([]string, error) {
 	packages := make([]string, 0, 256)
 
 	err := fs.WalkDir(os.DirFS(filepath.Join(goroot, "src")), ".", func(p string, d fs.DirEntry, err error) error {
@@ -48,29 +90,24 @@ func run() error {
 		return nil
 	})
 	if err != nil {
-		return fmt.Errorf("walking GOROOT/src: %w", err)
+		return nil, fmt.Errorf("walking GOROOT/src: %w", err)
 	}
+	return packages, nil
+}
 
-	f, err := os.Create(outFile)
-	if err != nil {
-		return fmt.Errorf("opening output file: %w", err)
+func writeFile(w io.Writer, pkg string, stdlib []string) {
+	fmt.Fprintln(w, "package", pkg)
+	fmt.Fprintln(w)
+	fmt.Fprintln(w, "// isStdlib heuristically detects already known Go stdlib packages, so that")
+	fmt.Fprintln(w, "// we don't unnecessarily preload them.")
+	fmt.Fprintln(w, "func isStdlib(path string) bool {")
+	fmt.Fprintln(w, "\tswitch path {")
+	for _, pkg := range stdlib {
+		fmt.Fprintf(w, "\tcase %q:\n", pkg)
 	}
-	defer f.Close()
-
-	fmt.Fprintln(f, "package", packageName)
-	fmt.Fprintln(f)
-	fmt.Fprintln(f, "// isStdlib heuristically detects already known Go stdlib packages, so that")
-	fmt.Fprintln(f, "// we don't unnecessarily preload them.")
-	fmt.Fprintln(f, "func isStdlib(path string) bool {")
-	fmt.Fprintln(f, "\tswitch path {")
-	for _, pkg := range packages {
-		fmt.Fprintf(f, "\tcase %q:\n", pkg)
-	}
-	fmt.Fprintln(f, "\tdefault:")
-	fmt.Fprintln(f, "\t\treturn false")
-	fmt.Fprintln(f, "\t}")
-	fmt.Fprintln(f, "\treturn true")
-	fmt.Fprintln(f, "}")
-
-	return nil
+	fmt.Fprintln(w, "\tdefault:")
+	fmt.Fprintln(w, "\t\treturn false")
+	fmt.Fprintln(w, "\t}")
+	fmt.Fprintln(w, "\treturn true")
+	fmt.Fprintln(w, "}")
 }

@@ -16,7 +16,7 @@ import (
 	"github.com/mavolin/corgi/v2/load/parse"
 )
 
-//go:generate go run github.com/mavolin/corgi/v2/tools/codegen/stdlibdetector
+//go:generate go run github.com/mavolin/corgi/v2/tools/codegen/stdlibdetector stdlib_detector.go
 
 const Ext = ".corgi"
 
