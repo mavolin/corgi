@@ -8,20 +8,3 @@ func IsExported(s string) bool {
 	}
 	return 'A' <= s[0] && s[0] <= 'Z'
 }
-
-type AnalysisStrategy uint8
-
-const (
-	invalidEnd AnalysisStrategy = iota
-	// All requires the assertion to be true for all instances.
-	All
-	// AtLeastOne requires the assertion to be true for at least one instance.
-	AtLeastOne
-	invalidStart
-)
-
-func (s AnalysisStrategy) assertValid() {
-	if s >= invalidStart || s <= invalidEnd {
-		panic("invalid AnalysisStrategy")
-	}
-}
