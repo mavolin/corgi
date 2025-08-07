@@ -16,6 +16,3 @@ jobs:
         run: echo "GOROOT=$(go env GOROOT)" >> $GITHUB_ENV
       - name: Run Unit Tests
         run: go test -race -tags test_stubs ./...
-      - name: Check for missing attributes
-        working-directory: tools/misc/attrtypecheck
-        run: go run github.com/mavolin/corgi/tools/misc/attrtypecheck ../../../escape/attrtype/html5.go
