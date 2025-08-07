@@ -37,5 +37,5 @@ args:
 		fmt.Fprintf(os.Stderr, "unknown command %q\n", arg)
 	}
 
-	c.Usage(os.Stdout)
+	c.Help(os.Stdout)
 }

@@ -160,15 +160,15 @@ func (c *Cmd) HelpNotice(w io.Writer) {
 
 var indent = strings.Repeat(" ", 3)
 
-// Usage prints the help message for the command to the given writer.
-func (c *Cmd) Usage(w io.Writer) {
+// Help prints the help message for the command to the given writer.
+func (c *Cmd) Help(w io.Writer) {
 	fmt.Fprintln(w, c.LongDescription)
 	fmt.Fprintln(w)
 
 	name := c.CommandName()
 
 	if len(c.Commands) > 0 {
-		fmt.Fprintln(w, "Usage:")
+		fmt.Fprintln(w, "Help:")
 		fmt.Fprintln(w, indent, name, " <command> [arguments...]")
 		fmt.Fprintln(w)
 		fmt.Fprintln(w, "Commands:")
@@ -187,7 +187,7 @@ func (c *Cmd) Usage(w io.Writer) {
 	}
 
 	if len(c.ArgUsages) == 1 {
-		fmt.Fprintln(w, "Usage:")
+		fmt.Fprintln(w, "Help:")
 	} else {
 		fmt.Fprintln(w, "Usages:")
 	}
