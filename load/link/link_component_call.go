@@ -183,7 +183,7 @@ func (l *linker) linkBlockSetterBlocks(logger *slog.Logger, cc *file.ComponentCa
 			continue
 		}
 
-		logger.Error("Block Setter block not found")
+		logger.Error("Block setter block not found")
 
 		primaries := make([]diagnostic.Annotation, len(blockSetter.Instances))
 		for i, instance := range blockSetter.Instances {
