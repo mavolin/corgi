@@ -1,0 +1,16 @@
+name: Check Generated Files
+on: [push]
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Check If Generated Files Need To Be Regenerated
+        run: ./scripts/check_need_regenerate.sh
