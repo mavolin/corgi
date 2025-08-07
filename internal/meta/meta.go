@@ -11,7 +11,7 @@ const Module = "github.com/mavolin/corgi/v2"
 // Version is the version of the binary.
 var Version = func() string {
 	if buildInfo == nil {
-		return DevelVersion
+		return develVersion
 	}
 
 	if buildInfo.Main.Version != "" && buildInfo.Main.Version != "(devel)" {
@@ -25,45 +25,36 @@ var Version = func() string {
 			commit += ".dirty"
 		}
 
-		return DevelVersion + "+" + commit
+		return develVersion + "+" + commit
 	}
 
-	return DevelVersion
+	return develVersion
 }()
 
-var commit = func() string {
+var (
+	commit = buildInfoSetting("vcs.revision")
+	dirty  = buildInfoSetting("vcs.modified") == "true"
+
+	buildInfo = func() *debug.BuildInfo {
+		info, ok := debug.ReadBuildInfo()
+		if !ok {
+			return nil
+		}
+		return info
+	}()
+)
+
+func buildInfoSetting(name string) string {
 	if buildInfo == nil {
 		return ""
 	}
 
 	for _, s := range buildInfo.Settings {
-		if s.Key == "vcs.revision" {
+		if s.Key == name {
 			return s.Value
 		}
 	}
 	return ""
-}()
-
-var dirty = func() bool {
-	if buildInfo == nil {
-		return false
-	}
-
-	for _, s := range buildInfo.Settings {
-		if s.Key == "vcs.modified" && s.Value == "true" {
-			return true
-		}
-	}
-	return false
-}()
-
-var buildInfo = func() *debug.BuildInfo {
-	info, ok := debug.ReadBuildInfo()
-	if !ok {
-		return nil
-	}
-	return info
-}()
 
 // DevelVersion is the version string used for development builds.
 const DevelVersion = "devel"
