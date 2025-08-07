@@ -24,7 +24,7 @@ func TestLinker_CheckExplicitBuiltinImport(t *testing.T) {
 			BuiltinPath: builtinPkg.ImportPath,
 		})
 
-		if !should.Equal(t, 0, len(ds)) {
+		if !should.Equal(t, len(ds), 0) {
 			t.Log(ds.Short())
 		}
 	})
@@ -43,8 +43,8 @@ func TestLinker_CheckExplicitBuiltinImport(t *testing.T) {
 			BuiltinPath: builtinPkg.ImportPath,
 		})
 
-		if should.Equal(t, 1, len(ds)) {
-			if !should.Equal(t, "explicit import of builtin package", ds[0].Message) {
+		if should.Equal(t, len(ds), 1) {
+			if !should.Equal(t, ds[0].Message, "explicit import of builtin package") {
 				t.Log(ds[0].Short())
 			}
 		} else {

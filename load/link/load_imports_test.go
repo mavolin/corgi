@@ -30,7 +30,7 @@ func TestLinker_LoadImports(t *testing.T) {
 			Importer: ImporterFor(importedPkg),
 		})
 
-		if !should.Equal(t, 0, len(ds)) {
+		if !should.Equal(t, len(ds), 0) {
 			t.Log(ds.Short())
 		}
 		if !should.True(t, importedPkg == imp.Package) {
@@ -49,8 +49,8 @@ func TestLinker_LoadImports(t *testing.T) {
 			Importer: ImporterFor(),
 		})
 
-		if should.Equal(t, 1, len(ds)) {
-			if !should.Equal(t, "import: failed to load package", ds[0].Message) {
+		if should.Equal(t, len(ds), 1) {
+			if !should.Equal(t, ds[0].Message, "import: failed to load package") {
 				t.Log(ds[0].Short())
 			}
 		} else {
@@ -69,8 +69,8 @@ func TestLinker_LoadImports(t *testing.T) {
 			Importer: nil, // nil importer triggers local-only mode
 		})
 
-		if should.Equal(t, 1, len(ds)) {
-			if !should.Equal(t, "local-only mode: file contains imports", ds[0].Message) {
+		if should.Equal(t, len(ds), 1) {
+			if !should.Equal(t, ds[0].Message, "local-only mode: file contains imports") {
 				t.Log(ds[0].Short())
 			}
 		} else {
@@ -94,8 +94,8 @@ func TestLinker_LoadImports(t *testing.T) {
 			Importer: ImporterFor(importedPkg),
 		})
 
-		if should.Equal(t, 1, len(ds)) {
-			if !should.Equal(t, "import alias: cannot use `__corgi_` prefix", ds[0].Message) {
+		if should.Equal(t, len(ds), 1) {
+			if !should.Equal(t, ds[0].Message, "import alias: cannot use `__corgi_` prefix") {
 				t.Log(ds[0].Short())
 			}
 		} else {
@@ -119,10 +119,10 @@ func TestLinker_LoadImports(t *testing.T) {
 			Importer: ImporterFor(importedPkg),
 		})
 
-		if !should.Equal(t, 0, len(ds)) {
+		if !should.Equal(t, len(ds), 0) {
 			t.Log(ds.Short())
 		}
-		should.Equal(t, "", imp.Namespace)
+		should.Equal(t, imp.Namespace, "")
 	})
 
 	t.Run("import with reserved package name prefix", func(t *testing.T) {
@@ -141,8 +141,8 @@ func TestLinker_LoadImports(t *testing.T) {
 			Importer: ImporterFor(importedPkg),
 		})
 
-		if should.Equal(t, 1, len(ds)) {
-			if !should.Equal(t, "import: import uses reserved `__corgi_` package name prefix", ds[0].Message) {
+		if should.Equal(t, len(ds), 1) {
+			if !should.Equal(t, ds[0].Message, "import: import uses reserved `__corgi_` package name prefix") {
 				t.Log(ds[0].Short())
 			}
 		} else {
@@ -167,8 +167,8 @@ func TestLinker_LoadImports(t *testing.T) {
 			},
 		})
 
-		if should.Equal(t, 1, len(ds)) {
-			if !should.Equal(t, "test diagnostic", ds[0].Message) {
+		if should.Equal(t, len(ds), 1) {
+			if !should.Equal(t, ds[0].Message, "test diagnostic") {
 				t.Log(ds[0].Short())
 			}
 		} else {
@@ -193,15 +193,15 @@ func TestLinker_LoadImports(t *testing.T) {
 			}).Import,
 		})
 
-		if should.Equal(t, 1, len(ds)) {
-			if !should.Equal(t, "import: failed to load package", ds[0].Message) {
+		if should.Equal(t, len(ds), 1) {
+			if !should.Equal(t, ds[0].Message, "import: failed to load package") {
 				t.Log(ds[0].Short())
 			}
 		} else {
 			t.Log(ds.Short())
 		}
 		should.True(t, imp.Loaded)
-		should.Equal(t, nil, imp.Package)
+		should.Equal(t, imp.Package, nil)
 	})
 
 	t.Run("builtin import", func(t *testing.T) {
@@ -220,7 +220,7 @@ func TestLinker_LoadImports(t *testing.T) {
 			BuiltinPath: builtinPkg.ImportPath,
 		})
 
-		if !should.Equal(t, 0, len(ds)) {
+		if !should.Equal(t, len(ds), 0) {
 			t.Log(ds.Short())
 		}
 
@@ -231,7 +231,7 @@ func TestLinker_LoadImports(t *testing.T) {
 		if !should.True(t, builtinPkg == builtinImp.Package) {
 			t.Log(cmp.Diff(builtinPkg, builtinImp.Package))
 		}
-		should.Equal(t, BuiltinAlias, builtinImp.Alias)
+		should.Equal(t, builtinImp.Alias, BuiltinAlias)
 	})
 
 	t.Run("builtin import error", func(t *testing.T) {
@@ -245,8 +245,8 @@ func TestLinker_LoadImports(t *testing.T) {
 			BuiltinPath: "github.com/non/existent",
 		})
 
-		if should.Equal(t, 1, len(ds)) {
-			if !should.Equal(t, "failed to load builtin package", ds[0].Message) {
+		if should.Equal(t, len(ds), 1) {
+			if !should.Equal(t, ds[0].Message, "failed to load builtin package") {
 				t.Log(ds[0].Short())
 			}
 		} else {
@@ -273,9 +273,9 @@ func TestLinker_LoadImports(t *testing.T) {
 			BuiltinPath: "some/other/builtin/path", // Different path to trigger error
 		})
 
-		if should.Equal(t, 1, len(ds)) {
-			should.Equal(t, diagnostic.InternalError, ds[0].Type)
-			if !should.Equal(t, "file already has a builtin import", ds[0].Message) {
+		if should.Equal(t, len(ds), 1) {
+			should.Equal(t, ds[0].Type, diagnostic.InternalError)
+			if !should.Equal(t, ds[0].Message, "file already has a builtin import") {
 				t.Log(ds[0].Short())
 			}
 		} else {

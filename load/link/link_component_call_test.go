@@ -37,7 +37,7 @@ func testLinker_LinkComponentCalls_success(t *testing.T) {
 			BuiltinPath: builtinPkg.ImportPath,
 		})
 
-		if !should.Equal(t, 0, len(ds)) {
+		if !should.Equal(t, len(ds), 0) {
 			t.Log(ds.Short())
 		}
 		if !should.True(t, comp == call.Component) {
@@ -61,7 +61,7 @@ func testLinker_LinkComponentCalls_success(t *testing.T) {
 			BuiltinPath: builtinPkg.ImportPath,
 		})
 
-		if !should.Equal(t, 0, len(ds)) {
+		if !should.Equal(t, len(ds), 0) {
 			t.Log(ds.Short())
 		}
 		if !should.True(t, comp == call.Component) {
@@ -114,7 +114,7 @@ func testLinker_LinkComponentCalls_success(t *testing.T) {
 				Importer: ImporterFor(importedPkg),
 			})
 
-			if !should.Equal(t, 0, len(ds)) {
+			if !should.Equal(t, len(ds), 0) {
 				t.Log(ds.Short())
 			}
 			if !should.True(t, importedComp == call.Component) {
@@ -247,7 +247,7 @@ func testLinker_LinkComponentCalls_failure(t *testing.T) {
 			}
 			ds := Link(context.Background(), p, o)
 
-			if should.Equal(t, 1, len(ds)) {
+			if should.Equal(t, len(ds), 1) {
 				if !should.True(t, ds[0].Message == c.message) {
 					t.Log(ds[0].Short())
 				}
@@ -277,7 +277,7 @@ func TestLinker_LinkBlockSetterBlocks(t *testing.T) {
 			createWith(blockSetter, nil)
 
 			ds := Link(context.Background(), p, Options{})
-			if !should.Equal(t, 0, len(ds)) {
+			if !should.Equal(t, len(ds), 0) {
 				t.Log(ds.Short())
 			}
 
@@ -305,7 +305,7 @@ func TestLinker_LinkBlockSetterBlocks(t *testing.T) {
 
 			ds := Link(context.Background(), p, Options{})
 
-			if !should.Equal(t, 0, len(ds)) {
+			if !should.Equal(t, len(ds), 0) {
 				t.Log(ds.Short())
 			}
 
@@ -341,7 +341,7 @@ func TestLinker_LinkBlockSetterBlocks(t *testing.T) {
 
 		should.True(t, blockSetter.Linked)
 		should.True(t, blockSetter.Block == nil)
-		if should.Equal(t, 1, len(ds)) {
+		if should.Equal(t, len(ds), 1) {
 			if !should.True(t, ds[0].Message == "component call: block setter references unknown block") {
 				t.Log(ds[0].Short())
 			}

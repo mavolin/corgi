@@ -35,7 +35,7 @@ func TestBody(t *testing.T) {
 		}
 
 		got := parsetest.ParsesFully(t, in, Body())
-		should.Equal[ast.ComponentBody](t, want, got)
+		should.Equal[ast.ComponentBody](t, got, want)
 	})
 }
 
@@ -80,5 +80,5 @@ func testExtend(t *testing.T, f parser.Func[*ast.Extend]) {
 	}
 
 	got := parsetest.ParsesFully(t, in, f)
-	should.Equal(t, want, got)
+	should.Equal(t, got, want)
 }

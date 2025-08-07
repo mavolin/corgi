@@ -68,7 +68,7 @@ func TestOrHorizontalWhitespace(t *testing.T) {
 				for i, comment := range c.wantComments {
 					wantGroups[i] = &ast.CommentGroup{Comments: []*ast.Comment{comment}}
 				}
-				should.Equal(t, wantGroups, p.Comments())
+				should.Equal(t, p.Comments(), wantGroups)
 			})
 		}
 	})
@@ -163,14 +163,14 @@ func TestAndEOS(t *testing.T) {
 
 			p := parsetest.NewParser(t, c.in)
 			matches := parser.Try(p, AndEOS())
-			should.Equal(t, true, matches)
-			should.Equal(t, c.wantIndex, p.Index())
+			should.Equal(t, matches, true)
+			should.Equal(t, p.Index(), c.wantIndex)
 
 			wantGroups := make([]*ast.CommentGroup, len(c.wantComments))
 			for i, comment := range c.wantComments {
 				wantGroups[i] = &ast.CommentGroup{Comments: []*ast.Comment{comment}}
 			}
-			should.Equal(t, wantGroups, p.Comments())
+			should.Equal(t, p.Comments(), wantGroups)
 		})
 	}
 }
@@ -259,7 +259,7 @@ func testOrEOL(t *testing.T, f parser.WhitespaceFunc) {
 			for i, comment := range c.wantComments {
 				wantGroups[i] = &ast.CommentGroup{Comments: []*ast.Comment{comment}}
 			}
-			should.Equal(t, wantGroups, p.Comments())
+			should.Equal(t, p.Comments(), wantGroups)
 		})
 	}
 }
@@ -332,7 +332,7 @@ func TestOrAnyWhitespace(t *testing.T) {
 			for i, comment := range c.wantComments {
 				wantGroups[i] = &ast.CommentGroup{Comments: []*ast.Comment{comment}}
 			}
-			should.Equal(t, wantGroups, p.Comments())
+			should.Equal(t, p.Comments(), wantGroups)
 		})
 	}
 
@@ -430,7 +430,7 @@ func TestOrLoneWS(t *testing.T) {
 			for i, comment := range c.wantComments {
 				wantGroups[i] = &ast.CommentGroup{Comments: []*ast.Comment{comment}}
 			}
-			should.Equal(t, wantGroups, p.Comments())
+			should.Equal(t, p.Comments(), wantGroups)
 		})
 	}
 }

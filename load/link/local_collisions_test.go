@@ -19,8 +19,8 @@ func TestLinker_CheckComponentCollisions(t *testing.T) {
 	createComponent(f, nil, "Same")
 	ds := Link(context.Background(), pkg, Options{})
 
-	if should.Equal(t, 1, len(ds)) {
-		if !should.Equal(t, "component defined multiple times", ds[0].Message) {
+	if should.Equal(t, len(ds), 1) {
+		if !should.Equal(t, ds[0].Message, "component defined multiple times") {
 			t.Log(ds[0].Short())
 		}
 	} else {
@@ -41,8 +41,8 @@ func TestLinker_CheckElementSpecCollisions(t *testing.T) {
 		createElementSpec(f, nil, "bar", "Same", elemtype.Normal)
 		ds := Link(context.Background(), pkg, Options{})
 
-		if should.Equal(t, 1, len(ds)) {
-			if !should.Equal(t, "multiple elements with same qualified name", ds[0].Message) {
+		if should.Equal(t, len(ds), 1) {
+			if !should.Equal(t, ds[0].Message, "multiple elements with same qualified name") {
 				t.Log(ds[0].Short())
 			}
 		} else {
@@ -60,8 +60,8 @@ func TestLinker_CheckElementSpecCollisions(t *testing.T) {
 		createElementSpec(f, nil, "foos", "ame", elemtype.Normal)
 		ds := Link(context.Background(), pkg, Options{})
 
-		if should.Equal(t, 1, len(ds)) {
-			if !should.Equal(t, "multiple elements with same html name", ds[0].Message) {
+		if should.Equal(t, len(ds), 1) {
+			if !should.Equal(t, ds[0].Message, "multiple elements with same html name") {
 				t.Log(ds[0].Short())
 			}
 		} else {
@@ -79,8 +79,8 @@ func TestLinker_CheckElementSpecCollisions(t *testing.T) {
 		createElementSpec(f, nil, "foo", "same", elemtype.Normal)
 		ds := Link(context.Background(), pkg, Options{})
 
-		if should.Equal(t, 1, len(ds)) {
-			if !should.Equal(t, "multiple elements with same qualified name", ds[0].Message) {
+		if should.Equal(t, len(ds), 1) {
+			if !should.Equal(t, ds[0].Message, "multiple elements with same qualified name") {
 				t.Log(ds[0].Short())
 			}
 		} else {
@@ -102,8 +102,8 @@ func TestLinker_CheckAttributeSpecCollisions(t *testing.T) {
 		createBasicAttributeSpec(f, nil, "bar", "Same", nil, attrtype.Innocuous)
 		ds := Link(context.Background(), pkg, Options{})
 
-		if should.Equal(t, 1, len(ds)) {
-			if !should.Equal(t, "multiple attributes with same qualified selector", ds[0].Message) {
+		if should.Equal(t, len(ds), 1) {
+			if !should.Equal(t, ds[0].Message, "multiple attributes with same qualified selector") {
 				t.Log(ds[0].Short())
 			}
 		} else {
@@ -121,8 +121,8 @@ func TestLinker_CheckAttributeSpecCollisions(t *testing.T) {
 		createBasicAttributeSpec(f, nil, "foos", "ame", nil, attrtype.Innocuous)
 		ds := Link(context.Background(), pkg, Options{})
 
-		if should.Equal(t, 1, len(ds)) {
-			if !should.Equal(t, "multiple attributes with same html name selector", ds[0].Message) {
+		if should.Equal(t, len(ds), 1) {
+			if !should.Equal(t, ds[0].Message, "multiple attributes with same html name selector") {
 				t.Log(ds[0].Short())
 			}
 		} else {
@@ -140,8 +140,8 @@ func TestLinker_CheckAttributeSpecCollisions(t *testing.T) {
 		createBasicAttributeSpec(f, nil, "foo", "same", nil, attrtype.Innocuous)
 		ds := Link(context.Background(), pkg, Options{})
 
-		if should.Equal(t, 1, len(ds)) {
-			if !should.Equal(t, "multiple attributes with same qualified selector", ds[0].Message) {
+		if should.Equal(t, len(ds), 1) {
+			if !should.Equal(t, ds[0].Message, "multiple attributes with same qualified selector") {
 				t.Log(ds[0].Short())
 			}
 		} else {

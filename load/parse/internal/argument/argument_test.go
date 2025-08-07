@@ -247,7 +247,7 @@ func TestArguments(t *testing.T) {
 
 			p := parsetest.NewParser(t, c.in+"other")
 			got := parsetest.AssertNoError(t, p, Arguments())
-			if should.Equal(t, c.want, got) {
+			if should.Equal(t, got, c.want) {
 				parsetest.AssertPosition(t, p, c.want.End().Line, c.want.End().Col, len(c.in))
 			}
 		})

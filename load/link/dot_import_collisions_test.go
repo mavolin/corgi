@@ -28,8 +28,8 @@ func TestLinker_CheckDotImportComponentCollisions(t *testing.T) {
 			Importer: ImporterFor(importedPkg),
 		})
 
-		if should.Equal(t, 1, len(ds)) {
-			if !should.Equal(t, "dot import collision: multiple definitions for component of the same name", ds[0].Message) {
+		if should.Equal(t, len(ds), 1) {
+			if !should.Equal(t, ds[0].Message, "dot import collision: multiple definitions for component of the same name") {
 				t.Log(ds[0].Short())
 			}
 		} else {
@@ -56,8 +56,8 @@ func TestLinker_CheckDotImportComponentCollisions(t *testing.T) {
 		ds := Link(context.Background(), mainPkg, Options{
 			Importer: ImporterFor(importedPkg, imported2Pkg),
 		})
-		if should.Equal(t, 1, len(ds)) {
-			if !should.Equal(t, "dot import collision: multiple definitions for component of the same name", ds[0].Message) {
+		if should.Equal(t, len(ds), 1) {
+			if !should.Equal(t, ds[0].Message, "dot import collision: multiple definitions for component of the same name") {
 				t.Log(ds[0].Short())
 			}
 		} else {
@@ -80,8 +80,8 @@ func TestLinker_CheckDotImportComponentCollisions(t *testing.T) {
 		ds := Link(context.Background(), mainPkg, Options{
 			Importer: ImporterFor(importedPkg),
 		})
-		if should.Equal(t, 1, len(ds)) {
-			if !should.NotEqual(t, "dot import collision: multiple definitions for component of the same name", ds[0].Message) {
+		if should.Equal(t, len(ds), 1) {
+			if !should.NotEqual(t, ds[0].Message, "dot import collision: multiple definitions for component of the same name") {
 				t.Log(ds[0].Short())
 			}
 		} else {
@@ -105,7 +105,7 @@ func TestLinker_CheckDotImportComponentCollisions(t *testing.T) {
 			Importer: ImporterFor(importedPkg),
 		})
 
-		if !should.Equal(t, 0, len(ds)) {
+		if !should.Equal(t, len(ds), 0) {
 			t.Log(ds.Short())
 		}
 	})
@@ -130,8 +130,8 @@ func TestLinker_CheckDotImportElementSpecCollisions(t *testing.T) {
 			Importer: ImporterFor(importedPkg),
 		})
 
-		if should.Equal(t, 1, len(ds)) {
-			if !should.Equal(t, "dot import collision: multiple definitions for element of the same name", ds[0].Message) {
+		if should.Equal(t, len(ds), 1) {
+			if !should.Equal(t, ds[0].Message, "dot import collision: multiple definitions for element of the same name") {
 				t.Log(ds[0].Short())
 			}
 		} else {
@@ -158,8 +158,8 @@ func TestLinker_CheckDotImportElementSpecCollisions(t *testing.T) {
 		ds := Link(context.Background(), mainPkg, Options{
 			Importer: ImporterFor(importedPkg, imported2Pkg),
 		})
-		if should.Equal(t, 1, len(ds)) {
-			if !should.Equal(t, "dot import collision: multiple definitions for element of the same name", ds[0].Message) {
+		if should.Equal(t, len(ds), 1) {
+			if !should.Equal(t, ds[0].Message, "dot import collision: multiple definitions for element of the same name") {
 				t.Log(ds[0].Short())
 			}
 		} else {
@@ -182,8 +182,8 @@ func TestLinker_CheckDotImportElementSpecCollisions(t *testing.T) {
 		ds := Link(context.Background(), mainPkg, Options{
 			Importer: ImporterFor(importedPkg),
 		})
-		if should.Equal(t, 1, len(ds)) {
-			if !should.NotEqual(t, "dot import collision: multiple definitions for element of the same name", ds[0].Message) {
+		if should.Equal(t, len(ds), 1) {
+			if !should.NotEqual(t, ds[0].Message, "dot import collision: multiple definitions for element of the same name") {
 				t.Log(ds[0].Short())
 			}
 		} else {
@@ -207,7 +207,7 @@ func TestLinker_CheckDotImportElementSpecCollisions(t *testing.T) {
 			Importer: ImporterFor(importedPkg),
 		})
 
-		if !should.Equal(t, 0, len(ds)) {
+		if !should.Equal(t, len(ds), 0) {
 			t.Log(ds.Short())
 		}
 	})
@@ -232,8 +232,8 @@ func TestLinker_CheckDotImportAttributeSpecCollisions(t *testing.T) {
 			Importer: ImporterFor(importedPkg),
 		})
 
-		if should.Equal(t, 1, len(ds)) {
-			if !should.Equal(t, "dot import collision: multiple definitions for attribute of the same name", ds[0].Message) {
+		if should.Equal(t, len(ds), 1) {
+			if !should.Equal(t, ds[0].Message, "dot import collision: multiple definitions for attribute of the same name") {
 				t.Log(ds[0].Short())
 			}
 		} else {
@@ -260,8 +260,8 @@ func TestLinker_CheckDotImportAttributeSpecCollisions(t *testing.T) {
 		ds := Link(context.Background(), mainPkg, Options{
 			Importer: ImporterFor(importedPkg, imported2Pkg),
 		})
-		if should.Equal(t, 1, len(ds)) {
-			if !should.Equal(t, "dot import collision: multiple definitions for attribute of the same name", ds[0].Message) {
+		if should.Equal(t, len(ds), 1) {
+			if !should.Equal(t, ds[0].Message, "dot import collision: multiple definitions for attribute of the same name") {
 				t.Log(ds[0].Short())
 			}
 		} else {
@@ -284,8 +284,8 @@ func TestLinker_CheckDotImportAttributeSpecCollisions(t *testing.T) {
 		ds := Link(context.Background(), mainPkg, Options{
 			Importer: ImporterFor(importedPkg),
 		})
-		if should.Equal(t, 1, len(ds)) {
-			if !should.NotEqual(t, "dot import collision: multiple definitions for attribute of the same name", ds[0].Message) {
+		if should.Equal(t, len(ds), 1) {
+			if !should.NotEqual(t, ds[0].Message, "dot import collision: multiple definitions for attribute of the same name") {
 				t.Log(ds[0].Short())
 			}
 		} else {
@@ -309,7 +309,7 @@ func TestLinker_CheckDotImportAttributeSpecCollisions(t *testing.T) {
 			Importer: ImporterFor(importedPkg),
 		})
 
-		if !should.Equal(t, 0, len(ds)) {
+		if !should.Equal(t, len(ds), 0) {
 			t.Log(ds.Short())
 		}
 	})

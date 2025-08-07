@@ -25,7 +25,7 @@ func TestRuneLit(t *testing.T) {
 		t.Run(c, func(t *testing.T) {
 			t.Parallel()
 			got := parsetest.ParsesFully(t, c, RuneLit())
-			should.Equal(t, c, got)
+			should.Equal(t, got, c)
 		})
 	}
 }

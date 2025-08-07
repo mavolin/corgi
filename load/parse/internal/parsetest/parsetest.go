@@ -83,8 +83,8 @@ func AssertNoError[T any](t *testing.T, p *parser.Parser, f parser.Func[T]) T {
 	should.False(t, isZero(v)) // match error
 
 	for _, err := range p.Errors() {
-		should.NotEqual(t, err, nil) // diagnostic.List: nil error was captured
-		should.Equal(t, err, nil)    // diagnostic.List: unexpected error
+		should.NotEqual(t, nil, err) // diagnostic.List: nil error was captured
+		should.Equal(t, nil, err)    // diagnostic.List: unexpected error
 	}
 
 	return v
@@ -116,9 +116,9 @@ func CalcEndPos(in string) ast.Position {
 
 func AssertPosition(t *testing.T, p *parser.Parser, line, col, index int) {
 	t.Helper()
-	should.Equal(t, line, int(p.Line())) // position: line mismatch
-	should.Equal(t, col, int(p.Col()))   // position: col mismatch
-	should.Equal(t, index, p.Index())    // position: index mismatch
+	should.Equal(t, int(p.Line()), line) // position: line mismatch
+	should.Equal(t, int(p.Col()), col)   // position: col mismatch
+	should.Equal(t, p.Index(), index)    // position: index mismatch
 }
 
 func CoerceFunc[I, O any](t *testing.T, in parser.Func[I]) parser.Func[O] {

@@ -34,11 +34,11 @@ func TestAnno(t *testing.T) {
 			Annotation: wantAnno,
 		})
 		should.True(t, wantFile == anno.File)                 // file
-		should.Equal(t, wantContext.Start, anno.ContextStart) // context start
-		should.Equal(t, wantContext.End, anno.ContextEnd)     // context end
-		should.Equal(t, wantHighlight.Start, anno.Start)      // highlight start
-		should.Equal(t, wantHighlight.End, anno.End)          // highlight end
-		should.Equal(t, wantAnno, anno.Annotation)            // annotation
+		should.Equal(t, anno.ContextStart, wantContext.Start) // context start
+		should.Equal(t, anno.ContextEnd, wantContext.End)     // context end
+		should.Equal(t, anno.Start, wantHighlight.Start)      // highlight start
+		should.Equal(t, anno.End, wantHighlight.End)          // highlight end
+		should.Equal(t, anno.Annotation, wantAnno)            // annotation
 	})
 	t.Run("highlight and context", func(t *testing.T) {
 		t.Parallel()
@@ -61,8 +61,8 @@ func TestAnno(t *testing.T) {
 		anno := Anno(wantFile, Annotation{
 			Context: func(f *file.File, context Context, highlight Highlight) Context {
 				should.True(t, wantFile == f)
-				should.Equal(t, otherContext, context)
-				should.Equal(t, wantHighlight, highlight)
+				should.Equal(t, context, otherContext)
+				should.Equal(t, highlight, wantHighlight)
 				return wantContext
 			},
 			Highlight: func(f *file.File) (Context, Highlight) {
@@ -71,12 +71,12 @@ func TestAnno(t *testing.T) {
 			},
 			Annotation: wantAnno,
 		})
-		should.Equal(t, wantFile, anno.File)
-		should.Equal(t, wantContext.Start, anno.ContextStart)
-		should.Equal(t, wantContext.End, anno.ContextEnd)
-		should.Equal(t, wantHighlight.Start, anno.Start)
-		should.Equal(t, wantHighlight.End, anno.End)
-		should.Equal(t, wantAnno, anno.Annotation)
+		should.Equal(t, anno.File, wantFile)
+		should.Equal(t, anno.ContextStart, wantContext.Start)
+		should.Equal(t, anno.ContextEnd, wantContext.End)
+		should.Equal(t, anno.Start, wantHighlight.Start)
+		should.Equal(t, anno.End, wantHighlight.End)
+		should.Equal(t, anno.Annotation, wantAnno)
 	})
 }
 
@@ -93,7 +93,7 @@ func TestRange(t *testing.T) {
 	}
 
 	anno := Range(want.File, want.Start, want.End, want.Annotation)
-	should.Equal(t, want, anno)
+	should.Equal(t, anno, want)
 	should.True(t, want.File == anno.File)
 }
 
@@ -119,7 +119,7 @@ func TestToEOL(t *testing.T) {
 	}
 
 	anno := ToEOL(want.File, want.Start, want.Annotation)
-	should.Equal(t, want, anno)
+	should.Equal(t, anno, want)
 	should.True(t, want.File == anno.File)
 }
 
@@ -136,7 +136,7 @@ func TestPosition(t *testing.T) {
 	}
 
 	anno := Position(want.File, want.Start, want.Annotation)
-	should.Equal(t, want, anno)
+	should.Equal(t, anno, want)
 	should.True(t, want.File == anno.File)
 }
 
@@ -154,7 +154,7 @@ func TestNChars(t *testing.T) {
 	}
 
 	anno := NRunes(want.File, want.Start, n, want.Annotation)
-	should.Equal(t, want, anno)
+	should.Equal(t, anno, want)
 	should.True(t, want.File == anno.File)
 }
 
@@ -225,7 +225,7 @@ func TestNode(t *testing.T) {
 			}
 
 			anno := Node(want.File, c.node, want.Annotation)
-			should.Equal(t, want, anno)
+			should.Equal(t, anno, want)
 		})
 	}
 }

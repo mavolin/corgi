@@ -90,7 +90,7 @@ func testString() func(t *testing.T, f parser.Func[*ast.String]) {
 					t.Parallel()
 
 					got := parsesCodeNodeFully(t, c.in, f)
-					should.Equal(t, c.want, got)
+					should.Equal(t, got, c.want)
 				})
 			}
 		})
@@ -123,7 +123,7 @@ func testString() func(t *testing.T, f parser.Func[*ast.String]) {
 					t.Parallel()
 
 					got := parsetest.MatchesButError(t, c.in, f)
-					should.Equal(t, c.want, got)
+					should.Equal(t, got, c.want)
 				})
 			}
 		})

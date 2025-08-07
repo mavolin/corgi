@@ -39,7 +39,7 @@ func testComponentArgument(t *testing.T, f parser.Func[*ast.ComponentArgument]) 
 		// we add ", other" to test that the parser stops at the comma
 		p := parsetest.NewParser(t, in+", other")
 		got := parsetest.AssertNoError(t, p, f)
-		if should.Equal(t, want, got) {
+		if should.Equal(t, got, want) {
 			parsetest.AssertPosition(t, p, want.End().Line, want.End().Col, len(in))
 		}
 	})
@@ -104,7 +104,7 @@ func testComponentArgument(t *testing.T, f parser.Func[*ast.ComponentArgument]) 
 				// we add ", other" to test that the parser stops at the comma
 				p := parsetest.NewParser(t, c.in+", other")
 				got := parsetest.AssertMatchesButError(t, p, f)
-				if should.Equal(t, c.want, got) {
+				if should.Equal(t, got, c.want) {
 					parsetest.AssertPosition(t, p, c.want.End().Line, c.want.End().Col, len(c.in))
 				}
 			})

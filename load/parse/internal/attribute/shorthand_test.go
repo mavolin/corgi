@@ -36,7 +36,7 @@ func testIDShorthand(t *testing.T, f parser.Func[*ast.IDShorthand]) {
 	}
 
 	got := parsetest.ParsesFully(t, "#foo#{bar}", f)
-	should.Equal(t, want, got)
+	should.Equal(t, got, want)
 }
 
 func TestClassShorthand(t *testing.T) {
@@ -122,7 +122,7 @@ func testClassShorthand(t *testing.T, f parser.Func[*ast.ClassShorthand]) {
 
 			line, col, index := parsetest.CalcEnd(1, 1, 0, c.in)
 			parsetest.AssertPosition(t, p, line, col, index)
-			should.Equal(t, c.want, got)
+			should.Equal(t, got, c.want)
 		})
 	}
 }
@@ -184,7 +184,7 @@ func testShorthand(t *testing.T, f parser.Func[ast.Shorthand]) {
 			t.Parallel()
 
 			got := parsetest.ParsesFully(t, c.in, f)
-			should.Equal(t, c.want, got)
+			should.Equal(t, got, c.want)
 		})
 	}
 }
@@ -205,7 +205,7 @@ func testShorthandText(t *testing.T, f parser.Func[*ast.ShorthandText]) {
 		t.Parallel()
 		want := &ast.ShorthandText{Text: "foo", Position: &ast.Position{Line: 1, Col: 1}}
 		got := parsetest.ParsesFully(t, "foo", f)
-		should.Equal(t, want, got)
+		should.Equal(t, got, want)
 	})
 
 	t.Run("missing", func(t *testing.T) {
@@ -234,7 +234,7 @@ func testShorthandInterpolation(t *testing.T, f parser.Func[*ast.ShorthandInterp
 		}
 
 		got := parsetest.ParsesFully(t, "#{foo}", f)
-		should.Equal(t, want, got)
+		should.Equal(t, got, want)
 	})
 
 	t.Run("missing expression", func(t *testing.T) {

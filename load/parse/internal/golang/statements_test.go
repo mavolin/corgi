@@ -15,7 +15,7 @@ func TestAssignOp(t *testing.T) {
 		t.Run(c, func(t *testing.T) {
 			t.Parallel()
 			got := parsetest.ParsesFully(t, c, AssignOp())
-			should.Equal(t, c, got)
+			should.Equal(t, got, c)
 		})
 	}
 }

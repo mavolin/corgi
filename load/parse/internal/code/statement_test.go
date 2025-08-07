@@ -148,7 +148,7 @@ func testReturn(t *testing.T, f parser.Func[*ast.Return]) {
 			t.Parallel()
 
 			got := parsesCodeNodeFully(t, c.in, f)
-			should.Equal(t, c.want, got)
+			should.Equal(t, got, c.want)
 		})
 	}
 }
@@ -188,7 +188,7 @@ func testBreak(t *testing.T, f parser.Func[*ast.Break]) {
 			t.Parallel()
 
 			got := parsesCodeNodeFully(t, c.in, f)
-			should.Equal(t, c.want, got)
+			should.Equal(t, got, c.want)
 		})
 	}
 }
@@ -228,7 +228,7 @@ func testContinue(t *testing.T, f parser.Func[*ast.Continue]) {
 			t.Parallel()
 
 			got := parsesCodeNodeFully(t, c.in, f)
-			should.Equal(t, c.want, got)
+			should.Equal(t, got, c.want)
 		})
 	}
 }
@@ -268,7 +268,7 @@ func testFallthrough(t *testing.T, f parser.Func[*ast.Fallthrough]) {
 			t.Parallel()
 
 			got := parsesCodeNodeFully(t, c.in, f)
-			should.Equal(t, c.want, got)
+			should.Equal(t, got, c.want)
 		})
 	}
 }
@@ -293,7 +293,7 @@ func testDefer(t *testing.T, f parser.Func[*ast.Defer]) {
 	}
 
 	got := parsesCodeNodeFully(t, in, f)
-	should.Equal(t, want, got)
+	should.Equal(t, got, want)
 }
 
 func TestZeroCoalescingAssignment(t *testing.T) {
@@ -380,7 +380,7 @@ func testZeroCoalescingAssignment(t *testing.T, f parser.Func[*ast.ZeroCoalescin
 			t.Parallel()
 
 			got := parsesCodeNodeFully(t, c.in, f)
-			should.Equal(t, c.want, got)
+			should.Equal(t, got, c.want)
 		})
 	}
 }
@@ -426,7 +426,7 @@ func testIncDec(t *testing.T, f parser.Func[*ast.IncDec]) {
 			t.Parallel()
 
 			got := parsesCodeNodeFully(t, c.in, f)
-			should.Equal(t, c.want, got)
+			should.Equal(t, got, c.want)
 		})
 	}
 }
@@ -444,7 +444,7 @@ func testLabel(t *testing.T, f parser.Func[*ast.Label]) {
 	}
 
 	got := parsesCodeNodeFully(t, in, f)
-	should.Equal(t, want, got)
+	should.Equal(t, got, want)
 }
 
 func TestConstDeclaration(t *testing.T) {
@@ -602,7 +602,7 @@ func testConstDeclaration(t *testing.T, f parser.Func[*ast.ConstDeclaration]) {
 			t.Parallel()
 
 			got := parsesCodeNodeFully(t, c.in, f)
-			should.Equal(t, c.want, got)
+			should.Equal(t, got, c.want)
 		})
 	}
 }
@@ -783,7 +783,7 @@ func testVarDeclaration(t *testing.T, f parser.Func[*ast.VarDeclaration]) {
 			t.Parallel()
 
 			got := parsesCodeNodeFully(t, c.in, f)
-			should.Equal(t, c.want, got)
+			should.Equal(t, got, c.want)
 		})
 	}
 }
@@ -861,7 +861,7 @@ func testShortVarDeclaration(t *testing.T, f parser.Func[*ast.ShortVarDeclaratio
 			t.Parallel()
 
 			got := parsesCodeNodeFully(t, c.in, f)
-			should.Equal(t, c.want, got)
+			should.Equal(t, got, c.want)
 		})
 	}
 }
@@ -981,7 +981,7 @@ func testAssignment(t *testing.T, f parser.Func[*ast.Assignment]) {
 			t.Parallel()
 
 			got := parsesCodeNodeFully(t, c.in, f)
-			should.Equal(t, c.want, got)
+			should.Equal(t, got, c.want)
 		})
 	}
 }

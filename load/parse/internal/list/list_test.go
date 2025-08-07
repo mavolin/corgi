@@ -79,7 +79,7 @@ func testList(t *testing.T, name string, opening, closing rune) {
 				}
 
 				got := parsetest.ParsesFully(t, in, list(name, name, opening, closing, elemFunc))
-				should.Equal(t, want, got)
+				should.Equal(t, got, want)
 			})
 		}
 	})
@@ -138,8 +138,8 @@ func testList(t *testing.T, name string, opening, closing rune) {
 				}
 				p := parsetest.NewParser(t, gotIn)
 				got := parsetest.AssertMatchesButError(t, p, list(name, name, opening, closing, elemFunc))
-				if should.Equal(t, want, got) {
-					should.Equal(t, p.Index(), len(in))
+				if should.Equal(t, got, want) {
+					should.Equal(t, len(in), p.Index())
 				}
 			})
 		}
@@ -186,8 +186,8 @@ func TestCommaList(t *testing.T) {
 
 				p := parsetest.NewParser(t, c.in+" other")
 				got := parsetest.AssertNoError(t, p, CommaList("a", "as", elemFunc))
-				if should.Equal(t, c.want, got) {
-					should.Equal(t, len(c.in), p.Index())
+				if should.Equal(t, got, c.want) {
+					should.Equal(t, p.Index(), len(c.in))
 				}
 			})
 		}
@@ -218,8 +218,8 @@ func TestCommaList(t *testing.T) {
 
 				p := parsetest.NewParser(t, c.in+" 123")
 				got := parsetest.AssertMatchesButError(t, p, CommaList("a", "as", elemFunc))
-				if should.Equal(t, c.want, got) {
-					should.Equal(t, len(c.in), p.Index())
+				if should.Equal(t, got, c.want) {
+					should.Equal(t, p.Index(), len(c.in))
 				}
 			})
 		}

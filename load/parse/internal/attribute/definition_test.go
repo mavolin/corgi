@@ -208,7 +208,7 @@ func TestDefinition(t *testing.T) {
 			t.Parallel()
 
 			got := parsetest.ParsesFully(t, c.in, Definition())
-			should.Equal(t, c.want, got)
+			should.Equal(t, got, c.want)
 		})
 	}
 }
@@ -241,7 +241,7 @@ func TestSpec(t *testing.T) {
 	}
 
 	got := parsetest.ParsesFully(t, in, Spec())
-	should.Equal(t, want, got)
+	should.Equal(t, got, want)
 }
 
 func TestRuleset(t *testing.T) {
@@ -373,7 +373,7 @@ func TestRuleset(t *testing.T) {
 			t.Parallel()
 
 			got := parsetest.ParsesFully(t, c.in, Ruleset())
-			should.Equal(t, c.want, got)
+			should.Equal(t, got, c.want)
 		})
 	}
 }
@@ -394,7 +394,7 @@ func TestRule(t *testing.T) {
 	}
 
 	got := parsetest.ParsesFully(t, in, Rule())
-	should.Equal(t, want, got)
+	should.Equal(t, got, want)
 }
 
 func TestSelector(t *testing.T) {
@@ -431,7 +431,7 @@ func testBasicSelector(t *testing.T, f parser.Func[*ast.BasicAttributeSelector])
 			t.Parallel()
 
 			got := parsetest.ParsesFully(t, c.in, f)
-			should.Equal(t, c.want, got)
+			should.Equal(t, got, c.want)
 		})
 	}
 }
@@ -457,7 +457,7 @@ func testRegexpSelector(t *testing.T, f parser.Func[*ast.RegexpAttributeSelector
 	}
 
 	got := parsetest.ParsesFully(t, in, f)
-	should.Equal(t, want, got, cmpopts.IgnoreFields(ast.RegexpAttributeSelector{}, "Compiled"))
+	should.Equal(t, got, want, cmpopts.IgnoreFields(ast.RegexpAttributeSelector{}, "Compiled"))
 }
 
 func TestElementSelector(t *testing.T) {
@@ -477,7 +477,7 @@ func testWildcardElementSelector(t *testing.T, f parser.Func[*ast.WildcardElemen
 	want := &ast.WildcardElementSelector{Asterisk: &ast.Position{Line: 1, Col: 1}}
 
 	got := parsetest.ParsesFully(t, in, f)
-	should.Equal(t, want, got)
+	should.Equal(t, got, want)
 }
 
 func TestListElementSelector(t *testing.T) {
@@ -524,7 +524,7 @@ func testListElementSelector(t *testing.T, f parser.Func[*ast.ListElementSelecto
 			t.Parallel()
 
 			got := parsetest.ParsesFully(t, c.in, f)
-			should.Equal(t, c.want, got)
+			should.Equal(t, got, c.want)
 		})
 	}
 }
@@ -541,5 +541,5 @@ func TestListElementSelectorItem(t *testing.T) {
 	}
 
 	got := parsetest.ParsesFully(t, in, elementReference)
-	should.Equal(t, want, got)
+	should.Equal(t, got, want)
 }

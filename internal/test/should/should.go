@@ -12,7 +12,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
-func Equal[T any](t testing.TB, want, got T, opts ...cmp.Option) bool {
+func Equal[T any](t testing.TB, got, want T, opts ...cmp.Option) bool {
 	t.Helper()
 
 	if diff := cmp.Diff(want, got, opts...); diff != "" {
@@ -22,7 +22,7 @@ func Equal[T any](t testing.TB, want, got T, opts ...cmp.Option) bool {
 	return true
 }
 
-func NotEqual[T any](t testing.TB, want, got T, opts ...cmp.Option) bool {
+func NotEqual[T any](t testing.TB, got, want T, opts ...cmp.Option) bool {
 	t.Helper()
 
 	if cmp.Equal(want, got, opts...) {
@@ -43,7 +43,7 @@ func NoError(t testing.TB, err error) bool {
 	return true
 }
 
-func Error(t testing.TB, want, got error) bool {
+func Error(t testing.TB, got, want error) bool {
 	t.Helper()
 
 	if diff := cmp.Diff(want, got, cmpopts.EquateErrors()); diff != "" {

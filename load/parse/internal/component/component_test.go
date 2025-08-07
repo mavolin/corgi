@@ -102,7 +102,7 @@ func TestComponent(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 			got := parsetest.ParsesFully(t, c.in, Component())
-			should.Equal(t, c.want, got)
+			should.Equal(t, got, c.want)
 		})
 	}
 }
@@ -189,7 +189,7 @@ func TestHeader(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 			got := parsetest.ParsesFully(t, c.in, Header())
-			should.Equal(t, c.want, got)
+			should.Equal(t, got, c.want)
 		})
 	}
 }
@@ -285,7 +285,7 @@ func TestParameters(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 			got := parsetest.ParsesFully(t, c.in, Parameters())
-			should.Equal(t, c.want, got)
+			should.Equal(t, got, c.want)
 		})
 	}
 }
@@ -391,7 +391,7 @@ func TestParameter(t *testing.T) {
 
 			line, col, index := parsetest.CalcEnd(1, 1, 0, c.in)
 			parsetest.AssertPosition(t, p, line, col, index)
-			should.Equal(t, c.want, got)
+			should.Equal(t, got, c.want)
 		})
 	}
 }
@@ -479,7 +479,7 @@ func TestBlock(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 			got := parsetest.ParsesFully(t, c.in, Block())
-			should.Equal(t, c.want, got)
+			should.Equal(t, got, c.want)
 		})
 	}
 }

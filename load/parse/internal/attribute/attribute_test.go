@@ -29,7 +29,7 @@ func testAndPlaceholder(t *testing.T, f parser.Func[*ast.AndPlaceholder]) {
 
 	p := parsetest.NewParser(t, "&, other")
 	got := parsetest.AssertNoError(t, p, f)
-	if should.Equal(t, want, got) {
+	if should.Equal(t, got, want) {
 		parsetest.AssertPosition(t, p, want.End().Line, want.End().Col, 1)
 	}
 }
@@ -87,7 +87,7 @@ func testNamedAttribute(t *testing.T, f parser.Func[*ast.NamedAttribute]) {
 			// the correct position
 			p := parsetest.NewParser(t, c.in+", other")
 			got := parsetest.AssertNoError(t, p, f)
-			if should.Equal(t, c.want, got) {
+			if should.Equal(t, got, c.want) {
 				parsetest.AssertPosition(t, p, c.want.End().Line, c.want.End().Col, len(c.in))
 			}
 		})
@@ -133,7 +133,7 @@ func TestReference(t *testing.T) {
 			t.Parallel()
 
 			got := parsetest.ParsesFully(t, c.in, Reference())
-			should.Equal(t, c.want, got)
+			should.Equal(t, got, c.want)
 		})
 	}
 }

@@ -19,7 +19,7 @@ func TestTagName(t *testing.T) {
 			t.Parallel()
 
 			got := parsetest.ParsesFully(t, c, TagName())
-			should.Equal(t, c, got)
+			should.Equal(t, got, c)
 		})
 	}
 }
@@ -36,7 +36,7 @@ func TestAttributeName(t *testing.T) {
 			t.Parallel()
 
 			got := parsetest.ParsesFully(t, c, AttributeName())
-			should.Equal(t, c, got)
+			should.Equal(t, got, c)
 		})
 	}
 }

@@ -18,7 +18,7 @@ func TestPackageDirective(t *testing.T) {
 	}
 
 	got := parsetest.ParsesFully(t, in, PackageDirective())
-	should.Equal(t, want, got)
+	should.Equal(t, got, want)
 }
 
 func TestImport(t *testing.T) {
@@ -81,7 +81,7 @@ func TestImport(t *testing.T) {
 			t.Parallel()
 
 			got := parsetest.ParsesFully(t, c.in, Import())
-			should.Equal(t, c.want, got)
+			should.Equal(t, got, c.want)
 		})
 	}
 }
@@ -125,7 +125,7 @@ func TestImportSpec(t *testing.T) {
 			t.Parallel()
 
 			got := parsetest.ParsesFully(t, c.in, ImportSpec())
-			should.Equal(t, c.want, got)
+			should.Equal(t, got, c.want)
 		})
 	}
 }

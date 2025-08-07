@@ -63,7 +63,7 @@ func TestType(t *testing.T) {
 					}
 				}
 				got := parsetest.ParsesFully(t, "'"+s, Type())
-				should.Equal(t, want, got)
+				should.Equal(t, got, want)
 			})
 		}
 	})
@@ -82,7 +82,7 @@ func TestType(t *testing.T) {
 				},
 			}
 			got := parsetest.MatchesButError(t, "'foo", Type())
-			should.Equal(t, want, got)
+			should.Equal(t, got, want)
 		})
 	})
 }
@@ -103,7 +103,7 @@ func TestTypeName(t *testing.T) {
 					Position: &ast.Position{Line: 1, Col: 1},
 				}
 				got := parsetest.ParsesFully(t, c.name, TypeName())
-				should.Equal(t, want, got)
+				should.Equal(t, got, want)
 			})
 		}
 	})
@@ -119,7 +119,7 @@ func TestTypeName(t *testing.T) {
 				Position: &ast.Position{Line: 1, Col: 1},
 			}
 			got := parsetest.MatchesButError(t, "foo", TypeName())
-			should.Equal(t, want, got)
+			should.Equal(t, got, want)
 		})
 	})
 }

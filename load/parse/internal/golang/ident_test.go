@@ -22,5 +22,5 @@ func testIdentifier(t *testing.T, f parser.Func[*ast.Identifier]) {
 	}
 
 	got := parsetest.ParsesFully(t, in, f)
-	should.Equal(t, want, got)
+	should.Equal(t, got, want)
 }

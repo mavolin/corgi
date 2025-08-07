@@ -65,7 +65,7 @@ func TestArrowBlock(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 			got := parsesTextFully(t, c.in, ArrowBlock())
-			should.Equal(t, c.want, got)
+			should.Equal(t, got, c.want)
 		})
 	}
 }
@@ -101,7 +101,7 @@ func TestLine(t *testing.T) {
 	}
 
 	got := parsesTextFully(t, in, Line('\n'))
-	should.Equal(t, want, got)
+	should.Equal(t, got, want)
 }
 
 func TestVerbatimLine(t *testing.T) {
@@ -116,7 +116,7 @@ func TestVerbatimLine(t *testing.T) {
 	}
 
 	got := parsesTextFully(t, in, VerbatimLine('\n'))
-	should.Equal(t, want, got)
+	should.Equal(t, got, want)
 }
 
 func TestText(t *testing.T) {
@@ -147,7 +147,7 @@ func TestText(t *testing.T) {
 				Position: &ast.Position{Line: 1, Col: 1},
 			}
 			got := parsesTextFully(t, c.in, Text('\n'))
-			should.Equal(t, want, got)
+			should.Equal(t, got, want)
 		})
 	}
 }

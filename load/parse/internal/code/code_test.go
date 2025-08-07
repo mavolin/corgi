@@ -70,7 +70,7 @@ func testGoCode() func(t *testing.T, f parser.Func[[]ast.CodeNode]) {
 				}
 
 				got := parsesCodeNodeFully(t, c.code, f)
-				should.Equal(t, want, got)
+				should.Equal(t, got, want)
 			})
 		}
 	}
@@ -117,7 +117,7 @@ func testBlockFunction() func(t *testing.T, f parser.Func[*ast.BlockFunction]) {
 				t.Run(c.name, func(t *testing.T) {
 					t.Parallel()
 					got := parsesCodeNodeFully(t, c.in, f)
-					should.Equal(t, c.want, got)
+					should.Equal(t, got, c.want)
 				})
 			}
 		})
@@ -153,7 +153,7 @@ func testBlockFunction() func(t *testing.T, f parser.Func[*ast.BlockFunction]) {
 					t.Parallel()
 
 					got := parsetest.MatchesButError(t, c.in, f)
-					should.Equal(t, c.want, got)
+					should.Equal(t, got, c.want)
 				})
 			}
 		})
@@ -193,7 +193,7 @@ func testTernary() func(t *testing.T, f parser.Func[*ast.Ternary]) {
 			}
 
 			got := parsesCodeNodeFully(t, in, f)
-			should.Equal(t, want, got)
+			should.Equal(t, got, want)
 		})
 
 		t.Run("failure", func(t *testing.T) {
@@ -274,7 +274,7 @@ func testTernary() func(t *testing.T, f parser.Func[*ast.Ternary]) {
 					t.Parallel()
 
 					got := parsetest.MatchesButError(t, c.in, f)
-					should.Equal(t, c.want, got)
+					should.Equal(t, got, c.want)
 				})
 			}
 		})

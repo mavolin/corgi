@@ -125,7 +125,7 @@ func TestDefinition(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 			got := parsetest.ParsesFully(t, c.in, Definition())
-			should.Equal(t, c.want, got)
+			should.Equal(t, got, c.want)
 		})
 	}
 }
@@ -175,7 +175,7 @@ func TestSpec(t *testing.T) {
 
 			line, col, index := parsetest.CalcEnd(1, 1, 0, c.in)
 			parsetest.AssertPosition(t, p, line, col, index)
-			should.Equal(t, c.want, got)
+			should.Equal(t, got, c.want)
 		})
 	}
 }
@@ -202,7 +202,7 @@ func testBasicType(t *testing.T, f parser.Func[*ast.BasicElementType]) {
 	}
 
 	got := parsetest.ParsesFully(t, in, f)
-	should.Equal(t, want, got)
+	should.Equal(t, got, want)
 }
 
 func TestAliasType(t *testing.T) {
@@ -220,7 +220,7 @@ func testAliasType(t *testing.T, f parser.Func[*ast.AliasElementType]) {
 	}
 
 	got := parsetest.ParsesFully(t, in, f)
-	should.Equal(t, want, got)
+	should.Equal(t, got, want)
 }
 
 func TestTypeName(t *testing.T) {
@@ -262,7 +262,7 @@ func TestTypeName(t *testing.T) {
 			}
 
 			got := parsetest.ParsesFully(t, c.name, TypeName())
-			should.Equal(t, want, got)
+			should.Equal(t, got, want)
 		})
 	}
 }

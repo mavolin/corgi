@@ -37,7 +37,7 @@ func testExpressionValue(t *testing.T, f parser.Func[*ast.ExpressionAttributeVal
 	line, col, index := parsetest.CalcEnd(1, 1, 0, in)
 	parsetest.AssertPosition(t, p, line, col, index)
 
-	should.Equal(t, want, got)
+	should.Equal(t, got, want)
 }
 
 func TestTypedAttributeValue(t *testing.T) {
@@ -92,7 +92,7 @@ func testTypedAttributeValue(t *testing.T, f parser.Func[*ast.TypedAttributeValu
 
 			line, col, index := parsetest.CalcEnd(1, 1, 0, in)
 			parsetest.AssertPosition(t, p, line, col, index)
-			should.Equal(t, want, got)
+			should.Equal(t, got, want)
 		})
 	}
 }

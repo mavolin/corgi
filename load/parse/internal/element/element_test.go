@@ -20,7 +20,7 @@ func TestDoctype(t *testing.T) {
 	}
 
 	got := parsetest.ParsesFully(t, in, Doctype())
-	should.Equal(t, want, got)
+	should.Equal(t, got, want)
 }
 
 func TestElement(t *testing.T) {
@@ -112,7 +112,7 @@ func TestElement(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 			got := parsetest.ParsesFully(t, c.in, Element())
-			should.Equal(t, c.want, got)
+			should.Equal(t, got, c.want)
 		})
 	}
 }
@@ -177,7 +177,7 @@ func TestHeader(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 			got := parsetest.ParsesFully(t, c.in, Header())
-			should.Equal(t, c.want, got)
+			should.Equal(t, got, c.want)
 		})
 	}
 }
@@ -221,7 +221,7 @@ func TestReference(t *testing.T) {
 			t.Parallel()
 
 			got := parsetest.ParsesFully(t, c.in, Reference())
-			should.Equal(t, c.want, got)
+			should.Equal(t, got, c.want)
 		})
 	}
 }
@@ -236,7 +236,7 @@ func TestName(t *testing.T) {
 	}
 
 	got := parsetest.ParsesFully(t, in, Name())
-	should.Equal(t, want, got)
+	should.Equal(t, got, want)
 }
 
 func TestRaw(t *testing.T) {
@@ -260,7 +260,7 @@ func TestRaw(t *testing.T) {
 	}
 
 	got := parsetest.ParsesFully(t, in, Raw())
-	should.Equal(t, want, got)
+	should.Equal(t, got, want)
 }
 
 func TestAnd(t *testing.T) {
@@ -286,5 +286,5 @@ func TestAnd(t *testing.T) {
 	}
 
 	got := parsetest.ParsesFully(t, in, And())
-	should.Equal(t, want, got)
+	should.Equal(t, got, want)
 }

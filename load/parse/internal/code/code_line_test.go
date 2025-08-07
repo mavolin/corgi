@@ -37,5 +37,5 @@ func TestExplicitCodeLine(t *testing.T) {
 	}
 
 	got := parsesCodeNodeFully(t, in, ExplicitCodeLine())
-	should.Equal(t, want, got)
+	should.Equal(t, got, want)
 }

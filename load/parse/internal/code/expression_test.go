@@ -89,7 +89,7 @@ func TestExpression(t *testing.T) {
 
 					line, col, index := parsetest.CalcEnd(1, 1, 0, in)
 					parsetest.AssertPosition(t, p, line, col, index)
-					should.Equal(t, want, got)
+					should.Equal(t, got, want)
 				})
 				t.Run("not inline", func(t *testing.T) {
 					t.Parallel()
@@ -99,7 +99,7 @@ func TestExpression(t *testing.T) {
 
 					line, col, index := parsetest.CalcEnd(1, 1, 0, in)
 					parsetest.AssertPosition(t, p, line, col, index)
-					should.Equal(t, want, got)
+					should.Equal(t, got, want)
 				})
 			})
 		}
@@ -191,7 +191,7 @@ func testNonZCExpression(t *testing.T, f parser.Func[*ast.Expression]) {
 		}
 
 		got := parsesCodeNodeFully(t, in, f)
-		should.Equal(t, want, got)
+		should.Equal(t, got, want)
 	})
 }
 

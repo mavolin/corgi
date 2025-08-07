@@ -369,11 +369,11 @@ func TestDiagnostic_Pretty(t *testing.T) {
 
 			// short message
 			actualShort := c.diag.Short()
-			should.Equal(t, c.expectShort, actualShort)
+			should.Equal(t, actualShort, c.expectShort)
 
 			// pretty message
 			actualPretty := c.diag.Pretty(PrettyOptions{})
-			should.Equal(t, c.expectPretty, actualPretty)
+			should.Equal(t, actualPretty, c.expectPretty)
 		})
 	}
 }

@@ -36,7 +36,7 @@ func TestComponentCallBody(t *testing.T) {
 		}
 
 		got := parsetest.ParsesFully(t, in, Body())
-		should.Equal[ast.ComponentBody](t, want, got)
+		should.Equal[ast.ComponentBody](t, got, want)
 	})
 }
 
@@ -86,7 +86,7 @@ func testDefaultBlockShorthand(t *testing.T, f parser.Func[*ast.DefaultBlockShor
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 			got := parsetest.ParsesFully(t, c.in, f)
-			should.Equal(t, c.want, got)
+			should.Equal(t, got, c.want)
 		})
 	}
 }

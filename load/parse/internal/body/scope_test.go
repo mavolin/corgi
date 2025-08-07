@@ -63,7 +63,7 @@ func testScope(t *testing.T, f parser.Func[*ast.Scope]) {
 			t.Parallel()
 
 			got := parsetest.ParsesFully(t, c.in, f)
-			should.Equal(t, c.want, got)
+			should.Equal(t, got, c.want)
 		})
 	}
 }
@@ -104,7 +104,7 @@ func TestBadScopeNode(t *testing.T) {
 
 			p := parsetest.NewParser(t, c.in+" foo")
 			got := parsetest.AssertNoError(t, p, BadNode())
-			should.Equal(t, want, got)
+			should.Equal(t, got, want)
 
 			parsetest.AssertPosition(t, p, want.Until.Line, want.Until.Col, len(c.in))
 		})

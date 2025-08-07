@@ -197,7 +197,7 @@ func TestConditional(t *testing.T) {
 			t.Parallel()
 
 			got := parsesCodeNodeFully(t, c.in, Conditional())
-			should.Equal(t, c.want, got)
+			should.Equal(t, got, c.want)
 		})
 	}
 }
@@ -236,7 +236,7 @@ func TestIf(t *testing.T) {
 	}
 
 	got := parsesCodeNodeFully(t, in, If())
-	should.Equal(t, want, got)
+	should.Equal(t, got, want)
 }
 
 func TestElseIf(t *testing.T) {
@@ -274,7 +274,7 @@ func TestElseIf(t *testing.T) {
 	}
 
 	got := parsesCodeNodeFully(t, in, ElseIf())
-	should.Equal(t, want, got)
+	should.Equal(t, got, want)
 }
 
 func TestElse(t *testing.T) {
@@ -304,7 +304,7 @@ func TestElse(t *testing.T) {
 	}
 
 	got := parsesCodeNodeFully(t, in, Else())
-	should.Equal(t, want, got)
+	should.Equal(t, got, want)
 }
 
 func TestIfHeader(t *testing.T) {
@@ -367,7 +367,7 @@ func TestIfHeader(t *testing.T) {
 
 			line, col, index := parsetest.CalcEnd(1, 1, 0, c.in)
 			parsetest.AssertPosition(t, p, line, col, index)
-			should.Equal(t, c.want, got)
+			should.Equal(t, got, c.want)
 		})
 	}
 }
@@ -461,7 +461,7 @@ func TestSwitch(t *testing.T) {
 			t.Parallel()
 
 			got := parsesCodeNodeFully(t, c.in, Switch())
-			should.Equal(t, c.want, got)
+			should.Equal(t, got, c.want)
 		})
 	}
 }
@@ -503,7 +503,7 @@ func testCase(t *testing.T, f parser.Func[*ast.Case]) {
 	}
 
 	got := parsesSwitchCaseFully(t, in, "", f)
-	should.Equal(t, want, got)
+	should.Equal(t, got, want)
 }
 
 func TestDefault(t *testing.T) {
@@ -532,7 +532,7 @@ func testDefault(t *testing.T, f parser.Func[*ast.Case]) {
 	}
 
 	got := parsesSwitchCaseFully(t, in, "", f)
-	should.Equal(t, want, got)
+	should.Equal(t, got, want)
 }
 
 func TestCaseBody(t *testing.T) {
@@ -596,7 +596,7 @@ func TestCaseBody(t *testing.T) {
 			t.Parallel()
 
 			got := parsesSwitchCaseFully(t, c.in, c.suffix, CaseBody())
-			should.Equal(t, c.want, got)
+			should.Equal(t, got, c.want)
 		})
 	}
 }
@@ -785,7 +785,7 @@ func TestFor(t *testing.T) {
 			t.Parallel()
 
 			got := parsesCodeNodeFully(t, c.in, For())
-			should.Equal(t, c.want, got)
+			should.Equal(t, got, c.want)
 		})
 	}
 }
@@ -817,7 +817,7 @@ func testForConditionHeader(t *testing.T, f parser.Func[*ast.ForConditionHeader]
 
 	line, col, index := parsetest.CalcEnd(1, 1, 0, in)
 	parsetest.AssertPosition(t, p, line, col, index)
-	should.Equal(t, want, got)
+	should.Equal(t, got, want)
 }
 
 func TestForClauseHeader(t *testing.T) {
@@ -941,7 +941,7 @@ func testForClauseHeader(t *testing.T, f parser.Func[*ast.ForClauseHeader]) {
 			t.Parallel()
 
 			got := parsesCodeNodeFully(t, c.in, f)
-			should.Equal(t, c.want, got)
+			should.Equal(t, got, c.want)
 		})
 	}
 }
@@ -1050,7 +1050,7 @@ func testForRangeHeader(t *testing.T, f parser.Func[*ast.ForRangeHeader]) {
 			t.Parallel()
 
 			got := parsesCodeNodeFully(t, c.in, f)
-			should.Equal(t, c.want, got)
+			should.Equal(t, got, c.want)
 		})
 	}
 }

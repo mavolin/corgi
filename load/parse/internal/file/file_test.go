@@ -105,5 +105,5 @@ func TestFile(t *testing.T) {
 
 	p := parsetest.NewParser(t, in)
 	parser.Try(p, File())
-	should.Equal(t, want, p.AST)
+	should.Equal(t, p.AST, want)
 }

@@ -29,7 +29,7 @@ func testQualifiedIdent(t *testing.T, f parser.Func[*ast.QualifiedIdentifier]) {
 	}
 
 	got := parsetest.ParsesFully(t, in, f)
-	should.Equal(t, want, got)
+	should.Equal(t, got, want)
 }
 
 func TestAddOp(t *testing.T) {
@@ -40,7 +40,7 @@ func TestAddOp(t *testing.T) {
 		t.Run(c, func(t *testing.T) {
 			t.Parallel()
 			got := parsetest.ParsesFully(t, c, AddOp())
-			should.Equal(t, c, got)
+			should.Equal(t, got, c)
 		})
 	}
 }
@@ -53,7 +53,7 @@ func TestMulOp(t *testing.T) {
 		t.Run(c, func(t *testing.T) {
 			t.Parallel()
 			got := parsetest.ParsesFully(t, c, MulOp())
-			should.Equal(t, c, got)
+			should.Equal(t, got, c)
 		})
 	}
 }

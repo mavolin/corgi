@@ -43,7 +43,7 @@ func TestType(t *testing.T) {
 			}
 
 			got := parsetest.ParsesFully(t, in, Type())
-			should.Equal(t, want, got)
+			should.Equal(t, got, want)
 		})
 		t.Run("paren type", func(t *testing.T) {
 			t.Parallel()
@@ -56,7 +56,7 @@ func TestType(t *testing.T) {
 			}
 
 			got := parsetest.ParsesFully(t, in, Type())
-			should.Equal(t, want, got)
+			should.Equal(t, got, want)
 		})
 	})
 
@@ -84,7 +84,7 @@ func TestType(t *testing.T) {
 					got := parsetest.AssertMatchesButError(t, p, Type())
 					wantLine, wantCol, wantIndex := parsetest.CalcEnd(1, 1, 0, in)
 					parsetest.AssertPosition(t, p, wantLine, wantCol, wantIndex)
-					should.Equal(t, want, got)
+					should.Equal(t, got, want)
 				})
 			}
 		})
@@ -162,7 +162,7 @@ func testArrayType(t *testing.T, f parser.Func[*ast.Type]) {
 				}
 
 				got := parsetest.ParsesFully(t, in, f)
-				should.Equal(t, want, got)
+				should.Equal(t, got, want)
 			})
 		}
 	})
@@ -188,7 +188,7 @@ func testArrayType(t *testing.T, f parser.Func[*ast.Type]) {
 				got := parsetest.AssertMatchesButError(t, p, f)
 				wantLine, wantCol, wantIndex := parsetest.CalcEnd(1, 1, 0, in)
 				parsetest.AssertPosition(t, p, wantLine, wantCol, wantIndex)
-				should.Equal(t, want, got)
+				should.Equal(t, got, want)
 			})
 		}
 	})
@@ -217,7 +217,7 @@ func testStructType(t *testing.T, f parser.Func[*ast.Type]) {
 				}
 
 				got := parsetest.ParsesFully(t, in, f)
-				should.Equal(t, want, got)
+				should.Equal(t, got, want)
 			})
 		}
 	})
@@ -243,7 +243,7 @@ func testStructType(t *testing.T, f parser.Func[*ast.Type]) {
 				got := parsetest.AssertMatchesButError(t, p, f)
 				wantLine, wantCol, wantIndex := parsetest.CalcEnd(1, 1, 0, in)
 				parsetest.AssertPosition(t, p, wantLine, wantCol, wantIndex)
-				should.Equal(t, want, got)
+				should.Equal(t, got, want)
 			})
 		}
 	})
@@ -270,7 +270,7 @@ func testPointerType(t *testing.T, f parser.Func[*ast.Type]) {
 			}
 
 			got := parsetest.ParsesFully(t, in, f)
-			should.Equal(t, want, got)
+			should.Equal(t, got, want)
 		})
 	}
 }
@@ -300,7 +300,7 @@ func testFunctionType(t *testing.T, f parser.Func[*ast.Type]) {
 				}
 
 				got := parsetest.ParsesFully(t, in, f)
-				should.Equal(t, want, got)
+				should.Equal(t, got, want)
 			})
 		}
 	})
@@ -326,7 +326,7 @@ func testFunctionType(t *testing.T, f parser.Func[*ast.Type]) {
 				got := parsetest.AssertMatchesButError(t, p, f)
 				wantLine, wantCol, wantIndex := parsetest.CalcEnd(1, 1, 0, in)
 				parsetest.AssertPosition(t, p, wantLine, wantCol, wantIndex)
-				should.Equal(t, want, got)
+				should.Equal(t, got, want)
 			})
 		}
 	})
@@ -357,7 +357,7 @@ func testInterfaceType(t *testing.T, f parser.Func[*ast.Type]) {
 				}
 
 				got := parsetest.ParsesFully(t, in, f)
-				should.Equal(t, want, got)
+				should.Equal(t, got, want)
 			})
 		}
 	})
@@ -383,7 +383,7 @@ func testInterfaceType(t *testing.T, f parser.Func[*ast.Type]) {
 				got := parsetest.AssertMatchesButError(t, p, f)
 				wantLine, wantCol, wantIndex := parsetest.CalcEnd(1, 1, 0, in)
 				parsetest.AssertPosition(t, p, wantLine, wantCol, wantIndex)
-				should.Equal(t, want, got)
+				should.Equal(t, got, want)
 			})
 		}
 	})
@@ -413,7 +413,7 @@ func testSliceType(t *testing.T, f parser.Func[*ast.Type]) {
 				}
 
 				got := parsetest.ParsesFully(t, in, f)
-				should.Equal(t, want, got)
+				should.Equal(t, got, want)
 			})
 		}
 	})
@@ -439,7 +439,7 @@ func testSliceType(t *testing.T, f parser.Func[*ast.Type]) {
 				got := parsetest.AssertMatchesButError(t, p, f)
 				wantLine, wantCol, wantIndex := parsetest.CalcEnd(1, 1, 0, in)
 				parsetest.AssertPosition(t, p, wantLine, wantCol, wantIndex)
-				should.Equal(t, want, got)
+				should.Equal(t, got, want)
 			})
 		}
 	})
@@ -469,7 +469,7 @@ func testMapType(t *testing.T, f parser.Func[*ast.Type]) {
 				}
 
 				got := parsetest.ParsesFully(t, in, f)
-				should.Equal(t, want, got)
+				should.Equal(t, got, want)
 			})
 		}
 	})
@@ -495,7 +495,7 @@ func testMapType(t *testing.T, f parser.Func[*ast.Type]) {
 				got := parsetest.AssertMatchesButError(t, p, f)
 				wantLine, wantCol, wantIndex := parsetest.CalcEnd(1, 1, 0, in)
 				parsetest.AssertPosition(t, p, wantLine, wantCol, wantIndex)
-				should.Equal(t, want, got)
+				should.Equal(t, got, want)
 			})
 		}
 	})
@@ -526,7 +526,7 @@ func testChannelType(t *testing.T, f parser.Func[*ast.Type]) {
 				}
 
 				got := parsetest.ParsesFully(t, in, f)
-				should.Equal(t, want, got)
+				should.Equal(t, got, want)
 			})
 		}
 	})
@@ -552,7 +552,7 @@ func testChannelType(t *testing.T, f parser.Func[*ast.Type]) {
 				got := parsetest.AssertMatchesButError(t, p, f)
 				wantLine, wantCol, wantIndex := parsetest.CalcEnd(1, 1, 0, in)
 				parsetest.AssertPosition(t, p, wantLine, wantCol, wantIndex)
-				should.Equal(t, want, got)
+				should.Equal(t, got, want)
 			})
 		}
 	})
@@ -654,7 +654,7 @@ func testNamedType(t *testing.T, f parser.Func[*ast.NamedType]) {
 			t.Parallel()
 
 			got := parsetest.ParsesFully(t, c.in, f)
-			should.Equal(t, c.want, got)
+			should.Equal(t, got, c.want)
 		})
 	}
 }
@@ -760,7 +760,7 @@ func TestTypeParameters(t *testing.T) {
 			t.Parallel()
 
 			got := parsetest.ParsesFully(t, c.in, TypeParameters())
-			should.Equal(t, c.want, got)
+			should.Equal(t, got, c.want)
 		})
 	}
 }
@@ -814,7 +814,7 @@ func TestTypeParameterDecl(t *testing.T) {
 			t.Parallel()
 
 			got := parsetest.ParsesFully(t, c.in, TypeParameterDecl())
-			should.Equal(t, c.want, got)
+			should.Equal(t, got, c.want)
 		})
 	}
 }

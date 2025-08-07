@@ -25,7 +25,7 @@ func TestLinker_CheckImportNamespaceCollisions(t *testing.T) {
 		ds := Link(context.Background(), mainPkg, Options{
 			Importer: ImporterFor(pkgA, pkgB),
 		})
-		if !should.Equal(t, 0, len(ds)) {
+		if !should.Equal(t, len(ds), 0) {
 			t.Log(ds.Short())
 		}
 	})
@@ -69,8 +69,8 @@ func TestLinker_CheckImportNamespaceCollisions(t *testing.T) {
 				ds := Link(context.Background(), mainPkg, Options{
 					Importer: ImporterFor(pkgA, pkgB),
 				})
-				if should.Equal(t, 1, len(ds)) {
-					if !should.Equal(t, wantMessage, ds[0].Message) {
+				if should.Equal(t, len(ds), 1) {
+					if !should.Equal(t, ds[0].Message, wantMessage) {
 						t.Log(ds[0].Short())
 					}
 				} else {

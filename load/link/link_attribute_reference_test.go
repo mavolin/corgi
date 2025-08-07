@@ -76,7 +76,7 @@ func testLinker_LinkAttributeReferences_success(t *testing.T) {
 							BuiltinPath: builtinPkg.ImportPath,
 						})
 
-						if !should.Equal(t, 0, len(ds)) {
+						if !should.Equal(t, len(ds), 0) {
 							t.Log(ds.Short())
 						}
 						if !should.True(t, spec == ref.Spec.GetOr(nil)) {
@@ -110,7 +110,7 @@ func testLinker_LinkAttributeReferences_success(t *testing.T) {
 							BuiltinPath: builtinPkg.ImportPath,
 						})
 
-						if !should.Equal(t, 0, len(ds)) {
+						if !should.Equal(t, len(ds), 0) {
 							t.Log(ds.Short())
 						}
 						if !should.True(t, spec == ref.Spec.GetOr(nil)) {
@@ -172,7 +172,7 @@ func testLinker_LinkAttributeReferences_success(t *testing.T) {
 								Importer: ImporterFor(importedPkg),
 							})
 
-							if !should.Equal(t, 0, len(ds)) {
+							if !should.Equal(t, len(ds), 0) {
 								t.Log(ds.Short())
 							}
 							if !should.True(t, importedSpec == ref.Spec.GetOr(nil)) {
@@ -327,7 +327,7 @@ func testLinker_LinkAttributeReferences_failure(t *testing.T) {
 			}
 			ds := Link(context.Background(), p, o)
 
-			if should.Equal(t, 1, len(ds)) {
+			if should.Equal(t, len(ds), 1) {
 				if !should.True(t, ds[0].Message == c.message) {
 					t.Log(ds[0].Short())
 				}
