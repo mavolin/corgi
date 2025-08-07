@@ -4,8 +4,8 @@ package fmt
 import (
 	"flag"
 
-	"github.com/mavolin/corgi/v2/cmd/corgi/command"
-	"github.com/mavolin/corgi/v2/cmd/corgi/flags"
+	"github.com/mavolin/corgi/v2/cmd/command"
+	"github.com/mavolin/corgi/v2/cmd/flags"
 )
 
 var (

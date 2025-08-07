@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/mavolin/corgi/v2/cmd/corgi/command"
+	"github.com/mavolin/corgi/v2/cmd/command"
 	buildmeta "github.com/mavolin/corgi/v2/internal/meta"
 )
 

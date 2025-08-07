@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/mavolin/corgi/v2/cmd/corgi/command"
+	"github.com/mavolin/corgi/v2/cmd/command"
 )
 
 var (

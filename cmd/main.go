@@ -3,12 +3,12 @@ package main
 import (
 	"os"
 
-	"github.com/mavolin/corgi/v2/cmd/corgi/command"
-	"github.com/mavolin/corgi/v2/cmd/corgi/compile"
-	"github.com/mavolin/corgi/v2/cmd/corgi/debug"
-	fmtcmd "github.com/mavolin/corgi/v2/cmd/corgi/fmt"
-	"github.com/mavolin/corgi/v2/cmd/corgi/help"
-	"github.com/mavolin/corgi/v2/cmd/corgi/version"
+	"github.com/mavolin/corgi/v2/cmd/command"
+	"github.com/mavolin/corgi/v2/cmd/compile"
+	"github.com/mavolin/corgi/v2/cmd/debug"
+	fmtcmd "github.com/mavolin/corgi/v2/cmd/fmt"
+	"github.com/mavolin/corgi/v2/cmd/help"
+	"github.com/mavolin/corgi/v2/cmd/version"
 )
 
 var (

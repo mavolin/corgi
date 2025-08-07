@@ -1,8 +1,8 @@
 package debug
 
 import (
-	"github.com/mavolin/corgi/v2/cmd/corgi/command"
-	"github.com/mavolin/corgi/v2/cmd/corgi/debug/ast"
+	"github.com/mavolin/corgi/v2/cmd/command"
+	"github.com/mavolin/corgi/v2/cmd/debug/ast"
 )
 
 var (

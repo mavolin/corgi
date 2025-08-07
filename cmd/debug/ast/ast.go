@@ -8,8 +8,8 @@ import (
 	"os"
 
 	"github.com/k0kubun/pp"
-	"github.com/mavolin/corgi/v2/cmd/corgi/command"
-	"github.com/mavolin/corgi/v2/cmd/corgi/flags"
+	"github.com/mavolin/corgi/v2/cmd/command"
+	"github.com/mavolin/corgi/v2/cmd/flags"
 	"github.com/mavolin/corgi/v2/file"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
 	"github.com/mavolin/corgi/v2/load/link"
