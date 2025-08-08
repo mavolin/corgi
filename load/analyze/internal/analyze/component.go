@@ -139,7 +139,7 @@ func (z *analyzer) checkComponentCallCycles(root *file.Component, chain []*file.
 //   - Components.CouldForwardAttributes
 //
 // Depends on Fields:
-//   - Components.Blocks.Instances.AnalyzeBlockTopLevel
+//   - Components.Blocks.Instances.Forwarded
 //   - Components.Blocks.Instances.Default.FirstForwardedAndPlaceholderWriter
 func (z *analyzer) AnalyzeCouldForwardAttributes(c *file.Component) {
 	ap := c.FirstPermanentForwardedAndPlaceholderWriter
@@ -151,12 +151,12 @@ func (z *analyzer) AnalyzeCouldForwardAttributes(c *file.Component) {
 
 	for _, block := range c.Blocks {
 		for _, instance := range block.Instances {
-			firstTopLevelAndPlaceholder := file.ConditionalAnalysis(instance.TopLevel, instance.Default.FirstForwardedAndPlaceholderWriter)
-			if firstTopLevelAndPlaceholder.NotZero() {
+			firstForwardedAndPlaceholder := file.ConditionalAnalysis(instance.Forwarded, instance.Default.FirstForwardedAndPlaceholderWriter)
+			if firstForwardedAndPlaceholder.NotZero() {
 				c.CouldForwardAttributes.Set(true)
 				return
 			}
-			failed = failed || firstTopLevelAndPlaceholder.Failed
+			failed = failed || firstForwardedAndPlaceholder.Failed
 		}
 	}
 
@@ -193,7 +193,7 @@ func (z *analyzer) AnalyzeCouldAcceptAttributes(c *file.Component) {
 
 	for _, block := range c.Blocks {
 		for _, instance := range block.Instances {
-			firstAndPlaceholder := file.ConditionalAnalysis(instance.TopLevel, instance.Default.FirstAndPlaceholderWriter)
+			firstAndPlaceholder := file.ConditionalAnalysis(instance.Forwarded, instance.Default.FirstAndPlaceholderWriter)
 			if firstAndPlaceholder.NotZero() {
 				c.CouldAcceptAttributes.Set(true)
 				return
@@ -209,7 +209,7 @@ func (z *analyzer) AnalyzeCouldAcceptAttributes(c *file.Component) {
 // First Permanent Top-Level &-Placeholder
 // ======================================================================================
 
-// FindFirstPermanentTopLevelAndPlaceholder attempts to find the first
+// FindFirstPermanentForwardedAndPlaceholderWriter attempts to find the first
 // permanent top-level &-placeholder component in the given component.
 //
 // Depends on Checks: None
@@ -218,7 +218,8 @@ func (z *analyzer) AnalyzeCouldAcceptAttributes(c *file.Component) {
 //   - Components.FirstPermanentForwardedAndPlaceholderWriter
 //
 // Depends on Fields: None
-func (z *analyzer) FindFirstPermanentTopLevelAndPlaceholder(c *file.Component) {
+func (z *analyzer) FindFirstPermanentForwardedAndPlaceholderWriter(c *file.Component) {
+	z.AnalyzeComponentCall(context.Background(), c.ComponentCalls[0])
 	// todo
 }
 
@@ -226,7 +227,7 @@ func (z *analyzer) FindFirstPermanentTopLevelAndPlaceholder(c *file.Component) {
 // First Permanent &-Placeholder
 // ======================================================================================
 
-// FindFirstPermanentAndPlaceholder attempts to find the first permanent
+// FindFirstPermanentAndPlaceholderWriter attempts to find the first permanent
 // &-placeholder component in the given component.
 //
 // Depends on Checks: None
@@ -236,7 +237,7 @@ func (z *analyzer) FindFirstPermanentTopLevelAndPlaceholder(c *file.Component) {
 //
 // Depends on Fields:
 //   - Components.FirstPermanentForwardedAndPlaceholderWriter
-func (z *analyzer) FindFirstPermanentAndPlaceholder(c *file.Component) {
+func (z *analyzer) FindFirstPermanentAndPlaceholderWriter(c *file.Component) {
 	if c.FirstPermanentForwardedAndPlaceholderWriter.NotZero() {
 		c.FirstPermanentAndPlaceholderWriter = c.FirstPermanentForwardedAndPlaceholderWriter
 		return

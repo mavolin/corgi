@@ -122,12 +122,12 @@ func (z *analyzer) AnalyzeForwardsDelegatedAttributes(cc *file.ComponentCall) {
 				continue
 			}
 
-			firstTopLevelAndPlaceholder := file.ConditionalAnalysis(instance.TopLevel, instance.Default.FirstForwardedAndPlaceholderWriter)
-			if firstTopLevelAndPlaceholder.NotZero() {
+			firstForwardedAndPlaceholder := file.ConditionalAnalysis(instance.Forwarded, instance.Default.FirstForwardedAndPlaceholderWriter)
+			if firstForwardedAndPlaceholder.NotZero() {
 				cc.ForwardsDelegatedAttributes.Set(true)
 				return
 			}
-			failed = failed || firstTopLevelAndPlaceholder.Failed
+			failed = failed || firstForwardedAndPlaceholder.Failed
 		}
 	}
 
@@ -202,10 +202,9 @@ func (z *analyzer) AnalyzeAcceptsAttributes(cc *file.ComponentCall) {
 //   - ComponentCalls.FirstForwardedAttributeWriter
 //
 // Depends on Fields:
-//   - ComponentCalls.Blocks.Instances.FirstForwardedAttributeWriter
-//   - ComponentCalls.Blocks.Instances.AnalyzeBlockTopLevel
-//   - ComponentCalls.FirstDelegatedAttributeWriter
 //   - ComponentCalls.ForwardsDelegatedAttributes
+//   - ComponentCalls.FirstDelegatedAttributeWriter
+//   - ComponentCalls.BlockSetters.Instances.FirstForwardedAttributeWriter
 func (z *analyzer) FindFirstForwardedAttributeWriter(cc *file.ComponentCall) {
 	if cc.Component == nil {
 		cc.FirstForwardedAttributeWriter.SetFailed()
@@ -225,35 +224,35 @@ func (z *analyzer) FindFirstForwardedAttributeWriter(cc *file.ComponentCall) {
 				continue
 			}
 
-			topLevelAttr := file.ConditionalAnalysis(instance.TopLevel, instance.Default.FirstTopLevelAttributeWriter)
-			if topLevelAttr.NotZero() {
+			forwardedAttr := file.ConditionalAnalysis(instance.Forwarded, instance.Default.FirstForwardedAttributeWriter)
+			if forwardedAttr.NotZero() {
 				cc.FirstForwardedAttributeWriter.Set(cc.AST)
 				return
 			}
-			failed = failed || topLevelAttr.Failed
+			failed = failed || forwardedAttr.Failed
 		}
 	}
 
-	topLevelAndPlaceholderFiller := file.ConditionalAnalysis(cc.ForwardsDelegatedAttributes, cc.FirstDelegatedAttributeWriter)
-	if topLevelAndPlaceholderFiller.NotZero() {
+	forwardedDelegatedAttributeWriter := file.ConditionalAnalysis(cc.ForwardsDelegatedAttributes, cc.FirstDelegatedAttributeWriter)
+	if forwardedDelegatedAttributeWriter.NotZero() {
 		cc.FirstForwardedAttributeWriter.Set(cc.AST)
 		return
 	}
-	failed = failed || topLevelAndPlaceholderFiller.Failed
+	failed = failed || forwardedDelegatedAttributeWriter.Failed
 
 	for _, s := range cc.BlockSetters {
-		topLevelBlockAttr := s.FirstTopLevelAttributeWriter()
+		forwardedBlockAttr := s.FirstForwardedAttributeWriter()
 		if s.Block == nil {
-			failed = failed || topLevelBlockAttr.Failed || topLevelBlockAttr.Result != nil
+			failed = failed || forwardedBlockAttr.Failed || forwardedBlockAttr.Result != nil
 			continue
 		}
 
-		topLevelAttr := file.ConditionalAnalysis(s.Block.TopLevel, topLevelBlockAttr)
-		if topLevelAttr.NotZero() {
+		forwardedAttr := file.ConditionalAnalysis(s.Block.Forwarded, forwardedBlockAttr)
+		if forwardedAttr.NotZero() {
 			cc.FirstForwardedAttributeWriter.Set(cc.AST)
 			return
 		}
-		failed = failed || topLevelAttr.Failed
+		failed = failed || forwardedAttr.Failed
 	}
 
 	cc.FirstForwardedAttributeWriter.SetIf(nil, !failed)
@@ -272,31 +271,30 @@ func (z *analyzer) FindFirstForwardedAttributeWriter(cc *file.ComponentCall) {
 //   - ComponentCalls.FirstForwardedAndPlaceholderWriter
 //
 // Depends on Fields:
-//   - ComponentCalls.Blocks.AnalyzeBlockTopLevel
-//   - ComponentCalls.Blocks.Instances.FirstForwardedAndPlaceholderWriter
-//   - ComponentCalls.FirstDelegatedAndPlaceholderWriter
 //   - ComponentCalls.ForwardsDelegatedAttributes
+//   - ComponentCalls.FirstDelegatedAndPlaceholderWriter
+//   - ComponentCalls.BlockSetters.Instances.FirstForwardedAndPlaceholderWriter
 func (z *analyzer) FindFirstForwardedAndPlaceholderWriter(cc *file.ComponentCall) {
-	firstTopLevelAndPlaceholder := file.ConditionalAnalysis(cc.ForwardsDelegatedAttributes, cc.FirstDelegatedAndPlaceholderWriter)
-	if firstTopLevelAndPlaceholder.NotZero() {
+	firstForwardedAndPlaceholder := file.ConditionalAnalysis(cc.ForwardsDelegatedAttributes, cc.FirstDelegatedAndPlaceholderWriter)
+	if firstForwardedAndPlaceholder.NotZero() {
 		cc.FirstForwardedAndPlaceholderWriter.Set(cc.AST)
 		return
 	}
 
-	failed := firstTopLevelAndPlaceholder.Failed
+	failed := firstForwardedAndPlaceholder.Failed
 	for _, s := range cc.BlockSetters {
-		topLevelBlockAndPlaceholder := s.FirstTopLevelAndPlaceholderWriter()
+		forwardedBlockAndPlaceholder := s.FirstForwardedAndPlaceholderWriter()
 		if s.Block == nil {
-			failed = failed || topLevelBlockAndPlaceholder.Failed || topLevelBlockAndPlaceholder.Result != nil
+			failed = failed || forwardedBlockAndPlaceholder.Failed || forwardedBlockAndPlaceholder.Result != nil
 			continue
 		}
 
-		topLevelAndPlaceholder := file.ConditionalAnalysis(s.Block.TopLevel, topLevelBlockAndPlaceholder)
-		if topLevelAndPlaceholder.NotZero() {
+		forwardedAndPlaceholder := file.ConditionalAnalysis(s.Block.Forwarded, forwardedBlockAndPlaceholder)
+		if forwardedAndPlaceholder.NotZero() {
 			cc.FirstForwardedAttributeWriter.Set(cc.AST)
 			return
 		}
-		failed = failed || topLevelAndPlaceholder.Failed
+		failed = failed || forwardedAndPlaceholder.Failed
 	}
 
 	cc.FirstForwardedAndPlaceholderWriter.SetIf(nil, !failed)

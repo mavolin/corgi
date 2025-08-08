@@ -17,9 +17,9 @@ type Block struct {
 	// ANALYZER
 
 	Required Analysis[bool]
-	// TopLevel indicates at least one instance of this block is placed
+	// Forwarded indicates at least one instance of this block is placed
 	// outside any element.
-	TopLevel Analysis[bool]
+	Forwarded Analysis[bool]
 	// ForwardsAttributes indicates that all instances of this block can write
 	// to the list of attributes of their containing element.
 	ForwardsAttributes Analysis[bool]
@@ -49,13 +49,14 @@ type (
 		//
 		// ANALYZER
 
-		// TopLevel indicates whether this block instance is placed outside
-		// any element.
-		TopLevel Analysis[bool]
+		// Forwarded indicates whether this block instance is placed outside
+		// any element, therefore forwarding its body to the element containing
+		// the component call.
+		Forwarded Analysis[bool]
 		// ForwardsAttributes indicates whether this block instance can write
 		// to the list of attributes of it's containing element.
 		//
-		// TopLevel implies ForwardsAttributes.
+		// Forwarded implies ForwardsAttributes.
 		ForwardsAttributes Analysis[bool]
 	}
 
@@ -71,9 +72,9 @@ type (
 		FirstAndPlaceholderWriter          Analysis[ast.AndPlaceholderWriter]
 		FirstForwardedAndPlaceholderWriter Analysis[ast.AndPlaceholderWriter]
 
-		FirstTopLevelAttributeWriter Analysis[ast.AttributeWriter]
-		FirstContentWriter           Analysis[ast.ContentWriter]
-		FirstElementWriter           Analysis[ast.ElementWriter]
+		FirstForwardedAttributeWriter Analysis[ast.AttributeWriter]
+		FirstContentWriter            Analysis[ast.ContentWriter]
+		FirstElementWriter            Analysis[ast.ElementWriter]
 	}
 )
 

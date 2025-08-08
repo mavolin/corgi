@@ -229,9 +229,9 @@ func (s *BlockSetter) FirstAndPlaceholderWriter() Analysis[*BlockSetterInstance]
 	return ResultIf[*BlockSetterInstance](nil, !failed)
 }
 
-// FirstTopLevelAndPlaceholderWriter returns the first top-level &-placeholder in any
+// FirstForwardedAndPlaceholderWriter returns the first top-level &-placeholder in any
 // of the block setter's instances.
-func (s *BlockSetter) FirstTopLevelAndPlaceholderWriter() Analysis[*BlockSetterInstance] {
+func (s *BlockSetter) FirstForwardedAndPlaceholderWriter() Analysis[*BlockSetterInstance] {
 	var failed bool
 	for _, instance := range s.Instances {
 		ap := instance.FirstForwardedAndPlaceholderWriter
@@ -244,9 +244,9 @@ func (s *BlockSetter) FirstTopLevelAndPlaceholderWriter() Analysis[*BlockSetterI
 	return ResultIf[*BlockSetterInstance](nil, !failed)
 }
 
-// FirstTopLevelAttributeWriter returns the first top-level attribute writer in
+// FirstForwardedAttributeWriter returns the first top-level attribute writer in
 // any of the block setter's instances.
-func (s *BlockSetter) FirstTopLevelAttributeWriter() Analysis[*BlockSetterInstance] {
+func (s *BlockSetter) FirstForwardedAttributeWriter() Analysis[*BlockSetterInstance] {
 	var failed bool
 	for _, instance := range s.Instances {
 		aw := instance.FirstForwardedAttributeWriter
