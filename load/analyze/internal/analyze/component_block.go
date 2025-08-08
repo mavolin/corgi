@@ -134,5 +134,4 @@ func (z *analyzer) AnalyzeBlockForwardsAttributes(b *file.Block) {
 		}
 	}
 	b.ForwardsAttributes.Set(true)
-
 }

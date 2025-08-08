@@ -19,7 +19,7 @@ func TestLinker_LinkElementReferences(t *testing.T) {
 	t.Run("failure", testLinker_LinkElementReferences_failure)
 }
 
-func testLinker_LinkElementReferences_success(t *testing.T) {
+func testLinker_LinkElementReferences_success(t *testing.T) { //nolint:revive
 	t.Parallel()
 
 	for _, prefix := range []string{"", "prefix"} {
@@ -153,7 +153,7 @@ func testLinker_LinkElementReferences_success(t *testing.T) {
 	}
 }
 
-func testLinker_LinkElementReferences_failure(t *testing.T) {
+func testLinker_LinkElementReferences_failure(t *testing.T) { //nolint:revive
 	t.Parallel()
 
 	const builtinPath = "builtin"

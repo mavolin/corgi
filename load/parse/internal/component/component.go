@@ -99,16 +99,16 @@ func Parameters() parser.Func[*ast.ComponentParameters] {
 func Parameter() parser.Func[*ast.ComponentParameter] {
 	return func(p *parser.Parser) *ast.ComponentParameter {
 		name := parser.TryOptional(p, golang.Identifier(), comment.OrHorizontalWhitespace())
-		type_ := parser.TryOptional(p, ParameterType(), comment.OrHorizontalWhitespace())
+		typ := parser.TryOptional(p, ParameterType(), comment.OrHorizontalWhitespace())
 		colon := parser.TryOptionalRuneAt(p, ':', comment.OrAnyWhitespace())
 
-		if name == nil && type_ == nil && colon == nil {
+		if name == nil && typ == nil && colon == nil {
 			return nil
 		}
 
 		var param ast.ComponentParameter
 		param.Name = name
-		param.Type = type_
+		param.Type = typ
 		param.Colon = colon
 
 		param.Default = parser.Try(p, code.Expression(code.Regular))

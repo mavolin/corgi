@@ -1,7 +1,6 @@
 package link
 
 import (
-	"cmp"
 	"context"
 	"fmt"
 	"path"
@@ -322,16 +321,6 @@ func createImport(f *file.File, start *ast.Position, alias, impPath string) *fil
 	}
 	addImport(f, imp)
 	return imp
-}
-
-func setPackage(imp *file.Import, p *file.Package) {
-	imp.Package = p
-	if imp.Alias == "." {
-		imp.Namespace = ""
-	} else {
-		imp.Namespace = cmp.Or(imp.Alias, p.Name)
-	}
-
 }
 
 // createComponentCall is a helper to create a component call for testing.

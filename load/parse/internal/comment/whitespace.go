@@ -126,11 +126,7 @@ func AndEOL() parser.WhitespaceFunc {
 		}
 
 		hasEOL := parser.TrySkip(p, whitespace.EOL())
-		if hasEOL {
-			return true
-		}
-
-		return false
+		return hasEOL
 	}
 }
 
@@ -154,10 +150,7 @@ func OrAnyWhitespace() parser.WhitespaceFunc {
 		}
 
 		parser.TrySkip(p, OrLoneWS())
-		if pos == p.Pos() {
-			return false
-		}
-		return true
+		return pos != p.Pos()
 	}
 }
 

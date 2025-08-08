@@ -116,13 +116,13 @@ func Reference() parser.Func[*ast.AttributeReference] {
 	return func(p *parser.Parser) *ast.AttributeReference {
 		state := p.CloneState()
 
-		package_ := parser.TryOptional(p, golang.Identifier(), comment.OrHorizontalWhitespace())
+		pkg := parser.TryOptional(p, golang.Identifier(), comment.OrHorizontalWhitespace())
 		dot := parser.TryOptionalRuneAt(p, '.', comment.OrAnyWhitespace())
 
 		if dot == nil {
-			package_ = nil
+			pkg = nil
 			p.RestoreState(state)
-		} else if package_ == nil {
+		} else if pkg == nil {
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "attribute reference: missing package name",
 				Primary: quickanno.Expected(p, p.Pos(), "a package name before the `.`"),
@@ -135,7 +135,7 @@ func Reference() parser.Func[*ast.AttributeReference] {
 		}
 
 		var ref ast.AttributeReference
-		ref.Package = package_
+		ref.Package = pkg
 		ref.Dot = dot
 		ref.Name = name
 		return &ref

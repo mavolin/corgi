@@ -56,6 +56,8 @@ func (t Type) String() string {
 		return "css"
 	case JS:
 		return "js"
+	case invalid:
+		fallthrough
 	default:
 		return "<invalid>"
 	}

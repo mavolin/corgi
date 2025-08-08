@@ -15,6 +15,8 @@ func TestLinker_CheckAttributeRuleCollisions(t *testing.T) {
 	t.Parallel()
 
 	t.Run("no duplicates", func(t *testing.T) {
+		t.Parallel()
+
 		mainPkg := createPackage("main")
 		mainF := createFile(mainPkg, "main.corgi")
 
@@ -162,6 +164,8 @@ func TestLinker_CheckAttributeRuleCollisions(t *testing.T) {
 
 	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+
 			pkg := c.setup()
 
 			ds := Link(context.Background(), pkg, Options{

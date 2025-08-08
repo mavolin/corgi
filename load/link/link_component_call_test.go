@@ -17,7 +17,7 @@ func TestLinker_LinkComponentCalls(t *testing.T) {
 	t.Run("failure", testLinker_LinkComponentCalls_failure)
 }
 
-func testLinker_LinkComponentCalls_success(t *testing.T) {
+func testLinker_LinkComponentCalls_success(t *testing.T) { //nolint:revive
 	t.Parallel()
 
 	t.Run("local", func(t *testing.T) {
@@ -124,7 +124,7 @@ func testLinker_LinkComponentCalls_success(t *testing.T) {
 	}
 }
 
-func testLinker_LinkComponentCalls_failure(t *testing.T) {
+func testLinker_LinkComponentCalls_failure(t *testing.T) { //nolint:revive
 	t.Parallel()
 
 	const builtinPath = "builtin"
