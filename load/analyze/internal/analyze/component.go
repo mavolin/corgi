@@ -121,12 +121,12 @@ func (z *analyzer) CheckComponentCallCycles(c *file.Component) {
 
 func (z *analyzer) checkComponentCallCycles(root *file.Component, chain []*file.ComponentCall, c *file.Component) {
 	for _, cc := range c.ComponentCalls {
-		if cc.Component == nil {
+		switch {
+		case cc.Component == nil:
 			continue
-		} else if cc.Component.File.Package != root.File.Package {
-			// The only way a component call causing a component call cycle can
-			// be in a different package is if we have an import cycle, which
-			// should've been caught elsewhere.
+		case cc.Component.File.Package != root.File.Package:
+			continue
+		case cc.Circular:
 			continue
 		}
 
@@ -136,27 +136,21 @@ func (z *analyzer) checkComponentCallCycles(root *file.Component, chain []*file.
 				call.Circular = true
 			}
 
-			secondaries := make([]diagnostic.Annotation, 1, 1+len(chain))
-			secondaries[0] = anno.Node(root.File, root.AST, "in this component")
+			primaries := make([]diagnostic.Annotation, 1, len(chain))
 
 			prev := cc.Component
-			for i, cc := range chain[1:] {
+			for i, cc := range chain {
 				annotation := fmt.Sprint(i+1, ": `"+prev.AST.Header.Name.Name+"` calls `"+cc.AST.Header.Name.Full()+"`")
-				secondaries = append(secondaries, anno.Node(cc.File, cc.AST, annotation))
+				primaries = append(primaries, anno.Node(cc.File, cc.AST, annotation))
 				prev = cc.Component
-			}
-
-			annotation := "call to itself"
-			if len(chain) > 1 {
-				annotation = "calls `" + root.AST.Header.Name.Name + "`"
 			}
 
 			z.Report(&diagnostic.Diagnostic{
 				Message: "component call cycle",
-				Primary: []diagnostic.Annotation{
-					anno.Node(root.File, chain[0].AST, annotation),
+				Primary: primaries,
+				Secondary: []diagnostic.Annotation{
+					anno.Node(root.File, root.AST, "in this component"),
 				},
-				Secondary: secondaries,
 				Explanation: "This component recursively calls itself, which is not allowed.\n" +
 					"To fix this error, you need to break the chain of recursion.",
 			})
