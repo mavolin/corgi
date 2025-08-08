@@ -5,9 +5,14 @@ package ast
 // ======================================================================================
 
 // ContentWriter is a node that can produce content, i.e. elements or text:
-// [ElementWriter], [CharacterReference], [ComponentCall], [Doctype],
+// [ElementWriter], [Block], [CharacterReference], [ComponentCall], [Doctype],
 // [EscapedHash], [EscapedRBracket], [ExpressionInterpolation],
 // [HashSpace], [Text].
+//
+// Additionally, a [BlockSetter] may also be used as a ContentWriter, not
+// because it produces content, but because it holds the ability to inhibit
+// the writing of attributes, if it's associated block cannot forward
+// attributes.
 type ContentWriter interface {
 	Node
 	_contentWriter()
@@ -16,9 +21,12 @@ type ContentWriter interface {
 // if changed, change the comment above
 var (
 	_ ContentWriter = (ElementWriter)(nil)
-	_ ContentWriter = (*CharacterReference)(nil)
-	_ ContentWriter = (*ComponentCall)(nil)
 	_ ContentWriter = (*Doctype)(nil)
+	_ ContentWriter = (*Block)(nil)
+	_ ContentWriter = (BlockSetter)(nil)
+	_ ContentWriter = (*ComponentCall)(nil)
+	_ ContentWriter = (*Text)(nil)
+	_ ContentWriter = (*CharacterReference)(nil)
 	_ ContentWriter = (*EscapedHash)(nil)
 	_ ContentWriter = (*EscapedRBracket)(nil)
 	_ ContentWriter = (*ExpressionInterpolation)(nil)

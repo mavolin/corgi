@@ -29,7 +29,6 @@ func (z *analyzer) AnalyzeBlocks(logger *slog.Logger, c *file.Component) {
 		logger := logger.With(slog.String("block", block.Name))
 
 		z.AnalyzeBlockRequired(logger, c, block)
-		// todo: instance forwards attributes
 		z.AnalyzeBlockForwarded(block)
 		z.AnalyzeBlockCannotForwardAttributes(block)
 	}
@@ -89,8 +88,8 @@ Erroneous:
 // NotForwarded
 // ======================================================================================
 
-// AnalyzeBlockForwarded determines whether the given component block is top-level,
-// i.e. it contains at least one instance that is top-level.
+// AnalyzeBlockForwarded determines whether the given component block is
+// top-level, i.e. it contains at least one instance that is top-level.
 //
 // Depends on Checks: None
 //
@@ -153,4 +152,24 @@ func (z *analyzer) AnalyzeBlockCannotForwardAttributes(b *file.Block) {
 			return
 		}
 	}
+}
+
+// AnalyzeBlockInstanceCannotForwardAttributes determines whether the given
+// block instance could not forward attributes to the element containing it.
+//
+// Depends on Checks: None
+//
+// Sets Fields:
+//   - Components.Blocks.Instances.CannotForwardAttributes
+//
+// Depends on Fields: None
+func (z *analyzer) AnalyzeBlockInstanceCannotForwardAttributes(
+	c *file.Component, cannotAttributes file.AnalysisWithReason[ast.ContentWriter], biAST *ast.Block,
+) {
+	bi := c.BlockInstanceByNode(biAST)
+	if bi == nil {
+		return
+	}
+
+	bi.CannotForwardAttributes = cannotAttributes
 }

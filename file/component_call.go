@@ -115,6 +115,13 @@ type ComponentCall struct {
 	// This fields considers &-placeholder writers in forwarded block setters
 	// and &-placeholders given directly to the component.
 	ForwardsAndPlaceholders AnalysisWithReason[ast.AndPlaceholderWriter]
+
+	// WritesContent indicates whether the component call writes content.
+	//
+	// The reason is the content writer inside the component call, or the
+	// component call itself if the called component writes content.
+	// The component call itself is preferred.
+	WritesContent AnalysisWithReason[ast.ContentWriter]
 }
 
 func (cc *ComponentCall) External() bool { return cc.File.Package != cc.Component.File.Package }

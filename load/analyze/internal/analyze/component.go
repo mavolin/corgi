@@ -90,13 +90,17 @@ func (z *analyzer) AnalyzeCallComponent(ctx context.Context, cc *file.ComponentC
 //
 // Depends on Fields: None
 func (z *analyzer) AnalyzeComponentAST(ctx context.Context, c *file.Component) {
+	var cannotAttributes file.AnalysisWithReason[ast.ContentWriter]
+	cannotAttributes.SetFalse()
+
 	walk.Walk(c.AST, func(w *walk.Context) walk.Action {
 		switch n := w.Node.(type) {
 		case *ast.Block:
 			z.AnalyzeBlockInstanceNotForwarded(ctx, c, w.Parents, n)
+			z.AnalyzeBlockInstanceCannotForwardAttributes(c, cannotAttributes, n)
 		}
 		return walk.Continue
-	})
+	}, z.cannotAttributes(ctx, c.File, &cannotAttributes))
 }
 
 // ============================================================================

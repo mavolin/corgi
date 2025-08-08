@@ -329,8 +329,9 @@ type Block struct {
 }
 
 var (
-	_ ScopeNode   = (*Block)(nil)
-	_ Highlighter = (*Block)(nil)
+	_ ScopeNode     = (*Block)(nil)
+	_ Highlighter   = (*Block)(nil)
+	_ ContentWriter = (*Block)(nil)
 )
 
 func (b *Block) Name() string {
@@ -383,5 +384,6 @@ func (b *Block) Walk(w func(Node)) {
 	}
 }
 
-func (*Block) _node()      {}
-func (*Block) _scopeNode() {}
+func (*Block) _node()          {}
+func (*Block) _scopeNode()     {}
+func (*Block) _contentWriter() {}

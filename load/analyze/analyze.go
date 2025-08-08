@@ -30,6 +30,7 @@ import (
 // todo: set ElementSpec.Analyzed
 // todo: set ElementSpec.Type
 // todo: set AttributeReference.Analyzed
+// todo: check attributes are placed where allowed
 // todo: check no top-level attributes
 // todo: check no top-level block with top-level attrs
 // todo: check no top-level attrs thru and placeholders (also check in blocks)
@@ -53,7 +54,7 @@ import (
 // todo: cc as attr must only write text
 // todo: cc as attr must not write attrs
 // todo: cc as attr must only write to innocuous or text attributes
-
+// todo: cc WritesContent
 // todo: duplicate and placeholder (as in attrs would be written twice)
 // todo: ccs in cc must not write text
 // todo: no elements in script/style https://html.spec.whatwg.org/multipage/syntax.html#elements-2:raw-text-elements-3
