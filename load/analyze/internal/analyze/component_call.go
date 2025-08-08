@@ -334,8 +334,8 @@ func (z *analyzer) FindFirstDelegatedAttributes(ctx context.Context, cc *file.Co
 		return
 	}
 
-	walk.Walk(scope, func(wctx *walk.Context) walk.Action {
-		switch n := wctx.Node.(type) {
+	walk.Walk(scope, func(w *walk.Context) walk.Action {
+		switch n := w.Node.(type) {
 		case *ast.AndPlaceholder:
 			if cc.FirstDelegatedAndPlaceholderWriter.NotZero() {
 				return walk.Continue

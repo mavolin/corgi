@@ -46,10 +46,10 @@ type (
 	//
 	// It must not take ownership of the Context or any of its fields except
 	// Node, as Walk may reuse Context and its fields.
-	Func func(*Context) Action
+	Func func(w *Context) Action
 	// FuncT is to [WalkT], as [Func] is to [Walk].
 	// Read the documentation of [Func] for more information.
-	FuncT[T ast.Node] func(*ContextT[T]) Action
+	FuncT[T ast.Node] func(w *ContextT[T]) Action
 
 	Context struct {
 		// Parents are the parents of this node.
@@ -102,11 +102,11 @@ func Walk(n ast.Node, f Func, opts ...Option) {
 	walk(ctx, f, opts)
 }
 
-func walk(ctx *Context, f Func, opts []Option) (cont bool) {
+func walk(w *Context, f Func, opts []Option) (cont bool) {
 	var combined Action
 
 	for _, opt := range opts {
-		a := opt(ctx)
+		a := opt(w)
 		switch {
 		case !a.valid():
 			panic(fmt.Sprintf("invalid action returned by option: %b", a))
@@ -121,7 +121,7 @@ func walk(ctx *Context, f Func, opts []Option) (cont bool) {
 	}
 
 	if !combined.ignore() {
-		a := f(ctx)
+		a := f(w)
 		switch {
 		case !a.valid():
 			panic(fmt.Sprintf("invalid action returned by function: %b", a))
@@ -134,10 +134,10 @@ func walk(ctx *Context, f Func, opts []Option) (cont bool) {
 		}
 	}
 	if !combined.noDive() {
-		parents := append(ctx.Parents, ctx) //nolint:gocritic
+		parents := append(w.Parents, w) //nolint:gocritic
 
 		cont = true
-		ctx.Node.Walk(func(n ast.Node) {
+		w.Node.Walk(func(n ast.Node) {
 			if !cont {
 				return
 			}
@@ -157,12 +157,12 @@ func walk(ctx *Context, f Func, opts []Option) (cont bool) {
 //
 //goland:noinspection GoNameStartsWithPackageName
 func WalkT[T ast.Node](n ast.Node, f FuncT[T], opts ...Option) { //nolint:revive
-	Walk(n, func(wctx *Context) Action {
-		t, ok := wctx.Node.(T)
+	Walk(n, func(w *Context) Action {
+		t, ok := w.Node.(T)
 		if !ok {
 			return Continue
 		}
 
-		return f(&ContextT[T]{Node: t, Context: wctx})
+		return f(&ContextT[T]{Node: t, Context: w})
 	}, opts...)
 }

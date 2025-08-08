@@ -40,26 +40,26 @@ func (ch *checker) CheckScope() {
 	for _, f := range ch.P.Files {
 		logger := logger.With(slog.String("file", f.Name))
 
-		walk.Walk(f.AST, func(ctx *walk.Context) walk.Action {
-			switch n := ctx.Node.(type) {
+		walk.Walk(f.AST, func(w *walk.Context) walk.Action {
+			switch n := w.Node.(type) {
 			case *ast.And:
-				ch.CheckAnd(logger, f, ctx.Parents, n)
+				ch.CheckAnd(logger, f, w.Parents, n)
 			case *ast.Arguments:
-				ch.CheckArguments(logger, f, ctx.Parents, n)
+				ch.CheckArguments(logger, f, w.Parents, n)
 			case *ast.BlockFunction:
-				ch.CheckBlockFunction(logger, f, ctx.Parents, n)
+				ch.CheckBlockFunction(logger, f, w.Parents, n)
 			case *ast.Break:
-				ch.CheckBreak(logger, f, ctx.Parents, n)
+				ch.CheckBreak(logger, f, w.Parents, n)
 			case *ast.Continue:
-				ch.CheckContinue(logger, f, ctx.Parents, n)
+				ch.CheckContinue(logger, f, w.Parents, n)
 			case *ast.Element:
-				ch.CheckElement(logger, f, ctx.Parents, n)
+				ch.CheckElement(logger, f, w.Parents, n)
 			case *ast.Fallthrough:
-				ch.CheckFallthrough(logger, f, ctx.Parents, n)
+				ch.CheckFallthrough(logger, f, w.Parents, n)
 			case *ast.Statement:
-				ch.CheckStatement(logger, f, ctx.Parents, n)
+				ch.CheckStatement(logger, f, w.Parents, n)
 			case *ast.Type:
-				ch.CheckAttributeTypeAliasOnlyOnComponentParams(logger, f, ctx.Parents, n)
+				ch.CheckAttributeTypeAliasOnlyOnComponentParams(logger, f, w.Parents, n)
 			}
 			return walk.Continue
 		})

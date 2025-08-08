@@ -32,8 +32,8 @@ func TestWalk(t *testing.T) {
 		t.Parallel()
 
 		visited := make(map[ast.Node]bool)
-		Walk(testNode, func(ctx *Context) Action {
-			visited[ctx.Node] = true
+		Walk(testNode, func(w *Context) Action {
+			visited[w.Node] = true
 			return Continue
 		})
 
@@ -46,9 +46,9 @@ func TestWalk(t *testing.T) {
 		t.Parallel()
 
 		var visitCount int
-		Walk(testNode, func(ctx *Context) Action {
+		Walk(testNode, func(w *Context) Action {
 			visitCount++
-			if _, ok := ctx.Node.(*ast.Element); len(ctx.Parents) > 0 && ok {
+			if _, ok := w.Node.(*ast.Element); len(w.Parents) > 0 && ok {
 				return Break
 			}
 			return Continue
@@ -61,9 +61,9 @@ func TestWalk(t *testing.T) {
 		t.Parallel()
 
 		var visitCount int
-		Walk(testNode, func(ctx *Context) Action {
+		Walk(testNode, func(w *Context) Action {
 			visitCount++
-			if _, ok := ctx.Node.(*ast.Element); len(ctx.Parents) > 0 && ok {
+			if _, ok := w.Node.(*ast.Element); len(w.Parents) > 0 && ok {
 				return NoDive
 			}
 			return Continue
@@ -76,11 +76,11 @@ func TestWalk(t *testing.T) {
 		t.Parallel()
 
 		parentCheckPassed := false
-		Walk(testNode, func(ctx *Context) Action {
+		Walk(testNode, func(w *Context) Action {
 			// Check that child nodes have their parent in the parents slice
-			if _, ok := ctx.Node.(*ast.Doctype); ok {
-				if len(ctx.Parents) > 0 {
-					if scope, ok := ctx.Parents[len(ctx.Parents)-1].Node.(*ast.Scope); ok {
+			if _, ok := w.Node.(*ast.Doctype); ok {
+				if len(w.Parents) > 0 {
+					if scope, ok := w.Parents[len(w.Parents)-1].Node.(*ast.Scope); ok {
 						if scope == testNode.Body {
 							parentCheckPassed = true
 						}

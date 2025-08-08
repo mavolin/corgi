@@ -27,8 +27,8 @@ func TestDontDive(t *testing.T) {
 		seenScope_elem  bool
 	)
 
-	Walk(scope, func(ctx *Context) Action {
-		switch ctx.Node {
+	Walk(scope, func(w *Context) Action {
+		switch w.Node {
 		case scope:
 			should.False(t, seenScope) // scope seen twice
 			seenScope = true
@@ -39,7 +39,7 @@ func TestDontDive(t *testing.T) {
 			should.False(t, seenScope_elem) // scope_elem seen twice
 			seenScope_elem = true
 		default:
-			t.Errorf("unexpected node %T", ctx.Node)
+			t.Errorf("unexpected node %T", w.Node)
 		}
 		return Continue
 	}, DontDive[*ast.Element]())

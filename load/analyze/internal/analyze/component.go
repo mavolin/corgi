@@ -90,10 +90,10 @@ func (z *analyzer) AnalyzeCallComponent(ctx context.Context, cc *file.ComponentC
 //
 // Depends on Fields: None
 func (z *analyzer) AnalyzeComponentAST(ctx context.Context, c *file.Component) {
-	walk.Walk(c.AST, func(wctx *walk.Context) walk.Action {
-		switch n := wctx.Node.(type) {
+	walk.Walk(c.AST, func(w *walk.Context) walk.Action {
+		switch n := w.Node.(type) {
 		case *ast.Block:
-			z.AnalyzeBlockInstanceForwarded(ctx, c, wctx.Parents, n)
+			z.AnalyzeBlockInstanceForwarded(ctx, c, w.Parents, n)
 		}
 		return walk.Continue
 	})

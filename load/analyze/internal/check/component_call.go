@@ -40,8 +40,8 @@ func (ch *checker) CheckComponentCallBody(logger *slog.Logger, cc *file.Componen
 		return
 	}
 
-	walk.WalkT(sc, func(ctx *walk.ContextT[ast.ScopeNode]) walk.Action {
-		switch ctx.Node.(type) {
+	walk.WalkT(sc, func(w *walk.ContextT[ast.ScopeNode]) walk.Action {
+		switch w.Node.(type) {
 		case *ast.Conditional:
 		case *ast.Switch:
 		case *ast.And:
@@ -55,7 +55,7 @@ func (ch *checker) CheckComponentCallBody(logger *slog.Logger, cc *file.Componen
 			ch.Report(&diagnostic.Diagnostic{
 				Message: "component call body: use of illegal node",
 				Primary: []diagnostic.Annotation{
-					anno.Position(cc.File, ctx.Node.Start(), fmt.Sprintf("cannot use %T here", ctx.Node)),
+					anno.Position(cc.File, w.Node.Start(), fmt.Sprintf("cannot use %T here", w.Node)),
 				},
 				Hints: []diagnostic.Hint{
 					{Hint: "Did you mean to use a default block shorthand?", Example: "`:foo() _{ ... }"},
@@ -83,11 +83,11 @@ func (ch *checker) CheckUnreachableWiths(logger *slog.Logger, cc *file.Component
 	conditionalWiths := make(map[identifier][]*ast.With)
 	topLevelWiths := make(map[identifier][]*ast.With)
 
-	walk.WalkT(sc, func(ctx *walk.ContextT[*ast.With]) walk.Action {
-		if len(ctx.Parents) == 0 {
-			topLevelWiths[ctx.Node.Name()] = append(topLevelWiths[ctx.Node.Name()], ctx.Node)
+	walk.WalkT(sc, func(w *walk.ContextT[*ast.With]) walk.Action {
+		if len(w.Parents) == 0 {
+			topLevelWiths[w.Node.Name()] = append(topLevelWiths[w.Node.Name()], w.Node)
 		} else {
-			conditionalWiths[ctx.Node.Name()] = append(conditionalWiths[ctx.Node.Name()], ctx.Node)
+			conditionalWiths[w.Node.Name()] = append(conditionalWiths[w.Node.Name()], w.Node)
 		}
 
 		return walk.NoDive
@@ -135,11 +135,11 @@ func (ch *checker) CheckWithNotLooped(logger *slog.Logger, cc *file.ComponentCal
 		return
 	}
 
-	walk.WalkT(cc.AST.Body, func(ctx *walk.ContextT[*ast.With]) walk.Action {
-		if len(ctx.Parents) == 0 {
+	walk.WalkT(cc.AST.Body, func(w *walk.ContextT[*ast.With]) walk.Action {
+		if len(w.Parents) == 0 {
 			return walk.Continue
 		}
-		forLoop, _ := ctx.Parents[len(ctx.Parents)-1].Node.(*ast.For)
+		forLoop, _ := w.Parents[len(w.Parents)-1].Node.(*ast.For)
 		if forLoop == nil {
 			return walk.Continue
 		}
@@ -148,7 +148,7 @@ func (ch *checker) CheckWithNotLooped(logger *slog.Logger, cc *file.ComponentCal
 		ch.Report(&diagnostic.Diagnostic{
 			Message: "component call: looped with",
 			Primary: []diagnostic.Annotation{
-				anno.Position(cc.File, ctx.Node.Start(), "only the with block from the very last iteration is ever used"),
+				anno.Position(cc.File, w.Node.Start(), "only the with block from the very last iteration is ever used"),
 			},
 			Secondary: []diagnostic.Annotation{
 				anno.Node(cc.File, forLoop, "in this for loop"),
