@@ -47,6 +47,8 @@ func (z *analyzer) AnalyzeComponentCall(ctx context.Context, cc *file.ComponentC
 	z.FindFirstDelegatedAttributes(ctx, cc)
 	z.AnalyzeAcceptsAttributes(cc)
 	z.AnalyzeForwardsDelegatedAttributes(cc)
+
+	cc.Analyzed = true
 }
 
 func (z *analyzer) checkNoInfiniteRecursion(logger *slog.Logger, cc *file.ComponentCall, callerChain []*file.Component) {
