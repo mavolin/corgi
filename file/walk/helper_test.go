@@ -21,6 +21,20 @@ func TestClosest(t *testing.T) {
 	should.Equal(t, result, nil)
 }
 
+func TestClosestIndex(t *testing.T) {
+	ctx1 := &Context{Node: &ast.Element{}}
+	ctx2 := &Context{Node: &ast.Doctype{}}
+	ctx3 := &Context{Node: &ast.Element{}}
+
+	parents := []*Context{ctx2, ctx1, ctx3}
+	result := ClosestIndex[*ast.Element](parents)
+	should.Equal(t, result, 2)
+
+	parents = []*Context{ctx2}
+	result = ClosestIndex[*ast.Element](parents)
+	should.Equal(t, result, -1)
+}
+
 func TestIsChildOf(t *testing.T) {
 	ctx1 := &Context{Node: &ast.Element{}}
 	ctx2 := &Context{Node: &ast.Doctype{}}
