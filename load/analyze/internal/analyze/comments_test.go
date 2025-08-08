@@ -8,12 +8,18 @@ import (
 	"go/token"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"unicode"
 	"unicode/utf8"
 )
 
 // Helper types and functions
+
+var recursiveMethods = []string{
+	"AnalyzeComponentCall",
+	"AnalyzeComponent",
+}
 
 type analyzerInfo struct {
 	methods map[string]*methodInfo
@@ -196,26 +202,32 @@ func getExecutionOrder(analyzer *analyzerInfo) *executionOrder {
 	}
 
 	root := &executionOrder{name: "Analyze", method: analyzeMethod}
-	root.calls = getCalls(analyzer, analyzeMethod, root)
+	addCalls(analyzer, root, root, analyzeMethod)
 	return root
 }
 
 // addCalls recursively adds all methods called by the given method to the execution order
-func getCalls(analyzer *analyzerInfo, method *methodInfo, root *executionOrder) []*executionOrder {
+func addCalls(analyzer *analyzerInfo, root, parent *executionOrder, method *methodInfo) {
 	callNames := extractAnalyzerCalls(analyzer, method)
 
-	calls := make([]*executionOrder, len(callNames))
-	for i, call := range callNames {
+	parent.calls = make([]*executionOrder, 0, len(callNames))
+	for _, call := range callNames {
 		method := analyzer.methods[call]
+		child := &executionOrder{name: call, method: method}
+
+		// Check for recursive method calls
 		if root.contains(call) {
-			calls[i] = &executionOrder{name: call, method: method}
+			// If the method calls itself recursively, check if it's allowed
+			if !slices.Contains(recursiveMethods, call) {
+				panic(fmt.Sprintf("method %s calls itself recursively but is not in recursiveMethods", call))
+			}
+			parent.calls = append(parent.calls, child)
 			continue
 		}
 
-		calls[i] = &executionOrder{name: call, method: method}
-		calls[i].calls = getCalls(analyzer, method, root)
+		parent.calls = append(parent.calls, child)
+		addCalls(analyzer, root, child, method)
 	}
-	return calls
 }
 
 func extractAnalyzerCalls(analyzer *analyzerInfo, method *methodInfo) []string {

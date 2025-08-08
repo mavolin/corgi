@@ -37,6 +37,9 @@ func testMethodsRunOnce(t *testing.T, o *executionOrder, seen map[string]bool) {
 	seen[o.name] = true
 
 	for _, call := range o.calls {
+		if slices.Contains(recursiveMethods, call.name) {
+			continue
+		}
 		testMethodsRunOnce(t, call, seen)
 	}
 }

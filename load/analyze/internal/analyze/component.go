@@ -1,6 +1,7 @@
 package analyze
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 
@@ -46,6 +47,9 @@ func (z *analyzer) AnalyzeComponent(logger *slog.Logger, c *file.Component) {
 	z.AnalyzeCouldForwardAttributes(c)
 	z.AnalyzeCouldAcceptAttributes(c)
 
+	z.FindFirstPermanentForwardedAndPlaceholderWriter(c)
+	z.FindFirstPermanentAndPlaceholderWriter(c)
+
 	c.Analyzed = true
 }
 
@@ -53,6 +57,12 @@ func (z *analyzer) AnalyzeComponent(logger *slog.Logger, c *file.Component) {
 //
 // It does nothing if the component has already been analyzed or the component
 // call is part of a cycle.
+//
+// Depends on Checks: None
+//
+// Sets Fields: None
+//
+// Depends on Fields: None
 func (z *analyzer) AnalyzeCallComponent(cc *file.ComponentCall) {
 	if cc.Component == nil || cc.Component.Analyzed || cc.Circular {
 		return

@@ -3,8 +3,6 @@ package analyze
 import (
 	"errors"
 	"fmt"
-	"go/ast"
-	"go/token"
 	"go/types"
 	"slices"
 	"strings"
@@ -18,6 +16,12 @@ import (
 // to prevent including fields that are otherwise included in the output.
 var dontDiveFields = []string{
 	"ComponentCalls.BlockSetters.Block",
+}
+
+// ignoredFields is a list of fields that are not included in the output
+// because they are not relevant for the analyzer.
+var ignoredFields = []string{
+	"AttributeReferences.Spec",
 }
 
 func getAllFields() ([]string, error) {
@@ -54,6 +58,11 @@ func getAllFields() ([]string, error) {
 				continue
 			}
 
+			name := field.Name()
+			if name == "Linked" || name == "Analyzed" {
+				continue
+			}
+
 			sliceType, _ := field.Type().(*types.Slice)
 			if sliceType == nil {
 				return nil, fmt.Errorf("field %s is not a slice type", field.Name())
@@ -86,7 +95,12 @@ func getAllFields() ([]string, error) {
 				dontDiveTypes: rootTypes,
 			}
 
-			subFields, err := a.extractFields(symbolType, field)
+			name := field.Name()
+			if name == "Linked" || name == "Analyzed" {
+				continue
+			}
+
+			subFields, err := a.extractFields(field)
 			if err != nil {
 				return nil, fmt.Errorf("%s: %w", symbolType, err)
 			}
@@ -94,7 +108,9 @@ func getAllFields() ([]string, error) {
 		}
 	}
 
-	return fields, nil
+	return slices.DeleteFunc(fields, func(s string) bool {
+		return slices.Contains(ignoredFields, s)
+	}), nil
 }
 
 func symbolStruct(pkg *packages.Package, symbolType string) (*types.Struct, error) {
@@ -129,20 +145,18 @@ func (a *fieldAnalyzer) prefixedName(n string) string {
 	return a.prefix + "." + n
 }
 
-func (a fieldAnalyzer) extractFields(parent string, field *types.Var) ([]string, error) {
-	switch {
-	case !field.Exported():
-		return nil, nil
-	case field.Name() == "AnalyzedWithErrors":
+func (a fieldAnalyzer) extractFields(field *types.Var) ([]string, error) {
+	if !field.Exported() {
 		return nil, nil
 	}
 	for _, dontDive := range dontDiveFields {
 		if strings.HasSuffix(a.prefixedName(field.Name()), dontDive) {
-			return []string{a.prefixedName(field.Name())}, nil
+			if isAnalyzerField(field) {
+				return []string{a.prefixedName(field.Name())}, nil
+			}
+			return nil, nil
 		}
 	}
-
-	fields := make([]string, 0, 48)
 
 	typ := field.Type()
 	var typeName string
@@ -157,40 +171,36 @@ func (a fieldAnalyzer) extractFields(parent string, field *types.Var) ([]string,
 				return nil, fmt.Errorf("root field %s is not a struct", field.Name())
 			}
 
-			isAnalyzerField, err := a.isAnalyzerField(parent, field)
-			if err != nil {
-				return nil, fmt.Errorf("failed to check if field %s is an analyzer field: %w", field.Name(), err)
-			}
-			if isAnalyzerField {
+			if isAnalyzerField(field) {
 				return []string{a.prefixedName(field.Name())}, nil
 			}
+
 			return nil, nil
 		case *types.Named:
-			isAnalyzerField, err := a.isAnalyzerField(parent, field)
-			if err != nil {
-				return nil, fmt.Errorf("failed to check if field %s is an analyzer field: %w", field.Name(), err)
-			}
-			if isAnalyzerField {
-				fields = append(fields, a.prefixedName(field.Name()))
-			}
-
 			typeName = typed.Obj().Name()
 
 			switch {
 			case typed.Obj().Pkg() != a.pkg.Types:
-				return fields, nil
+				return nil, nil
 			case a.prefix != "" && slices.Contains(a.dontDiveTypes, typeName):
-				return fields, nil
+				if isAnalyzerField(field) {
+					return []string{a.prefixedName(field.Name())}, nil
+				}
+				return nil, nil
 			}
 
 			a.dontDiveTypes = append(a.dontDiveTypes, typeName)
+			if isAnalyzerField(field) {
+				return []string{a.prefixedName(field.Name())}, nil
+			}
 
 			typ = typed.Underlying()
 		case *types.Struct:
 			a.prefix = a.prefixedName(field.Name())
 
+			var fields []string
 			for field := range typed.Fields() {
-				subFields, err := a.extractFields(typeName, field)
+				subFields, err := a.extractFields(field)
 				if err != nil {
 					return nil, err
 				}
@@ -204,67 +214,18 @@ func (a fieldAnalyzer) extractFields(parent string, field *types.Var) ([]string,
 	}
 }
 
-// isAnalyzerField checks if the field is marked with an ANALYZER comment and
-// doesn't belong to another group. It analyzes the AST to find comment groups
-// associated with fields.
-func (a *fieldAnalyzer) isAnalyzerField(parent string, field *types.Var) (bool, error) {
-	tokenFile := a.pkg.Fset.File(field.Pos())
-
-	var file *ast.File
-	for _, f := range a.pkg.Syntax {
-		if a.pkg.Fset.File(f.FileStart).Name() == tokenFile.Name() {
-			file = f
-			break
-		}
-	}
-	if file == nil {
-		return false, fmt.Errorf("file not found: %s", tokenFile.Name())
+// isAnalyzerField checks if the field is an Analysis[T] type.
+func isAnalyzerField(field *types.Var) bool {
+	named, ok := field.Type().(*types.Named)
+	if !ok {
+		return false
 	}
 
-	var structSpec *ast.TypeSpec
-Decls:
-	for _, decl := range file.Decls {
-		genDecl, ok := decl.(*ast.GenDecl)
-		if !ok || genDecl.Tok != token.TYPE {
-			continue
-		}
-
-		for _, spec := range genDecl.Specs {
-			typeSpec, ok := spec.(*ast.TypeSpec)
-
-			if !ok || typeSpec.Name.Name != parent {
-				continue
-			}
-			structSpec = typeSpec
-			break Decls
-		}
-	}
-	if structSpec == nil {
-		return false, fmt.Errorf("struct %s not found in file %s", parent, tokenFile.Name())
+	// Check if it's from the file package and named "Analysis"
+	obj := named.Obj()
+	if obj.Pkg() == nil || obj.Pkg().Path() != "github.com/mavolin/corgi/v2/file" {
+		return false
 	}
 
-	structStart := a.pkg.Fset.Position(structSpec.Pos())
-	fieldPos := a.pkg.Fset.Position(field.Pos())
-
-	for _, cg := range slices.Backward(file.Comments) {
-		commentPos := a.pkg.Fset.Position(cg.Pos())
-
-		// Skip comments before struct definition
-		if commentPos.Line < structStart.Line || commentPos.Line >= fieldPos.Line {
-			continue
-		}
-
-		// Check if comment is a group marker
-		switch {
-		case len(cg.List) != 2:
-			continue
-		case strings.TrimSpace(cg.List[0].Text) != "//":
-			continue
-		case strings.TrimSpace(cg.List[1].Text) == "// ANALYZER":
-			return true, nil
-		}
-		return false, nil // different group
-	}
-
-	return false, nil
+	return obj.Name() == "Analysis"
 }
