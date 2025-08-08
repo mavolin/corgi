@@ -128,7 +128,7 @@ func TestSetFieldsExist(t *testing.T) {
 	for name, info := range analyzer.methods {
 		for _, field := range info.setsFields {
 			if !slices.Contains(fields, field) {
-				t.Errorf("Field %s is set by method %s but does not exist", field, name)
+				t.Errorf("%s: %s does not exist", name, field)
 			}
 		}
 	}

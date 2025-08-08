@@ -116,8 +116,7 @@ type callerChainKey struct{}
 // Sets Fields:
 //   - ComponentCalls.ForwardsReceivedAttributes
 //
-// Depends on Fields:
-//   - ComponentCalls.CouldForwardReceivedAttributes
+// Depends on Fields: None
 func (z *analyzer) AnalyzeForwardsReceivedAttributes(cc *file.ComponentCall) {
 	if cc.Component == nil {
 		cc.ForwardsReceivedAttributes.SetFailed()
@@ -309,30 +308,30 @@ func (z *analyzer) AnalyzeForwardsAttributes(cc *file.ComponentCall) {
 func (z *analyzer) AnalyzeForwardsAndPlaceholder(cc *file.ComponentCall) {
 	forwardsReceivedAndPlaceholder := file.ConditionalAnalysis(cc.ForwardsReceivedAttributes, cc.ReceivesAndPlaceholder)
 	if forwardsReceivedAndPlaceholder.True() {
-		cc.ForwardsAndPlaceholders.SetReason(cc.ReceivesAndPlaceholder.Reason())
+		cc.ForwardsAndPlaceholder.SetReason(cc.ReceivesAndPlaceholder.Reason())
 		return
 	}
 
-	cc.ForwardsAndPlaceholders.SetFalse()
+	cc.ForwardsAndPlaceholder.SetFalse()
 	if forwardsReceivedAndPlaceholder.Failed() {
-		cc.ForwardsAndPlaceholders.SetFailed()
+		cc.ForwardsAndPlaceholder.SetFailed()
 	}
 
 	for _, s := range cc.BlockSetters {
 		forwardsAndPlaceholder := s.ForwardsAndPlaceholder()
 		if s.Block == nil {
 			if forwardsAndPlaceholder.Failed() || forwardsAndPlaceholder.True() {
-				cc.ForwardsAndPlaceholders.SetFailed()
+				cc.ForwardsAndPlaceholder.SetFailed()
 			}
 			continue
 		}
 
 		actuallyForwardsAndPlaceholder := file.ConditionalAnalysis(s.Block.Forwarded, forwardsAndPlaceholder)
 		if actuallyForwardsAndPlaceholder.True() {
-			cc.ForwardsAndPlaceholders.SetReason(actuallyForwardsAndPlaceholder.Reason().ForwardsAndPlaceholder.Reason())
+			cc.ForwardsAndPlaceholder.SetReason(actuallyForwardsAndPlaceholder.Reason().ForwardsAndPlaceholder.Reason())
 			return
 		} else if actuallyForwardsAndPlaceholder.Failed() {
-			cc.ForwardsAndPlaceholders.SetFailed()
+			cc.ForwardsAndPlaceholder.SetFailed()
 		}
 	}
 }
@@ -394,9 +393,9 @@ func (z *analyzer) AnalyzeReceivesAttributes(ctx context.Context, cc *file.Compo
 			}
 
 			if !cc.ReceivesAndPlaceholder.True() {
-				if subCC.ForwardsAndPlaceholders.True() {
+				if subCC.ForwardsAndPlaceholder.True() {
 					cc.ReceivesAndPlaceholder.SetReason(subCC.AST)
-				} else if subCC.ForwardsAndPlaceholders.Failed() {
+				} else if subCC.ForwardsAndPlaceholder.Failed() {
 					cc.ReceivesAndPlaceholder.SetFailed()
 				}
 			}

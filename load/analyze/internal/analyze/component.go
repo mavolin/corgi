@@ -177,7 +177,7 @@ func (z *analyzer) checkComponentCallCycles(root *file.Component, chain []*file.
 // Depends on Checks: None
 //
 // Sets Fields:
-//   - Components.ForwardsReceivedAttributes
+//   - Components.CouldForwardReceivedAttributes
 //
 // Depends on Fields:
 //   - Components.AlwaysForwardsAndPlaceholder

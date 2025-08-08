@@ -60,12 +60,12 @@ type ComponentCall struct {
 	// The reason is either directly set to an &-placeholder, or set to a
 	// component call.
 	// In case of the latter, the &-placeholder writer causing the delegation
-	// is the reason why that call ForwardsAndPlaceholders.
+	// is the reason why that call ForwardsAndPlaceholder.
 	//
 	// Note that if the component call and the component call's
-	// ForwardsAndPlaceholders are the same, the component call
+	// ForwardsAndPlaceholder are the same, the component call
 	// itself is the one filling the &-placeholder, as opposed to an &.
-	// Refer to the documentation of ForwardsAndPlaceholders for more
+	// Refer to the documentation of ForwardsAndPlaceholder for more
 	// information.
 	ReceivesAndPlaceholder AnalysisWithReason[ast.AndPlaceholderWriter]
 
@@ -109,12 +109,12 @@ type ComponentCall struct {
 	// component call itself, through block setters or the component's
 	// top-level &-placeholder.
 	ForwardsAttributes AnalysisWithReason[ast.AttributeWriter]
-	// ForwardsAndPlaceholders indicates whether the component call forwards
+	// ForwardsAndPlaceholder indicates whether the component call forwards
 	// the &-placeholder it receives.
 	//
 	// This fields considers &-placeholder writers in forwarded block setters
 	// and &-placeholders given directly to the component.
-	ForwardsAndPlaceholders AnalysisWithReason[ast.AndPlaceholderWriter]
+	ForwardsAndPlaceholder AnalysisWithReason[ast.AndPlaceholderWriter]
 
 	// WritesContent indicates whether the component call writes content.
 	//
@@ -191,7 +191,7 @@ func (cc *ComponentCall) ReceivedAndPlaceholderChain() []ast.AndPlaceholderWrite
 
 		prevAST := curAST
 		prev := cc.File.ComponentCallByNode(curAST)
-		curAST, _ = prev.ForwardsAndPlaceholders.Reason().(*ast.ComponentCall)
+		curAST, _ = prev.ForwardsAndPlaceholder.Reason().(*ast.ComponentCall)
 		if curAST == nil || curAST == prevAST {
 			return chain
 		}
