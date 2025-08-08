@@ -16,13 +16,13 @@ import (
 //
 // Note that an Option is called on every item, even if the walk function
 // is typed.
-type Option func(*Context) error
+type Option func(*Context) Action
 
 func DontDive[N ast.Node]() Option {
-	return func(ctx *Context) error {
+	return func(ctx *Context) Action {
 		if _, ok := ctx.Node.(N); ok {
 			return NoDive
 		}
-		return nil
+		return Continue
 	}
 }

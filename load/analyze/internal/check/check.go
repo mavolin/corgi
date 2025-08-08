@@ -40,7 +40,7 @@ func (ch *checker) CheckScope() {
 	for _, f := range ch.P.Files {
 		logger := logger.With(slog.String("file", f.Name))
 
-		walk.Walk(f.AST, func(ctx *walk.Context) error {
+		walk.Walk(f.AST, func(ctx *walk.Context) walk.Action {
 			switch n := ctx.Node.(type) {
 			case *ast.And:
 				ch.CheckAnd(logger, f, ctx.Parents, n)
@@ -61,7 +61,7 @@ func (ch *checker) CheckScope() {
 			case *ast.Type:
 				ch.CheckAttributeTypeAliasOnlyOnComponentParams(logger, f, ctx.Parents, n)
 			}
-			return nil
+			return walk.Continue
 		})
 	}
 }

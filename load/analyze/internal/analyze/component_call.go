@@ -336,16 +336,16 @@ func (z *analyzer) FindFirstDelegatedAttributes(ctx context.Context, cc *file.Co
 		return
 	}
 
-	walk.Walk(scope, func(wctx *walk.Context) error {
+	walk.Walk(scope, func(wctx *walk.Context) walk.Action {
 		switch n := wctx.Node.(type) {
 		case *ast.AndPlaceholder:
 			if cc.FirstDelegatedAndPlaceholderWriter.NotZero() {
-				return nil
+				return walk.Continue
 			}
 
 			cc.FirstDelegatedAndPlaceholderWriter.Set(n)
 			if cc.FirstDelegatedAttributeWriter.NotZero() {
-				return walk.Stop
+				return walk.Break
 			}
 		case *ast.ComponentCall:
 			subCC := cc.File.ComponentCallByNode(n)
@@ -368,20 +368,20 @@ func (z *analyzer) FindFirstDelegatedAttributes(ctx context.Context, cc *file.Co
 			}
 
 			if cc.FirstDelegatedAndPlaceholderWriter.NotZero() && subCC.FirstDelegatedAndPlaceholderWriter.NotZero() {
-				return walk.Stop
+				return walk.Break
 			}
 			return walk.NoDive
 		case ast.AttributeWriter:
 			if cc.FirstDelegatedAttributeWriter.NotZero() {
-				return nil
+				return walk.Continue
 			}
 
 			cc.FirstDelegatedAttributeWriter.Set(n)
 			if cc.FirstDelegatedAndPlaceholderWriter.NotZero() {
-				return walk.Stop
+				return walk.Break
 			}
 		}
-		return nil
+		return walk.Continue
 	}, walk.DontDive[ast.BlockSetter]())
 }
 

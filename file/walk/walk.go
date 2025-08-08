@@ -2,45 +2,54 @@
 package walk
 
 import (
-	"errors"
+	"fmt"
 
 	"github.com/mavolin/corgi/v2/file"
 	"github.com/mavolin/corgi/v2/file/ast"
 )
 
-var (
-	// Stop is a sentinel error used to signal that Walk should return without
-	// an error.
-	Stop = errors.New("stop walk") //nolint:staticcheck,revive,errname
-	// NoDive is a sentinel error used to signal that Walk should not dive into
-	// the current node's body.
-	NoDive = errors.New("no dive") //nolint:staticcheck,revive,errname
-	// Ignore is a sentinel error available to [Option] functions to signal
-	// that Walk should not call the [Func] for the current node, but it should
-	// still dive it, if possible.
+// Action is the action to take after calling a [Func].
+//
+// Actions should only be referred to by their constants.
+// Their numerical values are not guaranteed to be stable across versions.
+type Action uint8
+
+const (
+	Continue   Action = 0b0    // Continue walking the node's children.
+	Break             = 0b1    // Break the walk, i.e. stop walking the node's children.
+	singlesEnd        = Break  // end of non-combined actions
+	NoDive            = 1 << 1 // Don't dive the node's body
+	// Ignore is an Action available to [Option] functions to signal that Walk
+	// should not call the [Func] for the current node.
+	//
+	// Unless combined (i.e. or-ed) with [NoDive], it will still be diven into.
 	//
 	// It has no effect if returned by a [Func].
-	//
-	// It may still be dived.
-	Ignore = errors.New("ignore") //nolint:staticcheck,revive,errname
-	// Skip is a sentinel error available to [Option] functions to signal
-	// to skip over the current node, i.e. ignore it and don't dive into it.
-	//
-	// Skip is essentially the combination of [Ignore] and [NoDive].
-	//
-	// If returned by a [Func], it behaves like [NoDive].
-	Skip = errors.New("ignore no dive") //nolint:staticcheck,revive,errname
+	Ignore  = 1 << 2
+	invalid = 1 << 3
 )
+
+func (a Action) noDive() bool {
+	return a&NoDive != 0
+}
+
+func (a Action) ignore() bool {
+	return a&Ignore != 0
+}
+
+func (a Action) valid() bool {
+	return a <= invalid && (a <= singlesEnd || (a&singlesEnd) == 0)
+}
 
 type (
 	// Func is the function called by Walk for each node it encounters.
 	//
 	// It must not take ownership of the Context or any of its fields except
 	// Node, as Walk may reuse Context and its fields.
-	Func func(*Context) error
+	Func func(*Context) Action
 	// FuncT is to [WalkT], as [Func] is to [Walk].
 	// Read the documentation of [Func] for more information.
-	FuncT[T ast.Node] func(*ContextT[T]) error
+	FuncT[T ast.Node] func(*ContextT[T]) Action
 
 	Context struct {
 		// Parents are the parents of this node.
@@ -77,107 +86,81 @@ type (
 // Cases, being children of a switch, can access the switch through the parents
 // slice.
 //
-// f will only be called with the containing [ast.TextLine] if that text line
-// was embedded in a [ast.TextBlock] and thus inserts newlines.
-// This applies namely to arrow blocks and bracket text.
-// It will not be called for the body of [ast.ElementInterpolation] and
-// [ast.ComponentCallInterpolation].
-// Instead, if diven, the TextNodes will be walked directly.
-// This makes Walk more predictable
-//
 // If a node has a body and f doesn't return [NoDive], Walk will dive into it,
 // walking it as well.
-// Returning [NoDive] for an [ast.If] has no effect on the if's else ifs and
-// else.
 //
 // Walk calls f with a slice of ctx.Node's parents.
 // That slice is reused for each call to f, and should not be retained after f
 // returns.
 //
-// You may return [Stop] from f to stop the walk without an error.
-//
-// Walk's file parameter is optional, but should always be supplied if using
-// options or a helper like [IsTopLevel].
-func Walk(n ast.Node, f Func, opts ...Option) error {
-	if n == nil {
-		return nil
-	}
-
+// You may return [Break] from f to stop the walk.
+func Walk(n ast.Node, f Func, opts ...Option) {
 	ctx := &Context{
 		Parents: make([]*Context, 0, 32),
 		Node:    n,
 	}
-
-	err := walk(ctx, f, opts)
-	if            //goland:noinspection GoDirectComparisonOfErrors
-	err == Stop { //nolint:errorlint
-		return nil
-	}
-	return err
+	walk(ctx, f, opts)
 }
 
-func walk(ctx *Context, f Func, opts []Option) error {
-	var noDive, ignore bool
+func walk(ctx *Context, f Func, opts []Option) (cont bool) {
+	var combined Action
 
-	for i := 0; i < len(opts) && (!noDive || !ignore); i++ {
-		opt := opts[i]
-
-		err := opt(ctx)
-		if err != nil {
-			//nolint:errorlint
-			switch //goland:noinspection GoDirectComparisonOfErrors
-			err {
-			case NoDive:
-				noDive = true
-			case Ignore:
-				ignore = true
-			case Skip:
-				noDive, ignore = true, true
-			default:
-				return err
-			}
+	for _, opt := range opts {
+		a := opt(ctx)
+		switch {
+		case !a.valid():
+			panic(fmt.Sprintf("invalid action returned by option: %b", a))
+		case a == Break:
+			return false
+		default:
+			combined |= a
+		}
+		if combined.noDive() && combined.ignore() {
+			return true
 		}
 	}
 
-	if !ignore {
-		err := f(ctx)
-		if err != nil {
-			if              //goland:noinspection GoDirectComparisonOfErrors
-			err == NoDive { //nolint:errorlint
-				noDive = true
-			} else {
-				return err
-			}
+	if !combined.ignore() {
+		a := f(ctx)
+		switch {
+		case !a.valid():
+			panic(fmt.Sprintf("invalid action returned by function: %b", a))
+		case a.ignore():
+			panic("function returned Ignore, reserved for options")
+		case a == Break:
+			return false
+		case a.noDive():
+			combined |= NoDive
 		}
 	}
-	if !noDive {
+	if !combined.noDive() {
 		parents := append(ctx.Parents, ctx) //nolint:gocritic
 
-		var err error
+		cont = true
 		ctx.Node.Walk(func(n ast.Node) {
-			if err != nil {
+			if !cont {
 				return
 			}
 
 			ctx := &Context{Parents: parents, Node: n}
-			err = walk(ctx, f, opts)
+			cont = walk(ctx, f, opts)
 		})
-		if err != nil {
-			return err
+		if !cont {
+			return false
 		}
 	}
 
-	return nil
+	return true
 }
 
 // WalkT is the same as [Walk] but only calls f for nodes of type T.
 //
 //goland:noinspection GoNameStartsWithPackageName
-func WalkT[T ast.Node](n ast.Node, f FuncT[T], opts ...Option) error { //nolint:revive
-	return Walk(n, func(wctx *Context) error {
+func WalkT[T ast.Node](n ast.Node, f FuncT[T], opts ...Option) { //nolint:revive
+	Walk(n, func(wctx *Context) Action {
 		t, ok := wctx.Node.(T)
 		if !ok {
-			return nil
+			return Continue
 		}
 
 		return f(&ContextT[T]{Node: t, Context: wctx})

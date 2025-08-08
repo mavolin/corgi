@@ -40,7 +40,7 @@ func (ch *checker) CheckComponentCallBody(logger *slog.Logger, cc *file.Componen
 		return
 	}
 
-	walk.WalkT(sc, func(ctx *walk.ContextT[ast.ScopeNode]) error {
+	walk.WalkT(sc, func(ctx *walk.ContextT[ast.ScopeNode]) walk.Action {
 		switch ctx.Node.(type) {
 		case *ast.Conditional:
 		case *ast.Switch:
@@ -64,7 +64,7 @@ func (ch *checker) CheckComponentCallBody(logger *slog.Logger, cc *file.Componen
 			})
 		}
 
-		return nil
+		return walk.Continue
 	})
 }
 
@@ -83,7 +83,7 @@ func (ch *checker) CheckUnreachableWiths(logger *slog.Logger, cc *file.Component
 	conditionalWiths := make(map[identifier][]*ast.With)
 	topLevelWiths := make(map[identifier][]*ast.With)
 
-	walk.WalkT(sc, func(ctx *walk.ContextT[*ast.With]) error {
+	walk.WalkT(sc, func(ctx *walk.ContextT[*ast.With]) walk.Action {
 		if len(ctx.Parents) == 0 {
 			topLevelWiths[ctx.Node.Name()] = append(topLevelWiths[ctx.Node.Name()], ctx.Node)
 		} else {
@@ -135,13 +135,13 @@ func (ch *checker) CheckWithNotLooped(logger *slog.Logger, cc *file.ComponentCal
 		return
 	}
 
-	walk.WalkT(cc.AST.Body, func(ctx *walk.ContextT[*ast.With]) error {
+	walk.WalkT(cc.AST.Body, func(ctx *walk.ContextT[*ast.With]) walk.Action {
 		if len(ctx.Parents) == 0 {
-			return nil
+			return walk.Continue
 		}
 		forLoop, _ := ctx.Parents[len(ctx.Parents)-1].Node.(*ast.For)
 		if forLoop == nil {
-			return nil
+			return walk.Continue
 		}
 
 		logger.Error("Component call: looped with")

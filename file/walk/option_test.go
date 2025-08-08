@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/mavolin/corgi/v2/file/ast"
-	"github.com/mavolin/corgi/v2/internal/test/must"
 	"github.com/mavolin/corgi/v2/internal/test/should"
 )
 
@@ -28,7 +27,7 @@ func TestDontDive(t *testing.T) {
 		seenScope_elem  bool
 	)
 
-	err := Walk(scope, func(ctx *Context) error {
+	Walk(scope, func(ctx *Context) Action {
 		switch ctx.Node {
 		case scope:
 			should.False(t, seenScope) // scope seen twice
@@ -42,9 +41,8 @@ func TestDontDive(t *testing.T) {
 		default:
 			t.Errorf("unexpected node %T", ctx.Node)
 		}
-		return nil
+		return Continue
 	}, DontDive[*ast.Element]())
-	must.NoError(t, err)
 
 	should.True(t, seenScope)
 	should.True(t, seenScope_block)
