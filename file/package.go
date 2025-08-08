@@ -288,6 +288,9 @@ type ElementSpec struct {
 	// albeit with errors.
 	Analyzed bool
 
+	// Circular indicates that the element is defined by referencing itself.
+	Circular bool
+
 	Type Analysis[elemtype.Type]
 }
 

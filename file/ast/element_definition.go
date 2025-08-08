@@ -128,12 +128,21 @@ func (*ElementSpec) _node() {}
 // Element Type
 // ======================================================================================
 
+// ElementType is either a [BasicElementType] or an [AliasElementType].
 type ElementType interface {
 	Node
 	_elementType()
 }
 
-// ================================= Basic Element Type =================================
+// if this is changed, change the comment above
+var (
+	_ ElementType = (*BasicElementType)(nil)
+	_ ElementType = (*AliasElementType)(nil)
+)
+
+// ============================================================================
+// Basic Element Type
+// ======================================================================================
 
 type BasicElementType struct {
 	Type *ElementTypeName
@@ -164,7 +173,9 @@ func (t *BasicElementType) Walk(w func(Node)) {
 func (t *BasicElementType) _node()        {}
 func (t *BasicElementType) _elementType() {}
 
-// ================================= Alias Element Type =================================
+// ============================================================================
+// Alias Element Type
+// ======================================================================================
 
 type AliasElementType struct {
 	EqualSign *Position

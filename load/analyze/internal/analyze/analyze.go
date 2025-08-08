@@ -37,6 +37,7 @@ func Analyze(ctx *context.Context) {
 	}
 
 	z.AnalyzeState()
+	z.AnalyzeElementSpecs()
 
 	z.AnalyzeComponents()
 	z.AnalyzeComponentCalls()
