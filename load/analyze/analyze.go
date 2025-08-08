@@ -30,6 +30,30 @@ import (
 // todo: set ElementSpec.Analyzed
 // todo: set ElementSpec.Type
 // todo: set AttributeReference.Analyzed
+// todo: check no top-level attributes
+// todo: check no top-level block with top-level attrs
+// todo: check no top-level attrs thru and placeholders (also check in blocks)
+// todo: attr placement:
+// attributePlacement checks that & directives and `html.Attr` calls are placed
+// according to the following rules:
+//
+//   - an attr must be placed before writing to the body of the element, i.e.
+//     before writing any text or other elements.
+//   - an attr may be placed inside a conditional
+//   - to be able to use further attrs after a conditional, all branches of
+//     that
+//   - conditional must also fulfill these rules
+//   - attrs must not be placed after blocks -- although resolvable at
+//     compile-time, it is intransparent, as blocks are filled elsewhere from
+//     their placeholder
+//   - attrs may be placed after mixin calls, if neither the mixin nor its
+//     blocks write to the element's body
+// todo: component placement (i.e. attributes added through component calls)
+// todo: only block setters that can contain attrs contain any
+// todo: cc as attr must only write text
+// todo: cc as attr must not write attrs
+// todo: cc as attr must only write to innocuous or text attributes
+
 // todo: duplicate and placeholder (as in attrs would be written twice)
 // todo: ccs in cc must not write text
 // todo: no elements in script/style https://html.spec.whatwg.org/multipage/syntax.html#elements-2:raw-text-elements-3
@@ -66,10 +90,8 @@ import (
 // todo: element spec: type
 // todo: cc interpolation arg must only write text
 // todo: comp interpolation must only write text
-// todo: block is top-level
 // todo: BlockInstanceDefault has top-level and, but it's BlockInstance can't write
 //       attributes (same for top-level and placeholder)
-// todo: CheckComponentAcceptsAttributes: follow the chain of AttributeWriters
 
 type Options struct {
 	// Logger is the logger used by the analyzer.

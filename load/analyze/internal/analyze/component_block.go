@@ -1,11 +1,14 @@
 package analyze
 
 import (
+	"context"
 	"log/slog"
 
 	"github.com/mavolin/corgi/v2/file"
+	"github.com/mavolin/corgi/v2/file/ast"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
 	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
+	"github.com/mavolin/corgi/v2/file/walk"
 )
 
 // AnalyzeBlocks runs trivial analyses on the blocks of the given
@@ -25,9 +28,8 @@ func (z *analyzer) AnalyzeBlocks(logger *slog.Logger, c *file.Component) {
 	for _, block := range c.Blocks {
 		logger := logger.With(slog.String("block", block.Name))
 
-		// todo: instance top-level
-		// todo: instance forwards attributes
 		z.AnalyzeBlockRequired(logger, c, block)
+		// todo: instance forwards attributes
 		z.AnalyzeBlockForwarded(block)
 		z.AnalyzeBlockForwardsAttributes(block)
 	}
@@ -84,7 +86,7 @@ Erroneous:
 }
 
 // ============================================================================
-// Top Level
+// Forwarded
 // ======================================================================================
 
 // AnalyzeBlockForwarded determines whether the given component block is top-level,
@@ -107,6 +109,24 @@ func (z *analyzer) AnalyzeBlockForwarded(b *file.Block) {
 	}
 
 	b.Forwarded.SetIf(false, !failed)
+}
+
+// AnalyzeBlockInstanceForwarded determines whether the given block is
+// forwarded.
+//
+// Depends on Checks: None
+//
+// Sets Fields:
+//   - Components.Blocks.Instances.Forwarded
+//
+// Depends on Fields: None
+func (z *analyzer) AnalyzeBlockInstanceForwarded(ctx context.Context, c *file.Component, parents []*walk.Context, biAST *ast.Block) {
+	bi := c.BlockInstanceByNode(biAST)
+	if bi == nil {
+		return
+	}
+
+	bi.Forwarded = z.isForwarded(ctx, c.File, parents)
 }
 
 // ============================================================================

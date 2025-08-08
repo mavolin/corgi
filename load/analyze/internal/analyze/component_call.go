@@ -41,7 +41,7 @@ func (z *analyzer) AnalyzeComponentCall(ctx context.Context, cc *file.ComponentC
 		ctx = context.WithValue(ctx, callerChainKey{}, callerChain)
 	}
 
-	z.AnalyzeCallComponent(cc)
+	z.AnalyzeCallComponent(ctx, cc)
 	z.FindFirstForwardedAttributeWriter(cc)
 	z.FindFirstForwardedAndPlaceholderWriter(cc)
 	z.FindFirstDelegatedAttributes(ctx, cc)
@@ -75,7 +75,7 @@ func (z *analyzer) checkNoInfiniteRecursion(logger *slog.Logger, cc *file.Compon
 			"maximum, or a component call cycle was undetected. " +
 			"If there is a component call cycle that led to this, otherwise infinite, recursion " +
 			"in the analyzer, it should've been caught elsewhere. " +
-			"This is a bug, please report it. " +
+			"This is a bug, please report it.\n" +
 			"And if you actually called 2048 different components, you ought to rethink what you are doing.\n" +
 			sb.String(),
 	})

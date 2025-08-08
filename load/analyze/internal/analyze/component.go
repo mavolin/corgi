@@ -6,8 +6,10 @@ import (
 	"log/slog"
 
 	"github.com/mavolin/corgi/v2/file"
+	"github.com/mavolin/corgi/v2/file/ast"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
 	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
+	"github.com/mavolin/corgi/v2/file/walk"
 )
 
 // AnalyzeComponents analyzes all components in the package.
@@ -21,8 +23,9 @@ func (z *analyzer) AnalyzeComponents() {
 	logger := z.Logger.WithGroup("components")
 	logger.Debug("Analyzing components")
 
+	ctx := context.Background()
 	for _, c := range z.P.Components {
-		z.AnalyzeComponent(logger, c)
+		z.AnalyzeComponent(ctx, logger, c)
 	}
 }
 
@@ -33,7 +36,7 @@ func (z *analyzer) AnalyzeComponents() {
 // Sets Fields: None
 //
 // Depends on Fields: None
-func (z *analyzer) AnalyzeComponent(logger *slog.Logger, c *file.Component) {
+func (z *analyzer) AnalyzeComponent(ctx context.Context, logger *slog.Logger, c *file.Component) {
 	logger = logger.With(
 		slog.String("file", c.File.Name),
 		slog.String("comp", c.AST.Header.Name.Name),
@@ -42,11 +45,13 @@ func (z *analyzer) AnalyzeComponent(logger *slog.Logger, c *file.Component) {
 	z.CheckComponentCallCycles(c)
 
 	z.AnalyzeComponentParameters(logger, c)
+
+	z.AnalyzeComponentAST(ctx, c)
+
 	z.AnalyzeBlocks(logger, c)
 
 	z.AnalyzeCouldForwardAttributes(c)
 	z.AnalyzeCouldAcceptAttributes(c)
-
 	z.FindFirstPermanentForwardedAndPlaceholderWriter(c)
 	z.FindFirstPermanentAndPlaceholderWriter(c)
 
@@ -63,13 +68,35 @@ func (z *analyzer) AnalyzeComponent(logger *slog.Logger, c *file.Component) {
 // Sets Fields: None
 //
 // Depends on Fields: None
-func (z *analyzer) AnalyzeCallComponent(cc *file.ComponentCall) {
+func (z *analyzer) AnalyzeCallComponent(ctx context.Context, cc *file.ComponentCall) {
 	if cc.Component == nil || cc.Component.Analyzed || cc.Circular {
 		return
 	}
 
 	logger := z.Logger.WithGroup("components")
-	z.AnalyzeComponent(logger, cc.Component)
+	z.AnalyzeComponent(ctx, logger, cc.Component)
+}
+
+// ============================================================================
+// AST-related Analyses
+// ======================================================================================
+
+// AnalyzeComponentAST runs all analyses that require knowledge of their
+// position in the AST.
+//
+// Depends on Checks: None
+//
+// Sets Fields: None
+//
+// Depends on Fields: None
+func (z *analyzer) AnalyzeComponentAST(ctx context.Context, c *file.Component) {
+	walk.Walk(c.AST, func(wctx *walk.Context) walk.Action {
+		switch n := wctx.Node.(type) {
+		case *ast.Block:
+			z.AnalyzeBlockInstanceForwarded(ctx, c, wctx.Parents, n)
+		}
+		return walk.Continue
+	})
 }
 
 // ============================================================================
