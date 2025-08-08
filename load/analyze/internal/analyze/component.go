@@ -50,10 +50,10 @@ func (z *analyzer) AnalyzeComponent(ctx context.Context, logger *slog.Logger, c 
 
 	z.AnalyzeBlocks(logger, c)
 
-	z.AnalyzeCouldForwardAttributes(c)
+	z.AnalyzeCouldForwardReceivedAttributes(c)
 	z.AnalyzeCouldAcceptAttributes(c)
-	z.FindFirstPermanentForwardedAndPlaceholderWriter(c)
-	z.FindFirstPermanentAndPlaceholderWriter(c)
+	z.AnalyzeAlwaysForwardsAndPlaceholder(c)
+	z.AnalyzedAlwaysWritesAndPlaceholder(c)
 
 	c.Analyzed = true
 }
@@ -93,7 +93,7 @@ func (z *analyzer) AnalyzeComponentAST(ctx context.Context, c *file.Component) {
 	walk.Walk(c.AST, func(w *walk.Context) walk.Action {
 		switch n := w.Node.(type) {
 		case *ast.Block:
-			z.AnalyzeBlockInstanceForwarded(ctx, c, w.Parents, n)
+			z.AnalyzeBlockInstanceNotForwarded(ctx, c, w.Parents, n)
 		}
 		return walk.Continue
 	})
@@ -167,37 +167,40 @@ func (z *analyzer) checkComponentCallCycles(root *file.Component, chain []*file.
 // Could Forward Attributes
 // ======================================================================================
 
-// AnalyzeCouldForwardAttributes attempts to see if the given component could
+// AnalyzeCouldForwardReceivedAttributes attempts to see if the given component could
 // forward the attributes it receives to the element containing it.
 //
 // Depends on Checks: None
 //
 // Sets Fields:
-//   - Components.CouldForwardAttributes
+//   - Components.ForwardsReceivedAttributes
 //
 // Depends on Fields:
-//   - Components.Blocks.Instances.Forwarded
-//   - Components.Blocks.Instances.Default.FirstForwardedAndPlaceholderWriter
-func (z *analyzer) AnalyzeCouldForwardAttributes(c *file.Component) {
-	ap := c.FirstPermanentForwardedAndPlaceholderWriter
-	if ap.NotZero() {
-		c.CouldForwardAttributes.Set(true)
+//   - Components.AlwaysForwardsAndPlaceholder
+//   - Components.Blocks.Instances.NotForwarded
+//   - Components.Blocks.Instances.Default.ForwardsAndPlaceholder
+func (z *analyzer) AnalyzeCouldForwardReceivedAttributes(c *file.Component) {
+	if c.AlwaysForwardsAndPlaceholder.True() {
+		c.CouldForwardReceivedAttributes.SetReason(c.AlwaysForwardsAndPlaceholder.Reason())
 		return
 	}
-	failed := ap.Failed
+
+	c.CouldForwardReceivedAttributes.SetFalse()
+	if c.AlwaysForwardsAndPlaceholder.Failed() {
+		c.CouldForwardReceivedAttributes.SetFailed()
+	}
 
 	for _, block := range c.Blocks {
 		for _, instance := range block.Instances {
-			firstForwardedAndPlaceholder := file.ConditionalAnalysis(instance.Forwarded, instance.Default.FirstForwardedAndPlaceholderWriter)
-			if firstForwardedAndPlaceholder.NotZero() {
-				c.CouldForwardAttributes.Set(true)
+			forwardsAndPlaceholder := file.ConditionalAnalysis(instance.Forwarded(), instance.Default.ForwardsAndPlaceholder)
+			if forwardsAndPlaceholder.True() {
+				c.CouldForwardReceivedAttributes.SetReason(forwardsAndPlaceholder.Reason())
 				return
+			} else if forwardsAndPlaceholder.Failed() {
+				c.CouldForwardReceivedAttributes.SetFailed()
 			}
-			failed = failed || firstForwardedAndPlaceholder.Failed
 		}
 	}
-
-	c.CouldForwardAttributes.SetIf(false, !failed)
 }
 
 // ============================================================================
@@ -213,50 +216,50 @@ func (z *analyzer) AnalyzeCouldForwardAttributes(c *file.Component) {
 //   - Components.CouldAcceptAttributes
 //
 // Depends on Fields:
-//   - Components.CouldForwardAttributes
-//   - Components.Blocks.Instances.Default.FirstAndPlaceholderWriter
+//   - Components.CouldForwardReceivedAttributes
+//   - Components.Blocks.Instances.Default.WritesAndPlaceholder
 func (z *analyzer) AnalyzeCouldAcceptAttributes(c *file.Component) {
-	if c.CouldForwardAttributes.NotZero() {
-		c.CouldAcceptAttributes.Set(true)
+	if c.CouldForwardReceivedAttributes.True() {
+		c.CouldAcceptAttributes.SetReason(c.CouldForwardReceivedAttributes.Reason())
 		return
 	}
 
-	ap := c.FirstPermanentAndPlaceholderWriter
-	if ap.NotZero() {
-		c.CouldAcceptAttributes.Set(true)
+	if c.AlwaysWritesAndPlaceholder.True() {
+		c.CouldAcceptAttributes.SetReason(c.AlwaysWritesAndPlaceholder.Reason())
 		return
 	}
-	failed := ap.Failed
+
+	c.CouldAcceptAttributes.SetFalse()
+	if c.AlwaysWritesAndPlaceholder.Failed() {
+		c.CouldAcceptAttributes.SetFailed()
+	}
 
 	for _, block := range c.Blocks {
 		for _, instance := range block.Instances {
-			firstAndPlaceholder := file.ConditionalAnalysis(instance.Forwarded, instance.Default.FirstAndPlaceholderWriter)
-			if firstAndPlaceholder.NotZero() {
-				c.CouldAcceptAttributes.Set(true)
+			if instance.Default.WritesAndPlaceholder.True() {
+				c.CouldAcceptAttributes.SetReason(instance.Default.WritesAndPlaceholder.Reason())
 				return
+			} else if instance.Default.WritesAndPlaceholder.Failed() {
+				c.CouldAcceptAttributes.SetFailed()
 			}
-			failed = failed || firstAndPlaceholder.Failed
 		}
 	}
-
-	c.CouldAcceptAttributes.SetIf(false, !failed)
 }
 
 // ============================================================================
 // First Permanent Top-Level &-Placeholder
 // ======================================================================================
 
-// FindFirstPermanentForwardedAndPlaceholderWriter attempts to find the first
+// AnalyzeAlwaysForwardsAndPlaceholder attempts to find the first
 // permanent top-level &-placeholder component in the given component.
 //
 // Depends on Checks: None
 //
 // Sets Fields:
-//   - Components.FirstPermanentForwardedAndPlaceholderWriter
+//   - Components.AlwaysForwardsAndPlaceholder
 //
 // Depends on Fields: None
-func (z *analyzer) FindFirstPermanentForwardedAndPlaceholderWriter(c *file.Component) {
-	z.AnalyzeComponentCall(context.Background(), c.ComponentCalls[0])
+func (z *analyzer) AnalyzeAlwaysForwardsAndPlaceholder(c *file.Component) {
 	// todo
 }
 
@@ -264,19 +267,19 @@ func (z *analyzer) FindFirstPermanentForwardedAndPlaceholderWriter(c *file.Compo
 // First Permanent &-Placeholder
 // ======================================================================================
 
-// FindFirstPermanentAndPlaceholderWriter attempts to find the first permanent
+// AnalyzedAlwaysWritesAndPlaceholder attempts to find the first permanent
 // &-placeholder component in the given component.
 //
 // Depends on Checks: None
 //
 // Sets Fields:
-//   - Components.FirstPermanentAndPlaceholderWriter
+//   - Components.AlwaysWritesAndPlaceholder
 //
 // Depends on Fields:
-//   - Components.FirstPermanentForwardedAndPlaceholderWriter
-func (z *analyzer) FindFirstPermanentAndPlaceholderWriter(c *file.Component) {
-	if c.FirstPermanentForwardedAndPlaceholderWriter.NotZero() {
-		c.FirstPermanentAndPlaceholderWriter = c.FirstPermanentForwardedAndPlaceholderWriter
+//   - Components.AlwaysForwardsAndPlaceholder
+func (z *analyzer) AnalyzedAlwaysWritesAndPlaceholder(c *file.Component) {
+	if c.AlwaysForwardsAndPlaceholder.True() {
+		c.AlwaysWritesAndPlaceholder.SetReason(c.AlwaysForwardsAndPlaceholder.Reason())
 		return
 	}
 

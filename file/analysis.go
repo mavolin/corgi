@@ -1,87 +1,110 @@
 package file
 
-// Analysis is the generic result of an analysis.
-type Analysis[T comparable] struct {
-	Result T
-	Failed bool
-}
+type AnalysisCondition[T comparable] interface {
+	Analysis[bool] | AnalysisWithReason[T]
 
-func Result[T comparable](v T) (a Analysis[T]) {
-	a.Set(v)
-	return a
-}
-
-func ResultIf[T comparable](v T, cond bool) (a Analysis[T]) {
-	a.SetIf(v, cond)
-	return a
-}
-
-func FailedAnalysis[T comparable]() (a Analysis[T]) {
-	a.SetFailed()
-	return a
+	true() bool
+	false() bool
+	zero() T
 }
 
 // ConditionalAnalysis returns an analysis result that is dependent on the
 // condition analysis:
 //
-// If the condition is not zero, result is returned.
-// If the condition or the result is zero, zero is returned.
-// In any other case, namely if the condition is not zero and the result failed,
-// or if the condition failed and the result is not zero or failed, a failed
+// If the condition is true, result is returned.
+// If the condition or the result is false, zero is returned.
+// In any other case, namely if the condition is true and the result failed,
+// or if the condition failed and the result is true or failed, a failed
 // analysis is returned.
-func ConditionalAnalysis[C, R comparable](condition Analysis[C], result Analysis[R]) (final Analysis[R]) {
-	var cZero C
-	var rZero R
+func ConditionalAnalysis[C, R comparable, CA AnalysisCondition[C]](condition CA, result AnalysisWithReason[R]) (final AnalysisWithReason[R]) {
 	switch {
-	case condition.NotZero():
+	case condition.true():
 		return result
-	case condition.Equal(cZero) || result.Equal(rZero):
-		return Result(rZero)
+	case condition.false() || result.False():
+		final.SetFalse()
 	default:
-		return FailedAnalysis[R]()
+		final.SetFailed()
 	}
+	return final
 }
 
-func (a Analysis[T]) GetOr(fallback T) T {
-	if a.Failed {
+// ============================================================================
+// Analysis
+// ======================================================================================
+
+// Analysis is a boolean analysis, i.e. one without reason.
+type Analysis[T comparable] struct {
+	result T
+	ok     bool
+}
+
+func (a Analysis[T]) Successful() bool { return a.ok }
+func (a Analysis[T]) Failed() bool     { return !a.Successful() }
+
+// Result returns the result of the analysis.
+// The analysis must be successful.
+//
+// Use ResultOr to get a fallback value if the analysis failed.
+func (a Analysis[T]) Result() T {
+	if a.Failed() {
+		panic("Result called on a failed analysis")
+	}
+	return a.result
+}
+
+func (a Analysis[T]) ResultOr(fallback T) T {
+	if a.Failed() {
 		return fallback
 	}
-	return a.Result
+	return a.Result()
 }
 
-func (a *Analysis[T]) Set(v T) {
-	a.Result, a.Failed = v, false
-}
-
-// SetIf sets the result to v if cond is true, otherwise it marks the analysis
-// as failed.
-func (a *Analysis[T]) SetIf(v T, cond bool) {
-	if cond {
-		a.Set(v)
-	} else {
-		a.SetFailed()
-	}
-}
-
-func (a *Analysis[T]) SetFailed() {
-	var zero T
-	a.Result, a.Failed = zero, true
-}
-
-func (a *Analysis[T]) SetZero() {
-	var zero T
-	a.Result, a.Failed = zero, false
-}
+func (a *Analysis[T]) SetResult(v T) { a.result, a.ok = v, true }
+func (a *Analysis[T]) SetFailed()    { a.result, a.ok = a.zero(), false }
+func (a *Analysis[T]) SetZero()      { a.result, a.ok = a.zero(), true }
 
 // NotZero indicates whether the analysis was successful and the result is not
 // the zero value.
 //
 // Do not negate, the negation is probably not what you expect!
-func (a Analysis[T]) NotZero() bool {
+func (a Analysis[T]) NotZero() bool { return a.true() }
+
+func (a Analysis[T]) Equal(v T) bool { return a.Successful() && a.result == v }
+func (a Analysis[T]) true() bool     { return a.Successful() && a.result != a.zero() }
+func (a Analysis[T]) false() bool    { return a.Successful() && a.result == a.zero() }
+
+func (a Analysis[T]) zero() T {
 	var zero T
-	return !a.Failed && a.Result != zero
+	return zero
 }
 
-func (a Analysis[T]) Equal(v T) bool {
-	return !a.Failed && a.Result == v
+// ============================================================================
+// Analysis With Reason
+// ======================================================================================
+
+// AnalysisWithReason is an analysis with a reason.
+//
+// The zero value is a failed analysis.
+type AnalysisWithReason[T comparable] struct {
+	a Analysis[T]
 }
+
+func (a AnalysisWithReason[T]) Successful() bool { return a.a.Successful() }
+func (a AnalysisWithReason[T]) Failed() bool     { return a.a.Failed() }
+func (a AnalysisWithReason[T]) True() bool       { return a.a.Successful() && a.a.result != a.zero() }
+func (a AnalysisWithReason[T]) False() bool      { return a.a.Successful() && a.a.result == a.zero() }
+
+func (a AnalysisWithReason[T]) Reason() T {
+	if a.Failed() {
+		panic("Reason called on a failed analysis")
+	}
+	return a.a.result
+}
+
+func (a *AnalysisWithReason[T]) SetReason(v T) { a.a.SetResult(v) }
+func (a *AnalysisWithReason[T]) SetFailed()    { a.a.SetFailed() }
+func (a *AnalysisWithReason[T]) SetFalse()     { a.a.SetZero() }
+
+func (a AnalysisWithReason[T]) true() bool  { return a.True() }
+func (a AnalysisWithReason[T]) false() bool { return a.False() }
+func (a AnalysisWithReason[T]) zero() T     { return a.a.zero() }

@@ -19,10 +19,23 @@ type Block struct {
 	Required Analysis[bool]
 	// Forwarded indicates at least one instance of this block is placed
 	// outside any element.
-	Forwarded Analysis[bool]
-	// ForwardsAttributes indicates that all instances of this block can write
-	// to the list of attributes of their containing element.
-	ForwardsAttributes Analysis[bool]
+	//
+	// The reason is that block instance.
+	Forwarded AnalysisWithReason[*BlockInstance]
+	// CannotForwardAttributes indicates that at least one instance of this
+	// block cannot forward attributes.
+	//
+	// The reason is the first instance that cannot forward attributes.
+	CannotForwardAttributes AnalysisWithReason[*BlockInstance]
+}
+
+func (b *Block) ForwardsAttributes() (a Analysis[bool]) {
+	if b.CannotForwardAttributes.Failed() {
+		a.SetFailed()
+	} else {
+		a.SetResult(b.CannotForwardAttributes.False())
+	}
+	return a
 }
 
 func (b *Block) InstanceByNode(n *ast.Block) *BlockInstance {
@@ -49,15 +62,28 @@ type (
 		//
 		// ANALYZER
 
-		// Forwarded indicates whether this block instance is placed outside
-		// any element, therefore forwarding its body to the element containing
-		// the component call.
-		Forwarded Analysis[bool]
-		// ForwardsAttributes indicates whether this block instance can write
-		// to the list of attributes of it's containing element.
+		// NotForwarded indicates that this block instance is not forwarded,
+		// i.e. it is placed inside an element.
 		//
-		// Forwarded implies ForwardsAttributes.
-		ForwardsAttributes Analysis[bool]
+		// The reason is the element writer containing this block instance.
+		// If this block instance is placed inside a block setter, and that
+		// block is not forwarded, the reason will be set to the component call.
+		// Component call reasons are preferred over element reasons.
+		NotForwarded AnalysisWithReason[ast.ElementWriter]
+		// CannotForwardAttributes indicates that this block instance can't
+		// forward attributes to the element containing it.
+		//
+		// NotForwarded might be false, but CannotForwardAttributes is true:
+		// Consider the following example:
+		// 	comp Woof() {
+		//		br
+		//      block
+		//  }
+		//
+		// In the above example, the block is clearly forwarded, but it is
+		// placed after the br element, which means it cannot forward
+		// attributes.
+		CannotForwardAttributes AnalysisWithReason[ast.ContentWriter]
 	}
 
 	BlockInstanceDefault struct {
@@ -69,25 +95,56 @@ type (
 		//
 		// ANALYZER
 
-		FirstAndPlaceholderWriter          Analysis[ast.AndPlaceholderWriter]
-		FirstForwardedAndPlaceholderWriter Analysis[ast.AndPlaceholderWriter]
+		// WritesAndPlaceholder indicates that this block instance default
+		// writes the &-placeholder.
+		//
+		// The reason is the first &-placeholder writer that writes the
+		// &-placeholder.
+		WritesAndPlaceholder AnalysisWithReason[ast.AndPlaceholderWriter]
+		// ForwardsAndPlaceholder indicates that this block instance default
+		// forwards the &-placeholder to the element containing the block
+		// instance.
+		//
+		// The reason is the first &-placeholder writer that forwards the
+		// &-placeholder.
+		//
+		// ForwardsAndPlaceholder implies WritesAndPlaceholder.
+		ForwardsAndPlaceholder AnalysisWithReason[ast.AndPlaceholderWriter]
 
-		FirstForwardedAttributeWriter Analysis[ast.AttributeWriter]
-		FirstContentWriter            Analysis[ast.ContentWriter]
-		FirstElementWriter            Analysis[ast.ElementWriter]
+		ForwardsAttributes AnalysisWithReason[ast.AttributeWriter]
+		WritesContent      AnalysisWithReason[ast.ContentWriter]
+		WritesElements     AnalysisWithReason[ast.ElementWriter]
 	}
 )
+
+func (bi *BlockInstance) Forwarded() (a Analysis[bool]) {
+	if bi.NotForwarded.Failed() {
+		a.SetFailed()
+	} else {
+		a.SetResult(bi.NotForwarded.False())
+	}
+	return a
+}
+
+func (bi *BlockInstance) ForwardsAttributes() (a Analysis[bool]) {
+	if bi.CannotForwardAttributes.Failed() {
+		a.SetFailed()
+	} else {
+		a.SetResult(bi.CannotForwardAttributes.False())
+	}
+	return a
+}
 
 // DefaultOverwritten indicates whether the default of this block instance
 // is overwritten in the given component call.
 // This is the case if the component call sets this block or one of this
 // block's parent blocks.
-func (cbi *BlockInstance) DefaultOverwritten(cc *ComponentCall) bool {
-	if cc.BlockSetterByName(cbi.Group.Name) != nil {
+func (bi *BlockInstance) DefaultOverwritten(cc *ComponentCall) bool {
+	if cc.BlockSetterByName(bi.Group.Name) != nil {
 		return true
 	}
-	if cbi.Parent != nil {
-		return cbi.Parent.DefaultOverwritten(cc)
+	if bi.Parent != nil {
+		return bi.Parent.DefaultOverwritten(cc)
 	}
 	return false
 }

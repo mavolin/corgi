@@ -47,7 +47,7 @@ func (z *analyzer) InferStateType(logger *slog.Logger, s *file.State) {
 
 	t, _ := file.InferType(s.File, s.Value())
 	if t != "" {
-		s.InferredType.Set(t)
+		s.InferredType.SetResult(t)
 		return
 	}
 

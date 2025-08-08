@@ -31,7 +31,7 @@ func (z *analyzer) AnalyzeBlocks(logger *slog.Logger, c *file.Component) {
 		z.AnalyzeBlockRequired(logger, c, block)
 		// todo: instance forwards attributes
 		z.AnalyzeBlockForwarded(block)
-		z.AnalyzeBlockForwardsAttributes(block)
+		z.AnalyzeBlockCannotForwardAttributes(block)
 	}
 }
 
@@ -47,11 +47,11 @@ func (z *analyzer) AnalyzeBlocks(logger *slog.Logger, c *file.Component) {
 func (z *analyzer) AnalyzeBlockRequired(logger *slog.Logger, c *file.Component, b *file.Block) {
 	logger = logger.WithGroup("required")
 
-	b.Required.Set(b.Instances[0].AST.Default == nil)
+	b.Required.SetResult(b.Instances[0].AST.Default == nil)
 	for _, instance := range b.Instances[1:] {
-		if b.Required.Result && instance.AST.Default != nil {
+		if b.Required.Result() && instance.AST.Default != nil {
 			goto Erroneous
-		} else if !b.Required.Result && instance.AST.Default == nil {
+		} else if !b.Required.Result() && instance.AST.Default == nil {
 			goto Erroneous
 		}
 	}
@@ -86,7 +86,7 @@ Erroneous:
 }
 
 // ============================================================================
-// Forwarded
+// NotForwarded
 // ======================================================================================
 
 // AnalyzeBlockForwarded determines whether the given component block is top-level,
@@ -98,60 +98,59 @@ Erroneous:
 //   - Components.Blocks.Forwarded
 //
 // Depends on Fields:
-//   - Components.Blocks.Instances.Forwarded
+//   - Components.Blocks.Instances.NotForwarded
 func (z *analyzer) AnalyzeBlockForwarded(b *file.Block) {
-	var failed bool
+	b.Forwarded.SetFalse()
 	for _, instance := range b.Instances {
-		if instance.Forwarded.Equal(true) {
-			b.Forwarded.Set(true)
+		if instance.NotForwarded.False() {
+			b.Forwarded.SetReason(instance)
+		} else if instance.NotForwarded.Failed() {
+			b.Forwarded.SetFailed()
 		}
-		failed = failed || instance.Forwarded.Failed
 	}
-
-	b.Forwarded.SetIf(false, !failed)
 }
 
-// AnalyzeBlockInstanceForwarded determines whether the given block is
+// AnalyzeBlockInstanceNotForwarded determines whether the given block is
 // forwarded.
 //
 // Depends on Checks: None
 //
 // Sets Fields:
-//   - Components.Blocks.Instances.Forwarded
+//   - Components.Blocks.Instances.NotForwarded
 //
 // Depends on Fields: None
-func (z *analyzer) AnalyzeBlockInstanceForwarded(ctx context.Context, c *file.Component, parents []*walk.Context, biAST *ast.Block) {
+func (z *analyzer) AnalyzeBlockInstanceNotForwarded(ctx context.Context, c *file.Component, parents []*walk.Context, biAST *ast.Block) {
 	bi := c.BlockInstanceByNode(biAST)
 	if bi == nil {
 		return
 	}
 
-	bi.Forwarded = z.isForwarded(ctx, c.File, parents)
+	bi.NotForwarded = z.isNotForwarded(ctx, c.File, parents)
 }
 
 // ============================================================================
 // Forwards Attributes
 // ======================================================================================
 
-// AnalyzeBlockForwardsAttributes determines whether the given component block
-// forwards attributes to the element containing it.
+// AnalyzeBlockCannotForwardAttributes determines whether the given component
+// block forwards attributes to the element containing it.
 //
 // Depends on Checks: None
 //
 // Sets Fields:
-//   - Components.Blocks.ForwardsAttributes
+//   - Components.Blocks.CannotForwardAttributes
 //
 // Depends on Fields:
-//   - Components.Blocks.Instances.ForwardsAttributes
-func (z *analyzer) AnalyzeBlockForwardsAttributes(b *file.Block) {
+//   - Components.Blocks.Instances.CannotForwardAttributes
+func (z *analyzer) AnalyzeBlockCannotForwardAttributes(b *file.Block) {
+	b.CannotForwardAttributes.SetFalse()
 	for _, instance := range b.Instances {
-		if instance.ForwardsAttributes.Failed {
-			b.ForwardsAttributes.SetFailed()
+		if instance.CannotForwardAttributes.Failed() {
+			b.CannotForwardAttributes.SetFailed()
 			return
-		} else if instance.ForwardsAttributes.Equal(false) {
-			b.ForwardsAttributes.Set(false)
+		} else if instance.CannotForwardAttributes.True() {
+			b.CannotForwardAttributes.SetReason(instance)
 			return
 		}
 	}
-	b.ForwardsAttributes.Set(true)
 }

@@ -264,7 +264,9 @@ func (s *State) Value() *ast.Expression {
 
 func (s *State) ResolvedType() Analysis[string] {
 	if s.AST.Type != nil {
-		return Result(s.AST.Type.Type)
+		var a Analysis[string]
+		a.SetResult(s.AST.Type.Type)
+		return a
 	}
 	return s.InferredType
 }

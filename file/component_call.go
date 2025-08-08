@@ -41,33 +41,35 @@ type ComponentCall struct {
 	// In other words, this component call is part of a recursion.
 	Circular bool
 
-	// FirstDelegatedAttributeWriter is the first attribute writer filling
-	// the &-placeholder of the called component.
+	// ReceivesAttributes indicates that the component's &-placeholder gets
+	// filled.
 	//
-	// It is either directly set to an attribute, or set to a component call.
+	// The reason is either directly set to an attribute, or set to a component
+	// call.
 	// In case of the latter, the attribute writer causing the
-	// delegation is the FirstForwardedAttributeWriter of that component call.
+	// delegation is the reason of why the component call ForwardsAttributes.
 	//
 	// Note that if the component call and the component call's
-	// FirstForwardedAttributeWriter are the same, the component call
+	// reason for ForwardsAttributes are the same, the component call
 	// itself is the one writing attributes, as opposed to a block setter.
-	// Refer to the documentation of FirstForwardedAttributeWriter for more
-	// information.
-	FirstDelegatedAttributeWriter Analysis[ast.AttributeWriter]
-	// FirstDelegatedAndPlaceholderWriter is the first &-placeholder writer
-	// filling the &-placeholder of the called component.
+	// Refer to the documentation of ForwardsAttributes for more information.
+	ReceivesAttributes AnalysisWithReason[ast.AttributeWriter]
+	// ReceivesAndPlaceholder indicates that the component's &-placeholder gets
+	// filled with the &-placeholder of the calling component.
 	//
-	// It is either directly set to an &-placeholder, or set to a component call.
+	// The reason is either directly set to an &-placeholder, or set to a
+	// component call.
 	// In case of the latter, the &-placeholder writer causing the delegation
-	// is the FirstForwardedAndPlaceholderWriter of that component call.
+	// is the reason why that call ForwardsAndPlaceholders.
 	//
 	// Note that if the component call and the component call's
-	// FirstForwardedAndPlaceholderWriter are the same, the component call
+	// ForwardsAndPlaceholders are the same, the component call
 	// itself is the one filling the &-placeholder, as opposed to an &.
-	// Refer to the documentation of FirstForwardedAndPlaceholderWriter for more
+	// Refer to the documentation of ForwardsAndPlaceholders for more
 	// information.
-	FirstDelegatedAndPlaceholderWriter Analysis[ast.AndPlaceholderWriter]
-	// ForwardsDelegatedAttributes indicates whether the component call
+	ReceivesAndPlaceholder AnalysisWithReason[ast.AndPlaceholderWriter]
+
+	// ForwardsReceivedAttributes indicates whether the component call
 	// forwards attributes the attributes it receives through a top-level
 	// &-placeholder to the element containing the component call again.
 	//
@@ -77,15 +79,21 @@ type ComponentCall struct {
 	// The most simple example of that is:
 	//    comp Foo() { &(&) }
 	// Where Foo is called with a delegated attribute.
-	ForwardsDelegatedAttributes Analysis[bool]
+	//
+	// The reason is the &-placeholder writer of the _component_ (not the call)
+	// that forwards the attributes.
+	ForwardsReceivedAttributes AnalysisWithReason[ast.AndPlaceholderWriter]
 	// AcceptsAttributes indicates whether the call's component accepts
 	// attributes.
 	//
-	// ForwardsDelegatedAttributes implies AcceptsAttributes.
-	AcceptsAttributes Analysis[bool]
+	// ForwardsReceivedAttributes implies AcceptsAttributes.
+	//
+	// The reason is the &-placeholder writer of the _component_ (not the call)
+	// that accepts the attributes.
+	AcceptsAttributes AnalysisWithReason[ast.AndPlaceholderWriter]
 
-	// FirstForwardedAttributeWriter is the first attribute writer producing
-	// top-level attributes.
+	// ForwardsAttributes indicates whether the component call forwards
+	// attributes.
 	//
 	// For attribute writers in the body of this component call, i.e.
 	// those passed to the component's top-level &-placeholder, or those in
@@ -100,13 +108,13 @@ type ComponentCall struct {
 	// itself, the only place adding top-level attributes is the
 	// component call itself, through block setters or the component's
 	// top-level &-placeholder.
-	FirstForwardedAttributeWriter Analysis[ast.AttributeWriter]
-	// FirstForwardedAndPlaceholderWriter is the first &-placeholder writer producing
-	// top-level attributes if filled.
+	ForwardsAttributes AnalysisWithReason[ast.AttributeWriter]
+	// ForwardsAndPlaceholders indicates whether the component call forwards
+	// the &-placeholder it receives.
 	//
-	// This fields considers &-placeholder writers in top-level block setters
-	// and &-placeholders delegated to the component.
-	FirstForwardedAndPlaceholderWriter Analysis[ast.AndPlaceholderWriter]
+	// This fields considers &-placeholder writers in forwarded block setters
+	// and &-placeholders given directly to the component.
+	ForwardsAndPlaceholders AnalysisWithReason[ast.AndPlaceholderWriter]
 }
 
 func (cc *ComponentCall) External() bool { return cc.File.Package != cc.Component.File.Package }
@@ -133,17 +141,16 @@ func (cc *ComponentCall) BlockSetterByNode(n ast.BlockSetter) *BlockSetter {
 	return nil
 }
 
-// FirstDelegatedAttributeWriterChain returns the chain of component calls
-// that are responsible for the first delegated attribute writer of this
-// component call.
-func (cc *ComponentCall) FirstDelegatedAttributeWriterChain() []ast.AttributeWriter {
-	if cc.FirstDelegatedAttributeWriter.Equal(nil) {
+// ReceivedAttributeChain returns the chain of component calls
+// that are responsible for the attributes this component receives.
+func (cc *ComponentCall) ReceivedAttributeChain() []ast.AttributeWriter {
+	if cc.ReceivesAttributes.False() {
 		return nil
 	}
 
-	curAST, _ := cc.FirstDelegatedAttributeWriter.Result.(*ast.ComponentCall)
+	curAST, _ := cc.ReceivesAttributes.Reason().(*ast.ComponentCall)
 	if curAST == nil {
-		return []ast.AttributeWriter{cc.FirstDelegatedAttributeWriter.Result}
+		return []ast.AttributeWriter{cc.ReceivesAttributes.Reason()}
 	}
 
 	var chain []ast.AttributeWriter
@@ -152,24 +159,23 @@ func (cc *ComponentCall) FirstDelegatedAttributeWriterChain() []ast.AttributeWri
 
 		prevAST := curAST
 		prev := cc.File.ComponentCallByNode(curAST)
-		curAST, _ = prev.FirstForwardedAttributeWriter.Result.(*ast.ComponentCall)
+		curAST, _ = prev.ForwardsAttributes.Reason().(*ast.ComponentCall)
 		if curAST == nil || curAST == prevAST {
 			return chain
 		}
 	}
 }
 
-// FirstDelegatedAndPlaceholderWriterChain returns the chain of component calls
-// that are responsible for the first delegated &-placeholder writer of this
-// component call.
-func (cc *ComponentCall) FirstDelegatedAndPlaceholderWriterChain() []ast.AndPlaceholderWriter {
-	if cc.FirstDelegatedAndPlaceholderWriter.Equal(nil) {
+// ReceivedAndPlaceholderChain returns the chain of component calls
+// that are responsible for the &-placeholder this component receives.
+func (cc *ComponentCall) ReceivedAndPlaceholderChain() []ast.AndPlaceholderWriter {
+	if cc.ReceivesAndPlaceholder.False() {
 		return nil
 	}
 
-	curAST, _ := cc.FirstDelegatedAndPlaceholderWriter.Result.(*ast.ComponentCall)
+	curAST, _ := cc.ReceivesAndPlaceholder.Reason().(*ast.ComponentCall)
 	if curAST == nil {
-		return []ast.AndPlaceholderWriter{cc.FirstDelegatedAndPlaceholderWriter.Result}
+		return []ast.AndPlaceholderWriter{cc.ReceivesAndPlaceholder.Reason()}
 	}
 
 	var chain []ast.AndPlaceholderWriter
@@ -178,7 +184,7 @@ func (cc *ComponentCall) FirstDelegatedAndPlaceholderWriterChain() []ast.AndPlac
 
 		prevAST := curAST
 		prev := cc.File.ComponentCallByNode(curAST)
-		curAST, _ = prev.FirstForwardedAndPlaceholderWriter.Result.(*ast.ComponentCall)
+		curAST, _ = prev.ForwardsAndPlaceholders.Reason().(*ast.ComponentCall)
 		if curAST == nil || curAST == prevAST {
 			return chain
 		}
@@ -214,89 +220,101 @@ func (s *BlockSetter) InstanceByNode(n ast.BlockSetter) *BlockSetterInstance {
 	return nil
 }
 
-// FirstAndPlaceholderWriter returns the first &-placeholder in any of the block
-// setter's instances.
-func (s *BlockSetter) FirstAndPlaceholderWriter() Analysis[*BlockSetterInstance] {
-	var failed bool
+// WritesAndPlaceholder indicates that any of the block setter instances
+// write an &-placeholder.
+//
+// The reason is that BlockSetterInstance.
+func (s *BlockSetter) WritesAndPlaceholder() (a AnalysisWithReason[*BlockSetterInstance]) {
+	a.SetReason(nil)
 	for _, instance := range s.Instances {
-		ap := instance.FirstAndPlaceholderWriter
-		if ap.Failed {
-			failed = true
-		} else if ap.Result != nil {
-			return Result(instance)
+		ap := instance.WritesAndPlaceholder
+		if ap.Failed() {
+			a.SetFailed()
+		} else if ap.Reason() != nil {
+			a.SetReason(instance)
+			return a
 		}
 	}
-	return ResultIf[*BlockSetterInstance](nil, !failed)
+	return a
 }
 
-// FirstForwardedAndPlaceholderWriter returns the first top-level &-placeholder in any
-// of the block setter's instances.
-func (s *BlockSetter) FirstForwardedAndPlaceholderWriter() Analysis[*BlockSetterInstance] {
-	var failed bool
+// ForwardsAndPlaceholder indicates that any of the block setter instances
+// forward an &-placeholder.
+//
+// The reason is that BlockSetterInstance.
+func (s *BlockSetter) ForwardsAndPlaceholder() (a AnalysisWithReason[*BlockSetterInstance]) {
+	a.SetReason(nil)
 	for _, instance := range s.Instances {
-		ap := instance.FirstForwardedAndPlaceholderWriter
-		if ap.Failed {
-			failed = true
-		} else if ap.Result != nil {
-			return Result(instance)
+		ap := instance.ForwardsAndPlaceholder
+		if ap.Failed() {
+			a.SetFailed()
+		} else if ap.Reason() != nil {
+			a.SetReason(instance)
+			return a
 		}
 	}
-	return ResultIf[*BlockSetterInstance](nil, !failed)
+	return a
 }
 
-// FirstForwardedAttributeWriter returns the first top-level attribute writer in
-// any of the block setter's instances.
-func (s *BlockSetter) FirstForwardedAttributeWriter() Analysis[*BlockSetterInstance] {
-	var failed bool
+// ForwardsAttributes indicates that any of the block setter instances
+// forward attributes.
+//
+// The reason is that BlockSetterInstance.
+func (s *BlockSetter) ForwardsAttributes() (a AnalysisWithReason[*BlockSetterInstance]) {
+	a.SetReason(nil)
 	for _, instance := range s.Instances {
-		aw := instance.FirstForwardedAttributeWriter
-		if aw.Failed {
-			failed = true
-		} else if aw.Result != nil {
-			return Result(instance)
+		aw := instance.ForwardsAttributes
+		if aw.Failed() {
+			a.SetFailed()
+		} else if aw.Reason() != nil {
+			a.SetReason(instance)
+			return a
 		}
 	}
-	return ResultIf[*BlockSetterInstance](nil, !failed)
+	return a
 }
 
-// FirstContentWriter returns the first content writer in any of the block
-// setter's instances.
-func (s *BlockSetter) FirstContentWriter() Analysis[*BlockSetterInstance] {
-	var failed bool
+// WritesContent indicates that any of the block setter instances write content.
+//
+// The reason is that BlockSetterInstance.
+func (s *BlockSetter) WritesContent() (a AnalysisWithReason[*BlockSetterInstance]) {
+	a.SetReason(nil)
 	for _, instance := range s.Instances {
-		cw := instance.FirstContentWriter
-		if cw.Failed {
-			failed = true
-		} else if cw.Result != nil {
-			return Result(instance)
+		cw := instance.WritesContent
+		if cw.Failed() {
+			a.SetFailed()
+		} else if cw.Reason() != nil {
+			a.SetReason(instance)
+			return a
 		}
 	}
-	return ResultIf[*BlockSetterInstance](nil, !failed)
+	return a
 }
 
-// FirstElementWriter returns the first element writer in any of the block
-// setter's instances.
-func (s *BlockSetter) FirstElementWriter() Analysis[*BlockSetterInstance] {
-	var failed bool
+// WritesElements indicates that any of the block setter instances write
+// elements.
+//
+// The reason is that BlockSetterInstance.
+func (s *BlockSetter) WritesElements() (a AnalysisWithReason[*BlockSetterInstance]) {
+	a.SetReason(nil)
 	for _, instance := range s.Instances {
-		ew := instance.FirstElementWriter
-		if ew.Failed {
-			failed = true
-		} else if ew.Result != nil {
-			return Result(instance)
+		ew := instance.WritesElements
+		if ew.Failed() {
+			a.SetFailed()
+		} else if ew.Reason() != nil {
+			a.SetReason(instance)
 		}
 	}
-	return ResultIf[*BlockSetterInstance](nil, !failed)
+	return a
 }
 
 type BlockSetterInstance struct {
 	Group *BlockSetter
 	AST   ast.BlockSetter
 
-	FirstAndPlaceholderWriter          Analysis[ast.AndPlaceholderWriter]
-	FirstForwardedAndPlaceholderWriter Analysis[ast.AndPlaceholderWriter]
-
-	FirstForwardedAttributeWriter Analysis[ast.AttributeWriter]
-	FirstContentWriter            Analysis[ast.ContentWriter]
-	FirstElementWriter            Analysis[ast.ElementWriter]
+	WritesAndPlaceholder   AnalysisWithReason[ast.AndPlaceholderWriter]
+	ForwardsAndPlaceholder AnalysisWithReason[ast.AndPlaceholderWriter]
+	ForwardsAttributes     AnalysisWithReason[ast.AttributeWriter]
+	WritesContent          AnalysisWithReason[ast.ContentWriter]
+	WritesElements         AnalysisWithReason[ast.ElementWriter]
 }

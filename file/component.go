@@ -37,31 +37,41 @@ type Component struct {
 
 	// CouldAcceptAttributes indicates whether the component could accept
 	// attributes passed to it.
-	CouldAcceptAttributes Analysis[bool]
-	// CouldForwardAttributes indicates whether the component could forward
+	CouldAcceptAttributes AnalysisWithReason[ast.AndPlaceholderWriter]
+	// CouldForwardReceivedAttributes indicates whether the component could forward
 	// attributes it receives to the element containing a component call
 	// to it.
 	//
-	// CouldForwardAttributes implies CouldAcceptAttributes.
-	CouldForwardAttributes Analysis[bool]
+	// CouldForwardReceivedAttributes implies CouldAcceptAttributes.
+	CouldForwardReceivedAttributes AnalysisWithReason[ast.AndPlaceholderWriter]
 
-	// FirstPermanentAndPlaceholderWriter is the first &-placeholder writer that is
-	// not part of a block default.
-	FirstPermanentAndPlaceholderWriter Analysis[ast.AndPlaceholderWriter]
-	// FirstPermanentForwardedAndPlaceholderWriter is the first &-placeholder writer
-	// that is at the top-level of the component, i.e. not nested inside an element
-	// or part of a block default.
-	FirstPermanentForwardedAndPlaceholderWriter Analysis[ast.AndPlaceholderWriter]
+	// AlwaysWritesAndPlaceholder indicates whether the component has a
+	// permanent &-placeholder writer, i.e. a &-placeholder writer that is not
+	// part of a block default.
+	//
+	// The reason is that &-placeholder writer.
+	AlwaysWritesAndPlaceholder AnalysisWithReason[ast.AndPlaceholderWriter]
+	// AlwaysForwardsAndPlaceholder indicates whether the component has
+	// a permanent &-placeholder writer that is forwarded and not part of a block
+	// default.
+	//
+	// The reason is that &-placeholder writer.
+	AlwaysForwardsAndPlaceholder AnalysisWithReason[ast.AndPlaceholderWriter]
 
-	// FirstPermanentForwardedAttributeWriter is the first attribute writer that is
-	// not part of a block default.
-	FirstPermanentForwardedAttributeWriter Analysis[ast.AttributeWriter]
-	// FirstPermanentContentWriter is the first content writer that is not part
-	// of a block default.
-	FirstPermanentContentWriter Analysis[ast.ContentWriter]
-	// FirstPermanentElementWriter is the first element writer that is not part
-	// of a block default.
-	FirstPermanentElementWriter Analysis[ast.ElementWriter]
+	// AlwaysForwardsAttributes indicates whether the component has a
+	// permanent attribute writer that is forwarded and not part of a block
+	// default.
+	//
+	// The reason is that attribute writer.
+	AlwaysForwardsAttributes AnalysisWithReason[ast.AttributeWriter]
+	// AlwaysWritesContent indicates whether the component has a
+	// permanent content writer that is not part of a block default.
+	AlwaysWritesContent AnalysisWithReason[ast.ContentWriter]
+	// AlwaysWritesElements indicates whether the component has a
+	// permanent element writer that is not part of a block default.
+	//
+	// The reason is that element writer.
+	AlwaysWritesElements AnalysisWithReason[ast.ElementWriter]
 }
 
 func (c *Component) ParameterByName(name string) *ComponentParameter {
@@ -135,7 +145,9 @@ type ComponentParameter struct {
 
 func (p *ComponentParameter) ResolvedType() Analysis[string] {
 	if p.AST.Type != nil {
-		return Result(p.AST.Type.Type)
+		var a Analysis[string]
+		a.SetResult(p.AST.Type.Type)
+		return a
 	}
 	return p.InferredType
 }

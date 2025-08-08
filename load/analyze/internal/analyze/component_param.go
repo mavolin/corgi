@@ -86,36 +86,40 @@ func (z *analyzer) AnalyzeAttrTypeComponentParam(logger *slog.Logger, c *file.Co
 			})
 			param.AttributeName.SetFailed()
 		} else {
-			param.AttributeName.Set(t.Attribute.Name)
+			param.AttributeName.SetResult(t.Attribute.Name)
 		}
 	}
 
-	param.AttributeType.SetIf(t.Name.Type, t.Name.Type.IsValid())
+	if t.Name.Type.IsValid() {
+		param.AttributeType.SetResult(t.Name.Type)
+	} else {
+		param.AttributeType.SetFailed()
+	}
 
-	param.InferredType.Set(z.SafeImport(c.File).Namespace + ".")
+	inferredType := z.SafeImport(c.File).Namespace + "."
 	switch t.Name.Type {
 	case attrtype.Unsafe:
-		param.InferredType.Result += "Unsafe"
+		inferredType += "Unsafe"
 	case attrtype.UnsafeBool:
-		param.InferredType.Result += "UnsafeBool"
+		inferredType += "UnsafeBool"
 	case attrtype.Bool:
-		param.InferredType.Result += "Bool"
+		inferredType += "Bool"
 	case attrtype.Innocuous:
 		// already handled above
 	case attrtype.Text:
-		param.InferredType.Result = "string"
+		inferredType = "string"
 	case attrtype.CSS:
-		param.InferredType.Result += "CSS"
+		inferredType += "CSS"
 	case attrtype.JS:
-		param.InferredType.Result += "JS"
+		inferredType += "JS"
 	case attrtype.URL:
-		param.InferredType.Result += "URL"
+		inferredType += "URL"
 	case attrtype.URLList:
-		param.InferredType.Result += "URLList"
+		inferredType += "URLList"
 	case attrtype.ResourceURL:
-		param.InferredType.Result += "ResourceURL"
+		inferredType += "ResourceURL"
 	case attrtype.Srcset:
-		param.InferredType.Result += "Srcset"
+		inferredType += "Srcset"
 	case attrtype.Unknown:
 		fallthrough
 	default:
@@ -136,6 +140,7 @@ func (z *analyzer) AnalyzeAttrTypeComponentParam(logger *slog.Logger, c *file.Co
 		})
 		return
 	}
+	param.InferredType.SetResult(inferredType)
 }
 
 // ============================================================================
@@ -186,9 +191,10 @@ func (z *analyzer) InferTypeFromComponentParamDefault(logger *slog.Logger, c *fi
 
 	t, _ := file.InferType(c.File, param.AST.Default)
 	if t != "" {
-		param.InferredType.Set(t)
+		param.InferredType.SetResult(t)
 	}
 
+	param.InferredType.SetFailed()
 	logger.Error("Unable to infer type from default value")
 	z.Report(&diagnostic.Diagnostic{
 		Message: "component parameter: unable to infer type from default value",

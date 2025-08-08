@@ -353,20 +353,23 @@ type AttributeReference struct {
 }
 
 // HTMLName returns the name of the attribute.
-func (r *AttributeReference) HTMLName() Analysis[string] {
+func (r *AttributeReference) HTMLName() (a Analysis[string]) {
 	// possibly has a prefix
 	if r.AST.Package != nil {
 		if r.Spec.Equal(nil) { // externally defined attribute, but no spec?
-			return FailedAnalysis[string]()
+			a.SetFailed()
+			return a
 		}
 
 		// prepend the prefix
-		if r.Spec.Result.Definition.Prefix != nil {
-			return Result(r.Spec.Result.Definition.Prefix.Name + r.AST.Name.Name)
+		if r.Spec.Result().Definition.Prefix != nil {
+			a.SetResult(r.Spec.Result().Definition.Prefix.Name + r.AST.Name.Name)
+			return a
 		}
 
 		// fallthrough, no prefix
 	}
 
-	return Result(r.AST.Name.Name)
+	a.SetResult(r.AST.Name.Name)
+	return a
 }

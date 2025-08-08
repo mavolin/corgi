@@ -81,7 +81,7 @@ func (l *linker) linkUnqualifiedAttributeReference(logger *slog.Logger, f *file.
 	}
 
 	if len(equalSpecificityMatches) == 1 {
-		ref.Spec.Set(equalSpecificityMatches[0])
+		ref.Spec.SetResult(equalSpecificityMatches[0])
 		if bestImport != nil {
 			bestImport.Forward = true
 		}
@@ -119,7 +119,7 @@ func (l *linker) linkUnqualifiedAttributeReference(logger *slog.Logger, f *file.
 
 	packageMatches := builtinImp.Package.AttributeSpecByHTMLName(name)
 	if len(packageMatches) == 1 {
-		ref.Spec.Set(packageMatches[0])
+		ref.Spec.SetResult(packageMatches[0])
 		builtinImp.Forward = true
 		return
 	} else if len(packageMatches) > 1 {
@@ -170,7 +170,7 @@ func (l *linker) linkQualifiedAttributeReference(logger *slog.Logger, f *file.Fi
 	if imp.Package != nil && imp.Package.PackageSymbols != nil {
 		matches = imp.Package.AttributeSpecByQualifiedName(ref.AST.Name.Name)
 		if len(matches) == 1 {
-			ref.Spec.Set(matches[0])
+			ref.Spec.SetResult(matches[0])
 			imp.Forward = true
 			return
 		}

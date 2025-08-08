@@ -145,8 +145,8 @@ func createElementSpec(f *file.File, start *ast.Position, prefix, name string, t
 		File:       f,
 		Definition: definitionAST,
 		AST:        specAST,
-		Type:       file.Result(typ),
 	}
+	spec.Type.SetResult(typ)
 
 	addElementSpec(f.Package, spec)
 	return spec

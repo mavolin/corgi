@@ -13,6 +13,25 @@ import (
 	"github.com/mavolin/corgi/v2/file/walk"
 )
 
+// AnalyzeComponentCalls analyzes the remaining component calls in the package.
+//
+// Depends on Checks: None
+//
+// Sets Fields: None
+//
+// Depends on Fields: None
+func (z *analyzer) AnalyzeComponentCalls() {
+	logger := z.Logger.WithGroup("component_calls")
+	logger.Debug("Analyzing remaining component calls")
+
+	ctx := context.Background()
+	for _, f := range z.P.Files {
+		for _, cc := range f.ComponentCalls {
+			z.AnalyzeComponentCall(ctx, cc)
+		}
+	}
+}
+
 // AnalyzeComponentCall analyzes the passed component call.
 //
 // Depends on Checks: None
@@ -42,11 +61,11 @@ func (z *analyzer) AnalyzeComponentCall(ctx context.Context, cc *file.ComponentC
 	}
 
 	z.AnalyzeCallComponent(ctx, cc)
-	z.FindFirstForwardedAttributeWriter(cc)
-	z.FindFirstForwardedAndPlaceholderWriter(cc)
-	z.FindFirstDelegatedAttributes(ctx, cc)
+	z.AnalyzeForwardsAttributes(cc)
+	z.AnalyzeForwardsAndPlaceholder(cc)
+	z.AnalyzeReceivesAttributes(ctx, cc)
 	z.AnalyzeAcceptsAttributes(cc)
-	z.AnalyzeForwardsDelegatedAttributes(cc)
+	z.AnalyzeForwardsReceivedAttributes(cc)
 
 	cc.Analyzed = true
 }
@@ -89,33 +108,37 @@ type callerChainKey struct{}
 // Forwards Delegated Attributes
 // ======================================================================================
 
-// AnalyzeForwardsDelegatedAttributes analyzes whether the component call
-// forwards delegated attributes.
+// AnalyzeForwardsReceivedAttributes analyzes whether the component call
+// forwards received attributes.
 //
 // Depends on Checks: None
 //
 // Sets Fields:
-//   - ComponentCalls.ForwardsDelegatedAttributes
+//   - ComponentCalls.ForwardsReceivedAttributes
 //
-// Depends on Fields: None
-func (z *analyzer) AnalyzeForwardsDelegatedAttributes(cc *file.ComponentCall) {
+// Depends on Fields:
+//   - ComponentCalls.CouldForwardReceivedAttributes
+func (z *analyzer) AnalyzeForwardsReceivedAttributes(cc *file.ComponentCall) {
 	if cc.Component == nil {
-		cc.ForwardsDelegatedAttributes.SetFailed()
+		cc.ForwardsReceivedAttributes.SetFailed()
 		return
 	}
 
-	if cc.Component.CouldForwardAttributes.Equal(false) {
-		cc.ForwardsDelegatedAttributes.Set(false)
+	if cc.Component.CouldForwardReceivedAttributes.False() {
+		cc.ForwardsReceivedAttributes.SetFalse()
 		return
 	}
 
-	ap := cc.Component.FirstPermanentForwardedAndPlaceholderWriter
-	if ap.NotZero() {
-		cc.ForwardsDelegatedAttributes.Set(true)
+	if cc.Component.AlwaysForwardsAndPlaceholder.True() {
+		cc.ForwardsReceivedAttributes.SetReason(cc.Component.AlwaysForwardsAndPlaceholder.Reason())
 		return
 	}
 
-	failed := ap.Failed
+	cc.ForwardsReceivedAttributes.SetFalse()
+	if cc.Component.AlwaysForwardsAndPlaceholder.Failed() {
+		cc.ForwardsReceivedAttributes.SetFailed()
+	}
+
 	for _, block := range cc.Component.Blocks {
 		for _, instance := range block.Instances {
 			if instance.Default == nil {
@@ -124,16 +147,15 @@ func (z *analyzer) AnalyzeForwardsDelegatedAttributes(cc *file.ComponentCall) {
 				continue
 			}
 
-			firstForwardedAndPlaceholder := file.ConditionalAnalysis(instance.Forwarded, instance.Default.FirstForwardedAndPlaceholderWriter)
-			if firstForwardedAndPlaceholder.NotZero() {
-				cc.ForwardsDelegatedAttributes.Set(true)
+			forwardsAndPlaceholder := file.ConditionalAnalysis(instance.NotForwarded, instance.Default.ForwardsAndPlaceholder)
+			if forwardsAndPlaceholder.True() {
+				cc.ForwardsReceivedAttributes.SetReason(instance.Default.ForwardsAndPlaceholder.Reason())
 				return
+			} else if forwardsAndPlaceholder.Failed() {
+				cc.ForwardsReceivedAttributes.SetFailed()
 			}
-			failed = failed || firstForwardedAndPlaceholder.Failed
 		}
 	}
-
-	cc.ForwardsDelegatedAttributes.SetIf(false, !failed)
 }
 
 // ============================================================================
@@ -149,28 +171,31 @@ func (z *analyzer) AnalyzeForwardsDelegatedAttributes(cc *file.ComponentCall) {
 //   - ComponentCalls.AcceptsAttributes
 //
 // Depends on Fields:
-//   - ComponentCalls.ForwardsDelegatedAttributes
+//   - ComponentCalls.ForwardsReceivedAttributes
 func (z *analyzer) AnalyzeAcceptsAttributes(cc *file.ComponentCall) {
 	if cc.Component == nil {
 		cc.AcceptsAttributes.SetFailed()
 		return
 	}
 
-	if cc.ForwardsDelegatedAttributes.NotZero() {
-		cc.AcceptsAttributes.Set(true)
-		return
-	} else if cc.Component.CouldAcceptAttributes.Equal(false) {
-		cc.AcceptsAttributes.Set(false)
+	if cc.Component.CouldAcceptAttributes.False() {
+		cc.AcceptsAttributes.SetFalse()
 		return
 	}
 
-	ap := cc.Component.FirstPermanentAndPlaceholderWriter
-	if ap.NotZero() {
-		cc.AcceptsAttributes.Set(true)
+	if cc.ForwardsReceivedAttributes.True() {
+		cc.AcceptsAttributes.SetReason(cc.ForwardsReceivedAttributes.Reason())
+		return
+	} else if cc.Component.AlwaysWritesAndPlaceholder.True() {
+		cc.AcceptsAttributes.SetReason(cc.Component.AlwaysWritesAndPlaceholder.Reason())
 		return
 	}
 
-	failed := ap.Failed
+	cc.AcceptsAttributes.SetFalse()
+	if cc.Component.AlwaysWritesAndPlaceholder.Failed() {
+		cc.AcceptsAttributes.SetFailed()
+	}
+
 	for _, block := range cc.Component.Blocks {
 		for _, instance := range block.Instances {
 			if instance.Default == nil {
@@ -179,46 +204,48 @@ func (z *analyzer) AnalyzeAcceptsAttributes(cc *file.ComponentCall) {
 				continue
 			}
 
-			if instance.Default.FirstAndPlaceholderWriter.NotZero() {
-				cc.AcceptsAttributes.Set(true)
+			if instance.Default.WritesAndPlaceholder.True() {
+				cc.AcceptsAttributes.SetReason(instance.Default.WritesAndPlaceholder.Reason())
 				return
+			} else if instance.Default.WritesAndPlaceholder.Failed() {
+				cc.AcceptsAttributes.SetFailed()
 			}
-			failed = failed || instance.Default.FirstAndPlaceholderWriter.Failed
 		}
 	}
-
-	cc.AcceptsAttributes.SetIf(false, !failed)
 }
 
 // ============================================================================
-// First Top-Level Attribute Writer
+// Always Forwards Attributes
 // ======================================================================================
 
-// FindFirstForwardedAttributeWriter finds the first top-level
+// AnalyzeForwardsAttributes finds the first top-level
 // attribute writer in the component call.
 // It prefers attribute writers inside the component call's component.
 //
 // Depends on Checks: None
 //
 // Sets Fields:
-//   - ComponentCalls.FirstForwardedAttributeWriter
+//   - ComponentCalls.ForwardsAttributes
 //
 // Depends on Fields:
-//   - ComponentCalls.ForwardsDelegatedAttributes
-//   - ComponentCalls.FirstDelegatedAttributeWriter
-//   - ComponentCalls.BlockSetters.Instances.FirstForwardedAttributeWriter
-func (z *analyzer) FindFirstForwardedAttributeWriter(cc *file.ComponentCall) {
+//   - ComponentCalls.ForwardsReceivedAttributes
+//   - ComponentCalls.ReceivesAttributes
+//   - ComponentCalls.BlockSetters.Instances.ForwardsAttributes
+func (z *analyzer) AnalyzeForwardsAttributes(cc *file.ComponentCall) {
 	if cc.Component == nil {
-		cc.FirstForwardedAttributeWriter.SetFailed()
+		cc.ForwardsAttributes.SetFailed()
 		return
 	}
 
-	aw := cc.Component.FirstPermanentForwardedAttributeWriter
-	if aw.NotZero() {
-		cc.FirstForwardedAttributeWriter.Set(cc.AST)
+	if cc.Component.AlwaysForwardsAttributes.True() {
+		cc.ForwardsAttributes.SetReason(cc.AST)
 		return
 	}
-	failed := cc.Component.FirstPermanentForwardedAttributeWriter.Failed
+
+	cc.ForwardsAttributes.SetFalse()
+	if cc.Component.AlwaysForwardsAttributes.Failed() {
+		cc.ForwardsAttributes.SetFailed()
+	}
 
 	for _, block := range cc.Component.Blocks {
 		for _, instance := range block.Instances {
@@ -226,104 +253,111 @@ func (z *analyzer) FindFirstForwardedAttributeWriter(cc *file.ComponentCall) {
 				continue
 			}
 
-			forwardedAttr := file.ConditionalAnalysis(instance.Forwarded, instance.Default.FirstForwardedAttributeWriter)
-			if forwardedAttr.NotZero() {
-				cc.FirstForwardedAttributeWriter.Set(cc.AST)
+			forwardedAttr := file.ConditionalAnalysis(instance.NotForwarded, instance.Default.ForwardsAttributes)
+			if forwardedAttr.True() {
+				cc.ForwardsAttributes.SetReason(cc.AST)
 				return
+			} else if forwardedAttr.Failed() {
+				cc.ForwardsAttributes.SetFailed()
 			}
-			failed = failed || forwardedAttr.Failed
 		}
 	}
 
-	forwardedDelegatedAttributeWriter := file.ConditionalAnalysis(cc.ForwardsDelegatedAttributes, cc.FirstDelegatedAttributeWriter)
-	if forwardedDelegatedAttributeWriter.NotZero() {
-		cc.FirstForwardedAttributeWriter.Set(cc.AST)
+	forwardsReceivedAttributes := file.ConditionalAnalysis(cc.ForwardsReceivedAttributes, cc.ReceivesAttributes)
+	if forwardsReceivedAttributes.True() {
+		cc.ForwardsAttributes.SetReason(cc.ReceivesAttributes.Reason())
 		return
+	} else if forwardsReceivedAttributes.Failed() {
+		cc.ForwardsAttributes.SetFailed()
 	}
-	failed = failed || forwardedDelegatedAttributeWriter.Failed
 
 	for _, s := range cc.BlockSetters {
-		forwardedBlockAttr := s.FirstForwardedAttributeWriter()
+		forwardsAttributes := s.ForwardsAttributes()
 		if s.Block == nil {
-			failed = failed || forwardedBlockAttr.Failed || forwardedBlockAttr.Result != nil
+			if forwardsAttributes.Failed() || forwardsAttributes.True() {
+				cc.ForwardsAttributes.SetFailed()
+			}
 			continue
 		}
 
-		forwardedAttr := file.ConditionalAnalysis(s.Block.Forwarded, forwardedBlockAttr)
-		if forwardedAttr.NotZero() {
-			cc.FirstForwardedAttributeWriter.Set(cc.AST)
+		actuallyForwardsAttrs := file.ConditionalAnalysis(s.Block.Forwarded, forwardsAttributes)
+		if actuallyForwardsAttrs.True() {
+			cc.ForwardsAttributes.SetReason(actuallyForwardsAttrs.Reason().ForwardsAttributes.Reason())
 			return
+		} else if actuallyForwardsAttrs.Failed() {
+			cc.ForwardsAttributes.SetFailed()
 		}
-		failed = failed || forwardedAttr.Failed
 	}
-
-	cc.FirstForwardedAttributeWriter.SetIf(nil, !failed)
 }
 
 // ============================================================================
 // First Top-Level &-Placeholder
 // ======================================================================================
 
-// FindFirstForwardedAndPlaceholderWriter finds the first &-placeholder that fills the
+// AnalyzeForwardsAndPlaceholder finds the first &-placeholder that fills the
 // &-placeholder of the called component.
 //
 // Depends on Checks: None
 //
 // Sets Fields:
-//   - ComponentCalls.FirstForwardedAndPlaceholderWriter
+//   - ComponentCalls.ForwardsAndPlaceholder
 //
 // Depends on Fields:
-//   - ComponentCalls.ForwardsDelegatedAttributes
-//   - ComponentCalls.FirstDelegatedAndPlaceholderWriter
-//   - ComponentCalls.BlockSetters.Instances.FirstForwardedAndPlaceholderWriter
-func (z *analyzer) FindFirstForwardedAndPlaceholderWriter(cc *file.ComponentCall) {
-	firstForwardedAndPlaceholder := file.ConditionalAnalysis(cc.ForwardsDelegatedAttributes, cc.FirstDelegatedAndPlaceholderWriter)
-	if firstForwardedAndPlaceholder.NotZero() {
-		cc.FirstForwardedAndPlaceholderWriter.Set(cc.AST)
+//   - ComponentCalls.ForwardsReceivedAttributes
+//   - ComponentCalls.ReceivesAndPlaceholder
+//   - ComponentCalls.BlockSetters.Instances.ForwardsAndPlaceholder
+func (z *analyzer) AnalyzeForwardsAndPlaceholder(cc *file.ComponentCall) {
+	forwardsReceivedAndPlaceholder := file.ConditionalAnalysis(cc.ForwardsReceivedAttributes, cc.ReceivesAndPlaceholder)
+	if forwardsReceivedAndPlaceholder.True() {
+		cc.ForwardsAndPlaceholders.SetReason(cc.ReceivesAndPlaceholder.Reason())
 		return
 	}
 
-	failed := firstForwardedAndPlaceholder.Failed
+	cc.ForwardsAndPlaceholders.SetFalse()
+	if forwardsReceivedAndPlaceholder.Failed() {
+		cc.ForwardsAndPlaceholders.SetFailed()
+	}
+
 	for _, s := range cc.BlockSetters {
-		forwardedBlockAndPlaceholder := s.FirstForwardedAndPlaceholderWriter()
+		forwardsAndPlaceholder := s.ForwardsAndPlaceholder()
 		if s.Block == nil {
-			failed = failed || forwardedBlockAndPlaceholder.Failed || forwardedBlockAndPlaceholder.Result != nil
+			if forwardsAndPlaceholder.Failed() || forwardsAndPlaceholder.True() {
+				cc.ForwardsAndPlaceholders.SetFailed()
+			}
 			continue
 		}
 
-		forwardedAndPlaceholder := file.ConditionalAnalysis(s.Block.Forwarded, forwardedBlockAndPlaceholder)
-		if forwardedAndPlaceholder.NotZero() {
-			cc.FirstForwardedAttributeWriter.Set(cc.AST)
+		actuallyForwardsAndPlaceholder := file.ConditionalAnalysis(s.Block.Forwarded, forwardsAndPlaceholder)
+		if actuallyForwardsAndPlaceholder.True() {
+			cc.ForwardsAndPlaceholders.SetReason(actuallyForwardsAndPlaceholder.Reason().ForwardsAndPlaceholder.Reason())
 			return
+		} else if actuallyForwardsAndPlaceholder.Failed() {
+			cc.ForwardsAndPlaceholders.SetFailed()
 		}
-		failed = failed || forwardedAndPlaceholder.Failed
 	}
-
-	cc.FirstForwardedAndPlaceholderWriter.SetIf(nil, !failed)
 }
 
 // ============================================================================
-// First Delegated Attributes
+// Receives Attributes
 // ======================================================================================
 
-// FindFirstDelegatedAttributes finds the first attribute
-// writer and the first &-placeholder that fills the &-placeholder of the
-// called component.
+// AnalyzeReceivesAttributes finds the first attribute writer and the first
+// &-placeholder writer that fills the &-placeholder of the called component.
 //
 // Depends on Checks: None
 //
 // Sets Fields:
-//   - ComponentCalls.FirstDelegatedAttributeWriter
-//   - ComponentCalls.FirstDelegatedAndPlaceholderWriter
+//   - ComponentCalls.ReceivesAttributes
+//   - ComponentCalls.ReceivesAndPlaceholder
 //
 // Depends on Fields: None
-func (z *analyzer) FindFirstDelegatedAttributes(ctx context.Context, cc *file.ComponentCall) {
-	cc.FirstDelegatedAttributeWriter.SetZero()
-	cc.FirstDelegatedAndPlaceholderWriter.SetZero()
+func (z *analyzer) AnalyzeReceivesAttributes(ctx context.Context, cc *file.ComponentCall) {
+	cc.ReceivesAttributes.SetFalse()
+	cc.ReceivesAndPlaceholder.SetFalse()
 
 	if cc.AST.Header.Arguments != nil {
-		z.findFirstDelegatedAttributesInArgs(cc)
-		if cc.FirstDelegatedAttributeWriter.NotZero() && cc.FirstDelegatedAndPlaceholderWriter.NotZero() {
+		z.analyzeReceivedAttributesInArgs(cc)
+		if cc.ReceivesAttributes.True() && cc.ReceivesAndPlaceholder.True() {
 			return // we found both, no need to walk the body
 		}
 	}
@@ -339,45 +373,45 @@ func (z *analyzer) FindFirstDelegatedAttributes(ctx context.Context, cc *file.Co
 	walk.Walk(scope, func(w *walk.Context) walk.Action {
 		switch n := w.Node.(type) {
 		case *ast.AndPlaceholder:
-			if cc.FirstDelegatedAndPlaceholderWriter.NotZero() {
+			if cc.ReceivesAndPlaceholder.True() {
 				return walk.Continue
 			}
 
-			cc.FirstDelegatedAndPlaceholderWriter.Set(n)
-			if cc.FirstDelegatedAttributeWriter.NotZero() {
+			cc.ReceivesAndPlaceholder.SetReason(n)
+			if cc.ReceivesAttributes.True() {
 				return walk.Break
 			}
 		case *ast.ComponentCall:
 			subCC := cc.File.ComponentCallByNode(n)
 			z.AnalyzeComponentCall(ctx, subCC)
 
-			if !cc.FirstDelegatedAttributeWriter.NotZero() {
-				if subCC.FirstForwardedAttributeWriter.NotZero() {
-					cc.FirstDelegatedAttributeWriter.Set(subCC.AST)
-				} else if subCC.FirstForwardedAttributeWriter.Failed {
-					cc.FirstDelegatedAttributeWriter.SetFailed()
+			if !cc.ReceivesAttributes.True() {
+				if subCC.ForwardsAttributes.True() {
+					cc.ReceivesAttributes.SetReason(subCC.AST)
+				} else if subCC.ForwardsAttributes.Failed() {
+					cc.ReceivesAttributes.SetFailed()
 				}
 			}
 
-			if !cc.FirstDelegatedAndPlaceholderWriter.NotZero() {
-				if subCC.FirstForwardedAndPlaceholderWriter.NotZero() {
-					cc.FirstDelegatedAndPlaceholderWriter.Set(subCC.AST)
-				} else if subCC.FirstForwardedAndPlaceholderWriter.Failed {
-					cc.FirstDelegatedAndPlaceholderWriter.SetFailed()
+			if !cc.ReceivesAndPlaceholder.True() {
+				if subCC.ForwardsAndPlaceholders.True() {
+					cc.ReceivesAndPlaceholder.SetReason(subCC.AST)
+				} else if subCC.ForwardsAndPlaceholders.Failed() {
+					cc.ReceivesAndPlaceholder.SetFailed()
 				}
 			}
 
-			if cc.FirstDelegatedAndPlaceholderWriter.NotZero() && subCC.FirstDelegatedAndPlaceholderWriter.NotZero() {
+			if cc.ReceivesAndPlaceholder.True() && subCC.ReceivesAndPlaceholder.True() {
 				return walk.Break
 			}
 			return walk.NoDive
 		case ast.AttributeWriter:
-			if cc.FirstDelegatedAttributeWriter.NotZero() {
+			if cc.ReceivesAttributes.True() {
 				return walk.Continue
 			}
 
-			cc.FirstDelegatedAttributeWriter.Set(n)
-			if cc.FirstDelegatedAndPlaceholderWriter.NotZero() {
+			cc.ReceivesAttributes.SetReason(n)
+			if cc.ReceivesAndPlaceholder.True() {
 				return walk.Break
 			}
 		}
@@ -385,25 +419,25 @@ func (z *analyzer) FindFirstDelegatedAttributes(ctx context.Context, cc *file.Co
 	}, walk.DontDive[ast.BlockSetter]())
 }
 
-func (z *analyzer) findFirstDelegatedAttributesInArgs(cc *file.ComponentCall) {
+func (z *analyzer) analyzeReceivedAttributesInArgs(cc *file.ComponentCall) {
 	for _, arg := range cc.AST.Header.Arguments.List {
 		switch n := arg.(type) {
 		case *ast.AndPlaceholder:
-			if cc.FirstDelegatedAndPlaceholderWriter.Result != nil {
+			if cc.ReceivesAndPlaceholder.Reason() != nil {
 				continue
 			}
 
-			cc.FirstDelegatedAndPlaceholderWriter.Set(n)
-			if cc.FirstDelegatedAttributeWriter.NotZero() {
+			cc.ReceivesAndPlaceholder.SetReason(n)
+			if cc.ReceivesAttributes.True() {
 				return
 			}
 		case ast.AttributeWriter:
-			if cc.FirstDelegatedAttributeWriter.Result != nil {
+			if cc.ReceivesAttributes.Reason() != nil {
 				continue
 			}
 
-			cc.FirstDelegatedAttributeWriter.Set(n)
-			if cc.FirstDelegatedAndPlaceholderWriter.NotZero() {
+			cc.ReceivesAttributes.SetReason(n)
+			if cc.ReceivesAndPlaceholder.True() {
 				return
 			}
 		}

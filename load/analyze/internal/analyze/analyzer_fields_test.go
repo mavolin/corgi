@@ -227,5 +227,5 @@ func isAnalyzerField(field *types.Var) bool {
 		return false
 	}
 
-	return obj.Name() == "Analysis"
+	return obj.Name() == "Analysis" || obj.Name() == "AnalysisWithReason"
 }

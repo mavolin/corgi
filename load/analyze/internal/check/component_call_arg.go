@@ -152,24 +152,22 @@ func (ch *checker) CheckComponentAcceptsAttributes(logger *slog.Logger, cc *file
 		return
 	}
 
-	if cc.AcceptsAttributes.Equal(true) {
+	if !cc.AcceptsAttributes.False() {
 		return
-	}
-
-	if cc.FirstDelegatedAttributeWriter.Equal(nil) && cc.FirstDelegatedAndPlaceholderWriter.Equal(nil) {
+	} else if !cc.ReceivesAttributes.True() && !cc.ReceivesAndPlaceholder.True() {
 		return
 	}
 
 	var primaries []diagnostic.Annotation
-	if cc.FirstDelegatedAttributeWriter.NotZero() {
-		chain := cc.FirstDelegatedAttributeWriterChain()
+	if cc.ReceivesAttributes.True() {
+		chain := cc.ReceivedAttributeChain()
 		primaries = make([]diagnostic.Annotation, len(chain))
 		for i, n := range chain[:len(chain)-1] {
 			primaries[i] = anno.Node(cc.File, n, "through this component call")
 		}
 		primaries[len(chain)-1] = anno.Node(cc.File, chain[len(chain)-1], "you hand it attributes here")
 	} else {
-		chain := cc.FirstDelegatedAndPlaceholderWriterChain()
+		chain := cc.ReceivedAndPlaceholderChain()
 		primaries = make([]diagnostic.Annotation, len(chain))
 		for i, n := range chain[:len(chain)-1] {
 			primaries[i] = anno.Node(cc.File, n, "through this component call")
@@ -181,14 +179,14 @@ func (ch *checker) CheckComponentAcceptsAttributes(logger *slog.Logger, cc *file
 	diag := &diagnostic.Diagnostic{
 		Message: "component call: component does not accept attributes",
 		Primary: []diagnostic.Annotation{
-			anno.Node(cc.File, cc.FirstDelegatedAttributeWriter.Result, "but you hand it attributes here"),
+			anno.Node(cc.File, cc.ReceivesAttributes.Reason(), "but you hand it attributes here"),
 		},
 		Explanation: "Components need to specify an &-placeholder somewhere in their body " +
 			"for them to accept attributes. Since this component does not specify any " +
 			"you cannot hand attributes to it.",
 		Docs: "attribute-placeholder",
 	}
-	couldAcceptAttributes := cc.Component.CouldAcceptAttributes.NotZero()
+	couldAcceptAttributes := cc.Component.CouldAcceptAttributes.True()
 	if couldAcceptAttributes {
 		diag.Hints = []diagnostic.Hint{
 			{
@@ -218,9 +216,9 @@ func (ch *checker) CheckNoInterpolationInUnsafeTypedArguments(logger *slog.Logge
 		}
 
 		param := cc.Component.ParameterByName(carg.Name.Name)
-		if param.AttributeType.Failed {
+		if param.AttributeType.Failed() {
 			continue
-		} else if param.AttributeType.Result != attrtype.Unsafe && param.AttributeType.Result != attrtype.UnsafeBool {
+		} else if param.AttributeType.Result() != attrtype.Unsafe && param.AttributeType.Result() != attrtype.UnsafeBool {
 			continue
 		}
 
@@ -247,7 +245,7 @@ func (ch *checker) CheckNoInterpolationInUnsafeTypedArguments(logger *slog.Logge
 					anno.Anno(cc.Component.File, anno.Annotation{
 						Context:    anno.ContextNode(cc.Component.AST.Header),
 						Highlight:  anno.HighlightNode(param.AST),
-						Annotation: "typed as `" + param.AttributeType.Result.String() + "`",
+						Annotation: "typed as `" + param.AttributeType.Result().String() + "`",
 					}),
 				},
 				Hints: []diagnostic.Hint{

@@ -39,6 +39,7 @@ func Analyze(ctx *context.Context) {
 	z.AnalyzeState()
 
 	z.AnalyzeComponents()
+	z.AnalyzeComponentCalls()
 
 	ctx.P.Analyzed = true
 	for _, f := range ctx.P.Files {
