@@ -64,12 +64,15 @@ type (
 
 		// NotForwarded indicates that this block instance is not forwarded,
 		// i.e. it is placed inside an element.
+		// The opposite would be, that this block is at the top-level of its
+		// component.
 		//
 		// The reason is the element writer containing this block instance.
-		// If this block instance is placed inside a block setter, and that
-		// block is not forwarded, the reason will be set to the component call.
-		// Component call reasons are preferred over element reasons.
+		// If this block instance is at the top-level of a block setter that is
+		// not forwarded, the reason is a [ast.BlockSetterElementWriter] with
+		// the block setter field set to that block setter.
 		NotForwarded AnalysisWithReason[ast.ElementWriter]
+
 		// CannotForwardAttributes indicates that this block instance can't
 		// forward attributes to the element containing it.
 		//
@@ -83,7 +86,17 @@ type (
 		// In the above example, the block is clearly forwarded, but it is
 		// placed after the br element, which means it cannot forward
 		// attributes.
+		//
+		// The reason is the first content writer that prevents this block
+		// instance from forwarding attributes.
+		// If this block instance is at the top-level of a block setter that
+		// cannot forward attributes, the reason is a
+		// [ast.BlockSetterContentWriter] with the block setter field set to
+		// that block setter.
 		CannotForwardAttributes AnalysisWithReason[ast.ContentWriter]
+
+		// Element is the element this block instance is placed in, or nil if
+		Element Analysis[*ElementReference]
 	}
 
 	BlockInstanceDefault struct {

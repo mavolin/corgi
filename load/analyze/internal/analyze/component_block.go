@@ -85,7 +85,7 @@ Erroneous:
 }
 
 // ============================================================================
-// NotForwarded
+// Block Instance Not Forwarded
 // ======================================================================================
 
 // AnalyzeBlockForwarded determines whether the given component block is
@@ -124,11 +124,49 @@ func (z *analyzer) AnalyzeBlockInstanceNotForwarded(ctx context.Context, c *file
 		return
 	}
 
-	bi.NotForwarded = z.isNotForwarded(ctx, c.File, parents)
+	bi.NotForwarded.SetFalse()
+
+	i := len(parents) - 1
+	for i >= 0 {
+		parent := parents[i]
+		switch parent := parent.Node.(type) {
+		case *ast.ComponentCall:
+			// can't directly be in a component call in a valid AST
+			bi.NotForwarded.SetFailed()
+			return
+		case ast.BlockSetter:
+			ccI := walk.ClosestIndex[*ast.ComponentCall](parents[:i])
+			if ccI < 0 {
+				bi.NotForwarded.SetFailed()
+				return
+			}
+
+			ccAST := parents[ccI].Node.(*ast.ComponentCall) //nolint:errcheck
+			cc := c.File.ComponentCallByNode(ccAST)
+			z.AnalyzeComponentCall(ctx, cc)
+
+			s := cc.BlockSetterByName(parent.Name())
+			if s.Block == nil {
+				bi.NotForwarded.SetFailed()
+			} else if s.Block.Forwarded.False() {
+				bi.NotForwarded.SetReason(&ast.BlockSetterElementWriter{
+					ComponentCall: ccAST,
+					BlockSetter:   parent,
+				})
+				return
+			}
+			i = ccI - 1 // continue with the parent of the component call
+		case ast.ElementWriter:
+			bi.NotForwarded.SetReason(parent)
+			return
+		default:
+			i--
+		}
+	}
 }
 
 // ============================================================================
-// Forwards Attributes
+// Cannot Forward Attributes
 // ======================================================================================
 
 // AnalyzeBlockCannotForwardAttributes determines whether the given component

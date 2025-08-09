@@ -27,8 +27,6 @@ import (
 )
 
 // todo: contextual escapes (e.g. url): don't allow strings with interpolation as part of a larger expression, to avoid confusion (?) (maybe only if not in parentheses?)
-// todo: set ElementSpec.Analyzed
-// todo: set ElementSpec.Type
 // todo: set AttributeReference.Analyzed
 // todo: check attributes are placed where allowed
 // todo: check no top-level attributes

@@ -61,8 +61,7 @@ func (z *analyzer) AnalyzeComponentCall(ctx context.Context, cc *file.ComponentC
 	}
 
 	z.AnalyzeCallComponent(ctx, cc)
-	z.AnalyzeForwardsAttributes(cc)
-	z.AnalyzeForwardsAndPlaceholder(cc)
+	z.AnalyzeComponentForwardsAttributes(cc)
 	z.AnalyzeReceivesAttributes(ctx, cc)
 	z.AnalyzeAcceptsAttributes(cc)
 	z.AnalyzeForwardsReceivedAttributes(cc)
@@ -105,7 +104,7 @@ func (z *analyzer) checkNoInfiniteRecursion(logger *slog.Logger, cc *file.Compon
 type callerChainKey struct{}
 
 // ============================================================================
-// Forwards Delegated Attributes
+// Forwards Received Attributes
 // ======================================================================================
 
 // AnalyzeForwardsReceivedAttributes analyzes whether the component call
@@ -146,7 +145,7 @@ func (z *analyzer) AnalyzeForwardsReceivedAttributes(cc *file.ComponentCall) {
 				continue
 			}
 
-			forwardsAndPlaceholder := file.ConditionalAnalysis(instance.NotForwarded, instance.Default.ForwardsAndPlaceholder)
+			forwardsAndPlaceholder := file.ConditionalAnalysis(instance.Forwarded(), instance.Default.ForwardsAndPlaceholder)
 			if forwardsAndPlaceholder.True() {
 				cc.ForwardsReceivedAttributes.SetReason(instance.Default.ForwardsAndPlaceholder.Reason())
 				return
@@ -214,36 +213,36 @@ func (z *analyzer) AnalyzeAcceptsAttributes(cc *file.ComponentCall) {
 }
 
 // ============================================================================
-// Always Forwards Attributes
+// Component Forwards Attributes
 // ======================================================================================
 
-// AnalyzeForwardsAttributes finds the first top-level
+// AnalyzeComponentForwardsAttributes finds the first top-level
 // attribute writer in the component call.
 // It prefers attribute writers inside the component call's component.
 //
 // Depends on Checks: None
 //
 // Sets Fields:
-//   - ComponentCalls.ForwardsAttributes
+//   - ComponentCalls.ComponentForwardsAttributes
 //
 // Depends on Fields:
 //   - ComponentCalls.ForwardsReceivedAttributes
 //   - ComponentCalls.ReceivesAttributes
 //   - ComponentCalls.BlockSetters.Instances.ForwardsAttributes
-func (z *analyzer) AnalyzeForwardsAttributes(cc *file.ComponentCall) {
+func (z *analyzer) AnalyzeComponentForwardsAttributes(cc *file.ComponentCall) {
 	if cc.Component == nil {
-		cc.ForwardsAttributes.SetFailed()
+		cc.ComponentForwardsAttributes.SetFailed()
 		return
 	}
 
 	if cc.Component.AlwaysForwardsAttributes.True() {
-		cc.ForwardsAttributes.SetReason(cc.AST)
+		cc.ComponentForwardsAttributes.SetReason(cc.Component.AlwaysForwardsAttributes.Reason())
 		return
 	}
 
-	cc.ForwardsAttributes.SetFalse()
+	cc.ComponentForwardsAttributes.SetFalse()
 	if cc.Component.AlwaysForwardsAttributes.Failed() {
-		cc.ForwardsAttributes.SetFailed()
+		cc.ComponentForwardsAttributes.SetFailed()
 	}
 
 	for _, block := range cc.Component.Blocks {
@@ -252,86 +251,13 @@ func (z *analyzer) AnalyzeForwardsAttributes(cc *file.ComponentCall) {
 				continue
 			}
 
-			forwardedAttr := file.ConditionalAnalysis(instance.NotForwarded, instance.Default.ForwardsAttributes)
+			forwardedAttr := file.ConditionalAnalysis(instance.Forwarded(), instance.Default.ForwardsAttributes)
 			if forwardedAttr.True() {
-				cc.ForwardsAttributes.SetReason(cc.AST)
+				cc.ComponentForwardsAttributes.SetReason(forwardedAttr.Reason())
 				return
 			} else if forwardedAttr.Failed() {
-				cc.ForwardsAttributes.SetFailed()
+				cc.ComponentForwardsAttributes.SetFailed()
 			}
-		}
-	}
-
-	forwardsReceivedAttributes := file.ConditionalAnalysis(cc.ForwardsReceivedAttributes, cc.ReceivesAttributes)
-	if forwardsReceivedAttributes.True() {
-		cc.ForwardsAttributes.SetReason(cc.ReceivesAttributes.Reason())
-		return
-	} else if forwardsReceivedAttributes.Failed() {
-		cc.ForwardsAttributes.SetFailed()
-	}
-
-	for _, s := range cc.BlockSetters {
-		forwardsAttributes := s.ForwardsAttributes()
-		if s.Block == nil {
-			if forwardsAttributes.Failed() || forwardsAttributes.True() {
-				cc.ForwardsAttributes.SetFailed()
-			}
-			continue
-		}
-
-		actuallyForwardsAttrs := file.ConditionalAnalysis(s.Block.Forwarded, forwardsAttributes)
-		if actuallyForwardsAttrs.True() {
-			cc.ForwardsAttributes.SetReason(actuallyForwardsAttrs.Reason().ForwardsAttributes.Reason())
-			return
-		} else if actuallyForwardsAttrs.Failed() {
-			cc.ForwardsAttributes.SetFailed()
-		}
-	}
-}
-
-// ============================================================================
-// First Top-Level &-Placeholder
-// ======================================================================================
-
-// AnalyzeForwardsAndPlaceholder finds the first &-placeholder that fills the
-// &-placeholder of the called component.
-//
-// Depends on Checks: None
-//
-// Sets Fields:
-//   - ComponentCalls.ForwardsAndPlaceholder
-//
-// Depends on Fields:
-//   - ComponentCalls.ForwardsReceivedAttributes
-//   - ComponentCalls.ReceivesAndPlaceholder
-//   - ComponentCalls.BlockSetters.Instances.ForwardsAndPlaceholder
-func (z *analyzer) AnalyzeForwardsAndPlaceholder(cc *file.ComponentCall) {
-	forwardsReceivedAndPlaceholder := file.ConditionalAnalysis(cc.ForwardsReceivedAttributes, cc.ReceivesAndPlaceholder)
-	if forwardsReceivedAndPlaceholder.True() {
-		cc.ForwardsAndPlaceholder.SetReason(cc.ReceivesAndPlaceholder.Reason())
-		return
-	}
-
-	cc.ForwardsAndPlaceholder.SetFalse()
-	if forwardsReceivedAndPlaceholder.Failed() {
-		cc.ForwardsAndPlaceholder.SetFailed()
-	}
-
-	for _, s := range cc.BlockSetters {
-		forwardsAndPlaceholder := s.ForwardsAndPlaceholder()
-		if s.Block == nil {
-			if forwardsAndPlaceholder.Failed() || forwardsAndPlaceholder.True() {
-				cc.ForwardsAndPlaceholder.SetFailed()
-			}
-			continue
-		}
-
-		actuallyForwardsAndPlaceholder := file.ConditionalAnalysis(s.Block.Forwarded, forwardsAndPlaceholder)
-		if actuallyForwardsAndPlaceholder.True() {
-			cc.ForwardsAndPlaceholder.SetReason(actuallyForwardsAndPlaceholder.Reason().ForwardsAndPlaceholder.Reason())
-			return
-		} else if actuallyForwardsAndPlaceholder.Failed() {
-			cc.ForwardsAndPlaceholder.SetFailed()
 		}
 	}
 }
@@ -385,17 +311,19 @@ func (z *analyzer) AnalyzeReceivesAttributes(ctx context.Context, cc *file.Compo
 			z.AnalyzeComponentCall(ctx, subCC)
 
 			if !cc.ReceivesAttributes.True() {
-				if subCC.ForwardsAttributes.True() {
+				fa := subCC.ForwardsAttributes()
+				if fa.Equal(true) {
 					cc.ReceivesAttributes.SetReason(subCC.AST)
-				} else if subCC.ForwardsAttributes.Failed() {
+				} else if fa.Failed() {
 					cc.ReceivesAttributes.SetFailed()
 				}
 			}
 
 			if !cc.ReceivesAndPlaceholder.True() {
-				if subCC.ForwardsAndPlaceholder.True() {
+				fap := subCC.ForwardsAndPlaceholder()
+				if fap.Equal(true) {
 					cc.ReceivesAndPlaceholder.SetReason(subCC.AST)
-				} else if subCC.ForwardsAndPlaceholder.Failed() {
+				} else if fap.Failed() {
 					cc.ReceivesAndPlaceholder.SetFailed()
 				}
 			}
@@ -422,7 +350,7 @@ func (z *analyzer) analyzeReceivedAttributesInArgs(cc *file.ComponentCall) {
 	for _, arg := range cc.AST.Header.Arguments.List {
 		switch n := arg.(type) {
 		case *ast.AndPlaceholder:
-			if cc.ReceivesAndPlaceholder.Reason() != nil {
+			if cc.ReceivesAndPlaceholder.True() {
 				continue
 			}
 
@@ -431,7 +359,7 @@ func (z *analyzer) analyzeReceivedAttributesInArgs(cc *file.ComponentCall) {
 				return
 			}
 		case ast.AttributeWriter:
-			if cc.ReceivesAttributes.Reason() != nil {
+			if cc.ReceivesAttributes.True() {
 				continue
 			}
 
