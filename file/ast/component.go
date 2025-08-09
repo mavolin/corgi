@@ -279,46 +279,6 @@ func (*Extend) _node()          {}
 func (*Extend) _componentBody() {}
 
 // ============================================================================
-// Component Alias
-// ======================================================================================
-
-type ComponentAlias struct {
-	EqualSign     *Position
-	ComponentCall *ComponentCall
-}
-
-var _ ComponentBody = (*ComponentAlias)(nil)
-
-func (a *ComponentAlias) Start() Position {
-	switch {
-	case a.EqualSign != nil:
-		return *a.EqualSign
-	case a.ComponentCall != nil:
-		return a.ComponentCall.Start()
-	}
-	return Position{}
-}
-
-func (a *ComponentAlias) End() Position {
-	switch {
-	case a.ComponentCall != nil:
-		return a.ComponentCall.End()
-	case a.EqualSign != nil:
-		return deltaPos(*a.EqualSign, len("="))
-	}
-	return Position{}
-}
-
-func (a *ComponentAlias) Walk(w func(Node)) {
-	if a.ComponentCall != nil {
-		w(a.ComponentCall)
-	}
-}
-
-func (*ComponentAlias) _node()          {}
-func (*ComponentAlias) _componentBody() {}
-
-// ============================================================================
 // Block
 // ======================================================================================
 
