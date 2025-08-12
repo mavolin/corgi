@@ -139,15 +139,25 @@ func TryOptionalRuneAt(p *Parser, r rune, ws WhitespaceFunc) *ast.Position {
 //
 // It returns the matched rune, or 0 if none matched.
 func TryAnyRune(p *Parser, rs ...rune) rune {
-	return TryRunePredicate(p, func(r rune) bool {
-		return slices.Contains(rs, r)
-	})
+	peek := p.peek()
+	if peek == EOF || !slices.Contains(rs, peek) {
+		RestoreWS(p)
+		return 0
+	}
+	CommitWS(p)
+	return p.next()
 }
 
 func TryAnyOptionalRune(p *Parser, ws WhitespaceFunc, rs ...rune) rune {
-	return TryOptionalRunePredicate(p, ws, func(r rune) bool {
-		return slices.Contains(rs, r)
-	})
+	peek := p.peek()
+	if peek == EOF || !slices.Contains(rs, peek) {
+		return 0
+	}
+	CommitWS(p)
+	if ws != nil {
+		TrySkip(p, ws)
+	}
+	return p.next()
 }
 
 // TryRunePredicate attempts to match the next rune against the predicate.
@@ -159,21 +169,6 @@ func TryRunePredicate(p *Parser, pred func(rune) bool) rune {
 		return 0
 	}
 	CommitWS(p)
-	return p.next()
-}
-
-// TryOptionalRunePredicate attempts to match the next rune against the
-// predicate. If successful, it consumes the rune and returns true, otherwise,
-// it returns false without consuming any runes.
-func TryOptionalRunePredicate(p *Parser, ws WhitespaceFunc, pred func(rune) bool) rune {
-	peek := p.peek()
-	if peek == EOF || !pred(peek) {
-		return 0
-	}
-	CommitWS(p)
-	if ws != nil {
-		TrySkip(p, ws)
-	}
 	return p.next()
 }
 
