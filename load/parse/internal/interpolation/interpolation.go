@@ -338,20 +338,8 @@ func ExpressionInterpolation() parser.Func[*ast.ExpressionInterpolation] {
 		var ei ast.ExpressionInterpolation
 		ei.Hash = hash
 
-		ei.FormatDirective = parser.Try(p, formatDirective())
-
 		ei.LBrace = parser.TryRuneAt(p, '{')
 		if ei.LBrace == nil {
-			if ei.FormatDirective != "" {
-				p.CaptureError(&diagnostic.Diagnostic{
-					Message: "expression interpolation: missing opening brace",
-					Primary: quickanno.Expected(p, *ei.Hash, "an opening brace `{`"),
-					Examples: []diagnostic.Example{
-						{Example: "`#%" + ei.FormatDirective + "{...}`"},
-					},
-				})
-				return &ei
-			}
 			return nil
 		}
 
@@ -378,43 +366,6 @@ func ExpressionInterpolation() parser.Func[*ast.ExpressionInterpolation] {
 		}
 
 		return &ei
-	}
-}
-
-func formatDirective() parser.Func[string] {
-	return func(p *parser.Parser) string {
-		if !parser.TryRune(p, '%') {
-			return ""
-		}
-
-		startIndex := p.Index()
-
-		// flag
-		for parser.TryAnyRune(p, '+', '-', '#', ' ', '0') > 0 { //nolint:revive
-		}
-
-		// width
-		if parser.TryRunePredicate(p, isInRange('1', '9')) > 0 {
-			for parser.TryRunePredicate(p, isInRange('0', '9')) > 0 { //nolint:revive
-			}
-		}
-
-		// precision
-		if parser.TryRune(p, '.') {
-			for parser.TryRunePredicate(p, isInRange('0', '9')) > 0 { //nolint:revive
-			}
-		}
-
-		// verb
-		if parser.TryAnyRune(p, 'v', 'T', 't', 'b', 'c', 'd', 'o', 'O', 'x', 'X', 'U', 'e', 'E', 'f', 'F', 'g', 'G', 's', 'p') == 0 {
-			if parser.TryRunePredicate(p, isInRange('a', 'z')) > 0 || parser.TryRunePredicate(p, isInRange('A', 'Z')) > 0 {
-				return p.AST.Raw[startIndex:p.Index()]
-			}
-
-			return p.AST.Raw[startIndex:p.Index()]
-		}
-
-		return p.AST.Raw[startIndex:p.Index()]
 	}
 }
 

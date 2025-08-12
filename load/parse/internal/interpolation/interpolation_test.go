@@ -248,54 +248,23 @@ func testExpressionInterpolation(t *testing.T, f parser.Func[*ast.ExpressionInte
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		tests := []struct {
-			name string
-			in   string
-			want *ast.ExpressionInterpolation
-		}{
-			{
-				name: "simple",
-				in:   "#{1 + 1}",
-				want: &ast.ExpressionInterpolation{
-					LBrace: &ast.Position{Line: 1, Col: 2},
-					Expression: &ast.Expression{
-						Nodes: ast.Code{
-							&ast.GoCode{
-								Code:     "1 + 1",
-								Position: &ast.Position{Line: 1, Col: 3},
-							},
-						},
+		in := "#{1 + 1}"
+		want := &ast.ExpressionInterpolation{
+			LBrace: &ast.Position{Line: 1, Col: 2},
+			Expression: &ast.Expression{
+				Nodes: ast.Code{
+					&ast.GoCode{
+						Code:     "1 + 1",
+						Position: &ast.Position{Line: 1, Col: 3},
 					},
-					RBrace: &ast.Position{Line: 1, Col: 8},
-					Hash:   &ast.Position{Line: 1, Col: 1},
-				},
-			}, {
-				name: "format directive",
-				in:   "#%1.2f{2.3}",
-				want: &ast.ExpressionInterpolation{
-					FormatDirective: "1.2f",
-					LBrace:          &ast.Position{Line: 1, Col: 7},
-					Expression: &ast.Expression{
-						Nodes: ast.Code{
-							&ast.GoCode{
-								Code:     "2.3",
-								Position: &ast.Position{Line: 1, Col: 8},
-							},
-						},
-					},
-					RBrace: &ast.Position{Line: 1, Col: 11},
-					Hash:   &ast.Position{Line: 1, Col: 1},
 				},
 			},
+			RBrace: &ast.Position{Line: 1, Col: 8},
+			Hash:   &ast.Position{Line: 1, Col: 1},
 		}
 
-		for _, c := range tests {
-			t.Run(c.name, func(t *testing.T) {
-				t.Parallel()
-				got := parsetest.ParsesFully(t, c.in, f)
-				should.Equal(t, got, c.want)
-			})
-		}
+		got := parsetest.ParsesFully(t, in, f)
+		should.Equal(t, got, want)
 	})
 
 	t.Run("failure", func(t *testing.T) {

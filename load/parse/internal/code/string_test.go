@@ -54,33 +54,32 @@ func testString() func(t *testing.T, f parser.Func[*ast.String]) {
 					},
 				}, {
 					name: "with interpolation",
-					in:   `"foo #%1.2f{bar} baz"`,
+					in:   `"foo #{bar} baz"`,
 					want: &ast.String{
 						Open:  &ast.Position{Line: 1, Col: 1},
 						Quote: '"',
 						Contents: []ast.StringNode{
 							&ast.StringText{
 								Text:     "foo ",
-								Position: &ast.Position{Line: 1, Col: 2},
+								Position: &ast.Position{Line: 1, Col: 1 + len(`"`)},
 							}, &ast.ExpressionInterpolation{
-								Hash:            &ast.Position{Line: 1, Col: 6},
-								FormatDirective: "1.2f",
-								LBrace:          &ast.Position{Line: 1, Col: 12},
+								Hash:   &ast.Position{Line: 1, Col: 1 + len(`"foo `)},
+								LBrace: &ast.Position{Line: 1, Col: 1 + len(`"foo #`)},
 								Expression: &ast.Expression{
 									Nodes: ast.Code{
 										&ast.GoCode{
 											Code:     "bar",
-											Position: &ast.Position{Line: 1, Col: 13},
+											Position: &ast.Position{Line: 1, Col: 1 + len(`"foo #{`)},
 										},
 									},
 								},
-								RBrace: &ast.Position{Line: 1, Col: 16},
+								RBrace: &ast.Position{Line: 1, Col: 1 + len(`"foo #{bar`)},
 							}, &ast.StringText{
 								Text:     " baz",
-								Position: &ast.Position{Line: 1, Col: 17},
+								Position: &ast.Position{Line: 1, Col: 1 + len(`"foo #{bar}`)},
 							},
 						},
-						Close: &ast.Position{Line: 1, Col: 21},
+						Close: &ast.Position{Line: 1, Col: 1 + len(`"foo #{bar} baz`)},
 					},
 				},
 			}

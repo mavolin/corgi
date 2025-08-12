@@ -169,9 +169,6 @@ func (interp *ExpressionInterpolation) End() Position {
 	case interp.LBrace != nil:
 		return deltaPos(*interp.LBrace, len("{"))
 	case interp.Hash != nil:
-		if interp.FormatDirective != "" {
-			return deltaPos(*interp.Hash, len("#%")+len(interp.FormatDirective))
-		}
 		return deltaPos(*interp.Hash, len("#"))
 	}
 	return Position{}
