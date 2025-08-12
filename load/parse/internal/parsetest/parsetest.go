@@ -83,8 +83,8 @@ func AssertNoError[T any](t *testing.T, p *parser.Parser, f parser.Func[T]) T {
 	should.False(t, isZero(v)) // match error
 
 	for _, err := range p.Errors() {
-		should.NotEqual(t, nil, err) // diagnostic.List: nil error was captured
-		should.Equal(t, nil, err)    // diagnostic.List: unexpected error
+		should.NotEqual(t, err, nil) // diagnostic.List: nil error was captured
+		should.NoError(t, err)       // diagnostic.List: unexpected error
 	}
 
 	return v
