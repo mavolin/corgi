@@ -39,6 +39,9 @@ func (f *File) ModulePath() string {
 }
 
 func (f *File) PathInModule() string {
+	if f.Package == nil {
+		return "<unknown package>/" + f.Name
+	}
 	return path.Join(f.Package.PathInModule, f.Name)
 }
 
