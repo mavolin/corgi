@@ -86,10 +86,14 @@ func prettyComparison(t testing.TB, name, message, extra string) {
 	s.WriteString(arg1)
 	message = message[i+len("{{Arg1}}"):]
 
-	i = strings.Index(message, "{{Arg2}}")
-	s.WriteString(message[:i])
-	s.WriteString(arg2)
-	s.WriteString(message[i+len("{{Arg2}}"):])
+	if strings.Contains(message, "{{Arg2}}") {
+		i = strings.Index(message, "{{Arg2}}")
+		s.WriteString(message[:i])
+		s.WriteString(arg2)
+		s.WriteString(message[i+len("{{Arg2}}"):])
+	} else {
+		s.WriteString(message)
+	}
 
 	writeExtra(&s, extra)
 
