@@ -9,7 +9,7 @@ import (
 
 func Identifier() parser.Func[*ast.Identifier] { // https://go.dev/ref/spec#Identifiers
 	return func(p *parser.Parser) *ast.Identifier {
-		pos := p.Pos()
+		start := p.Index()
 
 		r := parser.TryRunePredicate(p, Letter)
 		if r == 0 {
@@ -17,14 +17,17 @@ func Identifier() parser.Func[*ast.Identifier] { // https://go.dev/ref/spec#Iden
 		}
 
 		var ident ast.Identifier
-		ident.Position = &pos
+		ident.Position = p.PosPtr()
+		// computing the position instead of using p.Pos() at the top saves us
+		// allocations when Identifier doesn't match
+		ident.Position.Col--
 
-		trail := parser.Try(p, identTrail())
-		ident.Name = string(r) + trail
+		parser.Try(p, identTrail())
+		ident.Name = p.AST.Raw[start:p.Index()]
 		if IsKeyword(ident.Name) {
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "keyword used as identifier",
-				Primary: quickanno.Expected(p, p.Pos(), "an identifier"),
+				Primary: quickanno.Expected(p, *ident.Position, "an identifier"),
 				Explanation: "Go and Corgi reserve certain words as keywords, e.g. `if` or `comp`. " +
 					"Because of their special meaning, you can't use them as identifiers. " +
 					ident.Name + "` is one of those keywords.",

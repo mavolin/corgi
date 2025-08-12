@@ -12,14 +12,16 @@ import (
 
 func String() parser.Func[*ast.String] {
 	return func(p *parser.Parser) *ast.String {
-		pos := p.Pos()
 		q := parser.TryAnyRune(p, '"', '`')
 		if q == 0 {
 			return nil
 		}
 
 		var s ast.String
-		s.Open = &pos
+		s.Open = p.PosPtr()
+		// computing the position instead of using p.Pos() at the top saves us
+		// allocations when String doesn't match
+		s.Open.Col--
 		s.Quote = byte(q)
 
 		if s.Quote == '"' {

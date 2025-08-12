@@ -149,12 +149,11 @@ func AliasType() parser.Func[*ast.AliasElementType] {
 		var t ast.AliasElementType
 		t.EqualSign = equalSign
 
-		pos := p.Pos()
 		t.Name = parser.Try(p, Reference())
 		if t.Name == nil {
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "alias type: missing element type",
-				Primary: quickanno.Expected(p, pos, "an element reference"),
+				Primary: quickanno.Expected(p, p.Pos(), "an element reference"),
 				Examples: []diagnostic.Example{
 					{Example: "`= div`"},
 					{Example: "`= mypkg.div`"},

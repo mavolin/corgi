@@ -73,8 +73,6 @@ func Node(term rune) parser.Func[ast.TextNode] {
 
 func Text(term rune) parser.Func[*ast.Text] {
 	return func(p *parser.Parser) *ast.Text {
-		pos := p.Pos()
-
 		text := parser.TokenWhile(p, func() bool {
 			return !parser.MatchesAnyRune(p, term, '\r', '\n') &&
 				(parser.Matches(p, interpolation.UnambiguousHash()) || !parser.MatchesAnyRune(p, '#'))
@@ -84,7 +82,12 @@ func Text(term rune) parser.Func[*ast.Text] {
 			return nil
 		}
 
-		return &ast.Text{Text: text, Position: &pos}
+		var t ast.Text
+		t.Text = text
+		t.Position = p.PosPtr()
+		t.Position.Col -= len(text) // save allocations, only works bc t is horizontal
+
+		return &t
 	}
 }
 

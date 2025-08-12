@@ -87,8 +87,6 @@ func ShorthandNode() parser.Func[ast.ShorthandNode] {
 
 func ShorthandText() parser.Func[*ast.ShorthandText] {
 	return func(p *parser.Parser) *ast.ShorthandText {
-		pos := p.Pos()
-
 		text := parser.TokenWhile(p, func() bool {
 			return !parser.MatchesWS(p, whitespace.Any()) && !parser.MatchesAnyRune(p, '#', ',', ')') &&
 				// https://html.spec.whatwg.org/multipage/common-microsyntaxes.html#set-of-space-separated-tokens
@@ -99,7 +97,8 @@ func ShorthandText() parser.Func[*ast.ShorthandText] {
 		}
 
 		var txt ast.ShorthandText
-		txt.Position = &pos
+		txt.Position = p.PosPtr()
+		txt.Position.Col -= len(text) // save allocations, only works bc txt is horizontal
 		txt.Text = text
 		return &txt
 	}

@@ -12,7 +12,7 @@ import (
 
 func AssignOp() parser.Func[string] {
 	return func(p *parser.Parser) string {
-		prefix := parser.TryInOrder(p, AddOp(), MulOp())
+		prefix := parser.TryAnyToken(p, "+", "-", "|", "^", "<<", ">>", "&^", "*", "/", "%", "&")
 		if !parser.TryRune(p, '=') {
 			return ""
 		}

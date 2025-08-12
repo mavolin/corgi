@@ -15,11 +15,13 @@ import (
 
 func ZeroCoalescing() parser.Func[*ast.ZeroCoalescing] {
 	return func(p *parser.Parser) *ast.ZeroCoalescing {
-		derefPosition := p.PosPtr()
+		var derefPosition *ast.Position
 		derefCount := len(parser.TokenWhile(p, func() bool {
 			return parser.MatchesAnyRune(p, '*')
 		}))
 		if derefCount > 0 {
+			derefPosition = p.PosPtr()
+			derefPosition.Col -= derefCount
 			parser.TrySkip(p, comment.OrAnyWhitespace())
 		} else {
 			derefPosition = nil

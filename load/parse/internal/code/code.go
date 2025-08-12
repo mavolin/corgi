@@ -46,7 +46,11 @@ func NonZCCode(o Options) parser.Func[ast.Code] {
 			if n == nil {
 				break
 			}
-			c = append(c, n.Nodes...)
+			if c == nil {
+				c = n.Nodes
+			} else {
+				c = append(c, n.Nodes...)
+			}
 			if n.Stop {
 				break
 			}
@@ -99,7 +103,7 @@ func GoCode(o Options) parser.Func[[]ast.CodeNode] {
 
 func goCode(o Options) parser.Func[*codeResult] {
 	return func(p *parser.Parser) *codeResult {
-		c := &ast.GoCode{Position: p.PosPtr()}
+		var c *ast.GoCode
 
 		var exps []ast.CodeNode
 
@@ -109,6 +113,7 @@ func goCode(o Options) parser.Func[*codeResult] {
 			pos     ast.Position
 		}
 		var parenStack []paren
+		var stop bool
 
 		var canSkipAnyWS bool
 		for {
@@ -122,13 +127,17 @@ func goCode(o Options) parser.Func[*codeResult] {
 			}
 
 			if len(parenStack) == 0 && parser.MatchesAnyRune(p, ';') {
+				stop = true
 				break
 			} else if len(parenStack) == 0 && !o.statements() {
 				if parser.MatchesAnyRune(p, ',', ':') { //nolint:gocritic
+					stop = true
 					break
 				} else if parser.MatchesToken(p, "--") || parser.MatchesToken(p, "++") {
+					stop = true
 					break
 				} else if parser.Matches(p, golang.AssignOp()) {
+					stop = true
 					break
 				}
 			}
@@ -138,15 +147,27 @@ func goCode(o Options) parser.Func[*codeResult] {
 				r := parser.PeekRune(p)
 				if (hasWS || (len(exps) == 0 && start == end)) && (r == '{' || r == '[') {
 					// so we don't parse the body after an if
+					stop = true
 					break
 				}
+
+				if c == nil {
+					c = &ast.GoCode{Position: p.PosPtr()}
+				}
+
 				parser.NextRune(p)
 				parenStack = append(parenStack, paren{opening: byte(r), pos: pos})
 				continue
 			} else if parser.MatchesAnyRune(p, ')', '}', ']') {
 				if len(parenStack) == 0 {
+					stop = true
 					break
 				}
+
+				if c == nil {
+					c = &ast.GoCode{Position: p.PosPtr()}
+				}
+
 				closing := parser.NextRune(p)
 				open := parenStack[len(parenStack)-1]
 				switch {
@@ -180,15 +201,13 @@ func goCode(o Options) parser.Func[*codeResult] {
 					})
 				}
 				continue
-			} else if parser.TryOptional(p, golang.RuneLit(), nil) != "" {
-				continue
 			} else if parser.MatchesToken(p, "block") && parser.Matches(p, BlockFunction()) {
 				if len(parenStack) > 0 {
 					c.Code = p.AST.Raw[start:end]
 					exps = append(exps, c, parser.Try(p, BlockFunction()))
 					parser.TrySkip(p, comment.OrHorizontalWhitespace())
 					start = p.Index()
-					c = &ast.GoCode{Position: p.PosPtr()}
+					c = nil
 					continue
 				}
 				break
@@ -198,7 +217,7 @@ func goCode(o Options) parser.Func[*codeResult] {
 					exps = append(exps, c, parser.Try(p, String()))
 					parser.TrySkip(p, comment.OrHorizontalWhitespace())
 					start = p.Index()
-					c = &ast.GoCode{Position: p.PosPtr()}
+					c = nil
 					continue
 				}
 				break
@@ -210,22 +229,32 @@ func goCode(o Options) parser.Func[*codeResult] {
 						exps = append(exps, c, t)
 						parser.TrySkip(p, comment.OrHorizontalWhitespace())
 						start = p.Index()
-						c = &ast.GoCode{Position: p.PosPtr()}
+						c = nil
 						continue
 					}
 				}
 				break
-			} else if parser.TryAnyOptionalToken(p, nil, "==", "!=", ">", ">=", "<", "<=") != "" {
-				canSkipAnyWS = true
-				continue
-			} else if parser.TryAnyOptionalRune(p, nil, '.', ':', '=', '+', '-', '*', '/', '%', '&', '|', '^') > 0 {
-				canSkipAnyWS = true
-				continue
 			} else if parser.MatchesAnyRune(p, parser.EOF) {
+				stop = true
 				break
 			}
 
+			if c == nil {
+				c = &ast.GoCode{Position: p.PosPtr()}
+			}
+			switch {
+			case parser.TryOptional(p, golang.RuneLit(), nil) != "":
+				continue
+			case parser.TryAnyOptionalToken(p, nil, "==", "!=", ">", ">=", "<", "<=") != "":
+				canSkipAnyWS = true
+				continue
+			case parser.TryAnyOptionalRune(p, nil, '.', ':', '=', '+', '-', '*', '/', '%', '&', '|', '^') > 0:
+				canSkipAnyWS = true
+				continue
+			}
+
 			if parser.MatchesAnyRune(p, whitespace.Runes...) {
+				stop = true
 				break
 			}
 			parser.NextRune(p)
@@ -240,7 +269,6 @@ func goCode(o Options) parser.Func[*codeResult] {
 			c.Code = p.AST.Raw[start:p.Index()]
 			exps = append(exps, c)
 		}
-		exps = slices.Clip(exps)
 
 		for _, open := range slices.Backward(parenStack) {
 			switch open.opening {
@@ -262,7 +290,7 @@ func goCode(o Options) parser.Func[*codeResult] {
 			}
 		}
 
-		return &codeResult{Nodes: exps}
+		return &codeResult{Nodes: exps, Stop: stop}
 	}
 }
 

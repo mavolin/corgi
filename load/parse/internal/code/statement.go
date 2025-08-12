@@ -459,22 +459,20 @@ func IncDec() parser.Func[*ast.IncDec] {
 
 func incDec(expr *ast.Expression) parser.Func[*ast.IncDec] {
 	return func(p *parser.Parser) *ast.IncDec {
-		var incDec ast.IncDec
-		incDec.Expression = expr
-
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 
-		pos := p.Pos()
 		switch {
-		case parser.TryToken(p, "++"):
-			incDec.IncrPos = &pos
-		case parser.TryToken(p, "--"):
-			incDec.DecrPos = &pos
+		case parser.TryOptionalToken(p, "++", nil):
+			pos := p.Pos()
+			pos.Col -= 2
+			return &ast.IncDec{Expression: expr, IncrPos: &pos}
+		case parser.TryOptionalToken(p, "--", nil):
+			pos := p.Pos()
+			pos.Col -= 2
+			return &ast.IncDec{Expression: expr, DecrPos: &pos}
 		default:
 			return nil
 		}
-
-		return &incDec
 	}
 }
 
@@ -977,21 +975,19 @@ func ShortVarDeclarationAsCode(d *ast.ShortVarDeclaration) ast.Code {
 
 func Label() parser.Func[*ast.Label] {
 	return func(p *parser.Parser) *ast.Label {
-		var l ast.Label
-
-		l.Name = parser.Try(p, golang.Identifier())
-		if l.Name == nil {
+		name := parser.Try(p, golang.Identifier())
+		if name == nil {
 			return nil
 		}
 
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 
-		l.Colon = parser.TryRuneAt(p, ':')
-		if l.Colon == nil || parser.MatchesAnyRune(p, '=') {
+		colon := parser.TryRuneAt(p, ':')
+		if colon == nil || parser.MatchesAnyRune(p, '=') {
 			return nil
 		}
 
-		return &l
+		return &ast.Label{Name: name, Colon: colon}
 	}
 }
 
@@ -1037,7 +1033,6 @@ func assignment(e *ast.Expression, o Options) parser.Func[*ast.Assignment] {
 
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 
-		opPos := p.Pos()
 		op := parser.Try(p, golang.AssignOp())
 		if op == "" {
 			return nil
@@ -1046,7 +1041,8 @@ func assignment(e *ast.Expression, o Options) parser.Func[*ast.Assignment] {
 		var a ast.Assignment
 		a.LHS = lhs
 		a.Operator = op
-		a.OperatorPosition = &opPos
+		a.OperatorPosition = p.PosPtr()
+		a.OperatorPosition.Col -= len(op)
 
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 		pos := p.Pos()

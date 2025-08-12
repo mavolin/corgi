@@ -34,47 +34,29 @@ func init() {
 }
 
 func scopeNode(p *parser.Parser) ast.ScopeNode {
-	n := parser.TryInOrder(p,
-		coerceScopeNode(code.ImplicitCodeLine()),
-		coerceScopeNode(code.ExplicitCodeLine()),
-		coerceScopeNode(component.Block()),
-		coerceScopeNode(code.Conditional()),
-		coerceScopeNode(code.Switch()),
-		coerceScopeNode(code.For()),
-		coerceScopeNode(text.ArrowBlock()),
-		coerceScopeNode(element.And()),
-		coerceScopeNode(element.Doctype()),
-		coerceScopeNode(element.Raw()),
-		coerceScopeNode(component.Call()))
-	if n != nil {
+	if n := parser.Try(p, code.ImplicitCodeLine()); n != nil {
 		return n
-	}
-
-	// if n := parser.Try(p, code.ImplicitCodeLine()); n != nil {
-	// 	return n
-	// } else if n := parser.Try(p, code.ExplicitCodeLine()); n != nil {
-	// 	return n
-	// } else if n := parser.Try(p, component.Block()); n != nil {
-	// 	return n
-	// } else if n := parser.Try(p, code.Conditional()); n != nil {
-	// 	return n
-	// } else if n := parser.Try(p, code.Switch()); n != nil {
-	// 	return n
-	// } else if n := parser.Try(p, code.For()); n != nil {
-	// 	return n
-	// } else if n := parser.Try(p, text.ArrowBlock()); n != nil {
-	// 	return n
-	// } else if n := parser.Try(p, element.And()); n != nil {
-	// 	return n
-	// } else if n := parser.Try(p, element.Doctype()); n != nil {
-	// 	return n
-	// } else if n := parser.Try(p, element.Raw()); n != nil {
-	// 	return n
-	// } else if n := parser.Try(p, component.Call()); n != nil {
-	// 	return n
-	// }
-
-	if b := parser.Try(p, code.Else()); b != nil {
+	} else if n := parser.Try(p, code.ExplicitCodeLine()); n != nil {
+		return n
+	} else if n := parser.Try(p, component.Block()); n != nil {
+		return n
+	} else if n := parser.Try(p, code.Conditional()); n != nil {
+		return n
+	} else if n := parser.Try(p, code.Switch()); n != nil {
+		return n
+	} else if n := parser.Try(p, code.For()); n != nil {
+		return n
+	} else if n := parser.Try(p, text.ArrowBlock()); n != nil {
+		return n
+	} else if n := parser.Try(p, element.And()); n != nil {
+		return n
+	} else if n := parser.Try(p, element.Doctype()); n != nil {
+		return n
+	} else if n := parser.Try(p, element.Raw()); n != nil {
+		return n
+	} else if n := parser.Try(p, component.Call()); n != nil {
+		return n
+	} else if b := parser.Try(p, code.Else()); b != nil {
 		p.CaptureError(&diagnostic.Diagnostic{
 			Message: "unexpected `else`",
 			Primary: []diagnostic.Annotation{
@@ -230,12 +212,18 @@ func TopLevel() parser.Func[ast.TopLevel] {
 
 func TopLevelNode() parser.Func[ast.TopLevelNode] {
 	return func(p *parser.Parser) ast.TopLevelNode {
-		return parser.TryInOrder(p,
-			coerceTopLevelNode(state.Declaration()),
-			coerceTopLevelNode(component.Component()),
-			coerceTopLevelNode(attribute.Definition()),
-			coerceTopLevelNode(element.Definition()),
-			coerceTopLevelNode(implicitTopLevelCodeLine()))
+		if sd := parser.TryOptional(p, state.Declaration(), nil); sd != nil {
+			return sd
+		} else if c := parser.TryOptional(p, component.Component(), nil); c != nil {
+			return c
+		} else if ad := parser.TryOptional(p, attribute.Definition(), nil); ad != nil {
+			return ad
+		} else if ed := parser.TryOptional(p, element.Definition(), nil); ed != nil {
+			return ed
+		} else if s := parser.TryOptional(p, implicitTopLevelCodeLine(), nil); s != nil {
+			return s
+		}
+		return nil
 	}
 }
 
@@ -246,35 +234,5 @@ func implicitTopLevelCodeLine() parser.Func[*ast.ImplicitCodeLine] {
 			return nil
 		}
 		return &ast.ImplicitCodeLine{Statement: s}
-	}
-}
-
-type scopeNodePointer[T any] interface {
-	*T
-	ast.ScopeNode
-}
-
-func coerceScopeNode[N scopeNodePointer[T], T any](f parser.Func[N]) parser.Func[ast.ScopeNode] {
-	return func(p *parser.Parser) ast.ScopeNode {
-		n := f(p)
-		if n == nil {
-			return nil
-		}
-		return n
-	}
-}
-
-type topLevelNodePointer[T any] interface {
-	*T
-	ast.TopLevelNode
-}
-
-func coerceTopLevelNode[N topLevelNodePointer[T], T any](f parser.Func[N]) parser.Func[ast.TopLevelNode] {
-	return func(p *parser.Parser) ast.TopLevelNode {
-		n := f(p)
-		if n == nil {
-			return nil
-		}
-		return n
 	}
 }

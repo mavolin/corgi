@@ -133,7 +133,7 @@ func AndEOL() parser.WhitespaceFunc {
 // OrAnyWhitespace parses and captures comments and any whitespace.
 func OrAnyWhitespace() parser.WhitespaceFunc {
 	return func(p *parser.Parser) bool {
-		pos := p.Pos()
+		start := p.Index()
 		for {
 			parser.TrySkip(p, whitespace.Horizontal())
 			c := parser.Try(p, GeneralComment())
@@ -150,7 +150,7 @@ func OrAnyWhitespace() parser.WhitespaceFunc {
 		}
 
 		parser.TrySkip(p, OrLoneWS())
-		return pos != p.Pos()
+		return start != p.Index()
 	}
 }
 

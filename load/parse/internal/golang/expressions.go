@@ -50,33 +50,3 @@ func QualifiedIdent() parser.Func[*ast.QualifiedIdentifier] { // https://go.dev/
 		return &ident
 	}
 }
-
-// ============================================================================
-// Operators
-// ======================================================================================
-
-func AddOp() parser.Func[string] {
-	return func(p *parser.Parser) string {
-		r := parser.TryAnyRune(p, '+', '-', '|', '^')
-		if r == 0 {
-			return ""
-		}
-
-		return string(r)
-	}
-}
-
-func MulOp() parser.Func[string] {
-	return func(p *parser.Parser) string {
-		if op := parser.TryAnyToken(p, "<<", ">>", "&^"); op != "" {
-			return op
-		}
-
-		r := parser.TryAnyRune(p, '*', '/', '%', '&')
-		if r == 0 {
-			return ""
-		}
-
-		return string(r)
-	}
-}
