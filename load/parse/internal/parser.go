@@ -49,7 +49,6 @@ type Parser struct {
 	comments []*ast.CommentGroup
 
 	statePool pool[State]
-	posPool   pool[ast.Position]
 
 	inline    bool
 	parsingWS bool
@@ -79,7 +78,6 @@ func New(f *file.File) *Parser {
 		errs:      make(diagnostic.List, 0, 48),
 		comments:  make([]*ast.CommentGroup, 0, 128),
 		statePool: make(pool[State], 0, 32),
-		posPool:   make(pool[ast.Position], 0, 32),
 	}
 }
 
@@ -117,12 +115,6 @@ func (p *Parser) Inline() bool      { return p.inline }
 func (p *Parser) NumErrors() uint8              { return p.state.numErrs }
 func (p *Parser) Errors() diagnostic.List       { return slices.Clip(p.errs) }
 func (p *Parser) Comments() []*ast.CommentGroup { return p.comments }
-
-func (p *Parser) pooledPosPtr() *ast.Position {
-	pos := p.posPool.Get()
-	pos.Line, pos.Col = int(p.state.line), int(p.state.col)
-	return pos
-}
 
 func (p *Parser) PosPtr() *ast.Position {
 	pos := p.Pos()
