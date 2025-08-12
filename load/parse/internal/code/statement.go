@@ -130,9 +130,6 @@ func parsedStatement(o Options) parser.Func[*ast.Statement] {
 			}
 		}
 
-		if e == nil && o.bodyFollows() {
-			return new(ast.Statement)
-		}
 		p.RestoreState(afterExpr)
 		return &ast.Statement{Nodes: e.Nodes}
 	}
@@ -212,9 +209,6 @@ func parsedSimpleStatement(o Options) parser.Func[*ast.SimpleStatement] {
 			}
 		}
 
-		if o.bodyFollows() {
-			return new(ast.SimpleStatement)
-		}
 		p.RestoreState(afterExpr)
 		return &ast.SimpleStatement{Nodes: e.Nodes}
 	}

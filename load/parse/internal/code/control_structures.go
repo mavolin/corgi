@@ -101,18 +101,18 @@ func IfHeader() parser.Func[*ast.IfHeader] {
 
 		state := p.CloneState()
 
-		h.Statement = parser.TryOptional(p, SimpleStatement(BodyFollows), nil)
+		h.Statement = parser.TryOptional(p, SimpleStatement(Regular), nil)
 		if matches := parser.Try(p, comment.AndEOS()); matches {
 			parser.TrySkip(p, comment.OrAnyWhitespace())
 		} else {
 			p.RestoreState(state)
 			h.Statement = nil
 		}
-		h.Condition = parser.Try(p, Expression(BodyFollows))
+		h.Condition = parser.Try(p, Expression(Regular))
 		if h.Statement != nil && h.Condition == nil {
 			p.RestoreState(state)
 			h.Statement = nil
-			h.Condition = parser.Try(p, Expression(BodyFollows))
+			h.Condition = parser.Try(p, Expression(Regular))
 		}
 
 		if h.Condition == nil {
@@ -132,7 +132,7 @@ func Switch() parser.Func[*ast.Switch] {
 
 		var s ast.Switch
 		s.Switch = switchKw
-		s.Comparator = parser.TryOptional(p, SimpleStatement(BodyFollows), comment.OrHorizontalWhitespace())
+		s.Comparator = parser.TryOptional(p, SimpleStatement(Regular), comment.OrHorizontalWhitespace())
 
 		s.LBrace = parser.TryRuneAt(p, '{')
 		if s.LBrace == nil {
@@ -316,7 +316,7 @@ func ForConditionHeader() parser.Func[*ast.ForConditionHeader] {
 	return func(p *parser.Parser) *ast.ForConditionHeader {
 		var h ast.ForConditionHeader
 
-		h.Condition = parser.Try(p, Expression(BodyFollows))
+		h.Condition = parser.Try(p, Expression(Regular))
 		if h.Condition == nil {
 			return nil
 		}
@@ -333,17 +333,17 @@ func ForClauseHeader() parser.Func[*ast.ForClauseHeader] {
 
 		var h ast.ForClauseHeader
 
-		h.Init = parser.TryOptional(p, SimpleStatement(BodyFollows), nil)
+		h.Init = parser.TryOptional(p, SimpleStatement(Regular), nil)
 		if matches := parser.Try(p, comment.AndEOS()); !matches {
 			return nil
 		}
 		parser.TrySkip(p, comment.OrAnyWhitespace())
-		h.Condition = parser.TryOptional(p, Expression(BodyFollows), nil)
+		h.Condition = parser.TryOptional(p, Expression(Regular), nil)
 		if matches := parser.Try(p, comment.AndEOS()); !matches {
 			return nil
 		}
 		parser.TrySkip(p, comment.OrAnyWhitespace())
-		h.Post = parser.TryOptional(p, SimpleStatement(BodyFollows), nil)
+		h.Post = parser.TryOptional(p, SimpleStatement(Regular), nil)
 
 		return &h
 	}
@@ -363,7 +363,7 @@ func ForRangeHeader() parser.Func[*ast.ForRangeHeader] {
 			}
 			return false
 		}) {
-			h.Var1 = parser.TryOptional(p, Expression(BodyFollows), comment.OrHorizontalWhitespace())
+			h.Var1 = parser.TryOptional(p, Expression(Regular), comment.OrHorizontalWhitespace())
 			comma = parser.TryOptionalRuneAt(p, ',', comment.OrAnyWhitespace())
 			if comma != nil {
 				if h.Var1 == nil {
@@ -373,7 +373,7 @@ func ForRangeHeader() parser.Func[*ast.ForRangeHeader] {
 					})
 				}
 
-				h.Var2 = parser.TryOptional(p, Expression(BodyFollows), comment.OrHorizontalWhitespace())
+				h.Var2 = parser.TryOptional(p, Expression(Regular), comment.OrHorizontalWhitespace())
 				if h.Var2 == nil {
 					p.CaptureError(&diagnostic.Diagnostic{
 						Message: "for-range header: missing second variable",
@@ -424,7 +424,7 @@ func ForRangeHeader() parser.Func[*ast.ForRangeHeader] {
 			})
 		}
 
-		h.Expression = parser.Try(p, Expression(BodyFollows))
+		h.Expression = parser.Try(p, Expression(Regular))
 		if h.Expression == nil {
 			return nil
 		}

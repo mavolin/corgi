@@ -31,32 +31,23 @@ func TestExpression(t *testing.T) {
 	t.Run("body follows", func(t *testing.T) {
 		t.Parallel()
 
-		in := "func() { return block(foo) }()"
+		in := "func(){ return block(foo) }()"
 		want := &ast.Expression{
 			Nodes: ast.Code{
 				&ast.GoCode{
-					Code:     "func",
+					Code:     "func(){ return",
 					Position: &ast.Position{Line: 1, Col: 1},
-				}, &ast.GoCode{
-					Code:     "()",
-					Position: &ast.Position{Line: 1, Col: 5},
-				}, &ast.GoCode{
-					Code:     "{ return",
-					Position: &ast.Position{Line: 1, Col: 8},
 				}, &ast.BlockFunction{
-					Block:  &ast.Position{Line: 1, Col: 17},
-					LParen: &ast.Position{Line: 1, Col: 22},
+					Block:  &ast.Position{Line: 1, Col: 1 + len("func(){ return ")},
+					LParen: &ast.Position{Line: 1, Col: 1 + len("func(){ return block")},
 					BlockName: &ast.Identifier{
 						Name:     "foo",
-						Position: &ast.Position{Line: 1, Col: 23},
+						Position: &ast.Position{Line: 1, Col: 1 + len("func(){ return block(")},
 					},
-					RParen: &ast.Position{Line: 1, Col: 26},
+					RParen: &ast.Position{Line: 1, Col: 1 + len("func(){ return block(foo")},
 				}, &ast.GoCode{
-					Code:     "}",
-					Position: &ast.Position{Line: 1, Col: 28},
-				}, &ast.GoCode{
-					Code:     "()",
-					Position: &ast.Position{Line: 1, Col: 29},
+					Code:     "}()",
+					Position: &ast.Position{Line: 1, Col: 1 + len("func(){ return block(foo) ")},
 				},
 			},
 		}
@@ -84,7 +75,7 @@ func TestExpression(t *testing.T) {
 					p := parsetest.NewParser(t, in+" "+c.body+" 1other stuff")
 					var got *ast.Expression
 					p.DoInline(func() {
-						got = parsetest.AssertNoError(t, p, Expression(BodyFollows))
+						got = parsetest.AssertNoError(t, p, Expression(Regular))
 					})
 
 					line, col, index := parsetest.CalcEnd(1, 1, 0, in)
@@ -95,7 +86,7 @@ func TestExpression(t *testing.T) {
 					t.Parallel()
 
 					p := parsetest.NewParser(t, in+" "+c.body+" 1other stuff")
-					got := parsetest.AssertNoError(t, p, Expression(BodyFollows))
+					got := parsetest.AssertNoError(t, p, Expression(Regular))
 
 					line, col, index := parsetest.CalcEnd(1, 1, 0, in)
 					parsetest.AssertPosition(t, p, line, col, index)

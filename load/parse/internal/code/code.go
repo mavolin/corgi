@@ -21,16 +21,12 @@ const (
 	Regular Options = iota
 	// Statements parses statements, not expressions.
 	Statements Options = 1 << iota
-	// BodyFollows expects a body, i.e. scope or bracket text, to follow the
-	// code and doesn't parse it.
-	BodyFollows Options = 1 << iota
 	// FirstParen only parses until the first parenthesis is closed.
 	FirstParen Options = 1 << iota
 )
 
-func (o Options) statements() bool  { return o&Statements != 0 }
-func (o Options) bodyFollows() bool { return o&BodyFollows != 0 }
-func (o Options) firstParen() bool  { return o&FirstParen != 0 }
+func (o Options) statements() bool { return o&Statements != 0 }
+func (o Options) firstParen() bool { return o&FirstParen != 0 }
 
 func Code(o Options) parser.Func[ast.Code] {
 	return func(p *parser.Parser) ast.Code {
@@ -114,38 +110,40 @@ func goCode(o Options) parser.Func[*codeResult] {
 		}
 		var parenStack []paren
 
-		var (
-			bodyState *parser.State
-			bodyEnd   int
-		)
-
 		var canSkipAnyWS bool
-		var state *parser.State
 		for {
-			state = p.CloneState()
+			end := p.Index()
+			var hasWS bool
 			if canSkipAnyWS || len(parenStack) > 0 {
-				parser.TrySkip(p, comment.OrAnyWhitespace())
+				hasWS = parser.TrySkip(p, comment.OrAnyWhitespace())
 				canSkipAnyWS = false
 			} else {
-				parser.TrySkip(p, comment.OrHorizontalWhitespace())
+				hasWS = parser.TrySkip(p, comment.OrHorizontalWhitespace())
 			}
-			parser.CommitWS(p)
+
+			if len(parenStack) == 0 && parser.MatchesAnyRune(p, ';') {
+				break
+			} else if len(parenStack) == 0 && !o.statements() {
+				if parser.MatchesAnyRune(p, ',', ':') { //nolint:gocritic
+					break
+				} else if parser.MatchesToken(p, "--") || parser.MatchesToken(p, "++") {
+					break
+				} else if parser.Matches(p, golang.AssignOp()) {
+					break
+				}
+			}
 
 			pos := p.Pos()
-			if r := parser.TryAnyRune(p, '(', '{', '['); r > 0 {
-				parenStack = append(parenStack, paren{opening: byte(r), pos: pos})
-				if o.bodyFollows() && len(parenStack) == 1 {
-					c.Code = p.AST.Raw[start:state.Index()]
-					if c.Code != "" {
-						exps = append(exps, c)
-						bodyEnd = len(exps)
-						start = p.Index() - 1
-						c = &ast.GoCode{Position: &pos}
-					}
-					bodyState = state
+			if parser.MatchesAnyRune(p, '(', '{', '[') { //nolint:gocritic
+				r := parser.PeekRune(p)
+				if (hasWS || (len(exps) == 0 && start == end)) && (r == '{' || r == '[') {
+					// so we don't parse the body after an if
+					break
 				}
+				parser.NextRune(p)
+				parenStack = append(parenStack, paren{opening: byte(r), pos: pos})
 				continue
-			} else if parser.MatchesAnyRune(p, ')', '}', ']') { //nolint:gocritic
+			} else if parser.MatchesAnyRune(p, ')', '}', ']') {
 				if len(parenStack) == 0 {
 					break
 				}
@@ -182,11 +180,11 @@ func goCode(o Options) parser.Func[*codeResult] {
 					})
 				}
 				continue
-			} else if parser.Try(p, golang.RuneLit()) != "" {
+			} else if parser.TryOptional(p, golang.RuneLit(), nil) != "" {
 				continue
 			} else if parser.MatchesToken(p, "block") && parser.Matches(p, BlockFunction()) {
 				if len(parenStack) > 0 {
-					c.Code = p.AST.Raw[start:state.Index()]
+					c.Code = p.AST.Raw[start:end]
 					exps = append(exps, c, parser.Try(p, BlockFunction()))
 					parser.TrySkip(p, comment.OrHorizontalWhitespace())
 					start = p.Index()
@@ -196,7 +194,7 @@ func goCode(o Options) parser.Func[*codeResult] {
 				break
 			} else if parser.MatchesAnyRune(p, '"', '`') {
 				if len(parenStack) > 0 {
-					c.Code = p.AST.Raw[start:state.Index()]
+					c.Code = p.AST.Raw[start:end]
 					exps = append(exps, c, parser.Try(p, String()))
 					parser.TrySkip(p, comment.OrHorizontalWhitespace())
 					start = p.Index()
@@ -206,7 +204,7 @@ func goCode(o Options) parser.Func[*codeResult] {
 				break
 			} else if parser.MatchesAnyRune(p, '?') {
 				if len(parenStack) > 0 {
-					c.Code = p.AST.Raw[start:state.Index()]
+					c.Code = p.AST.Raw[start:end]
 					t := parser.Try(p, Ternary())
 					if t != nil {
 						exps = append(exps, c, t)
@@ -217,45 +215,23 @@ func goCode(o Options) parser.Func[*codeResult] {
 					}
 				}
 				break
-			} else if parser.TryAnyToken(p, "==", "!=", ">=", "<=") != "" {
+			} else if parser.TryAnyOptionalToken(p, nil, "==", "!=", ">", ">=", "<", "<=") != "" {
+				canSkipAnyWS = true
+				continue
+			} else if parser.TryAnyOptionalRune(p, nil, '.', ':', '=', '+', '-', '*', '/', '%', '&', '|', '^') > 0 {
+				canSkipAnyWS = true
 				continue
 			} else if parser.MatchesAnyRune(p, parser.EOF) {
 				break
-			}
-			if len(parenStack) == 0 {
-				//nolint:gocritic
-				if !o.statements() &&
-					(parser.MatchesAnyRune(p, ',', ':') || parser.Matches(p, golang.AssignOp())) {
-					break
-				} else if parser.MatchesAnyRune(p, ';', '?') || parser.MatchesToken(p, "--") || parser.MatchesToken(p, "++") {
-					break
-				} else if parser.Matches(p, golang.Keyword()) {
-					break
-				}
 			}
 
 			if parser.MatchesAnyRune(p, whitespace.Runes...) {
 				break
 			}
-			r := parser.NextRune(p)
-			if r == '.' {
-				canSkipAnyWS = true
-			}
+			parser.NextRune(p)
 		}
 
-		noUnclosedParens := len(parenStack) == 0
-		// can happen if we're parsing inlined code
-		unclosedBlock := len(parenStack) == 1 && (parenStack[0].opening == '{' || parenStack[0].opening == '[')
-		if o.bodyFollows() && bodyState != nil && (noUnclosedParens || unclosedBlock) {
-			p.RestoreState(bodyState)
-			exps = exps[:bodyEnd]
-			if len(exps) == 0 {
-				return nil
-			}
-			return &codeResult{Nodes: exps, Stop: true}
-		}
-
-		p.RestoreState(state)
+		parser.RestoreWS(p)
 		if start == p.Index() {
 			if len(exps) == 0 {
 				return nil

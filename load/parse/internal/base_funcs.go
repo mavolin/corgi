@@ -1,8 +1,14 @@
 package parser
 
 import (
+	"slices"
+
 	"github.com/mavolin/corgi/v2/file/ast"
 )
+
+func PeekRune(p *Parser) rune {
+	return p.peek()
+}
 
 func NextRune(p *Parser) rune {
 	CommitWS(p)
@@ -43,6 +49,20 @@ func TryAnyToken(p *Parser, ss ...string) string {
 		}
 	}
 	RestoreWS(p)
+	return ""
+}
+
+func TryAnyOptionalToken(p *Parser, ws WhitespaceFunc, ss ...string) string {
+	for _, s := range ss {
+		if MatchesToken(p, s) {
+			CommitWS(p)
+			p.skipString(s)
+			if ws != nil {
+				TrySkip(p, ws)
+			}
+			return s
+		}
+	}
 	return ""
 }
 
@@ -120,12 +140,13 @@ func TryOptionalRuneAt(p *Parser, r rune, ws WhitespaceFunc) *ast.Position {
 // It returns the matched rune, or 0 if none matched.
 func TryAnyRune(p *Parser, rs ...rune) rune {
 	return TryRunePredicate(p, func(r rune) bool {
-		for _, rr := range rs {
-			if r == rr {
-				return true
-			}
-		}
-		return false
+		return slices.Contains(rs, r)
+	})
+}
+
+func TryAnyOptionalRune(p *Parser, ws WhitespaceFunc, rs ...rune) rune {
+	return TryOptionalRunePredicate(p, ws, func(r rune) bool {
+		return slices.Contains(rs, r)
 	})
 }
 
@@ -138,6 +159,21 @@ func TryRunePredicate(p *Parser, pred func(rune) bool) rune {
 		return 0
 	}
 	CommitWS(p)
+	return p.next()
+}
+
+// TryOptionalRunePredicate attempts to match the next rune against the
+// predicate. If successful, it consumes the rune and returns true, otherwise,
+// it returns false without consuming any runes.
+func TryOptionalRunePredicate(p *Parser, ws WhitespaceFunc, pred func(rune) bool) rune {
+	peek := p.peek()
+	if peek == EOF || !pred(peek) {
+		return 0
+	}
+	CommitWS(p)
+	if ws != nil {
+		TrySkip(p, ws)
+	}
 	return p.next()
 }
 

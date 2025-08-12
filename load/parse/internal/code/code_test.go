@@ -29,13 +29,13 @@ func testGoCode() func(t *testing.T, f parser.Func[[]ast.CodeNode]) {
 				code: "(woof, bark)",
 			}, {
 				name: "comma in brackets",
-				code: "[woof, bark]",
+				code: "a[woof, bark]",
 			}, {
 				name: "comma in braces",
-				code: "{woof, bark}",
+				code: "func(){woof, bark}",
 			}, {
 				name: "semicolon in braces",
-				code: "{woof; bark}",
+				code: "func(){woof; bark}",
 			}, {
 				name: "rune literal",
 				code: "';'",
