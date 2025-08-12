@@ -22,11 +22,6 @@ func NoError(t testing.TB, err error) bool {
 	return must(t, should.NoError(t, err))
 }
 
-func Error(t testing.TB, got, want error) bool {
-	t.Helper()
-	return must(t, should.Error(t, got, want))
-}
-
 func True(t testing.TB, got bool) bool {
 	t.Helper()
 	return must(t, should.True(t, got))

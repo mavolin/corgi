@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
 func Equal[T any](t testing.TB, got, want T, opts ...cmp.Option) bool {
@@ -40,16 +39,6 @@ func NoError(t testing.TB, err error) bool {
 		return false
 	}
 
-	return true
-}
-
-func Error(t testing.TB, got, want error) bool {
-	t.Helper()
-
-	if diff := cmp.Diff(want, got, cmpopts.EquateErrors()); diff != "" {
-		prettyComparison(t, "Error", "{{Arg1}} != {{Arg2}}", diff)
-		return false
-	}
 	return true
 }
 
