@@ -57,6 +57,6 @@ func Vertical() parser.WhitespaceFunc {
 
 func SingleVertical() parser.WhitespaceFunc {
 	return func(p *parser.Parser) bool {
-		return parser.TryAnyToken(p, "\n", "\r\n") == ""
+		return parser.TryAnyToken(p, "\n", "\r\n") != ""
 	}
 }
