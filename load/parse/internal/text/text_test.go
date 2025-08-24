@@ -92,12 +92,12 @@ func TestLine(t *testing.T) {
 			},
 			RBrace: &ast.Position{Line: 1, Col: 10},
 		},
-		&ast.EscapedHash{Hash: &ast.Position{Line: 1, Col: 11}},
+		&ast.CharacterEscape{Hash: &ast.Position{Line: 1, Col: 11}, Symbol: '#', Rune: '#'},
 		&ast.Text{
 			Text:     "baz",
 			Position: &ast.Position{Line: 1, Col: 13},
 		},
-		&ast.HashSpace{Hash: &ast.Position{Line: 1, Col: 17}},
+		&ast.CharacterEscape{Hash: &ast.Position{Line: 1, Col: 17}, Symbol: '_', Rune: ' '},
 	}
 
 	got := parsesTextFully(t, in, Line('\n'))

@@ -12,8 +12,7 @@ import (
 func TestTextInterpolation(t *testing.T) {
 	t.Parallel()
 
-	parsetest.AssertAlsoFulfils(t, TextInterpolation(), testEscapedHash)
-	parsetest.AssertAlsoFulfils(t, TextInterpolation(), testHashSpace)
+	parsetest.AssertAlsoFulfils(t, TextInterpolation(), testTextCharacterEscape)
 	parsetest.AssertAlsoFulfils(t, TextInterpolation(), testExpressionInterpolation)
 	parsetest.AssertAlsoFulfils(t, TextInterpolation(), testComponentCallInterpolation)
 	parsetest.AssertAlsoFulfils(t, TextInterpolation(), testCharacterReference)
@@ -27,7 +26,7 @@ func TestStringInterpolation(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		parsetest.AssertAlsoFulfils(t, StringInterpolation(), testEscapedHash)
+		parsetest.AssertAlsoFulfils(t, StringInterpolation(), testTextCharacterEscape)
 		parsetest.AssertAlsoFulfils(t, StringInterpolation(), testExpressionInterpolation)
 		parsetest.AssertAlsoFulfils(t, StringInterpolation(), testComponentCallInterpolation)
 		parsetest.AssertAlsoFulfils(t, StringInterpolation(), testCharacterReference)
@@ -76,30 +75,93 @@ func TestBadInterpolation(t *testing.T) {
 	should.Equal(t, got, want)
 }
 
-func TestEscapedHash(t *testing.T) {
+func TestStringCharacterEscape(t *testing.T) {
 	t.Parallel()
-	testEscapedHash(t, EscapedHash())
+	testStringCharacterEscape(t, StringCharacterEscape())
 }
 
-func testEscapedHash(t *testing.T, f parser.Func[*ast.EscapedHash]) {
-	in := "##"
-	want := &ast.EscapedHash{Hash: &ast.Position{Line: 1, Col: 1}}
+func testStringCharacterEscape(t *testing.T, f parser.Func[*ast.CharacterEscape]) {
+	tests := []struct {
+		Symbol rune
+		Rune   rune
+	}{
+		{'#', '#'},
+	}
 
-	got := parsetest.ParsesFully(t, in, f)
-	should.Equal(t, got, want)
+	for _, c := range tests {
+		t.Run(string(c.Symbol), func(t *testing.T) {
+			t.Parallel()
+			in := "#" + string(c.Symbol)
+			want := &ast.CharacterEscape{
+				Hash:   &ast.Position{Line: 1, Col: 1},
+				Symbol: c.Symbol,
+				Rune:   c.Rune,
+			}
+
+			got := parsetest.ParsesFully(t, in, f)
+			should.Equal(t, got, want)
+		})
+	}
+
 }
 
-func TestHashSpace(t *testing.T) {
+func TestTextCharacterEscape(t *testing.T) {
 	t.Parallel()
-	testHashSpace(t, HashSpace())
+	testTextCharacterEscape(t, TextCharacterEscape())
 }
 
-func testHashSpace(t *testing.T, f parser.Func[*ast.HashSpace]) {
-	in := "#_"
-	want := &ast.HashSpace{Hash: &ast.Position{Line: 1, Col: 1}}
+func testTextCharacterEscape(t *testing.T, f parser.Func[*ast.CharacterEscape]) {
+	t.Parallel()
 
-	got := parsetest.ParsesFully(t, in, f)
-	should.Equal(t, got, want)
+	tests := []struct {
+		Symbol rune
+		Rune   rune
+	}{
+		{'#', '#'},
+		{'_', ' '},
+		{']', ']'},
+	}
+
+	for _, c := range tests {
+		t.Run(string(c.Symbol), func(t *testing.T) {
+			t.Parallel()
+			in := "#" + string(c.Symbol)
+			want := &ast.CharacterEscape{
+				Hash:   &ast.Position{Line: 1, Col: 1},
+				Symbol: c.Symbol,
+				Rune:   c.Rune,
+			}
+
+			got := parsetest.ParsesFully(t, in, f)
+			should.Equal(t, got, want)
+		})
+	}
+}
+
+func TestVerbatimTextCharacterEscape(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		Symbol rune
+		Rune   rune
+	}{
+		{']', ']'},
+	}
+
+	for _, c := range tests {
+		t.Run(string(c.Symbol), func(t *testing.T) {
+			t.Parallel()
+			in := "#" + string(c.Symbol)
+			want := &ast.CharacterEscape{
+				Hash:   &ast.Position{Line: 1, Col: 1},
+				Symbol: c.Symbol,
+				Rune:   c.Rune,
+			}
+
+			got := parsetest.ParsesFully(t, in, VerbatimTextCharacterEscape())
+			should.Equal(t, got, want)
+		})
+	}
 }
 
 func TestUnambiguousHash(t *testing.T) {

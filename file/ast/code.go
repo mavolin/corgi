@@ -301,7 +301,7 @@ func (*StringText) _stringNode() {}
 // ================================ String Interpolation ================================
 
 // StringInterpolation is a pointer to either [BadInterpolation],
-// an [EscapedHash], an [ExpressionInterpolation], a [CharacterReference],
+// an [CharacterEscape], an [ExpressionInterpolation], a [CharacterReference],
 // or a [ComponentCallInterpolation].
 type StringInterpolation interface {
 	StringNode

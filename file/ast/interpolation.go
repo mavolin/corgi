@@ -28,105 +28,46 @@ func (*BadInterpolation) _textNode()      {}
 func (*BadInterpolation) _stringNode()    {}
 
 // ============================================================================
-// Escaped Hash
+// Character Escape
 // ======================================================================================
 
-type EscapedHash struct { // ##
-	Hash *Position
+// CharacterEscape is for escaping a special character in text or string.
+//
+// In strings, that is '#'.
+// In text, that is '#', ' ', and ']'.
+type CharacterEscape struct {
+	Hash   *Position
+	Symbol rune // one of '#', '_', ']'
+	Rune   rune // the actual rune it represents, '#', ' ', or ']'
 }
 
 var (
-	_ TextInterpolation   = (*EscapedHash)(nil)
-	_ StringInterpolation = (*EscapedHash)(nil)
-	_ ContentWriter       = (*EscapedHash)(nil)
+	_ TextInterpolation   = (*CharacterEscape)(nil)
+	_ StringInterpolation = (*CharacterEscape)(nil)
+	_ ContentWriter       = (*CharacterEscape)(nil)
 )
 
-func (h *EscapedHash) Start() Position {
-	if h.Hash != nil {
-		return *h.Hash
+func (ce *CharacterEscape) Start() Position {
+	if ce.Hash != nil {
+		return *ce.Hash
 	}
 	return Position{}
 }
 
-func (h *EscapedHash) End() Position {
-	if h.Hash != nil {
-		return deltaPos(*h.Hash, len("##"))
-	}
-	return Position{}
-}
-func (h *EscapedHash) Walk(func(Node)) {}
-
-func (*EscapedHash) _node()          {}
-func (*EscapedHash) _interpolation() {}
-func (*EscapedHash) _textNode()      {}
-func (*EscapedHash) _stringNode()    {}
-func (*EscapedHash) _contentWriter() {}
-
-// ============================================================================
-// Hash Space
-// ======================================================================================
-
-type HashSpace struct { // #_
-	Hash *Position
-}
-
-var (
-	_ TextInterpolation = (*HashSpace)(nil)
-	_ ContentWriter     = (*HashSpace)(nil)
-)
-
-func (h *HashSpace) Start() Position {
-	if h.Hash != nil {
-		return *h.Hash
+func (ce *CharacterEscape) End() Position {
+	if ce.Hash != nil {
+		return deltaPos(*ce.Hash, len("#_"))
 	}
 	return Position{}
 }
 
-func (h *HashSpace) End() Position {
-	if h.Hash != nil {
-		return deltaPos(*h.Hash, len("#_"))
-	}
-	return Position{}
-}
-func (h *HashSpace) Walk(func(Node)) {}
+func (ce *CharacterEscape) Walk(func(Node)) {}
 
-func (*HashSpace) _node()          {}
-func (*HashSpace) _interpolation() {}
-func (*HashSpace) _textNode()      {}
-func (*HashSpace) _contentWriter() {}
-
-// ============================================================================
-// Hash Right Bracket
-// ======================================================================================
-
-type EscapedRBracket struct { // #]
-	Hash *Position
-}
-
-var (
-	_ TextInterpolation = (*EscapedRBracket)(nil)
-	_ ContentWriter     = (*EscapedRBracket)(nil)
-)
-
-func (h *EscapedRBracket) Start() Position {
-	if h.Hash != nil {
-		return *h.Hash
-	}
-	return Position{}
-}
-
-func (h *EscapedRBracket) End() Position {
-	if h.Hash != nil {
-		return deltaPos(*h.Hash, len("#]"))
-	}
-	return Position{}
-}
-func (h *EscapedRBracket) Walk(func(Node)) {}
-
-func (*EscapedRBracket) _node()          {}
-func (*EscapedRBracket) _interpolation() {}
-func (*EscapedRBracket) _textNode()      {}
-func (*EscapedRBracket) _contentWriter() {}
+func (*CharacterEscape) _node()          {}
+func (*CharacterEscape) _interpolation() {}
+func (*CharacterEscape) _textNode()      {}
+func (*CharacterEscape) _stringNode()    {}
+func (*CharacterEscape) _contentWriter() {}
 
 // ============================================================================
 // Expression Interpolation
@@ -146,37 +87,37 @@ var (
 	_ ContentWriter       = (*ExpressionInterpolation)(nil)
 )
 
-func (interp *ExpressionInterpolation) Start() Position {
+func (ei *ExpressionInterpolation) Start() Position {
 	switch {
-	case interp.Hash != nil:
-		return *interp.Hash
-	case interp.LBrace != nil:
-		return *interp.LBrace
-	case interp.Expression != nil:
-		return interp.Expression.Start()
-	case interp.RBrace != nil:
-		return *interp.RBrace
+	case ei.Hash != nil:
+		return *ei.Hash
+	case ei.LBrace != nil:
+		return *ei.LBrace
+	case ei.Expression != nil:
+		return ei.Expression.Start()
+	case ei.RBrace != nil:
+		return *ei.RBrace
 	}
 	return Position{}
 }
 
-func (interp *ExpressionInterpolation) End() Position {
+func (ei *ExpressionInterpolation) End() Position {
 	switch {
-	case interp.RBrace != nil:
-		return deltaPos(*interp.RBrace, len("}"))
-	case interp.Expression != nil:
-		return interp.Expression.End()
-	case interp.LBrace != nil:
-		return deltaPos(*interp.LBrace, len("{"))
-	case interp.Hash != nil:
-		return deltaPos(*interp.Hash, len("#"))
+	case ei.RBrace != nil:
+		return deltaPos(*ei.RBrace, len("}"))
+	case ei.Expression != nil:
+		return ei.Expression.End()
+	case ei.LBrace != nil:
+		return deltaPos(*ei.LBrace, len("{"))
+	case ei.Hash != nil:
+		return deltaPos(*ei.Hash, len("#"))
 	}
 	return Position{}
 }
 
-func (interp *ExpressionInterpolation) Walk(w func(Node)) {
-	if interp.Expression != nil {
-		w(interp.Expression)
+func (ei *ExpressionInterpolation) Walk(w func(Node)) {
+	if ei.Expression != nil {
+		w(ei.Expression)
 	}
 }
 
@@ -187,37 +128,65 @@ func (*ExpressionInterpolation) _stringNode()    {}
 func (*ExpressionInterpolation) _contentWriter() {}
 
 // ============================================================================
-// Element TextInterpolation
+// Character Reference
 // ======================================================================================
 
-type ElementInterpolation struct {
-	Hash    *Position
-	Element *Element // Body is BracketText, if present
+type CharacterReference struct {
+	Hash  *Position
+	Name  string // w/o & and ;
+	Chars string // the characters it represents
 }
 
-var _ TextInterpolation = (*ElementInterpolation)(nil)
+var (
+	_ TextInterpolation   = (*CharacterReference)(nil)
+	_ StringInterpolation = (*CharacterReference)(nil)
+	_ ContentWriter       = (*CharacterReference)(nil)
+)
 
-func (interp *ElementInterpolation) Start() Position {
-	if interp.Hash != nil {
-		return *interp.Hash
-	} else if interp.Element != nil {
-		return interp.Element.Start()
+func (r *CharacterReference) Start() Position {
+	if r.Hash != nil {
+		return *r.Hash
 	}
 	return Position{}
 }
 
-func (interp *ElementInterpolation) End() Position {
-	if interp.Element != nil {
-		return interp.Element.End()
-	} else if interp.Hash != nil {
-		return deltaPos(*interp.Hash, len("#"))
+func (r *CharacterReference) End() Position {
+	if r.Hash != nil {
+		return deltaPos(*r.Hash, len("#")+len(r.Name)+len(";"))
+	}
+	return Position{}
+}
+func (r *CharacterReference) Walk(func(Node)) {}
+
+func (*CharacterReference) _node()          {}
+func (*CharacterReference) _interpolation() {}
+func (*CharacterReference) _textNode()      {}
+func (*CharacterReference) _stringNode()    {}
+func (*CharacterReference) _contentWriter() {}
+
+// ============================================================================
+// Mode Switch
+// ======================================================================================
+
+type ModeSwitch struct {
+	Hash *Position
+	Node ScopeNode
+}
+
+func (s *ModeSwitch) Start() Position {
+	if s.Hash != nil {
+		return *s.Hash
+	} else if s.Node != nil {
+		return s.Node.Start()
 	}
 	return Position{}
 }
 
-func (interp *ElementInterpolation) Walk(w func(Node)) {
-	if interp.Element != nil {
-		w(interp.Element)
+func (s *ModeSwitch) End() Position {
+	if s.Node != nil {
+		return s.Node.End()
+	} else if s.Hash != nil {
+		return deltaPos(*s.Hash, len("#"))
 	}
 }
 
@@ -226,7 +195,7 @@ func (*ElementInterpolation) _interpolation() {}
 func (*ElementInterpolation) _textNode()      {}
 
 // ============================================================================
-// Component Call TextInterpolation
+// Component Call Interpolation
 // ======================================================================================
 
 type ComponentCallInterpolation struct {
@@ -267,40 +236,3 @@ func (*ComponentCallInterpolation) _node()          {}
 func (*ComponentCallInterpolation) _interpolation() {}
 func (*ComponentCallInterpolation) _textNode()      {}
 func (*ComponentCallInterpolation) _stringNode()    {}
-
-// ============================================================================
-// Character Reference
-// ======================================================================================
-
-type CharacterReference struct {
-	Hash  *Position
-	Name  string // w/o & and ;
-	Chars string // the characters it represents
-}
-
-var (
-	_ TextInterpolation   = (*CharacterReference)(nil)
-	_ StringInterpolation = (*CharacterReference)(nil)
-	_ ContentWriter       = (*CharacterReference)(nil)
-)
-
-func (c *CharacterReference) Start() Position {
-	if c.Hash != nil {
-		return *c.Hash
-	}
-	return Position{}
-}
-
-func (c *CharacterReference) End() Position {
-	if c.Hash != nil {
-		return deltaPos(*c.Hash, len("#")+len(c.Name)+len(";"))
-	}
-	return Position{}
-}
-func (c *CharacterReference) Walk(func(Node)) {}
-
-func (*CharacterReference) _node()          {}
-func (*CharacterReference) _interpolation() {}
-func (*CharacterReference) _textNode()      {}
-func (*CharacterReference) _stringNode()    {}
-func (*CharacterReference) _contentWriter() {}

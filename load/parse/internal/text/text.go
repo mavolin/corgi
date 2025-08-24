@@ -77,15 +77,15 @@ func Text(term rune) parser.Func[*ast.Text] {
 			return !parser.MatchesAnyRune(p, term, '\r', '\n') &&
 				(parser.Matches(p, interpolation.UnambiguousHash()) || !parser.MatchesAnyRune(p, '#'))
 		})
-		text = strings.TrimRight(text, " \t")
-		if text == "" {
+		trimmedText := strings.TrimRight(text, " \t")
+		if trimmedText == "" {
 			return nil
 		}
 
 		var t ast.Text
-		t.Text = text
+		t.Text = trimmedText
 		t.Position = p.PosPtr()
-		t.Position.Col -= len(text) // save allocations, only works bc t is horizontal
+		t.Position.Col -= len([]rune(text)) // save allocations, only works bc t is horizontal
 
 		return &t
 	}
@@ -113,8 +113,8 @@ func VerbatimNode(term rune) parser.Func[ast.TextNode] {
 	return func(p *parser.Parser) ast.TextNode {
 		if t := parser.Try(p, VerbatimText(term)); t != nil {
 			return t
-		} else if escapedRBracket := parser.Try(p, interpolation.EscapedRBracket()); escapedRBracket != nil {
-			return escapedRBracket
+		} else if ce := parser.Try(p, interpolation.VerbatimTextCharacterEscape()); ce != nil {
+			return ce
 		}
 
 		return nil

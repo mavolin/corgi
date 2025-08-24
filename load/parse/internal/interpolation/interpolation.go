@@ -19,12 +19,8 @@ func TextInterpolation() parser.Func[ast.TextInterpolation] {
 			return nil
 		}
 
-		if eh := parser.Try(p, EscapedHash()); eh != nil {
-			return eh
-		} else if hs := parser.Try(p, HashSpace()); hs != nil {
-			return hs
-		} else if hs := parser.Try(p, EscapedRBracket()); hs != nil {
-			return hs
+		if ce := parser.Try(p, TextCharacterEscape()); ce != nil {
+			return ce
 		} else if ei := parser.Try(p, ExpressionInterpolation()); ei != nil {
 			return ei
 		} else if cc := parser.Try(p, ComponentCallInterpolation()); cc != nil {
@@ -71,8 +67,8 @@ func StringInterpolation() parser.Func[ast.StringInterpolation] {
 			return nil
 		}
 
-		if eh := parser.Try(p, EscapedHash()); eh != nil {
-			return eh
+		if ce := parser.Try(p, StringCharacterEscape()); ce != nil {
+			return ce
 		} else if ei := parser.Try(p, ExpressionInterpolation()); ei != nil {
 			return ei
 		} else if cc := parser.Try(p, ComponentCallInterpolation()); cc != nil {
@@ -82,34 +78,43 @@ func StringInterpolation() parser.Func[ast.StringInterpolation] {
 		}
 
 		// TryErr other kinds of interpolation, that aren't allowed inside a string
-		if hs := parser.Try(p, HashSpace()); hs != nil {
-			p.CaptureError(&diagnostic.Diagnostic{
-				Message: "string interpolation: cannot use hash space here",
-				Primary: []diagnostic.Annotation{
-					anno.Range(p.File, hs.Start(), hs.End(),
-						"there is no point in using a hash space, you can just write a space instead"),
-				},
-				Explanation: "A hash space is used to insert a trailing space in text blocks. " +
-					"This isn't necessary in strings, and you can just as well write a regular space instead.",
-			})
-			return &ast.BadInterpolation{From: hs.Start(), Until: hs.End()}
-		} else if hr := parser.Try(p, EscapedRBracket()); hr != nil {
-			p.CaptureError(&diagnostic.Diagnostic{
-				Message: "string interpolation: cannot use escaped right bracket here",
-				Primary: []diagnostic.Annotation{
-					anno.Range(p.File, hr.Start(), hr.End(),
-						"there is no point in using an escaped right bracket, you can just write a right bracket instead"),
-				},
-				Explanation: "An escaped right bracket is an escape sequence available in bracket text " +
-					"so that one can write a `]` without terminating the bracket text." +
-					"Since `]` is not a control character in strings, " +
-					"you can just as well write a regular right bracket instead.",
-			})
+		if ce := parser.Try(p, TextCharacterEscape()); ce != nil {
+			switch ce.Symbol {
+			case '_':
+				p.CaptureError(&diagnostic.Diagnostic{
+					Message: "string interpolation: cannot use hash space here",
+					Primary: []diagnostic.Annotation{
+						anno.Range(p.File, ce.Start(), ce.End(),
+							"there is no point in using a hash space, you can just write a space instead"),
+					},
+					Explanation: "A hash space is used to insert a trailing space in text blocks. " +
+						"This isn't necessary in strings, and you can just as well write a regular space instead.",
+				})
+			case ']':
+				p.CaptureError(&diagnostic.Diagnostic{
+					Message: "string interpolation: cannot use escaped right bracket here",
+					Primary: []diagnostic.Annotation{
+						anno.Range(p.File, ce.Start(), ce.End(),
+							"there is no point in using an escaped right bracket, you can just write a right bracket instead"),
+					},
+					Explanation: "An escaped right bracket is an escape sequence available in bracket text " +
+						"so that one can write a `]` without terminating the bracket text." +
+						"Since `]` is not a control character in strings, " +
+						"you can just as well write a regular right bracket instead.",
+				})
+			default:
+				p.CaptureError(&diagnostic.Diagnostic{
+					Type:    diagnostic.InternalError,
+					Message: "string interpolation: recovered text character escape: unknown symbol",
+					Primary: []diagnostic.Annotation{
+						anno.Range(p.File, ce.Start(), ce.End(), "could not identify symbol"),
+					},
+					Explanation: "Could not identify the symbol to give you a better error message. " +
+						"This is a bug in the parser, please report it.",
+				})
+			}
+			return &ast.BadInterpolation{From: ce.Start(), Until: ce.End()}
 		}
-		// I don't see a reason why someone would use an element interpolation
-		// in a string, so don't bother checking, especially since "#mdash foo"
-		// is a valid element interpolation, but is, far more likely, supposed
-		// to be a character reference lacking a semicolon.
 
 		p.CaptureError(&diagnostic.Diagnostic{
 			Message: "bad interpolation",
@@ -156,36 +161,59 @@ func BadInterpolation() parser.Func[*ast.BadInterpolation] {
 	}
 }
 
-func EscapedHash() parser.Func[*ast.EscapedHash] {
-	return func(p *parser.Parser) *ast.EscapedHash {
-		hash := parser.TryTokenAt(p, "##")
+func StringCharacterEscape() parser.Func[*ast.CharacterEscape] {
+	return func(p *parser.Parser) *ast.CharacterEscape {
+		hash := parser.TryRuneAt(p, '#')
 		if hash == nil {
 			return nil
 		}
 
-		return &ast.EscapedHash{Hash: hash}
-	}
-}
-
-func HashSpace() parser.Func[*ast.HashSpace] {
-	return func(p *parser.Parser) *ast.HashSpace {
-		hs := parser.TryTokenAt(p, "#_")
-		if hs == nil {
+		symbol := parser.TryAnyRune(p, '#')
+		if symbol == 0 {
 			return nil
 		}
 
-		return &ast.HashSpace{Hash: hs}
+		return &ast.CharacterEscape{Hash: hash, Symbol: symbol, Rune: symbol}
 	}
 }
 
-func EscapedRBracket() parser.Func[*ast.EscapedRBracket] {
-	return func(p *parser.Parser) *ast.EscapedRBracket {
-		erb := parser.TryTokenAt(p, "#]")
-		if erb == nil {
+func TextCharacterEscape() parser.Func[*ast.CharacterEscape] {
+	return func(p *parser.Parser) *ast.CharacterEscape {
+		hash := parser.TryRuneAt(p, '#')
+		if hash == nil {
 			return nil
 		}
 
-		return &ast.EscapedRBracket{Hash: erb}
+		symbol := parser.TryAnyRune(p, '#', '_', ']')
+		if symbol == 0 {
+			return nil
+		}
+
+		var r rune
+		switch symbol {
+		case '_':
+			r = ' '
+		default:
+			r = symbol
+		}
+
+		return &ast.CharacterEscape{Hash: hash, Symbol: symbol, Rune: r}
+	}
+}
+
+func VerbatimTextCharacterEscape() parser.Func[*ast.CharacterEscape] {
+	return func(p *parser.Parser) *ast.CharacterEscape {
+		hash := parser.TryRuneAt(p, '#')
+		if hash == nil {
+			return nil
+		}
+
+		symbol := parser.TryAnyRune(p, ']')
+		if symbol == 0 {
+			return nil
+		}
+
+		return &ast.CharacterEscape{Hash: hash, Symbol: symbol, Rune: symbol}
 	}
 }
 

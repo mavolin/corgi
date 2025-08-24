@@ -168,8 +168,8 @@ func (*Text) _contentWriter() {}
 // ======================================================================================
 
 // TextInterpolation is a pointer to either [BadInterpolation],
-// an [EscapedHash], a [HashSpace], a [EscapedRBracket], an [ElementInterpolation],
-// a [ComponentCallInterpolation], or a [CharacterReference].
+// an [ExpressionInterpolation], a [CharacterEscape], a [ModeSwitch],
+// or a [CharacterReference].
 type TextInterpolation interface {
 	TextNode
 	Interpolation
@@ -178,11 +178,8 @@ type TextInterpolation interface {
 // if this is changed, change the comment above
 var (
 	_ TextInterpolation = (*BadInterpolation)(nil)
-	_ TextInterpolation = (*EscapedHash)(nil)
-	_ TextInterpolation = (*HashSpace)(nil)
-	_ TextInterpolation = (*EscapedRBracket)(nil)
+	_ TextInterpolation = (*CharacterEscape)(nil)
 	_ TextInterpolation = (*ExpressionInterpolation)(nil)
-	_ TextInterpolation = (*ElementInterpolation)(nil)
 	_ TextInterpolation = (*ComponentCallInterpolation)(nil)
 	_ TextInterpolation = (*CharacterReference)(nil)
 )
