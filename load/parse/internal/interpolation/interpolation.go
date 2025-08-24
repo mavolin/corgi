@@ -341,7 +341,9 @@ func ExpressionInterpolation() parser.Func[*ast.ExpressionInterpolation] {
 		}
 
 		parser.TrySkip(p, whitespace.Horizontal())
-		ei.Expression = parser.Try(p, expression)
+		p.DoInline(func() {
+			ei.Expression = parser.Try(p, expression)
+		})
 		if ei.Expression == nil {
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "expression interpolation: missing expression",
