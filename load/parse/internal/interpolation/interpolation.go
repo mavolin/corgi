@@ -365,7 +365,3 @@ func ExpressionInterpolation() parser.Func[*ast.ExpressionInterpolation] {
 		return &ei
 	}
 }
-
-func isInRange(s, e rune) func(rune) bool {
-	return func(r rune) bool { return r >= s && r <= e }
-}
