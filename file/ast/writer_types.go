@@ -55,7 +55,7 @@ func (w *BlockSetterContentWriter) _contentWriter()   {}
 // ======================================================================================
 
 // ElementWriter is a ContentWriter that can produce elements:
-// [Element], [ComponentCall], or as a special case the
+// [Element], [Doctype], [ComponentCall], or as a special case the
 // [BlockSetterElementWriter] wrapper type.
 type ElementWriter interface {
 	Node
@@ -65,6 +65,7 @@ type ElementWriter interface {
 // if changed, change the comment above
 var (
 	_ ElementWriter = (*Element)(nil)
+	_ ElementWriter = (*Doctype)(nil)
 	_ ElementWriter = (*ComponentCall)(nil)
 	_ ElementWriter = (*BlockSetterElementWriter)(nil)
 )

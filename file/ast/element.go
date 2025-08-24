@@ -15,6 +15,7 @@ type Doctype struct {
 var (
 	_ ScopeNode     = (*Doctype)(nil)
 	_ ContentWriter = (*Doctype)(nil)
+	_ ElementWriter = (*Doctype)(nil)
 )
 
 func (d *Doctype) Start() Position {
@@ -46,6 +47,7 @@ func (d *Doctype) End() Position {
 func (d *Doctype) Walk(func(Node)) {}
 
 func (*Doctype) _node()          {}
+func (*Doctype) _elementWriter() {}
 func (*Doctype) _contentWriter() {}
 func (*Doctype) _scopeNode()     {}
 
