@@ -22,6 +22,8 @@ import (
 
 //nolint:gochecknoinits
 func init() {
+	code.SetComponentCall(component.Call())
+
 	interpolation.SetExpression(code.Expression(code.Regular))
 	interpolation.SetComponentCall(component.Call())
 

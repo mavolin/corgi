@@ -16,6 +16,7 @@ var (
 	_ ElementWriter        = (*ComponentCall)(nil)
 	_ AttributeWriter      = (*ComponentCall)(nil)
 	_ AndPlaceholderWriter = (*ComponentCall)(nil)
+	_ CodeNode             = (*ComponentCall)(nil)
 	_ Highlighter          = (*ComponentCall)(nil)
 )
 
@@ -64,6 +65,7 @@ func (c *ComponentCall) Highlight() (start, end Position) {
 
 func (*ComponentCall) _node()                 {}
 func (*ComponentCall) _scopeNode()            {}
+func (*ComponentCall) _codeNode()             {}
 func (*ComponentCall) _contentWriter()        {}
 func (*ComponentCall) _elementWriter()        {}
 func (*ComponentCall) _attributeWriter()      {}

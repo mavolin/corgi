@@ -14,6 +14,12 @@ import (
 	"github.com/mavolin/corgi/v2/load/parse/internal/whitespace"
 )
 
+var componentCall parser.Func[*ast.ComponentCall]
+
+func SetComponentCall(f parser.Func[*ast.ComponentCall]) {
+	componentCall = f
+}
+
 type Options uint8
 
 const (
@@ -32,6 +38,8 @@ func Code(o Options) parser.Func[ast.Code] {
 	return func(p *parser.Parser) ast.Code {
 		if zc := parser.Try(p, ZeroCoalescing()); zc != nil {
 			return ast.Code{zc}
+		} else if cc := parser.Try(p, componentCall); cc != nil {
+			return ast.Code{cc}
 		}
 
 		return parser.Try(p, NonZCCode(o))
