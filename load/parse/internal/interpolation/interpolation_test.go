@@ -14,10 +14,8 @@ func TestTextInterpolation(t *testing.T) {
 
 	parsetest.AssertAlsoFulfils(t, TextInterpolation(), testTextCharacterEscape)
 	parsetest.AssertAlsoFulfils(t, TextInterpolation(), testExpressionInterpolation)
-	parsetest.AssertAlsoFulfils(t, TextInterpolation(), testComponentCallInterpolation)
 	parsetest.AssertAlsoFulfils(t, TextInterpolation(), testCharacterReference)
 	parsetest.AssertAlsoFulfils(t, TextInterpolation(), testExpressionInterpolation)
-	parsetest.AssertAlsoFulfils(t, TextInterpolation(), testElementInterpolation)
 }
 
 func TestStringInterpolation(t *testing.T) {
@@ -26,7 +24,7 @@ func TestStringInterpolation(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		parsetest.AssertAlsoFulfils(t, StringInterpolation(), testTextCharacterEscape)
+		parsetest.AssertAlsoFulfils(t, StringInterpolation(), testStringCharacterEscape)
 		parsetest.AssertAlsoFulfils(t, StringInterpolation(), testExpressionInterpolation)
 		parsetest.AssertAlsoFulfils(t, StringInterpolation(), testComponentCallInterpolation)
 		parsetest.AssertAlsoFulfils(t, StringInterpolation(), testCharacterReference)
@@ -102,7 +100,6 @@ func testStringCharacterEscape(t *testing.T, f parser.Func[*ast.CharacterEscape]
 			should.Equal(t, got, want)
 		})
 	}
-
 }
 
 func TestTextCharacterEscape(t *testing.T) {
@@ -111,8 +108,6 @@ func TestTextCharacterEscape(t *testing.T) {
 }
 
 func testTextCharacterEscape(t *testing.T, f parser.Func[*ast.CharacterEscape]) {
-	t.Parallel()
-
 	tests := []struct {
 		Symbol rune
 		Rune   rune
@@ -234,73 +229,6 @@ func testCharacterReference(t *testing.T, f parser.Func[*ast.CharacterReference]
 	}
 }
 
-func TestElementInterpolation(t *testing.T) {
-	t.Parallel()
-	testElementInterpolation(t, ElementInterpolation())
-}
-
-func testElementInterpolation(t *testing.T, f parser.Func[*ast.ElementInterpolation]) {
-	tests := []struct {
-		name string
-		in   string
-		want *ast.ElementInterpolation
-	}{
-		{
-			name: "no body",
-			in:   "#br",
-			want: &ast.ElementInterpolation{
-				Element: &ast.Element{
-					Header: &ast.ElementHeader{
-						Name: &ast.ElementReference{
-							Name: &ast.ElementName{
-								Name:     "br",
-								Position: &ast.Position{Line: 1, Col: 2},
-							},
-						},
-					},
-				},
-				Hash: &ast.Position{Line: 1, Col: 1},
-			},
-		}, {
-			name: "body",
-			in:   "#strong[woof]",
-			want: &ast.ElementInterpolation{
-				Element: &ast.Element{
-					Header: &ast.ElementHeader{
-						Name: &ast.ElementReference{
-							Name: &ast.ElementName{
-								Name:     "strong",
-								Position: &ast.Position{Line: 1, Col: 2},
-							},
-						},
-					},
-					Body: &ast.BracketText{
-						LBracket: &ast.Position{Line: 1, Col: 8},
-						Lines: ast.TextBlock{
-							ast.TextLine{
-								&ast.Text{
-									Text:     "woof",
-									Position: &ast.Position{Line: 1, Col: 9},
-								},
-							},
-						},
-						RBracket: &ast.Position{Line: 1, Col: 13},
-					},
-				},
-				Hash: &ast.Position{Line: 1, Col: 1},
-			},
-		},
-	}
-
-	for _, c := range tests {
-		t.Run(c.name, func(t *testing.T) {
-			t.Parallel()
-			got := parsetest.ParsesFully(t, c.in, f)
-			should.Equal(t, got, c.want)
-		})
-	}
-}
-
 func TestExpressionInterpolation(t *testing.T) {
 	t.Parallel()
 	testExpressionInterpolation(t, ExpressionInterpolation())
@@ -361,15 +289,15 @@ func testComponentCallInterpolation(t *testing.T, f parser.Func[*ast.ComponentCa
 			in:   "#:component()",
 			want: &ast.ComponentCallInterpolation{
 				ComponentCall: &ast.ComponentCall{
-					Colon: &ast.Position{Line: 1, Col: 2},
+					Colon: &ast.Position{Line: 1, Col: 1 + len("#")},
 					Header: &ast.ComponentCallHeader{
 						Name: &ast.Identifier{
 							Name:     "component",
-							Position: &ast.Position{Line: 1, Col: 3},
+							Position: &ast.Position{Line: 1, Col: 1 + len("#:")},
 						},
 						Arguments: &ast.Arguments{
-							LParen: &ast.Position{Line: 1, Col: 12},
-							RParen: &ast.Position{Line: 1, Col: 13},
+							LParen: &ast.Position{Line: 1, Col: 1 + len("#:component")},
+							RParen: &ast.Position{Line: 1, Col: 1 + len("#:component(")},
 						},
 					},
 				},
@@ -377,35 +305,23 @@ func testComponentCallInterpolation(t *testing.T, f parser.Func[*ast.ComponentCa
 			},
 		}, {
 			name: "default block",
-			in:   "#:component()[foo]",
+			in:   "#:component() {}",
 			want: &ast.ComponentCallInterpolation{
 				ComponentCall: &ast.ComponentCall{
-					Colon: &ast.Position{Line: 1, Col: 2},
+					Colon: &ast.Position{Line: 1, Col: 1 + len("#")},
 					Header: &ast.ComponentCallHeader{
 						Name: &ast.Identifier{
 							Name:     "component",
-							Position: &ast.Position{Line: 1, Col: 3},
+							Position: &ast.Position{Line: 1, Col: 1 + len("#:")},
 						},
 						Arguments: &ast.Arguments{
-							LParen: &ast.Position{Line: 1, Col: 12},
-							RParen: &ast.Position{Line: 1, Col: 13},
+							LParen: &ast.Position{Line: 1, Col: 1 + len("#:component")},
+							RParen: &ast.Position{Line: 1, Col: 1 + len("#:component(")},
 						},
 					},
-					Body: &ast.DefaultBlockShorthand{
-						Implicit: true,
-						Body: &ast.BracketText{
-							LBracket: &ast.Position{Line: 1, Col: 14},
-							Lines: ast.TextBlock{
-								ast.TextLine{
-									&ast.Text{
-										Text:     "foo",
-										Position: &ast.Position{Line: 1, Col: 15},
-									},
-								},
-							},
-							RBracket: &ast.Position{Line: 1, Col: 18},
-						},
-						Position: &ast.Position{Line: 1, Col: 14},
+					Body: &ast.Scope{
+						LBrace: &ast.Position{Line: 1, Col: 1 + len("#:component() ")},
+						RBrace: &ast.Position{Line: 1, Col: 1 + len("#:component() {")},
 					},
 				},
 				Hash: &ast.Position{Line: 1, Col: 1},

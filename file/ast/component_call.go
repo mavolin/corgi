@@ -141,19 +141,12 @@ var (
 // ======================================================================================
 
 type DefaultBlockShorthand struct {
-	// Implicit, if set to true, indicates that this shorthand has no leading
-	// underscore.
-	// As of writing, this is only true for interpolation.
-	Implicit bool
 	Body     Body
 	Position *Position
 }
 
 func (s *DefaultBlockShorthand) Highlight() (start, end Position) {
 	if s.Position != nil {
-		if s.Implicit {
-			return *s.Position, deltaPos(*s.Position, len("{"))
-		}
 		return *s.Position, deltaPos(*s.Position, len("_{"))
 	}
 	return s.Body.Highlight()
@@ -182,9 +175,6 @@ func (s *DefaultBlockShorthand) End() Position {
 	if s.Body != nil {
 		return s.Body.End()
 	} else if s.Position != nil {
-		if s.Implicit {
-			return *s.Position
-		}
 		return deltaPos(*s.Position, len("_"))
 	}
 	return Position{}

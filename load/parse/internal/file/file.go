@@ -23,8 +23,7 @@ import (
 //nolint:gochecknoinits
 func init() {
 	interpolation.SetExpression(code.Expression(code.Regular))
-	interpolation.SetElementHeader(element.Header())
-	interpolation.SetComponentCallHeader(component.CallHeader())
+	interpolation.SetComponentCall(component.Call())
 
 	attribute.SetElementReference(element.Reference())
 

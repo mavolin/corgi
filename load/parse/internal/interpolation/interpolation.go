@@ -23,11 +23,9 @@ func TextInterpolation() parser.Func[ast.TextInterpolation] {
 			return ce
 		} else if ei := parser.Try(p, ExpressionInterpolation()); ei != nil {
 			return ei
-		} else if cc := parser.Try(p, ComponentCallInterpolation()); cc != nil {
-			return cc
 		} else if cr := parser.Try(p, CharacterReference()); cr != nil {
 			return cr
-		} else if ei := parser.Try(p, ElementInterpolation()); ei != nil {
+		} else if ei := parser.Try(p, ModeSwitch()); ei != nil {
 			return ei
 		}
 
@@ -71,10 +69,10 @@ func StringInterpolation() parser.Func[ast.StringInterpolation] {
 			return ce
 		} else if ei := parser.Try(p, ExpressionInterpolation()); ei != nil {
 			return ei
-		} else if cc := parser.Try(p, ComponentCallInterpolation()); cc != nil {
-			return cc
 		} else if cr := parser.Try(p, CharacterReference()); cr != nil {
 			return cr
+		} else if cc := parser.Try(p, ComponentCallInterpolation()); cc != nil {
+			return cc
 		}
 
 		// TryErr other kinds of interpolation, that aren't allowed inside a string
@@ -275,43 +273,34 @@ func CharacterReference() parser.Func[*ast.CharacterReference] {
 	}
 }
 
-var elementHeader parser.Func[*ast.ElementHeader]
-
-func SetElementHeader(f parser.Func[*ast.ElementHeader]) {
-	elementHeader = f
-}
-
-func ElementInterpolation() parser.Func[*ast.ElementInterpolation] {
-	return func(p *parser.Parser) *ast.ElementInterpolation {
+func ModeSwitch() parser.Func[*ast.ModeSwitch] {
+	return func(p *parser.Parser) *ast.ModeSwitch {
 		hash := parser.TryRuneAt(p, '#')
 		if hash == nil {
 			return nil
 		}
 
-		var ei ast.ElementInterpolation
-		ei.Hash = hash
-
-		var header *ast.ElementHeader
-		p.DoInline(func() { header = parser.Try(p, elementHeader) })
-		if header == nil {
+		node := parser.Try(p, body.ScopeNode())
+		if node == nil {
 			return nil
+		} else if _, ok := node.(*ast.ArrowBlock); ok {
+			p.CaptureError(&diagnostic.Diagnostic{
+				Message: "mode switch: useless switch to arrow block",
+				Primary: []diagnostic.Annotation{
+					anno.Node(p.File, node, "no point in switching to an arrow block here"),
+				},
+				Explanation: "You are already in tex mode, there is no point in using an arrow block here.",
+			})
 		}
 
-		ei.Element = &ast.Element{Header: header}
-		p.DoInline(func() {
-			bt := parser.Try(p, body.BracketText())
-			if bt != nil {
-				ei.Element.Body = bt
-			}
-		})
-		return &ei
+		return &ast.ModeSwitch{Hash: hash, Node: node}
 	}
 }
 
-var componentCallHeader parser.Func[*ast.ComponentCallHeader]
+var componentCall parser.Func[*ast.ComponentCall]
 
-func SetComponentCallHeader(f parser.Func[*ast.ComponentCallHeader]) {
-	componentCallHeader = f
+func SetComponentCall(f parser.Func[*ast.ComponentCall]) {
+	componentCall = f
 }
 
 func ComponentCallInterpolation() parser.Func[*ast.ComponentCallInterpolation] {
@@ -321,32 +310,12 @@ func ComponentCallInterpolation() parser.Func[*ast.ComponentCallInterpolation] {
 			return nil
 		}
 
-		colon := parser.TryRuneAt(p, ':')
-
-		header := parser.Try(p, componentCallHeader)
-		if header == nil {
+		cc := parser.Try(p, componentCall)
+		if cc == nil {
 			return nil
 		}
 
-		var cci ast.ComponentCallInterpolation
-		cci.Hash = hash
-		cci.ComponentCall = &ast.ComponentCall{
-			Colon:  colon,
-			Header: header,
-		}
-
-		p.DoInline(func() {
-			bt := parser.Try(p, body.BracketText())
-			if bt != nil {
-				cci.ComponentCall.Body = &ast.DefaultBlockShorthand{
-					Implicit: true,
-					Body:     bt,
-					Position: bt.LBracket,
-				}
-			}
-		})
-
-		return &cci
+		return &ast.ComponentCallInterpolation{Hash: hash, ComponentCall: cc}
 	}
 }
 

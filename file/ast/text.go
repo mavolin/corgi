@@ -180,6 +180,6 @@ var (
 	_ TextInterpolation = (*BadInterpolation)(nil)
 	_ TextInterpolation = (*CharacterEscape)(nil)
 	_ TextInterpolation = (*ExpressionInterpolation)(nil)
-	_ TextInterpolation = (*ComponentCallInterpolation)(nil)
+	_ TextInterpolation = (*ModeSwitch)(nil)
 	_ TextInterpolation = (*CharacterReference)(nil)
 )

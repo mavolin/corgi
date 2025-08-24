@@ -188,51 +188,57 @@ func (s *ModeSwitch) End() Position {
 	} else if s.Hash != nil {
 		return deltaPos(*s.Hash, len("#"))
 	}
+	return Position{}
 }
 
-func (*ElementInterpolation) _node()          {}
-func (*ElementInterpolation) _interpolation() {}
-func (*ElementInterpolation) _textNode()      {}
+func (s *ModeSwitch) Walk(f func(Node)) {
+	f(s.Node)
+}
+
+func (s *ModeSwitch) _interpolation() {}
+func (s *ModeSwitch) _node()          {}
+func (s *ModeSwitch) _textNode()      {}
+
+var _ TextInterpolation = (*ModeSwitch)(nil)
 
 // ============================================================================
 // Component Call Interpolation
 // ======================================================================================
 
+// ComponentCallInterpolation is a string interpolation.
+// It has no body.
+// Within text, the equivalent is you should use a mode switch.
 type ComponentCallInterpolation struct {
 	Hash          *Position
 	ComponentCall *ComponentCall // Body is implicit DefaultBlockShorthand, if present
 }
 
-var (
-	_ TextInterpolation   = (*ComponentCallInterpolation)(nil)
-	_ StringInterpolation = (*ComponentCallInterpolation)(nil)
-)
+var _ StringInterpolation = (*ComponentCallInterpolation)(nil)
 
-func (interp *ComponentCallInterpolation) Start() Position {
-	if interp.Hash != nil {
-		return *interp.Hash
-	} else if interp.ComponentCall != nil {
-		return interp.ComponentCall.Start()
+func (cci *ComponentCallInterpolation) Start() Position {
+	if cci.Hash != nil {
+		return *cci.Hash
+	} else if cci.ComponentCall != nil {
+		return cci.ComponentCall.Start()
 	}
 	return Position{}
 }
 
-func (interp *ComponentCallInterpolation) End() Position {
-	if interp.ComponentCall != nil {
-		return interp.ComponentCall.End()
-	} else if interp.Hash != nil {
-		return deltaPos(*interp.Hash, len("#"))
+func (cci *ComponentCallInterpolation) End() Position {
+	if cci.ComponentCall != nil {
+		return cci.ComponentCall.End()
+	} else if cci.Hash != nil {
+		return deltaPos(*cci.Hash, len("#"))
 	}
 	return Position{}
 }
 
-func (interp *ComponentCallInterpolation) Walk(w func(Node)) {
-	if interp.ComponentCall != nil {
-		w(interp.ComponentCall)
+func (cci *ComponentCallInterpolation) Walk(w func(Node)) {
+	if cci.ComponentCall != nil {
+		w(cci.ComponentCall)
 	}
 }
 
 func (*ComponentCallInterpolation) _node()          {}
 func (*ComponentCallInterpolation) _interpolation() {}
-func (*ComponentCallInterpolation) _textNode()      {}
 func (*ComponentCallInterpolation) _stringNode()    {}

@@ -5,52 +5,49 @@ package interpolation
 import (
 	"github.com/mavolin/corgi/v2/file/ast"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
+	"github.com/mavolin/corgi/v2/load/parse/internal/body"
+	"github.com/mavolin/corgi/v2/load/parse/internal/comment"
 	"github.com/mavolin/corgi/v2/load/parse/internal/golang"
 )
 
-func init() {
-	SetComponentCallHeader(componentCallHeaderStub)
-	SetElementHeader(elementHeaderStub)
+func init() { //nolint:gochecknoinits
+	SetComponentCall(componentCallStub)
 	SetExpression(expressionStub)
 }
 
-func elementHeaderStub(p *parser.Parser) *ast.ElementHeader {
-	pos := p.Pos()
-	name := parser.TokenWhile(p, func() bool {
-		return parser.MatchesRunePredicate(p, isInRange('a', 'z'))
-	})
-	if name == "" {
+func componentCallStub(p *parser.Parser) *ast.ComponentCall {
+	colon := parser.TryRuneAt(p, ':')
+	if colon == nil {
 		return nil
 	}
-	return &ast.ElementHeader{
-		Name: &ast.ElementReference{
-			Name: &ast.ElementName{
-				Name:     name,
-				Position: &pos,
-			},
-		},
-	}
-}
 
-func componentCallHeaderStub(p *parser.Parser) *ast.ComponentCallHeader {
-	name := parser.Try(p, golang.Identifier())
-	if name == nil {
+	var cc ast.ComponentCall
+	cc.Colon = colon
+
+	cc.Header = new(ast.ComponentCallHeader)
+	cc.Header.Name = parser.Try(p, golang.Identifier())
+	if cc.Header.Name == nil {
 		return nil
 	}
-	h := &ast.ComponentCallHeader{Name: name}
 
-	h.Arguments = &ast.Arguments{
+	cc.Header.Arguments = &ast.Arguments{
 		LParen: &ast.Position{Line: 1, Col: int(p.Col())},
 	}
 	if !parser.TryRune(p, '(') {
 		return nil
 	}
-	h.Arguments.RParen = parser.TryRuneAt(p, ')')
-	if h.Arguments.RParen == nil {
+	cc.Header.Arguments.RParen = parser.TryRuneAt(p, ')')
+	if cc.Header.Arguments.RParen == nil {
 		return nil
 	}
 
-	return h
+	parser.TrySkip(p, comment.OrHorizontalWhitespace())
+	cc.Body = parser.Try(p, body.Scope())
+	if cc.Body == (*ast.Scope)(nil) { // typed nil
+		cc.Body = nil
+	}
+
+	return &cc
 }
 
 func expressionStub(p *parser.Parser) *ast.Expression {
