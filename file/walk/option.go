@@ -4,8 +4,6 @@ import (
 	"github.com/mavolin/corgi/v2/file/ast"
 )
 
-// todo: test
-
 // An Option is a function that can influence how/if a node is walked.
 //
 // If at least one Option returns [Ignore], the item will be ignored, i.e. the
