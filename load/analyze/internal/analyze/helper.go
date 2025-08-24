@@ -97,13 +97,9 @@ func (z *analyzer) cannotAttributes(ctx context.Context, f *file.File, reason *f
 			stack[len(stack)-1].SetReason(n)
 		case *ast.CharacterReference:
 			stack[len(stack)-1].SetReason(n)
-		case *ast.EscapedHash:
-			stack[len(stack)-1].SetReason(n)
-		case *ast.EscapedRBracket:
+		case *ast.CharacterEscape:
 			stack[len(stack)-1].SetReason(n)
 		case *ast.ExpressionInterpolation:
-			stack[len(stack)-1].SetReason(n)
-		case *ast.HashSpace:
 			stack[len(stack)-1].SetReason(n)
 		case *ast.ArrowBlock:
 			inArrowBlock = numParents
