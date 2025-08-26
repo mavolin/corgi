@@ -81,7 +81,7 @@ type BlockSetterElementWriter struct {
 	// BlockSetter is the [BlockSetter] preventing the component call from
 	// being forwarded.
 	//
-	// Refer to the block setter's block's NotForwarded field for
+	// Refer to this block setter's block's NotForwarded field for
 	// the reason why.
 	BlockSetter BlockSetter
 }
