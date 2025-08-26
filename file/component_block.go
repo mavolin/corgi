@@ -1,6 +1,9 @@
 package file
 
-import "github.com/mavolin/corgi/v2/file/ast"
+import (
+	"github.com/mavolin/corgi/v2/escape/elemtype"
+	"github.com/mavolin/corgi/v2/file/ast"
+)
 
 // Block provides information about a block used in a
 // Component.
@@ -72,6 +75,15 @@ type (
 		// not forwarded, the reason is a [ast.BlockSetterElementWriter] with
 		// the block setter field set to that block setter.
 		NotForwarded AnalysisWithReason[ast.ElementWriter]
+
+		// ElementType is the element type that this block assumes.
+		//
+		// A type of Unknown indicates the block is forwarded and the element
+		// type as such depends on the element containing the component call.
+		//
+		// For all other element types, NotForwarded's reason is the source of
+		// the element type.
+		ElementType Analysis[elemtype.Type]
 
 		// CannotForwardAttributes indicates that this block instance can't
 		// forward attributes to the element containing it.
