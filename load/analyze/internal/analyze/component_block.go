@@ -146,7 +146,7 @@ func (z *analyzer) AnalyzeBlockInstanceNotForwarded(ctx context.Context, c *file
 			z.AnalyzeComponentCall(ctx, cc)
 
 			s := cc.BlockSetterByName(parent.Name())
-			if s.Block == nil {
+			if s == nil || s.Block == nil {
 				bi.NotForwarded.SetFailed()
 			} else if s.Block.Forwarded.False() {
 				bi.NotForwarded.SetReason(&ast.BlockSetterElementWriter{
