@@ -70,7 +70,8 @@ type (
 		// The opposite would be, that this block is at the top-level of its
 		// component.
 		//
-		// The reason is the element writer containing this block instance.
+		// The reason is the element writer containing this block instance,
+		// either an [ast.Element] or a [ast.BlockSetterElementWriter].
 		// If this block instance is at the top-level of a block setter that is
 		// not forwarded, the reason is a [ast.BlockSetterElementWriter] with
 		// the block setter field set to that block setter.
@@ -106,9 +107,6 @@ type (
 		// [ast.BlockSetterContentWriter] with the block setter field set to
 		// that block setter.
 		CannotForwardAttributes AnalysisWithReason[ast.ContentWriter]
-
-		// Element is the element this block instance is placed in, or nil if
-		Element Analysis[*ElementReference]
 	}
 
 	BlockInstanceDefault struct {
