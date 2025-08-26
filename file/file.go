@@ -349,7 +349,10 @@ type AttributeReference struct {
 	// albeit with errors.
 	Analyzed bool
 
-	Element Analysis[*ElementSpec] // nil if not attached to an element
+	// Element is the element writer this attribute is attached to.
+	//
+	// It is either an [ast.Element] or a [ast.BlockSetterElementWriter].
+	Element Analysis[ast.ElementWriter] // nil if not attached to an element
 	// Rule is the rule that is relevant for the element/attribute pair.
 	Rule Analysis[*ast.AttributeRule] // nil if not attached to an element
 	Type Analysis[attrtype.Type]
