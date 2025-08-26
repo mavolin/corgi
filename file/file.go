@@ -353,9 +353,7 @@ type AttributeReference struct {
 	//
 	// It is either an [ast.Element] or a [ast.BlockSetterElementWriter].
 	Element Analysis[ast.ElementWriter] // nil if not attached to an element
-	// Rule is the rule that is relevant for the element/attribute pair.
-	Rule Analysis[*ast.AttributeRule] // nil if not attached to an element
-	Type Analysis[attrtype.Type]
+	Type    Analysis[attrtype.Type]
 }
 
 // HTMLName returns the name of the attribute.
