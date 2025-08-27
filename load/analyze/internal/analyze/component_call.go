@@ -145,7 +145,7 @@ func (z *analyzer) AnalyzeForwardsReceivedAttributes(cc *file.ComponentCall) {
 				continue
 			}
 
-			forwardsAndPlaceholder := file.ConditionalAnalysis(instance.Forwarded(), instance.Default.ForwardsAndPlaceholder)
+			forwardsAndPlaceholder := file.ConditionalAnalysis(instance.Forwarded, instance.Default.ForwardsAndPlaceholder)
 			if forwardsAndPlaceholder.True() {
 				cc.ForwardsReceivedAttributes.SetReason(instance.Default.ForwardsAndPlaceholder.Reason())
 				return
@@ -251,7 +251,7 @@ func (z *analyzer) AnalyzeComponentForwardsAttributes(cc *file.ComponentCall) {
 				continue
 			}
 
-			forwardedAttr := file.ConditionalAnalysis(instance.Forwarded(), instance.Default.ForwardsAttributes)
+			forwardedAttr := file.ConditionalAnalysis(instance.Forwarded, instance.Default.ForwardsAttributes)
 			if forwardedAttr.True() {
 				cc.ComponentForwardsAttributes.SetReason(forwardedAttr.Reason())
 				return

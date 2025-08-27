@@ -55,8 +55,7 @@ func (w *BlockSetterContentWriter) _contentWriter()   {}
 // ======================================================================================
 
 // ElementWriter is a ContentWriter that can produce elements:
-// [Element], [Doctype], [ComponentCall], or as a special case the
-// [BlockSetterElementWriter] wrapper type.
+// [Element], [Doctype], [ComponentCall].
 type ElementWriter interface {
 	Node
 	_elementWriter()
@@ -67,32 +66,7 @@ var (
 	_ ElementWriter = (*Element)(nil)
 	_ ElementWriter = (*Doctype)(nil)
 	_ ElementWriter = (*ComponentCall)(nil)
-	_ ElementWriter = (*BlockSetterElementWriter)(nil)
 )
-
-// ============================== Component Element Writer ==============================
-
-// BlockSetterElementWriter is a special case of an ElementWriter.
-//
-// It captures a [ComponentCall] with a block setter, that cannot is not
-// forwarded, i.e. it is placed inside an element.
-type BlockSetterElementWriter struct {
-	ComponentCall *ComponentCall
-	// BlockSetter is the [BlockSetter] preventing the component call from
-	// being forwarded.
-	//
-	// Refer to this block setter's block's NotForwarded field for
-	// the reason why.
-	BlockSetter BlockSetter
-}
-
-var _ ElementWriter = (*BlockSetterElementWriter)(nil)
-
-func (w *BlockSetterElementWriter) Start() Position   { return w.ComponentCall.Start() }
-func (w *BlockSetterElementWriter) End() Position     { return w.ComponentCall.End() }
-func (w *BlockSetterElementWriter) Walk(f func(Node)) { w.ComponentCall.Walk(f) }
-func (w *BlockSetterElementWriter) _node()            {}
-func (w *BlockSetterElementWriter) _elementWriter()   {}
 
 // ============================================================================
 // Attribute Writer

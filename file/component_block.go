@@ -65,31 +65,23 @@ type (
 		//
 		// ANALYZER
 
-		// NotForwarded indicates that this block instance is not forwarded,
-		// i.e. it is placed inside an element.
-		// The opposite would be, that this block is at the top-level of its
-		// component.
-		//
-		// The reason is the element writer containing this block instance,
-		// either an [ast.Element] or a [ast.BlockSetterElementWriter].
-		// If this block instance is at the top-level of a block setter that is
-		// not forwarded, the reason is a [ast.BlockSetterElementWriter] with
-		// the block setter field set to that block setter.
-		NotForwarded AnalysisWithReason[ast.ElementWriter]
+		// Forwarded indicates that this block instance is forwarded somehow,
+		// i.e. it is at the top-level of its component.
+		Forwarded Analysis[bool]
 
 		// ElementType is the element type that this block assumes.
 		//
 		// A type of Unknown indicates the block is forwarded and the element
 		// type as such depends on the element containing the component call.
 		//
-		// For all other element types, NotForwarded's reason is the source of
+		// For all other element types, NeverForwarded's reason is the source of
 		// the element type.
 		ElementType Analysis[elemtype.Type]
 
 		// CannotForwardAttributes indicates that this block instance can't
 		// forward attributes to the element containing it.
 		//
-		// NotForwarded might be false, but CannotForwardAttributes is true:
+		// Forwarded might be true, but CannotForwardAttributes is also true:
 		// Consider the following example:
 		// 	comp Woof() {
 		//		br
@@ -139,15 +131,6 @@ type (
 		WritesElements     AnalysisWithReason[ast.ElementWriter]
 	}
 )
-
-func (bi *BlockInstance) Forwarded() (a Analysis[bool]) {
-	if bi.NotForwarded.Failed() {
-		a.SetFailed()
-	} else {
-		a.SetResult(bi.NotForwarded.False())
-	}
-	return a
-}
 
 func (bi *BlockInstance) ForwardsAttributes() (a Analysis[bool]) {
 	if bi.CannotForwardAttributes.Failed() {

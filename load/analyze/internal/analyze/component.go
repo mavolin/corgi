@@ -96,7 +96,7 @@ func (z *analyzer) AnalyzeComponentAST(ctx context.Context, c *file.Component) {
 	walk.Walk(c.AST, func(w *walk.Context) walk.Action {
 		switch n := w.Node.(type) {
 		case *ast.Block:
-			z.AnalyzeBlockInstanceNotForwarded(ctx, c, w.Parents, n)
+			z.AnalyzeBlockInstanceForwarded(ctx, c, w.Parents, n)
 			z.AnalyzeBlockInstanceCannotForwardAttributes(c, cannotAttributes, n)
 		}
 		return walk.Continue
@@ -175,7 +175,7 @@ func (z *analyzer) checkComponentCallCycles(root *file.Component, chain []*file.
 //
 // Depends on Fields:
 //   - Components.AlwaysForwardsAndPlaceholder
-//   - Components.Blocks.Instances.NotForwarded
+//   - Components.Blocks.Instances.Forwarded
 //   - Components.Blocks.Instances.Default.ForwardsAndPlaceholder
 func (z *analyzer) AnalyzeCouldForwardReceivedAttributes(c *file.Component) {
 	if c.AlwaysForwardsAndPlaceholder.True() {
@@ -190,7 +190,7 @@ func (z *analyzer) AnalyzeCouldForwardReceivedAttributes(c *file.Component) {
 
 	for _, block := range c.Blocks {
 		for _, instance := range block.Instances {
-			forwardsAndPlaceholder := file.ConditionalAnalysis(instance.Forwarded(), instance.Default.ForwardsAndPlaceholder)
+			forwardsAndPlaceholder := file.ConditionalAnalysis(instance.Forwarded, instance.Default.ForwardsAndPlaceholder)
 			if forwardsAndPlaceholder.True() {
 				c.CouldForwardReceivedAttributes.SetReason(forwardsAndPlaceholder.Reason())
 				return

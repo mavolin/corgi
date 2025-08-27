@@ -97,34 +97,34 @@ Erroneous:
 //   - Components.Blocks.Forwarded
 //
 // Depends on Fields:
-//   - Components.Blocks.Instances.NotForwarded
+//   - Components.Blocks.Instances.Forwarded
 func (z *analyzer) AnalyzeBlockForwarded(b *file.Block) {
 	b.Forwarded.SetFalse()
 	for _, instance := range b.Instances {
-		if instance.NotForwarded.False() {
+		if instance.Forwarded.Equal(true) {
 			b.Forwarded.SetReason(instance)
-		} else if instance.NotForwarded.Failed() {
+		} else if instance.Forwarded.Failed() {
 			b.Forwarded.SetFailed()
 		}
 	}
 }
 
-// AnalyzeBlockInstanceNotForwarded determines whether the given block is
+// AnalyzeBlockInstanceForwarded determines whether the given block is
 // forwarded.
 //
 // Depends on Checks: None
 //
 // Sets Fields:
-//   - Components.Blocks.Instances.NotForwarded
+//   - Components.Blocks.Instances.Forwarded
 //
 // Depends on Fields: None
-func (z *analyzer) AnalyzeBlockInstanceNotForwarded(ctx context.Context, c *file.Component, parents []*walk.Context, biAST *ast.Block) {
+func (z *analyzer) AnalyzeBlockInstanceForwarded(ctx context.Context, c *file.Component, parents []*walk.Context, biAST *ast.Block) {
 	bi := c.BlockInstanceByNode(biAST)
 	if bi == nil {
 		return
 	}
 
-	bi.NotForwarded.SetFalse()
+	bi.Forwarded.SetResult(true)
 
 	i := len(parents) - 1
 	for i >= 0 {
@@ -132,12 +132,12 @@ func (z *analyzer) AnalyzeBlockInstanceNotForwarded(ctx context.Context, c *file
 		switch parent := parent.Node.(type) {
 		case *ast.ComponentCall:
 			// can't directly be in a component call in a valid AST
-			bi.NotForwarded.SetFailed()
+			bi.Forwarded.SetFailed()
 			return
 		case ast.BlockSetter:
 			ccI := walk.ClosestIndex[*ast.ComponentCall](parents[:i])
 			if ccI < 0 {
-				bi.NotForwarded.SetFailed()
+				bi.Forwarded.SetFailed()
 				return
 			}
 
@@ -147,17 +147,14 @@ func (z *analyzer) AnalyzeBlockInstanceNotForwarded(ctx context.Context, c *file
 
 			s := cc.BlockSetterByName(parent.Name())
 			if s == nil || s.Block == nil {
-				bi.NotForwarded.SetFailed()
+				bi.Forwarded.SetFailed()
 			} else if s.Block.Forwarded.False() {
-				bi.NotForwarded.SetReason(&ast.BlockSetterElementWriter{
-					ComponentCall: ccAST,
-					BlockSetter:   parent,
-				})
+				bi.Forwarded.SetResult(false)
 				return
 			}
 			i = ccI - 1 // continue with the parent of the component call
 		case ast.ElementWriter:
-			bi.NotForwarded.SetReason(parent)
+			bi.Forwarded.SetResult(false)
 			return
 		default:
 			i--
