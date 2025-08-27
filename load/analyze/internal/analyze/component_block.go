@@ -109,8 +109,8 @@ func (z *analyzer) AnalyzeBlockForwarded(b *file.Block) {
 	}
 }
 
-// AnalyzeBlockInstanceForwarded determines whether the given block is
-// forwarded.
+// AnalyzeBlockInstanceParentInformation determines whether the parent
+// information of the given block instance.
 //
 // Depends on Checks: None
 //
@@ -118,27 +118,38 @@ func (z *analyzer) AnalyzeBlockForwarded(b *file.Block) {
 //   - Components.Blocks.Instances.Forwarded
 //
 // Depends on Fields: None
-func (z *analyzer) AnalyzeBlockInstanceForwarded(ctx context.Context, c *file.Component, parents []*walk.Context, biAST *ast.Block) {
+func (z *analyzer) AnalyzeBlockInstanceParentInformation(ctx context.Context, c *file.Component, parents []*walk.Context, biAST *ast.Block) {
 	bi := c.BlockInstanceByNode(biAST)
 	if bi == nil {
 		return
 	}
 
+	var (
+		element *file.ElementReference
+		cc      *file.ComponentCall
+		block   *file.Block
+	)
 	bi.Forwarded.SetResult(true)
 
 	i := len(parents) - 1
+Loop:
 	for i >= 0 {
 		parent := parents[i]
 		switch parent := parent.Node.(type) {
 		case *ast.ComponentCall:
-			// can't directly be in a component call in a valid AST
 			bi.Forwarded.SetFailed()
+			bi.ContainingElements.SetFailed()
 			return
 		case ast.BlockSetter:
+			if cc != nil {
+				continue
+			}
+
 			ccI := walk.ClosestIndex[*ast.ComponentCall](parents[:i])
 			if ccI < 0 {
 				bi.Forwarded.SetFailed()
-				return
+				bi.ContainingElements.SetFailed()
+				continue
 			}
 
 			ccAST := parents[ccI].Node.(*ast.ComponentCall) //nolint:errcheck
@@ -148,18 +159,51 @@ func (z *analyzer) AnalyzeBlockInstanceForwarded(ctx context.Context, c *file.Co
 			s := cc.BlockSetterByName(parent.Name())
 			if s == nil || s.Block == nil {
 				bi.Forwarded.SetFailed()
+				bi.ContainingElements.SetFailed()
 			} else if s.Block.Forwarded.False() {
 				bi.Forwarded.SetResult(false)
-				return
+				break Loop
 			}
 			i = ccI - 1 // continue with the parent of the component call
-		case ast.ElementWriter:
+		case *ast.Element:
 			bi.Forwarded.SetResult(false)
-			return
+			element = c.File.ElementReferenceByNode(parent.Header.Name)
+			break Loop
 		default:
 			i--
 		}
 	}
+
+	if bi.ContainingElements.Failed() {
+		return
+	} else if cc == nil {
+		var containingElements []*file.ElementReference
+		if element != nil {
+			containingElements = []*file.ElementReference{element}
+		}
+		bi.ContainingElements.SetResult(&containingElements)
+		return
+	}
+
+	containingElements := make([]*file.ElementReference, 0, 1+len(block.Instances))
+	if block.Forwarded.True() && element != nil {
+		containingElements = append(containingElements, element)
+	}
+
+	added := make(map[*file.ElementReference]bool)
+	for _, inst := range block.Instances {
+		if inst.ContainingElements.Failed() {
+			bi.ContainingElements.SetFailed()
+			return
+		}
+		for _, el := range *inst.ContainingElements.Result() {
+			if !added[el] {
+				containingElements = append(containingElements, el)
+				added[el] = true
+			}
+		}
+	}
+	bi.ContainingElements.SetResult(&containingElements)
 }
 
 // ============================================================================

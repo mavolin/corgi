@@ -108,6 +108,8 @@ type ComponentCall struct {
 	// component also writes elements, or because one of the call's block
 	// setters writes elements ([ComponentCall.BlockSetterWritesElements]).
 	ComponentWritesElements AnalysisWithReason[ast.ElementWriter]
+
+	ElementsWithAndPlaceholder Analysis[*[]*ElementReference]
 }
 
 func (cc *ComponentCall) External() bool { return cc.File.Package != cc.Component.File.Package }

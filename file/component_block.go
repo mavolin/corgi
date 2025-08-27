@@ -20,11 +20,21 @@ type Block struct {
 	// ANALYZER
 
 	Required Analysis[bool]
+
 	// Forwarded indicates at least one instance of this block is placed
 	// outside any element.
 	//
 	// The reason is that block instance.
 	Forwarded AnalysisWithReason[*BlockInstance]
+	// ContainingElements are all elements containing this block.
+	// If Forwarded is true, the list is not absolute: It would need to be
+	// extended with the containing elements of the call to the component
+	// containing this block.
+	//
+	// A nil value indicates that the analysis failed.
+	// An empty slice indicates that the block instance is fully forwarded.
+	ContainingElements []*ast.Element
+
 	// CannotForwardAttributes indicates that at least one instance of this
 	// block cannot forward attributes.
 	//
@@ -68,14 +78,29 @@ type (
 		// Forwarded indicates that this block instance is forwarded somehow,
 		// i.e. it is at the top-level of its component.
 		Forwarded Analysis[bool]
+		// ContainingElements are all elements containing this block instance.
+		// If Forwarded is true, the list is not absolute: It would need to be
+		// extended with the containing elements of the call to the component
+		// containing this node.
+		//
+		// The pointer to the slice has no significance and is just there to
+		// satisfy the comparable constraint of Analysis.
+		// It is never nil; use len() to check for emptiness.
+		ContainingElements Analysis[*[]*ElementReference]
 
 		// ElementType is the element type that this block assumes.
 		//
 		// A type of Unknown indicates the block is forwarded and the element
 		// type as such depends on the element containing the component call.
 		//
-		// For all other element types, NeverForwarded's reason is the source of
-		// the element type.
+		// For all other element types it is the minimum of all containing
+		// elements.
+		//
+		// If one of the containing elements is a CSS or JS element, so must
+		// all others.
+		//
+		// Void and Nothing are equivalent in this context, indicating the
+		// block only accepts attributes.
 		ElementType Analysis[elemtype.Type]
 
 		// CannotForwardAttributes indicates that this block instance can't

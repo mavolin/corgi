@@ -96,7 +96,7 @@ func (z *analyzer) AnalyzeComponentAST(ctx context.Context, c *file.Component) {
 	walk.Walk(c.AST, func(w *walk.Context) walk.Action {
 		switch n := w.Node.(type) {
 		case *ast.Block:
-			z.AnalyzeBlockInstanceForwarded(ctx, c, w.Parents, n)
+			z.AnalyzeBlockInstanceParentInformation(ctx, c, w.Parents, n)
 			z.AnalyzeBlockInstanceCannotForwardAttributes(c, cannotAttributes, n)
 		}
 		return walk.Continue

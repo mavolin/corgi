@@ -14,12 +14,12 @@ const (
 	// A Nothing element is akin to a void element: It has a closing tag, but
 	// must have an empty body.
 	Nothing
-	// A Normal element is the most common element type and can hold text or
-	// other elements.
-	Normal
 	// A Text element can only contain text, but no child elements.
 	// Ampersand escapes are allowed in text elements.
 	Text
+	// A Normal element is the most common element type and can hold text or
+	// other elements.
+	Normal
 	// A CSS element can only contain CSS code as text.
 	// Ampersand escapes are unavailable in CSS elements and are ignored.
 	// As such, special care must be taken to prevent premature end of

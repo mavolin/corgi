@@ -349,11 +349,26 @@ type AttributeReference struct {
 	// albeit with errors.
 	Analyzed bool
 
-	// Element is the element writer this attribute is attached to.
+	// Forwarded indicates whether the attribute reference is forwarded to the
+	// component calling the component containing it.
 	//
-	// It is either an [ast.Element] or a [ast.BlockSetterElementWriter].
-	Element Analysis[ast.ElementWriter] // nil if not attached to an element
-	Type    Analysis[attrtype.Type]
+	//    comp woof() {
+	//      &(bark=...)
+	//    }
+	//
+	// In the above example, the attribute reference bark is forwarded to the
+	// component calling woof.
+	Forwarded Analysis[bool]
+	// ContainingElements are all elements containing this block instance.
+	// If Forwarded is true, the list is not absolute: It would need to be
+	// extended with the containing elements of the component call.
+	//
+	// A nil value indicates that the analysis failed.
+	// An empty slice indicates that the attribute reference is fully
+	// forwarded.
+	ContainingElements Analysis[*[]*ElementReference]
+
+	Type Analysis[attrtype.Type]
 }
 
 // HTMLName returns the name of the attribute.
