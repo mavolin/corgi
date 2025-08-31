@@ -41,7 +41,7 @@ func Analyze(ctx *context.Context) {
 
 	z.AnalyzeComponents()
 	z.AnalyzeComponentCalls()
-	z.AnalyzeAttributeReferences()
+	z.AnalyzeAttributes()
 
 	ctx.P.Analyzed = true
 	for _, f := range ctx.P.Files {

@@ -62,6 +62,9 @@ type Symbols struct {
 	ElementReferences       []*ElementReference
 	elementReferencesByNode map[*ast.ElementReference]*ElementReference
 
+	Attributes       []*Attribute
+	attributesByNode map[ast.Attribute]*Attribute
+
 	AttributeReferences       []*AttributeReference
 	attributeReferencesByNode map[*ast.AttributeReference]*AttributeReference
 
@@ -181,6 +184,10 @@ func (s *Symbols) ElementReferenceByNode(node *ast.ElementReference) *ElementRef
 	return s.elementReferencesByNode[node]
 }
 
+func (s *Symbols) AttributeByNode(node ast.Attribute) *Attribute {
+	return s.attributesByNode[node]
+}
+
 func (s *Symbols) AttributeReferenceByNode(node *ast.AttributeReference) *AttributeReference {
 	return s.attributeReferencesByNode[node]
 }
@@ -199,6 +206,11 @@ func (s *Symbols) RebuildLookupTables() {
 	s.elementReferencesByNode = make(map[*ast.ElementReference]*ElementReference, len(s.ElementReferences))
 	for _, ref := range s.ElementReferences {
 		s.elementReferencesByNode[ref.AST] = ref
+	}
+
+	s.attributesByNode = make(map[ast.Attribute]*Attribute, len(s.Attributes))
+	for _, attr := range s.Attributes {
+		s.attributesByNode[attr.AST] = attr
 	}
 
 	s.attributeReferencesByNode = make(map[*ast.AttributeReference]*AttributeReference, len(s.AttributeReferences))
@@ -355,34 +367,6 @@ type AttributeReference struct {
 	// It is the analyzer's responsibility to report cases in which it expects
 	// an attribute reference to have a spec, but it doesn't.
 	Spec Analysis[*AttributeSpec] // may be nil
-
-	//
-	// ANALYZER
-
-	// Analyzed indicates whether the AttributeReference has been analyzed,
-	// albeit with errors.
-	Analyzed bool
-
-	// Forwarded indicates whether the attribute reference is forwarded to the
-	// component calling the component containing it.
-	//
-	//    comp woof() {
-	//      &(bark=...)
-	//    }
-	//
-	// In the above example, the attribute reference bark is forwarded to the
-	// component calling woof.
-	Forwarded Analysis[bool]
-	// ContainingElements are all elements containing this block instance.
-	// If Forwarded is true, the list is not absolute: It would need to be
-	// extended with the containing elements of the component call.
-	//
-	// A nil value indicates that the analysis failed.
-	// An empty slice indicates that the attribute reference is fully
-	// forwarded.
-	ContainingElements Analysis[*[]*ElementReference]
-
-	Type Analysis[attrtype.Type]
 }
 
 // HTMLName returns the name of the attribute.
@@ -406,3 +390,83 @@ func (r *AttributeReference) HTMLName() (a Analysis[string]) {
 	a.SetResult(r.AST.Name.Name)
 	return a
 }
+
+// ============================================================================
+// Attribute
+// ======================================================================================
+
+type Attribute struct {
+	//
+	// BUILD SYMBOLS
+
+	AST       ast.Attribute
+	Reference *AttributeReference
+
+	//
+	// ANALYZER
+
+	// Analyzed indicates whether the AttributeReference has been analyzed,
+	// albeit with errors.
+	Analyzed bool
+
+	// StaticValue is the static value of the attribute, if it has one.
+	//
+	// Attributes with a static value needn't be typed, as they are assumed to
+	// be always safe.
+	//
+	// Either a [TextualAttributeValue], [BoolAttributeValue], or nil.
+	StaticValue Analysis[AttributeValue]
+
+	// Forwarded indicates whether the attribute reference is forwarded to the
+	// component calling the component containing it.
+	//
+	//    comp woof() {
+	//      &(bark=...)
+	//    }
+	//
+	// In the above example, the attribute reference bark is forwarded to the
+	// component calling woof.
+	Forwarded Analysis[bool]
+	// ContainingElements are all elements containing this block instance.
+	// If Forwarded is true, the list is not absolute: It would need to be
+	// extended with the containing elements of the component call.
+	//
+	// A nil/empty slice indicates that the attribute reference is fully
+	// forwarded.
+	//
+	// This list only contains the elements that influence the type of the
+	// attribute, which is usually the desired behavior.
+	// Since forwarded attributes must be explicitly typed, this list would not
+	// contain elements from Woof in the below example, since they are
+	// irrelevant to the type of bark:
+	//    :Woof {
+	//      :Bark(data-bark=myVar) // Bark forwards the attributes it receives
+	//    }
+	//
+	// The pointer to the slice has no significance and is just there to
+	// satisfy the comparable constraint of Analysis.
+	// It is never nil.
+	ContainingElements Analysis[*[]ContainingElement]
+
+	// Type is the type of the attribute.
+	//
+	// For attributes with a static value, this field is always set.
+	// Only then, is [attrtype.Unknown] a valid Type and indicates that the
+	// attribute is neither explicitly type nor could be inferred without
+	// error.
+	// If the attribute has no static value, cases where the type would be
+	// unknown result in a failed analysis.
+	Type Analysis[attrtype.Type]
+}
+
+type (
+	AttributeValue interface {
+		_attributeValue()
+	}
+
+	TextualAttributeValue string
+	BoolAttributeValue    bool
+)
+
+func (TextualAttributeValue) _attributeValue() {}
+func (BoolAttributeValue) _attributeValue()    {}

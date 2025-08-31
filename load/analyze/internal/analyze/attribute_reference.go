@@ -8,41 +8,39 @@ import (
 	"github.com/mavolin/corgi/v2/file/walk"
 )
 
-// AnalyzeAttributeReferences analyzes all attribute references in the package.
+// AnalyzeAttributes analyzes all attribute in the package.
 //
 // Depends on Checks: None
 //
 // Sets Fields: None
 //
 // Depends on Fields: None
-func (z *analyzer) AnalyzeAttributeReferences() {
+func (z *analyzer) AnalyzeAttributes() {
 	logger := z.Logger.WithGroup("attribute_references")
 	logger.Debug("Analyzing attribute references")
 
 	for _, f := range z.P.Files {
-		walk.WalkT(f.AST, func(w *walk.ContextT[*ast.AttributeReference]) walk.Action {
-			z.AnalyzeAttributeReference(logger, f, w.Parents, f.AttributeReferenceByNode(w.Node))
+		logger := logger.With(slog.String("file", f.Name))
+		walk.WalkT(f.AST, func(w *walk.ContextT[ast.Attribute]) walk.Action {
+			z.AnalyzeAttribute(logger, f, w.Parents, f.AttributeByNode(w.Node))
 			return walk.Continue
 		})
 	}
 }
 
-// AnalyzeAttributeReference analyzes the given attribute reference.
+// AnalyzeAttribute analyzes the given attribute.
 //
 // Depends on Checks: None
 //
 // Sets Fields: None
 //
 // Depends on Fields: None
-func (z *analyzer) AnalyzeAttributeReference(logger *slog.Logger, f *file.File, parents []*walk.Context, ref *file.AttributeReference) {
-	logger = logger.With(
-		slog.String("file", f.Name),
-		slog.String("ref_pos", ref.AST.Start().String()),
-	)
+func (z *analyzer) AnalyzeAttribute(logger *slog.Logger, f *file.File, parents []*walk.Context, attr *file.Attribute) {
+	logger = logger.With(slog.String("ref_pos", attr.AST.Start().String()))
 
-	logger.Debug("Analyzing attribute reference")
-
-	z.AnalyzeAttributeReferenceElement(f, parents, ref)
+	z.AnalyzeAttributeForwarded(f, parents, attr)
+	z.AnalyzeAttributeContainingElements(f, parents, attr)
+	z.AnalyzeAttributeType(logger, f, parents, attr)
 }
 
 // ============================================================================

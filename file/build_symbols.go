@@ -83,12 +83,14 @@ func buildSymbols(f *File) {
 		Imports:             make([]*Import, 0, 64),
 		ComponentCalls:      make([]*ComponentCall, 0, 256),
 		ElementReferences:   make([]*ElementReference, 0, 256),
+		Attributes:          make([]*Attribute, 0, 512),
 		AttributeReferences: make([]*AttributeReference, 0, 512),
 	}
 	defer func() {
 		f.Imports = slices.Clip(f.Imports)
 		f.ComponentCalls = slices.Clip(f.ComponentCalls)
 		f.ElementReferences = slices.Clip(f.ElementReferences)
+		f.Attributes = slices.Clip(f.Attributes)
 		f.AttributeReferences = slices.Clip(f.AttributeReferences)
 	}()
 
@@ -107,6 +109,7 @@ func buildSymbols(f *File) {
 
 	var (
 		cc          *ComponentCall
+		attr        *Attribute
 		comp        *Component
 		parentBlock *BlockInstance
 	)
@@ -162,8 +165,17 @@ func buildSymbols(f *File) {
 		case *ast.ElementReference:
 			f.ElementReferences = append(f.ElementReferences, &ElementReference{AST: n})
 			n.Walk(walk)
+		case ast.Attribute:
+			attr = &Attribute{AST: n}
+			f.Attributes = append(f.Attributes, attr)
+			n.Walk(walk)
 		case *ast.AttributeReference:
-			f.AttributeReferences = append(f.AttributeReferences, &AttributeReference{AST: n})
+			ref := &AttributeReference{AST: n}
+			if attr != nil {
+				attr.Reference = ref
+				attr = nil
+			}
+			f.AttributeReferences = append(f.AttributeReferences, ref)
 			n.Walk(walk)
 		}
 	}
