@@ -74,11 +74,10 @@ func (*CharacterEscape) _contentWriter() {}
 // ======================================================================================
 
 type ExpressionInterpolation struct {
-	Hash            *Position
-	FormatDirective string // a sprintf placeholder, excluding the leading %
-	LBrace          *Position
-	Expression      *Expression
-	RBrace          *Position
+	Hash       *Position
+	LBrace     *Position
+	Expression *Expression
+	RBrace     *Position
 }
 
 var (
