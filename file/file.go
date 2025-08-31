@@ -409,13 +409,8 @@ type Attribute struct {
 	// albeit with errors.
 	Analyzed bool
 
-	// StaticValue is the static value of the attribute, if it has one.
-	//
-	// Attributes with a static value needn't be typed, as they are assumed to
-	// be always safe.
-	//
-	// Either a [TextualAttributeValue], [BoolAttributeValue], or nil.
-	StaticValue Analysis[AttributeValue]
+	// Value is the value of the attribute.
+	Value AttributeValue
 
 	// Forwarded indicates whether the attribute reference is forwarded to the
 	// component calling the component containing it.
@@ -448,25 +443,75 @@ type Attribute struct {
 	// It is never nil.
 	ContainingElements Analysis[*[]ContainingElement]
 
-	// Type is the type of the attribute.
+	// Type is the type of the attribute, resolved from the containing elements.
 	//
-	// For attributes with a static value, this field is always set.
-	// Only then, is [attrtype.Unknown] a valid Type and indicates that the
-	// attribute is neither explicitly type nor could be inferred without
-	// error.
-	// If the attribute has no static value, cases where the type would be
-	// unknown result in a failed analysis.
+	// A failed analysis indicates conflicting type values, e.g. if the
+	// attribute is placed on multiple elements that specify different types.
+	//
+	// A type of [attrtype.Unknown] indicates that no type could be determined.
+	// A [attrtype.Unknown] is only allowed, if the attribute has a constant
+	// value.
 	Type Analysis[attrtype.Type]
 }
 
+func (a *Attribute) Constant() bool {
+	switch val := a.Value.(type) {
+	case ConstantBoolAttributeValue:
+		return true
+	case TextualAttributeValue:
+		return val.Constant()
+	default:
+		return false
+	}
+}
+
+// ============================================================================
+// Attribute Value
+// ======================================================================================
+
 type (
+	// AttributeValue is either a [ConstantBoolAttributeValue],
+	// [DynamicBoolAttributeValue], [UntypedAttributeValue], or
+	// [TextualAttributeValue].
 	AttributeValue interface {
 		_attributeValue()
 	}
 
-	TextualAttributeValue string
-	BoolAttributeValue    bool
+	ConstantBoolAttributeValue bool
+	DynamicBoolAttributeValue  ast.Expression
+	UntypedAttributeValue      ast.Expression
+
+	// TextualAttributeValue is a sequence of constant and dynamic parts.
+	TextualAttributeValue     []TextualAttributeValuePart
+	TextualAttributeValuePart interface {
+		_textualAttributeValuePart()
+	}
+	ConstantTextualAttributeValuePart string
+	DynamicTextualAttributeValuePart  ast.Expression
 )
 
-func (TextualAttributeValue) _attributeValue() {}
-func (BoolAttributeValue) _attributeValue()    {}
+var (
+	_ AttributeValue = ConstantBoolAttributeValue(false)
+	_ AttributeValue = (*DynamicBoolAttributeValue)(nil)
+	_ AttributeValue = (*UntypedAttributeValue)(nil)
+	_ AttributeValue = (TextualAttributeValue)(nil)
+
+	_ TextualAttributeValuePart = ConstantTextualAttributeValuePart("")
+	_ TextualAttributeValuePart = (*DynamicTextualAttributeValuePart)(nil)
+)
+
+func (ConstantBoolAttributeValue) _attributeValue() {}
+func (*DynamicBoolAttributeValue) _attributeValue() {}
+func (*UntypedAttributeValue) _attributeValue()     {}
+func (TextualAttributeValue) _attributeValue()      {}
+
+func (ConstantTextualAttributeValuePart) _textualAttributeValuePart() {}
+func (*DynamicTextualAttributeValuePart) _textualAttributeValuePart() {}
+
+func (v TextualAttributeValue) Constant() bool {
+	if len(v) != 1 {
+		return false
+	}
+	_, ok := v[0].(ConstantTextualAttributeValuePart)
+	return ok
+}
