@@ -189,7 +189,7 @@ func (z *analyzer) InferTypeFromComponentParamDefault(logger *slog.Logger, c *fi
 		return
 	}
 
-	t, _ := file.InferType(c.File, param.AST.Default)
+	t, _ := InferType(c.File, param.AST.Default)
 	if t != "" {
 		param.InferredType.SetResult(t)
 	}

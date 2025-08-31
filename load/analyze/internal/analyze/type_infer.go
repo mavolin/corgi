@@ -1,9 +1,10 @@
-package file
+package analyze
 
 import (
 	"regexp"
 	"strings"
 
+	"github.com/mavolin/corgi/v2/file"
 	"github.com/mavolin/corgi/v2/file/ast"
 )
 
@@ -19,7 +20,7 @@ import (
 // While the expression can be cast to the type returned, but in the context of
 // the expression it might also be used to yield a different, more concrete
 // type.
-func InferType(f *File, expr *ast.Expression) (typ string, sure bool) {
+func InferType(f *file.File, expr *ast.Expression) (typ string, sure bool) {
 	if expr == nil {
 		return "", false
 	} else if len(expr.Nodes) == 0 {
@@ -59,7 +60,7 @@ func InferType(f *File, expr *ast.Expression) (typ string, sure bool) {
 	}
 }
 
-func inferTernaryType(f *File, expr *ast.Ternary) (typ string, sure bool) {
+func inferTernaryType(f *file.File, expr *ast.Ternary) (typ string, sure bool) {
 	if expr == nil || (expr.TrueVal == nil && expr.FalseVal == nil) {
 		return "", false
 	}
@@ -85,7 +86,7 @@ func inferTernaryType(f *File, expr *ast.Ternary) (typ string, sure bool) {
 	return "", false
 }
 
-func inferZeroCoalescingType(f *File, expr *ast.ZeroCoalescing) (typ string, sure bool) {
+func inferZeroCoalescingType(f *file.File, expr *ast.ZeroCoalescing) (typ string, sure bool) {
 	if expr == nil {
 		return "", false
 	}
@@ -109,7 +110,7 @@ func inferZeroCoalescingType(f *File, expr *ast.ZeroCoalescing) (typ string, sur
 	return "", false
 }
 
-func inferGoCodeType(f *File, expr *ast.GoCode) (typ string, sure bool) {
+func inferGoCodeType(f *file.File, expr *ast.GoCode) (typ string, sure bool) {
 	if expr == nil {
 		return "", false
 	}
@@ -169,7 +170,7 @@ func inferBooleanType(expr *ast.GoCode) string {
 
 var stateRegexp = regexp.MustCompile(`^state[ \t]*\.\s*([a-zA-Z_][a-zA-Z0-9_]*)`)
 
-func inferStateVariableType(f *File, expr *ast.GoCode) string {
+func inferStateVariableType(f *file.File, expr *ast.GoCode) string {
 	c := expr.Code
 	t := stateRegexp.FindStringSubmatch(c)
 	if len(t) != 2 {
