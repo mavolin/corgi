@@ -1,13 +1,10 @@
 package file
 
 import (
-	"fmt"
 	"path"
 	"slices"
 	"strings"
 
-	"github.com/mavolin/corgi/v2/escape/attrtype"
-	"github.com/mavolin/corgi/v2/escape/elemtype"
 	"github.com/mavolin/corgi/v2/file/ast"
 )
 
@@ -50,6 +47,10 @@ func (p *Package) ModulePath() string {
 	return p.PathInModule
 }
 
+// ============================================================================
+// Symbols
+// ======================================================================================
+
 // PackageSymbols contains the symbols of the package.
 //
 // The usual way of populating these is by using the [BuildSymbols] function.
@@ -82,6 +83,78 @@ type PackageSymbols struct {
 	// Analyzed indicates that the entire file has been analyzed, i.e. all
 	// symbols have Analyzed set to true.
 	Analyzed bool
+}
+
+// BuildSymbols builds the symbols of the package.
+// That means it populates the PackageSymbols field of the package
+// and the Symbols field on the files of the package.
+//
+// This is usually done prior to linking, after all files have been parsed and
+// added to the package.
+// BuildSymbols fills the all fields on the package's PackageSymbols struct,
+// and all fields on the Symbols struct of each file.
+func BuildSymbols(p *Package) {
+	p.PackageSymbols = &PackageSymbols{
+		Components:     make([]*Component, 0, 64),
+		State:          make([]*State, 0, 64),
+		ElementSpecs:   make([]*ElementSpec, 0, 64),
+		AttributeSpecs: make([]*AttributeSpec, 0, 256),
+	}
+	defer func() {
+		p.Components = slices.Clip(p.Components)
+		p.State = slices.Clip(p.State)
+		p.ElementSpecs = slices.Clip(p.ElementSpecs)
+		p.AttributeSpecs = slices.Clip(p.AttributeSpecs)
+	}()
+
+	for _, f := range p.Files {
+		for _, n := range f.AST.TopLevel {
+			switch n := n.(type) {
+			case *ast.Component:
+				c := &Component{
+					AST:  n,
+					File: f,
+				}
+				if n.Header != nil && n.Header.Parameters != nil && len(n.Header.Parameters.List) > 0 {
+					c.Parameters = make([]*ComponentParameter, len(n.Header.Parameters.List))
+					for i, param := range n.Header.Parameters.List {
+						c.Parameters[i] = &ComponentParameter{AST: param}
+					}
+				}
+				p.Components = append(p.Components, c)
+			case *ast.StateDeclaration:
+				for _, spec := range n.Specs {
+					if spec == nil {
+						continue
+					}
+					for i := range spec.Names {
+						s := &State{AST: spec, File: f, Index: i}
+						p.State = append(p.State, s)
+					}
+				}
+			case *ast.ElementDefinition:
+				for _, spec := range n.Specs {
+					if spec == nil {
+						continue
+					}
+					p.ElementSpecs = append(p.ElementSpecs, &ElementSpec{Definition: n, AST: spec, File: f})
+				}
+			case *ast.AttributeDefinition:
+				for _, spec := range n.Specs {
+					if spec == nil {
+						continue
+					}
+					p.AttributeSpecs = append(p.AttributeSpecs, &AttributeSpec{Definition: n, AST: spec, File: f})
+				}
+			}
+		}
+	}
+
+	p.RebuildLookupTables()
+
+	for _, f := range p.Files {
+		buildSymbols(f)
+	}
 }
 
 func (s *PackageSymbols) ComponentByNode(c *ast.Component) *Component {
@@ -229,259 +302,4 @@ func (s *PackageSymbols) RebuildLookupTables() {
 	slices.SortFunc(s.AttributeSpecs, func(a, b *AttributeSpec) int {
 		return a.Specificity - b.Specificity
 	})
-}
-
-type State struct {
-	//
-	// BUILD SYMBOLS
-
-	AST  *ast.StateSpec
-	File *File
-	// Index of the variable in the Names and Values slices.
-	Index int
-
-	//
-	// ANALYZER
-
-	// Analyzed indicates whether the State has been analyzed,
-	// albeit with errors.
-	Analyzed bool
-
-	// The InferredType of this value, if there is no explicit type.
-	InferredType Analysis[string]
-}
-
-func (s *State) Name() *ast.Identifier {
-	return s.AST.Names[s.Index]
-}
-
-func (s *State) Value() *ast.Expression {
-	if len(s.AST.Values) == 1 {
-		return s.AST.Values[0]
-	}
-	return s.AST.Values[s.Index]
-}
-
-func (s *State) ResolvedType() Analysis[string] {
-	if s.AST.Type != nil {
-		var a Analysis[string]
-		a.SetResult(s.AST.Type.Type)
-		return a
-	}
-	return s.InferredType
-}
-
-type ElementSpec struct {
-	//
-	// BUILD SYMBOLS
-
-	AST         *ast.ElementSpec
-	Definition  *ast.ElementDefinition
-	File        *File
-	lowerPrefix string
-	lowerName   string
-
-	//
-	// ANALYZE
-
-	// Analyzed indicates whether the ElementSpec has been analyzed,
-	// albeit with errors.
-	Analyzed bool
-
-	// Circular indicates that the element is defined by referencing itself.
-	Circular bool
-
-	Type Analysis[elemtype.Type]
-}
-
-// QualifiedName is the name of the element, without the prefix.
-func (spec *ElementSpec) QualifiedName() string {
-	if spec.AST.Name != nil {
-		return spec.AST.Name.Name
-	}
-	return ""
-}
-
-func (spec *ElementSpec) MatchesQualifiedName(name string) bool {
-	if spec.AST.Name == nil {
-		return false
-	}
-	return strings.EqualFold(spec.AST.Name.Name, name)
-}
-
-// HTMLName is the name of the element, including the prefix.
-func (spec *ElementSpec) HTMLName() string {
-	if spec.AST.Name == nil {
-		return ""
-	}
-	if spec.Definition != nil && spec.Definition.Prefix != nil {
-		return spec.Definition.Prefix.Name + spec.AST.Name.Name
-	}
-	return spec.AST.Name.Name
-}
-
-func (spec *ElementSpec) MatchesHTMLName(name string) bool {
-	if spec.AST.Name == nil {
-		return false
-	}
-
-	name = strings.ToLower(name)
-	if spec.Definition != nil {
-		if spec.Definition.Prefix != nil {
-			prefix := strings.ToLower(spec.Definition.Prefix.Name)
-			if !strings.HasPrefix(name, prefix) {
-				return false
-			}
-			name = name[len(prefix):]
-		}
-	}
-	return strings.ToLower(spec.AST.Name.Name) == name
-}
-
-type AttributeSpec struct {
-	// BUILD SYMBOLS
-	//
-
-	AST        *ast.AttributeSpec
-	Definition *ast.AttributeDefinition
-	File       *File
-
-	// Specificity is the specificity of the attribute definition.
-	//
-	// For basic attribute selectors the specificity is calculated as the length of
-	// the name of the attribute, excluding the wildcard asterisk.
-	// For example `foo` and `foo*` both have a specificity of 3.
-	//
-	// For regular expression selectors, the specificity is always 0.
-	//
-	// In a valid package, there are never two attribute definitions with the same
-	// specificity that match the same name.
-	Specificity int
-}
-
-func (spec *AttributeSpec) MatchesHTMLName(name string) bool {
-	if spec.AST.Selector == nil {
-		return false
-	}
-
-	name = strings.ToLower(name)
-	if spec.Definition != nil {
-		if spec.Definition.Prefix != nil {
-			prefix := strings.ToLower(spec.Definition.Prefix.Name)
-			if !strings.HasPrefix(name, prefix) {
-				return false
-			}
-			name = name[len(prefix):]
-		}
-	}
-	return spec.AST.Selector.Matches(name)
-}
-
-func (spec *AttributeSpec) MatchesQualifiedName(name string) bool {
-	return spec.AST.Selector.Matches(name)
-}
-
-// RuleFor returns the rule on the attribute definition for the given element.
-func (spec *AttributeSpec) RuleFor(elemSpec *ElementSpec) *ast.AttributeRule {
-	if spec.AST.Ruleset == nil {
-		return nil
-	}
-
-	for elemSpec != nil {
-		if r := spec.ruleFor(elemSpec); r != nil {
-			return r
-		}
-
-		// If the passed element is an alias of another element, check if
-		// we match for that element.
-		if elemSpec.AST == nil || elemSpec.AST.Type == nil {
-			break
-		}
-		alias, _ := elemSpec.AST.Type.(*ast.AliasElementType)
-		if alias == nil {
-			break
-		}
-		elemRef := elemSpec.File.ElementReferenceByNode(alias.Name)
-		if elemRef == nil {
-			break
-		}
-		elemSpec = elemRef.Spec
-	}
-
-	return nil
-}
-
-func (spec *AttributeSpec) ruleFor(elemSpec *ElementSpec) *ast.AttributeRule {
-	var fallback *ast.AttributeRule
-
-	for _, rule := range spec.AST.Ruleset.List {
-		if rule == nil {
-			continue
-		}
-
-		switch sel := rule.Selector.(type) {
-		case *ast.WildcardElementSelector:
-			fallback = rule
-		case *ast.ListElementSelector:
-			for _, elemRefAST := range sel.List {
-				elemRef := spec.File.ElementReferenceByNode(elemRefAST)
-				if elemRef.Spec == elemSpec {
-					return rule
-				}
-			}
-		default:
-			panic(fmt.Sprintf("AttributeSpec.RuleFor: unknown selector type: %T", sel))
-		}
-	}
-
-	return fallback
-}
-
-// TypeFor returns the type of the attribute for the given element.
-func (spec *AttributeSpec) TypeFor(elemSpec *ElementSpec) attrtype.Type {
-	r := spec.RuleFor(elemSpec)
-	if r == nil || r.Type == nil {
-		return attrtype.Unknown
-	}
-	return r.Type.Type
-}
-
-// GenericType returns the one type an attribute would have, regardless of the
-// element it is used on.
-//
-// In other words, it only returns a type if the attribute definition contains
-// a single wildcard selector rule.
-func (spec *AttributeSpec) GenericType() attrtype.Type {
-	if spec.AST.Ruleset == nil {
-		return attrtype.Unknown
-	}
-
-	if len(spec.AST.Ruleset.List) != 1 {
-		return attrtype.Unknown
-	}
-
-	rule := spec.AST.Ruleset.List[0]
-	if rule.Selector == nil || rule.Type == nil {
-		return attrtype.Unknown
-	}
-
-	wildcard, _ := rule.Selector.(*ast.WildcardElementSelector)
-	if wildcard == nil {
-		return attrtype.Unknown
-	}
-	return rule.Type.Type
-}
-
-func (spec *AttributeSpec) specificity() int {
-	switch sel := spec.AST.Selector.(type) {
-	case *ast.BasicAttributeSelector:
-		if spec.Definition != nil && spec.Definition.Prefix != nil {
-			return len(spec.Definition.Prefix.Name) + len(sel.Name)
-		}
-		return len(sel.Name)
-	case *ast.RegexpAttributeSelector:
-		return 0
-	default:
-		panic(fmt.Sprintf("AttributeSpec.TypeFor: unknown selector type: %T", sel))
-	}
 }

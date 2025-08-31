@@ -7,8 +7,8 @@ import (
 	"cmp"
 	"fmt"
 	"path"
+	"slices"
 
-	"github.com/mavolin/corgi/v2/escape/attrtype"
 	"github.com/mavolin/corgi/v2/file/ast"
 	"github.com/mavolin/corgi/v2/internal/meta"
 )
@@ -44,6 +44,10 @@ func (f *File) PathInModule() string {
 	}
 	return path.Join(f.Package.PathInModule, f.Name)
 }
+
+// ============================================================================
+// Symbols
+// ======================================================================================
 
 // Symbols contains the symbols of the file.
 //
@@ -81,6 +85,131 @@ type Symbols struct {
 	// Analyzed indicates that the entire file has been analyzed, i.e. all
 	// symbols have Analyzed set to true.
 	Analyzed bool
+}
+
+func buildSymbols(f *File) {
+	f.Symbols = &Symbols{
+		Imports:             make([]*Import, 0, 64),
+		ComponentCalls:      make([]*ComponentCall, 0, 256),
+		ElementReferences:   make([]*ElementReference, 0, 256),
+		Attributes:          make([]*Attribute, 0, 512),
+		AttributeReferences: make([]*AttributeReference, 0, 512),
+	}
+	defer func() {
+		f.Imports = slices.Clip(f.Imports)
+		f.ComponentCalls = slices.Clip(f.ComponentCalls)
+		f.ElementReferences = slices.Clip(f.ElementReferences)
+		f.Attributes = slices.Clip(f.Attributes)
+		f.AttributeReferences = slices.Clip(f.AttributeReferences)
+	}()
+
+	for _, impStmt := range f.AST.Imports {
+		for _, spec := range impStmt.Specs {
+			imp := &Import{AST: spec}
+			if spec.Alias != nil {
+				imp.Alias = spec.Alias.Name
+			}
+			if spec.Path != nil {
+				imp.Path = spec.Path.Unquote()
+			}
+			f.Imports = append(f.Imports, imp)
+		}
+	}
+
+	var (
+		cc          *ComponentCall
+		attr        *Attribute
+		comp        *Component
+		parentBlock *BlockInstance
+	)
+	var walk func(n ast.Node)
+	walk = func(n ast.Node) {
+		switch n := n.(type) {
+		case *ast.ComponentCall:
+			ccw := &ComponentCall{AST: n, File: f, BlockSetters: make([]*BlockSetter, 0, 24)}
+			f.ComponentCalls = append(f.ComponentCalls, ccw)
+			f.componentCallsByNode[n] = ccw
+
+			oldCC := cc
+			cc = ccw
+			n.Walk(walk)
+			cc = oldCC
+
+			ccw.BlockSetters = slices.Clip(ccw.BlockSetters)
+			for _, with := range ccw.BlockSetters {
+				with.Instances = slices.Clip(with.Instances)
+			}
+		case ast.BlockSetter:
+			if cc == nil {
+				n.Walk(walk)
+				break
+			}
+			instance := &BlockSetterInstance{AST: n}
+			group := cc.BlockSetterByName(n.Name())
+			if group == nil {
+				group = &BlockSetter{Name: n.Name(), Instances: make([]*BlockSetterInstance, 0, 16)}
+				cc.BlockSetters = append(cc.BlockSetters, group)
+			}
+			instance.Group = group
+			group.Instances = append(group.Instances, instance)
+
+			n.Walk(walk)
+		case *ast.Block:
+			instance := &BlockInstance{AST: n, Parent: parentBlock}
+			if n.Default != nil {
+				instance.Default = &BlockInstanceDefault{AST: n.Default}
+			}
+			group := comp.BlockByName(n.Name())
+			if group == nil {
+				group = &Block{Name: n.Name(), Instances: make([]*BlockInstance, 0, 16)}
+				comp.Blocks = append(comp.Blocks, group)
+			}
+			instance.Group = group
+			group.Instances = append(group.Instances, instance)
+
+			oldParent := parentBlock
+			parentBlock = instance
+			n.Walk(walk)
+			parentBlock = oldParent
+		case *ast.ElementReference:
+			f.ElementReferences = append(f.ElementReferences, &ElementReference{AST: n})
+			n.Walk(walk)
+		case ast.Attribute:
+			attr = &Attribute{AST: n}
+			f.Attributes = append(f.Attributes, attr)
+			n.Walk(walk)
+		case *ast.AttributeReference:
+			ref := &AttributeReference{AST: n}
+			if attr != nil {
+				attr.Reference = ref
+				attr = nil
+			}
+			f.AttributeReferences = append(f.AttributeReferences, ref)
+			n.Walk(walk)
+		}
+	}
+	for _, n := range f.AST.TopLevel {
+		astC, _ := n.(*ast.Component)
+		if astC == nil {
+			continue
+		}
+		c := f.Package.ComponentByNode(astC)
+		c.Blocks = make([]*Block, 0, 24)
+
+		ccsStart := len(f.ComponentCalls)
+		n.Walk(walk)
+		ccEnd := len(f.ComponentCalls)
+		if ccEnd > ccsStart {
+			c.ComponentCalls = f.ComponentCalls[ccsStart:ccEnd:ccEnd]
+		}
+
+		c.Blocks = slices.Clip(c.Blocks)
+		for _, block := range c.Blocks {
+			block.Instances = slices.Clip(block.Instances)
+		}
+	}
+
+	f.RebuildLookupTables()
 }
 
 // AddBuiltinImport creates a new [Import] importing the given builtin package.
@@ -217,301 +346,4 @@ func (s *Symbols) RebuildLookupTables() {
 	for _, ref := range s.AttributeReferences {
 		s.attributeReferencesByNode[ref.AST] = ref
 	}
-}
-
-// ============================================================================
-// Import
-// ======================================================================================
-
-type Import struct {
-	//
-	// BUILD SYMBOLS
-
-	// AST is the AST node of the import, if this package was explicitly
-	// imported.
-	AST *ast.ImportSpec
-
-	Alias string // may be empty
-	// Path is the import path.
-	//
-	// Guaranteed to be non-empty for both explicit and implicit imports.
-	Path string
-
-	//
-	// LINKER
-
-	// Loaded indicates the linker determined that this import is
-	// relevant, and it attempted to load the package.
-	//
-	// If true, but Package is nil, the linker encountered an error while
-	// loading the package.
-	Loaded bool
-
-	// Package is the package this import resolves to.
-	//
-	// The linker will not load the packages of implicitly imported packages,
-	// the only exception being a builtin package, if provided.
-	Package *Package
-
-	// Namespace is the namespace of the import.
-	//
-	// The responsibility of setting this field depends on whether the import
-	// is explicit or implicit:
-	//
-	// For explicit imports, it is the linker's responsibility to set this
-	// field, as it loads the package and reads the package name.
-	// If the linker chooses not to load this import, the Namespace field
-	// may remain empty.
-	//
-	// For implicit imports, it is the responsibility of the adder of the
-	// import to set this field.
-	//
-	// All forwarded imports must have a valid namespace.
-	//
-	// For dot imports, this field is set to the empty sting.
-	//
-	// The corgi module reserves all namespaces prefixed with "__corgi_".
-	Namespace string
-
-	// Forward indicates whether this import should be forwarded, i.e. included,
-	// in the output file's list of imports.
-	//
-	// Like with the Namespace field, this is set by the linker for explicit
-	// imports, and by the adder of the import for implicit imports.
-	//
-	// All forwarded imports must have a valid, unique, namespace.
-	// All forwarded explicit imports must have a valid Package.
-	Forward bool
-
-	// Builtin indicates that this is the single builtin import for the file.
-	Builtin bool
-}
-
-func (imp *Import) Explicit() bool { return imp.AST != nil }
-func (imp *Import) Implicit() bool { return !imp.Explicit() }
-
-// EnsureUniqueNamespace ensures that the import's namespace is unique
-// within the file's symbols.
-//
-// If the namespace is already taken, it appends underscores until it is
-// unique and returns false.
-// Otherwise, it returns true.
-func (imp *Import) EnsureUniqueNamespace(s *Symbols) (ok bool) {
-	if s.ImportByNamespace(imp.Namespace) == nil {
-		return true
-	}
-
-	for s.ImportByNamespace(imp.Namespace) != nil {
-		imp.Namespace += "_"
-	}
-	imp.Alias = imp.Namespace
-	return false
-}
-
-// ============================================================================
-// Element Reference
-// ======================================================================================
-
-type ElementReference struct {
-	//
-	// BUILD SYMBOLS
-
-	AST *ast.ElementReference
-
-	//
-	// LINKER
-
-	// Linked indicates whether the ElementReference has been seen by the
-	// linker, and it attempted to link it.
-	//
-	// If true, but Spec is nil, the linker encountered an error while
-	// linking the ElementReference.
-	Linked bool
-
-	// Spec is the spec providing the type of the Element.
-	Spec *ElementSpec
-}
-
-// HTMLName returns the name of the element.
-//
-// Can only be called after successful linking.
-func (r *ElementReference) HTMLName() string {
-	return r.Spec.HTMLName()
-}
-
-// ============================================================================
-// Attribute Reference
-// ======================================================================================
-
-type AttributeReference struct {
-	//
-	// BUILD SYMBOLS
-
-	AST *ast.AttributeReference
-
-	//
-	// LINKER
-
-	// Linked indicates whether the AttributeReference has been seen by the
-	// linker, and it attempted to link it.
-	// If true, but Spec is nil, the linker encountered an error while
-	// linking the AttributeReference.
-	Linked bool
-
-	// Spec is the spec declaring the attribute.
-	//
-	// Unlike element references, attribute references needn't have a spec:
-	// Attributes can be explicitly typed, in which case the prior definition
-	// of the attribute is optional.
-	//
-	// It is the analyzer's responsibility to report cases in which it expects
-	// an attribute reference to have a spec, but it doesn't.
-	Spec Analysis[*AttributeSpec] // may be nil
-}
-
-// HTMLName returns the name of the attribute.
-func (r *AttributeReference) HTMLName() (a Analysis[string]) {
-	// possibly has a prefix
-	if r.AST.Package != nil {
-		if r.Spec.Equal(nil) { // externally defined attribute, but no spec?
-			a.SetFailed()
-			return a
-		}
-
-		// prepend the prefix
-		if r.Spec.Result().Definition.Prefix != nil {
-			a.SetResult(r.Spec.Result().Definition.Prefix.Name + r.AST.Name.Name)
-			return a
-		}
-
-		// fallthrough, no prefix
-	}
-
-	a.SetResult(r.AST.Name.Name)
-	return a
-}
-
-// ============================================================================
-// Attribute
-// ======================================================================================
-
-type Attribute struct {
-	//
-	// BUILD SYMBOLS
-
-	AST       ast.Attribute
-	Reference *AttributeReference
-
-	//
-	// ANALYZER
-
-	// Analyzed indicates whether the AttributeReference has been analyzed,
-	// albeit with errors.
-	Analyzed bool
-
-	// Value is the value of the attribute.
-	Value AttributeValue
-
-	// Forwarded indicates whether the attribute reference is forwarded to the
-	// component calling the component containing it.
-	//
-	//    comp woof() {
-	//      &(bark=...)
-	//    }
-	//
-	// In the above example, the attribute reference bark is forwarded to the
-	// component calling woof.
-	Forwarded Analysis[bool]
-	// ContainingElements are all elements containing this block instance.
-	// If Forwarded is true, the list is not absolute: It would need to be
-	// extended with the containing elements of the component call.
-	//
-	// A nil/empty slice indicates that the attribute reference is fully
-	// forwarded.
-	//
-	// This list only contains the elements that influence the type of the
-	// attribute, which is usually the desired behavior.
-	// Since forwarded attributes must be explicitly typed, this list would not
-	// contain elements from Woof in the below example, since they are
-	// irrelevant to the type of bark:
-	//    :Woof {
-	//      :Bark(data-bark=myVar) // Bark forwards the attributes it receives
-	//    }
-	//
-	// The pointer to the slice has no significance and is just there to
-	// satisfy the comparable constraint of Analysis.
-	// It is never nil.
-	ContainingElements Analysis[*[]ContainingElement]
-
-	// Type is the type of the attribute, resolved from the containing elements.
-	//
-	// A failed analysis indicates conflicting type values, e.g. if the
-	// attribute is placed on multiple elements that specify different types.
-	//
-	// A type of [attrtype.Unknown] indicates that no type could be determined.
-	// A [attrtype.Unknown] is only allowed, if the attribute has a constant
-	// value.
-	Type Analysis[attrtype.Type]
-}
-
-func (a *Attribute) Constant() bool {
-	switch val := a.Value.(type) {
-	case ConstantBoolAttributeValue:
-		return true
-	case TextualAttributeValue:
-		return val.Constant()
-	default:
-		return false
-	}
-}
-
-// ============================================================================
-// Attribute Value
-// ======================================================================================
-
-type (
-	// AttributeValue is either a [ConstantBoolAttributeValue],
-	// [DynamicBoolAttributeValue], [UntypedAttributeValue], or
-	// [TextualAttributeValue].
-	AttributeValue interface {
-		_attributeValue()
-	}
-
-	ConstantBoolAttributeValue bool
-	DynamicBoolAttributeValue  ast.Expression
-	UntypedAttributeValue      ast.Expression
-
-	// TextualAttributeValue is a sequence of constant and dynamic parts.
-	TextualAttributeValue     []TextualAttributeValuePart
-	TextualAttributeValuePart interface {
-		_textualAttributeValuePart()
-	}
-	ConstantTextualAttributeValuePart string
-	DynamicTextualAttributeValuePart  ast.Expression
-)
-
-var (
-	_ AttributeValue = ConstantBoolAttributeValue(false)
-	_ AttributeValue = (*DynamicBoolAttributeValue)(nil)
-	_ AttributeValue = (*UntypedAttributeValue)(nil)
-	_ AttributeValue = (TextualAttributeValue)(nil)
-
-	_ TextualAttributeValuePart = ConstantTextualAttributeValuePart("")
-	_ TextualAttributeValuePart = (*DynamicTextualAttributeValuePart)(nil)
-)
-
-func (ConstantBoolAttributeValue) _attributeValue() {}
-func (*DynamicBoolAttributeValue) _attributeValue() {}
-func (*UntypedAttributeValue) _attributeValue()     {}
-func (TextualAttributeValue) _attributeValue()      {}
-
-func (ConstantTextualAttributeValuePart) _textualAttributeValuePart() {}
-func (*DynamicTextualAttributeValuePart) _textualAttributeValuePart() {}
-
-func (v TextualAttributeValue) Constant() bool {
-	if len(v) != 1 {
-		return false
-	}
-	_, ok := v[0].(ConstantTextualAttributeValuePart)
-	return ok
 }
