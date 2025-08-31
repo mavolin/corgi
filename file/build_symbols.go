@@ -80,13 +80,10 @@ func BuildSymbols(p *Package) {
 
 func buildSymbols(f *File) {
 	f.Symbols = &Symbols{
-		Imports:                   make([]*Import, 0, 64),
-		ComponentCalls:            make([]*ComponentCall, 0, 256),
-		componentCallsByNode:      make(map[*ast.ComponentCall]*ComponentCall, 256),
-		ElementReferences:         make([]*ElementReference, 0, 256),
-		elementReferencesByNode:   make(map[*ast.ElementReference]*ElementReference, 256),
-		AttributeReferences:       make([]*AttributeReference, 0, 512),
-		attributeReferencesByNode: make(map[*ast.AttributeReference]*AttributeReference, 512),
+		Imports:             make([]*Import, 0, 64),
+		ComponentCalls:      make([]*ComponentCall, 0, 256),
+		ElementReferences:   make([]*ElementReference, 0, 256),
+		AttributeReferences: make([]*AttributeReference, 0, 512),
 	}
 	defer func() {
 		f.Imports = slices.Clip(f.Imports)
