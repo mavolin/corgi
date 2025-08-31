@@ -5,7 +5,6 @@ import (
 	"log/slog"
 	"slices"
 
-	"github.com/mavolin/corgi/v2/escape/attrtype"
 	"github.com/mavolin/corgi/v2/file"
 	"github.com/mavolin/corgi/v2/file/ast"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
@@ -44,6 +43,7 @@ func (z *analyzer) AnalyzeAttribute(logger *slog.Logger, f *file.File, parents [
 	logger = logger.With(slog.String("attr_pos", attr.AST.Start().String()))
 
 	z.AnalyzeAttributeValue(logger, f, attr)
+	z.AnalyzeAttributeForwarded(f, parents, attr)
 }
 
 // ============================================================================
@@ -240,5 +240,67 @@ func (z *analyzer) expressionFromAttributeValue(logger *slog.Logger, f *file.Fil
 			})
 			return nil
 		}
+	}
+}
+
+// ============================================================================
+// Forwarded
+// ======================================================================================
+
+// AnalyzeAttributeForwarded determines whether the given attribute
+// reference is forwarded out of the component or not.
+//
+// Depends on Checks: None
+//
+// Sets Fields:
+//   - Attributes.Forwarded
+//
+// Depends on Fields:
+//   - ComponentCalls.ForwardsReceivedAttributes
+//   - Components.Blocks.Forwarded
+//   - Components.Blocks.Instances.Forwarded
+func (z *analyzer) AnalyzeAttributeForwarded(f *file.File, parents []*walk.Context, attr *file.Attribute) {
+	attr.Forwarded.SetResult(true)
+
+	i := len(parents) - 1
+	for i >= 0 {
+		parent := parents[i]
+		switch parent := parent.Node.(type) {
+		case *ast.ComponentCall: // we're filling the cc's &-placeholder
+			cc := f.ComponentCallByNode(parent)
+			if cc.ForwardsReceivedAttributes.Failed() {
+				// Continue checking: if the attribute has another element as
+				// parent, we can still be sure it's not forwarded.
+				attr.Forwarded.SetFailed()
+			} else if cc.ForwardsReceivedAttributes.False() {
+				attr.Forwarded.SetResult(false)
+				return
+			}
+		case ast.BlockSetter:
+			ccI := walk.ClosestIndex[*ast.ComponentCall](parents[:i])
+			if ccI < 0 {
+				attr.Forwarded.SetFailed()
+				continue
+			}
+
+			ccAST := parents[ccI].Node.(*ast.ComponentCall) //nolint:errcheck
+			cc := f.ComponentCallByNode(ccAST)
+
+			s := cc.BlockSetterByName(parent.Name())
+			if s == nil || s.Block == nil {
+				// Continue checking: if the attribute has another element as
+				// parent, we can still be sure it's not forwarded.
+				attr.Forwarded.SetFailed()
+			} else if s.Block.Forwarded.False() {
+				attr.Forwarded.SetResult(false)
+				return
+			}
+			i = ccI - 1 // continue with the parent of the component call
+			continue
+		case *ast.Element:
+			attr.Forwarded.SetResult(false)
+			return
+		}
+		i--
 	}
 }
