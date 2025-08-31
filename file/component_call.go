@@ -109,13 +109,13 @@ type ComponentCall struct {
 	// setters writes elements ([ComponentCall.BlockSetterWritesElements]).
 	ComponentWritesElements AnalysisWithReason[ast.ElementWriter]
 
-	ElementsWithAndPlaceholder Analysis[*[]*ElementReference]
 	// ElementsWithAndPlaceholder are the elements in the component's body
 	// that contain an &-placeholder.
 	//
 	// The pointer to the slice has no significance and is just there to
 	// satisfy the comparable constraint of Analysis.
 	// It is never nil.
+	ElementsWithAndPlaceholder Analysis[*[]ContainingElement]
 }
 
 func (cc *ComponentCall) External() bool { return cc.File.Package != cc.Component.File.Package }
