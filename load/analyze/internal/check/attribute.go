@@ -39,7 +39,7 @@ func (ch *checker) CheckClassAlwaysInnocuous(
 	switch attr.Value.(type) {
 	case file.ConstantBoolAttributeValue:
 		isBool = true
-	case *file.DynamicBoolAttributeValue:
+	case *file.ExpressionBoolAttributeValue:
 		isBool = true
 	}
 	if isBool {
@@ -63,7 +63,7 @@ func (ch *checker) CheckClassAlwaysInnocuous(
 		return
 	} else if typ == attrtype.Unknown {
 		switch attr.Value.(type) {
-		case file.TextualAttributeValue:
+		case file.TextAttributeValue:
 			// If the value is constant, we can use it as a class attribute.
 			// If the value is not, we already captured an error elsewhere
 			// asserting that the attribute must be typed
@@ -152,7 +152,7 @@ func (ch *checker) CheckNoInterpolationInUnsafeAttribute(logger *slog.Logger, f 
 	}
 
 	switch val := attr.Value.(type) {
-	case file.TextualAttributeValue:
+	case file.TextAttributeValue:
 		if val.Constant() {
 			return
 		}
@@ -217,7 +217,7 @@ func (ch *checker) CheckNonBoolAttributeSpecifiedAsBool(logger *slog.Logger, f *
 
 	switch attr.Value.(type) {
 	case file.ConstantBoolAttributeValue:
-	case *file.DynamicBoolAttributeValue:
+	case *file.ExpressionBoolAttributeValue:
 	default:
 		return
 	}
@@ -271,7 +271,7 @@ func (ch *checker) CheckBoolAttributeSetToNonBoolExpression(logger *slog.Logger,
 	switch attr.Value.(type) {
 	case file.ConstantBoolAttributeValue:
 		return
-	case *file.DynamicBoolAttributeValue:
+	case *file.ExpressionBoolAttributeValue:
 		return
 	case *file.UntypedAttributeValue:
 		return

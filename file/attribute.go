@@ -68,7 +68,7 @@ func (a *Attribute) Constant() bool {
 	switch val := a.Value.(type) {
 	case ConstantBoolAttributeValue:
 		return true
-	case TextualAttributeValue:
+	case TextAttributeValue:
 		return val.Constant()
 	default:
 		return false
@@ -81,47 +81,49 @@ func (a *Attribute) Constant() bool {
 
 type (
 	// AttributeValue is either a [ConstantBoolAttributeValue],
-	// [DynamicBoolAttributeValue], [UntypedAttributeValue], or
-	// [TextualAttributeValue].
+	// [ExpressionBoolAttributeValue], [UntypedAttributeValue], or
+	// [TextAttributeValue].
 	AttributeValue interface {
 		_attributeValue()
 	}
 
-	ConstantBoolAttributeValue bool
-	DynamicBoolAttributeValue  ast.Expression
-	UntypedAttributeValue      ast.Expression
+	ConstantBoolAttributeValue   bool
+	ExpressionBoolAttributeValue ast.Expression
+	UntypedAttributeValue        ast.Expression
 
-	// TextualAttributeValue is a sequence of constant and dynamic parts.
-	TextualAttributeValue     []TextualAttributeValuePart
-	TextualAttributeValuePart interface {
+	// TextAttributeValue is a sequence of constant and dynamic parts.
+	TextAttributeValue     []TextAttributeValuePart
+	TextAttributeValuePart interface {
 		_textualAttributeValuePart()
 	}
-	ConstantTextualAttributeValuePart string
-	DynamicTextualAttributeValuePart  ast.Expression
+	ConstantTextAttributeValuePart      string
+	ExpressionTextAttributeValuePart    ast.Expression
+	ComponentCallTextAttributeValuePart ast.ComponentCall
 )
 
 var (
 	_ AttributeValue = ConstantBoolAttributeValue(false)
-	_ AttributeValue = (*DynamicBoolAttributeValue)(nil)
+	_ AttributeValue = (*ExpressionBoolAttributeValue)(nil)
 	_ AttributeValue = (*UntypedAttributeValue)(nil)
-	_ AttributeValue = (TextualAttributeValue)(nil)
+	_ AttributeValue = (TextAttributeValue)(nil)
 
-	_ TextualAttributeValuePart = ConstantTextualAttributeValuePart("")
-	_ TextualAttributeValuePart = (*DynamicTextualAttributeValuePart)(nil)
+	_ TextAttributeValuePart = ConstantTextAttributeValuePart("")
+	_ TextAttributeValuePart = (*ExpressionTextAttributeValuePart)(nil)
 )
 
-func (ConstantBoolAttributeValue) _attributeValue() {}
-func (*DynamicBoolAttributeValue) _attributeValue() {}
-func (*UntypedAttributeValue) _attributeValue()     {}
-func (TextualAttributeValue) _attributeValue()      {}
+func (ConstantBoolAttributeValue) _attributeValue()    {}
+func (*ExpressionBoolAttributeValue) _attributeValue() {}
+func (*UntypedAttributeValue) _attributeValue()        {}
+func (TextAttributeValue) _attributeValue()            {}
 
-func (ConstantTextualAttributeValuePart) _textualAttributeValuePart() {}
-func (*DynamicTextualAttributeValuePart) _textualAttributeValuePart() {}
+func (ConstantTextAttributeValuePart) _textualAttributeValuePart()       {}
+func (*ExpressionTextAttributeValuePart) _textualAttributeValuePart()    {}
+func (*ComponentCallTextAttributeValuePart) _textualAttributeValuePart() {}
 
-func (v TextualAttributeValue) Constant() bool {
+func (v TextAttributeValue) Constant() bool {
 	if len(v) != 1 {
 		return false
 	}
-	_, ok := v[0].(ConstantTextualAttributeValuePart)
+	_, ok := v[0].(ConstantTextAttributeValuePart)
 	return ok
 }
