@@ -44,6 +44,7 @@ func (z *analyzer) AnalyzeAttribute(logger *slog.Logger, f *file.File, parents [
 
 	z.AnalyzeAttributeValue(logger, f, attr)
 	z.AnalyzeAttributeForwarded(f, parents, attr)
+	z.AnalyzeAttributeContainingElements(f, parents, attr)
 }
 
 // ============================================================================
@@ -260,6 +261,12 @@ func (z *analyzer) expressionFromAttributeValue(logger *slog.Logger, f *file.Fil
 //   - Components.Blocks.Forwarded
 //   - Components.Blocks.Instances.Forwarded
 func (z *analyzer) AnalyzeAttributeForwarded(f *file.File, parents []*walk.Context, attr *file.Attribute) {
+	comp := walk.Closest[*ast.Component](parents)
+	if comp == nil {
+		attr.Forwarded.SetFailed()
+		return
+	}
+
 	attr.Forwarded.SetResult(true)
 
 	i := len(parents) - 1
@@ -299,6 +306,88 @@ func (z *analyzer) AnalyzeAttributeForwarded(f *file.File, parents []*walk.Conte
 			continue
 		case *ast.Element:
 			attr.Forwarded.SetResult(false)
+			return
+		}
+		i--
+	}
+}
+
+// ============================================================================
+// Containing Elements
+// ======================================================================================
+
+// AnalyzeAttributeContainingElements calculates the containing elements
+// of the given attribute.
+//
+// Depends on Checks: None
+//
+// Sets Fields:
+//   - Attributes.ContainingElements
+//
+// Depends on Fields:
+//   - ComponentCalls.ForwardsReceivedAttributes
+//   - ComponentCalls.ElementsWithAndPlaceholder
+//   - Components.Blocks.Forwarded
+//   - Components.Blocks.Instances.Forwarded
+func (z *analyzer) AnalyzeAttributeContainingElements(f *file.File, parents []*walk.Context, attr *file.Attribute) {
+	compAST := walk.Closest[*ast.Component](parents)
+	if compAST == nil {
+		attr.ContainingElements.SetFailed()
+		return
+	}
+	comp := f.Package.ComponentByNode(compAST)
+
+	var containingElements []file.ContainingElement
+
+	i := len(parents) - 1
+	for i >= 0 {
+		parent := parents[i]
+		switch parent := parent.Node.(type) {
+		case *ast.ComponentCall: // we're filling the cc's &-placeholder
+			cc := f.ComponentCallByNode(parent)
+			if cc.ForwardsReceivedAttributes.Failed() || cc.ElementsWithAndPlaceholder.Failed() {
+				attr.ContainingElements.SetFailed()
+				return
+			}
+
+			containingElements = append(containingElements, *cc.ElementsWithAndPlaceholder.Result()...)
+			if cc.ForwardsReceivedAttributes.False() {
+				containingElements = slices.Clip(containingElements)
+				attr.ContainingElements.SetResult(&containingElements)
+				return
+			}
+		case ast.BlockSetter:
+			ccI := walk.ClosestIndex[*ast.ComponentCall](parents[:i])
+			if ccI < 0 {
+				attr.ContainingElements.SetFailed()
+				return
+			}
+
+			ccAST := parents[ccI].Node.(*ast.ComponentCall) //nolint:errcheck
+			cc := f.ComponentCallByNode(ccAST)
+
+			s := cc.BlockSetterByName(parent.Name())
+			if s == nil || s.Block == nil || s.Block.ContainingElements.Failed() {
+				attr.ContainingElements.SetFailed()
+				return
+			}
+
+			containingElements = append(containingElements, *s.Block.ContainingElements.Result()...)
+
+			if s.Block.Forwarded.False() {
+				containingElements = slices.Clip(containingElements)
+				attr.ContainingElements.SetResult(&containingElements)
+				return
+			}
+			i = ccI - 1 // continue with the parent of the component call
+			continue
+		case *ast.Element:
+			containingElements = append(containingElements, file.ContainingElement{
+				Component: comp,
+				Element:   comp.File.ElementReferenceByNode(parent.Header.Name),
+			})
+			containingElements = slices.Clip(containingElements)
+			attr.ContainingElements.SetResult(&containingElements)
 			return
 		}
 		i--
