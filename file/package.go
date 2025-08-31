@@ -381,15 +381,15 @@ func (spec *AttributeSpec) MatchesQualifiedName(name string) bool {
 	return spec.AST.Selector.Matches(name)
 }
 
-// TypeFor returns the type of the attribute for the given element.
-func (spec *AttributeSpec) TypeFor(elemSpec *ElementSpec) attrtype.Type {
+// RuleFor returns the rule on the attribute definition for the given element.
+func (spec *AttributeSpec) RuleFor(elemSpec *ElementSpec) *ast.AttributeRule {
 	if spec.AST.Ruleset == nil {
-		return attrtype.Unknown
+		return nil
 	}
 
 	for elemSpec != nil {
-		if t := spec.typeFor(elemSpec); t != attrtype.Unknown {
-			return t
+		if r := spec.ruleFor(elemSpec); r != nil {
+			return r
 		}
 
 		// If the passed element is an alias of another element, check if
@@ -408,11 +408,11 @@ func (spec *AttributeSpec) TypeFor(elemSpec *ElementSpec) attrtype.Type {
 		elemSpec = elemRef.Spec
 	}
 
-	return attrtype.Unknown
+	return nil
 }
 
-func (spec *AttributeSpec) typeFor(elemSpec *ElementSpec) attrtype.Type {
-	fallback := attrtype.Unknown
+func (spec *AttributeSpec) ruleFor(elemSpec *ElementSpec) *ast.AttributeRule {
+	var fallback *ast.AttributeRule
 
 	for _, rule := range spec.AST.Ruleset.List {
 		if rule == nil {
@@ -421,20 +421,29 @@ func (spec *AttributeSpec) typeFor(elemSpec *ElementSpec) attrtype.Type {
 
 		switch sel := rule.Selector.(type) {
 		case *ast.WildcardElementSelector:
-			fallback = rule.Type.Type
+			fallback = rule
 		case *ast.ListElementSelector:
 			for _, elemRefAST := range sel.List {
 				elemRef := spec.File.ElementReferenceByNode(elemRefAST)
 				if elemRef.Spec == elemSpec {
-					return rule.Type.Type
+					return rule
 				}
 			}
 		default:
-			panic(fmt.Sprintf("AttributeSpec.TypeFor: unknown selector type: %T", sel))
+			panic(fmt.Sprintf("AttributeSpec.RuleFor: unknown selector type: %T", sel))
 		}
 	}
 
 	return fallback
+}
+
+// TypeFor returns the type of the attribute for the given element.
+func (spec *AttributeSpec) TypeFor(elemSpec *ElementSpec) attrtype.Type {
+	r := spec.RuleFor(elemSpec)
+	if r == nil || r.Type == nil {
+		return attrtype.Unknown
+	}
+	return r.Type.Type
 }
 
 // GenericType returns the one type an attribute would have, regardless of the
