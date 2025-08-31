@@ -207,6 +207,10 @@ func (s *Symbols) RebuildLookupTables() {
 	}
 }
 
+// ============================================================================
+// Import
+// ======================================================================================
+
 type Import struct {
 	//
 	// BUILD SYMBOLS
@@ -292,6 +296,10 @@ func (imp *Import) EnsureUniqueNamespace(s *Symbols) (ok bool) {
 	return false
 }
 
+// ============================================================================
+// Element Reference
+// ======================================================================================
+
 type ElementReference struct {
 	//
 	// BUILD SYMBOLS
@@ -319,6 +327,10 @@ func (r *ElementReference) HTMLName() string {
 	return r.Spec.HTMLName()
 }
 
+// ============================================================================
+// Attribute Reference
+// ======================================================================================
+
 type AttributeReference struct {
 	//
 	// BUILD SYMBOLS
@@ -336,10 +348,12 @@ type AttributeReference struct {
 
 	// Spec is the spec declaring the attribute.
 	//
-	// Since attributes can also be explicitly typed, this field may be
-	// nil.
-	// Hence, linker implementations should not report errors if they
-	// cannot resolve the spec that belongs to the reference.
+	// Unlike element references, attribute references needn't have a spec:
+	// Attributes can be explicitly typed, in which case the prior definition
+	// of the attribute is optional.
+	//
+	// It is the analyzer's responsibility to report cases in which it expects
+	// an attribute reference to have a spec, but it doesn't.
 	Spec Analysis[*AttributeSpec] // may be nil
 
 	//

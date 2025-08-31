@@ -85,8 +85,8 @@ type (
 		//
 		// The pointer to the slice has no significance and is just there to
 		// satisfy the comparable constraint of Analysis.
-		// It is never nil; use len() to check for emptiness.
-		ContainingElements Analysis[*[]*ElementReference]
+		// It is never nil.
+		ContainingElements Analysis[*[]ContainingElement]
 
 		// ElementType is the element type that this block assumes.
 		//
