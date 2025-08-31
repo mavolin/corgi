@@ -36,7 +36,6 @@ linters:
     - sloglint
     - sqlclosecheck
     - staticcheck
-    - testifylint
     - tparallel
     - unconvert
     - unparam
@@ -47,18 +46,16 @@ linters:
   settings:
     errcheck:
       check-type-assertions: true
-      exclude-functions:
-        - github.com/mavolin/corgi/v2/file/walk.Walk
-        - github.com/mavolin/corgi/v2/file/walk.WalkT
     gocritic:
       disabled-checks:
         - singleCaseSwitch
     godot:
       exclude:
-        - ^\s*\p{Ll} # Exclude lowercase comments
+        - ^\s*\p{Ll}           # Exclude lowercase comments
         - ^\s*(?:=+|/+|-+|\++) # Exclude lines that are not identifiers
-        - ^\s*\w+$ # Exclude single-word identifiers
-        - '[\w\d]:\s+' # Exclude colons
+        - ^\s*\w+$             # Exclude single-word identifiers
+        - ^(\s*\p{Lu}+)+$      # Exclude sectioning comments (all uppercase)
+        - '[\w\d]:\s+'         # Exclude colons
     unparam:
       check-exported: true
   exclusions:
