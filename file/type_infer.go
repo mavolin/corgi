@@ -16,8 +16,9 @@ import (
 // The 'sure' return value indicates if this prediction is certain, i.e., that
 // the expression will exactly yield the type returned.
 // If 'sure' is false, InferType encountered an untyped literal:
-// While the expression can be cast to the type returned, in the context of the
-// expression it might also be used to yield a different, more concrete type.
+// While the expression can be cast to the type returned, but in the context of
+// the expression it might also be used to yield a different, more concrete
+// type.
 func InferType(f *File, expr *ast.Expression) (typ string, sure bool) {
 	if expr == nil {
 		return "", false
@@ -113,7 +114,9 @@ func inferGoCodeType(f *File, expr *ast.GoCode) (typ string, sure bool) {
 		return "", false
 	}
 
-	if t := inferStateVariableType(f, expr); t != "" {
+	if t := inferBooleanType(expr); t != "" {
+		return t, true
+	} else if t = inferStateVariableType(f, expr); t != "" {
 		return t, true
 	} else if t = inferLit(expr); t != "" {
 		return t, false
@@ -122,6 +125,64 @@ func inferGoCodeType(f *File, expr *ast.GoCode) (typ string, sure bool) {
 	}
 
 	return "", false
+}
+
+func inferBooleanType(expr *ast.GoCode) string {
+	if expr == nil {
+		return ""
+	}
+
+	c := expr.Code
+	switch {
+	case c == "true" || c == "false":
+		return "bool"
+	case strings.HasPrefix(c, "true ") || strings.HasPrefix(c, "false "):
+		return "bool"
+	case strings.HasPrefix(c, "!"):
+		return "bool"
+	}
+
+	var parenCount int
+	for i, r := range c {
+		switch r {
+		case '(', '[', '{':
+			parenCount++
+		case ')', ']', '}':
+			parenCount--
+		case '!', '=', '<', '>':
+			if parenCount == 0 && i+1 < len(c) && c[i+1] == '=' {
+				return "bool"
+			}
+		case '&':
+			if parenCount == 0 && i+1 < len(c) && c[i+1] == '&' {
+				return "bool"
+			}
+		case '|':
+			if parenCount == 0 && i+1 < len(c) && c[i+1] == '|' {
+				return "bool"
+			}
+		}
+	}
+
+	return ""
+}
+
+var stateRegexp = regexp.MustCompile(`^state[ \t]*\.\s*([a-zA-Z_][a-zA-Z0-9_]*)`)
+
+func inferStateVariableType(f *File, expr *ast.GoCode) string {
+	c := expr.Code
+	t := stateRegexp.FindStringSubmatch(c)
+	if len(t) != 2 {
+		return ""
+	}
+
+	name := t[1]
+	state := f.Package.StateByName(name)
+	if state == nil {
+		return ""
+	}
+
+	return state.ResolvedType().ResultOr("")
 }
 
 func inferLit(expr *ast.GoCode) string {
@@ -209,24 +270,6 @@ func inferMakeNewType(expr *ast.GoCode) string {
 	}
 
 	return t[1]
-}
-
-var stateRegexp = regexp.MustCompile(`^state[ \t]*\.\s*([a-zA-Z_][a-zA-Z0-9_]*)`)
-
-func inferStateVariableType(f *File, expr *ast.GoCode) string {
-	c := expr.Code
-	t := stateRegexp.FindStringSubmatch(c)
-	if len(t) != 2 {
-		return ""
-	}
-
-	name := t[1]
-	state := f.Package.StateByName(name)
-	if state == nil {
-		return ""
-	}
-
-	return state.ResolvedType().ResultOr("")
 }
 
 func inferLastGoCodeType(expr *ast.GoCode) (typ string, sure bool) {
