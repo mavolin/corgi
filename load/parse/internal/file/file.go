@@ -161,6 +161,8 @@ func TopLevel() parser.Func[ast.TopLevel] {
 		for {
 			if n := parser.TryOptional(p, TopLevelNode(), nil); n != nil {
 				scope = append(scope, n)
+			} else if s := parser.TryOptional(p, implicitTopLevelCodeLine(), nil); s != nil {
+				scope = append(scope, s)
 			} else if imp := parser.TryOptional(p, Import(), nil); imp != nil {
 				scope = append(scope, &ast.BadNode{
 					From:  imp.Start(),
@@ -237,8 +239,6 @@ func TopLevelNode() parser.Func[ast.TopLevelNode] {
 			return ad
 		} else if ed := parser.TryOptional(p, element.Definition(), nil); ed != nil {
 			return ed
-		} else if s := parser.TryOptional(p, implicitTopLevelCodeLine(), nil); s != nil {
-			return s
 		}
 		return nil
 	}
