@@ -102,7 +102,7 @@ func TestBadScopeNode(t *testing.T) {
 				Until: ast.Position{Line: 1, Col: 1 + len(c.in)},
 			}
 
-			p := parsetest.NewParser(t, c.in+" foo")
+			p := parsetest.NewParser(t, c.in+"\n foo")
 			got := parsetest.AssertNoError(t, p, BadNode())
 			should.Equal(t, got, want)
 

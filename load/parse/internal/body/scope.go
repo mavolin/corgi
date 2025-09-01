@@ -88,13 +88,7 @@ func BadNode() parser.Func[*ast.BadNode] {
 				if parser.TryOptional(p, BracketText(), nil) == nil {
 					parser.TryRune(p, '[')
 				}
-			}
-			parser.TrySkip(p, comment.OrAnyWhitespace())
-			if parser.MatchesAnyRune(p, '}') { //nolint:gocritic
-				break
-			} else if parser.Matches(p, scopeNode) {
-				break
-			} else if parser.MatchesAnyRune(p, parser.EOF) {
+			} else if parser.Matches(p, comment.AndEOS()) {
 				break
 			}
 
