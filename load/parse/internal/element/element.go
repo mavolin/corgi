@@ -106,6 +106,15 @@ func Element() parser.Func[*ast.Element] {
 
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 		e.Body = parser.Try(p, body.Body())
+
+		// Only match, if we have a name, and either arguments a body or have
+		// reached the EOS.
+		// Otherwise, we can't be sure that this is actually an element, since
+		// we might've matched an assignment.
+		if e.Header.Attributes == nil && e.Body == nil && !parser.Matches(p, comment.AndEOS()) {
+			return nil
+		}
+
 		return &e
 	}
 }

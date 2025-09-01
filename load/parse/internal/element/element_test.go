@@ -111,7 +111,12 @@ func TestElement(t *testing.T) {
 	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
-			got := parsetest.ParsesFully(t, c.in, Element())
+
+			p := parsetest.NewParser(t, c.in+"; 1other stuff")
+			got := parsetest.AssertNoError(t, p, Element())
+
+			line, col, index := parsetest.CalcEnd(1, 1, 0, c.in)
+			parsetest.AssertPosition(t, p, line, col, index)
 			should.Equal(t, got, c.want)
 		})
 	}
