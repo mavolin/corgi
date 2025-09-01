@@ -464,11 +464,11 @@ func incDec(expr *ast.Expression) parser.Func[*ast.IncDec] {
 		switch {
 		case parser.TryOptionalToken(p, "++", nil):
 			pos := p.Pos()
-			pos.Col -= 2
+			pos.Col -= len("++")
 			return &ast.IncDec{Expression: expr, IncrPos: &pos}
 		case parser.TryOptionalToken(p, "--", nil):
 			pos := p.Pos()
-			pos.Col -= 2
+			pos.Col -= len("--")
 			return &ast.IncDec{Expression: expr, DecrPos: &pos}
 		default:
 			return nil
