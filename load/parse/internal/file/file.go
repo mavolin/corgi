@@ -39,6 +39,8 @@ func scopeNode(p *parser.Parser) ast.ScopeNode {
 		return n
 	} else if n := parser.Try(p, component.Block()); n != nil {
 		return n
+	} else if n := parser.Try(p, component.With()); n != nil {
+		return n
 	} else if n := parser.Try(p, code.Conditional()); n != nil {
 		return n
 	} else if n := parser.Try(p, code.Switch()); n != nil {
