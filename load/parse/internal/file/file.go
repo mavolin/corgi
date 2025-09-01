@@ -108,32 +108,46 @@ func scopeNode(p *parser.Parser) ast.ScopeNode {
 func File() parser.Func[bool] {
 	return func(p *parser.Parser) bool {
 		parser.TrySkip(p, comment.OrAnyWhitespace())
-		p.AST.Package = parser.Try(p, PackageDirective())
+
+		p.AST.Package = parser.TryOptional(p, PackageDirective(), nil)
 		if p.AST.Package == nil {
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message:  "missing package directive",
 				Primary:  quickanno.Expected(p, p.Pos(), "a package directive"),
 				Examples: []diagnostic.Example{{Example: "`package main`"}},
 			})
+		} else {
+			parser.Try(p, comment.AndForceEOS())
+			parser.TrySkip(p, comment.OrAnyWhitespace())
 		}
-		p.AST.Imports = parser.Collect(p, Import(), comment.OrAnyWhitespace())
-		for _, imp := range p.AST.Imports {
+
+		for {
+			imp := parser.TryOptional(p, Import(), nil)
+			if imp == nil {
+				break
+			}
+			p.AST.Imports = append(p.AST.Imports, imp)
 			for _, spec := range imp.Specs {
 				if spec.Path != nil {
 					p.Preload(spec.Path.Unquote())
 				}
 			}
+			parser.Try(p, comment.AndForceEOS())
+			parser.TrySkip(p, comment.OrAnyWhitespace())
 		}
-		parser.TrySkip(p, comment.OrAnyWhitespace())
+		p.AST.Imports = slices.Clip(p.AST.Imports)
+
 		p.AST.TopLevel = parser.Try(p, TopLevel())
 		parser.TrySkip(p, comment.OrAnyWhitespace())
-		p.AST.Comments = p.Comments()
+
 		if !parser.MatchesAnyRune(p, parser.EOF) {
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "unexpected tokens",
 				Primary: quickanno.Expected(p, p.Pos(), "end of file"),
 			})
 		}
+
+		p.AST.Comments = p.Comments()
 		return true
 	}
 }

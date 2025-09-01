@@ -20,8 +20,15 @@ func Scope() parser.Func[*ast.Scope] {
 		var s ast.Scope
 		s.LBrace = lBrace
 
-		s.Nodes = parser.Collect(p, ScopeNode(), comment.OrAnyWhitespace())
-		parser.TrySkip(p, comment.OrAnyWhitespace())
+		for {
+			parser.TrySkip(p, comment.OrAnyWhitespace())
+			n := parser.TryOptional(p, ScopeNode(), nil)
+			if n == nil {
+				break
+			}
+			s.Nodes = append(s.Nodes, n)
+			parser.Try(p, comment.AndMustEOS())
+		}
 
 		s.RBrace = parser.TryRuneAt(p, '}')
 		if s.RBrace == nil {
