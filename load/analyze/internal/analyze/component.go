@@ -46,9 +46,7 @@ func (z *analyzer) AnalyzeComponent(ctx context.Context, logger *slog.Logger, c 
 
 	z.AnalyzeComponentParameters(logger, c)
 
-	z.AnalyzeComponentAST(ctx, c)
-
-	z.AnalyzeBlocks(logger, c)
+	z.AnalyzeComponentAST(ctx, logger, c)
 
 	z.AnalyzeCouldForwardReceivedAttributes(c)
 	z.AnalyzeCouldAcceptAttributes(c)
@@ -89,15 +87,16 @@ func (z *analyzer) AnalyzeCallComponent(ctx context.Context, cc *file.ComponentC
 // Sets Fields: None
 //
 // Depends on Fields: None
-func (z *analyzer) AnalyzeComponentAST(ctx context.Context, c *file.Component) {
+func (z *analyzer) AnalyzeComponentAST(ctx context.Context, logger *slog.Logger, c *file.Component) {
 	var cannotAttributes file.AnalysisWithReason[ast.ContentWriter]
 	cannotAttributes.SetFalse()
 
 	walk.Walk(c.AST, func(w *walk.Context) walk.Action {
 		switch n := w.Node.(type) {
 		case *ast.Block:
-			z.AnalyzeBlockInstanceParentInformation(ctx, c, w.Parents, n)
-			z.AnalyzeBlockInstanceCannotForwardAttributes(c, cannotAttributes, n)
+			bi := c.BlockInstanceByNode(n)
+			z.AnalyzeBlockInstanceCannotForwardAttributes(bi, cannotAttributes)
+			z.AnalyzeBlockInstance(ctx, logger, c, w.Parents, bi)
 		}
 		return walk.Continue
 	}, z.cannotAttributes(ctx, c.File, &cannotAttributes))

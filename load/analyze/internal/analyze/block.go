@@ -1,21 +1,14 @@
 package analyze
 
 import (
-	"context"
 	"log/slog"
 
 	"github.com/mavolin/corgi/v2/file"
-	"github.com/mavolin/corgi/v2/file/ast"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
 	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
-	"github.com/mavolin/corgi/v2/file/walk"
 )
 
-// AnalyzeBlocks runs trivial analyses on the blocks of the given
-// component.
-//
-// An analysis is trivial, if it does not depend on the analysis of a component
-// call or the analysis of another component.
+// AnalyzeBlocks analyzes all blocks of the given component.
 //
 // Depends on Checks: None
 //
@@ -33,6 +26,10 @@ func (z *analyzer) AnalyzeBlocks(logger *slog.Logger, c *file.Component) {
 		z.AnalyzeBlockCannotForwardAttributes(block)
 	}
 }
+
+// ============================================================================
+// Required
+// ======================================================================================
 
 // AnalyzeBlockRequired determines whether the given component block is
 // required to be set by component calls.
@@ -85,7 +82,7 @@ Erroneous:
 }
 
 // ============================================================================
-// Block Instance Not Forwarded
+// Forwarded
 // ======================================================================================
 
 // AnalyzeBlockForwarded determines whether the given component block is
@@ -107,103 +104,6 @@ func (z *analyzer) AnalyzeBlockForwarded(b *file.Block) {
 			b.Forwarded.SetFailed()
 		}
 	}
-}
-
-// AnalyzeBlockInstanceParentInformation determines whether the parent
-// information of the given block instance.
-//
-// Depends on Checks: None
-//
-// Sets Fields:
-//   - Components.Blocks.Instances.Forwarded
-//
-// Depends on Fields: None
-func (z *analyzer) AnalyzeBlockInstanceParentInformation(ctx context.Context, c *file.Component, parents []*walk.Context, biAST *ast.Block) {
-	bi := c.BlockInstanceByNode(biAST)
-	if bi == nil {
-		return
-	}
-
-	var (
-		element *file.ElementReference
-		cc      *file.ComponentCall
-		block   *file.Block
-	)
-	bi.Forwarded.SetResult(true)
-
-	i := len(parents) - 1
-Loop:
-	for i >= 0 {
-		parent := parents[i]
-		switch parent := parent.Node.(type) {
-		case *ast.ComponentCall:
-			bi.Forwarded.SetFailed()
-			bi.ContainingElements.SetFailed()
-			return
-		case ast.BlockSetter:
-			if cc != nil {
-				continue
-			}
-
-			ccI := walk.ClosestIndex[*ast.ComponentCall](parents[:i])
-			if ccI < 0 {
-				bi.Forwarded.SetFailed()
-				bi.ContainingElements.SetFailed()
-				continue
-			}
-
-			ccAST := parents[ccI].Node.(*ast.ComponentCall) //nolint:errcheck
-			cc := c.File.ComponentCallByNode(ccAST)
-			z.AnalyzeComponentCall(ctx, cc)
-
-			s := cc.BlockSetterByName(parent.Name())
-			if s == nil || s.Block == nil {
-				bi.Forwarded.SetFailed()
-				bi.ContainingElements.SetFailed()
-			} else if s.Block.Forwarded.False() {
-				bi.Forwarded.SetResult(false)
-				break Loop
-			}
-			i = ccI - 1 // continue with the parent of the component call
-		case *ast.Element:
-			bi.Forwarded.SetResult(false)
-			element = c.File.ElementReferenceByNode(parent.Header.Name)
-			break Loop
-		default:
-			i--
-		}
-	}
-
-	if bi.ContainingElements.Failed() {
-		return
-	} else if cc == nil {
-		var containingElements []*file.ElementReference
-		if element != nil {
-			containingElements = []*file.ElementReference{element}
-		}
-		bi.ContainingElements.SetResult(&containingElements)
-		return
-	}
-
-	containingElements := make([]*file.ElementReference, 0, 1+len(block.Instances))
-	if block.Forwarded.True() && element != nil {
-		containingElements = append(containingElements, element)
-	}
-
-	added := make(map[*file.ElementReference]bool)
-	for _, inst := range block.Instances {
-		if inst.ContainingElements.Failed() {
-			bi.ContainingElements.SetFailed()
-			return
-		}
-		for _, el := range *inst.ContainingElements.Result() {
-			if !added[el] {
-				containingElements = append(containingElements, el)
-				added[el] = true
-			}
-		}
-	}
-	bi.ContainingElements.SetResult(&containingElements)
 }
 
 // ============================================================================
@@ -231,24 +131,4 @@ func (z *analyzer) AnalyzeBlockCannotForwardAttributes(b *file.Block) {
 			return
 		}
 	}
-}
-
-// AnalyzeBlockInstanceCannotForwardAttributes determines whether the given
-// block instance could not forward attributes to the element containing it.
-//
-// Depends on Checks: None
-//
-// Sets Fields:
-//   - Components.Blocks.Instances.CannotForwardAttributes
-//
-// Depends on Fields: None
-func (z *analyzer) AnalyzeBlockInstanceCannotForwardAttributes(
-	c *file.Component, cannotAttributes file.AnalysisWithReason[ast.ContentWriter], biAST *ast.Block,
-) {
-	bi := c.BlockInstanceByNode(biAST)
-	if bi == nil {
-		return
-	}
-
-	bi.CannotForwardAttributes = cannotAttributes
 }
