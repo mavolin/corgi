@@ -10,9 +10,9 @@ import (
 var (
 	meta = command.Meta{
 		Name: "help",
-		ArgUsages: []string{
-			"           list all commands",
-			"<command>  display help for a command",
+		ArgUsages: [][2]string{
+			{"", "list all commands"},
+			{"<command>", "display help for a command"},
 		},
 		ShortDescription: "Display help for a command or the entire cli.",
 		LongDescription: `Displays a list of all commands.

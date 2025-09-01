@@ -7,7 +7,21 @@ import (
 	"os"
 	"slices"
 	"strings"
+
+	"golang.org/x/term"
 )
+
+// Width is the width of the terminal, or a sensible default.
+//
+// Minimums and maximums are enforced, never being less than 60 or more than
+// 120.
+var Width = func() int {
+	width, _, err := term.GetSize(int(os.Stdout.Fd()))
+	if err != nil {
+		return 100
+	}
+	return max(min(width, 120), 60)
+}()
 
 type (
 	Cmd struct {
@@ -20,7 +34,7 @@ type (
 
 	Meta struct {
 		Name             string
-		ArgUsages        []string
+		ArgUsages        [][2]string
 		ShortDescription string
 		LongDescription  string
 	}
@@ -80,7 +94,7 @@ func (c *Cmd) Run(args []string) {
 	}
 
 	if len(args) == 0 {
-		fmt.Fprintln(os.Stderr, "no subcommand provided")
+		fmt.Fprintln(os.Stderr, "No subcommand provided")
 		c.HelpNotice(os.Stderr)
 		return
 	}
@@ -92,7 +106,7 @@ func (c *Cmd) Run(args []string) {
 		}
 	}
 
-	fmt.Fprintln(os.Stderr, "unknown subcommand", args[0])
+	fmt.Fprintln(os.Stderr, "Unknown subcommand", args[0])
 	c.HelpNotice(os.Stderr)
 }
 
@@ -155,87 +169,9 @@ func (c *Cmd) SubcommandName() string {
 
 // HelpNotice prints a notice about how to get help for the command.
 func (c *Cmd) HelpNotice(w io.Writer) {
-	fmt.Fprintf(w, "Run '%s help %s' for help.\n", os.Args[0], c.SubcommandName())
-}
-
-var indent = strings.Repeat(" ", 3)
-
-// Help prints the help message for the command to the given writer.
-func (c *Cmd) Help(w io.Writer) {
-	fmt.Fprintln(w, c.LongDescription)
-	fmt.Fprintln(w)
-
-	name := c.CommandName()
-
-	if len(c.Commands) > 0 {
-		fmt.Fprintln(w, "Help:")
-		fmt.Fprintln(w, indent, name, " <command> [arguments...]")
-		fmt.Fprintln(w)
-		fmt.Fprintln(w, "Commands:")
-
-		var maxCmdWidth int
-		for _, c := range c.Commands {
-			if len(c.Name) > maxCmdWidth {
-				maxCmdWidth = len(c.Name)
-			}
-		}
-
-		for _, c := range c.Commands {
-			fmt.Fprintln(w, indent, c.Name, "  ", strings.Repeat(" ", maxCmdWidth-len(c.Name)), c.ShortDescription)
-		}
-		return
-	}
-
-	if len(c.ArgUsages) == 1 {
-		fmt.Fprintln(w, "Help:")
+	if c.Parent == nil {
+		fmt.Fprintf(w, "Run '%s help' for help.\n", os.Args[0])
 	} else {
-		fmt.Fprintln(w, "Usages:")
+		fmt.Fprintf(w, "Run '%s help %s' for help.\n", os.Args[0], c.SubcommandName())
 	}
-	for _, u := range c.ArgUsages {
-		fmt.Fprint(w, indent)
-		if c.flags == nil {
-			fmt.Fprintln(w, name, " ", u)
-		} else {
-			fmt.Fprintln(w, name, " [flags] ", u)
-		}
-	}
-
-	var maxWidth int
-	c.flags.VisitAll(func(f *flag.Flag) {
-		h, _ := flagHeader(f)
-		if len(h) > maxWidth {
-			maxWidth = len(h)
-		}
-	})
-
-	if maxWidth == 0 {
-		return
-	}
-
-	fmt.Fprintln(w)
-	fmt.Fprintln(w, "Flags:")
-	c.flags.VisitAll(func(f *flag.Flag) {
-		header, usage := flagHeader(f)
-		fmt.Fprintln(w, indent, header, "  ", strings.Repeat(" ", maxWidth-len(header)), indented(len(indent)+maxWidth+len("  "), usage))
-	})
-}
-
-func flagHeader(f *flag.Flag) (string, string) {
-	var b strings.Builder
-
-	b.WriteByte('-')
-	b.WriteString(f.Name)
-
-	name, usage := flag.UnquoteUsage(f)
-	if len(name) > 0 {
-		b.WriteByte(' ')
-		b.WriteString(strings.ToLower(name))
-	}
-
-	return b.String(), usage
-}
-
-func indented(indent int, s string) string {
-	idt := strings.Repeat(" ", indent)
-	return strings.ReplaceAll(s, "\n", "\n"+idt)
 }

@@ -9,7 +9,7 @@ import (
 
 	"github.com/k0kubun/pp"
 	"github.com/mavolin/corgi/v2/cmd/command"
-	"github.com/mavolin/corgi/v2/cmd/flags"
+	"github.com/mavolin/corgi/v2/cmd/command/flags"
 	"github.com/mavolin/corgi/v2/file"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
 	"github.com/mavolin/corgi/v2/load/link"
@@ -84,7 +84,7 @@ func run(_ *command.Cmd, f *Flags, args []string) {
 		fmt.Fprintln(os.Stderr, "=== Parse Errors ===")
 		fmt.Fprintln(os.Stderr, parseErrs.Pretty(diagnostic.PrettyOptions{
 			Color: f.Color,
-			Width: flags.Width,
+			Width: command.Width,
 		}))
 	}
 	if len(linkErrs) > 0 {
@@ -92,7 +92,7 @@ func run(_ *command.Cmd, f *Flags, args []string) {
 		fmt.Fprintln(os.Stderr, "=== Link Errors ===")
 		fmt.Fprintln(os.Stderr, diagnostic.List(linkErrs).Pretty(diagnostic.PrettyOptions{
 			Color: f.Color,
-			Width: flags.Width,
+			Width: command.Width,
 		}))
 	}
 }

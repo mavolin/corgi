@@ -5,40 +5,35 @@ import (
 	"flag"
 
 	"github.com/mavolin/corgi/v2/cmd/command"
-	"github.com/mavolin/corgi/v2/cmd/flags"
+	"github.com/mavolin/corgi/v2/cmd/command/flags"
 )
 
 var (
 	meta = command.Meta{
 		Name: "compile",
-		ArgUsages: []string{
-			"             read from stdin and write to stdout",
-			"<directory>  read package and write to -o",
-			"<file...>    read files as a single package and write to -o",
-			"./...        recursively compile pwd and subdirs",
+		ArgUsages: [][2]string{
+			{"", "read from stdin and write to stdout"},
+			{"<file...>", "read files as a single package and write to stdout"},
+			{"<dir>", "read package and write to directory"},
+			{"<dir>/...", "recursively compile the dir and its subdirs"},
 		},
 		ShortDescription: "Compile corgi files or directories.",
-		LongDescription: `Compiles a list of corgi files or a directory into a single Go file.
-
-In directory mode, all corgi files (*.corgi) in that directory will be compiled
-into a single Go file named package.corgi.go and placed in the same directory.
-If you set -o to another directory, the file will be placed there instead. If 
--o is set to a file, or the path does not exist, the output will be written to
-that file. You may direct the output to stdout using the -stdout flag.
-
-Similarly, if one or more file paths are specified, all corgi files will be
-compiled into a single Go file. The files must all be part of the same package,
-as defined by their package directive. -o will use the pwd.
-
-In the rare case that two corgi files have conflicting imports, and -o is set
-to a directory or not set and we're compiling a directory, the compiler will
-create multiple files named package1.corgi.go, etc. Otherwise, i.e. if -o is
-set to a file or if writing to stdout, the compiler will stop with an error.
-
-Compile also accepts the special ./... argument, which recursively traverses the
-present working directory and generates a Go file for every directory that
-contains at least one corgi file. When using ./... -o and -stdout cannot be 
-used.`,
+		LongDescription: "Compiles a list of corgi files or a directory into a single Go file " +
+			"(or as few files as possible, in case of conflicting imports).\n" +
+			"\n" +
+			"In the directory mode, all corgi files (*.corgi) in that directory are " +
+			"processed. You may append '/...' to a the directory to recursively compile all " +
+			"subdirectories as well.\n" +
+			"You may also choose to manually list files instead. While those files may be in " +
+			"different directories, they must all share the same package name, as defined by " +
+			"the package directive in each file.\n" +
+			"\n" +
+			"In the directory modes, the output file is placed within that directory, all " +
+			"other modes write to stdout. You may change this behavior using the -o and " +
+			"-stdout flags.\n" +
+			"If the files have conflicting imports, i.e. two files import different packages " +
+			"under the same name, compile will create multiple numbered output files. If " +
+			"outputting to stdout, compile will fail with an error instead.",
 	}
 
 	Command = command.Command(meta, new(Flags), run)
@@ -60,22 +55,24 @@ type Flags struct {
 func (f *Flags) Bind(s *flag.FlagSet) {
 	f.LoadFlags.Bind(s)
 
-	s.StringVar(&f.out, "o", "package.corgi.go",
-		"The `path` to the output file or directory.\n"+
-			"Defaults to package.corgi.go.")
+	s.StringVar(&f.out, "o", "",
+		"The `path` of the output file.\n"+
+			"If multiple files need to be generated and the base of the supplied path contains an "+
+			"'*', it will be substituted with a number. Existing files matching the pattern are "+
+			"deleted before compiling. In modes that output a file the file name defaults to "+
+			"'package*.corgi.go'.\n"+
+			"You may also specify a directory 'dir' which is equivalent to setting "+
+			"'-o dir/package*.corgi.go'.\n"+
+			"As a special case in the recursive directory mode (./...), -o accepts a pattern "+
+			"instead of a path and uses it to generate the output files, each in their respective "+
+			"directories.")
 	s.BoolVar(&f.stdout, "stdout", false,
-		"Output to stdout, even though a directory was passed.\n"+
-			"If -o is set, this flag is ignored.")
-	s.BoolVar(&f.deps, "deps", false,
-		"Whether to compile local dependencies of the named files or the directory as well.\n"+
-			"Does not work with stdin or the ./... argument.")
+		"Output to stdout, even though not reading from stdin.\n"+
+			"Mutually exclusive with -o.")
 	s.BoolVar(&f.debug, "debug", false,
 		"Whether to include debug information in the output.\n"+
-			"Generated code will then reference the original corgi file and line number.")
-	s.BoolVar(&f.skipGoImports, "skip-goimports", false, "Whether to skip goimports.")
-	s.StringVar(&f.goImportsExec, "goimports", "goimports",
-		"`Path` to the goimports executable.\n"+
-			"Defaults to the goimports executable in $PATH.")
+			"Generated code will then contain references to the original corgi\n"+
+			"file and line number.")
 }
 
 func run(_ *command.Cmd, f *Flags, args []string) {

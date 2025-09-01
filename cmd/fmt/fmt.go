@@ -5,27 +5,27 @@ import (
 	"flag"
 
 	"github.com/mavolin/corgi/v2/cmd/command"
-	"github.com/mavolin/corgi/v2/cmd/flags"
+	"github.com/mavolin/corgi/v2/cmd/command/flags"
 )
 
 var (
 	meta = command.Meta{
 		Name: "fmt",
-		ArgUsages: []string{
-			"                        read from stdin and write to stdout",
-			"<file or directory...>  overwrite listed files",
-			"./...                   recursively format files in pwd and subdirs",
+		ArgUsages: [][2]string{
+			{"", "read from stdin and write to stdout"},
+			{"<file or dir...>", "overwrite listed files"},
+			{"<dir>/...", "recursively format the dir and its subdirs"},
 		},
 		ShortDescription: "Format corgi files.",
-		LongDescription: `The corgi equivalent of gofmt.
-
-If no files are specified, the input will be read from stdin and written to stdout.
-
-For each directory, the command formats all .corgi files in that directory.
-Subdirectories remain untouched.
-
-Also accepts the special ./... argument, which recursively formats all .corgi 
-files in the present working directory and all of its subdirectories.`,
+		LongDescription: "The corgi equivalent of gofmt.\n" +
+			"\n" +
+			"If no files are specified, the input will be read from stdin and written to stdout.\n" +
+			"\n" +
+			"For each directory, the command formats all .corgi files in that directory. " +
+			"Subdirectories remain untouched.\n" +
+			"\n" +
+			"Also accepts the special ./... argument, which recursively formats all .corgi " +
+			"files in the present working directory and all of its subdirectories.",
 	}
 
 	Command = command.Command(meta, new(Flags), run)

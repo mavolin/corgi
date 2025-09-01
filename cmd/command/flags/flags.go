@@ -9,20 +9,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/lmittmann/tint"
-	"golang.org/x/term"
 )
-
-// Width is the width of the terminal, or a sensible default.
-//
-// Minimums and maximums are enforced, never being less than 40 or more than
-// 120.
-var Width = func() int {
-	width, _, err := term.GetSize(int(os.Stdout.Fd()))
-	if err != nil {
-		return 100
-	}
-	return max(min(width, 120), 40)
-}()
 
 type ParseFlags struct {
 	Color   bool
@@ -37,7 +24,8 @@ func (f *ParseFlags) Bind(s *flag.FlagSet) {
 		"Whether to colorize error output.\n"+
 			"Enabled by default, if stdout is a terminal, $NO_COLOR == \"\", and $TERM != \"dumb\".")
 	s.BoolFunc("verbose",
-		"Print verbose output explaining what is currently being done. Specify twice or set to 2, to enable debug logging.",
+		"Print verbose output explaining what is currently being done. "+
+			"Set to 2, to enable debug logging.",
 		func(s string) error {
 			switch s {
 			case "1":

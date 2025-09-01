@@ -14,8 +14,8 @@ var (
 		Name:             "version",
 		ShortDescription: "Display the version of the CLI.",
 		LongDescription:  "Display the version of the CLI.",
-		ArgUsages: []string{
-			"display the version of the CLI",
+		ArgUsages: [][2]string{
+			{"", "display the version of the CLI"},
 		},
 	}
 
