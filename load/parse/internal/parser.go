@@ -109,7 +109,7 @@ func (p *Parser) skipString(s string) {
 func (p *Parser) Line() uint16      { return p.state.line }
 func (p *Parser) Col() uint16       { return p.state.col }
 func (p *Parser) Pos() ast.Position { return p.state.Pos() }
-func (p *Parser) Index() int        { return p.state.Index() }
+func (p *Parser) Index() int        { return int(p.state.index) }
 func (p *Parser) Inline() bool      { return p.inline }
 
 func (p *Parser) NumErrors() uint8              { return p.state.numErrs }

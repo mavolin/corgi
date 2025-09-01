@@ -26,7 +26,6 @@ func (s *State) Pos() ast.Position {
 	return ast.Position{Line: int(s.line), Col: int(s.col)}
 }
 
-func (s *State) Index() int       { return int(s.index) }
 func (s *State) NumErrors() uint8 { return s.numErrs }
 
 func (s *State) advance(size uint32, isNL bool) {
