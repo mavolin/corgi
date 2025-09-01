@@ -31,9 +31,10 @@ type Block struct {
 	// extended with the containing elements of the call to the component
 	// containing this block.
 	//
-	// A nil value indicates that the analysis failed.
-	// An empty slice indicates that the block instance is fully forwarded.
-	ContainingElements []*ast.Element
+	// The pointer to the slice has no significance and is just there to
+	// satisfy the comparable constraint of Analysis.
+	// It is never nil.
+	ContainingElements Analysis[*[]ContainingElement]
 
 	// CannotForwardAttributes indicates that at least one instance of this
 	// block cannot forward attributes.
