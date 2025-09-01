@@ -52,6 +52,8 @@ type Parser struct {
 
 	inline    bool
 	parsingWS bool
+
+	runes []rune
 }
 
 type pool[T any] []*T
@@ -78,26 +80,26 @@ func New(f *file.File) *Parser {
 		errs:      make(diagnostic.List, 0, 48),
 		comments:  make([]*ast.CommentGroup, 0, 128),
 		statePool: make(pool[State], 0, 32),
+		runes:     []rune(f.AST.Raw),
 	}
 }
 
 func (p *Parser) next() rune {
-	if p.Index() >= len(p.AST.Raw) {
+	if int(p.state.runeIndex) >= len(p.runes) {
 		return EOF
 	}
 
-	r, size := utf8.DecodeRuneInString(p.AST.Raw[p.Index():])
-	p.state.advance(uint32(size), r == '\n') //nolint:gosec
+	r := p.runes[p.state.runeIndex]
+	p.state.advance(uint32(utf8.RuneLen(r)), r == '\n') //nolint:gosec
 	return r
 }
 
 func (p *Parser) peek() rune {
-	if p.Index() >= len(p.AST.Raw) {
+	if int(p.state.runeIndex) >= len(p.runes) {
 		return EOF
 	}
 
-	r, _ := utf8.DecodeRuneInString(p.AST.Raw[p.Index():])
-	return r
+	return p.runes[p.state.runeIndex]
 }
 
 func (p *Parser) skipString(s string) {

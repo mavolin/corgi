@@ -8,6 +8,7 @@ type State struct {
 	ws *State
 
 	index     uint32
+	runeIndex uint32
 	line, col uint16
 
 	numComments uint16
@@ -36,6 +37,7 @@ func (s *State) advance(size uint32, isNL bool) {
 		s.col++
 	}
 	s.index += size
+	s.runeIndex++
 }
 
 func (s *State) Copy(into *State) {
