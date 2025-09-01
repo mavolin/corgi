@@ -32,9 +32,9 @@ type Attribute struct {
 	// In the above example, the attribute reference bark is forwarded to the
 	// component calling woof.
 	Forwarded Analysis[bool]
-	// ContainingElements are all elements containing this block instance.
-	// If Forwarded is true, the list is not absolute: It would need to be
-	// extended with the containing elements of the component call.
+	// ContainingElements are all elements this attribute is placed on.
+	// If the attribute is forwarded, this list is incomplete: It only contains
+	// the elements up to the component containing the attribute.
 	//
 	// A nil/empty slice indicates that the attribute reference is fully
 	// forwarded.
