@@ -36,6 +36,7 @@ func IsKeyword(s string) bool { // https://go.dev/ref/spec#Keywords
 	// corgi
 	case "comp":
 	case "with":
+	case "block":
 	case "state":
 	case "attr":
 	case "elem":
