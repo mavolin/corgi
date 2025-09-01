@@ -99,10 +99,15 @@ func sort(a, b *Diagnostic) int {
 	case aa != nil && ba == nil:
 		return 1
 	case aa != nil /* && ba != nil */ :
+		hasPackage := aa.File.Package != nil && ba.File.Package != nil
 		switch {
-		case aa.File.Package.Module != ba.File.Package.Module:
+		case aa.File.Package == nil && ba.File.Package != nil:
+			return -1
+		case aa.File.Package != nil && ba.File.Package == nil:
+			return 1
+		case hasPackage && aa.File.Package.Module != ba.File.Package.Module:
 			return cmp.Compare(aa.File.Package.Module, ba.File.Package.Module)
-		case aa.File.Package != ba.File.Package:
+		case hasPackage && aa.File.Package != ba.File.Package:
 			return cmp.Compare(aa.File.Package.PathInModule, ba.File.Package.PathInModule)
 		case aa.File.Name != ba.File.Name:
 			return cmp.Compare(aa.File.Name, ba.File.Name)
