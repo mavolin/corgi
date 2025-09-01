@@ -204,9 +204,8 @@ var _ TextInterpolation = (*ModeSwitch)(nil)
 // Component Call Interpolation
 // ======================================================================================
 
-// ComponentCallInterpolation is a string interpolation.
-// It has no body.
-// Within text, the equivalent is you should use a mode switch.
+// ComponentCallInterpolation allows using component calls inside strings.
+// Within text, the same can be achieved with a [ModeSwitch].
 type ComponentCallInterpolation struct {
 	Hash          *Position
 	ComponentCall *ComponentCall // Body is implicit DefaultBlockShorthand, if present
