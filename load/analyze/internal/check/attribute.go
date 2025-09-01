@@ -358,6 +358,29 @@ func (ch *checker) expressionFromAttributeValue(logger *slog.Logger, f *file.Fil
 }
 
 // ============================================================================
+// Constantly False Boolean Attribute
+// ======================================================================================
+
+func (ch *checker) CheckConstantlyFalseBooleanAttribute(logger *slog.Logger, f *file.File, attr *file.Attribute, attrAST *ast.NamedAttribute) {
+	logger = logger.WithGroup("constantly_false_boolean_attribute")
+
+	c, ok := attr.Value.(file.ConstantBoolAttributeValue)
+	if !ok || bool(c) {
+		return
+	}
+
+	logger.Error("Constantly false boolean attribute")
+	ch.Report(&diagnostic.Diagnostic{
+		Message: "attribute: constantly `false` value",
+		Primary: []diagnostic.Annotation{
+			anno.Node(f, attrAST, "this attribute is always false"),
+		},
+		Explanation: "A boolean attribute that is always `false` is pointless, " +
+			"because it is never printed in the output HTML.",
+	})
+}
+
+// ============================================================================
 // Superfluous Attribute Name Attached To Attribute Type
 // ======================================================================================
 
