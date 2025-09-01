@@ -98,7 +98,7 @@ func ShorthandText() parser.Func[*ast.ShorthandText] {
 
 		var txt ast.ShorthandText
 		txt.Position = p.PosPtr()
-		txt.Position.Col -= len(text) // save allocations, only works bc txt is horizontal
+		txt.Position.Col -= len([]rune(text)) // save allocations, only works bc txt is horizontal
 		txt.Text = text
 		return &txt
 	}
