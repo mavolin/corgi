@@ -116,9 +116,7 @@ func Header() parser.Func[*ast.ElementHeader] {
 		if name == nil {
 			return nil
 		}
-		if !p.Inline() {
-			parser.TrySkip(p, comment.OrHorizontalWhitespace())
-		}
+		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 
 		var h ast.ElementHeader
 		h.Name = name
