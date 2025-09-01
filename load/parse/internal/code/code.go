@@ -253,7 +253,7 @@ func goCode(o Options) parser.Func[*codeResult] {
 			switch {
 			case parser.TryOptional(p, golang.RuneLit(), nil) != "":
 				continue
-			case parser.TryAnyOptionalToken(p, nil, "==", "!=", ">", ">=", "<", "<=") != "":
+			case parser.TryAnyOptionalToken(p, nil, "==", "!=", ">=", ">", "<=", "<") != "":
 				canSkipAnyWS = true
 				continue
 			case parser.TryAnyOptionalRune(p, nil, '.', ':', '=', '+', '-', '*', '/', '%', '&', '|', '^') > 0:

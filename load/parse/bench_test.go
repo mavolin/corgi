@@ -1,8 +1,11 @@
 package parse
 
 import (
+	"fmt"
 	"os"
 	"testing"
+
+	"github.com/mavolin/corgi/v2/file/diagnostic"
 )
 
 func BenchmarkParse(b *testing.B) {
@@ -12,6 +15,13 @@ func BenchmarkParse(b *testing.B) {
 	}
 
 	in := string(data)
+
+	_, d := Parse(in, Options{})
+	if len(d) > 0 {
+		fmt.Println(d.Pretty(diagnostic.PrettyOptions{}))
+		b.FailNow()
+	}
+
 	b.ResetTimer()
 	for range b.N {
 		_, _ = Parse(in, Options{})

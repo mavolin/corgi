@@ -25,6 +25,9 @@ func testGoCode() func(t *testing.T, f parser.Func[[]ast.CodeNode]) {
 				name: "identifier",
 				code: "woof",
 			}, {
+				name: "comparison",
+				code: "len(woof) >= len(bark)",
+			}, {
 				name: "comma in parentheses",
 				code: "(woof, bark)",
 			}, {
