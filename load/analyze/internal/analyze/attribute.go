@@ -46,7 +46,7 @@ func (z *analyzer) AnalyzeAttribute(logger *slog.Logger, f *file.File, parents [
 	z.AnalyzeAttributeValue(logger, f, attr)
 	z.AnalyzeAttributeForwarded(f, parents, attr)
 	z.AnalyzeAttributeContainingElements(f, parents, attr)
-	z.AnalyzeAttributeType(logger, f, parents, attr)
+	z.AnalyzeAttributeType(logger, f, attr)
 
 	attr.Analyzed = true
 }
@@ -265,12 +265,6 @@ func (z *analyzer) expressionFromAttributeValue(logger *slog.Logger, f *file.Fil
 //   - Components.Blocks.Forwarded
 //   - Components.Blocks.Instances.Forwarded
 func (z *analyzer) AnalyzeAttributeForwarded(f *file.File, parents []*walk.Context, attr *file.Attribute) {
-	comp := walk.Closest[*ast.Component](parents)
-	if comp == nil {
-		attr.Forwarded.SetFailed()
-		return
-	}
-
 	attr.Forwarded.SetResult(true)
 
 	i := len(parents) - 1
@@ -334,13 +328,6 @@ func (z *analyzer) AnalyzeAttributeForwarded(f *file.File, parents []*walk.Conte
 //   - Components.Blocks.Forwarded
 //   - Components.Blocks.Instances.Forwarded
 func (z *analyzer) AnalyzeAttributeContainingElements(f *file.File, parents []*walk.Context, attr *file.Attribute) {
-	compAST := walk.Closest[*ast.Component](parents)
-	if compAST == nil {
-		attr.ContainingElements.SetFailed()
-		return
-	}
-	comp := f.Package.ComponentByNode(compAST)
-
 	var containingElements []file.ContainingElement
 
 	i := len(parents) - 1
@@ -386,6 +373,13 @@ func (z *analyzer) AnalyzeAttributeContainingElements(f *file.File, parents []*w
 			i = ccI - 1 // continue with the parent of the component call
 			continue
 		case *ast.Element:
+			compAST := walk.Closest[*ast.Component](parents)
+			if compAST == nil {
+				attr.ContainingElements.SetFailed()
+				return
+			}
+			comp := f.Package.ComponentByNode(compAST)
+
 			containingElements = append(containingElements, file.ContainingElement{
 				Component: comp,
 				Element:   comp.File.ElementReferenceByNode(parent.Header.Name),
@@ -396,6 +390,9 @@ func (z *analyzer) AnalyzeAttributeContainingElements(f *file.File, parents []*w
 		}
 		i--
 	}
+
+	containingElements = slices.Clip(containingElements)
+	attr.ContainingElements.SetResult(&containingElements)
 }
 
 // ============================================================================
@@ -412,7 +409,7 @@ func (z *analyzer) AnalyzeAttributeContainingElements(f *file.File, parents []*w
 // Depends on Fields:
 //   - Attributes.Forwarded
 //   - Attributes.ContainingElements
-func (z *analyzer) AnalyzeAttributeType(logger *slog.Logger, f *file.File, parents []*walk.Context, attr *file.Attribute) {
+func (z *analyzer) AnalyzeAttributeType(logger *slog.Logger, f *file.File, attr *file.Attribute) {
 	logger = logger.WithGroup("type")
 
 	attr.Type.SetResult(attrtype.Unknown)
