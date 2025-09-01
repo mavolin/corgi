@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"slices"
 
+	"github.com/mavolin/corgi/v2/escape/attrtype"
 	"github.com/mavolin/corgi/v2/file"
 	"github.com/mavolin/corgi/v2/file/ast"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
@@ -45,6 +46,7 @@ func (z *analyzer) AnalyzeAttribute(logger *slog.Logger, f *file.File, parents [
 	z.AnalyzeAttributeValue(logger, f, attr)
 	z.AnalyzeAttributeForwarded(f, parents, attr)
 	z.AnalyzeAttributeContainingElements(f, parents, attr)
+	z.AnalyzeAttributeType(logger, f, parents, attr)
 }
 
 // ============================================================================
@@ -392,4 +394,259 @@ func (z *analyzer) AnalyzeAttributeContainingElements(f *file.File, parents []*w
 		}
 		i--
 	}
+}
+
+// ============================================================================
+// Type
+// ======================================================================================
+
+// AnalyzeAttributeType determines the type of the given attribute.
+//
+// Depends on Checks: None
+//
+// Sets Fields:
+//   - Attributes.Type
+//
+// Depends on Fields:
+//   - Attributes.Forwarded
+//   - Attributes.ContainingElements
+func (z *analyzer) AnalyzeAttributeType(logger *slog.Logger, f *file.File, parents []*walk.Context, attr *file.Attribute) {
+	logger = logger.WithGroup("type")
+
+	attr.Type.SetResult(attrtype.Unknown)
+
+	z.analyzeExplicitAttributeType(logger, f, attr)
+	if attr.Type.Failed() || attr.Type.Result() != attrtype.Unknown {
+		return
+	}
+
+	z.analyzeInferredAttributeType(logger, f, attr)
+}
+
+func (z *analyzer) analyzeExplicitAttributeType(logger *slog.Logger, f *file.File, attr *file.Attribute) {
+	nAttr, _ := attr.AST.(*ast.NamedAttribute)
+	if nAttr == nil {
+		return
+	}
+
+	tav, _ := nAttr.Value.(*ast.TypedAttributeValue)
+	if tav == nil {
+		return
+	}
+
+	if nested, _ := tav.Value.(*ast.TypedAttributeValue); nested != nil {
+		attr.Type.SetFailed()
+		logger.Error("Nested typed attribute value")
+		z.Report(&diagnostic.Diagnostic{
+			Message: "attribute: nested typed attribute value",
+			Primary: []diagnostic.Annotation{
+				anno.Node(f, tav.Type, "nested typed attribute value"),
+				anno.Node(f, nested.Type, "nested typed attribute value"),
+			},
+			Explanation: "There can only be one explicit type per attribute.",
+		})
+		return
+	}
+
+	attr.Type.SetResult(tav.Type.Name.Type)
+}
+
+func (z *analyzer) analyzeInferredAttributeType(logger *slog.Logger, f *file.File, attr *file.Attribute) {
+	if attr.Forwarded.Equal(true) {
+		partial := !attr.ContainingElements.Failed() && len(*attr.ContainingElements.Result()) > 0
+		if partial {
+			attr.Type.SetFailed()
+			logger.Error("Untyped attribute")
+			z.Report(&diagnostic.Diagnostic{
+				Message: "attribute: unable to determine type: partially outside of an element",
+				Primary: []diagnostic.Annotation{
+					anno.Node(f, attr.AST, "neither always inside an element nor explicitly typed"),
+				},
+				Explanation: "As part of the security model, non-constant attributes must be typed." +
+					"For example, the `href` attribute placed on an `<a>` element is defined as `url`.\n" +
+					"While this attribute is sometimes attached to an element, there is at least one case " +
+					"where it is forwarded out of the component, requiring explicit typing.",
+				Hints: []diagnostic.Hint{
+					{
+						Hint:    "Explicitly type the attribute.",
+						Example: "`data-woof='url(myVar)`",
+					},
+				},
+				Docs: "attribute-type",
+			})
+			return
+		}
+
+		attr.Type.SetResult(attrtype.Unknown)
+		if !attr.Constant() {
+			logger.Error("Untyped attribute")
+			z.Report(&diagnostic.Diagnostic{
+				Message: "attribute: unable to determine type: outside of an element",
+				Primary: []diagnostic.Annotation{
+					anno.Node(f, attr.AST, "neither inside an element nor explicitly typed"),
+				},
+				Explanation: "As part of the security model, non-constant attributes must be typed. " +
+					"For example, the `href` attribute placed on an `<a>` element is defined as `url`.\n" +
+					"Since this attribute is forwarded out of the component, it must be assigned an explicit type.",
+				Hints: []diagnostic.Hint{
+					{
+						Hint:    "Explicitly type the attribute.",
+						Example: "`data-woof='url(myVar)`",
+					},
+				},
+				Docs: "attribute-type",
+			})
+		}
+		return
+	}
+
+	if attr.ContainingElements.Failed() || attr.Forwarded.Failed() {
+		attr.Type.SetFailed()
+		return
+	}
+
+	containingElements := *attr.ContainingElements.Result()
+	if len(containingElements) == 0 {
+		attr.Type.SetFailed()
+		logger.Error("attribute not forwarded but not contained in any element")
+		z.Report(&diagnostic.Diagnostic{
+			Type:    diagnostic.InternalError,
+			Message: "attribute: not forwarded but neither contained in any element",
+			Primary: []diagnostic.Annotation{
+				anno.Node(f, attr.AST, "marked as not forwarded, but analysis shows no containing elements"),
+			},
+			Explanation: "You shouldn't see this error. Please report it.",
+		})
+		return
+	}
+
+	if attr.Reference.Spec.Failed() {
+		attr.Type.SetFailed()
+		return
+	} else if attr.Reference.Spec.Result() == nil {
+		attr.Type.SetResult(attrtype.Unknown)
+		if !attr.Constant() {
+			logger.Error("Attribute not defined")
+			z.Report(&diagnostic.Diagnostic{
+				Message: "attribute: unable to determine type: attribute not defined",
+				Primary: []diagnostic.Annotation{
+					anno.Node(f, attr.AST, "unable to determine type"),
+				},
+				Explanation: "As part of the security model, non-constant attributes must be typed.\n" +
+					"You can type an attribute using one of two ways:\n" +
+					"Either explicitly type the attribute, e.g. `data-foo='url(myVar)`, " +
+					"or define the attribute for the elements it is attached to.\n" +
+					"For example, the `href` attribute placed on an `<a>` element is defined as `url`.",
+				Hints: []diagnostic.Hint{
+					{
+						Hint:    "Explicitly type the attribute.",
+						Example: "`data-woof='url(myVar)`",
+					}, {
+						Hint:    "Define the attribute for the elements it is attached to.",
+						Example: "`attr woof { div url }`",
+					},
+				},
+				Docs: "attribute-type",
+			})
+		}
+		return
+	}
+
+	attrSpec := attr.Reference.Spec.Result()
+
+	var refRule *ast.AttributeRule
+	var refElemName string
+	var typ attrtype.Type
+
+	e0 := containingElements[0]
+	if e0.Element.Spec == nil {
+		attr.Type.SetFailed()
+		return
+	}
+	if e0.Element.AST.Package != nil {
+		refElemName = e0.Element.AST.Package.Name + "." + e0.Element.AST.Name.Name
+	} else {
+		refElemName = e0.Element.AST.Name.Name
+	}
+	refRule = attrSpec.RuleFor(e0.Element.Spec)
+	if refRule != nil {
+		typ = refRule.Type.Type
+	}
+
+	for _, e := range containingElements[1:] {
+		if e.Element.Spec == nil {
+			attr.Type.SetFailed()
+			return
+		}
+
+		rule := attrSpec.RuleFor(e.Element.Spec)
+		if rule == nil && typ == attrtype.Unknown {
+			continue
+		} else if rule != nil && typ == rule.Type.Type {
+			continue
+		}
+
+		var elemName string
+		if e.Element.AST.Package != nil {
+			elemName = e.Element.AST.Package.Name + "." + e.Element.AST.Name.Name
+		} else {
+			elemName = e.Element.AST.Name.Name
+		}
+
+		secondaries := make([]diagnostic.Annotation, 2)
+		if refRule == nil {
+			secondaries[0] = anno.Node(attrSpec.File, attrSpec.AST.Selector, "not defined for `"+refElemName+"`")
+		} else {
+			secondaries[0] = anno.Node(attrSpec.File, refRule.Type, "defined as `"+refRule.Type.Type.String()+"` for `"+refElemName+"`")
+		}
+		if rule == nil {
+			secondaries[1] = anno.Node(attrSpec.File, attrSpec.AST.Selector, "not defined for `"+elemName+"`")
+		} else {
+			secondaries[1] = anno.Node(attrSpec.File, rule.Type, "defined as `"+rule.Type.Type.String()+"` for `"+elemName+"`")
+		}
+
+		attr.Type.SetFailed()
+		logger.Error("Attribute has conflicting types in different elements")
+		z.Report(&diagnostic.Diagnostic{
+			Message: "attribute: unable to determine type: conflicting types",
+			Primary: []diagnostic.Annotation{
+				anno.Node(f, attr.AST, "attached to different elements with conflicting types"),
+			},
+			Secondary:   secondaries,
+			Explanation: "This attribute is attached to multiple elements that define the attribute with different types.",
+			Hints: []diagnostic.Hint{
+				{
+					Hint:    "Explicitly type the attribute.",
+					Example: "`data-woof='url(myVar)`",
+				},
+			},
+		})
+		return
+	}
+
+	attr.Type.SetResult(typ)
+	if typ != attrtype.Unknown || attr.Constant() {
+		return
+	}
+
+	logger.Error("Untyped attribute")
+	z.Report(&diagnostic.Diagnostic{
+		Message: "attribute: unable to determine type: attribute not defined for element",
+		Primary: []diagnostic.Annotation{
+			anno.Node(f, attr.AST, "neither explicitly typed nor defined for the element"),
+		},
+		Explanation: "As part of the security model, non-constant attributes must be typed. " +
+			"For example, the `href` attribute placed on an `<a>` element is defined as `url`.\n" +
+			"This attribute is attached to an element that does not define it.",
+		Hints: []diagnostic.Hint{
+			{
+				Hint:    "Explicitly type the attribute.",
+				Example: "`data-woof='url(myVar)`",
+			}, {
+				Hint:    "Define the attribute for the elements it is attached to.",
+				Example: "`attr woof { div url }`",
+			},
+		},
+		Docs: "attribute-type",
+	})
 }
