@@ -38,6 +38,10 @@ func (z *analyzer) AnalyzeElementSpec(logger *slog.Logger, spec *file.ElementSpe
 	z.AnalyzeElementSpecType(logger, spec)
 }
 
+// ============================================================================
+// Check Cycles
+// ======================================================================================
+
 // CheckElementSpecCycles checks for element spec cycles in the given element
 // spec.
 //
@@ -101,6 +105,10 @@ func (z *analyzer) checkElementSpecCycles(logger *slog.Logger, chain []*file.Ele
 			"To fix this error, change the definition of at least one of the elements in the cycle.",
 	})
 }
+
+// ============================================================================
+// Type
+// ======================================================================================
 
 // AnalyzeElementSpecType analyzes the type of the given element spec.
 //
