@@ -35,9 +35,7 @@ func init() {
 }
 
 func scopeNode(p *parser.Parser) ast.ScopeNode {
-	if n := parser.Try(p, code.ImplicitCodeLine()); n != nil {
-		return n
-	} else if n := parser.Try(p, code.ExplicitCodeLine()); n != nil {
+	if n := parser.Try(p, component.Call()); n != nil {
 		return n
 	} else if n := parser.Try(p, component.Block()); n != nil {
 		return n
@@ -55,20 +53,10 @@ func scopeNode(p *parser.Parser) ast.ScopeNode {
 		return n
 	} else if n := parser.Try(p, element.Raw()); n != nil {
 		return n
-	} else if n := parser.Try(p, component.Call()); n != nil {
+	} else if n := parser.Try(p, code.ExplicitCodeLine()); n != nil {
 		return n
-	} else if b := parser.Try(p, code.Else()); b != nil {
-		p.CaptureError(&diagnostic.Diagnostic{
-			Message: "unexpected `else`",
-			Primary: []diagnostic.Annotation{
-				anno.Range(p.File, *b.Else, quickanno.DeltaPos(*b.Else, 0, len("else")), "unexpected `else`"),
-			},
-			Explanation: "This `else` is not part of an if statement.",
-		})
-		return &ast.BadNode{
-			From:  b.Start(),
-			Until: b.End(),
-		}
+	} else if n := parser.Try(p, code.ImplicitCodeLine()); n != nil {
+		return n
 	} else if b := parser.Try(p, code.ElseIf()); b != nil {
 		p.CaptureError(&diagnostic.Diagnostic{
 			Message: "unexpected `else if`",
@@ -76,6 +64,18 @@ func scopeNode(p *parser.Parser) ast.ScopeNode {
 				anno.Range(p.File, *b.Else, quickanno.DeltaPos(*b.If, 0, len("if")), "unexpected `else if"),
 			},
 			Explanation: "This `else if` is not part of an if statement.",
+		})
+		return &ast.BadNode{
+			From:  b.Start(),
+			Until: b.End(),
+		}
+	} else if b := parser.Try(p, code.Else()); b != nil {
+		p.CaptureError(&diagnostic.Diagnostic{
+			Message: "unexpected `else`",
+			Primary: []diagnostic.Annotation{
+				anno.Range(p.File, *b.Else, quickanno.DeltaPos(*b.Else, 0, len("else")), "unexpected `else`"),
+			},
+			Explanation: "This `else` is not part of an if statement.",
 		})
 		return &ast.BadNode{
 			From:  b.Start(),
