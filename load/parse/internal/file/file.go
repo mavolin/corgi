@@ -57,8 +57,6 @@ func scopeNode(p *parser.Parser) ast.ScopeNode {
 		return n
 	} else if n := parser.Try(p, code.ExplicitCodeLine()); n != nil {
 		return n
-	} else if n := parser.Try(p, code.ImplicitCodeLine()); n != nil {
-		return n
 	} else if b := parser.Try(p, code.ElseIf()); b != nil {
 		p.CaptureError(&diagnostic.Diagnostic{
 			Message: "unexpected `else if`",
@@ -83,13 +81,11 @@ func scopeNode(p *parser.Parser) ast.ScopeNode {
 			From:  b.Start(),
 			Until: b.End(),
 		}
-	}
-
-	if n := parser.Try(p, element.Element()); n != nil {
+	} else if n := parser.Try(p, element.Element()); n != nil {
 		return n
-	}
-
-	if n := parser.Try(p, TopLevelNode()); n != nil {
+	} else if n := parser.Try(p, code.ImplicitCodeLine()); n != nil {
+		return n
+	} else if n := parser.Try(p, TopLevelNode()); n != nil {
 		p.CaptureError(&diagnostic.Diagnostic{
 			Message: "unexpected top level node",
 			Primary: []diagnostic.Annotation{
