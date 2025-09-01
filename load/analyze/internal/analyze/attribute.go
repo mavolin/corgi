@@ -47,6 +47,8 @@ func (z *analyzer) AnalyzeAttribute(logger *slog.Logger, f *file.File, parents [
 	z.AnalyzeAttributeForwarded(f, parents, attr)
 	z.AnalyzeAttributeContainingElements(f, parents, attr)
 	z.AnalyzeAttributeType(logger, f, parents, attr)
+
+	attr.Analyzed = true
 }
 
 // ============================================================================
