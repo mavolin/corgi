@@ -1,0 +1,3 @@
+package examples
+
+//go:generate go run github.com/mavolin/corgi/v2/cmd compile ./...
