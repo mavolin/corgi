@@ -159,12 +159,13 @@ func Reference() parser.Func[*ast.ElementReference] {
 
 func Name() parser.Func[*ast.ElementName] {
 	return func(p *parser.Parser) *ast.ElementName {
-		pos := p.Pos()
-
 		name := parser.Try(p, html.TagName())
 		if name == "" {
 			return nil
 		}
+
+		pos := p.Pos()
+		pos.Col -= len([]rune(name))
 
 		return &ast.ElementName{Name: name, Position: &pos}
 	}
