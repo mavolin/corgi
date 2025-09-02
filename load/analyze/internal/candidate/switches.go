@@ -6,67 +6,6 @@ import (
 )
 
 // ============================================================================
-// And Placeholder Writer
-// ======================================================================================
-
-func SwitchAndPlaceholderWriter(n ast.Node,
-	AndPlaceholder func(*ast.AndPlaceholder),
-	ComponentCall func(*ast.ComponentCall),
-	BlockSetter func(ast.BlockSetter),
-) {
-	switch n := n.(type) {
-	case *ast.AndPlaceholder:
-		AndPlaceholder(n)
-	case *ast.ComponentCall:
-		ComponentCall(n)
-	case ast.BlockSetter:
-		BlockSetter(n)
-	}
-}
-
-func init() { //nolint:gochecknoinits
-	if false {
-		// If a compilation error occurs here, change the functions above.
-		switches.AndPlaceholderWriter(nil,
-			func(*ast.AndPlaceholder) {},
-			func(*ast.ComponentCallAndPlaceholderWriter) {})
-	}
-}
-
-// ============================================================================
-// Attribute Writer
-// ======================================================================================
-
-func SwitchAttributeWriter(n ast.Node,
-	ClassShorthand func(*ast.ClassShorthand),
-	ComponentCall func(*ast.ComponentCall),
-	IDShorthand func(*ast.IDShorthand),
-	NamedAttribute func(*ast.NamedAttribute),
-) {
-	switch n := n.(type) {
-	case *ast.ClassShorthand:
-		ClassShorthand(n)
-	case *ast.ComponentCall:
-		ComponentCall(n)
-	case *ast.IDShorthand:
-		IDShorthand(n)
-	case *ast.NamedAttribute:
-		NamedAttribute(n)
-	}
-}
-
-func init() { //nolint:gochecknoinits
-	if false {
-		// If a compilation error occurs here, change the functions above.
-		switches.AttributeWriter(nil,
-			func(*ast.ClassShorthand) {},
-			func(call *ast.ComponentCall) {},
-			func(*ast.IDShorthand) {},
-			func(*ast.NamedAttribute) {})
-	}
-}
-
-// ============================================================================
 // Attribute Inhibitor
 // ======================================================================================
 

@@ -92,8 +92,7 @@ var (
 // ======================================================================================
 
 // AttributeWriter is a node that can produce attributes:
-// [ClassShorthand], [IDShorthand], [NamedAttribute], [ComponentCall], or as a
-// special case the [ComponentAttributeWriter] wrapper type.
+// [ClassShorthand], [IDShorthand], [NamedAttribute], [ComponentCall].
 type AttributeWriter interface {
 	Node
 	_attributeWriter()
@@ -113,10 +112,9 @@ var (
 
 // AndPlaceholderWriter is a node that can produce attributes if the
 // &-placeholder is set:
-// [AndPlaceholder], [ComponentCallAndPlaceholderWriter].
+// [AndPlaceholder], [ComponentCall].
 //
-// This is either an [AndPlaceholder] directly, or a
-// [ComponentCallAndPlaceholderWriter] describing a component call that
+// This is either an [AndPlaceholder] directly, or a [ComponentCall] that
 // accepts and forwards the &-placeholder.
 //
 //	comp Foo() {
@@ -131,36 +129,5 @@ type AndPlaceholderWriter interface {
 // if changed, change the comment above
 var (
 	_ AndPlaceholderWriter = (*AndPlaceholder)(nil)
-	_ AndPlaceholderWriter = (*ComponentCallAndPlaceholderWriter)(nil)
+	_ AndPlaceholderWriter = (*ComponentCall)(nil)
 )
-
-// ======================= Component Call And Placeholder Writer ========================
-
-// ComponentCallAndPlaceholderWriter is a special case of an
-// AndPlaceholderWriter.
-//
-// It captures a [ComponentCall] that receives the &-placeholder, and the
-// AndPlaceholderWriter inside the call's body that writes the &-placeholder.
-type ComponentCallAndPlaceholderWriter struct {
-	ComponentCall *ComponentCall
-	// BlockSetter is the [BlockSetter] that contains the writer.
-	//
-	// Might be nil, in which case the &-placeholder writer is directly passed
-	// to the &-placeholder of the component that is being called.
-	//
-	// If set, the block setter is forwarded.
-	BlockSetter BlockSetter
-	// Writer is the AndPlaceholderWriter in the call's (not the component's!)
-	// body that writes the &-placeholder.
-	//
-	// The &-placeholder is a forwarded &-placeholder.
-	Writer AndPlaceholderWriter
-}
-
-var _ AndPlaceholderWriter = (*ComponentCallAndPlaceholderWriter)(nil)
-
-func (w *ComponentCallAndPlaceholderWriter) Start() Position        { return w.ComponentCall.Start() }
-func (w *ComponentCallAndPlaceholderWriter) End() Position          { return w.ComponentCall.End() }
-func (w *ComponentCallAndPlaceholderWriter) Walk(f func(Node))      { w.ComponentCall.Walk(f) }
-func (w *ComponentCallAndPlaceholderWriter) _node()                 {}
-func (w *ComponentCallAndPlaceholderWriter) _andPlaceholderWriter() {}

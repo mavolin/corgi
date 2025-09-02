@@ -44,27 +44,27 @@ type ComponentCall struct {
 	// ReceivesAttributes indicates that the component's &-placeholder gets
 	// filled.
 	//
-	// If the reason is a [ast.ComponentCall], then because that call
-	// also receives attributes and forwards them, because that call's
-	// component forwards attributes, or because one of the call's block
-	// setters forwards attributes
-	// ([ComponentCall.BlockSetterForwardsAttributes]).
+	// If the reason is a [ast.ComponentCall], then because that call's
+	// component forwards attributes, because that call receives attributes and
+	// forwards them, or because one of the call's block setters forwards
+	// attributes ([ComponentCall.BlockSetterForwardsAttributes]).
 	ReceivesAttributes AnalysisWithReason[ast.AttributeWriter]
 	// ReceivesAndPlaceholder indicates that the call's &-placeholder gets
 	// filled with the &-placeholder of the component containing this call.
 	//
 	// If the reason is a [ast.ComponentCall], then because that call
-	// receives an &-placeholder and forwards its received attributes.
+	// receives an &-placeholder and forwards its received attributes, or
+	// because one of the call's block setters forwards an &-placeholder.
 	ReceivesAndPlaceholder AnalysisWithReason[ast.AndPlaceholderWriter]
 
 	// ForwardsReceivedAttributes indicates whether the component call
-	// forwards attributes the attributes it receives through a top-level
+	// would forward attributes the attributes it receives through a top-level
 	// &-placeholder to the element containing the component call again.
 	//
 	// The reason is a node from the body of the _component_ (not the call).
 	//
-	// If the reason is a [ast.ComponentCall], then because that call also
-	// forwards received attributes and receives an &-placeholder.
+	// If the reason is a [ast.ComponentCall], then because that call receives
+	// an &-placeholder and forwards received attributes.
 	ForwardsReceivedAttributes AnalysisWithReason[ast.AndPlaceholderWriter]
 	// AcceptsAttributes indicates whether the call's component accepts
 	// attributes.
@@ -73,8 +73,8 @@ type ComponentCall struct {
 	//
 	// The reason is a node from the body of the _component_ (not the call).
 	//
-	// If the reason is a [ast.ComponentCall], then because that call also
-	// accepts attributes and receives an &-placeholder.
+	// If the reason is a [ast.ComponentCall], then because that call receives
+	// an &-placeholder and forwards received attributes.
 	AcceptsAttributes AnalysisWithReason[ast.AndPlaceholderWriter]
 
 	// ComponentForwardsAttributes indicates whether the component being called

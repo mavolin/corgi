@@ -12,7 +12,6 @@ import (
 	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
 	"github.com/mavolin/corgi/v2/file/switches"
 	"github.com/mavolin/corgi/v2/file/walk"
-	"github.com/mavolin/corgi/v2/load/analyze/internal/candidate"
 )
 
 // AnalyzeComponentCalls analyzes the remaining component calls in the package.
@@ -302,84 +301,101 @@ func (z *analyzer) AnalyzeReceivesAttributes(ctx context.Context, cc *file.Compo
 	}
 
 	walk.Walk(scope, func(w *walk.Context) walk.Action {
-		switch n := w.Node.(type) {
-		case *ast.AndPlaceholder:
-			if cc.ReceivesAndPlaceholder.True() {
-				return walk.Continue
-			}
+		if aw, _ := w.Node.(ast.AttributeWriter); aw != nil {
+			switches.AttributeWriter(aw,
+				func(s *ast.ClassShorthand) {
+					if !cc.ReceivesAttributes.True() {
+						cc.ReceivesAttributes.SetReason(s)
+					}
+				},
+				func(subCCAST *ast.ComponentCall) {
+					subCC := cc.File.ComponentCallByNode(subCCAST)
+					z.AnalyzeComponentCall(ctx, subCC)
 
-			cc.ReceivesAndPlaceholder.SetReason(n)
-			if cc.ReceivesAttributes.True() {
-				return walk.Break
-			}
-		case *ast.ComponentCall:
-			subCC := cc.File.ComponentCallByNode(n)
-			z.AnalyzeComponentCall(ctx, subCC)
+					if !cc.ReceivesAttributes.True() {
+						return
+					}
 
-			if !cc.ReceivesAttributes.True() {
-				fa := subCC.ForwardsAttributes()
-				if fa.Equal(true) {
-					cc.ReceivesAttributes.SetReason(subCC.AST)
-				} else if fa.Failed() {
-					cc.ReceivesAttributes.SetFailed()
-				}
-			}
+					fa := subCC.ForwardsAttributes()
+					if fa.Equal(true) {
+						cc.ReceivesAttributes.SetReason(subCC.AST)
+					} else if fa.Failed() {
+						cc.ReceivesAttributes.SetFailed()
+					}
+				},
+				func(s *ast.IDShorthand) {
+					if !cc.ReceivesAttributes.True() {
+						cc.ReceivesAttributes.SetReason(s)
+					}
+				},
+				func(na *ast.NamedAttribute) {
+					if !cc.ReceivesAttributes.True() {
+						cc.ReceivesAttributes.SetReason(na)
+					}
+				})
+		}
+		if apw, _ := w.Node.(ast.AndPlaceholderWriter); apw != nil {
+			switches.AndPlaceholderWriter(apw,
+				func(n *ast.AndPlaceholder) {
+					if !cc.ReceivesAndPlaceholder.True() {
+						cc.ReceivesAndPlaceholder.SetReason(n)
+					}
+				},
+				func(subCCAST *ast.ComponentCall) {
+					subCC := cc.File.ComponentCallByNode(subCCAST)
+					z.AnalyzeComponentCall(ctx, subCC)
 
-			if !cc.ReceivesAndPlaceholder.True() {
-				fap := subCC.ForwardsAndPlaceholder()
-				if fap.Equal(true) {
-					cc.ReceivesAndPlaceholder.SetReason(subCC.AST)
-				} else if fap.Failed() {
-					cc.ReceivesAndPlaceholder.SetFailed()
-				}
-			}
+					if !cc.ReceivesAndPlaceholder.True() {
+						return
+					}
 
-			if cc.ReceivesAndPlaceholder.True() && subCC.ReceivesAndPlaceholder.True() {
-				return walk.Break
-			}
-			return walk.NoDive
-		case ast.AttributeWriter:
-			if cc.ReceivesAttributes.True() {
-				return walk.Continue
-			}
+					fap := subCC.ForwardsAndPlaceholder()
+					if fap.Equal(true) {
+						cc.ReceivesAndPlaceholder.SetReason(subCC.AST)
+					} else if fap.Failed() {
+						cc.ReceivesAndPlaceholder.SetFailed()
+					}
+				})
+		}
 
-			cc.ReceivesAttributes.SetReason(n)
-			if cc.ReceivesAndPlaceholder.True() {
-				return walk.Break
-			}
+		if cc.ReceivesAttributes.True() && cc.ReceivesAndPlaceholder.True() {
+			return walk.Break
 		}
 		return walk.Continue
-	}, walk.DontDive[ast.BlockSetter]())
+	}, walk.DontDive[*ast.ComponentCall](), walk.DontDive[ast.BlockSetter]())
 }
 
 func (z *analyzer) analyzeReceivedAttributesInArgs(cc *file.ComponentCall) {
 	for _, arg := range cc.AST.Header.Arguments.List {
-		candidate.SwitchAndPlaceholderWriter(arg,
-			func(n *ast.AndPlaceholder) {
-				if !cc.ReceivesAndPlaceholder.True() {
-					cc.ReceivesAndPlaceholder.SetReason(n)
-				}
-			},
-			func(*ast.ComponentCall) {},
-			func(ast.BlockSetter) {})
+		if aw, _ := arg.(ast.AttributeWriter); aw != nil {
+			switches.AttributeWriter(aw,
+				func(s *ast.ClassShorthand) {
+					if !cc.ReceivesAttributes.True() {
+						cc.ReceivesAttributes.SetReason(s)
+					}
+				},
+				func(*ast.ComponentCall) {},
+				func(s *ast.IDShorthand) {
+					if !cc.ReceivesAttributes.True() {
+						cc.ReceivesAttributes.SetReason(s)
+					}
+				},
+				func(n *ast.NamedAttribute) {
+					if !cc.ReceivesAttributes.True() {
+						cc.ReceivesAttributes.SetReason(n)
+					}
+				})
+		}
 
-		candidate.SwitchAttributeWriter(arg,
-			func(s *ast.ClassShorthand) {
-				if !cc.ReceivesAttributes.True() {
-					cc.ReceivesAttributes.SetReason(s)
-				}
-			},
-			func(*ast.ComponentCall) {},
-			func(s *ast.IDShorthand) {
-				if !cc.ReceivesAttributes.True() {
-					cc.ReceivesAttributes.SetReason(s)
-				}
-			},
-			func(n *ast.NamedAttribute) {
-				if !cc.ReceivesAttributes.True() {
-					cc.ReceivesAttributes.SetReason(n)
-				}
-			})
+		if apw, _ := arg.(ast.AndPlaceholderWriter); apw != nil {
+			switches.AndPlaceholderWriter(apw,
+				func(n *ast.AndPlaceholder) {
+					if !cc.ReceivesAndPlaceholder.True() {
+						cc.ReceivesAndPlaceholder.SetReason(n)
+					}
+				},
+				func(*ast.ComponentCall) {})
+		}
 
 		if cc.ReceivesAttributes.True() && cc.ReceivesAndPlaceholder.True() {
 			return

@@ -11,13 +11,14 @@ type ComponentCall struct {
 }
 
 var (
-	_ ScopeNode          = (*ComponentCall)(nil)
-	_ ContentWriter      = (*ComponentCall)(nil)
-	_ ElementWriter      = (*ComponentCall)(nil)
-	_ AttributeWriter    = (*ComponentCall)(nil)
-	_ AttributeInhibitor = (*ComponentCall)(nil)
-	_ CodeNode           = (*ComponentCall)(nil)
-	_ Highlighter        = (*ComponentCall)(nil)
+	_ ScopeNode            = (*ComponentCall)(nil)
+	_ ContentWriter        = (*ComponentCall)(nil)
+	_ ElementWriter        = (*ComponentCall)(nil)
+	_ AttributeWriter      = (*ComponentCall)(nil)
+	_ AttributeInhibitor   = (*ComponentCall)(nil)
+	_ AndPlaceholderWriter = (*ComponentCall)(nil)
+	_ CodeNode             = (*ComponentCall)(nil)
+	_ Highlighter          = (*ComponentCall)(nil)
 )
 
 func (c *ComponentCall) Start() Position {
@@ -63,13 +64,14 @@ func (c *ComponentCall) Highlight() (start, end Position) {
 	return c.Start(), c.End()
 }
 
-func (*ComponentCall) _node()               {}
-func (*ComponentCall) _scopeNode()          {}
-func (*ComponentCall) _codeNode()           {}
-func (*ComponentCall) _contentWriter()      {}
-func (*ComponentCall) _elementWriter()      {}
-func (*ComponentCall) _attributeWriter()    {}
-func (*ComponentCall) _attributeInhibitor() {}
+func (*ComponentCall) _node()                 {}
+func (*ComponentCall) _scopeNode()            {}
+func (*ComponentCall) _codeNode()             {}
+func (*ComponentCall) _contentWriter()        {}
+func (*ComponentCall) _elementWriter()        {}
+func (*ComponentCall) _attributeWriter()      {}
+func (*ComponentCall) _attributeInhibitor()   {}
+func (*ComponentCall) _andPlaceholderWriter() {}
 
 // ============================================================================
 // Component Call Header
