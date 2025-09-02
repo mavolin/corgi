@@ -49,7 +49,10 @@ func (z *analyzer) cannotAttributes(ctx context.Context, f *file.File, reason *f
 					if s == nil || s.Block.CannotForwardAttributes.Failed() {
 						reason.SetFailed()
 					} else if s.Block.CannotForwardAttributes.True() {
-						reason.SetReason(parent)
+						reason.SetReason(&ast.BlockSetterContentWriter{
+							ComponentCall: ccAST,
+							BlockSetter:   parent,
+						})
 					}
 				}
 			}

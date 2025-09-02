@@ -191,7 +191,6 @@ func (s *DefaultBlockShorthand) Walk(w func(Node)) {
 func (*DefaultBlockShorthand) _node()              {}
 func (*DefaultBlockShorthand) _with()              {}
 func (*DefaultBlockShorthand) _componentCallBody() {}
-func (*DefaultBlockShorthand) _contentWriter()     {}
 
 // ============================================================================
 // BlockSetter
@@ -200,7 +199,6 @@ func (*DefaultBlockShorthand) _contentWriter()     {}
 // BlockSetter is either a [With] or a [DefaultBlockShorthand].
 type BlockSetter interface {
 	Node
-	ContentWriter
 	_with()
 	Name() string
 }
@@ -278,7 +276,6 @@ func (w *With) Highlight() (start, end Position) {
 	return w.Start(), w.End()
 }
 
-func (*With) _node()          {}
-func (*With) _with()          {}
-func (*With) _scopeNode()     {}
-func (*With) _contentWriter() {}
+func (*With) _node()      {}
+func (*With) _with()      {}
+func (*With) _scopeNode() {}

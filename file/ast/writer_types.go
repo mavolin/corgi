@@ -39,7 +39,7 @@ type BlockSetterContentWriter struct {
 	//
 	// Refer to the block setter's block's CannotForwardAttributes field for
 	// the reason why.
-	BlockSetter *BlockSetter
+	BlockSetter BlockSetter
 }
 
 var _ ContentWriter = (*BlockSetterContentWriter)(nil)
