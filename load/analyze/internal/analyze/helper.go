@@ -8,11 +8,13 @@ import (
 	"github.com/mavolin/corgi/v2/file/walk"
 )
 
-func (z *analyzer) cannotAttributes(ctx context.Context, f *file.File, reason *file.AnalysisWithReason[ast.ContentWriter]) walk.Option {
+func (z *analyzer) cannotAttributes(
+	ctx context.Context, f *file.File, reason *file.AnalysisWithReason[ast.AttributeInhibitor],
+) walk.Option {
 	var numParents int
 	inArrowBlock := -1 // set to numParents
 
-	stack := make([]file.AnalysisWithReason[ast.ContentWriter], 0, 48)
+	stack := make([]file.AnalysisWithReason[ast.AttributeInhibitor], 0, 48)
 	return func(w *walk.Context) walk.Action {
 		diven := len(w.Parents) > numParents
 		surfaced := len(w.Parents) < numParents
@@ -49,7 +51,7 @@ func (z *analyzer) cannotAttributes(ctx context.Context, f *file.File, reason *f
 					if s == nil || s.Block.CannotForwardAttributes.Failed() {
 						reason.SetFailed()
 					} else if s.Block.CannotForwardAttributes.True() {
-						reason.SetReason(&ast.BlockSetterContentWriter{
+						reason.SetReason(&ast.BlockSetterAttributeInhibitor{
 							ComponentCall: ccAST,
 							BlockSetter:   parent,
 						})

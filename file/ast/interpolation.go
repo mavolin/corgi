@@ -45,6 +45,7 @@ var (
 	_ TextInterpolation   = (*CharacterEscape)(nil)
 	_ StringInterpolation = (*CharacterEscape)(nil)
 	_ ContentWriter       = (*CharacterEscape)(nil)
+	_ AttributeInhibitor  = (*CharacterEscape)(nil)
 )
 
 func (ce *CharacterEscape) Start() Position {
@@ -63,11 +64,12 @@ func (ce *CharacterEscape) End() Position {
 
 func (ce *CharacterEscape) Walk(func(Node)) {}
 
-func (*CharacterEscape) _node()          {}
-func (*CharacterEscape) _interpolation() {}
-func (*CharacterEscape) _textNode()      {}
-func (*CharacterEscape) _stringNode()    {}
-func (*CharacterEscape) _contentWriter() {}
+func (*CharacterEscape) _node()               {}
+func (*CharacterEscape) _interpolation()      {}
+func (*CharacterEscape) _textNode()           {}
+func (*CharacterEscape) _stringNode()         {}
+func (*CharacterEscape) _contentWriter()      {}
+func (*CharacterEscape) _attributeInhibitor() {}
 
 // ============================================================================
 // Expression Interpolation
@@ -84,6 +86,7 @@ var (
 	_ TextInterpolation   = (*ExpressionInterpolation)(nil)
 	_ StringInterpolation = (*ExpressionInterpolation)(nil)
 	_ ContentWriter       = (*ExpressionInterpolation)(nil)
+	_ AttributeInhibitor  = (*ExpressionInterpolation)(nil)
 )
 
 func (ei *ExpressionInterpolation) Start() Position {
@@ -120,11 +123,12 @@ func (ei *ExpressionInterpolation) Walk(w func(Node)) {
 	}
 }
 
-func (*ExpressionInterpolation) _node()          {}
-func (*ExpressionInterpolation) _interpolation() {}
-func (*ExpressionInterpolation) _textNode()      {}
-func (*ExpressionInterpolation) _stringNode()    {}
-func (*ExpressionInterpolation) _contentWriter() {}
+func (*ExpressionInterpolation) _node()               {}
+func (*ExpressionInterpolation) _interpolation()      {}
+func (*ExpressionInterpolation) _textNode()           {}
+func (*ExpressionInterpolation) _stringNode()         {}
+func (*ExpressionInterpolation) _contentWriter()      {}
+func (*ExpressionInterpolation) _attributeInhibitor() {}
 
 // ============================================================================
 // Character Reference
@@ -140,6 +144,7 @@ var (
 	_ TextInterpolation   = (*CharacterReference)(nil)
 	_ StringInterpolation = (*CharacterReference)(nil)
 	_ ContentWriter       = (*CharacterReference)(nil)
+	_ AttributeInhibitor  = (*CharacterReference)(nil)
 )
 
 func (r *CharacterReference) Start() Position {
@@ -157,11 +162,12 @@ func (r *CharacterReference) End() Position {
 }
 func (r *CharacterReference) Walk(func(Node)) {}
 
-func (*CharacterReference) _node()          {}
-func (*CharacterReference) _interpolation() {}
-func (*CharacterReference) _textNode()      {}
-func (*CharacterReference) _stringNode()    {}
-func (*CharacterReference) _contentWriter() {}
+func (*CharacterReference) _node()               {}
+func (*CharacterReference) _interpolation()      {}
+func (*CharacterReference) _textNode()           {}
+func (*CharacterReference) _stringNode()         {}
+func (*CharacterReference) _contentWriter()      {}
+func (*CharacterReference) _attributeInhibitor() {}
 
 // ============================================================================
 // Mode Switch

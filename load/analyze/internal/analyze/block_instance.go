@@ -167,6 +167,8 @@ func (z *analyzer) AnalyzeBlockInstanceContainingElements(ctx context.Context, c
 //   - Components.Blocks.Instances.CannotForwardAttributes
 //
 // Depends on Fields: None
-func (z *analyzer) AnalyzeBlockInstanceCannotForwardAttributes(bi *file.BlockInstance, cannotAttributes file.AnalysisWithReason[ast.ContentWriter]) {
+func (z *analyzer) AnalyzeBlockInstanceCannotForwardAttributes(
+	bi *file.BlockInstance, cannotAttributes file.AnalysisWithReason[ast.AttributeInhibitor],
+) {
 	bi.CannotForwardAttributes = cannotAttributes
 }

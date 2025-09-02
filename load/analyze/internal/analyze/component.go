@@ -88,7 +88,7 @@ func (z *analyzer) AnalyzeCallComponent(ctx context.Context, cc *file.ComponentC
 //
 // Depends on Fields: None
 func (z *analyzer) AnalyzeComponentAST(ctx context.Context, logger *slog.Logger, c *file.Component) {
-	var cannotAttributes file.AnalysisWithReason[ast.ContentWriter]
+	var cannotAttributes file.AnalysisWithReason[ast.AttributeInhibitor]
 	cannotAttributes.SetFalse()
 
 	walk.Walk(c.AST, func(w *walk.Context) walk.Action {

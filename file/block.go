@@ -118,13 +118,13 @@ type (
 		// placed after the br element, which means it cannot forward
 		// attributes.
 		//
-		// The reason is the first content writer that prevents this block
-		// instance from forwarding attributes.
+		// The reason is the first attribute inhibitor preventing the
+		// forwarding of attributes.
 		// If this block instance is at the top-level of a block setter that
 		// cannot forward attributes, the reason is a
-		// [ast.BlockSetterContentWriter] with the block setter field set to
-		// that block setter.
-		CannotForwardAttributes AnalysisWithReason[ast.ContentWriter]
+		// [ast.BlockSetterAttributeInhibitor] with the block setter field set
+		// to that block setter.
+		CannotForwardAttributes AnalysisWithReason[ast.AttributeInhibitor]
 	}
 
 	BlockInstanceDefault struct {

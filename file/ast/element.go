@@ -13,9 +13,10 @@ type Doctype struct {
 }
 
 var (
-	_ ScopeNode     = (*Doctype)(nil)
-	_ ContentWriter = (*Doctype)(nil)
-	_ ElementWriter = (*Doctype)(nil)
+	_ ScopeNode          = (*Doctype)(nil)
+	_ ContentWriter      = (*Doctype)(nil)
+	_ ElementWriter      = (*Doctype)(nil)
+	_ AttributeInhibitor = (*Doctype)(nil)
 )
 
 func (d *Doctype) Start() Position {
@@ -46,10 +47,11 @@ func (d *Doctype) End() Position {
 
 func (d *Doctype) Walk(func(Node)) {}
 
-func (*Doctype) _node()          {}
-func (*Doctype) _elementWriter() {}
-func (*Doctype) _contentWriter() {}
-func (*Doctype) _scopeNode()     {}
+func (*Doctype) _node()               {}
+func (*Doctype) _elementWriter()      {}
+func (*Doctype) _contentWriter()      {}
+func (*Doctype) _attributeInhibitor() {}
+func (*Doctype) _scopeNode()          {}
 
 // ============================================================================
 // Element
@@ -62,10 +64,11 @@ type Element struct {
 }
 
 var (
-	_ ScopeNode     = (*Element)(nil)
-	_ ContentWriter = (*Element)(nil)
-	_ ElementWriter = (*Element)(nil)
-	_ Highlighter   = (*Element)(nil)
+	_ ScopeNode          = (*Element)(nil)
+	_ ContentWriter      = (*Element)(nil)
+	_ AttributeInhibitor = (*Element)(nil)
+	_ ElementWriter      = (*Element)(nil)
+	_ Highlighter        = (*Element)(nil)
 )
 
 func (e *Element) Start() Position {
@@ -102,10 +105,11 @@ func (e *Element) Highlight() (start, end Position) {
 	return e.Start(), e.End()
 }
 
-func (*Element) _node()          {}
-func (*Element) _contentWriter() {}
-func (*Element) _elementWriter() {}
-func (*Element) _scopeNode()     {}
+func (*Element) _node()               {}
+func (*Element) _scopeNode()          {}
+func (*Element) _contentWriter()      {}
+func (*Element) _elementWriter()      {}
+func (*Element) _attributeInhibitor() {}
 
 // ============================================================================
 // Element Header
@@ -228,8 +232,10 @@ type RawElement struct {
 }
 
 var (
-	_ ScopeNode   = (*RawElement)(nil)
-	_ Highlighter = (*RawElement)(nil)
+	_ ScopeNode          = (*RawElement)(nil)
+	_ Highlighter        = (*RawElement)(nil)
+	_ ContentWriter      = (*RawElement)(nil)
+	_ AttributeInhibitor = (*RawElement)(nil)
 )
 
 func (e *RawElement) Start() Position {
@@ -261,8 +267,10 @@ func (e *RawElement) Highlight() (start, end Position) {
 	return e.Start(), e.End()
 }
 
-func (*RawElement) _node()      {}
-func (*RawElement) _scopeNode() {}
+func (*RawElement) _node()               {}
+func (*RawElement) _scopeNode()          {}
+func (*RawElement) _contentWriter()      {}
+func (*RawElement) _attributeInhibitor() {}
 
 // ============================================================================
 // And
