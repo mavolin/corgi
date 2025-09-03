@@ -15,6 +15,9 @@ type stackItem struct {
 	// A non-nil stack item indicates the next reason at that level should be
 	// that item.
 	reason *file.AnalysisWithReason[ast.AttributeInhibitor]
+	// before is only set for component calls and indicates the reason
+	// before entering the component call.
+	before *file.AnalysisWithReason[ast.AttributeInhibitor]
 	// branch indicates whether this stack item belongs to a
 	// conditional/switch branch.
 	branch bool
@@ -80,11 +83,13 @@ func (z *analyzer) cannotAttributes(
 			candidate.SwitchAttributeInhibitor(w.Parents[len(w.Parents)-1].Node,
 				func(*ast.Block) {},
 				func(parent ast.BlockSetter) {
-					ccAST := walk.Closest[*ast.ComponentCall](w.Parents[:len(w.Parents)-1])
-					if ccAST == nil {
+					ccI := walk.ClosestIndex[*ast.ComponentCall](w.Parents[:len(w.Parents)-1])
+					if ccI < 0 {
 						reason.SetFailed()
 						return
 					}
+
+					ccAST := w.Parents[ccI].Node.(*ast.ComponentCall) //nolint:errcheck
 
 					cc := f.ComponentCallByNode(ccAST)
 					z.AnalyzeComponentCall(ctx, cc)
@@ -96,6 +101,9 @@ func (z *analyzer) cannotAttributes(
 							ComponentCall: ccAST,
 							BlockSetter:   parent,
 						})
+					} else {
+						ccStackItem := stack[ccI+1]
+						*reason = *ccStackItem.before
 					}
 				},
 				func(*ast.CharacterEscape) {},
@@ -136,6 +144,7 @@ func (z *analyzer) cannotAttributes(
 		// node would inherit the reason from the last-walked node at this or a
 		// deeper level.
 		stack[len(stack)-1].reason = nil
+		stack[len(stack)-1].before = nil
 		stack[len(stack)-1].branch = false
 
 		clone := *reason
@@ -190,6 +199,7 @@ func (z *analyzer) cannotAttributes(
 			func(n *ast.CharacterEscape) { next.SetReason(n) },
 			func(n *ast.CharacterReference) { next.SetReason(n) },
 			func(ccAST *ast.ComponentCall) {
+				stack[len(stack)-1].before = &clone
 				cc := f.ComponentCallByNode(ccAST)
 				z.AnalyzeComponentCall(ctx, cc)
 
