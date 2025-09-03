@@ -5,6 +5,7 @@ main() {
   local failed=0
   check_file "escape/charref/chars.go" || failed=1
   check_file "internal/isstdlib/detector.go" || failed=1
+  check_file "file/ast/switches/functions.go" || failed=1
   return $failed
 }
 

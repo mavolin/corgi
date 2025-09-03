@@ -7,6 +7,7 @@ import (
 	"github.com/mavolin/corgi/v2/file/ast"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
 	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
+	"github.com/mavolin/corgi/v2/file/switches"
 )
 
 func (z *analyzer) AnalyzeElementSpecs() {
@@ -127,20 +128,21 @@ func (z *analyzer) AnalyzeElementSpecType(logger *slog.Logger, spec *file.Elemen
 		return // already analyzed
 	}
 
-	switch typ := spec.AST.Type.(type) {
-	case *ast.BasicElementType:
-		spec.Type.SetResult(typ.Type.Type)
-	case *ast.AliasElementType:
-		ref := spec.File.ElementReferenceByNode(typ.Name)
-		if ref == nil {
-			spec.Type.SetFailed()
-			return
-		}
-		if ref.Spec.Circular {
-			spec.Type.SetFailed()
-			return
-		}
-		z.AnalyzeElementSpecType(logger, ref.Spec)
-		spec.Type = ref.Spec.Type
-	}
+	switches.ElementType(spec.AST.Type,
+		func(typ *ast.AliasElementType) {
+			ref := spec.File.ElementReferenceByNode(typ.Name)
+			if ref == nil {
+				spec.Type.SetFailed()
+				return
+			}
+			if ref.Spec.Circular {
+				spec.Type.SetFailed()
+				return
+			}
+			z.AnalyzeElementSpecType(logger, ref.Spec)
+			spec.Type = ref.Spec.Type
+		},
+		func(typ *ast.BasicElementType) {
+			spec.Type.SetResult(typ.Type.Type)
+		})
 }

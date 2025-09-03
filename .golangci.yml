@@ -66,11 +66,14 @@ linters:
       - legacy
       - std-error-handling
     rules:
+      - path: '^file/switches/functions\.go$'
+        linters: [gocritic]
+        text: '^captLocal:'
       - path: '[^/]+_test.go$'
         linters:
           - errcheck
           - unparam
-      - path: '[^/]+_test.go$'
+      - path: '[^/]+_test\.go$'
         linters: [revive]
         text: "^var-naming:"
     paths:

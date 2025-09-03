@@ -8,6 +8,7 @@ import (
 	"github.com/mavolin/corgi/v2/file/ast"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
 	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
+	"github.com/mavolin/corgi/v2/file/switches"
 )
 
 func (ch *checker) CheckAttribute(logger *slog.Logger, f *file.File, attr *file.Attribute) {
@@ -35,13 +36,11 @@ func (ch *checker) CheckClassAlwaysInnocuous(
 		return
 	}
 
-	var isBool bool
-	switch attr.Value.(type) {
-	case file.ConstantBoolAttributeValue:
-		isBool = true
-	case *file.ExpressionBoolAttributeValue:
-		isBool = true
-	}
+	isBool := switches.ResolvedAttributeValueR(attr.Value,
+		func(file.ConstantBoolAttributeValue) bool { return true },
+		func(*file.ExpressionBoolAttributeValue) bool { return true },
+		func(file.TextAttributeValue) bool { return false },
+		func(*file.UntypedAttributeValue) bool { return false })
 	if isBool {
 		logger.Error("class attribute incorrectly typed")
 		ch.Report(&diagnostic.Diagnostic{
@@ -62,13 +61,15 @@ func (ch *checker) CheckClassAlwaysInnocuous(
 	if typ == attrtype.Innocuous {
 		return
 	} else if typ == attrtype.Unknown {
-		switch attr.Value.(type) {
-		case file.TextAttributeValue:
+		ok := switches.ResolvedAttributeValueR(attr.Value,
+			func(file.ConstantBoolAttributeValue) bool { return false },
+			func(*file.ExpressionBoolAttributeValue) bool { return false },
 			// If the value is constant, we can use it as a class attribute.
 			// If the value is not, we already captured an error elsewhere
 			// asserting that the attribute must be typed
-			return
-		case *file.UntypedAttributeValue:
+			func(file.TextAttributeValue) bool { return true },
+			func(*file.UntypedAttributeValue) bool { return true })
+		if ok {
 			return
 		}
 	}
@@ -151,16 +152,16 @@ func (ch *checker) CheckNoInterpolationInUnsafeAttribute(logger *slog.Logger, f 
 		return
 	}
 
-	switch val := attr.Value.(type) {
-	case file.TextAttributeValue:
-		if val.Constant() {
-			return
-		}
-	default:
+	ok := switches.ResolvedAttributeValueR(attr.Value,
+		func(file.ConstantBoolAttributeValue) bool { return true },    // different error
+		func(*file.ExpressionBoolAttributeValue) bool { return true }, // different error
+		func(val file.TextAttributeValue) bool { return val.Constant() },
+		func(*file.UntypedAttributeValue) bool { return false })
+	if ok {
 		return
 	}
 
-	expr := ch.expressionFromAttributeValue(logger, f, attrAST.Value)
+	expr := ch.expressionFromAttributeValue(attrAST.Value)
 	if expr == nil || len(expr.Nodes) != 1 {
 		return
 	}
@@ -171,10 +172,14 @@ func (ch *checker) CheckNoInterpolationInUnsafeAttribute(logger *slog.Logger, f 
 	}
 
 	for _, n := range s.Contents {
-		switch n.(type) {
-		case *ast.ExpressionInterpolation:
-		case *ast.ComponentCallInterpolation:
-		default:
+		ok := switches.StringNodeR(n,
+			func(*ast.BadInterpolation) bool { panic("analyzer called with parser errors") },
+			func(*ast.CharacterEscape) bool { return true },
+			func(*ast.CharacterReference) bool { return true },
+			func(*ast.ComponentCallInterpolation) bool { return false },
+			func(*ast.ExpressionInterpolation) bool { return false },
+			func(*ast.StringText) bool { return true })
+		if ok {
 			continue
 		}
 
@@ -215,10 +220,12 @@ func (ch *checker) CheckNonBoolAttributeSpecifiedAsBool(logger *slog.Logger, f *
 		return
 	}
 
-	switch attr.Value.(type) {
-	case file.ConstantBoolAttributeValue:
-	case *file.ExpressionBoolAttributeValue:
-	default:
+	ok := switches.ResolvedAttributeValueR(attr.Value,
+		func(file.ConstantBoolAttributeValue) bool { return false },
+		func(*file.ExpressionBoolAttributeValue) bool { return false },
+		func(file.TextAttributeValue) bool { return true },
+		func(*file.UntypedAttributeValue) bool { return true })
+	if ok {
 		return
 	}
 
@@ -268,12 +275,12 @@ func (ch *checker) CheckNonBoolAttributeSpecifiedAsBool(logger *slog.Logger, f *
 func (ch *checker) CheckBoolAttributeSetToNonBoolExpression(logger *slog.Logger, f *file.File, attr *file.Attribute, attrAST *ast.NamedAttribute) {
 	logger = logger.WithGroup("bool_attribute_set_to_non_bool_expression")
 
-	switch attr.Value.(type) {
-	case file.ConstantBoolAttributeValue:
-		return
-	case *file.ExpressionBoolAttributeValue:
-		return
-	case *file.UntypedAttributeValue:
+	ok := switches.ResolvedAttributeValueR(attr.Value,
+		func(file.ConstantBoolAttributeValue) bool { return true },
+		func(*file.ExpressionBoolAttributeValue) bool { return true },
+		func(file.TextAttributeValue) bool { return false },
+		func(*file.UntypedAttributeValue) bool { return true })
+	if ok {
 		return
 	}
 
@@ -334,25 +341,18 @@ func singleAttributeRule(attr *file.Attribute) *ast.AttributeRule {
 	return rule
 }
 
-func (ch *checker) expressionFromAttributeValue(logger *slog.Logger, f *file.File, v ast.AttributeValue) *ast.Expression {
+func (ch *checker) expressionFromAttributeValue(v ast.AttributeValue) *ast.Expression {
 	for {
-		switch typed := v.(type) {
-		case *ast.TypedAttributeValue:
-			v = typed.Value
-		case *ast.ExpressionAttributeValue:
-			return (*ast.Expression)(typed)
-		default:
-			logger.Error("Attribute value is neither an expression nor typed attribute value")
-			ch.Report(&diagnostic.Diagnostic{
-				Type:    diagnostic.InternalError,
-				Message: "attribute value is neither an expression nor typed attribute value",
-				Primary: []diagnostic.Annotation{
-					anno.Node(f, v, "for this node"),
-				},
-				Explanation: "This most likely happened because the ast.AttributeValue sum type was extended.\n\n" +
-					"This is a bug in the analyzer, please open an issue.",
+		e := switches.AttributeValueR(v,
+			func(eav *ast.ExpressionAttributeValue) *ast.Expression {
+				return (*ast.Expression)(eav)
+			},
+			func(tav *ast.TypedAttributeValue) *ast.Expression {
+				v = tav.Value
+				return nil
 			})
-			return nil
+		if e != nil {
+			return e
 		}
 	}
 }

@@ -1,7 +1,6 @@
 package analyze
 
 import (
-	"fmt"
 	"log/slog"
 	"slices"
 
@@ -10,6 +9,7 @@ import (
 	"github.com/mavolin/corgi/v2/file/ast"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
 	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
+	"github.com/mavolin/corgi/v2/file/switches"
 	"github.com/mavolin/corgi/v2/file/walk"
 )
 
@@ -65,17 +65,14 @@ func (z *analyzer) AnalyzeAttribute(logger *slog.Logger, f *file.File, parents [
 func (z *analyzer) AnalyzeAttributeValue(logger *slog.Logger, f *file.File, attr *file.Attribute) {
 	logger = logger.WithGroup("value")
 
-	switch attrAST := attr.AST.(type) {
-	case *ast.IDShorthand:
-		attr.Value = z.shorthandToAttributeValue(nil, logger, f, attrAST.ID)
-	case *ast.ClassShorthand:
-		attr.Value = z.classShorthandToAttributeValue(logger, f, *attrAST)
-	case *ast.NamedAttribute:
-		z.namedAttributeValue(logger, f, attr, attrAST)
-	}
+	switches.Attribute(attr.AST,
+		func(*ast.AndPlaceholder) {},
+		func(attrAST *ast.ClassShorthand) { attr.Value = z.classShorthandToAttributeValue(attrAST) },
+		func(attrAST *ast.IDShorthand) { attr.Value = z.shorthandToAttributeValue(nil, attrAST.ID) },
+		func(attrAST *ast.NamedAttribute) { attr.Value = z.namedAttributeToAttributeValue(f, attrAST) })
 }
 
-func (z *analyzer) classShorthandToAttributeValue(logger *slog.Logger, f *file.File, s ast.ClassShorthand) file.TextAttributeValue {
+func (z *analyzer) classShorthandToAttributeValue(s *ast.ClassShorthand) file.TextAttributeValue {
 	var n int
 	for _, name := range s.Names {
 		n += len(name)
@@ -93,157 +90,121 @@ func (z *analyzer) classShorthandToAttributeValue(logger *slog.Logger, f *file.F
 			}
 		}
 
-		v = z.shorthandToAttributeValue(v, logger, f, name)
+		v = z.shorthandToAttributeValue(v, name)
 	}
 
 	return slices.Clip(v)
 }
 
-func (z *analyzer) shorthandToAttributeValue(v file.TextAttributeValue, logger *slog.Logger, f *file.File, s ast.Shorthand) file.TextAttributeValue {
+func (z *analyzer) shorthandToAttributeValue(v file.TextAttributeValue, s ast.Shorthand) file.TextAttributeValue {
 	v = slices.Grow(v, len(s))
 	for i, n := range s {
-		switch n := n.(type) {
-		case *ast.ShorthandText:
-			if i == 0 && len(v) > 0 {
-				last := v[len(v)-1]
-				if c, _ := last.(file.ConstantTextAttributeValuePart); c != "" {
-					v[len(v)-1] = c + file.ConstantTextAttributeValuePart(n.Text)
-					continue
+		switches.ShorthandNode(n,
+			func(n *ast.ShorthandInterpolation) {
+				v = append(v, (*file.ExpressionTextAttributeValuePart)(n.Expression))
+			},
+			func(n *ast.ShorthandText) {
+				if i == 0 && len(v) > 0 {
+					last := v[len(v)-1]
+					if c, _ := last.(file.ConstantTextAttributeValuePart); c != "" {
+						v[len(v)-1] = c + file.ConstantTextAttributeValuePart(n.Text)
+						return
+					}
 				}
-			}
-			v = append(v, file.ConstantTextAttributeValuePart(n.Text))
-		case *ast.ShorthandInterpolation:
-			v = append(v, (*file.ExpressionTextAttributeValuePart)(n.Expression))
-		default:
-			logger.Error("Unknown shorthand node")
-			z.Report(&diagnostic.Diagnostic{
-				Type:    diagnostic.InternalError,
-				Message: "unknown shorthand node",
-				Primary: []diagnostic.Annotation{
-					anno.Node(f, n, fmt.Sprintf("uknown shorthand node type %T", n)),
-				},
+				v = append(v, file.ConstantTextAttributeValuePart(n.Text))
 			})
-		}
 	}
 	return v
 }
 
-func (z *analyzer) namedAttributeValue(logger *slog.Logger, f *file.File, attr *file.Attribute, attrAST *ast.NamedAttribute) {
+func (z *analyzer) namedAttributeToAttributeValue(f *file.File, attrAST *ast.NamedAttribute) file.ResolvedAttributeValue {
 	if attrAST.Value == nil {
-		attr.Value = file.ConstantBoolAttributeValue(true)
-		return
+		return file.ConstantBoolAttributeValue(true)
 	}
 
-	expr := z.expressionFromAttributeValue(logger, f, attrAST.Value)
-	if expr == nil {
-		return
-	}
+	expr := z.expressionFromAttributeValue(attrAST.Value)
 
 	n0 := expr.Nodes[0]
-	s, _ := n0.(*ast.String)
-	if s != nil {
-		attr.Value = z.stringToAttributeValue(logger, f, s)
-		return
-	}
-
-	g, _ := n0.(*ast.GoCode)
-	if g != nil {
-		switch g.Code {
-		case "true":
-			attr.Value = file.ConstantBoolAttributeValue(true)
-			return
-		case "false":
-			attr.Value = file.ConstantBoolAttributeValue(false)
-			return
-		}
-	}
+	switches.CodeNodeR(n0,
+		func(*ast.BlockFunction) file.ResolvedAttributeValue { return nil },
+		func(*ast.ComponentCall) file.ResolvedAttributeValue { return nil },
+		func(gc *ast.GoCode) file.ResolvedAttributeValue {
+			switch gc.Code {
+			case "true":
+				return file.ConstantBoolAttributeValue(true)
+			case "false":
+				return file.ConstantBoolAttributeValue(false)
+			default:
+				return nil
+			}
+		},
+		func(s *ast.String) file.ResolvedAttributeValue {
+			return z.stringToAttributeValue(s)
+		},
+		func(*ast.Ternary) file.ResolvedAttributeValue { return nil },
+		func(*ast.ZeroCoalescing) file.ResolvedAttributeValue { return nil },
+	)
 
 	typ, _ := InferType(f, expr)
 	switch typ {
 	case "bool":
-		attr.Value = (*file.ExpressionBoolAttributeValue)(expr)
+		return (*file.ExpressionBoolAttributeValue)(expr)
 	case "int", "int8", "int16", "int32", "int64",
 		"uint", "uint8", "uint16", "uint32", "uint64",
 		"float32", "float64", "string":
-		attr.Value = file.TextAttributeValue{(*file.ExpressionTextAttributeValuePart)(expr)}
+		return file.TextAttributeValue{(*file.ExpressionTextAttributeValuePart)(expr)}
 	default:
-		attr.Value = (*file.UntypedAttributeValue)(expr)
+		return (*file.UntypedAttributeValue)(expr)
 	}
-	return
 }
 
-func (z *analyzer) stringToAttributeValue(logger *slog.Logger, f *file.File, s *ast.String) file.TextAttributeValue {
+func (z *analyzer) stringToAttributeValue(s *ast.String) file.TextAttributeValue {
 	v := make(file.TextAttributeValue, 0, len(s.Contents))
 
 	var last file.ConstantTextAttributeValuePart
 	for _, content := range s.Contents {
-		switch content := content.(type) {
-		case *ast.StringText:
-			if last != "" {
-				last += file.ConstantTextAttributeValuePart(content.Text)
-				v[len(v)-1] = last
-			} else {
-				last = file.ConstantTextAttributeValuePart(content.Text)
-				v = append(v, last)
-			}
-		case *ast.CharacterEscape:
-			if last != "" {
-				last += file.ConstantTextAttributeValuePart(content.Rune)
-				v[len(v)-1] = last
-			} else {
-				last = file.ConstantTextAttributeValuePart(content.Rune)
-				v = append(v, last)
-			}
-		case *ast.CharacterReference:
-			if last != "" {
-				last += file.ConstantTextAttributeValuePart(content.Chars)
-				v[len(v)-1] = last
-			} else {
-				last = file.ConstantTextAttributeValuePart(content.Chars)
-				v = append(v, last)
-			}
-		case *ast.ExpressionInterpolation:
-			last = ""
-			v = append(v, (*file.ExpressionTextAttributeValuePart)(content.Expression))
-		case *ast.ComponentCallInterpolation:
-			last = ""
-			v = append(v, (*file.ComponentCallTextAttributeValuePart)(content.ComponentCall))
-		default:
-			logger.Error("Unknown string content node")
-			z.Report(&diagnostic.Diagnostic{
-				Type:    diagnostic.InternalError,
-				Message: "unknown string content node",
-				Primary: []diagnostic.Annotation{
-					anno.Node(f, content, fmt.Sprintf("uknown string content node type %T", content)),
-				},
-				Explanation: "This most likely happened because the ast.StringNode sum type was extended.\n\n" +
-					"This is a bug in the analyzer, please open an issue.",
-			})
-		}
+		switches.StringNode(content,
+			func(content *ast.BadInterpolation) {
+				panic("analyzer called with file with parse errors: " + content.Start().String())
+			},
+			func(content *ast.CharacterEscape) { addConstant(&v, &last, string(content.Rune)) },
+			func(content *ast.CharacterReference) { addConstant(&v, &last, content.Chars) },
+			func(content *ast.ComponentCallInterpolation) {
+				last = ""
+				v = append(v, (*file.ComponentCallTextAttributeValuePart)(content.ComponentCall))
+			},
+			func(content *ast.ExpressionInterpolation) {
+				last = ""
+				v = append(v, (*file.ExpressionTextAttributeValuePart)(content.Expression))
+			},
+			func(content *ast.StringText) { addConstant(&v, &last, content.Text) })
 	}
 
 	return slices.Clip(v)
 }
 
-func (z *analyzer) expressionFromAttributeValue(logger *slog.Logger, f *file.File, v ast.AttributeValue) *ast.Expression {
+func addConstant(v *file.TextAttributeValue, last *file.ConstantTextAttributeValuePart, s string) {
+	if *last != "" {
+		*last += file.ConstantTextAttributeValuePart(s)
+		(*v)[len(*v)-1] = *last
+	} else {
+		*last = file.ConstantTextAttributeValuePart(s)
+		*v = append(*v, *last)
+	}
+}
+
+func (z *analyzer) expressionFromAttributeValue(v ast.AttributeValue) *ast.Expression {
 	for {
-		switch typed := v.(type) {
-		case *ast.TypedAttributeValue:
-			v = typed.Value
-		case *ast.ExpressionAttributeValue:
-			return (*ast.Expression)(typed)
-		default:
-			logger.Error("Attribute value is neither an expression nor typed attribute value")
-			z.Report(&diagnostic.Diagnostic{
-				Type:    diagnostic.InternalError,
-				Message: "attribute value is neither an expression nor typed attribute value",
-				Primary: []diagnostic.Annotation{
-					anno.Node(f, v, "for this node"),
-				},
-				Explanation: "This most likely happened because the ast.AttributeValue sum type was extended.\n\n" +
-					"This is a bug in the analyzer, please open an issue.",
+		e := switches.AttributeValueR(v,
+			func(eav *ast.ExpressionAttributeValue) *ast.Expression {
+				return (*ast.Expression)(eav)
+			},
+			func(tav *ast.TypedAttributeValue) *ast.Expression {
+				v = tav.Value
+				return nil
 			})
-			return nil
+		if e != nil {
+			return e
 		}
 	}
 }
@@ -423,12 +384,16 @@ func (z *analyzer) AnalyzeAttributeType(logger *slog.Logger, f *file.File, attr 
 }
 
 func (z *analyzer) analyzeExplicitAttributeType(logger *slog.Logger, f *file.File, attr *file.Attribute) {
-	nAttr, _ := attr.AST.(*ast.NamedAttribute)
-	if nAttr == nil {
+	val := switches.AttributeR(attr.AST,
+		func(*ast.AndPlaceholder) ast.AttributeValue { return nil },
+		func(*ast.ClassShorthand) ast.AttributeValue { return nil },
+		func(*ast.IDShorthand) ast.AttributeValue { return nil },
+		func(na *ast.NamedAttribute) ast.AttributeValue { return na.Value })
+	if val == nil {
 		return
 	}
 
-	tav, _ := nAttr.Value.(*ast.TypedAttributeValue)
+	tav, _ := val.(*ast.TypedAttributeValue)
 	if tav == nil {
 		return
 	}

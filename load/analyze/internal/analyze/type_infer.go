@@ -6,6 +6,7 @@ import (
 
 	"github.com/mavolin/corgi/v2/file"
 	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/file/switches"
 )
 
 // InferType attempts to infer the type expr would yield.
@@ -21,43 +22,37 @@ import (
 // the expression it might also be used to yield a different, more concrete
 // type.
 func InferType(f *file.File, expr *ast.Expression) (typ string, sure bool) {
-	if expr == nil {
-		return "", false
-	} else if len(expr.Nodes) == 0 {
+	if expr == nil || len(expr.Nodes) == 0 {
 		return "", false
 	}
 
-	switch n := expr.Nodes[0].(type) {
-	case *ast.BlockFunction:
-		return "bool", true
-	case *ast.GoCode:
-		return inferGoCodeType(f, n)
-	case *ast.String:
-		return "string", false
-	case *ast.Ternary:
-		if len(expr.Nodes) == 1 {
-			return inferTernaryType(f, n)
-		}
-	case *ast.ZeroCoalescing:
-		return inferZeroCoalescingType(f, n)
+	switches.CodeNode(expr.Nodes[0],
+		func(*ast.BlockFunction) { typ, sure = "bool", true },
+		func(*ast.ComponentCall) { typ, sure = "string", true },
+		func(gc *ast.GoCode) { typ, sure = inferGoCodeType(f, gc) },
+		func(*ast.String) { typ, sure = "string", false },
+		func(n *ast.Ternary) {
+			if len(expr.Nodes) == 1 {
+				typ, sure = inferTernaryType(f, n)
+			}
+		},
+		func(n *ast.ZeroCoalescing) { typ, sure = inferZeroCoalescingType(f, n) })
+	if typ != "" {
+		return typ, sure
 	}
 
 	if len(expr.Nodes) == 1 {
 		return "", false
 	}
 
-	switch n := expr.Nodes[len(expr.Nodes)-1].(type) {
-	case *ast.BlockFunction:
-		return "bool", true
-	case *ast.GoCode:
-		return inferLastGoCodeType(n)
-	case *ast.String:
-		return "string", true
-	case *ast.Ternary:
-		return inferTernaryType(nil, n)
-	default:
-		return "", false
-	}
+	switches.CodeNode(expr.Nodes[0],
+		func(*ast.BlockFunction) { typ, sure = "bool", true },
+		func(*ast.ComponentCall) { typ, sure = "string", true },
+		func(gc *ast.GoCode) { typ, sure = inferLastGoCodeType(gc) },
+		func(*ast.String) { typ, sure = "string", false },
+		func(n *ast.Ternary) { typ, sure = inferTernaryType(f, n) },
+		func(n *ast.ZeroCoalescing) {})
+	return typ, sure
 }
 
 func inferTernaryType(f *file.File, expr *ast.Ternary) (typ string, sure bool) {
@@ -99,9 +94,14 @@ func inferZeroCoalescingType(f *file.File, expr *ast.ZeroCoalescing) (typ string
 	}
 
 	last := expr.Chain[len(expr.Chain)-1]
-	ta, _ := last.(*ast.ZCTypeAssertionExpression)
-	if ta != nil {
-		return ta.Type.Full(), true
+	switches.ZeroCoalescingNode(last,
+		func(*ast.ZCIndexExpression) {},
+		func(*ast.ZCParenExpression) {},
+		func(*ast.ZCSelectorExpression) {},
+		func(e *ast.ZCTypeAssertionExpression) { typ, sure = e.Type.Full(), true },
+	)
+	if typ != "" {
+		return typ, sure
 	}
 
 	if expr.Default != nil {

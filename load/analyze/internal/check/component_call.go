@@ -8,6 +8,7 @@ import (
 	"github.com/mavolin/corgi/v2/file/ast"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
 	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
+	"github.com/mavolin/corgi/v2/file/switches"
 	"github.com/mavolin/corgi/v2/file/walk"
 )
 
@@ -35,12 +36,15 @@ func (ch *checker) CheckComponentCalls() {
 func (ch *checker) CheckComponentCallBody(logger *slog.Logger, cc *file.ComponentCall) {
 	logger = logger.WithGroup("body")
 
-	sc, _ := cc.AST.Body.(*ast.Scope)
-	if sc == nil {
+	var scope *ast.Scope
+	switches.ComponentCallBody(cc.AST.Body,
+		func(*ast.DefaultBlockShorthand) {},
+		func(s *ast.Scope) { scope = s })
+	if scope == nil {
 		return
 	}
 
-	walk.WalkT(sc, func(w *walk.ContextT[ast.ScopeNode]) walk.Action {
+	walk.WalkT(scope, func(w *walk.ContextT[ast.ScopeNode]) walk.Action {
 		switch w.Node.(type) {
 		case *ast.Conditional:
 		case *ast.Switch:
@@ -75,15 +79,18 @@ func (ch *checker) CheckUnreachableWiths(logger *slog.Logger, cc *file.Component
 		return
 	}
 
-	sc, _ := cc.AST.Body.(*ast.Scope)
-	if sc == nil {
+	var scope *ast.Scope
+	switches.ComponentCallBody(cc.AST.Body,
+		func(*ast.DefaultBlockShorthand) {},
+		func(s *ast.Scope) { scope = s })
+	if scope == nil {
 		return
 	}
 
 	conditionalWiths := make(map[identifier][]*ast.With)
 	topLevelWiths := make(map[identifier][]*ast.With)
 
-	walk.WalkT(sc, func(w *walk.ContextT[*ast.With]) walk.Action {
+	walk.WalkT(scope, func(w *walk.ContextT[*ast.With]) walk.Action {
 		if len(w.Parents) == 0 {
 			topLevelWiths[w.Node.Name()] = append(topLevelWiths[w.Node.Name()], w.Node)
 		} else {
@@ -130,8 +137,11 @@ func (ch *checker) CheckWithNotLooped(logger *slog.Logger, cc *file.ComponentCal
 		return
 	}
 
-	sc, _ := cc.AST.Body.(*ast.Scope)
-	if sc == nil {
+	var scope *ast.Scope
+	switches.ComponentCallBody(cc.AST.Body,
+		func(*ast.DefaultBlockShorthand) {},
+		func(s *ast.Scope) { scope = s })
+	if scope == nil {
 		return
 	}
 

@@ -10,7 +10,9 @@ import (
 	"github.com/mavolin/corgi/v2/file/ast"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
 	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
+	"github.com/mavolin/corgi/v2/file/switches"
 	"github.com/mavolin/corgi/v2/file/walk"
+	"github.com/mavolin/corgi/v2/load/analyze/internal/candidate"
 )
 
 // AnalyzeComponentCalls analyzes the remaining component calls in the package.
@@ -290,7 +292,11 @@ func (z *analyzer) AnalyzeReceivesAttributes(ctx context.Context, cc *file.Compo
 	if cc.AST.Body == nil {
 		return
 	}
-	scope, _ := cc.AST.Body.(*ast.Scope)
+
+	var scope *ast.Scope
+	switches.ComponentCallBody(cc.AST.Body,
+		func(*ast.DefaultBlockShorthand) {},
+		func(s *ast.Scope) { scope = s })
 	if scope == nil {
 		return
 	}
@@ -348,25 +354,35 @@ func (z *analyzer) AnalyzeReceivesAttributes(ctx context.Context, cc *file.Compo
 
 func (z *analyzer) analyzeReceivedAttributesInArgs(cc *file.ComponentCall) {
 	for _, arg := range cc.AST.Header.Arguments.List {
-		switch n := arg.(type) {
-		case *ast.AndPlaceholder:
-			if cc.ReceivesAndPlaceholder.True() {
-				continue
-			}
+		candidate.SwitchAndPlaceholderWriter(arg,
+			func(n *ast.AndPlaceholder) {
+				if !cc.ReceivesAndPlaceholder.True() {
+					cc.ReceivesAndPlaceholder.SetReason(n)
+				}
+			},
+			func(*ast.ComponentCall) {},
+			func(ast.BlockSetter) {})
 
-			cc.ReceivesAndPlaceholder.SetReason(n)
-			if cc.ReceivesAttributes.True() {
-				return
-			}
-		case ast.AttributeWriter:
-			if cc.ReceivesAttributes.True() {
-				continue
-			}
+		candidate.SwitchAttributeWriter(arg,
+			func(s *ast.ClassShorthand) {
+				if !cc.ReceivesAttributes.True() {
+					cc.ReceivesAttributes.SetReason(s)
+				}
+			},
+			func(*ast.ComponentCall) {},
+			func(s *ast.IDShorthand) {
+				if !cc.ReceivesAttributes.True() {
+					cc.ReceivesAttributes.SetReason(s)
+				}
+			},
+			func(n *ast.NamedAttribute) {
+				if !cc.ReceivesAttributes.True() {
+					cc.ReceivesAttributes.SetReason(n)
+				}
+			})
 
-			cc.ReceivesAttributes.SetReason(n)
-			if cc.ReceivesAndPlaceholder.True() {
-				return
-			}
+		if cc.ReceivesAttributes.True() && cc.ReceivesAndPlaceholder.True() {
+			return
 		}
 	}
 }

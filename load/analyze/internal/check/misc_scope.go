@@ -85,12 +85,12 @@ func (ch *checker) CheckBlockFunction(logger *slog.Logger, f *file.File, parents
 func (ch *checker) CheckBlockFunctionDefined(logger *slog.Logger, f *file.File, parents []*walk.Context, bf *ast.BlockFunction) {
 	logger = logger.WithGroup("block_defined")
 
-	astComp, _ := parents[0].Node.(*ast.Component)
-	if astComp == nil {
+	cAST, _ := parents[0].Node.(*ast.Component)
+	if cAST == nil {
 		return
 	}
 
-	c := f.Package.ComponentByNode(astComp)
+	c := f.Package.ComponentByNode(cAST)
 	if c.BlockByName(bf.Name()) != nil {
 		return
 	}

@@ -20,7 +20,7 @@ type Attribute struct {
 	Analyzed bool
 
 	// Value is the value of the attribute.
-	Value AttributeValue
+	Value ResolvedAttributeValue
 
 	// Forwarded indicates whether the attribute reference is forwarded to the
 	// component calling the component containing it.
@@ -80,10 +80,10 @@ func (a *Attribute) Constant() bool {
 // ======================================================================================
 
 type (
-	// AttributeValue is either a [ConstantBoolAttributeValue],
+	// ResolvedAttributeValue is either a [ConstantBoolAttributeValue],
 	// [ExpressionBoolAttributeValue], [UntypedAttributeValue], or
 	// [TextAttributeValue].
-	AttributeValue interface {
+	ResolvedAttributeValue interface {
 		_attributeValue()
 	}
 
@@ -102,10 +102,10 @@ type (
 )
 
 var (
-	_ AttributeValue = ConstantBoolAttributeValue(false)
-	_ AttributeValue = (*ExpressionBoolAttributeValue)(nil)
-	_ AttributeValue = (*UntypedAttributeValue)(nil)
-	_ AttributeValue = (TextAttributeValue)(nil)
+	_ ResolvedAttributeValue = ConstantBoolAttributeValue(false)
+	_ ResolvedAttributeValue = (*ExpressionBoolAttributeValue)(nil)
+	_ ResolvedAttributeValue = (*UntypedAttributeValue)(nil)
+	_ ResolvedAttributeValue = (TextAttributeValue)(nil)
 
 	_ TextAttributeValuePart = ConstantTextAttributeValuePart("")
 	_ TextAttributeValuePart = (*ExpressionTextAttributeValuePart)(nil)
