@@ -43,7 +43,7 @@ func (z *analyzer) AnalyzeAttributes() {
 func (z *analyzer) AnalyzeAttribute(logger *slog.Logger, f *file.File, parents []*walk.Context, attr *file.Attribute) {
 	logger = logger.With(slog.String("attr_pos", attr.AST.Start().String()))
 
-	z.AnalyzeAttributeValue(logger, f, attr)
+	z.AnalyzeAttributeValue(f, attr)
 	z.AnalyzeAttributeForwarded(f, parents, attr)
 	z.AnalyzeAttributeContainingElements(f, parents, attr)
 	z.AnalyzeAttributeType(logger, f, attr)
@@ -62,9 +62,7 @@ func (z *analyzer) AnalyzeAttribute(logger *slog.Logger, f *file.File, parents [
 // Sets Fields: None
 //
 // Depends on Fields: None
-func (z *analyzer) AnalyzeAttributeValue(logger *slog.Logger, f *file.File, attr *file.Attribute) {
-	logger = logger.WithGroup("value")
-
+func (z *analyzer) AnalyzeAttributeValue(f *file.File, attr *file.Attribute) {
 	switches.Attribute(attr.AST,
 		func(*ast.AndPlaceholder) {},
 		func(attrAST *ast.ClassShorthand) { attr.Value = z.classShorthandToAttributeValue(attrAST) },
@@ -72,21 +70,21 @@ func (z *analyzer) AnalyzeAttributeValue(logger *slog.Logger, f *file.File, attr
 		func(attrAST *ast.NamedAttribute) { attr.Value = z.namedAttributeToAttributeValue(f, attrAST) })
 }
 
-func (z *analyzer) classShorthandToAttributeValue(s *ast.ClassShorthand) file.TextAttributeValue {
+func (z *analyzer) classShorthandToAttributeValue(s *ast.ClassShorthand) file.Text {
 	var n int
 	for _, name := range s.Names {
 		n += len(name)
 	}
 
-	v := make(file.TextAttributeValue, 0, n)
+	v := make(file.Text, 0, n)
 
 	for i, name := range s.Names {
 		if i > 0 {
 			last := v[len(v)-1]
-			if c, _ := last.(file.ConstantTextAttributeValuePart); c != "" {
+			if c, _ := last.(file.ConstantPart); c != "" {
 				v[len(v)-1] = c + " "
 			} else {
-				v = append(v, file.ConstantTextAttributeValuePart(" "))
+				v = append(v, file.ConstantPart(" "))
 			}
 		}
 
@@ -96,22 +94,22 @@ func (z *analyzer) classShorthandToAttributeValue(s *ast.ClassShorthand) file.Te
 	return slices.Clip(v)
 }
 
-func (z *analyzer) shorthandToAttributeValue(v file.TextAttributeValue, s ast.Shorthand) file.TextAttributeValue {
+func (z *analyzer) shorthandToAttributeValue(v file.Text, s ast.Shorthand) file.Text {
 	v = slices.Grow(v, len(s))
 	for i, n := range s {
 		switches.ShorthandNode(n,
 			func(n *ast.ShorthandInterpolation) {
-				v = append(v, (*file.ExpressionTextAttributeValuePart)(n.Expression))
+				v = append(v, (*file.ExpressionPart)(n.Expression))
 			},
 			func(n *ast.ShorthandText) {
 				if i == 0 && len(v) > 0 {
 					last := v[len(v)-1]
-					if c, _ := last.(file.ConstantTextAttributeValuePart); c != "" {
-						v[len(v)-1] = c + file.ConstantTextAttributeValuePart(n.Text)
+					if c, _ := last.(file.ConstantPart); c != "" {
+						v[len(v)-1] = c + file.ConstantPart(n.Text)
 						return
 					}
 				}
-				v = append(v, file.ConstantTextAttributeValuePart(n.Text))
+				v = append(v, file.ConstantPart(n.Text))
 			})
 	}
 	return v
@@ -119,7 +117,7 @@ func (z *analyzer) shorthandToAttributeValue(v file.TextAttributeValue, s ast.Sh
 
 func (z *analyzer) namedAttributeToAttributeValue(f *file.File, attrAST *ast.NamedAttribute) file.ResolvedAttributeValue {
 	if attrAST.Value == nil {
-		return file.ConstantBoolAttributeValue(true)
+		return file.ConstantBool(true)
 	}
 
 	expr := z.expressionFromAttributeValue(attrAST.Value)
@@ -131,9 +129,9 @@ func (z *analyzer) namedAttributeToAttributeValue(f *file.File, attrAST *ast.Nam
 		func(gc *ast.GoCode) file.ResolvedAttributeValue {
 			switch gc.Code {
 			case "true":
-				return file.ConstantBoolAttributeValue(true)
+				return file.ConstantBool(true)
 			case "false":
-				return file.ConstantBoolAttributeValue(false)
+				return file.ConstantBool(false)
 			default:
 				return nil
 			}
@@ -148,20 +146,20 @@ func (z *analyzer) namedAttributeToAttributeValue(f *file.File, attrAST *ast.Nam
 	typ, _ := InferType(f, expr)
 	switch typ {
 	case "bool":
-		return (*file.ExpressionBoolAttributeValue)(expr)
+		return (*file.BoolExpression)(expr)
 	case "int", "int8", "int16", "int32", "int64",
 		"uint", "uint8", "uint16", "uint32", "uint64",
 		"float32", "float64", "string":
-		return file.TextAttributeValue{(*file.ExpressionTextAttributeValuePart)(expr)}
+		return file.Text{(*file.ExpressionPart)(expr)}
 	default:
-		return (*file.UntypedAttributeValue)(expr)
+		return (*file.UndeterminedExpression)(expr)
 	}
 }
 
-func (z *analyzer) stringToAttributeValue(s *ast.String) file.TextAttributeValue {
-	v := make(file.TextAttributeValue, 0, len(s.Contents))
+func (z *analyzer) stringToAttributeValue(s *ast.String) file.Text {
+	v := make(file.Text, 0, len(s.Contents))
 
-	var last file.ConstantTextAttributeValuePart
+	var last file.ConstantPart
 	for _, content := range s.Contents {
 		switches.StringNode(content,
 			func(content *ast.BadInterpolation) {
@@ -171,11 +169,11 @@ func (z *analyzer) stringToAttributeValue(s *ast.String) file.TextAttributeValue
 			func(content *ast.CharacterReference) { addConstant(&v, &last, content.Chars) },
 			func(content *ast.ComponentCallInterpolation) {
 				last = ""
-				v = append(v, (*file.ComponentCallTextAttributeValuePart)(content.ComponentCall))
+				v = append(v, (*file.ComponentCallPart)(content.ComponentCall))
 			},
 			func(content *ast.ExpressionInterpolation) {
 				last = ""
-				v = append(v, (*file.ExpressionTextAttributeValuePart)(content.Expression))
+				v = append(v, (*file.ExpressionPart)(content.Expression))
 			},
 			func(content *ast.StringText) { addConstant(&v, &last, content.Text) })
 	}
@@ -183,12 +181,12 @@ func (z *analyzer) stringToAttributeValue(s *ast.String) file.TextAttributeValue
 	return slices.Clip(v)
 }
 
-func addConstant(v *file.TextAttributeValue, last *file.ConstantTextAttributeValuePart, s string) {
+func addConstant(v *file.Text, last *file.ConstantPart, s string) {
 	if *last != "" {
-		*last += file.ConstantTextAttributeValuePart(s)
+		*last += file.ConstantPart(s)
 		(*v)[len(*v)-1] = *last
 	} else {
-		*last = file.ConstantTextAttributeValuePart(s)
+		*last = file.ConstantPart(s)
 		*v = append(*v, *last)
 	}
 }

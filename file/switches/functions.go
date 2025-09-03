@@ -1626,40 +1626,40 @@ func ParsedTypeR[T any](n ast.ParsedType,
 }
 
 func ResolvedAttributeValue(n file.ResolvedAttributeValue,
-	ConstantBoolAttributeValue func(file.ConstantBoolAttributeValue),
-	ExpressionBoolAttributeValue func(*file.ExpressionBoolAttributeValue),
-	TextAttributeValue func(file.TextAttributeValue),
-	UntypedAttributeValue func(*file.UntypedAttributeValue),
+	BoolExpression func(*file.BoolExpression),
+	ConstantBool func(file.ConstantBool),
+	Text func(file.Text),
+	UndeterminedExpression func(*file.UndeterminedExpression),
 ) {
 	switch n := n.(type) {
-	case file.ConstantBoolAttributeValue:
-		ConstantBoolAttributeValue(n)
-	case *file.ExpressionBoolAttributeValue:
-		ExpressionBoolAttributeValue(n)
-	case file.TextAttributeValue:
-		TextAttributeValue(n)
-	case *file.UntypedAttributeValue:
-		UntypedAttributeValue(n)
+	case *file.BoolExpression:
+		BoolExpression(n)
+	case file.ConstantBool:
+		ConstantBool(n)
+	case file.Text:
+		Text(n)
+	case *file.UndeterminedExpression:
+		UndeterminedExpression(n)
 	default:
 		panic(fmt.Sprintf("ResolvedAttributeValue: unknown variant %T: please rerun go generate", n))
 	}
 }
 
 func ResolvedAttributeValueR[T any](n file.ResolvedAttributeValue,
-	ConstantBoolAttributeValue func(file.ConstantBoolAttributeValue) T,
-	ExpressionBoolAttributeValue func(*file.ExpressionBoolAttributeValue) T,
-	TextAttributeValue func(file.TextAttributeValue) T,
-	UntypedAttributeValue func(*file.UntypedAttributeValue) T,
+	BoolExpression func(*file.BoolExpression) T,
+	ConstantBool func(file.ConstantBool) T,
+	Text func(file.Text) T,
+	UndeterminedExpression func(*file.UndeterminedExpression) T,
 ) T {
 	switch n := n.(type) {
-	case file.ConstantBoolAttributeValue:
-		return ConstantBoolAttributeValue(n)
-	case *file.ExpressionBoolAttributeValue:
-		return ExpressionBoolAttributeValue(n)
-	case file.TextAttributeValue:
-		return TextAttributeValue(n)
-	case *file.UntypedAttributeValue:
-		return UntypedAttributeValue(n)
+	case *file.BoolExpression:
+		return BoolExpression(n)
+	case file.ConstantBool:
+		return ConstantBool(n)
+	case file.Text:
+		return Text(n)
+	case *file.UndeterminedExpression:
+		return UndeterminedExpression(n)
 	default:
 		panic(fmt.Sprintf("ResolvedAttributeValue: unknown variant %T: please rerun go generate", n))
 	}
@@ -1891,40 +1891,6 @@ func StringNodeR[T any](n ast.StringNode,
 	}
 }
 
-func TextAttributeValuePart(n file.TextAttributeValuePart,
-	ComponentCallTextAttributeValuePart func(*file.ComponentCallTextAttributeValuePart),
-	ConstantTextAttributeValuePart func(file.ConstantTextAttributeValuePart),
-	ExpressionTextAttributeValuePart func(*file.ExpressionTextAttributeValuePart),
-) {
-	switch n := n.(type) {
-	case *file.ComponentCallTextAttributeValuePart:
-		ComponentCallTextAttributeValuePart(n)
-	case file.ConstantTextAttributeValuePart:
-		ConstantTextAttributeValuePart(n)
-	case *file.ExpressionTextAttributeValuePart:
-		ExpressionTextAttributeValuePart(n)
-	default:
-		panic(fmt.Sprintf("TextAttributeValuePart: unknown variant %T: please rerun go generate", n))
-	}
-}
-
-func TextAttributeValuePartR[T any](n file.TextAttributeValuePart,
-	ComponentCallTextAttributeValuePart func(*file.ComponentCallTextAttributeValuePart) T,
-	ConstantTextAttributeValuePart func(file.ConstantTextAttributeValuePart) T,
-	ExpressionTextAttributeValuePart func(*file.ExpressionTextAttributeValuePart) T,
-) T {
-	switch n := n.(type) {
-	case *file.ComponentCallTextAttributeValuePart:
-		return ComponentCallTextAttributeValuePart(n)
-	case file.ConstantTextAttributeValuePart:
-		return ConstantTextAttributeValuePart(n)
-	case *file.ExpressionTextAttributeValuePart:
-		return ExpressionTextAttributeValuePart(n)
-	default:
-		panic(fmt.Sprintf("TextAttributeValuePart: unknown variant %T: please rerun go generate", n))
-	}
-}
-
 func TextInterpolation(n ast.TextInterpolation,
 	BadInterpolation func(*ast.BadInterpolation),
 	CharacterEscape func(*ast.CharacterEscape),
@@ -2020,6 +1986,40 @@ func TextNodeR[T any](n ast.TextNode,
 		return Text(n)
 	default:
 		panic(fmt.Sprintf("TextNode: unknown variant %T: please rerun go generate", n))
+	}
+}
+
+func TextPart(n file.TextPart,
+	ComponentCallPart func(*file.ComponentCallPart),
+	ConstantPart func(file.ConstantPart),
+	ExpressionPart func(*file.ExpressionPart),
+) {
+	switch n := n.(type) {
+	case *file.ComponentCallPart:
+		ComponentCallPart(n)
+	case file.ConstantPart:
+		ConstantPart(n)
+	case *file.ExpressionPart:
+		ExpressionPart(n)
+	default:
+		panic(fmt.Sprintf("TextPart: unknown variant %T: please rerun go generate", n))
+	}
+}
+
+func TextPartR[T any](n file.TextPart,
+	ComponentCallPart func(*file.ComponentCallPart) T,
+	ConstantPart func(file.ConstantPart) T,
+	ExpressionPart func(*file.ExpressionPart) T,
+) T {
+	switch n := n.(type) {
+	case *file.ComponentCallPart:
+		return ComponentCallPart(n)
+	case file.ConstantPart:
+		return ConstantPart(n)
+	case *file.ExpressionPart:
+		return ExpressionPart(n)
+	default:
+		panic(fmt.Sprintf("TextPart: unknown variant %T: please rerun go generate", n))
 	}
 }
 

@@ -66,9 +66,9 @@ type Attribute struct {
 
 func (a *Attribute) Constant() bool {
 	switch val := a.Value.(type) {
-	case ConstantBoolAttributeValue:
+	case ConstantBool:
 		return true
-	case TextAttributeValue:
+	case Text:
 		return val.Constant()
 	default:
 		return false
@@ -80,50 +80,50 @@ func (a *Attribute) Constant() bool {
 // ======================================================================================
 
 type (
-	// ResolvedAttributeValue is either a [ConstantBoolAttributeValue],
-	// [ExpressionBoolAttributeValue], [UntypedAttributeValue], or
-	// [TextAttributeValue].
+	// ResolvedAttributeValue is either a [ConstantBool],
+	// [BoolExpression], [UndeterminedExpression], or
+	// [Text].
 	ResolvedAttributeValue interface {
 		_attributeValue()
 	}
 
-	ConstantBoolAttributeValue   bool
-	ExpressionBoolAttributeValue ast.Expression
-	UntypedAttributeValue        ast.Expression
+	ConstantBool           bool
+	BoolExpression         ast.Expression
+	UndeterminedExpression ast.Expression
 
-	// TextAttributeValue is a sequence of constant and dynamic parts.
-	TextAttributeValue     []TextAttributeValuePart
-	TextAttributeValuePart interface {
+	// Text is a sequence of constant and dynamic parts.
+	Text     []TextPart
+	TextPart interface {
 		_textualAttributeValuePart()
 	}
-	ConstantTextAttributeValuePart      string
-	ExpressionTextAttributeValuePart    ast.Expression
-	ComponentCallTextAttributeValuePart ast.ComponentCall
+	ConstantPart      string
+	ExpressionPart    ast.Expression
+	ComponentCallPart ast.ComponentCall
 )
 
 var (
-	_ ResolvedAttributeValue = ConstantBoolAttributeValue(false)
-	_ ResolvedAttributeValue = (*ExpressionBoolAttributeValue)(nil)
-	_ ResolvedAttributeValue = (*UntypedAttributeValue)(nil)
-	_ ResolvedAttributeValue = (TextAttributeValue)(nil)
+	_ ResolvedAttributeValue = ConstantBool(false)
+	_ ResolvedAttributeValue = (*BoolExpression)(nil)
+	_ ResolvedAttributeValue = (*UndeterminedExpression)(nil)
+	_ ResolvedAttributeValue = (Text)(nil)
 
-	_ TextAttributeValuePart = ConstantTextAttributeValuePart("")
-	_ TextAttributeValuePart = (*ExpressionTextAttributeValuePart)(nil)
+	_ TextPart = ConstantPart("")
+	_ TextPart = (*ExpressionPart)(nil)
 )
 
-func (ConstantBoolAttributeValue) _attributeValue()    {}
-func (*ExpressionBoolAttributeValue) _attributeValue() {}
-func (*UntypedAttributeValue) _attributeValue()        {}
-func (TextAttributeValue) _attributeValue()            {}
+func (ConstantBool) _attributeValue()            {}
+func (*BoolExpression) _attributeValue()         {}
+func (*UndeterminedExpression) _attributeValue() {}
+func (Text) _attributeValue()                    {}
 
-func (ConstantTextAttributeValuePart) _textualAttributeValuePart()       {}
-func (*ExpressionTextAttributeValuePart) _textualAttributeValuePart()    {}
-func (*ComponentCallTextAttributeValuePart) _textualAttributeValuePart() {}
+func (ConstantPart) _textualAttributeValuePart()       {}
+func (*ExpressionPart) _textualAttributeValuePart()    {}
+func (*ComponentCallPart) _textualAttributeValuePart() {}
 
-func (v TextAttributeValue) Constant() bool {
+func (v Text) Constant() bool {
 	if len(v) != 1 {
 		return false
 	}
-	_, ok := v[0].(ConstantTextAttributeValuePart)
+	_, ok := v[0].(ConstantPart)
 	return ok
 }

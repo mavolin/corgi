@@ -37,10 +37,10 @@ func (ch *checker) CheckClassAlwaysInnocuous(
 	}
 
 	isBool := switches.ResolvedAttributeValueR(attr.Value,
-		func(file.ConstantBoolAttributeValue) bool { return true },
-		func(*file.ExpressionBoolAttributeValue) bool { return true },
-		func(file.TextAttributeValue) bool { return false },
-		func(*file.UntypedAttributeValue) bool { return false })
+		func(*file.BoolExpression) bool { return true },
+		func(file.ConstantBool) bool { return true },
+		func(file.Text) bool { return false },
+		func(*file.UndeterminedExpression) bool { return false })
 	if isBool {
 		logger.Error("class attribute incorrectly typed")
 		ch.Report(&diagnostic.Diagnostic{
@@ -62,13 +62,13 @@ func (ch *checker) CheckClassAlwaysInnocuous(
 		return
 	} else if typ == attrtype.Unknown {
 		ok := switches.ResolvedAttributeValueR(attr.Value,
-			func(file.ConstantBoolAttributeValue) bool { return false },
-			func(*file.ExpressionBoolAttributeValue) bool { return false },
+			func(*file.BoolExpression) bool { return false },
+			func(file.ConstantBool) bool { return false },
 			// If the value is constant, we can use it as a class attribute.
 			// If the value is not, we already captured an error elsewhere
 			// asserting that the attribute must be typed
-			func(file.TextAttributeValue) bool { return true },
-			func(*file.UntypedAttributeValue) bool { return true })
+			func(file.Text) bool { return true },
+			func(*file.UndeterminedExpression) bool { return true })
 		if ok {
 			return
 		}
@@ -153,10 +153,10 @@ func (ch *checker) CheckNoInterpolationInUnsafeAttribute(logger *slog.Logger, f 
 	}
 
 	ok := switches.ResolvedAttributeValueR(attr.Value,
-		func(file.ConstantBoolAttributeValue) bool { return true },    // different error
-		func(*file.ExpressionBoolAttributeValue) bool { return true }, // different error
-		func(val file.TextAttributeValue) bool { return val.Constant() },
-		func(*file.UntypedAttributeValue) bool { return false })
+		func(*file.BoolExpression) bool { return true }, // different error
+		func(file.ConstantBool) bool { return true },    // different error
+		func(t file.Text) bool { return t.Constant() },
+		func(*file.UndeterminedExpression) bool { return false })
 	if ok {
 		return
 	}
@@ -221,10 +221,10 @@ func (ch *checker) CheckNonBoolAttributeSpecifiedAsBool(logger *slog.Logger, f *
 	}
 
 	ok := switches.ResolvedAttributeValueR(attr.Value,
-		func(file.ConstantBoolAttributeValue) bool { return false },
-		func(*file.ExpressionBoolAttributeValue) bool { return false },
-		func(file.TextAttributeValue) bool { return true },
-		func(*file.UntypedAttributeValue) bool { return true })
+		func(*file.BoolExpression) bool { return false },
+		func(file.ConstantBool) bool { return false },
+		func(file.Text) bool { return true },
+		func(*file.UndeterminedExpression) bool { return true })
 	if ok {
 		return
 	}
@@ -276,10 +276,10 @@ func (ch *checker) CheckBoolAttributeSetToNonBoolExpression(logger *slog.Logger,
 	logger = logger.WithGroup("bool_attribute_set_to_non_bool_expression")
 
 	ok := switches.ResolvedAttributeValueR(attr.Value,
-		func(file.ConstantBoolAttributeValue) bool { return true },
-		func(*file.ExpressionBoolAttributeValue) bool { return true },
-		func(file.TextAttributeValue) bool { return false },
-		func(*file.UntypedAttributeValue) bool { return true })
+		func(*file.BoolExpression) bool { return true },
+		func(file.ConstantBool) bool { return true },
+		func(file.Text) bool { return false },
+		func(*file.UndeterminedExpression) bool { return true })
 	if ok {
 		return
 	}
@@ -364,7 +364,7 @@ func (ch *checker) expressionFromAttributeValue(v ast.AttributeValue) *ast.Expre
 func (ch *checker) CheckConstantlyFalseBooleanAttribute(logger *slog.Logger, f *file.File, attr *file.Attribute, attrAST *ast.NamedAttribute) {
 	logger = logger.WithGroup("constantly_false_boolean_attribute")
 
-	c, ok := attr.Value.(file.ConstantBoolAttributeValue)
+	c, ok := attr.Value.(file.ConstantBool)
 	if !ok || bool(c) {
 		return
 	}
