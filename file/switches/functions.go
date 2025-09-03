@@ -465,6 +465,40 @@ func ComponentCallBodyR[T any](n ast.ComponentCallBody,
 	}
 }
 
+func ContainingElement(n ast.ContainingElement,
+	AndPlaceholderContainingElement func(*ast.AndPlaceholderContainingElement),
+	BlockSetterContainingElement func(*ast.BlockSetterContainingElement),
+	Element func(*ast.Element),
+) {
+	switch n := n.(type) {
+	case *ast.AndPlaceholderContainingElement:
+		AndPlaceholderContainingElement(n)
+	case *ast.BlockSetterContainingElement:
+		BlockSetterContainingElement(n)
+	case *ast.Element:
+		Element(n)
+	default:
+		panic(fmt.Sprintf("ContainingElement: unknown variant %T: please rerun go generate", n))
+	}
+}
+
+func ContainingElementR[T any](n ast.ContainingElement,
+	AndPlaceholderContainingElement func(*ast.AndPlaceholderContainingElement) T,
+	BlockSetterContainingElement func(*ast.BlockSetterContainingElement) T,
+	Element func(*ast.Element) T,
+) T {
+	switch n := n.(type) {
+	case *ast.AndPlaceholderContainingElement:
+		return AndPlaceholderContainingElement(n)
+	case *ast.BlockSetterContainingElement:
+		return BlockSetterContainingElement(n)
+	case *ast.Element:
+		return Element(n)
+	default:
+		panic(fmt.Sprintf("ContainingElement: unknown variant %T: please rerun go generate", n))
+	}
+}
+
 func ContentWriter(n ast.ContentWriter,
 	Block func(*ast.Block),
 	CharacterEscape func(*ast.CharacterEscape),
@@ -743,6 +777,7 @@ func Node(n ast.Node,
 	AliasElementType func(*ast.AliasElementType),
 	And func(*ast.And),
 	AndPlaceholder func(*ast.AndPlaceholder),
+	AndPlaceholderContainingElement func(*ast.AndPlaceholderContainingElement),
 	Arguments func(*ast.Arguments),
 	ArrowBlock func(*ast.ArrowBlock),
 	Assignment func(*ast.Assignment),
@@ -761,6 +796,7 @@ func Node(n ast.Node,
 	Block func(*ast.Block),
 	BlockFunction func(*ast.BlockFunction),
 	BlockSetterAttributeInhibitor func(*ast.BlockSetterAttributeInhibitor),
+	BlockSetterContainingElement func(*ast.BlockSetterContainingElement),
 	BracketText func(*ast.BracketText),
 	Break func(*ast.Break),
 	Case func(*ast.Case),
@@ -867,6 +903,8 @@ func Node(n ast.Node,
 		And(n)
 	case *ast.AndPlaceholder:
 		AndPlaceholder(n)
+	case *ast.AndPlaceholderContainingElement:
+		AndPlaceholderContainingElement(n)
 	case *ast.Arguments:
 		Arguments(n)
 	case *ast.ArrowBlock:
@@ -903,6 +941,8 @@ func Node(n ast.Node,
 		BlockFunction(n)
 	case *ast.BlockSetterAttributeInhibitor:
 		BlockSetterAttributeInhibitor(n)
+	case *ast.BlockSetterContainingElement:
+		BlockSetterContainingElement(n)
 	case *ast.BracketText:
 		BracketText(n)
 	case *ast.Break:
@@ -1108,6 +1148,7 @@ func NodeR[T any](n ast.Node,
 	AliasElementType func(*ast.AliasElementType) T,
 	And func(*ast.And) T,
 	AndPlaceholder func(*ast.AndPlaceholder) T,
+	AndPlaceholderContainingElement func(*ast.AndPlaceholderContainingElement) T,
 	Arguments func(*ast.Arguments) T,
 	ArrowBlock func(*ast.ArrowBlock) T,
 	Assignment func(*ast.Assignment) T,
@@ -1126,6 +1167,7 @@ func NodeR[T any](n ast.Node,
 	Block func(*ast.Block) T,
 	BlockFunction func(*ast.BlockFunction) T,
 	BlockSetterAttributeInhibitor func(*ast.BlockSetterAttributeInhibitor) T,
+	BlockSetterContainingElement func(*ast.BlockSetterContainingElement) T,
 	BracketText func(*ast.BracketText) T,
 	Break func(*ast.Break) T,
 	Case func(*ast.Case) T,
@@ -1232,6 +1274,8 @@ func NodeR[T any](n ast.Node,
 		return And(n)
 	case *ast.AndPlaceholder:
 		return AndPlaceholder(n)
+	case *ast.AndPlaceholderContainingElement:
+		return AndPlaceholderContainingElement(n)
 	case *ast.Arguments:
 		return Arguments(n)
 	case *ast.ArrowBlock:
@@ -1268,6 +1312,8 @@ func NodeR[T any](n ast.Node,
 		return BlockFunction(n)
 	case *ast.BlockSetterAttributeInhibitor:
 		return BlockSetterAttributeInhibitor(n)
+	case *ast.BlockSetterContainingElement:
+		return BlockSetterContainingElement(n)
 	case *ast.BracketText:
 		return BracketText(n)
 	case *ast.Break:

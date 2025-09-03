@@ -115,7 +115,15 @@ type ComponentCall struct {
 	// The pointer to the slice has no significance and is just there to
 	// satisfy the comparable constraint of Analysis.
 	// It is never nil.
-	ElementsWithAndPlaceholder Analysis[*[]ContainingElement]
+	ElementsWithAndPlaceholder Analysis[*[]ast.ContainingElement]
+	// ElementSpecsWithAndPlaceholder are the unique specs of all elements
+	// containing an &-placeholder, including those containing the elements
+	// indirectly.
+	//
+	// The pointer to the slice has no significance and is just there to
+	// satisfy the comparable constraint of Analysis.
+	// It is never nil.
+	ElementSpecsWithAndPlaceholder Analysis[*[]*ElementSpec]
 }
 
 func (cc *ComponentCall) External() bool { return cc.File.Package != cc.Component.File.Package }

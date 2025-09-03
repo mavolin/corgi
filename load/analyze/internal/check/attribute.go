@@ -319,20 +319,18 @@ func (ch *checker) CheckBoolAttributeSetToNonBoolExpression(logger *slog.Logger,
 // singleAttributeRule returns the attribute rule that is used for all
 // containing elements of the given attribute, if there is one.
 func singleAttributeRule(attr *file.Attribute) *ast.AttributeRule {
-	if !attr.Reference.Spec.NotZero() || attr.ContainingElements.Failed() {
+	if !attr.Reference.Spec.NotZero() || attr.ContainingElementSpecs.Failed() {
 		return nil
 	}
 
 	spec := attr.Reference.Spec.Result()
 
 	var rule *ast.AttributeRule
-	for _, elem := range *attr.ContainingElements.Result() {
-		if elem.Element.Spec == nil {
-			return nil
-		} else if rule == nil {
-			rule = spec.RuleFor(elem.Element.Spec)
+	for _, elemSpec := range *attr.ContainingElementSpecs.Result() {
+		if rule == nil {
+			rule = spec.RuleFor(elemSpec)
 		} else {
-			rule2 := spec.RuleFor(elem.Element.Spec)
+			rule2 := spec.RuleFor(elemSpec)
 			if rule != rule2 {
 				return nil
 			}

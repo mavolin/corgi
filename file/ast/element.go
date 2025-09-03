@@ -66,8 +66,9 @@ type Element struct {
 var (
 	_ ScopeNode          = (*Element)(nil)
 	_ ContentWriter      = (*Element)(nil)
-	_ AttributeInhibitor = (*Element)(nil)
 	_ ElementWriter      = (*Element)(nil)
+	_ ContainingElement  = (*Element)(nil)
+	_ AttributeInhibitor = (*Element)(nil)
 	_ Highlighter        = (*Element)(nil)
 )
 
@@ -109,6 +110,7 @@ func (*Element) _node()               {}
 func (*Element) _scopeNode()          {}
 func (*Element) _contentWriter()      {}
 func (*Element) _elementWriter()      {}
+func (*Element) _containingElement()  {}
 func (*Element) _attributeInhibitor() {}
 
 // ============================================================================

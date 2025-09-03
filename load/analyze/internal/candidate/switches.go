@@ -21,7 +21,7 @@ func SwitchAttributeInhibitor(n ast.Node,
 	RawElement func(*ast.RawElement),
 	Text func(*ast.Text),
 ) {
-	switch n := any(n).(type) {
+	switch n := n.(type) {
 	case *ast.Block:
 		Block(n)
 	case ast.BlockSetter:
@@ -59,5 +59,52 @@ func init() { //nolint:gochecknoinits
 			func(*ast.ExpressionInterpolation) {},
 			func(*ast.RawElement) {},
 			func(*ast.Text) {})
+	}
+}
+
+// ============================================================================
+// Containing Element
+// ======================================================================================
+
+func SwitchContainingElement(n ast.Node,
+	Element func(*ast.Element),
+	ComponentCall func(*ast.ComponentCall),
+	BlockSetter func(ast.BlockSetter),
+) {
+	switch n := n.(type) {
+	case *ast.Element:
+		Element(n)
+	case *ast.ComponentCall:
+		ComponentCall(n)
+	case ast.BlockSetter:
+		BlockSetter(n)
+	}
+}
+
+func SwitchContainingElementR[T any](n ast.Node,
+	Element func(*ast.Element) T,
+	ComponentCall func(*ast.ComponentCall) T,
+	BlockSetter func(ast.BlockSetter) T,
+) T {
+	switch n := n.(type) {
+	case *ast.Element:
+		return Element(n)
+	case *ast.ComponentCall:
+		return ComponentCall(n)
+	case ast.BlockSetter:
+		return BlockSetter(n)
+	default:
+		var zero T
+		return zero
+	}
+}
+
+func init() { //nolint:gochecknoinits
+	if false {
+		// If a compilation error occurs here, change the functions above.
+		switches.ContainingElement(nil,
+			func(*ast.AndPlaceholderContainingElement) {},
+			func(*ast.BlockSetterContainingElement) {},
+			func(*ast.Element) {})
 	}
 }

@@ -1,10 +1,5 @@
 package file
 
-type ContainingElement struct {
-	Component *Component
-	Element   *ElementReference
-}
-
 // IsExported reports whether the given identifier, assumed to be valid, would
 // be exported.
 func IsExported(s string) bool {

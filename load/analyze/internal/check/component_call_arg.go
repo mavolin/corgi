@@ -8,6 +8,7 @@ import (
 	"github.com/mavolin/corgi/v2/file/ast"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
 	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
+	"github.com/mavolin/corgi/v2/file/switches"
 )
 
 func (ch *checker) CheckComponentCallArguments(logger *slog.Logger, cc *file.ComponentCall) {
@@ -228,10 +229,16 @@ func (ch *checker) CheckNoInterpolationInUnsafeTypedArguments(logger *slog.Logge
 		}
 
 		for _, n := range s.Contents {
-			switch n.(type) {
-			case *ast.ExpressionInterpolation:
-			case *ast.ComponentCallInterpolation:
-			default:
+			ok := switches.StringNodeR(n,
+				func(bi *ast.BadInterpolation) bool {
+					panic("analyzer called with parser errors: " + bi.Start().String())
+				},
+				func(*ast.CharacterEscape) bool { return true },
+				func(*ast.CharacterReference) bool { return true },
+				func(*ast.ComponentCallInterpolation) bool { return false },
+				func(*ast.ExpressionInterpolation) bool { return false },
+				func(*ast.StringText) bool { return true })
+			if ok {
 				continue
 			}
 

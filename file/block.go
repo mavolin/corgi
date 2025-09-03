@@ -34,7 +34,21 @@ type Block struct {
 	// The pointer to the slice has no significance and is just there to
 	// satisfy the comparable constraint of Analysis.
 	// It is never nil.
-	ContainingElements Analysis[*[]ContainingElement]
+	ContainingElements Analysis[*[]ast.ContainingElement]
+	// ContainingElementSpecs are the unique specs of all containing
+	// elements, including those containing the block indirectly.
+	//
+	// The pointer to the slice has no significance and is just there to
+	// satisfy the comparable constraint of Analysis.
+	// It is never nil.
+	ContainingElementSpecs Analysis[*[]*ElementSpec]
+
+	// ElementType is the minimum element type of all containing elements.
+	//
+	// A type of Unknown indicates the block is fully forwarded and the
+	// element type as such depends on the element containing the component
+	// call.
+	ElementType Analysis[elemtype.Type]
 
 	// CannotForwardAttributes indicates that at least one instance of this
 	// block cannot forward attributes.
@@ -87,21 +101,28 @@ type (
 		// The pointer to the slice has no significance and is just there to
 		// satisfy the comparable constraint of Analysis.
 		// It is never nil.
-		ContainingElements Analysis[*[]ContainingElement]
+		ContainingElements Analysis[*[]ast.ContainingElement]
+		// ContainingElementSpecs are the unique specs of all containing
+		// elements, including those containing the block instance indirectly.
+		//
+		// The pointer to the slice has no significance and is just there to
+		// satisfy the comparable constraint of Analysis.
+		// It is never nil.
+		ContainingElementSpecs Analysis[*[]*ElementSpec]
 
 		// ElementType is the element type that this block assumes.
 		//
-		// A type of Unknown indicates the block is forwarded and the element
-		// type as such depends on the element containing the component call.
+		// If the block instance is fully forwarded, i.e. has no containing
+		// elements, ElementType is set to Normal.
 		//
 		// For all other element types it is the minimum of all containing
 		// elements.
 		//
-		// If one of the containing elements is a CSS or JS element, so must
-		// all others.
+		// JS and CSS are not permitted.
 		//
 		// Void and Nothing are equivalent in this context, indicating the
 		// block only accepts attributes.
+		// For simplicity, Nothing is always used.
 		ElementType Analysis[elemtype.Type]
 
 		// CannotForwardAttributes indicates that this block instance can't
@@ -110,7 +131,7 @@ type (
 		// Forwarded might be true, but CannotForwardAttributes is also true:
 		// Consider the following example:
 		// 	comp Woof() {
-		//		br
+		//	    br
 		//      block
 		//  }
 		//

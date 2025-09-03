@@ -39,19 +39,18 @@ type Attribute struct {
 	// A nil/empty slice indicates that the attribute reference is fully
 	// forwarded.
 	//
-	// This list only contains the elements that influence the type of the
-	// attribute, which is usually the desired behavior.
-	// Since forwarded attributes must be explicitly typed, this list would not
-	// contain elements from Woof in the below example, since they are
-	// irrelevant to the type of bark:
-	//    :Woof {
-	//      :Bark(data-bark=myVar) // Bark forwards the attributes it receives
-	//    }
+	// The pointer to the slice has no significance and is just there to
+	// satisfy the comparable constraint of Analysis.
+	// It is never nil.
+	ContainingElements Analysis[*[]ast.ContainingElement]
+
+	// ContainingElementSpecs are the unique specs of all containing elements,
+	// including those containing the attribute indirectly.
 	//
 	// The pointer to the slice has no significance and is just there to
 	// satisfy the comparable constraint of Analysis.
 	// It is never nil.
-	ContainingElements Analysis[*[]ContainingElement]
+	ContainingElementSpecs Analysis[*[]*ElementSpec]
 
 	// Type is the type of the attribute, resolved from the containing elements.
 	//
@@ -59,8 +58,6 @@ type Attribute struct {
 	// attribute is placed on multiple elements that specify different types.
 	//
 	// A type of [attrtype.Unknown] indicates that no type could be determined.
-	// A [attrtype.Unknown] is only allowed, if the attribute has a constant
-	// value.
 	Type Analysis[attrtype.Type]
 }
 
