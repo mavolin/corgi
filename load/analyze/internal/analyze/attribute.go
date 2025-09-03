@@ -299,7 +299,7 @@ func (z *analyzer) AnalyzeAttributeContainingElements(f *file.File, parents []*w
 	for i >= 0 {
 		done := candidate.SwitchContainingElementR(parents[i].Node,
 			func(parent *ast.Element) bool {
-				containingElements = append(containingElements)
+				containingElements = append(containingElements, parent)
 				return true
 			},
 			func(parent *ast.ComponentCall) bool {
