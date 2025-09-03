@@ -621,7 +621,7 @@ func (z *analyzer) analyzeInferredAttributeType(logger *slog.Logger, f *file.Fil
 		if rule == nil {
 			secondaries[1] = anno.Node(attrSpec.File, attrSpec.AST.Selector, "not defined for `"+spec.HTMLName()+"`")
 		} else {
-			secondaries[1] = anno.Node(attrSpec.File, rule.Type, "defined as `"+refTyp.String()+"` for `"+elemName+"`")
+			secondaries[1] = anno.Node(attrSpec.File, rule.Type, "defined as `"+rule.Type.Type.String()+"` for `"+spec.HTMLName()+"`")
 		}
 
 		attr.Type.SetFailed()
