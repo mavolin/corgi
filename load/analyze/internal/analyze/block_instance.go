@@ -8,6 +8,8 @@ import (
 	"github.com/mavolin/corgi/v2/escape/elemtype"
 	"github.com/mavolin/corgi/v2/file"
 	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/file/diagnostic"
+	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
 	"github.com/mavolin/corgi/v2/file/switches"
 	"github.com/mavolin/corgi/v2/file/walk"
 	"github.com/mavolin/corgi/v2/load/analyze/internal/candidate"
@@ -30,7 +32,7 @@ func (z *analyzer) AnalyzeBlockInstance(
 	z.AnalyzeBlockInstanceForwarded(ctx, c, parents, bi)
 	z.AnalyzeBlockInstanceContainingElements(ctx, c, parents, bi)
 	z.AnalyzeBlockInstanceContainingElementSpecs(c.File, bi)
-	z.AnalyzeBlockInstanceElementType(bi)
+	z.AnalyzeBlockInstanceElementType(logger, c.File, bi)
 }
 
 // ============================================================================
@@ -109,8 +111,8 @@ func (z *analyzer) AnalyzeBlockInstanceContainingElements(ctx context.Context, c
 	i := len(parents) - 1
 	for i >= 0 {
 		done := candidate.SwitchContainingElementR(parents[i].Node,
-			func(*ast.Element) bool {
-				containingElements = append(containingElements)
+			func(e *ast.Element) bool {
+				containingElements = append(containingElements, e)
 				return true
 			},
 			func(*ast.ComponentCall) bool {
@@ -242,16 +244,21 @@ func (z *analyzer) AnalyzeBlockInstanceContainingElementSpecs(f *file.File, bi *
 // AnalyzeBlockInstanceElementType determines the element type of the given
 // block instance.
 //
-// Depends on Checks:
-//   - CheckBlockInstanceInScript
-//   - CheckBlockInstanceInStylesheet
-//
 // Sets Fields:
 //   - Components.Blocks.Instances.ElementType
 //
 // Depends on Fields:
 //   - Components.Blocks.Instances.ContainingElements
-func (z *analyzer) AnalyzeBlockInstanceElementType(bi *file.BlockInstance) {
+//
+// Depends on Checks: None
+func (z *analyzer) AnalyzeBlockInstanceElementType(logger *slog.Logger, f *file.File, bi *file.BlockInstance) {
+	bi.ElementType.SetZero()
+
+	z.CheckBlockInstanceInAllowedElement(logger, f, bi)
+	if bi.ElementType.Failed() {
+		return
+	}
+
 	if bi.ContainingElementSpecs.Failed() {
 		bi.ElementType.SetFailed()
 		return
@@ -277,6 +284,61 @@ func (z *analyzer) AnalyzeBlockInstanceElementType(bi *file.BlockInstance) {
 		t = min(t, specType)
 	}
 	bi.ElementType.SetResult(t)
+}
+
+// ============================================================================
+// Check Block Instance in Script
+// ======================================================================================
+
+// CheckBlockInstanceInAllowedElement verifies that the given block instance is not
+// placed inside a JS-typed or CSS-typed element.
+func (z *analyzer) CheckBlockInstanceInAllowedElement(logger *slog.Logger, f *file.File, bi *file.BlockInstance) {
+	if bi.ContainingElements.Failed() {
+		bi.ElementType.SetFailed()
+		return
+	}
+
+	elems := *bi.ContainingElements.Result()
+	for _, e := range elems {
+		switches.ContainingElement(e,
+			func(*ast.AndPlaceholderContainingElement) {}, // not applicable to block instances
+			// Handled when CheckBlockInstanceInAllowedElement is called on the
+			// component for that call.
+			func(*ast.BlockSetterContainingElement) {},
+			func(e *ast.Element) {
+				ref := f.ElementReferenceByNode(e.Header.Name)
+				if ref.Spec.Type.Failed() {
+					return
+				}
+
+				switch ref.Spec.Type.Result() {
+				case elemtype.JS:
+					logger.
+						WithGroup("checks.not_in_script").
+						Error("Block instance in JS-typed element", slog.String("block", bi.Group.Name))
+					z.Report(&diagnostic.Diagnostic{
+						Message: "block placed in `js`-typed element",
+						Primary: []diagnostic.Annotation{
+							anno.Node(f, bi.AST, "cannot place `block` here"),
+						},
+						Explanation: "You cannot place blocks inside `js`-typed elements.",
+					})
+				case elemtype.CSS:
+					logger.
+						WithGroup("checks.not_in_script").
+						Error("Block instance in CSS-typed element", slog.String("block", bi.Group.Name))
+					z.Report(&diagnostic.Diagnostic{
+						Message: "block placed in `css`-typed element",
+						Primary: []diagnostic.Annotation{
+							anno.Node(f, bi.AST, "cannot place `block` here"),
+						},
+						Explanation: "You cannot place blocks inside `css`-typed elements.",
+					})
+				case elemtype.Unknown, elemtype.Void, elemtype.Nothing, elemtype.Text, elemtype.Normal: // for linting
+					// do nothing
+				}
+			})
+	}
 }
 
 // ============================================================================
