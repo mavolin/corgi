@@ -11,6 +11,7 @@ import (
 	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
 	"github.com/mavolin/corgi/v2/file/switches"
 	"github.com/mavolin/corgi/v2/file/walk"
+	"github.com/mavolin/corgi/v2/load/analyze/internal/candidate"
 )
 
 // AnalyzeAttributes analyzes all attribute in the package.
@@ -46,6 +47,7 @@ func (z *analyzer) AnalyzeAttribute(logger *slog.Logger, f *file.File, parents [
 	z.AnalyzeAttributeValue(f, attr)
 	z.AnalyzeAttributeForwarded(f, parents, attr)
 	z.AnalyzeAttributeContainingElements(f, parents, attr)
+	z.AnalyzeAttributeContainingElementSpecs(f, attr)
 	z.AnalyzeAttributeType(logger, f, attr)
 
 	attr.Analyzed = true
@@ -121,7 +123,10 @@ func (z *analyzer) namedAttributeToAttributeValue(f *file.File, attrAST *ast.Nam
 	}
 
 	expr := z.expressionFromAttributeValue(attrAST.Value)
+	return z.expressionToResolvedAttributeValue(f, expr)
+}
 
+func (z *analyzer) expressionToResolvedAttributeValue(f *file.File, expr *ast.Expression) file.ResolvedAttributeValue {
 	n0 := expr.Nodes[0]
 	switches.CodeNodeR(n0,
 		func(*ast.BlockFunction) file.ResolvedAttributeValue { return nil },
@@ -228,41 +233,41 @@ func (z *analyzer) AnalyzeAttributeForwarded(f *file.File, parents []*walk.Conte
 
 	i := len(parents) - 1
 	for i >= 0 {
-		parent := parents[i]
-		switch parent := parent.Node.(type) {
-		case *ast.ComponentCall: // we're filling the cc's &-placeholder
-			cc := f.ComponentCallByNode(parent)
-			if cc.ForwardsReceivedAttributes.Failed() {
-				// Continue checking: if the attribute has another element as
-				// parent, we can still be sure it's not forwarded.
-				attr.Forwarded.SetFailed()
-			} else if cc.ForwardsReceivedAttributes.False() {
+		candidate.SwitchContainingElement(parents[i].Node,
+			func(*ast.Element) {
 				attr.Forwarded.SetResult(false)
-				return
-			}
-		case ast.BlockSetter:
-			ccI := walk.ClosestIndex[*ast.ComponentCall](parents[:i])
-			if ccI < 0 {
-				attr.Forwarded.SetFailed()
-				continue
-			}
+			},
+			func(parent *ast.ComponentCall) {
+				cc := f.ComponentCallByNode(parent)
+				if cc.ForwardsReceivedAttributes.Failed() {
+					// Continue checking: if the attribute has another element as
+					// parent, we can still be sure it's not forwarded.
+					attr.Forwarded.SetFailed()
+				} else if cc.ForwardsReceivedAttributes.False() {
+					attr.Forwarded.SetResult(false)
+				}
+			},
+			func(parent ast.BlockSetter) {
+				ccI := walk.ClosestIndex[*ast.ComponentCall](parents[:i])
+				if ccI < 0 {
+					attr.Forwarded.SetFailed()
+					return
+				}
 
-			ccAST := parents[ccI].Node.(*ast.ComponentCall) //nolint:errcheck
-			cc := f.ComponentCallByNode(ccAST)
+				ccAST := parents[ccI].Node.(*ast.ComponentCall) //nolint:errcheck
+				cc := f.ComponentCallByNode(ccAST)
 
-			s := cc.BlockSetterByName(parent.Name())
-			if s == nil || s.Block == nil {
-				// Continue checking: if the attribute has another element as
-				// parent, we can still be sure it's not forwarded.
-				attr.Forwarded.SetFailed()
-			} else if s.Block.Forwarded.False() {
-				attr.Forwarded.SetResult(false)
-				return
-			}
-			i = ccI - 1 // continue with the parent of the component call
-			continue
-		case *ast.Element:
-			attr.Forwarded.SetResult(false)
+				s := cc.BlockSetterByName(parent.Name())
+				if s == nil || s.Block == nil {
+					// Continue checking: if the attribute has another element as
+					// parent, we can still be sure it's not forwarded.
+					attr.Forwarded.SetFailed()
+				} else if s.Block.Forwarded.False() {
+					attr.Forwarded.SetResult(false)
+				}
+				i = ccI // continue with the parent of the component call
+			})
+		if attr.Forwarded.Equal(false) {
 			return
 		}
 		i--
@@ -284,74 +289,144 @@ func (z *analyzer) AnalyzeAttributeForwarded(f *file.File, parents []*walk.Conte
 // Depends on Fields:
 //   - ComponentCalls.ForwardsReceivedAttributes
 //   - ComponentCalls.ElementsWithAndPlaceholder
+//   - Components.Blocks.ContainingElements
 //   - Components.Blocks.Forwarded
-//   - Components.Blocks.Instances.Forwarded
 func (z *analyzer) AnalyzeAttributeContainingElements(f *file.File, parents []*walk.Context, attr *file.Attribute) {
-	var containingElements []file.ContainingElement
+	attr.ContainingElements.SetZero()
+	var containingElements []ast.ContainingElement
 
 	i := len(parents) - 1
 	for i >= 0 {
-		parent := parents[i]
-		switch parent := parent.Node.(type) {
-		case *ast.ComponentCall: // we're filling the cc's &-placeholder
-			cc := f.ComponentCallByNode(parent)
-			if cc.ForwardsReceivedAttributes.Failed() || cc.ElementsWithAndPlaceholder.Failed() {
-				attr.ContainingElements.SetFailed()
-				return
-			}
+		done := candidate.SwitchContainingElementR(parents[i].Node,
+			func(parent *ast.Element) bool {
+				containingElements = append(containingElements)
+				return true
+			},
+			func(parent *ast.ComponentCall) bool {
+				cc := f.ComponentCallByNode(parent)
+				if cc.ForwardsReceivedAttributes.Failed() || cc.ElementsWithAndPlaceholder.Failed() {
+					attr.ContainingElements.SetFailed()
+					return true
+				}
 
-			containingElements = append(containingElements, *cc.ElementsWithAndPlaceholder.Result()...)
-			if cc.ForwardsReceivedAttributes.False() {
-				containingElements = slices.Clip(containingElements)
-				attr.ContainingElements.SetResult(&containingElements)
-				return
-			}
-		case ast.BlockSetter:
-			ccI := walk.ClosestIndex[*ast.ComponentCall](parents[:i])
-			if ccI < 0 {
-				attr.ContainingElements.SetFailed()
-				return
-			}
+				containingElements = append(containingElements, (*ast.AndPlaceholderContainingElement)(parent))
+				return cc.ForwardsReceivedAttributes.False()
+			},
+			func(parent ast.BlockSetter) bool {
+				ccI := walk.ClosestIndex[*ast.ComponentCall](parents[:i])
+				if ccI < 0 {
+					attr.ContainingElements.SetFailed()
+					return true
+				}
 
-			ccAST := parents[ccI].Node.(*ast.ComponentCall) //nolint:errcheck
-			cc := f.ComponentCallByNode(ccAST)
+				ccAST := parents[ccI].Node.(*ast.ComponentCall) //nolint:errcheck
+				cc := f.ComponentCallByNode(ccAST)
 
-			s := cc.BlockSetterByName(parent.Name())
-			if s == nil || s.Block == nil || s.Block.ContainingElements.Failed() {
-				attr.ContainingElements.SetFailed()
-				return
-			}
+				s := cc.BlockSetterByName(parent.Name())
+				if s == nil || s.Block == nil || s.Block.ContainingElements.Failed() {
+					attr.ContainingElements.SetFailed()
+					return true
+				}
 
-			containingElements = append(containingElements, *s.Block.ContainingElements.Result()...)
-
-			if s.Block.Forwarded.False() {
-				containingElements = slices.Clip(containingElements)
-				attr.ContainingElements.SetResult(&containingElements)
-				return
-			}
-			i = ccI - 1 // continue with the parent of the component call
-			continue
-		case *ast.Element:
-			compAST := walk.Closest[*ast.Component](parents)
-			if compAST == nil {
-				attr.ContainingElements.SetFailed()
-				return
-			}
-			comp := f.Package.ComponentByNode(compAST)
-
-			containingElements = append(containingElements, file.ContainingElement{
-				Component: comp,
-				Element:   comp.File.ElementReferenceByNode(parent.Header.Name),
+				containingElements = append(containingElements, &ast.BlockSetterContainingElement{
+					ComponentCall: ccAST,
+					BlockSetter:   parent,
+				})
+				if s.Block.Forwarded.False() {
+					return true
+				}
+				i = ccI // continue with the parent of the component call
+				return false
 			})
-			containingElements = slices.Clip(containingElements)
-			attr.ContainingElements.SetResult(&containingElements)
-			return
+		if done {
+			break
 		}
+
 		i--
 	}
 
-	containingElements = slices.Clip(containingElements)
-	attr.ContainingElements.SetResult(&containingElements)
+	if !attr.ContainingElements.Failed() {
+		containingElements = slices.Clip(containingElements)
+		attr.ContainingElements.SetResult(&containingElements)
+	}
+}
+
+// ============================================================================
+// Containing Element Specs
+// ======================================================================================
+
+// AnalyzeAttributeContainingElementSpecs calculates the containing element
+// specs of the given attribute.
+//
+// Depends on Checks: None
+//
+// Sets Fields:
+//   - Attributes.ContainingElementSpecs
+//
+// Depends on Fields:
+//   - Attributes.ContainingElements
+//   - ComponentCalls.ElementSpecsWithAndPlaceholder
+//   - Components.Blocks.ContainingElementSpecs
+func (z *analyzer) AnalyzeAttributeContainingElementSpecs(f *file.File, attr *file.Attribute) {
+	if attr.ContainingElements.Failed() {
+		attr.ContainingElementSpecs.SetFailed()
+		return
+	}
+
+	containingElements := *attr.ContainingElements.Result()
+	if len(containingElements) == 0 {
+		var specs []*file.ElementSpec
+		attr.ContainingElementSpecs.SetResult(&specs)
+		return
+	}
+
+	attr.ContainingElementSpecs.SetZero()
+
+	specsSet := make(map[*file.ElementSpec]struct{}, len(containingElements))
+	for _, e := range containingElements {
+		switches.ContainingElement(e,
+			func(e *ast.AndPlaceholderContainingElement) {
+				cc := f.ComponentCallByNode((*ast.ComponentCall)(e))
+				if cc.ElementSpecsWithAndPlaceholder.Failed() {
+					attr.ContainingElementSpecs.SetFailed()
+					return
+				}
+
+				for _, spec := range *cc.ElementSpecsWithAndPlaceholder.Result() {
+					specsSet[spec] = struct{}{}
+				}
+			},
+			func(e *ast.BlockSetterContainingElement) {
+				cc := f.ComponentCallByNode(e.ComponentCall)
+				s := cc.BlockSetterByName(e.BlockSetter.Name())
+				if s == nil || s.Block == nil || s.Block.ContainingElementSpecs.Failed() {
+					attr.ContainingElementSpecs.SetFailed()
+					return
+				}
+
+				for _, spec := range *s.Block.ContainingElementSpecs.Result() {
+					specsSet[spec] = struct{}{}
+				}
+			},
+			func(e *ast.Element) {
+				ref := f.ElementReferenceByNode(e.Header.Name)
+				if ref.Spec == nil {
+					attr.ContainingElementSpecs.SetFailed()
+					return
+				}
+				specsSet[ref.Spec] = struct{}{}
+			})
+		if attr.ContainingElementSpecs.Failed() {
+			return
+		}
+	}
+
+	specs := make([]*file.ElementSpec, 0, len(specsSet))
+	for spec := range specsSet {
+		specs = append(specs, spec)
+	}
+
+	attr.ContainingElementSpecs.SetResult(&specs)
 }
 
 // ============================================================================
@@ -454,6 +529,9 @@ func (z *analyzer) analyzeInferredAttributeType(logger *slog.Logger, f *file.Fil
 					{
 						Hint:    "Explicitly type the attribute.",
 						Example: "`data-woof='url(myVar)`",
+					}, {
+						Hint:    "Set this attribute to a constant value.",
+						Example: "`data-woof=\"bark\"`",
 					},
 				},
 				Docs: "attribute-type",
@@ -462,13 +540,13 @@ func (z *analyzer) analyzeInferredAttributeType(logger *slog.Logger, f *file.Fil
 		return
 	}
 
-	if attr.ContainingElements.Failed() || attr.Forwarded.Failed() {
+	if attr.ContainingElementSpecs.Failed() || attr.Forwarded.Failed() {
 		attr.Type.SetFailed()
 		return
 	}
 
-	containingElements := *attr.ContainingElements.Result()
-	if len(containingElements) == 0 {
+	containingElementSpecs := *attr.ContainingElementSpecs.Result()
+	if len(containingElementSpecs) == 0 {
 		attr.Type.SetFailed()
 		logger.Error("attribute not forwarded but not contained in any element")
 		z.Report(&diagnostic.Diagnostic{
@@ -506,6 +584,9 @@ func (z *analyzer) analyzeInferredAttributeType(logger *slog.Logger, f *file.Fil
 					}, {
 						Hint:    "Define the attribute for the elements it is attached to.",
 						Example: "`attr woof { div url }`",
+					}, {
+						Hint:    "Set this attribute to a constant value.",
+						Example: "`data-woof=\"bark\"`",
 					},
 				},
 				Docs: "attribute-type",
@@ -516,55 +597,31 @@ func (z *analyzer) analyzeInferredAttributeType(logger *slog.Logger, f *file.Fil
 
 	attrSpec := attr.Reference.Spec.Result()
 
-	var refRule *ast.AttributeRule
-	var refElemName string
-	var typ attrtype.Type
-
-	e0 := containingElements[0]
-	if e0.Element.Spec == nil {
-		attr.Type.SetFailed()
-		return
-	}
-	if e0.Element.AST.Package != nil {
-		refElemName = e0.Element.AST.Package.Name + "." + e0.Element.AST.Name.Name
-	} else {
-		refElemName = e0.Element.AST.Name.Name
-	}
-	refRule = attrSpec.RuleFor(e0.Element.Spec)
+	refSpec := containingElementSpecs[0]
+	refRule := attrSpec.RuleFor(refSpec)
+	var refTyp attrtype.Type
 	if refRule != nil {
-		typ = refRule.Type.Type
+		refTyp = refRule.Type.Type
 	}
 
-	for _, e := range containingElements[1:] {
-		if e.Element.Spec == nil {
-			attr.Type.SetFailed()
-			return
-		}
-
-		rule := attrSpec.RuleFor(e.Element.Spec)
-		if rule == nil && typ == attrtype.Unknown {
+	for _, spec := range containingElementSpecs[1:] {
+		rule := attrSpec.RuleFor(spec)
+		if rule == nil && refTyp == attrtype.Unknown {
 			continue
-		} else if rule != nil && typ == rule.Type.Type {
+		} else if rule != nil && refTyp == rule.Type.Type {
 			continue
-		}
-
-		var elemName string
-		if e.Element.AST.Package != nil {
-			elemName = e.Element.AST.Package.Name + "." + e.Element.AST.Name.Name
-		} else {
-			elemName = e.Element.AST.Name.Name
 		}
 
 		secondaries := make([]diagnostic.Annotation, 2)
 		if refRule == nil {
-			secondaries[0] = anno.Node(attrSpec.File, attrSpec.AST.Selector, "not defined for `"+refElemName+"`")
+			secondaries[0] = anno.Node(attrSpec.File, attrSpec.AST.Selector, "not defined for `"+refSpec.HTMLName()+"`")
 		} else {
-			secondaries[0] = anno.Node(attrSpec.File, refRule.Type, "defined as `"+refRule.Type.Type.String()+"` for `"+refElemName+"`")
+			secondaries[0] = anno.Node(attrSpec.File, refRule.Type, "defined as `"+refTyp.String()+"` for `"+refSpec.HTMLName()+"`")
 		}
 		if rule == nil {
-			secondaries[1] = anno.Node(attrSpec.File, attrSpec.AST.Selector, "not defined for `"+elemName+"`")
+			secondaries[1] = anno.Node(attrSpec.File, attrSpec.AST.Selector, "not defined for `"+spec.HTMLName()+"`")
 		} else {
-			secondaries[1] = anno.Node(attrSpec.File, rule.Type, "defined as `"+rule.Type.Type.String()+"` for `"+elemName+"`")
+			secondaries[1] = anno.Node(attrSpec.File, rule.Type, "defined as `"+refTyp.String()+"` for `"+elemName+"`")
 		}
 
 		attr.Type.SetFailed()
@@ -586,8 +643,8 @@ func (z *analyzer) analyzeInferredAttributeType(logger *slog.Logger, f *file.Fil
 		return
 	}
 
-	attr.Type.SetResult(typ)
-	if typ != attrtype.Unknown || attr.Constant() {
+	attr.Type.SetResult(refTyp)
+	if refTyp != attrtype.Unknown || attr.Constant() {
 		return
 	}
 

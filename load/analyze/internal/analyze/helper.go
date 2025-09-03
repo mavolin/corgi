@@ -94,14 +94,15 @@ func (z *analyzer) cannotAttributes(
 					cc := f.ComponentCallByNode(ccAST)
 					z.AnalyzeComponentCall(ctx, cc)
 					s := cc.BlockSetterByName(parent.Name())
-					if s == nil || s.Block.CannotForwardAttributes.Failed() {
+					switch {
+					case s == nil || s.Block.CannotForwardAttributes.Failed():
 						reason.SetFailed()
-					} else if s.Block.CannotForwardAttributes.True() {
+					case s.Block.CannotForwardAttributes.True():
 						reason.SetReason(&ast.BlockSetterAttributeInhibitor{
 							ComponentCall: ccAST,
 							BlockSetter:   parent,
 						})
-					} else {
+					default:
 						ccStackItem := stack[ccI+1]
 						*reason = *ccStackItem.before
 					}
