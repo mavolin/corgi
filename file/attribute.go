@@ -58,6 +58,31 @@ type Attribute struct {
 	// attribute is placed on multiple elements that specify different types.
 	//
 	// A type of [attrtype.Unknown] indicates that no type could be determined.
+	// This is only allowed when the attribute has a constant value and has no
+	// type set for any of its containing elements.
+	//
+	// # Type Resolution
+	//
+	// The algorithm to determine the type is as follows:
+	//   if attribute is explicitly typed:
+	//       return explicit type
+	//   if attribute is partially forwarded:
+	//       fail
+	//   if attribute is fully forwarded or attribute.Reference.Spec is nil:
+	//       require attribute to be constant
+	//       return attrtype.Unknown
+	//   let t be attrtype.Unknown
+	//   for each element spec in attribute.ContainingElementSpecs:
+	//       if attribute.Reference.Spec has definition for element spec:
+	//           set t to attribute type for that element spec
+	//           break
+	//   if t is attrtype.Unknown:
+	//       require attribute to be constant
+	//       return attrtype.Unknown
+	//   for each element spec in attribute.ContainingElementSpecs:
+	//       require attribute.Reference.Spec has definition for element spec
+	//           and attribute type for that element spec to be equal to t
+	//       otherwise fail
 	Type Analysis[attrtype.Type]
 }
 
