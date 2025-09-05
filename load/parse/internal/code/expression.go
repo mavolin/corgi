@@ -22,6 +22,11 @@ func Expression(o Options) parser.Func[*ast.Expression] {
 func NonZCExpression(o Options) parser.Func[*ast.Expression] {
 	o &= ^Statements
 	return func(p *parser.Parser) *ast.Expression {
+		cc := parser.Try(p, componentCall)
+		if cc != nil {
+			return &ast.Expression{Nodes: []ast.CodeNode{cc}}
+		}
+
 		var e ast.Expression
 		e.Nodes = parser.Try(p, GoCode(o))
 		if e.Nodes == nil {
