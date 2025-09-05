@@ -356,12 +356,7 @@ func ForRangeHeader() parser.Func[*ast.ForRangeHeader] {
 		pos := p.Pos()
 		var comma *ast.Position
 		if !parser.Matches(p, func(p *parser.Parser) bool {
-			if parser.TryKeywordAt(p, "range", comment.OrAnyWhitespace()) != nil {
-				return true
-			} else if parser.TryKeywordAt(p, "ordered", comment.OrHorizontalWhitespace()) != nil {
-				return true
-			}
-			return false
+			return parser.TryKeywordAt(p, "range", comment.OrAnyWhitespace()) != nil
 		}) {
 			h.Var1 = parser.TryOptional(p, Expression(Regular), comment.OrHorizontalWhitespace())
 			comma = parser.TryOptionalRuneAt(p, ',', comment.OrAnyWhitespace())
@@ -410,18 +405,10 @@ func ForRangeHeader() parser.Func[*ast.ForRangeHeader] {
 			})
 		}
 
-		h.Ordered = parser.TryOptionalKeywordAt(p, "ordered", comment.OrHorizontalWhitespace())
-		rangePos := p.Pos()
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 		h.Range = parser.TryKeywordAt(p, "range", comment.OrAnyWhitespace())
 		if h.Range == nil {
-			if h.Ordered == nil {
-				return nil
-			}
-			p.CaptureError(&diagnostic.Diagnostic{
-				Message: "for-range header: missing range keyword",
-				Primary: quickanno.Expected(p, rangePos, "the `range` keyword"),
-			})
+			return nil
 		}
 
 		h.Expression = parser.Try(p, Expression(Regular))

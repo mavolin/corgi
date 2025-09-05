@@ -969,18 +969,6 @@ func testForRangeHeader(t *testing.T, f parser.Func[*ast.ForRangeHeader]) {
 				},
 			},
 		}, {
-			name: "ordered",
-			in:   "ordered range s",
-			want: &ast.ForRangeHeader{
-				Ordered: &ast.Position{Line: 1, Col: 1},
-				Range:   &ast.Position{Line: 1, Col: 9},
-				Expression: &ast.Expression{
-					Nodes: ast.Code{
-						&ast.GoCode{Code: "s", Position: &ast.Position{Line: 1, Col: 15}},
-					},
-				},
-			},
-		}, {
 			name: "with index",
 			in:   "i = range s",
 			want: &ast.ForRangeHeader{

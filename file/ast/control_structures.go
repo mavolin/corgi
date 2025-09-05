@@ -600,7 +600,6 @@ type ForRangeHeader struct {
 
 	Colon     *Position // optional
 	EqualSign *Position // optional, Position of the '='
-	Ordered   *Position // Position of the "ordered", if range is ordered
 	Range     *Position // Position of the "range" keyword
 
 	// Expression is the expression that is being iterated over.
@@ -619,8 +618,6 @@ func (h *ForRangeHeader) Start() Position {
 		return *h.Colon
 	case h.EqualSign != nil:
 		return *h.EqualSign
-	case h.Ordered != nil:
-		return *h.Ordered
 	case h.Range != nil:
 		return *h.Range
 	case h.Expression != nil:
@@ -635,8 +632,6 @@ func (h *ForRangeHeader) End() Position {
 		return h.Expression.End()
 	case h.Range != nil:
 		return deltaPos(*h.Range, len("range"))
-	case h.Ordered != nil:
-		return deltaPos(*h.Ordered, len("ordered"))
 	case h.Colon != nil:
 		return deltaPos(*h.Colon, len(":"))
 	case h.EqualSign != nil:
