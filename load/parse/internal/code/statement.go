@@ -1079,33 +1079,40 @@ func assignment(e *ast.Expression, o Options) parser.Func[*ast.Assignment] {
 }
 
 func AssignmentAsCode(a *ast.Assignment) ast.Code {
-	n := 2*len(a.LHS) - 1
-	if a.OperatorPosition != nil {
-		n++
+	var n int
+	for _, e := range a.LHS {
+		n += len(e.Nodes)
 	}
-	n += 2*len(a.RHS) - 1
+	n += max(0, len(a.LHS)-1) // commas
+	if a.OperatorPosition != nil {
+		n++ // operator
+	}
+	for _, e := range a.RHS {
+		n += len(e.Nodes)
+	}
+	n += max(0, len(a.RHS)-1) // commas
 
 	c := make(ast.Code, n)
 	var i int
 	for eI, e := range a.LHS {
 		i += copy(c[i:], e.Nodes)
-		if eI < len(a.LHS)-1 {
-			p := e.End()
-			p.Col++
-			c[i] = &ast.GoCode{Code: ",", Position: &p}
+		if eI < len(a.LHS)-1 { // not last
+			pos := e.End()
+			pos.Col++
+			c[i] = &ast.GoCode{Code: ",", Position: &pos}
 			i++
 		}
 	}
 	if a.OperatorPosition != nil {
-		c[i] = &ast.GoCode{Code: a.Operator + "=", Position: a.OperatorPosition}
+		c[i] = &ast.GoCode{Code: a.Operator, Position: a.OperatorPosition}
 		i++
 	}
 	for eI, e := range a.RHS {
 		i += copy(c[i:], e.Nodes)
-		if eI < len(a.RHS)-1 {
-			p := e.End()
-			p.Col++
-			c[i] = &ast.GoCode{Code: ",", Position: &p}
+		if eI < len(a.RHS)-1 { // not last
+			pos := e.End()
+			pos.Col++
+			c[i] = &ast.GoCode{Code: ",", Position: &pos}
 			i++
 		}
 	}
