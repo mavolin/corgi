@@ -182,7 +182,13 @@ func unqualifiedReference() parser.Func[*ast.ElementReference] {
 
 func Name() parser.Func[*ast.ElementName] {
 	return func(p *parser.Parser) *ast.ElementName {
-		name := parser.Try(p, html.TagName())
+		name := parser.TokenWhile(p, func() bool {
+			if !parser.MatchesRunePredicate(p, html.AttributeNameRune) {
+				return false
+			}
+
+			return !parser.MatchesAnyRune(p, ',', '\r', ';', '(', '{', '[', '}', ']', ')', '_')
+		})
 		if name == "" {
 			return nil
 		}
