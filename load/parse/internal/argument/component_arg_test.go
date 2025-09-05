@@ -102,6 +102,7 @@ func testComponentArgument(t *testing.T, f parser.Func[*ast.ComponentArgument]) 
 			t.Run(c.name, func(t *testing.T) {
 				t.Parallel()
 				// we add ", other" to test that the parser stops at the comma
+
 				p := parsetest.NewParser(t, c.in+", other")
 				got := parsetest.AssertMatchesButError(t, p, f)
 				if should.Equal(t, got, c.want) {

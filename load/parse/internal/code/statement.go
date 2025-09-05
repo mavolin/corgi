@@ -22,7 +22,7 @@ func Statement(o Options) parser.Func[*ast.Statement] {
 			return s
 		}
 
-		c := parser.Try(p, NonZCCode(o|Statements))
+		c := parser.Try(p, GoCode(o|Statements))
 		if s == nil || s.Nodes == nil {
 			if len(c) == 0 {
 				return nil
@@ -142,7 +142,7 @@ func SimpleStatement(o Options) parser.Func[*ast.SimpleStatement] {
 			return ss
 		}
 
-		c := parser.Try(p, NonZCCode(o|Statements))
+		c := parser.Try(p, GoCode(o|Statements))
 		if ss == nil || ss.Nodes == nil {
 			if len(c) == 0 {
 				return nil

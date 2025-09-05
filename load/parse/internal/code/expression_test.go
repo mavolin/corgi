@@ -1,6 +1,7 @@
 package code
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/mavolin/corgi/v2/file/ast"
@@ -103,10 +104,10 @@ func TestNonZCExpression(t *testing.T) {
 }
 
 func testNonZCExpression(t *testing.T, f parser.Func[*ast.Expression]) {
-	parsetest.AssertAlsoFulfils(t, f, nodesAsExpression(testGoCode()))
-	parsetest.AssertAlsoFulfils(t, f, nodesAsExpression(nodeAsNodes(testBlockFunction())))
-	parsetest.AssertAlsoFulfils(t, f, nodesAsExpression(nodeAsNodes(testString())))
-	parsetest.AssertAlsoFulfils(t, f, nodesAsExpression(nodeAsNodes(testTernary())))
+	parsetest.AssertAlsoFulfils(t, f, codeAsExpression(testGoCode()))
+	parsetest.AssertAlsoFulfils(t, f, nodeAsExpression(testBlockFunction()))
+	parsetest.AssertAlsoFulfils(t, f, nodeAsExpression(testString()))
+	parsetest.AssertAlsoFulfils(t, f, nodeAsExpression(testTernary()))
 	t.Run("mix", func(t *testing.T) {
 		t.Parallel()
 
@@ -186,34 +187,34 @@ func testNonZCExpression(t *testing.T, f parser.Func[*ast.Expression]) {
 	})
 }
 
-func nodesAsExpression(subTest func(t *testing.T, f parser.Func[[]ast.CodeNode])) func(*testing.T, parser.Func[*ast.Expression]) {
+func codeAsExpression(subTest func(t *testing.T, f parser.Func[ast.Code])) func(*testing.T, parser.Func[*ast.Expression]) {
 	return func(t *testing.T, f parser.Func[*ast.Expression]) {
-		subTest(t, func(p *parser.Parser) []ast.CodeNode {
+		subTest(t, func(p *parser.Parser) ast.Code {
 			e := f(p)
 			if e == nil {
 				return nil
 			}
-			ns := make([]ast.CodeNode, len(e.Nodes))
-			copy(ns, e.Nodes)
-			return ns
+			return e.Nodes
 		})
 	}
 }
 
-func nodeAsNodes[N ast.CodeNode](subTest func(t *testing.T, f parser.Func[N])) func(*testing.T, parser.Func[[]ast.CodeNode]) {
-	return func(t *testing.T, f parser.Func[[]ast.CodeNode]) {
+func nodeAsExpression[N comparableNode](subTest func(t *testing.T, f parser.Func[N])) func(*testing.T, parser.Func[*ast.Expression]) {
+	var zero N
+	return func(t *testing.T, f parser.Func[*ast.Expression]) {
 		subTest(t, func(p *parser.Parser) N {
-			var zero N
-			ns := f(p)
-			if ns == nil {
+			e := f(p)
+			if e == nil {
 				return zero
 			}
-
-			if len(ns) != 1 {
-				return zero
+			if len(e.Nodes) != 1 {
+				panic(fmt.Sprintf("expected exactly one node, got %d", len(e.Nodes)))
 			}
-
-			return ns[0].(N)
+			n, _ := e.Nodes[0].(N)
+			if n == zero {
+				panic(fmt.Sprintf("expected node of type %T, got %T", zero, e.Nodes[0]))
+			}
+			return n
 		})
 	}
 }

@@ -23,8 +23,7 @@ func NonZCExpression(o Options) parser.Func[*ast.Expression] {
 	o &= ^Statements
 	return func(p *parser.Parser) *ast.Expression {
 		var e ast.Expression
-
-		e.Nodes = parser.Try(p, NonZCCode(o))
+		e.Nodes = parser.Try(p, GoCode(o))
 		if e.Nodes == nil {
 			return nil
 		}

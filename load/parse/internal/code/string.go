@@ -63,8 +63,8 @@ func StringNode(quote byte) parser.Func[ast.StringNode] {
 	return func(p *parser.Parser) ast.StringNode {
 		if txt := parser.Try(p, StringText(quote)); txt != nil {
 			return txt
-		} else if interp := parser.Try(p, interpolation.StringInterpolation()); interp != nil {
-			return interp
+		} else if inter := parser.Try(p, interpolation.StringInterpolation()); inter != nil {
+			return inter
 		}
 		return nil
 	}

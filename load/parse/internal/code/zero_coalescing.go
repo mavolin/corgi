@@ -102,11 +102,7 @@ func ZeroCoalescing() parser.Func[*ast.ZeroCoalescing] {
 func zeroCoalescingRoot() parser.Func[*ast.Expression] {
 	return func(p *parser.Parser) *ast.Expression {
 		if parser.MatchesAnyRune(p, '(') {
-			c := parser.Try(p, goCode(FirstParen))
-			if c == nil {
-				return nil
-			}
-			return &ast.Expression{Nodes: c.Nodes}
+			return parser.Try(p, NonZCExpression(FirstParen))
 		}
 
 		ident := parser.Try(p, golang.Identifier())
