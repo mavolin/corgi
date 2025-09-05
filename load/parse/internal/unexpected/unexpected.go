@@ -14,31 +14,29 @@ import (
 // You may optionally provide a [parser.WhitespaceFunc] to capture whitespace
 // between subsequent sets of unexpected runes.
 // If you provide none, UntilAnyRune will consume no whitespace.
+// Upon returning, the parser will have skipped any occurring whitespace.
 //
 // If UntilAnyRune finds any non-whitespace rune not contained in runes, it
 // returns with an error highlighting that segment.
-// Leading and trailing whitespace, as determined by the whitespace func is
+// Trailing whitespace, as determined by the whitespace func is
 // ignored.
 //
 // It is assumed that wsFunc captures all consecutive whitespace and that upon
 // returning, the next rune is a non-whitespace rune.
-func UntilAnyRune(p *parser.Parser, wsFunc parser.WhitespaceFunc, runes ...rune) *diagnostic.Diagnostic {
+func UntilAnyRune(p *parser.Parser, ws parser.WhitespaceFunc, runes ...rune) *diagnostic.Diagnostic {
 	var start, end ast.Position
 
-	if wsFunc == nil {
-		restore := p.CloneState()
-
+	if ws == nil {
 		start = p.Pos()
-		s := parser.TokenWhile(p, func() bool {
+		s := parser.OptionalTokenWhile(p, nil, func() bool {
 			return !parser.MatchesAnyRune(p, runes...) && !parser.MatchesAnyRune(p, whitespace.Runes...)
 		})
 		if s == "" {
-			p.RestoreState(restore)
 			return nil
 		}
 		end = p.Pos()
 	} else {
-		parser.TrySkip(p, wsFunc)
+		parser.TrySkip(p, ws)
 		restore := p.CloneState()
 
 		start = p.Pos()
@@ -47,15 +45,62 @@ func UntilAnyRune(p *parser.Parser, wsFunc parser.WhitespaceFunc, runes ...rune)
 				return !parser.MatchesAnyRune(p, runes...) && !parser.MatchesAnyRune(p, whitespace.Runes...)
 			})
 			if s == "" {
-				p.RestoreState(restore)
-				return nil
+				break
 			}
 			end = p.Pos()
 
-			hasWS := parser.TrySkip(p, wsFunc)
-			if !hasWS {
+			if !parser.TrySkip(p, ws) {
 				break
 			}
+		}
+		if end == (ast.Position{}) {
+			p.RestoreState(restore)
+			return nil
+		}
+	}
+
+	return &diagnostic.Diagnostic{
+		Message: "unexpected runes",
+		Primary: []diagnostic.Annotation{
+			anno.Range(p.File, start, end, "remove this"),
+		},
+	}
+}
+
+// UntilAnyToken is like [UntilAnyRune], but uses tokens instead of runes.
+func UntilAnyToken(p *parser.Parser, ws parser.WhitespaceFunc, tokens ...string) *diagnostic.Diagnostic {
+	var start, end ast.Position
+
+	if ws == nil {
+		start = p.Pos()
+		s := parser.OptionalTokenWhile(p, nil, func() bool {
+			return !parser.MatchesAnyToken(p, tokens...) && !parser.MatchesAnyRune(p, whitespace.Runes...)
+		})
+		if s == "" {
+			return nil
+		}
+		end = p.Pos()
+	} else {
+		parser.TrySkip(p, ws)
+		restore := p.CloneState()
+
+		start = p.Pos()
+		for {
+			s := parser.TokenWhile(p, func() bool {
+				return !parser.MatchesAnyToken(p, tokens...) && !parser.MatchesAnyRune(p, whitespace.Runes...)
+			})
+			if s == "" {
+				break
+			}
+			end = p.Pos()
+
+			if !parser.TrySkip(p, ws) {
+				break
+			}
+		}
+		if end == (ast.Position{}) {
+			p.RestoreState(restore)
+			return nil
 		}
 	}
 
