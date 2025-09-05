@@ -165,7 +165,7 @@ func Name() parser.Func[*ast.AttributeName] {
 
 		var parenCount int
 		nameStr := parser.TokenWhile(p, func() bool {
-			if !parser.Matches(p, html.AttributeNameRune()) {
+			if !parser.MatchesRunePredicate(p, html.AttributeNameRune) {
 				return false
 			}
 
@@ -177,7 +177,7 @@ func Name() parser.Func[*ast.AttributeName] {
 				return parenCount >= 0
 			}
 
-			return !parser.MatchesToken(p, ",")
+			return !parser.MatchesAnyRune(p, ',', ';', '{', '}')
 		})
 
 		if nameStr == "" {

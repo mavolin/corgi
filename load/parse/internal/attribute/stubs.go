@@ -15,7 +15,9 @@ func init() {
 
 func elementReferenceStub(p *parser.Parser) *ast.ElementReference {
 	pos := p.Pos()
-	name := parser.Try(p, html.TagName())
+	name := parser.TokenWhile(p, func() bool {
+		return parser.MatchesRunePredicate(p, html.TagNameStartRune)
+	})
 	if name == "" {
 		return nil
 	}
