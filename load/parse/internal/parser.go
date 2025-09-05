@@ -159,7 +159,16 @@ func (p *Parser) CaptureComment(g *ast.CommentGroup) {
 	}
 }
 
+func (p *Parser) cloneState() *State {
+	s := p.statePool.Get()
+	p.state.Copy(s)
+	return s
+}
+
 func (p *Parser) CloneState() *State {
+	if p.state.ws != nil {
+		panic("CloneState called after WS was consumed")
+	}
 	s := p.statePool.Get()
 	p.state.Copy(s)
 	return s
@@ -188,7 +197,7 @@ func (p *Parser) markWSStart(start *State) {
 
 func (p *Parser) takeWSStart() *State {
 	if p.state.ws == nil || p.parsingWS {
-		return p.CloneState()
+		return p.cloneState()
 	}
 	wsStart := p.state.ws
 	p.state.ws = nil
@@ -219,7 +228,7 @@ type (
 // Matches reports whether f would match.
 // It does not consume any input.
 func Matches[T any](p *Parser, f Func[T]) bool {
-	restore := p.CloneState()
+	restore := p.cloneState()
 	CommitWS(p)
 	v := f(p)
 	p.RestoreState(restore)
@@ -227,7 +236,7 @@ func Matches[T any](p *Parser, f Func[T]) bool {
 }
 
 func MatchesWS(p *Parser, f WhitespaceFunc) bool {
-	restore := p.CloneState()
+	restore := p.cloneState()
 	CommitWS(p)
 	ok := f(p)
 	p.RestoreState(restore)
@@ -275,7 +284,7 @@ func Try[T any](p *Parser, f Func[T]) T {
 func TryOptional[T any](p *Parser, f Func[T], ws WhitespaceFunc) T {
 	var zero T
 
-	restore := p.CloneState()
+	restore := p.cloneState()
 	CommitWS(p)
 	v := f(p)
 	if isZero(v) {
@@ -316,7 +325,7 @@ func TryInOrder[T any](p *Parser, fs ...Func[T]) T {
 // Even if TrySkip fails to match, it does not affect a previous restore
 // point.
 func TrySkip(p *Parser, f WhitespaceFunc) bool {
-	restore := p.CloneState()
+	restore := p.cloneState()
 	if !p.parsingWS {
 		p.markWSStart(restore)
 		p.parsingWS = true
