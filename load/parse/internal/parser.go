@@ -34,6 +34,7 @@ import (
 	"github.com/mavolin/corgi/v2/file"
 	"github.com/mavolin/corgi/v2/file/ast"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
+	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
 )
 
 const EOF rune = 0
@@ -90,6 +91,16 @@ func (p *Parser) next() rune {
 	}
 
 	r := p.runes[p.state.runeIndex]
+	if r == utf8.RuneError {
+		p.state.advance(1, r == '\n')
+		p.CaptureError(&diagnostic.Diagnostic{
+			Message: "invalid UTF-8 encoding",
+			Primary: []diagnostic.Annotation{
+				anno.Position(p.File, p.Pos(), "this byte is not valid UTF-8"),
+			},
+		})
+		return r
+	}
 	p.state.advance(uint32(utf8.RuneLen(r)), r == '\n') //nolint:gosec
 	return r
 }
