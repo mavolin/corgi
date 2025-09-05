@@ -240,6 +240,15 @@ func MatchesToken(p *Parser, s string) bool {
 	return end <= len(p.AST.Raw) && p.AST.Raw[start:end] == s
 }
 
+func MatchesAnyToken(p *Parser, ss ...string) bool {
+	for _, s := range ss {
+		if MatchesToken(p, s) {
+			return true
+		}
+	}
+	return false
+}
+
 func MatchesAnyRune(p *Parser, rs ...rune) bool {
 	return MatchesRunePredicate(p, func(cmp rune) bool {
 		return slices.Contains(rs, cmp)

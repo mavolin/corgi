@@ -143,6 +143,14 @@ func Switch() parser.Func[*ast.Switch] {
 			return &s
 		}
 		parser.TrySkip(p, comment.OrAnyWhitespace())
+
+		err := unexpected.UntilAnyToken(p, comment.OrAnyWhitespace(), "case", "default", "}")
+		if err != nil {
+			err.Message = "switch: unexpected runes before cases"
+			p.CaptureError(err)
+			parser.TrySkip(p, comment.OrAnyWhitespace())
+		}
+
 		s.Cases = parser.Collect(p, SwitchCase(), comment.OrAnyWhitespace())
 
 		var annos []diagnostic.Annotation
@@ -160,7 +168,7 @@ func Switch() parser.Func[*ast.Switch] {
 			})
 		}
 
-		err := unexpected.UntilAnyRune(p, comment.OrAnyWhitespace(), '}')
+		err = unexpected.UntilAnyRune(p, comment.OrAnyWhitespace(), '}')
 		if err != nil {
 			err.Message = "switch: unexpected runes after cases"
 			p.CaptureError(err)

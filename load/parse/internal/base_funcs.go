@@ -199,3 +199,30 @@ func TokenWhile(p *Parser, pred func() bool) string {
 	p.statePool.Put(restore)
 	return p.AST.Raw[start:p.Index()]
 }
+
+func OptionalTokenWhile(p *Parser, ws WhitespaceFunc, pred func() bool) string {
+	start := p.Index()
+	if !pred() {
+		if p.Index() != start {
+			panic("TokenWhile: predicate consumed runes")
+		}
+		return ""
+	}
+	p.next()
+	i := p.Index()
+	for pred() {
+		if p.Index() != i {
+			panic("TokenWhile: predicate consumed runes")
+		}
+		r := p.next()
+		if r == EOF {
+			break
+		}
+		i = p.Index()
+	}
+	CommitWS(p) // the predicate might've set a restore point
+	if ws != nil {
+		TrySkip(p, ws)
+	}
+	return p.AST.Raw[start:p.Index()]
+}
