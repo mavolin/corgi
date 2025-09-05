@@ -97,29 +97,48 @@ func Else() parser.Func[*ast.Else] {
 
 func IfHeader() parser.Func[*ast.IfHeader] {
 	return func(p *parser.Parser) *ast.IfHeader {
-		var h ast.IfHeader
+		return parser.TryInOrder(p, ifHeaderWithStatement(), ifHeaderWithoutStatement())
+	}
+}
 
-		state := p.CloneState()
-
-		h.Statement = parser.TryOptional(p, SimpleStatement(Regular), nil)
-		if matches := parser.Try(p, comment.AndEOS()); matches {
-			parser.TrySkip(p, comment.OrAnyWhitespace())
-		} else {
-			p.RestoreState(state)
-			h.Statement = nil
-		}
-		h.Condition = parser.Try(p, Expression(Regular))
-		if h.Statement != nil && h.Condition == nil {
-			p.RestoreState(state)
-			h.Statement = nil
-			h.Condition = parser.Try(p, Expression(Regular))
-		}
-
-		if h.Condition == nil {
+func ifHeaderWithStatement() parser.Func[*ast.IfHeader] {
+	return func(p *parser.Parser) *ast.IfHeader {
+		stmt := parser.Try(p, SimpleStatement(Regular))
+		if stmt == nil {
 			return nil
 		}
 
+		if !parser.Try(p, comment.AndEOS()) {
+			return nil
+		}
+		parser.TrySkip(p, comment.OrAnyWhitespace())
+
+		var h ast.IfHeader
+		h.Statement = stmt
+
+		h.Condition = parser.Try(p, Expression(Regular))
+		if h.Condition == nil {
+			p.CaptureError(&diagnostic.Diagnostic{
+				Message: "if header: missing condition",
+				Primary: quickanno.Expected(p, p.Pos(), "a condition expression"),
+				Secondary: []diagnostic.Annotation{
+					anno.Node(p.File, h.Statement, "because of the statement here"),
+				},
+			})
+		}
+
 		return &h
+	}
+}
+
+func ifHeaderWithoutStatement() parser.Func[*ast.IfHeader] {
+	return func(p *parser.Parser) *ast.IfHeader {
+		cond := parser.Try(p, Expression(Regular))
+		if cond == nil {
+			return nil
+		}
+
+		return &ast.IfHeader{Condition: cond}
 	}
 }
 
