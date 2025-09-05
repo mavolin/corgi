@@ -21,36 +21,42 @@ func Definition() parser.Func[*ast.ElementDefinition] {
 			return nil
 		}
 
-		var def ast.ElementDefinition
-		def.Elem = elem
+		def := parser.TryInOrder(p,
+			definitionList(elem), singleDefinitionWithoutPrefix(elem), singleDefinitionWithPrefix(elem))
+		if def != nil {
+			return def
+		}
 
-		beforePrefix := p.CloneState()
+		p.CaptureError(&diagnostic.Diagnostic{
+			Message: "element definition: missing element name",
+			Primary: quickanno.Expected(p, p.Pos(), "an element name or an opening `(`"),
+			Examples: []diagnostic.Example{
+				{Example: "`div normal`", Title: "single definition"},
+				{Example: "`elem ( ... )`", Title: "definition list"},
+			},
+		})
+		return &ast.ElementDefinition{Elem: elem}
+	}
+}
+
+func definitionList(elem *ast.Position) parser.Func[*ast.ElementDefinition] {
+	return func(p *parser.Parser) *ast.ElementDefinition {
 		// technically '(' would be a valid element name, so check that we
 		// don't accidentally consume a '(' as a prefix here
+		var prefix *ast.ElementName
 		if !parser.MatchesAnyRune(p, '(') {
-			def.Prefix = parser.TryOptional(p, Name(), comment.OrAnyWhitespace())
+			prefix = parser.TryOptional(p, Name(), comment.OrHorizontalWhitespace())
 		}
 
-		def.LParen = parser.TryOptionalRuneAt(p, '(', comment.OrAnyWhitespace())
-		if def.LParen == nil {
-			spec := parser.Try(p, Spec())
-			if (spec == nil || p.NumErrors() > beforePrefix.NumErrors()) && def.Prefix != nil {
-				p.RestoreState(beforePrefix)
-				def.Prefix = nil
-				spec = parser.Try(p, Spec())
-				if spec == nil {
-					p.CaptureError(&diagnostic.Diagnostic{
-						Message:  "element definition: missing element name",
-						Primary:  quickanno.Expected(p, p.Pos(), "an element name"),
-						Examples: []diagnostic.Example{{Example: "`div normal`"}},
-					})
-				}
-			}
-			if spec != nil {
-				def.Specs = []*ast.ElementSpec{spec}
-			}
-			return &def
+		lParen := parser.TryRuneAt(p, '(')
+		if lParen == nil {
+			return nil
 		}
+
+		var def ast.ElementDefinition
+		def.Elem = elem
+		def.Prefix = prefix
+		def.LParen = lParen
 
 		for {
 			parser.TrySkip(p, comment.OrAnyWhitespace())
@@ -84,6 +90,47 @@ func Definition() parser.Func[*ast.ElementDefinition] {
 		}
 
 		return &def
+	}
+}
+
+func singleDefinitionWithPrefix(elem *ast.Position) parser.Func[*ast.ElementDefinition] {
+	return func(p *parser.Parser) *ast.ElementDefinition {
+		prefix := parser.TryOptional(p, Name(), comment.OrHorizontalWhitespace())
+		if prefix == nil {
+			return nil
+		}
+
+		spec := parser.Try(p, Spec())
+		if spec == nil {
+			return nil
+		}
+
+		return &ast.ElementDefinition{
+			Elem:   elem,
+			Prefix: prefix,
+			Specs:  []*ast.ElementSpec{spec},
+		}
+	}
+}
+
+func singleDefinitionWithoutPrefix(elem *ast.Position) parser.Func[*ast.ElementDefinition] {
+	return func(p *parser.Parser) *ast.ElementDefinition {
+		spec := parser.Try(p, Spec())
+		if spec == nil {
+			return nil
+		}
+
+		parser.TrySkip(p, comment.OrHorizontalWhitespace())
+		if parser.Matches(p, TypeName()) {
+			// actually a prefixed definition
+			return nil
+		}
+		parser.RestoreWS(p)
+
+		return &ast.ElementDefinition{
+			Elem:  elem,
+			Specs: []*ast.ElementSpec{spec},
+		}
 	}
 }
 

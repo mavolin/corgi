@@ -114,29 +114,46 @@ func NamedAttribute() parser.Func[*ast.NamedAttribute] {
 
 func Reference() parser.Func[*ast.AttributeReference] {
 	return func(p *parser.Parser) *ast.AttributeReference {
-		state := p.CloneState()
+		return parser.TryInOrder(p, qualifiedReference(), unqualifiedReference())
+	}
+}
 
+func qualifiedReference() parser.Func[*ast.AttributeReference] {
+	return func(p *parser.Parser) *ast.AttributeReference {
 		pkg := parser.TryOptional(p, golang.Identifier(), comment.OrHorizontalWhitespace())
-		dot := parser.TryOptionalRuneAt(p, '.', comment.OrAnyWhitespace())
-
-		if dot == nil {
-			pkg = nil
-			p.RestoreState(state)
-		} else if pkg == nil {
-			p.CaptureError(&diagnostic.Diagnostic{
-				Message: "attribute reference: missing package name",
-				Primary: quickanno.Expected(p, p.Pos(), "a package name before the `.`"),
-			})
+		if pkg == nil {
+			return nil
 		}
 
-		name := parser.Try(p, Name())
-		if name == nil {
+		dot := parser.TryOptionalRuneAt(p, '.', comment.OrAnyWhitespace())
+		if dot == nil {
 			return nil
 		}
 
 		var ref ast.AttributeReference
 		ref.Package = pkg
 		ref.Dot = dot
+
+		ref.Name = parser.Try(p, Name())
+		if ref.Name == nil {
+			p.CaptureError(&diagnostic.Diagnostic{
+				Message: "attribute reference: missing attribute name",
+				Primary: quickanno.Expected(p, p.Pos(), "an attribute name"),
+			})
+		}
+
+		return &ref
+	}
+}
+
+func unqualifiedReference() parser.Func[*ast.AttributeReference] {
+	return func(p *parser.Parser) *ast.AttributeReference {
+		name := parser.Try(p, Name())
+		if name == nil {
+			return nil
+		}
+
+		var ref ast.AttributeReference
 		ref.Name = name
 		return &ref
 	}

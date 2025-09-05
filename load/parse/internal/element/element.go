@@ -137,30 +137,46 @@ func Header() parser.Func[*ast.ElementHeader] {
 
 func Reference() parser.Func[*ast.ElementReference] {
 	return func(p *parser.Parser) *ast.ElementReference {
-		restore := p.CloneState()
+		return parser.TryInOrder(p, qualifiedReference(), unqualifiedReference())
+	}
+}
 
+func qualifiedReference() parser.Func[*ast.ElementReference] {
+	return func(p *parser.Parser) *ast.ElementReference {
 		pkg := parser.TryOptional(p, golang.Identifier(), comment.OrHorizontalWhitespace())
+		if pkg == nil {
+			return nil
+		}
+
 		dot := parser.TryOptionalRuneAt(p, '.', comment.OrAnyWhitespace())
 		if dot == nil {
-			pkg = nil
-			p.RestoreState(restore)
-		} else if pkg == nil {
+			return nil
+		}
+
+		var ref ast.ElementReference
+		ref.Package = pkg
+		ref.Dot = dot
+
+		ref.Name = parser.Try(p, Name())
+		if ref.Name == nil {
 			p.CaptureError(&diagnostic.Diagnostic{
-				Message: "element reference: missing package name",
-				Primary: quickanno.Expected(p, p.Pos(), "a package name before the `.`"),
+				Message: "element reference: missing element name",
+				Primary: quickanno.Expected(p, p.Pos(), "an element name after the `.`"),
 			})
 		}
 
+		return &ref
+	}
+}
+
+func unqualifiedReference() parser.Func[*ast.ElementReference] {
+	return func(p *parser.Parser) *ast.ElementReference {
 		name := parser.Try(p, Name())
 		if name == nil {
 			return nil
 		}
 
-		return &ast.ElementReference{
-			Package: pkg,
-			Dot:     dot,
-			Name:    name,
-		}
+		return &ast.ElementReference{Name: name}
 	}
 }
 

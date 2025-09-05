@@ -23,37 +23,42 @@ func Definition() parser.Func[*ast.AttributeDefinition] {
 			return nil
 		}
 
-		beforePrefix := p.CloneState()
+		def := parser.TryInOrder(p,
+			definitionList(attr), singleDefinitionWithPrefix(attr), singleDefinitionWithoutPrefix(attr))
+		if def != nil {
+			return def
+		}
+
+		p.CaptureError(&diagnostic.Diagnostic{
+			Message: "attribute definition: missing attribute name",
+			Primary: quickanno.Expected(p, p.Pos(), "an attribute name or an opening `(`"),
+			Examples: []diagnostic.Example{
+				{Example: "`attr woof { ... }`", Title: "single definition"},
+				{Example: "`attr ( ... )`", Title: "definition list"},
+			},
+		})
+		return &ast.AttributeDefinition{Attr: attr}
+	}
+}
+
+func definitionList(attr *ast.Position) parser.Func[*ast.AttributeDefinition] {
+	return func(p *parser.Parser) *ast.AttributeDefinition {
+		// technically '(' would be a valid attribute name, so check that we
+		// don't accidentally consume a '(' as a prefix here
+		var prefix *ast.AttributeName
+		if !parser.MatchesAnyRune(p, '(') {
+			prefix = parser.TryOptional(p, Name(), comment.OrHorizontalWhitespace())
+		}
+
+		lParen := parser.TryRuneAt(p, '(')
+		if lParen == nil {
+			return nil
+		}
 
 		var def ast.AttributeDefinition
 		def.Attr = attr
-
-		// technically '(' would be a valid attribute name, so check that we
-		// don't accidentally consume a '(' as a prefix here
-		if !parser.MatchesAnyRune(p, '(') {
-			def.Prefix = parser.TryOptional(p, Name(), comment.OrAnyWhitespace())
-		}
-
-		def.LParen = parser.TryOptionalRuneAt(p, '(', comment.OrAnyWhitespace())
-		if def.LParen == nil {
-			if parser.MatchesAnyRune(p, '{') {
-				// our prefix is actually a single spec
-				def.Prefix = nil
-				p.RestoreState(beforePrefix)
-			}
-
-			spec := parser.Try(p, Spec())
-			if spec != nil {
-				def.Specs = []*ast.AttributeSpec{spec}
-			} else {
-				p.CaptureError(&diagnostic.Diagnostic{
-					Message:  "attribute definition: missing attribute name",
-					Primary:  quickanno.Expected(p, p.Pos(), "an attribute name"),
-					Examples: []diagnostic.Example{{Example: "`attr hx-foo { ... }`"}},
-				})
-			}
-			return &def
-		}
+		def.Prefix = prefix
+		def.LParen = lParen
 
 		for {
 			parser.TrySkip(p, comment.OrAnyWhitespace())
@@ -86,6 +91,45 @@ func Definition() parser.Func[*ast.AttributeDefinition] {
 		}
 
 		return &def
+	}
+}
+
+func singleDefinitionWithPrefix(attr *ast.Position) parser.Func[*ast.AttributeDefinition] {
+	return func(p *parser.Parser) *ast.AttributeDefinition {
+		prefix := parser.TryOptional(p, Name(), comment.OrHorizontalWhitespace())
+		if prefix == nil {
+			return nil
+		}
+
+		if parser.MatchesAnyRune(p, '{') {
+			// prefix was actually start of the spec
+			return nil
+		}
+
+		spec := parser.Try(p, Spec())
+		if spec == nil {
+			return nil
+		}
+
+		return &ast.AttributeDefinition{
+			Attr:   attr,
+			Prefix: prefix,
+			Specs:  []*ast.AttributeSpec{spec},
+		}
+	}
+}
+
+func singleDefinitionWithoutPrefix(attr *ast.Position) parser.Func[*ast.AttributeDefinition] {
+	return func(p *parser.Parser) *ast.AttributeDefinition {
+		spec := parser.Try(p, Spec())
+		if spec == nil {
+			return nil
+		}
+
+		return &ast.AttributeDefinition{
+			Attr:  attr,
+			Specs: []*ast.AttributeSpec{spec},
+		}
 	}
 }
 
@@ -281,12 +325,12 @@ func WildcardElementSelector() parser.Func[*ast.WildcardElementSelector] {
 
 func ListElementSelector() parser.Func[*ast.ListElementSelector] {
 	return func(p *parser.Parser) *ast.ListElementSelector {
-		list := parser.Try(p, list.CommaList("element name", "element names", elementReference))
-		if len(list) == 0 {
+		names := parser.Try(p, list.CommaList("element name", "element names", elementReference))
+		if len(names) == 0 {
 			return nil
 		}
 
-		return &ast.ListElementSelector{List: list}
+		return &ast.ListElementSelector{List: names}
 	}
 }
 

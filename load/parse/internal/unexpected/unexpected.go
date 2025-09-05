@@ -37,11 +37,9 @@ func UntilAnyRune(p *parser.Parser, ws parser.WhitespaceFunc, runes ...rune) *di
 		end = p.Pos()
 	} else {
 		parser.TrySkip(p, ws)
-		restore := p.CloneState()
-
 		start = p.Pos()
 		for {
-			s := parser.TokenWhile(p, func() bool {
+			s := parser.OptionalTokenWhile(p, nil, func() bool {
 				return !parser.MatchesAnyRune(p, runes...) && !parser.MatchesAnyRune(p, whitespace.Runes...)
 			})
 			if s == "" {
@@ -54,7 +52,6 @@ func UntilAnyRune(p *parser.Parser, ws parser.WhitespaceFunc, runes ...rune) *di
 			}
 		}
 		if end == (ast.Position{}) {
-			p.RestoreState(restore)
 			return nil
 		}
 	}
@@ -81,12 +78,9 @@ func UntilAnyToken(p *parser.Parser, ws parser.WhitespaceFunc, tokens ...string)
 		}
 		end = p.Pos()
 	} else {
-		parser.TrySkip(p, ws)
-		restore := p.CloneState()
-
 		start = p.Pos()
 		for {
-			s := parser.TokenWhile(p, func() bool {
+			s := parser.OptionalTokenWhile(p, nil, func() bool {
 				return !parser.MatchesAnyToken(p, tokens...) && !parser.MatchesAnyRune(p, whitespace.Runes...)
 			})
 			if s == "" {
@@ -99,7 +93,6 @@ func UntilAnyToken(p *parser.Parser, ws parser.WhitespaceFunc, tokens ...string)
 			}
 		}
 		if end == (ast.Position{}) {
-			p.RestoreState(restore)
 			return nil
 		}
 	}

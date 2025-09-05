@@ -3,9 +3,10 @@ package golang
 import (
 	"github.com/mavolin/corgi/v2/file/ast"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
+	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
+	"github.com/mavolin/corgi/v2/load/parse/internal/comment"
 	"github.com/mavolin/corgi/v2/load/parse/internal/quickanno"
-	"github.com/mavolin/corgi/v2/load/parse/internal/unexpected"
 	"github.com/mavolin/corgi/v2/load/parse/internal/whitespace"
 )
 
@@ -29,22 +30,26 @@ func RuneLit() parser.Func[string] {
 			})
 		}
 
-		state := p.CloneState()
-		err := unexpected.UntilAnyRune(p, whitespace.Horizontal(), '\'')
-		if err != nil {
-			err.Message = "unexpected runes after rune literal"
-			p.CaptureError(err)
-		}
-
+		startPos := p.Pos()
+		unexpected := parser.TokenWhile(p, func() bool {
+			return !parser.MatchesAnyRune(p, '\'') &&
+				(parser.MatchesWS(p, whitespace.Horizontal()) || !parser.Matches(p, comment.AndEOS()))
+		})
 		if !parser.TryRune(p, '\'') {
-			p.RestoreState(state)
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "rune literal: missing closing quote",
 				Primary: quickanno.Expected(p, p.Pos(), "a closing quote for the opening quote here"),
 			})
+		} else if unexpected != "" {
+			p.CaptureError(&diagnostic.Diagnostic{
+				Message: "unexpected runes in rune literal",
+				Primary: []diagnostic.Annotation{
+					anno.Range(p.File, startPos, p.Pos(), "too many runes"),
+				},
+			})
 		}
 
-		return "'" + v + "'"
+		return "'" + v + unexpected + "'"
 	}
 }
 

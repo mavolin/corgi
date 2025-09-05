@@ -1,6 +1,9 @@
 package golang
 
 import (
+	"slices"
+	"unicode/utf8"
+
 	"github.com/mavolin/corgi/v2/file/ast"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
 	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
@@ -160,41 +163,34 @@ func ArrayLength() parser.Func[string] { // https://go.dev/ref/spec#ArrayType
 		// This is obviously not desired.
 		//
 		// Therefore, we need a little hack.
-		// Before consuming any runes, we make a clone of the state.
-		// We capture the ArrayLength like we normally (heuristically) would.
-		// When done, we inspect the captured string and trim right-outer
-		// whitespace.
-		// we then restore the clone, and capture the token without the
-		// whitespace
+		// We parse the input string ourselves, and remember the last
+		// non-whitespace rune we encounter.
+		// We can then call parser.NextRune until we reach that rune.
+		start := p.Index()
 		var bracketCount int
-		state := p.CloneState()
-		s := parser.TokenWhile(p, func() bool {
-			if parser.MatchesToken(p, "[") {
+		end := len(p.AST.Raw)
+		for i, r := range p.AST.Raw[p.Index():] {
+			if r == '[' { //nolint:gocritic
 				bracketCount++
-				return true
-			} else if parser.MatchesToken(p, "]") {
+				end = p.Index() + i + len("[")
+			} else if r == ']' {
 				bracketCount--
-				return bracketCount >= 0
-			}
-			return !parser.MatchesToken(p, ";")
-		})
-		if s == "" {
-			return ""
-		}
-	loop:
-		for i := len(s) - 1; i >= 0; i-- {
-			for _, r := range whitespace.Runes {
-				if rune(s[i]) == r {
-					s = s[:i]
-					continue loop
+				if bracketCount < 0 {
+					end = p.Index() + i
+					break
 				}
+				end = p.Index() + i + len("]")
+			} else if r == ';' {
+				break
+			} else if !slices.Contains(whitespace.Runes, r) {
+				end = p.Index() + i + utf8.RuneLen(r)
 			}
-			break
 		}
-		p.RestoreState(state)
-		parser.TryToken(p, s)
+		for p.Index() < end {
+			parser.NextRune(p)
+		}
 
-		return s
+		return p.AST.Raw[start:end]
 	}
 }
 
@@ -234,36 +230,39 @@ func StructType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#StructType
 				Primary:  quickanno.Expected(p, p.Pos(), "an opening curly brace"),
 				Examples: []diagnostic.Example{{Example: "`struct { Woof string }`"}},
 			})
+			return &ast.Type{
+				Type:  p.AST.Raw[startIndex:p.Index()],
+				From:  from,
+				Until: p.Pos(),
+			}
 		}
+
+		parser.TrySkip(p, comment.OrAnyWhitespace())
 
 		var t ast.Type
 		t.From = from
 
 		// see array length on why this is necessary
 		var braceCount int
-		state := p.CloneState()
-		s := parser.TokenWhile(p, func() bool {
-			if parser.MatchesToken(p, "{") {
+		end := len(p.AST.Raw)
+		for i, r := range p.AST.Raw[p.Index():] {
+			if r == '{' { //nolint:gocritic
 				braceCount++
-				return true
-			} else if parser.MatchesToken(p, "}") {
+				end = p.Index() + i + len("{")
+			} else if r == '}' {
 				braceCount--
-				return braceCount >= 0
-			}
-			return true
-		})
-	loop:
-		for i := len(s) - 1; i >= 0; i-- {
-			for _, r := range whitespace.Runes {
-				if rune(s[i]) == r {
-					s = s[:i]
-					continue loop
+				if braceCount < 0 {
+					end = p.Index() + i
+					break
 				}
+				end = p.Index() + i + len("}")
+			} else if !slices.Contains(whitespace.Runes, r) {
+				end = p.Index() + i + utf8.RuneLen(r)
 			}
-			break
 		}
-		p.RestoreState(state)
-		parser.TryToken(p, s)
+		for p.Index() < end {
+			parser.NextRune(p)
+		}
 
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 
@@ -464,51 +463,56 @@ func UnnamedParameterDecl() parser.Func[string] { // https://go.dev/ref/spec#Par
 
 func InterfaceType() parser.Func[*ast.Type] {
 	return func(p *parser.Parser) *ast.Type {
-		pos := p.Pos()
+		from := p.Pos()
 		startIndex := p.Index()
 
 		if !parser.TryToken(p, "interface") {
 			return nil
 		}
 
-		var t ast.Type
-		t.From = pos
-
-		parser.TrySkip(p, comment.OrHorizontalWhitespace())
+		hasWS := parser.TrySkip(p, comment.OrHorizontalWhitespace())
 		lBracePos := parser.TryRuneAt(p, '{')
 		if lBracePos == nil {
+			if !hasWS {
+				return nil
+			}
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message:  "type: interface: missing opening brace",
 				Primary:  quickanno.Expected(p, p.Pos(), "an opening curly brace"),
 				Examples: []diagnostic.Example{{Example: "`interface { Foo() }`"}},
 			})
+			return &ast.Type{
+				Type:  p.AST.Raw[startIndex:p.Index()],
+				From:  from,
+				Until: p.Pos(),
+			}
 		}
+		parser.TrySkip(p, comment.OrAnyWhitespace())
+
+		var t ast.Type
+		t.From = from
 
 		// see array length on why this is necessary
 		var braceCount int
-		state := p.CloneState()
-		s := parser.TokenWhile(p, func() bool {
-			if parser.MatchesToken(p, "{") {
+		end := len(p.AST.Raw)
+		for i, r := range p.AST.Raw[p.Index():] {
+			if r == '{' { //nolint:gocritic
 				braceCount++
-				return true
-			} else if parser.MatchesToken(p, "}") {
+				end = p.Index() + i + len("{")
+			} else if r == '}' {
 				braceCount--
-				return braceCount >= 0
-			}
-			return true
-		})
-	loop:
-		for i := len(s) - 1; i >= 0; i-- {
-			for _, r := range whitespace.Runes {
-				if rune(s[i]) == r {
-					s = s[:i]
-					continue loop
+				if braceCount < 0 {
+					end = p.Index() + i
+					break
 				}
+				end = p.Index() + i + len("}")
+			} else if !slices.Contains(whitespace.Runes, r) {
+				end = p.Index() + i + utf8.RuneLen(r)
 			}
-			break
 		}
-		p.RestoreState(state)
-		parser.TryToken(p, s)
+		for p.Index() < end {
+			parser.NextRune(p)
+		}
 
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 
