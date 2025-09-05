@@ -405,7 +405,8 @@ func zeroCoalescingAssignment(valueExpr *ast.Expression) parser.Func[*ast.ZeroCo
 }
 
 func ZeroCoalescingAssignmentAsCode(zca *ast.ZeroCoalescingAssignment) ast.Code {
-	n := len(zca.ValueExpression.Nodes)
+	var n int
+	n += len(zca.ValueExpression.Nodes)
 	if zca.VarComma != nil {
 		n++
 	}
@@ -629,19 +630,20 @@ func ConstSpec() parser.Func[*ast.ConstSpec] {
 }
 
 func ConstDeclarationAsCode(d *ast.ConstDeclaration) ast.Code {
-	n := 1
+	var n int
+	n++ // 'const'
 	if d.LParen != nil {
 		n++
 	}
 	for _, spec := range d.Specs {
-		n += len(spec.Names)
+		n += len(spec.Names) // commas included
 		if spec.EqualSign != nil {
 			n++
 		}
 		for _, val := range spec.Values {
 			n += len(val.Nodes)
 		}
-		n += max(0, len(spec.Values)-1)
+		n += max(0, len(spec.Values)-1) // commas
 	}
 	if d.RParen != nil {
 		n++
@@ -656,7 +658,7 @@ func ConstDeclarationAsCode(d *ast.ConstDeclaration) ast.Code {
 	}
 	for _, spec := range d.Specs {
 		for nameI, name := range spec.Names {
-			if nameI < len(spec.Names)-1 {
+			if nameI < len(spec.Names)-1 { // not last
 				c[i] = &ast.GoCode{Code: name.Name + ",", Position: name.Position}
 			} else {
 				c[i] = &ast.GoCode{Code: name.Name, Position: name.Position}
@@ -668,7 +670,7 @@ func ConstDeclarationAsCode(d *ast.ConstDeclaration) ast.Code {
 		}
 		for valueI, value := range spec.Values {
 			i += copy(c[i:], value.Nodes)
-			if valueI < len(spec.Values)-1 {
+			if valueI < len(spec.Values)-1 { // not last
 				comma := value.End()
 				comma.Col++
 				c[i] = &ast.GoCode{Code: ",", Position: &comma}
@@ -824,12 +826,13 @@ func VarSpec() parser.Func[*ast.VarSpec] {
 }
 
 func VarDeclarationAsCode(d *ast.VarDeclaration) ast.Code {
-	n := 1
+	var n int
+	n++ // 'var'
 	if d.LParen != nil {
 		n++
 	}
 	for _, spec := range d.Specs {
-		n += len(spec.Names)
+		n += len(spec.Names) // commas included
 		if spec.EqualSign != nil {
 			n++
 		}
@@ -851,7 +854,7 @@ func VarDeclarationAsCode(d *ast.VarDeclaration) ast.Code {
 	}
 	for _, spec := range d.Specs {
 		for nameI, name := range spec.Names {
-			if nameI < len(spec.Names)-1 {
+			if nameI < len(spec.Names)-1 { // not last
 				c[i] = &ast.GoCode{Code: name.Name + ",", Position: name.Position}
 			} else {
 				c[i] = &ast.GoCode{Code: name.Name, Position: name.Position}
@@ -863,7 +866,7 @@ func VarDeclarationAsCode(d *ast.VarDeclaration) ast.Code {
 		}
 		for valueI, value := range spec.Values {
 			i += copy(c[i:], value.Nodes)
-			if valueI < len(spec.Values)-1 {
+			if valueI < len(spec.Values)-1 { // not last
 				comma := value.End()
 				comma.Col++
 				c[i] = &ast.GoCode{Code: ",", Position: &comma}
@@ -937,19 +940,20 @@ func ShortVarDeclaration() parser.Func[*ast.ShortVarDeclaration] {
 }
 
 func ShortVarDeclarationAsCode(d *ast.ShortVarDeclaration) ast.Code {
-	n := len(d.Names)
+	var n int
+	n += len(d.Names) // commas included
 	if d.ColonEqualSign != nil {
 		n++
 	}
 	for _, val := range d.Values {
 		n += len(val.Nodes)
 	}
-	n += max(0, len(d.Values)-1)
+	n += max(0, len(d.Values)-1) // commas
 
 	c := make(ast.Code, n)
 	i := 0
 	for nameI, name := range d.Names {
-		if nameI < len(d.Names)-1 {
+		if nameI < len(d.Names)-1 { // not last
 			c[i] = &ast.GoCode{Code: name.Name + ",", Position: name.Position}
 		} else {
 			c[i] = &ast.GoCode{Code: name.Name, Position: name.Position}
@@ -962,7 +966,7 @@ func ShortVarDeclarationAsCode(d *ast.ShortVarDeclaration) ast.Code {
 	}
 	for valueI, value := range d.Values {
 		i += copy(c[i:], value.Nodes)
-		if valueI < len(d.Values)-1 {
+		if valueI < len(d.Values)-1 { // not last
 			comma := value.End()
 			comma.Col++
 			c[i] = &ast.GoCode{Code: ",", Position: &comma}
