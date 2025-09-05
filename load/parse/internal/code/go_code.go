@@ -122,7 +122,7 @@ func goCode(p *parser.Parser, s *goCodeState, o Options) {
 		}
 
 		switch {
-		case parser.TryOptional(p, golang.RuneLit(), nil) != "":
+		case parser.TryOptional(p, golang.RuneLit(), nil):
 			s.skipWS(p, comment.OrHorizontalWhitespace())
 			continue
 		case parser.TryAnyOptionalToken(p, nil, "==", "!=", ">=", ">", "<=", "<") != "":

@@ -16,14 +16,13 @@ import (
 // Rune literals
 // ======================================================================================
 
-func RuneLit() parser.Func[string] {
-	return func(p *parser.Parser) string {
+func RuneLit() parser.Func[bool] {
+	return func(p *parser.Parser) bool {
 		if !parser.TryRune(p, '\'') {
-			return ""
+			return false
 		}
 
-		v := parser.TryInOrder(p, ByteValue(), UnicodeValue('\''))
-		if v == "" {
+		if !parser.TryInOrder(p, ByteValue(), UnicodeValue('\'')) {
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "rune literal: missing rune",
 				Primary: quickanno.Expected(p, p.Pos(), "a rune"),
@@ -49,115 +48,98 @@ func RuneLit() parser.Func[string] {
 			})
 		}
 
-		return "'" + v + unexpected + "'"
+		return true
 	}
 }
 
-func UnicodeValue(term rune) parser.Func[string] {
-	return func(p *parser.Parser) string {
+func UnicodeValue(term rune) parser.Func[bool] {
+	return func(p *parser.Parser) bool {
 		if parser.MatchesAnyRune(p, '\\') {
 			return parser.TryInOrder(p, LittleUValue(), BigUValue(), EscapedChar(term))
 		}
 
-		r := parser.Try(p, UnicodeChar(term))
-		if r != 0 {
-			return string(r)
-		}
-		return ""
+		return parser.Try(p, UnicodeChar(term))
 	}
 }
 
-func ByteValue() parser.Func[string] {
-	return func(p *parser.Parser) string {
+func ByteValue() parser.Func[bool] {
+	return func(p *parser.Parser) bool {
 		return parser.TryInOrder(p, OctalByteValue(), HexByteValue())
 	}
 }
 
-func OctalByteValue() parser.Func[string] {
-	return func(p *parser.Parser) string {
+func OctalByteValue() parser.Func[bool] {
+	return func(p *parser.Parser) bool {
 		if !parser.TryRune(p, '\\') {
-			return ""
+			return false
 		}
 
-		var i int
-		s := `\` + parser.TokenWhile(p, func() bool {
-			i++
-			return i <= 3 && parser.MatchesRunePredicate(p, Octal_Digit)
-		})
-		if len(s) < 4 {
-			return ""
+		for range 3 {
+			if parser.TryRunePredicate(p, Octal_Digit) == 0 {
+				return false
+			}
 		}
-		return s
+		return true
 	}
 }
 
-func HexByteValue() parser.Func[string] {
-	return func(p *parser.Parser) string {
+func HexByteValue() parser.Func[bool] {
+	return func(p *parser.Parser) bool {
 		if !parser.TryToken(p, `\x`) {
-			return ""
+			return false
 		}
 
-		var i int
-		s := `\x` + parser.TokenWhile(p, func() bool {
-			i++
-			return i <= 2 && parser.MatchesRunePredicate(p, Hex_Digit)
-		})
-		if len(s) < 4 {
-			return ""
+		for range 2 {
+			if parser.TryRunePredicate(p, Hex_Digit) == 0 {
+				return false
+			}
 		}
-
-		return s
+		return true
 	}
 }
 
-func UnicodeChar(except rune) parser.Func[rune] {
-	return func(p *parser.Parser) rune {
+func UnicodeChar(except rune) parser.Func[bool] {
+	return func(p *parser.Parser) bool {
 		return parser.TryRunePredicate(p, func(r rune) bool {
 			return r != except && Unicode_Char(r)
-		})
+		}) != 0
 	}
 }
 
-func LittleUValue() parser.Func[string] {
-	return func(p *parser.Parser) string {
+func LittleUValue() parser.Func[bool] {
+	return func(p *parser.Parser) bool {
 		if !parser.TryToken(p, `\u`) {
-			return ""
+			return false
 		}
 
-		var i int
-		s := `\u` + parser.TokenWhile(p, func() bool {
-			i++
-			return i <= 4 && parser.MatchesRunePredicate(p, Hex_Digit)
-		})
-		if len(s) < 6 {
-			return ""
+		for range 4 {
+			if parser.TryRunePredicate(p, Hex_Digit) == 0 {
+				return false
+			}
 		}
-		return s
+		return true
 	}
 }
 
-func BigUValue() parser.Func[string] {
-	return func(p *parser.Parser) string {
+func BigUValue() parser.Func[bool] {
+	return func(p *parser.Parser) bool {
 		if !parser.TryToken(p, `\U`) {
-			return ""
+			return false
 		}
 
-		var i int
-		s := `\U` + parser.TokenWhile(p, func() bool {
-			i++
-			return i <= 8 && parser.MatchesRunePredicate(p, Hex_Digit)
-		})
-		if len(s) < 10 {
-			return ""
+		for range 8 {
+			if parser.TryRunePredicate(p, Hex_Digit) == 0 {
+				return false
+			}
 		}
-		return s
+		return true
 	}
 }
 
-func EscapedChar(term rune) parser.Func[string] {
-	return func(p *parser.Parser) string {
+func EscapedChar(term rune) parser.Func[bool] {
+	return func(p *parser.Parser) bool {
 		if !parser.TryRune(p, '\\') {
-			return ""
+			return false
 		}
 
 		r := parser.TryAnyRune(p, 'a', 'b', 'f', 'n', 'r', 't', 'v', '\\', term)
@@ -166,10 +148,8 @@ func EscapedChar(term rune) parser.Func[string] {
 				Message: "invalid escaped character",
 				Primary: quickanno.Expected(p, p.Pos(), "a valid escaped character"),
 			})
-			return `\`
 		}
-
-		return `\` + string(r)
+		return true
 	}
 }
 
@@ -226,7 +206,7 @@ func InterpretedStringLit() parser.Func[*ast.StaticString] {
 
 		index := p.Index()
 		//nolint:revive
-		for parser.TryInOrder(p, ByteValue(), UnicodeValue('"')) != "" {
+		for parser.TryInOrder(p, ByteValue(), UnicodeValue('"')) {
 		}
 		s.Contents = p.AST.Raw[index:p.Index()]
 

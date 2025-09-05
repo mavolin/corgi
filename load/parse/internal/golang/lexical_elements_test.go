@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/mavolin/corgi/v2/file/ast"
-	"github.com/mavolin/corgi/v2/internal/test/should"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/mavolin/corgi/v2/load/parse/internal/parsetest"
 )
@@ -24,8 +23,7 @@ func TestRuneLit(t *testing.T) {
 	for _, c := range tests {
 		t.Run(c, func(t *testing.T) {
 			t.Parallel()
-			got := parsetest.ParsesFully(t, c, RuneLit())
-			should.Equal(t, got, c)
+			parsetest.ParsesFully(t, c, RuneLit())
 		})
 	}
 }
@@ -36,34 +34,18 @@ func TestUnicodeValue(t *testing.T) {
 	parsetest.AssertAlsoFulfils(t, UnicodeValue('\''), testLittleUValue)
 	parsetest.AssertAlsoFulfils(t, UnicodeValue('\''), testBigUValue)
 	parsetest.AssertAlsoFulfils(t, UnicodeValue('\''), testEscapedChar('\''))
-	parsetest.AssertAlsoFulfils(t, UnicodeValue('\''), func(t *testing.T, f parser.Func[string]) {
-		testUnicodeChar(t, '\'', func(p *parser.Parser) rune {
-			s := parser.Try(p, f)
-			if s == "" {
-				return 0
-			}
-			rs := []rune(s)
-			if len(rs) != 1 {
-				return 0
-			}
-			return rs[0]
+	parsetest.AssertAlsoFulfils(t, UnicodeValue('\''), func(t *testing.T, f parser.Func[bool]) {
+		testUnicodeChar(t, '\'', func(p *parser.Parser) bool {
+			return parser.Try(p, f)
 		})
 	})
 
 	parsetest.AssertAlsoFulfils(t, UnicodeValue('"'), testLittleUValue)
 	parsetest.AssertAlsoFulfils(t, UnicodeValue('"'), testBigUValue)
 	parsetest.AssertAlsoFulfils(t, UnicodeValue('"'), testEscapedChar('"'))
-	parsetest.AssertAlsoFulfils(t, UnicodeValue('"'), func(t *testing.T, f parser.Func[string]) {
-		testUnicodeChar(t, '"', func(p *parser.Parser) rune {
-			s := parser.Try(p, f)
-			if s == "" {
-				return 0
-			}
-			rs := []rune(s)
-			if len(rs) != 1 {
-				return 0
-			}
-			return rs[0]
+	parsetest.AssertAlsoFulfils(t, UnicodeValue('"'), func(t *testing.T, f parser.Func[bool]) {
+		testUnicodeChar(t, '"', func(p *parser.Parser) bool {
+			return parser.Try(p, f)
 		})
 	})
 }
@@ -80,7 +62,7 @@ func TestOctalByteValue(t *testing.T) {
 	testOctalByteValue(t, OctalByteValue())
 }
 
-func testOctalByteValue(t *testing.T, f parser.Func[string]) {
+func testOctalByteValue(t *testing.T, f parser.Func[bool]) {
 	tests := []string{
 		`\123`,
 		`\567`,
@@ -99,7 +81,7 @@ func TestHexByteValue(t *testing.T) {
 	testHexByteValue(t, HexByteValue())
 }
 
-func testHexByteValue(t *testing.T, f parser.Func[string]) {
+func testHexByteValue(t *testing.T, f parser.Func[bool]) {
 	tests := []string{
 		`\x12`,
 		`\xef`,
@@ -121,7 +103,7 @@ func TestUnicodeChar(t *testing.T) {
 	testUnicodeChar(t, '"', UnicodeChar('"'))
 }
 
-func testUnicodeChar(t *testing.T, except rune, f parser.Func[rune]) {
+func testUnicodeChar(t *testing.T, except rune, f parser.Func[bool]) {
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
@@ -159,7 +141,7 @@ func TestLittleUValue(t *testing.T) {
 	testLittleUValue(t, LittleUValue())
 }
 
-func testLittleUValue(t *testing.T, f parser.Func[string]) {
+func testLittleUValue(t *testing.T, f parser.Func[bool]) {
 	tests := []string{`\u1234`, `\uefef`, `\uEFEF`}
 
 	for _, c := range tests {
@@ -175,7 +157,7 @@ func TestBigUValue(t *testing.T) {
 	testBigUValue(t, BigUValue())
 }
 
-func testBigUValue(t *testing.T, f parser.Func[string]) {
+func testBigUValue(t *testing.T, f parser.Func[bool]) {
 	tests := []string{`\U12345678`, `\Uefefefef`, `\UEFEFEFEF`}
 
 	for _, c := range tests {
@@ -193,8 +175,8 @@ func TestEscapedChar(t *testing.T) {
 	testEscapedChar('"')
 }
 
-func testEscapedChar(term rune) func(t *testing.T, f parser.Func[string]) {
-	return func(t *testing.T, f parser.Func[string]) {
+func testEscapedChar(term rune) func(t *testing.T, f parser.Func[bool]) {
+	return func(t *testing.T, f parser.Func[bool]) {
 		tests := []string{`\a`, `\b`, `\f`, `\n`, `\r`, `\t`, `\v`, `\\`, `\` + string(term)}
 
 		for _, c := range tests {

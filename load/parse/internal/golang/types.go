@@ -113,8 +113,7 @@ func ArrayType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#ArrayType
 		}
 
 		parser.TrySkip(p, comment.OrAnyWhitespace())
-		l := parser.Try(p, ArrayLength())
-		if l == "" {
+		if !parser.Try(p, ArrayLength()) {
 			return nil
 		}
 
@@ -150,8 +149,8 @@ func ArrayType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#ArrayType
 
 // ArrayLength parses a simpler superset of the array length defined in the
 // Go spec.
-func ArrayLength() parser.Func[string] { // https://go.dev/ref/spec#ArrayType
-	return func(p *parser.Parser) string {
+func ArrayLength() parser.Func[bool] { // https://go.dev/ref/spec#ArrayType
+	return func(p *parser.Parser) bool {
 		// This is quite possibly the worst code in the entirety of the parser,
 		// so let me explain what's going on here:
 		// Since we're not properly parsing the array length, but are rather
@@ -186,11 +185,14 @@ func ArrayLength() parser.Func[string] { // https://go.dev/ref/spec#ArrayType
 				end = p.Index() + i + utf8.RuneLen(r)
 			}
 		}
+		if start == end {
+			return false
+		}
 		for p.Index() < end {
 			parser.NextRune(p)
 		}
 
-		return p.AST.Raw[start:end]
+		return true
 	}
 }
 
@@ -347,7 +349,7 @@ func FunctionType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#Function
 
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 		signature := parser.Try(p, Signature())
-		if signature == "" {
+		if !signature {
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message:  "type: function: missing signature",
 				Primary:  quickanno.Expected(p, p.Pos(), "a function signature"),
@@ -363,64 +365,44 @@ func FunctionType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#Function
 
 // Signature parses a simpler superset of the function signature defined in the
 // Go spec.
-func Signature() parser.Func[string] { // https://go.dev/ref/spec#Signature
-	return func(p *parser.Parser) string {
-		startIndex := p.Index()
-		sig := parser.Try(p, Parameters())
-		if sig == "" {
-			return ""
+func Signature() parser.Func[bool] { // https://go.dev/ref/spec#Signature
+	return func(p *parser.Parser) bool {
+		if !parser.Try(p, Parameters()) {
+			return false
 		}
 
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 		parser.Try(p, Result())
-		return p.AST.Raw[startIndex:p.Index()]
+		return true
 	}
 }
 
 // Result parses a simpler superset of the result defined in the Go spec.
-func Result() parser.Func[string] { // https://go.dev/ref/spec#Result
-	return func(p *parser.Parser) string {
-		startIndex := p.Index()
-
-		params := parser.Try(p, Parameters())
-		if params != "" {
-			return p.AST.Raw[startIndex:p.Index()]
-		}
-
-		t := parser.Try(p, Type())
-		if t != nil {
-			return p.AST.Raw[startIndex:p.Index()]
-		}
-
-		return ""
+func Result() parser.Func[bool] { // https://go.dev/ref/spec#Result
+	return func(p *parser.Parser) bool {
+		return parser.Try(p, Parameters()) || parser.Try(p, Type()) != nil
 	}
 }
 
 // Parameters parses a simpler superset of the parameters defined in the Go
 // spec.
 // In particular, it allows variadic parameters everywhere.
-func Parameters() parser.Func[string] { // https://go.dev/ref/spec#Parameters
-	return func(p *parser.Parser) string {
-		startIndex := p.Index()
+func Parameters() parser.Func[bool] { // https://go.dev/ref/spec#Parameters
+	return func(p *parser.Parser) bool {
 		l := parser.Try(p, list.ParenList("parameter", "parameters", NamedParameterDecl()))
 		if l != nil {
-			return p.AST.Raw[startIndex:p.Index()]
+			return true
 		}
 
-		l = parser.Try(p, list.ParenList("parameter", "parameters", UnnamedParameterDecl()))
-		if l == nil {
-			return ""
-		}
-		return p.AST.Raw[startIndex:p.Index()]
+		return parser.Try(p, list.ParenList("parameter", "parameters", UnnamedParameterDecl())) != nil
 	}
 }
 
-func NamedParameterDecl() parser.Func[string] { // https://go.dev/ref/spec#ParameterDecl
-	return func(p *parser.Parser) string {
-		startIndex := p.Index()
+func NamedParameterDecl() parser.Func[bool] { // https://go.dev/ref/spec#ParameterDecl
+	return func(p *parser.Parser) bool {
 		l := parser.Try(p, list.CommaList("parameter declaration", "parameter declarations", Identifier()))
 		if l == nil {
-			return ""
+			return false
 		}
 
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
@@ -437,23 +419,16 @@ func NamedParameterDecl() parser.Func[string] { // https://go.dev/ref/spec#Param
 			parser.Try(p, Type())
 		}
 
-		return p.AST.Raw[startIndex:p.Index()]
+		return true
 	}
 }
 
-func UnnamedParameterDecl() parser.Func[string] { // https://go.dev/ref/spec#ParameterDecl
-	return func(p *parser.Parser) string {
-		startIndex := p.Index()
-
+func UnnamedParameterDecl() parser.Func[bool] { // https://go.dev/ref/spec#ParameterDecl
+	return func(p *parser.Parser) bool {
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 		parser.TryToken(p, "...")
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
-		t := parser.Try(p, Type())
-		if t == nil {
-			return ""
-		}
-
-		return p.AST.Raw[startIndex:p.Index()]
+		return parser.Try(p, Type()) != nil
 	}
 }
 

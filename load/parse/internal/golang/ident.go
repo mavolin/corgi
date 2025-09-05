@@ -42,13 +42,13 @@ func Identifier() parser.Func[*ast.Identifier] { // https://go.dev/ref/spec#Iden
 // identTrail consumes the rest of the identifier after the first rune.
 // It always matches, as the single, previously captured, rune is already a
 // valid identifier.
-func identTrail() parser.Func[string] {
-	return func(p *parser.Parser) string {
+func identTrail() parser.Func[bool] {
+	return func(p *parser.Parser) bool {
 		s := parser.TokenWhile(p, func() bool {
 			return parser.MatchesRunePredicate(p, func(r rune) bool {
 				return Letter(r) || Unicode_Digit(r)
 			})
 		})
-		return s
+		return s != ""
 	}
 }
