@@ -31,6 +31,8 @@ func AddBaseCorpus(f *testing.F) {
 	f.Add("for condition {\n\t:call()\n}")
 	f.Add("state")
 	f.Add("state foo = bar")
+	f.Add("state foo myType = bar")
+	f.Add("state foo, bar = baz, qux")
 	f.Add("state (\n\tfoo = bar\n)")
 	f.Add("var foo = bar")
 	f.Add("var (\n\tmuffin = biscuit\n)")

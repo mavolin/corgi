@@ -113,47 +113,29 @@ func Spec() parser.Func[*ast.StateSpec] {
 		valuesStart := p.Pos()
 		s.Values = parser.Try(p, list.CommaList("state value", "state values", code.Expression(code.Regular)))
 		valuesEnd := p.Pos()
-		if s.Values == nil {
-			if len(s.Names) == 1 {
-				p.CaptureError(&diagnostic.Diagnostic{
-					Message: "state spec: missing values",
-					Primary: quickanno.Expected(p, p.Pos(), "an expression"),
-				})
-			} else {
-				p.CaptureError(&diagnostic.Diagnostic{
-					Message: "state spec: missing values",
-					Primary: quickanno.Expected(p, p.Pos(), fmt.Sprint("one or a list of ", len(s.Names), " expressions")),
-				})
-			}
-		}
 
 		if len(s.Names) != len(s.Values) {
+			var primary diagnostic.Annotation
 			if len(s.Names) == 1 {
 				if len(s.Values) == 0 {
-					p.CaptureError(&diagnostic.Diagnostic{
-						Message: "state spec: mismatched number of values and variables",
-						Primary: []diagnostic.Annotation{
-							anno.Position(p.File, p.Pos(), "expected a single expression, but found none"),
-						},
-					})
+					primary = anno.Position(p.File, p.Pos(), "expected a single expression, but found none")
 				} else {
-					p.CaptureError(&diagnostic.Diagnostic{
-						Message: "state spec: mismatched number of values and variables",
-						Primary: []diagnostic.Annotation{
-							anno.Range(p.File, valuesStart, valuesEnd,
-								fmt.Sprint("expected a single expression, but found ", len(s.Values))),
-						},
-					})
+					primary = anno.Range(p.File, valuesStart, valuesEnd,
+						fmt.Sprint("expected a single expression, but found ", len(s.Values)))
 				}
 			} else {
-				p.CaptureError(&diagnostic.Diagnostic{
-					Message: "state spec: mismatched number of values and variables",
-					Primary: []diagnostic.Annotation{
-						anno.Range(p.File, valuesStart, valuesEnd,
-							fmt.Sprint("expected ", len(s.Names), " expressions, but found ", len(s.Values))),
-					},
-				})
+				if len(s.Values) == 0 {
+					primary = anno.Position(p.File, p.Pos(),
+						fmt.Sprintf("expected %d expressions, but found none", len(s.Names)))
+				} else {
+					primary = anno.Range(p.File, valuesStart, valuesEnd,
+						fmt.Sprintf("expected %d expressions, but found %d", len(s.Names), len(s.Values)))
+				}
 			}
+			p.CaptureError(&diagnostic.Diagnostic{
+				Message: "state spec: mismatched number of values and variables",
+				Primary: []diagnostic.Annotation{primary},
+			})
 		}
 
 		return &s
