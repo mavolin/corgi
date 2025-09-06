@@ -218,23 +218,6 @@ func TestSpec(t *testing.T) {
 					},
 				},
 			},
-		}, {
-			name: "multiple names with single value",
-			in:   "foo, bar = baz()",
-			want: &ast.StateSpec{
-				Names: []*ast.Identifier{
-					{Name: "foo", Position: &ast.Position{Line: 1, Col: 1}},
-					{Name: "bar", Position: &ast.Position{Line: 1, Col: 6}},
-				},
-				EqualSign: &ast.Position{Line: 1, Col: 10},
-				Values: []*ast.Expression{
-					{
-						Nodes: ast.Code{
-							&ast.GoCode{Code: "baz()", Position: &ast.Position{Line: 1, Col: 12}},
-						},
-					},
-				},
-			},
 		},
 	}
 

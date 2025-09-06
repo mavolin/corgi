@@ -130,7 +130,7 @@ func Spec() parser.Func[*ast.StateSpec] {
 			}
 		}
 
-		if len(s.Values) > 1 && len(s.Names) != len(s.Values) {
+		if len(s.Names) != len(s.Values) {
 			if len(s.Names) == 1 {
 				p.CaptureError(&diagnostic.Diagnostic{
 					Message: "state spec: mismatched number of values and variables",
@@ -144,7 +144,7 @@ func Spec() parser.Func[*ast.StateSpec] {
 					Message: "state spec: mismatched number of values and variables",
 					Primary: []diagnostic.Annotation{
 						anno.Range(p.File, valuesStart, valuesEnd,
-							fmt.Sprint("a single or ", len(s.Names), " expressions, but found ", len(s.Values))),
+							fmt.Sprint("expected ", len(s.Names), " expressions, but found ", len(s.Values))),
 					},
 				})
 			}

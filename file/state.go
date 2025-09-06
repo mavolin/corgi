@@ -9,6 +9,13 @@ type State struct {
 	AST  *ast.StateSpec
 	File *File
 	// Index of the variable in the Names and Values slices.
+	//
+	// There might be gaps in the indexes:
+	// If the parser cannot parse the name of a variable, it will be excluded
+	// from the symbols.
+	//
+	// There are only as many indexes as there are names, excess values are
+	// ignored.
 	Index int
 
 	//
@@ -27,8 +34,8 @@ func (s *State) Name() *ast.Identifier {
 }
 
 func (s *State) Value() *ast.Expression {
-	if len(s.AST.Values) == 1 {
-		return s.AST.Values[0]
+	if s.Index >= len(s.AST.Values) {
+		return nil
 	}
 	return s.AST.Values[s.Index]
 }
