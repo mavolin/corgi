@@ -80,6 +80,8 @@ type Position struct {
 	Col  int
 }
 
+var NoPosition = Position{}
+
 func (p Position) String() string {
 	return fmt.Sprintf("%d:%d", p.Line, p.Col)
 }

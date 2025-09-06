@@ -20,29 +20,35 @@ var (
 )
 
 func (d *Doctype) Start() Position {
-	switch {
-	case d.Doctype != nil:
+	if d.Doctype != nil {
 		return *d.Doctype
-	case d.HTML != nil:
-		return *d.HTML
-	case d.LParen != nil:
+	}
+	if d.LParen != nil {
 		return *d.LParen
 	}
-	return Position{}
+	if d.HTML != nil {
+		return *d.HTML
+	}
+	if d.RParen != nil {
+		return *d.RParen
+	}
+	return NoPosition
 }
 
 func (d *Doctype) End() Position {
-	switch {
-	case d.RParen != nil:
-		return *d.RParen
-	case d.HTML != nil:
-		return *d.HTML
-	case d.LParen != nil:
-		return *d.LParen
-	case d.Doctype != nil:
+	if d.RParen != nil {
+		return deltaPos(*d.RParen, len(")"))
+	}
+	if d.HTML != nil {
+		return deltaPos(*d.HTML, len("html"))
+	}
+	if d.LParen != nil {
+		return deltaPos(*d.LParen, len("("))
+	}
+	if d.Doctype != nil {
 		return deltaPos(*d.Doctype, len("!doctype"))
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (d *Doctype) Walk(func(Node)) {}
@@ -74,20 +80,30 @@ var (
 
 func (e *Element) Start() Position {
 	if e.Header != nil {
-		return e.Header.Start()
-	} else if e.Body != nil {
-		return e.Body.Start()
+		if start := e.Header.Start(); start != NoPosition {
+			return start
+		}
 	}
-	return Position{}
+	if e.Body != nil {
+		if start := e.Body.Start(); start != NoPosition {
+			return start
+		}
+	}
+	return NoPosition
 }
 
 func (e *Element) End() Position {
 	if e.Body != nil {
-		return e.Body.End()
-	} else if e.Header != nil {
-		return e.Header.End()
+		if end := e.Body.End(); end != NoPosition {
+			return end
+		}
 	}
-	return Position{}
+	if e.Header != nil {
+		if end := e.Header.End(); end != NoPosition {
+			return end
+		}
+	}
+	return NoPosition
 }
 
 func (e *Element) Walk(w func(Node)) {
@@ -101,7 +117,10 @@ func (e *Element) Walk(w func(Node)) {
 
 func (e *Element) Highlight() (start, end Position) {
 	if e.Header != nil && e.Header.Name != nil {
-		return e.Header.Name.Start(), e.Header.Name.End()
+		start, end = e.Header.Name.Start(), e.Header.Name.End()
+		if start != NoPosition && end != NoPosition {
+			return start, end
+		}
 	}
 	return e.Start(), e.End()
 }
@@ -126,20 +145,30 @@ var _ Node = (*ElementHeader)(nil)
 
 func (h *ElementHeader) Start() Position {
 	if h.Name != nil {
-		return h.Name.Start()
-	} else if h.Attributes != nil {
-		return h.Attributes.Start()
+		if start := h.Name.Start(); start != NoPosition {
+			return start
+		}
 	}
-	return Position{}
+	if h.Attributes != nil {
+		if start := h.Attributes.Start(); start != NoPosition {
+			return start
+		}
+	}
+	return NoPosition
 }
 
 func (h *ElementHeader) End() Position {
 	if h.Attributes != nil {
-		return h.Attributes.End()
-	} else if h.Name != nil {
-		return h.Name.End()
+		if end := h.Attributes.End(); end != NoPosition {
+			return end
+		}
 	}
-	return Position{}
+	if h.Name != nil {
+		if end := h.Name.End(); end != NoPosition {
+			return end
+		}
+	}
+	return NoPosition
 }
 
 func (h *ElementHeader) Walk(w func(Node)) {
@@ -168,14 +197,14 @@ func (n *ElementName) Start() Position {
 	if n.Position != nil {
 		return *n.Position
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (n *ElementName) End() Position {
 	if n.Position != nil {
 		return deltaPos(*n.Position, len(n.Name))
 	}
-	return Position{}
+	return NoPosition
 }
 func (n *ElementName) Walk(func(Node)) {}
 
@@ -195,20 +224,30 @@ var _ Node = (*ElementReference)(nil)
 
 func (r *ElementReference) Start() Position {
 	if r.Package != nil {
-		return r.Package.Start()
-	} else if r.Name != nil {
-		return r.Name.Start()
+		if start := r.Package.Start(); start != NoPosition {
+			return start
+		}
 	}
-	return Position{}
+	if r.Name != nil {
+		if start := r.Name.Start(); start != NoPosition {
+			return start
+		}
+	}
+	return NoPosition
 }
 
 func (r *ElementReference) End() Position {
 	if r.Name != nil {
-		return r.Name.End()
-	} else if r.Package != nil {
-		return r.Package.End()
+		if end := r.Name.End(); end != NoPosition {
+			return end
+		}
 	}
-	return Position{}
+	if r.Package != nil {
+		if end := r.Package.End(); end != NoPosition {
+			return end
+		}
+	}
+	return NoPosition
 }
 
 func (r *ElementReference) Walk(w func(Node)) {
@@ -244,16 +283,24 @@ func (e *RawElement) Start() Position {
 	if e.Raw != nil {
 		return *e.Raw
 	}
-	return e.Body.Start()
+	if e.Body != nil {
+		if start := e.Body.Start(); start != NoPosition {
+			return start
+		}
+	}
+	return NoPosition
 }
 
 func (e *RawElement) End() Position {
 	if e.Body != nil {
-		return e.Body.End()
-	} else if e.Raw != nil {
+		if end := e.Body.End(); end != NoPosition {
+			return end
+		}
+	}
+	if e.Raw != nil {
 		return deltaPos(*e.Raw, len("!raw"))
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (e *RawElement) Walk(w func(Node)) {
@@ -288,19 +335,25 @@ var _ ScopeNode = (*And)(nil)
 func (a *And) Start() Position {
 	if a.And != nil {
 		return *a.And
-	} else if a.Attributes != nil {
-		return a.Attributes.Start()
 	}
-	return Position{}
+	if a.Attributes != nil {
+		if start := a.Attributes.Start(); start != NoPosition {
+			return start
+		}
+	}
+	return NoPosition
 }
 
 func (a *And) End() Position {
 	if a.Attributes != nil {
-		return a.Attributes.End()
-	} else if a.And != nil {
+		if end := a.Attributes.End(); end != NoPosition {
+			return end
+		}
+	}
+	if a.And != nil {
 		return deltaPos(*a.And, len("&"))
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (a *And) Walk(w func(Node)) {

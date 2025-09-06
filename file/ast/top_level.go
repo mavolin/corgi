@@ -1,5 +1,7 @@
 package ast
 
+import "slices"
+
 // ============================================================================
 // Top Level
 // ======================================================================================
@@ -9,17 +11,25 @@ type TopLevel []TopLevelNode
 var _ Node = (*TopLevel)(nil)
 
 func (t TopLevel) Start() Position {
-	if len(t) == 0 {
-		return Position{}
+	for _, node := range t {
+		if node != nil {
+			if pos := node.Start(); pos != NoPosition {
+				return pos
+			}
+		}
 	}
-	return t[0].Start()
+	return NoPosition
 }
 
 func (t TopLevel) End() Position {
-	if len(t) == 0 {
-		return Position{}
+	for _, node := range slices.Backward(t) {
+		if node != nil {
+			if pos := node.End(); pos != NoPosition {
+				return pos
+			}
+		}
 	}
-	return t[len(t)-1].End()
+	return NoPosition
 }
 
 func (t TopLevel) Walk(w func(Node)) {

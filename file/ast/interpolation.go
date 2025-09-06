@@ -52,14 +52,14 @@ func (ce *CharacterEscape) Start() Position {
 	if ce.Hash != nil {
 		return *ce.Hash
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (ce *CharacterEscape) End() Position {
 	if ce.Hash != nil {
 		return deltaPos(*ce.Hash, len("#_"))
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (ce *CharacterEscape) Walk(func(Node)) {}
@@ -90,31 +90,39 @@ var (
 )
 
 func (ei *ExpressionInterpolation) Start() Position {
-	switch {
-	case ei.Hash != nil:
+	if ei.Hash != nil {
 		return *ei.Hash
-	case ei.LBrace != nil:
+	}
+	if ei.LBrace != nil {
 		return *ei.LBrace
-	case ei.Expression != nil:
-		return ei.Expression.Start()
-	case ei.RBrace != nil:
+	}
+	if ei.Expression != nil {
+		if start := ei.Expression.Start(); start != NoPosition {
+			return start
+		}
+	}
+	if ei.RBrace != nil {
 		return *ei.RBrace
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (ei *ExpressionInterpolation) End() Position {
-	switch {
-	case ei.RBrace != nil:
+	if ei.RBrace != nil {
 		return deltaPos(*ei.RBrace, len("}"))
-	case ei.Expression != nil:
-		return ei.Expression.End()
-	case ei.LBrace != nil:
+	}
+	if ei.Expression != nil {
+		if end := ei.Expression.End(); end != NoPosition {
+			return end
+		}
+	}
+	if ei.LBrace != nil {
 		return deltaPos(*ei.LBrace, len("{"))
-	case ei.Hash != nil:
+	}
+	if ei.Hash != nil {
 		return deltaPos(*ei.Hash, len("#"))
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (ei *ExpressionInterpolation) Walk(w func(Node)) {
@@ -151,14 +159,14 @@ func (r *CharacterReference) Start() Position {
 	if r.Hash != nil {
 		return *r.Hash
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (r *CharacterReference) End() Position {
 	if r.Hash != nil {
-		return deltaPos(*r.Hash, len("#")+len(r.Name)+len(";"))
+		return deltaPos(*r.Hash, len("#")+len([]rune(r.Name))+len(";"))
 	}
-	return Position{}
+	return NoPosition
 }
 func (r *CharacterReference) Walk(func(Node)) {}
 
@@ -181,19 +189,25 @@ type ModeSwitch struct {
 func (s *ModeSwitch) Start() Position {
 	if s.Hash != nil {
 		return *s.Hash
-	} else if s.Node != nil {
-		return s.Node.Start()
 	}
-	return Position{}
+	if s.Node != nil {
+		if start := s.Node.Start(); start != NoPosition {
+			return start
+		}
+	}
+	return NoPosition
 }
 
 func (s *ModeSwitch) End() Position {
 	if s.Node != nil {
-		return s.Node.End()
-	} else if s.Hash != nil {
+		if end := s.Node.End(); end != NoPosition {
+			return end
+		}
+	}
+	if s.Hash != nil {
 		return deltaPos(*s.Hash, len("#"))
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (s *ModeSwitch) Walk(f func(Node)) {
@@ -222,19 +236,25 @@ var _ StringInterpolation = (*ComponentCallInterpolation)(nil)
 func (cci *ComponentCallInterpolation) Start() Position {
 	if cci.Hash != nil {
 		return *cci.Hash
-	} else if cci.ComponentCall != nil {
-		return cci.ComponentCall.Start()
 	}
-	return Position{}
+	if cci.ComponentCall != nil {
+		if start := cci.ComponentCall.Start(); start != NoPosition {
+			return start
+		}
+	}
+	return NoPosition
 }
 
 func (cci *ComponentCallInterpolation) End() Position {
 	if cci.ComponentCall != nil {
-		return cci.ComponentCall.End()
-	} else if cci.Hash != nil {
+		if end := cci.ComponentCall.End(); end != NoPosition {
+			return end
+		}
+	}
+	if cci.Hash != nil {
 		return deltaPos(*cci.Hash, len("#"))
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (cci *ComponentCallInterpolation) Walk(w func(Node)) {

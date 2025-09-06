@@ -20,23 +20,28 @@ var (
 )
 
 func (d *ElementDefinition) Start() Position {
-	switch {
-	case d.Elem != nil:
+	if d.Elem != nil {
 		return *d.Elem
-	case d.Prefix != nil:
-		return d.Prefix.Start()
-	case d.LParen != nil:
+	}
+	if d.Prefix != nil {
+		if start := d.Prefix.Start(); start != NoPosition {
+			return start
+		}
+	}
+	if d.LParen != nil {
 		return *d.LParen
 	}
 	for _, spec := range d.Specs {
 		if spec != nil {
-			return spec.Start()
+			if start := spec.Start(); start != NoPosition {
+				return start
+			}
 		}
 	}
 	if d.RParen != nil {
 		return *d.RParen
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (d *ElementDefinition) End() Position {
@@ -45,18 +50,23 @@ func (d *ElementDefinition) End() Position {
 	}
 	for _, spec := range slices.Backward(d.Specs) {
 		if spec != nil {
-			return spec.End()
+			if end := spec.End(); end != NoPosition {
+				return end
+			}
 		}
 	}
-	switch {
-	case d.LParen != nil:
+	if d.LParen != nil {
 		return deltaPos(*d.LParen, len("("))
-	case d.Prefix != nil:
-		return d.Prefix.End()
-	case d.Elem != nil:
-		return deltaPos(*d.Elem, len("elem"))
 	}
-	return Position{}
+	if d.Prefix != nil {
+		if end := d.Prefix.End(); end != NoPosition {
+			return end
+		}
+	}
+	if d.Elem != nil {
+		return deltaPos(*d.Elem, len("element"))
+	}
+	return NoPosition
 }
 
 func (d *ElementDefinition) Walk(w func(Node)) {
@@ -97,20 +107,30 @@ var _ Node = (*ElementSpec)(nil)
 
 func (a *ElementSpec) Start() Position {
 	if a.Name != nil {
-		return a.Name.Start()
-	} else if a.Type != nil {
-		return a.Type.Start()
+		if start := a.Name.Start(); start != NoPosition {
+			return start
+		}
 	}
-	return Position{}
+	if a.Type != nil {
+		if start := a.Type.Start(); start != NoPosition {
+			return start
+		}
+	}
+	return NoPosition
 }
 
 func (a *ElementSpec) End() Position {
 	if a.Type != nil {
-		return a.Type.End()
-	} else if a.Name != nil {
-		return a.Name.End()
+		if end := a.Type.End(); end != NoPosition {
+			return end
+		}
 	}
-	return Position{}
+	if a.Name != nil {
+		if end := a.Name.End(); end != NoPosition {
+			return end
+		}
+	}
+	return NoPosition
 }
 
 func (a *ElementSpec) Walk(w func(Node)) {
@@ -152,16 +172,20 @@ var _ ElementType = (*BasicElementType)(nil)
 
 func (t *BasicElementType) Start() Position {
 	if t.Type != nil {
-		return t.Type.Start()
+		if start := t.Type.Start(); start != NoPosition {
+			return start
+		}
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (t *BasicElementType) End() Position {
 	if t.Type != nil {
-		return t.Type.End()
+		if end := t.Type.End(); end != NoPosition {
+			return end
+		}
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (t *BasicElementType) Walk(w func(Node)) {
@@ -187,19 +211,25 @@ var _ ElementType = (*AliasElementType)(nil)
 func (t *AliasElementType) Start() Position {
 	if t.EqualSign != nil {
 		return *t.EqualSign
-	} else if t.Name != nil {
-		return t.Name.Start()
 	}
-	return Position{}
+	if t.Name != nil {
+		if start := t.Name.Start(); start != NoPosition {
+			return start
+		}
+	}
+	return NoPosition
 }
 
 func (t *AliasElementType) End() Position {
 	if t.Name != nil {
-		return t.Name.End()
-	} else if t.EqualSign != nil {
+		if end := t.Name.End(); end != NoPosition {
+			return end
+		}
+	}
+	if t.EqualSign != nil {
 		return deltaPos(*t.EqualSign, len("="))
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (t *AliasElementType) Walk(w func(Node)) {
@@ -227,14 +257,14 @@ func (a *ElementTypeName) Start() Position {
 	if a.Position != nil {
 		return *a.Position
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (a *ElementTypeName) End() Position {
 	if a.Position != nil {
-		return deltaPos(*a.Position, len(a.Name))
+		return deltaPos(*a.Position, len([]rune(a.Name)))
 	}
-	return Position{}
+	return NoPosition
 }
 func (a *ElementTypeName) Walk(func(Node)) {}
 

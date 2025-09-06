@@ -42,14 +42,14 @@ func (ident *Identifier) Start() Position {
 	if ident.Position != nil {
 		return *ident.Position
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (ident *Identifier) End() Position {
 	if ident.Position != nil {
 		return deltaPos(*ident.Position, len(ident.Name))
 	}
-	return Position{}
+	return NoPosition
 }
 func (ident *Identifier) Walk(func(Node)) {}
 func (ident *Identifier) Full() string    { return ident.Name }
@@ -71,27 +71,37 @@ type QualifiedIdentifier struct {
 var _ FullIdentifier = (*QualifiedIdentifier)(nil)
 
 func (ident *QualifiedIdentifier) Start() Position {
-	switch {
-	case ident.Package != nil:
-		return ident.Package.Start()
-	case ident.Dot != nil:
-		return *ident.Dot
-	case ident.Name != nil:
-		return ident.Name.Start()
+	if ident.Package != nil {
+		if start := ident.Package.Start(); start != NoPosition {
+			return start
+		}
 	}
-	return Position{}
+	if ident.Dot != nil {
+		return *ident.Dot
+	}
+	if ident.Name != nil {
+		if start := ident.Name.Start(); start != NoPosition {
+			return start
+		}
+	}
+	return NoPosition
 }
 
 func (ident *QualifiedIdentifier) End() Position {
-	switch {
-	case ident.Name != nil:
-		return ident.Name.End()
-	case ident.Dot != nil:
-		return deltaPos(*ident.Dot, len("."))
-	case ident.Package != nil:
-		return ident.Package.End()
+	if ident.Name != nil {
+		if end := ident.Name.End(); end != NoPosition {
+			return end
+		}
 	}
-	return Position{}
+	if ident.Dot != nil {
+		return deltaPos(*ident.Dot, len("."))
+	}
+	if ident.Package != nil {
+		if end := ident.Package.End(); end != NoPosition {
+			return end
+		}
+	}
+	return NoPosition
 }
 
 func (ident *QualifiedIdentifier) Walk(w func(Node)) {
@@ -149,33 +159,35 @@ var _ Node = (*StaticString)(nil)
 func (s *StaticString) Start() Position {
 	if s.Open != nil {
 		return *s.Open
-	} else if s.Close != nil {
+	}
+	if s.Close != nil {
 		return *s.Close
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (s *StaticString) End() Position {
 	if s.Close != nil {
 		return deltaPos(*s.Close, len(`"`))
-	} else if s.Open != nil {
+	}
+	if s.Open != nil {
 		if s.Quote == '"' {
-			return deltaPos(*s.Open, len(`"`)+len(s.Contents))
+			return deltaPos(*s.Open, len(`"`)+len([]rune(s.Contents)))
 		}
 
 		i := strings.LastIndexByte(s.Contents, '\n')
 		if i < 0 {
-			return deltaPos(*s.Open, len(`"`)+len(s.Contents))
+			return deltaPos(*s.Open, len("`")+len([]rune(s.Contents)))
 		}
 
 		lines := strings.Count(s.Contents[:i], "\n")
 		return Position{
 			Line: s.Open.Line + lines,
-			Col:  len(s.Contents[i:]) + 1,
+			Col:  len([]rune(s.Contents[i:])) + 1,
 		}
 	}
 
-	return Position{}
+	return NoPosition
 }
 func (s *StaticString) Walk(func(Node)) {}
 

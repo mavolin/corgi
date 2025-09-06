@@ -22,39 +22,53 @@ var (
 )
 
 func (d *AttributeDefinition) Start() Position {
-	switch {
-	case d.Attr != nil:
+	if d.Attr != nil {
 		return *d.Attr
-	case d.Prefix != nil:
-		return d.Prefix.Start()
-	case d.LParen != nil:
+	}
+	if d.Prefix != nil {
+		if start := d.Prefix.Start(); start != NoPosition {
+			return start
+		}
+	}
+	if d.LParen != nil {
 		return *d.LParen
 	}
 	for _, s := range d.Specs {
 		if s != nil {
-			return s.Start()
+			if start := s.Start(); start != NoPosition {
+				return start
+			}
 		}
 	}
 	if d.RParen != nil {
 		return *d.RParen
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (d *AttributeDefinition) End() Position {
-	switch {
-	case d.RParen != nil:
+	if d.RParen != nil {
 		return deltaPos(*d.RParen, len(")"))
-	case len(d.Specs) > 0:
-		return d.Specs[len(d.Specs)-1].End()
-	case d.LParen != nil:
+	}
+	for _, s := range slices.Backward(d.Specs) {
+		if s != nil {
+			if end := s.End(); end != NoPosition {
+				return end
+			}
+		}
+	}
+	if d.LParen != nil {
 		return deltaPos(*d.LParen, len("("))
-	case d.Prefix != nil:
-		return d.Prefix.End()
-	case d.Attr != nil:
+	}
+	if d.Prefix != nil {
+		if end := d.Prefix.End(); end != NoPosition {
+			return end
+		}
+	}
+	if d.Attr != nil {
 		return deltaPos(*d.Attr, len("attr"))
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (d *AttributeDefinition) Highlight() (start, end Position) {
@@ -95,20 +109,28 @@ var _ Node = (*AttributeSpec)(nil)
 
 func (a *AttributeSpec) Start() Position {
 	if a.Selector != nil {
-		return a.Selector.Start()
+		if start := a.Selector.Start(); start != NoPosition {
+			return start
+		}
 	} else if a.Ruleset != nil {
-		return a.Ruleset.Start()
+		if start := a.Ruleset.Start(); start != NoPosition {
+			return start
+		}
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (a *AttributeSpec) End() Position {
 	if a.Ruleset != nil {
-		return a.Ruleset.End()
+		if end := a.Ruleset.End(); end != NoPosition {
+			return end
+		}
 	} else if a.Selector != nil {
-		return a.Selector.End()
+		if end := a.Selector.End(); end != NoPosition {
+			return end
+		}
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (a *AttributeSpec) Walk(w func(Node)) {
@@ -140,13 +162,15 @@ func (a *AttributeRuleset) Start() Position {
 	}
 	for _, r := range a.List {
 		if r != nil {
-			return r.Start()
+			if start := r.Start(); start != NoPosition {
+				return start
+			}
 		}
 	}
 	if a.RBrace != nil {
 		return *a.RBrace
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (a *AttributeRuleset) End() Position {
@@ -155,13 +179,15 @@ func (a *AttributeRuleset) End() Position {
 	}
 	for _, r := range slices.Backward(a.List) {
 		if r != nil {
-			return r.End()
+			if end := r.End(); end != NoPosition {
+				return end
+			}
 		}
 	}
 	if a.LBrace != nil {
 		return deltaPos(*a.LBrace, len("{"))
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (a *AttributeRuleset) Walk(w func(Node)) {
@@ -187,20 +213,28 @@ var _ Node = (*AttributeRule)(nil)
 
 func (a *AttributeRule) Start() Position {
 	if a.Selector != nil {
-		return a.Selector.Start()
+		if start := a.Selector.Start(); start != NoPosition {
+			return start
+		}
 	} else if a.Type != nil {
-		return a.Type.Start()
+		if start := a.Type.Start(); start != NoPosition {
+			return start
+		}
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (a *AttributeRule) End() Position {
 	if a.Type != nil {
-		return a.Type.End()
+		if end := a.Type.End(); end != NoPosition {
+			return end
+		}
 	} else if a.Selector != nil {
-		return a.Selector.End()
+		if end := a.Selector.End(); end != NoPosition {
+			return end
+		}
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (a *AttributeRule) Walk(w func(Node)) {
@@ -238,12 +272,12 @@ func (b *BasicAttributeSelector) Start() Position {
 	if b.Position != nil {
 		return *b.Position
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (b *BasicAttributeSelector) End() Position {
 	if b.Position == nil {
-		return Position{}
+		return NoPosition
 	}
 
 	if b.Wildcard {
@@ -284,26 +318,34 @@ func (r *RegexpAttributeSelector) Start() Position {
 		return *r.Regexp
 	case r.LParen != nil:
 		return *r.LParen
-	case r.Raw != nil:
-		return r.Raw.Start()
-	case r.RParen != nil:
+	}
+	if r.Raw != nil {
+		if start := r.Raw.Start(); start != NoPosition {
+			return start
+		}
+	}
+	if r.RParen != nil {
 		return *r.RParen
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (r *RegexpAttributeSelector) End() Position {
-	switch {
-	case r.RParen != nil:
+	if r.RParen != nil {
 		return deltaPos(*r.RParen, len(")"))
-	case r.Raw != nil:
-		return r.Raw.End()
+	}
+	if r.Raw != nil {
+		if end := r.Raw.End(); end != NoPosition {
+			return end
+		}
+	}
+	switch {
 	case r.LParen != nil:
 		return deltaPos(*r.LParen, len("("))
 	case r.Regexp != nil:
 		return deltaPos(*r.Regexp, len("regexp"))
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (r *RegexpAttributeSelector) Walk(w func(Node)) {
@@ -341,14 +383,14 @@ func (w *WildcardElementSelector) Start() Position {
 	if w.Asterisk != nil {
 		return *w.Asterisk
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (w *WildcardElementSelector) End() Position {
 	if w.Asterisk != nil {
 		return deltaPos(*w.Asterisk, len("*"))
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (w *WildcardElementSelector) Walk(func(Node)) {}
@@ -367,19 +409,23 @@ var _ ElementSelector = (*ListElementSelector)(nil)
 func (l *ListElementSelector) Start() Position {
 	for _, e := range l.List {
 		if e != nil {
-			return e.Start()
+			if start := e.Start(); start != NoPosition {
+				return start
+			}
 		}
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (l *ListElementSelector) End() Position {
 	for _, e := range slices.Backward(l.List) {
 		if e != nil {
-			return e.End()
+			if end := e.End(); end != NoPosition {
+				return end
+			}
 		}
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (l *ListElementSelector) Walk(w func(Node)) {
@@ -409,14 +455,14 @@ func (a *AttributeTypeName) Start() Position {
 	if a.Position != nil {
 		return *a.Position
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (a *AttributeTypeName) End() Position {
 	if a.Position != nil {
 		return deltaPos(*a.Position, len(a.Name))
 	}
-	return Position{}
+	return NoPosition
 }
 func (a *AttributeTypeName) Walk(func(Node)) {}
 

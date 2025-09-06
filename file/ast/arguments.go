@@ -16,13 +16,15 @@ func (a *Arguments) Start() Position {
 	}
 	for _, arg := range a.List {
 		if arg != nil {
-			return arg.Start()
+			if start := arg.Start(); start != NoPosition {
+				return start
+			}
 		}
 	}
 	if a.RParen != nil {
 		return *a.RParen
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (a *Arguments) End() Position {
@@ -31,13 +33,15 @@ func (a *Arguments) End() Position {
 	}
 	for _, arg := range slices.Backward(a.List) {
 		if arg != nil {
-			return arg.End()
+			if end := arg.End(); end != NoPosition {
+				return end
+			}
 		}
 	}
 	if a.LParen != nil {
 		return deltaPos(*a.LParen, len("("))
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (a *Arguments) Walk(w func(Node)) {
@@ -79,27 +83,37 @@ type ComponentArgument struct {
 var _ Node = (*ComponentArgument)(nil)
 
 func (a *ComponentArgument) Start() Position {
-	switch {
-	case a.Name != nil:
-		return a.Name.Start()
-	case a.Colon != nil:
-		return *a.Colon
-	case a.Value != nil:
-		return a.Value.Start()
+	if a.Name != nil {
+		if a.Name.Start() != NoPosition {
+			return a.Name.Start()
+		}
 	}
-	return Position{}
+	if a.Colon != nil {
+		return *a.Colon
+	}
+	if a.Value != nil {
+		if a.Value.Start() != NoPosition {
+			return a.Value.Start()
+		}
+	}
+	return NoPosition
 }
 
 func (a *ComponentArgument) End() Position {
-	switch {
-	case a.Value != nil:
-		return a.Value.End()
-	case a.Colon != nil:
-		return deltaPos(*a.Colon, len(":"))
-	case a.Name != nil:
-		return a.Name.End()
+	if a.Value != nil {
+		if a.Value.End() != NoPosition {
+			return a.Value.End()
+		}
 	}
-	return Position{}
+	if a.Colon != nil {
+		return deltaPos(*a.Colon, len(":"))
+	}
+	if a.Name != nil {
+		if a.Name.End() != NoPosition {
+			return a.Name.End()
+		}
+	}
+	return NoPosition
 }
 
 func (a *ComponentArgument) Walk(w func(Node)) {

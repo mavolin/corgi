@@ -21,32 +21,44 @@ var (
 
 func (c *Conditional) Start() Position {
 	if c.If != nil {
-		return c.If.Start()
+		if start := c.If.Start(); start != NoPosition {
+			return start
+		}
 	}
 	for _, e := range c.ElseIfs {
 		if e != nil {
-			return e.Start()
+			if start := e.Start(); start != NoPosition {
+				return start
+			}
 		}
 	}
 	if c.Else != nil {
-		return c.Else.Start()
+		if start := c.Else.Start(); start != NoPosition {
+			return start
+		}
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (c *Conditional) End() Position {
 	if c.Else != nil {
-		return c.Else.End()
+		if end := c.Else.End(); end != NoPosition {
+			return end
+		}
 	}
 	for _, e := range slices.Backward(c.ElseIfs) {
 		if e != nil {
-			return e.End()
+			if end := e.End(); end != NoPosition {
+				return end
+			}
 		}
 	}
 	if c.If != nil {
-		return c.If.End()
+		if end := c.If.End(); end != NoPosition {
+			return end
+		}
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (c *Conditional) Walk(w func(Node)) {
@@ -89,28 +101,37 @@ var (
 )
 
 func (i *If) Start() Position {
-	switch {
-	case i.If != nil:
+	if i.If != nil {
 		return *i.If
-	case i.Header != nil:
-		return i.Header.Start()
-	case i.Then != nil:
-		return i.Then.Start()
 	}
-
-	return Position{}
+	if i.Header != nil {
+		if start := i.Header.Start(); start != NoPosition {
+			return start
+		}
+	}
+	if i.Then != nil {
+		if start := i.Then.Start(); start != NoPosition {
+			return start
+		}
+	}
+	return NoPosition
 }
 
 func (i *If) End() Position {
-	switch {
-	case i.Then != nil:
-		return i.Then.End()
-	case i.Header != nil:
-		return i.Header.Start()
-	case i.If != nil:
+	if i.Then != nil {
+		if end := i.Then.End(); end != NoPosition {
+			return end
+		}
+	}
+	if i.Header != nil {
+		if start := i.Header.Start(); start != NoPosition {
+			return start
+		}
+	}
+	if i.If != nil {
 		return deltaPos(*i.If, len("if"))
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (i *If) Walk(w func(Node)) {
@@ -148,31 +169,43 @@ var (
 )
 
 func (e *ElseIf) Start() Position {
-	switch {
-	case e.If != nil:
-		return *e.If
-	case e.Else != nil:
+	if e.Else != nil {
 		return *e.Else
-	case e.Header != nil:
-		return e.Header.Start()
-	case e.Then != nil:
-		return e.Then.Start()
 	}
-	return Position{}
+	if e.If != nil {
+		return *e.If
+	}
+	if e.Header != nil {
+		if start := e.Header.Start(); start != NoPosition {
+			return start
+		}
+	}
+	if e.Then != nil {
+		if start := e.Then.Start(); start != NoPosition {
+			return start
+		}
+	}
+	return NoPosition
 }
 
 func (e *ElseIf) End() Position {
-	switch {
-	case e.Then != nil:
-		return e.Then.End()
-	case e.Header != nil:
-		return e.Header.Start()
-	case e.Else != nil:
-		return deltaPos(*e.Else, len("else"))
-	case e.If != nil:
+	if e.Then != nil {
+		if end := e.Then.End(); end != NoPosition {
+			return end
+		}
+	}
+	if e.Header != nil {
+		if start := e.Header.Start(); start != NoPosition {
+			return start
+		}
+	}
+	if e.If != nil {
 		return deltaPos(*e.If, len("if"))
 	}
-	return Position{}
+	if e.Else != nil {
+		return deltaPos(*e.Else, len("else"))
+	}
+	return NoPosition
 }
 
 func (e *ElseIf) Walk(w func(Node)) {
@@ -213,19 +246,25 @@ var (
 func (e *Else) Start() Position {
 	if e.Else != nil {
 		return *e.Else
-	} else if e.Then != nil {
-		return e.Then.Start()
 	}
-	return Position{}
+	if e.Then != nil {
+		if start := e.Then.Start(); start != NoPosition {
+			return start
+		}
+	}
+	return NoPosition
 }
 
 func (e *Else) End() Position {
 	if e.Then != nil {
-		return e.Then.End()
-	} else if e.Else != nil {
+		if end := e.Then.End(); end != NoPosition {
+			return end
+		}
+	}
+	if e.Else != nil {
 		return deltaPos(*e.Else, len("else"))
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (e *Else) Walk(w func(Node)) {
@@ -260,7 +299,7 @@ func (e *IfHeader) Start() Position {
 	} else if e.Condition != nil {
 		return e.Condition.Start()
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (e *IfHeader) End() Position {
@@ -269,7 +308,7 @@ func (e *IfHeader) End() Position {
 	} else if e.Statement != nil {
 		return e.Statement.End()
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (e *IfHeader) Walk(w func(Node)) {
@@ -301,23 +340,28 @@ var (
 )
 
 func (s *Switch) Start() Position {
-	switch {
-	case s.Switch != nil:
+	if s.Switch != nil {
 		return *s.Switch
-	case s.Comparator != nil:
-		return s.Comparator.Start()
-	case s.LBrace != nil:
+	}
+	if s.Comparator != nil {
+		if start := s.Comparator.Start(); start != NoPosition {
+			return start
+		}
+	}
+	if s.LBrace != nil {
 		return *s.LBrace
 	}
 	for _, c := range s.Cases {
 		if c != nil {
-			return c.Start()
+			if start := c.Start(); start != NoPosition {
+				return start
+			}
 		}
 	}
 	if s.RBrace != nil {
 		return *s.RBrace
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (s *Switch) End() Position {
@@ -326,18 +370,24 @@ func (s *Switch) End() Position {
 	}
 	for _, c := range slices.Backward(s.Cases) {
 		if c != nil {
-			return c.End()
+			if end := c.End(); end != NoPosition {
+				return end
+			}
 		}
 	}
-	switch {
-	case s.LBrace != nil:
+	if s.LBrace != nil {
 		return deltaPos(*s.LBrace, len("{"))
-	case s.Comparator != nil:
-		return s.Comparator.End()
-	case s.Switch != nil:
+	}
+	if s.Comparator != nil {
+		if end := s.Comparator.End(); end != NoPosition {
+			return end
+		}
 		return deltaPos(*s.Switch, len("switch"))
 	}
-	return Position{}
+	if s.Switch != nil {
+		return deltaPos(*s.Switch, len("switch"))
+	}
+	return NoPosition
 }
 
 func (s *Switch) Walk(w func(Node)) {
@@ -377,41 +427,53 @@ var (
 )
 
 func (c *Case) Start() Position {
-	switch {
-	case c.Case != nil:
+	if c.Case != nil {
 		return *c.Case
-	case c.Default != nil:
+	}
+	if c.Default != nil {
 		return *c.Default
-	case c.Expression != nil:
-		return c.Expression.Start()
-	case c.Colon != nil:
+	}
+	if c.Expression != nil {
+		if start := c.Expression.Start(); start != NoPosition {
+			return start
+		}
+	}
+	if c.Colon != nil {
 		return *c.Colon
 	}
 	for _, n := range c.Then {
 		if n != nil {
-			return n.Start()
+			if start := n.Start(); start != NoPosition {
+				return start
+			}
 		}
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (c *Case) End() Position {
 	for _, n := range slices.Backward(c.Then) {
 		if n != nil {
-			return n.End()
+			if end := n.End(); end != NoPosition {
+				return end
+			}
 		}
 	}
-	switch {
-	case c.Colon != nil:
+	if c.Colon != nil {
 		return deltaPos(*c.Colon, len(":"))
-	case c.Expression != nil:
-		return c.Expression.End()
-	case c.Default != nil:
+	}
+	if c.Expression != nil {
+		if end := c.Expression.End(); end != NoPosition {
+			return end
+		}
+	}
+	if c.Default != nil {
 		return deltaPos(*c.Default, len("default"))
-	case c.Case != nil:
+	}
+	if c.Case != nil {
 		return deltaPos(*c.Case, len("case"))
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (c *Case) Walk(w func(Node)) {
@@ -452,27 +514,37 @@ var (
 )
 
 func (f *For) Start() Position {
-	switch {
-	case f.For != nil:
+	if f.For != nil {
 		return *f.For
-	case f.Header != nil:
-		return f.Header.Start()
-	case f.Body != nil:
-		return f.Body.Start()
 	}
-	return Position{}
+	if f.Header != nil {
+		if start := f.Header.Start(); start != NoPosition {
+			return start
+		}
+	}
+	if f.Body != nil {
+		if start := f.Body.Start(); start != NoPosition {
+			return start
+		}
+	}
+	return NoPosition
 }
 
 func (f *For) End() Position {
-	switch {
-	case f.Body != nil:
-		return f.Body.End()
-	case f.Header != nil:
-		return f.Header.Start()
-	case f.For != nil:
+	if f.Body != nil {
+		if end := f.Body.End(); end != NoPosition {
+			return end
+		}
+	}
+	if f.Header != nil {
+		if end := f.Header.Start(); end != NoPosition {
+			return end
+		}
+	}
+	if f.For != nil {
 		return deltaPos(*f.For, len("for"))
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (f *For) Walk(w func(Node)) {
@@ -521,16 +593,20 @@ var _ ForHeader = (*ForConditionHeader)(nil)
 
 func (h *ForConditionHeader) Start() Position {
 	if h.Condition != nil {
-		return h.Condition.Start()
+		if start := h.Condition.Start(); start != NoPosition {
+			return start
+		}
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (h *ForConditionHeader) End() Position {
 	if h.Condition != nil {
-		return h.Condition.End()
+		if end := h.Condition.End(); end != NoPosition {
+			return end
+		}
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (h *ForConditionHeader) Walk(w func(Node)) {
@@ -553,27 +629,41 @@ type ForClauseHeader struct {
 var _ ForHeader = (*ForClauseHeader)(nil)
 
 func (h *ForClauseHeader) Start() Position {
-	switch {
-	case h.Init != nil:
-		return h.Init.Start()
-	case h.Condition != nil:
-		return h.Condition.Start()
-	case h.Post != nil:
-		return h.Post.Start()
+	if h.Init != nil {
+		if start := h.Init.Start(); start != NoPosition {
+			return start
+		}
 	}
-	return Position{}
+	if h.Condition != nil {
+		if start := h.Condition.Start(); start != NoPosition {
+			return start
+		}
+	}
+	if h.Post != nil {
+		if start := h.Post.Start(); start != NoPosition {
+			return start
+		}
+	}
+	return NoPosition
 }
 
 func (h *ForClauseHeader) End() Position {
-	switch {
-	case h.Post != nil:
-		return h.Post.End()
-	case h.Condition != nil:
-		return h.Condition.End()
-	case h.Init != nil:
-		return h.Init.End()
+	if h.Post != nil {
+		if end := h.Post.End(); end != NoPosition {
+			return end
+		}
 	}
-	return Position{}
+	if h.Condition != nil {
+		if end := h.Condition.End(); end != NoPosition {
+			return end
+		}
+	}
+	if h.Init != nil {
+		if end := h.Init.End(); end != NoPosition {
+			return end
+		}
+	}
+	return NoPosition
 }
 
 func (h *ForClauseHeader) Walk(w func(Node)) {
@@ -609,39 +699,59 @@ type ForRangeHeader struct {
 var _ ForHeader = (*ForRangeHeader)(nil)
 
 func (h *ForRangeHeader) Start() Position {
-	switch {
-	case h.Var1 != nil:
-		return h.Var1.Start()
-	case h.Var2 != nil:
-		return h.Var2.Start()
-	case h.Colon != nil:
-		return *h.Colon
-	case h.EqualSign != nil:
-		return *h.EqualSign
-	case h.Range != nil:
-		return *h.Range
-	case h.Expression != nil:
-		return h.Expression.Start()
+	if h.Var1 != nil {
+		if start := h.Var1.Start(); start != NoPosition {
+			return start
+		}
 	}
-	return Position{}
+	if h.Var2 != nil {
+		if start := h.Var2.Start(); start != NoPosition {
+			return start
+		}
+	}
+	if h.Colon != nil {
+		return *h.Colon
+	}
+	if h.EqualSign != nil {
+		return *h.EqualSign
+	}
+	if h.Range != nil {
+		return *h.Range
+	}
+	if h.Expression != nil {
+		if start := h.Expression.Start(); start != NoPosition {
+			return start
+		}
+	}
+	return NoPosition
 }
 
 func (h *ForRangeHeader) End() Position {
-	switch {
-	case h.Expression != nil:
-		return h.Expression.End()
-	case h.Range != nil:
-		return deltaPos(*h.Range, len("range"))
-	case h.Colon != nil:
-		return deltaPos(*h.Colon, len(":"))
-	case h.EqualSign != nil:
-		return deltaPos(*h.EqualSign, len("="))
-	case h.Var2 != nil:
-		return h.Var2.End()
-	case h.Var1 != nil:
-		return h.Var1.End()
+	if h.Expression != nil {
+		if end := h.Expression.End(); end != NoPosition {
+			return end
+		}
 	}
-	return Position{}
+	if h.Range != nil {
+		return deltaPos(*h.Range, len("range"))
+	}
+	if h.Colon != nil {
+		return deltaPos(*h.Colon, len(":"))
+	}
+	if h.EqualSign != nil {
+		return deltaPos(*h.EqualSign, len("="))
+	}
+	if h.Var2 != nil {
+		if end := h.Var2.End(); end != NoPosition {
+			return end
+		}
+	}
+	if h.Var1 != nil {
+		if end := h.Var1.End(); end != NoPosition {
+			return end
+		}
+	}
+	return NoPosition
 }
 
 func (h *ForRangeHeader) Walk(w func(Node)) {

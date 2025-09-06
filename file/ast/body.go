@@ -49,13 +49,15 @@ func (s *Scope) Start() Position {
 	}
 	for _, node := range s.Nodes {
 		if node != nil {
-			return node.Start()
+			if pos := node.Start(); pos != NoPosition {
+				return pos
+			}
 		}
 	}
 	if s.RBrace != nil {
 		return *s.RBrace
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (s *Scope) End() Position {
@@ -64,13 +66,15 @@ func (s *Scope) End() Position {
 	}
 	for _, node := range slices.Backward(s.Nodes) {
 		if node != nil {
-			return node.End()
+			if pos := node.End(); pos != NoPosition {
+				return pos
+			}
 		}
 	}
 	if s.LBrace != nil {
 		return deltaPos(*s.LBrace, len("{"))
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (s *Scope) Highlight() (start, end Position) {
@@ -125,27 +129,33 @@ var (
 )
 
 func (t *BracketText) Start() Position {
-	switch {
-	case t.LBracket != nil:
+	if t.LBracket != nil {
 		return *t.LBracket
-	case len(t.Lines) > 0:
-		return t.Lines.Start()
-	case t.RBracket != nil:
+	}
+	if len(t.Lines) > 0 {
+		if start := t.Lines.Start(); start != NoPosition {
+			return start
+		}
+	}
+	if t.RBracket != nil {
 		return *t.RBracket
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (t *BracketText) End() Position {
-	switch {
-	case t.RBracket != nil:
+	if t.RBracket != nil {
 		return deltaPos(*t.RBracket, len("]"))
-	case len(t.Lines) > 0:
-		return t.Lines.End()
-	case t.LBracket != nil:
+	}
+	if len(t.Lines) > 0 {
+		if enc := t.Lines.End(); enc != NoPosition {
+			return enc
+		}
+	}
+	if t.LBracket != nil {
 		return deltaPos(*t.LBracket, len("["))
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (t *BracketText) Highlight() (start, end Position) {

@@ -15,19 +15,23 @@ var _ Node = Code(nil)
 func (c Code) Start() Position {
 	for _, n := range c {
 		if n != nil {
-			return n.Start()
+			if start := n.Start(); start != NoPosition {
+				return start
+			}
 		}
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (c Code) End() Position {
 	for _, n := range slices.Backward(c) {
 		if n != nil {
-			return n.End()
+			if end := n.End(); end != NoPosition {
+				return end
+			}
 		}
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (c Code) Walk(w func(Node)) {
@@ -61,14 +65,14 @@ func (c *GoCode) Start() Position {
 	if c.Position != nil {
 		return *c.Position
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (c *GoCode) End() Position {
 	if c.Position != nil {
 		return deltaPos(*c.Position, len(c.Code))
 	}
-	return Position{}
+	return NoPosition
 }
 func (c *GoCode) Walk(func(Node)) {}
 
@@ -97,31 +101,39 @@ func (f *BlockFunction) Name() string {
 }
 
 func (f *BlockFunction) Start() Position {
-	switch {
-	case f.Block != nil:
+	if f.Block != nil {
 		return *f.Block
-	case f.LParen != nil:
+	}
+	if f.LParen != nil {
 		return *f.LParen
-	case f.BlockName != nil:
-		return f.BlockName.Start()
-	case f.RParen != nil:
+	}
+	if f.BlockName != nil {
+		if start := f.BlockName.Start(); start != NoPosition {
+			return start
+		}
+	}
+	if f.RParen != nil {
 		return *f.RParen
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (f *BlockFunction) End() Position {
-	switch {
-	case f.RParen != nil:
+	if f.RParen != nil {
 		return deltaPos(*f.RParen, len(")"))
-	case f.BlockName != nil:
-		return f.BlockName.End()
-	case f.LParen != nil:
+	}
+	if f.BlockName != nil {
+		if end := f.BlockName.End(); end != NoPosition {
+			return end
+		}
+	}
+	if f.LParen != nil {
 		return deltaPos(*f.LParen, len("("))
-	case f.Block != nil:
+	}
+	if f.Block != nil {
 		return deltaPos(*f.Block, len("block"))
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (f *BlockFunction) Walk(w func(Node)) {
@@ -149,39 +161,59 @@ type Ternary struct {
 var _ CodeNode = (*Ternary)(nil)
 
 func (t *Ternary) Start() Position {
-	switch {
-	case t.QuestionMark != nil:
+	if t.QuestionMark != nil {
 		return *t.QuestionMark
-	case t.LParen != nil:
+	}
+	if t.LParen != nil {
 		return *t.LParen
-	case t.Condition != nil:
-		return t.Condition.Start()
-	case t.TrueVal != nil:
-		return t.TrueVal.Start()
-	case t.FalseVal != nil:
-		return t.FalseVal.Start()
-	case t.RParen != nil:
+	}
+	if t.Condition != nil {
+		if start := t.Condition.Start(); start != NoPosition {
+			return start
+		}
+	}
+	if t.TrueVal != nil {
+		if start := t.TrueVal.Start(); start != NoPosition {
+			return start
+		}
+	}
+	if t.FalseVal != nil {
+		if start := t.FalseVal.Start(); start != NoPosition {
+			return start
+		}
+	}
+	if t.RParen != nil {
 		return *t.RParen
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (t *Ternary) End() Position {
-	switch {
-	case t.RParen != nil:
+	if t.RParen != nil {
 		return deltaPos(*t.RParen, len(")"))
-	case t.FalseVal != nil:
-		return t.FalseVal.End()
-	case t.TrueVal != nil:
-		return t.TrueVal.End()
-	case t.Condition != nil:
-		return t.Condition.End()
-	case t.LParen != nil:
+	}
+	if t.FalseVal != nil {
+		if end := t.FalseVal.End(); end != NoPosition {
+			return end
+		}
+	}
+	if t.TrueVal != nil {
+		if end := t.TrueVal.End(); end != NoPosition {
+			return end
+		}
+	}
+	if t.Condition != nil {
+		if end := t.Condition.End(); end != NoPosition {
+			return end
+		}
+	}
+	if t.LParen != nil {
 		return deltaPos(*t.LParen, len("("))
-	case t.QuestionMark != nil:
+	}
+	if t.QuestionMark != nil {
 		return deltaPos(*t.QuestionMark, len("?"))
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (t *Ternary) Walk(w func(Node)) {
@@ -220,28 +252,32 @@ func (s *String) Start() Position {
 	}
 	for _, n := range s.Contents {
 		if n != nil {
-			return n.Start()
+			if start := n.Start(); start != NoPosition {
+				return start
+			}
 		}
 	}
 	if s.Close != nil {
 		return *s.Close
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (s *String) End() Position {
 	if s.Close != nil {
-		return deltaPos(*s.Close, len(`"`))
+		return deltaPos(*s.Close, len("\""))
 	}
 	for _, n := range slices.Backward(s.Contents) {
 		if n != nil {
-			return n.End()
+			if end := n.End(); end != NoPosition {
+				return end
+			}
 		}
 	}
 	if s.Open != nil {
-		return deltaPos(*s.Open, len(`"`))
+		return deltaPos(*s.Open, len("\""))
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (s *String) Walk(w func(Node)) {
@@ -284,14 +320,14 @@ func (t *StringText) Start() Position {
 	if t.Position != nil {
 		return *t.Position
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (t *StringText) End() Position {
 	if t.Position != nil {
 		return deltaPos(*t.Position, len(t.Text))
 	}
-	return Position{}
+	return NoPosition
 }
 func (t *StringText) Walk(func(Node)) {}
 

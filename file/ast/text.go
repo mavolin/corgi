@@ -21,18 +21,23 @@ func (b *ArrowBlock) Start() Position {
 		return *b.Arrow
 	}
 	if len(b.Lines) > 0 {
-		return b.Lines.Start()
+		if start := b.Lines.Start(); start != NoPosition {
+			return start
+		}
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (b *ArrowBlock) End() Position {
 	if len(b.Lines) > 0 {
-		return b.Lines.End()
-	} else if b.Arrow != nil {
+		if end := b.Lines.End(); end != NoPosition {
+			return end
+		}
+	}
+	if b.Arrow != nil {
 		return deltaPos(*b.Arrow, len(">"))
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (b *ArrowBlock) Walk(w func(Node)) {
@@ -78,19 +83,23 @@ var (
 func (b TextBlock) Start() Position {
 	for _, l := range b {
 		if len(l) > 0 {
-			return l.Start()
+			if start := l.Start(); start != NoPosition {
+				return start
+			}
 		}
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (b TextBlock) End() Position {
 	for _, l := range slices.Backward(b) {
 		if len(l) > 0 {
-			return l.End()
+			if end := l.End(); end != NoPosition {
+				return end
+			}
 		}
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (b TextBlock) Walk(w func(Node)) {
@@ -104,18 +113,25 @@ func (b TextBlock) Walk(w func(Node)) {
 func (TextBlock) _node() {}
 
 func (l TextLine) Start() Position {
-	if len(l) == 0 {
-		return Position{}
+	for _, n := range l {
+		if n != nil {
+			if start := n.Start(); start != NoPosition {
+				return start
+			}
+		}
 	}
-
-	return l[0].Start()
+	return NoPosition
 }
 
 func (l TextLine) End() Position {
-	if len(l) > 0 {
-		return l[len(l)-1].End()
+	for _, n := range slices.Backward(l) {
+		if n != nil {
+			if end := n.End(); end != NoPosition {
+				return end
+			}
+		}
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (l TextLine) Walk(w func(Node)) {
@@ -149,14 +165,14 @@ func (t *Text) Start() Position {
 	if t.Position != nil {
 		return *t.Position
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (t *Text) End() Position {
 	if t.Position != nil {
 		return deltaPos(*t.Position, len(t.Text))
 	}
-	return Position{}
+	return NoPosition
 }
 func (t *Text) Walk(func(Node)) {}
 

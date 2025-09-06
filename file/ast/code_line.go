@@ -15,16 +15,20 @@ var (
 
 func (i *ImplicitCodeLine) Start() Position {
 	if i.Statement != nil {
-		return i.Statement.Start()
+		if start := i.Statement.Start(); start != NoPosition {
+			return start
+		}
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (i *ImplicitCodeLine) End() Position {
 	if i.Statement != nil {
-		return i.Statement.End()
+		if end := i.Statement.End(); end != NoPosition {
+			return end
+		}
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (i *ImplicitCodeLine) Walk(w func(Node)) {
@@ -51,19 +55,25 @@ var _ ScopeNode = (*ExplicitCodeLine)(nil)
 func (e *ExplicitCodeLine) Start() Position {
 	if e.Minus != nil {
 		return *e.Minus
-	} else if e.Statement != nil {
-		return e.Statement.Start()
 	}
-	return Position{}
+	if e.Statement != nil {
+		if start := e.Statement.Start(); start != NoPosition {
+			return start
+		}
+	}
+	return NoPosition
 }
 
 func (e *ExplicitCodeLine) End() Position {
 	if e.Statement != nil {
-		return e.Statement.End()
-	} else if e.Minus != nil {
+		if end := e.Statement.End(); end != NoPosition {
+			return end
+		}
+	}
+	if e.Minus != nil {
 		return *e.Minus
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (e *ExplicitCodeLine) Walk(w func(Node)) {

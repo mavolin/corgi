@@ -18,31 +18,40 @@ var (
 )
 
 func (c *Component) Start() Position {
-	switch {
-	case c.Comp != nil:
+	if c.Comp != nil {
 		return *c.Comp
-	case c.Header != nil:
-		return c.Header.Start()
 	}
-	return Position{}
+	if c.Header != nil {
+		if start := c.Header.Start(); start != NoPosition {
+			return start
+		}
+	}
+	return NoPosition
 }
 
 func (c *Component) End() Position {
-	switch {
-	case c.Body != nil:
-		return c.Body.End()
-	case c.Header != nil:
-		return c.Header.End()
-	case c.Comp != nil:
+	if c.Body != nil {
+		if end := c.Body.End(); end != NoPosition {
+			return end
+		}
+	}
+	if c.Header != nil {
+		if end := c.Header.End(); end != NoPosition {
+			return end
+		}
+	}
+	if c.Comp != nil {
 		return deltaPos(*c.Comp, len("comp"))
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (c *Component) Highlight() (start, end Position) {
 	if c.Comp != nil {
 		if c.Header != nil && c.Header.Name != nil {
-			return *c.Comp, c.Header.Name.End()
+			if end = c.Header.Name.End(); end != NoPosition {
+				return *c.Comp, end
+			}
 		}
 		return *c.Comp, deltaPos(*c.Comp, len("comp"))
 	}
@@ -74,27 +83,41 @@ type ComponentHeader struct {
 var _ Node = (*ComponentHeader)(nil)
 
 func (h *ComponentHeader) Start() Position {
-	switch {
-	case h.Name != nil:
-		return h.Name.Start()
-	case h.TypeParameters != nil:
-		return h.TypeParameters.Start()
-	case h.Parameters != nil:
-		return h.Parameters.Start()
+	if h.Name != nil {
+		if start := h.Name.Start(); start != NoPosition {
+			return start
+		}
 	}
-	return Position{}
+	if h.TypeParameters != nil {
+		if start := h.TypeParameters.Start(); start != NoPosition {
+			return start
+		}
+	}
+	if h.Parameters != nil {
+		if start := h.Parameters.Start(); start != NoPosition {
+			return start
+		}
+	}
+	return NoPosition
 }
 
 func (h *ComponentHeader) End() Position {
-	switch {
-	case h.Parameters != nil:
-		return h.Parameters.End()
-	case h.TypeParameters != nil:
-		return h.TypeParameters.End()
-	case h.Name != nil:
-		return h.Name.End()
+	if h.Parameters != nil {
+		if end := h.Parameters.End(); end != NoPosition {
+			return end
+		}
 	}
-	return Position{}
+	if h.TypeParameters != nil {
+		if end := h.TypeParameters.End(); end != NoPosition {
+			return end
+		}
+	}
+	if h.Name != nil {
+		if end := h.Name.End(); end != NoPosition {
+			return end
+		}
+	}
+	return NoPosition
 }
 
 func (h *ComponentHeader) Walk(w func(Node)) {
@@ -129,13 +152,15 @@ func (p *ComponentParameters) Start() Position {
 	}
 	for _, param := range p.List {
 		if param != nil {
-			return param.Start()
+			if start := param.Start(); start != NoPosition {
+				return start
+			}
 		}
 	}
 	if p.RParen != nil {
 		return *p.RParen
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (p *ComponentParameters) End() Position {
@@ -144,13 +169,15 @@ func (p *ComponentParameters) End() Position {
 	}
 	for _, param := range slices.Backward(p.List) {
 		if param != nil {
-			return param.End()
+			if end := param.End(); end != NoPosition {
+				return end
+			}
 		}
 	}
 	if p.LParen != nil {
 		return deltaPos(*p.LParen, len("("))
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (p *ComponentParameters) Walk(w func(Node)) {
@@ -178,31 +205,47 @@ type ComponentParameter struct {
 var _ Node = (*ComponentParameter)(nil)
 
 func (p *ComponentParameter) Start() Position {
-	switch {
-	case p.Name != nil:
-		return p.Name.Start()
-	case p.Type != nil:
-		return p.Type.Start()
-	case p.Colon != nil:
-		return *p.Colon
-	case p.Default != nil:
-		return p.Default.Start()
+	if p.Name != nil {
+		if start := p.Name.Start(); start != NoPosition {
+			return start
+		}
 	}
-	return Position{}
+	if p.Type != nil {
+		if start := p.Type.Start(); start != NoPosition {
+			return start
+		}
+	}
+	if p.Colon != nil {
+		return *p.Colon
+	}
+	if p.Default != nil {
+		if start := p.Default.Start(); start != NoPosition {
+			return start
+		}
+	}
+	return NoPosition
 }
 
 func (p *ComponentParameter) End() Position {
-	switch {
-	case p.Default != nil:
-		return p.Default.End()
-	case p.Colon != nil:
-		return deltaPos(*p.Colon, len(":"))
-	case p.Type != nil:
-		return p.Type.End()
-	case p.Name != nil:
-		return p.Name.End()
+	if p.Default != nil {
+		if end := p.Default.End(); end != NoPosition {
+			return end
+		}
 	}
-	return Position{}
+	if p.Colon != nil {
+		return deltaPos(*p.Colon, len(":"))
+	}
+	if p.Type != nil {
+		if end := p.Type.End(); end != NoPosition {
+			return end
+		}
+	}
+	if p.Name != nil {
+		if end := p.Name.End(); end != NoPosition {
+			return end
+		}
+	}
+	return NoPosition
 }
 
 func (p *ComponentParameter) Walk(w func(Node)) {
@@ -252,14 +295,14 @@ func (e *Extend) Start() Position {
 	if e.ComponentCall != nil {
 		return e.ComponentCall.Start()
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (e *Extend) End() Position {
 	if e.ComponentCall != nil {
 		return e.ComponentCall.End()
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (e *Extend) Walk(w func(Node)) {
@@ -272,7 +315,7 @@ func (e *Extend) Highlight() (start, end Position) {
 	if e.ComponentCall != nil {
 		return e.ComponentCall.Highlight()
 	}
-	return Position{}, Position{}
+	return NoPosition, NoPosition
 }
 
 func (*Extend) _node()          {}
@@ -303,27 +346,37 @@ func (b *Block) Name() string {
 }
 
 func (b *Block) Start() Position {
-	switch {
-	case b.Block != nil:
+	if b.Block != nil {
 		return *b.Block
-	case b.Identifier != nil:
-		return b.Identifier.Start()
-	case b.Default != nil:
-		return b.Default.Start()
 	}
-	return Position{}
+	if b.Identifier != nil {
+		if start := b.Identifier.Start(); start != NoPosition {
+			return start
+		}
+	}
+	if b.Default != nil {
+		if start := b.Default.Start(); start != NoPosition {
+			return start
+		}
+	}
+	return NoPosition
 }
 
 func (b *Block) End() Position {
-	switch {
-	case b.Default != nil:
-		return b.Default.End()
-	case b.Identifier != nil:
-		return b.Identifier.End()
-	case b.Block != nil:
+	if b.Default != nil {
+		if end := b.Default.End(); end != NoPosition {
+			return end
+		}
+	}
+	if b.Identifier != nil {
+		if end := b.Identifier.End(); end != NoPosition {
+			return end
+		}
+	}
+	if b.Block != nil {
 		return deltaPos(*b.Block, len("block"))
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (b *Block) Highlight() (start, end Position) {

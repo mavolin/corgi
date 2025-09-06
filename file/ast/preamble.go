@@ -17,16 +17,24 @@ func (d *PackageDirective) Start() Position {
 	if d.Package != nil {
 		return *d.Package
 	}
-	return d.Name.Start()
+	if d.Name != nil {
+		if start := d.Name.Start(); start != NoPosition {
+			return start
+		}
+	}
+	return NoPosition
 }
 
 func (d *PackageDirective) End() Position {
 	if d.Name != nil {
-		return d.Name.End()
-	} else if d.Package != nil {
+		if end := d.Name.End(); end != NoPosition {
+			return end
+		}
+	}
+	if d.Package != nil {
 		return deltaPos(*d.Package, len("package"))
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (d *PackageDirective) Walk(w func(Node)) {
@@ -56,18 +64,21 @@ var (
 func (imp *Import) Start() Position {
 	if imp.Import != nil {
 		return *imp.Import
-	} else if imp.LParen != nil {
+	}
+	if imp.LParen != nil {
 		return *imp.LParen
 	}
 	for _, spec := range imp.Specs {
 		if spec != nil {
-			return spec.Start()
+			if start := spec.Start(); start != NoPosition {
+				return start
+			}
 		}
 	}
 	if imp.RParen != nil {
 		return *imp.RParen
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (imp *Import) End() Position {
@@ -76,15 +87,18 @@ func (imp *Import) End() Position {
 	}
 	for _, spec := range slices.Backward(imp.Specs) {
 		if spec != nil {
-			return spec.End()
+			if end := spec.End(); end != NoPosition {
+				return end
+			}
 		}
 	}
 	if imp.LParen != nil {
 		return deltaPos(*imp.LParen, len("("))
-	} else if imp.Import != nil {
+	}
+	if imp.Import != nil {
 		return deltaPos(*imp.Import, len("import"))
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (imp *Import) Walk(w func(Node)) {
@@ -122,20 +136,30 @@ var _ Node = (*ImportSpec)(nil)
 
 func (s *ImportSpec) Start() Position {
 	if s.Alias != nil {
-		return s.Alias.Start()
-	} else if s.Path != nil {
-		return s.Path.Start()
+		if start := s.Alias.Start(); start != NoPosition {
+			return start
+		}
 	}
-	return Position{}
+	if s.Path != nil {
+		if start := s.Path.Start(); start != NoPosition {
+			return start
+		}
+	}
+	return NoPosition
 }
 
 func (s *ImportSpec) End() Position {
 	if s.Path != nil {
-		return s.Path.End()
-	} else if s.Alias != nil {
-		return s.Alias.End()
+		if end := s.Path.End(); end != NoPosition {
+			return end
+		}
 	}
-	return Position{}
+	if s.Alias != nil {
+		if end := s.Alias.End(); end != NoPosition {
+			return end
+		}
+	}
+	return NoPosition
 }
 
 func (s *ImportSpec) Walk(w func(Node)) {

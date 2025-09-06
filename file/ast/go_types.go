@@ -82,20 +82,30 @@ var _ ParsedType = (*NamedType)(nil)
 
 func (t *NamedType) Start() Position {
 	if t.Name != nil {
-		return t.Name.Start()
-	} else if t.TypeArgs != nil {
-		return t.TypeArgs.Start()
+		if start := t.Name.Start(); start != NoPosition {
+			return start
+		}
 	}
-	return Position{}
+	if t.TypeArgs != nil {
+		if start := t.TypeArgs.Start(); start != NoPosition {
+			return start
+		}
+	}
+	return NoPosition
 }
 
 func (t *NamedType) End() Position {
 	if t.TypeArgs != nil {
-		return t.TypeArgs.End()
-	} else if t.Name != nil {
-		return t.Name.End()
+		if end := t.TypeArgs.End(); end != NoPosition {
+			return end
+		}
 	}
-	return Position{}
+	if t.Name != nil {
+		if end := t.Name.End(); end != NoPosition {
+			return end
+		}
+	}
+	return NoPosition
 }
 
 func (t *NamedType) Walk(w func(Node)) {
@@ -126,26 +136,36 @@ var _ ParsedType = (*AttributeType)(nil)
 func (t *AttributeType) Start() Position {
 	if t.Quote != nil {
 		return *t.Quote
-	} else if t.Name != nil {
-		return t.Name.Start()
 	}
-	return Position{}
+	if t.Name != nil {
+		if start := t.Name.Start(); start != NoPosition {
+			return start
+		}
+	}
+	return NoPosition
 }
 
 func (t *AttributeType) End() Position {
-	switch {
-	case t.RBracket != nil:
+	if t.RBracket != nil {
 		return deltaPos(*t.RBracket, len("]"))
-	case t.Attribute != nil:
-		return t.Attribute.End()
-	case t.LBracket != nil:
+	}
+	if t.Attribute != nil {
+		if end := t.Attribute.End(); end != NoPosition {
+			return end
+		}
+	}
+	if t.LBracket != nil {
 		return deltaPos(*t.LBracket, len("["))
-	case t.Name != nil:
-		return t.Name.End()
-	case t.Quote != nil:
+	}
+	if t.Name != nil {
+		if end := t.Name.End(); end != NoPosition {
+			return end
+		}
+	}
+	if t.Quote != nil {
 		return deltaPos(*t.Quote, len("'"))
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (t *AttributeType) Walk(w func(Node)) {
@@ -173,19 +193,23 @@ var _ Node = (*TypeConstraint)(nil)
 func (c *TypeConstraint) Start() Position {
 	for _, term := range c.Terms {
 		if term != nil {
-			return term.Start()
+			if start := term.Start(); start != NoPosition {
+				return start
+			}
 		}
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (c *TypeConstraint) End() Position {
 	for _, term := range slices.Backward(c.Terms) {
 		if term != nil {
-			return term.End()
+			if end := term.End(); end != NoPosition {
+				return end
+			}
 		}
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (c *TypeConstraint) Walk(w func(Node)) {
@@ -219,20 +243,26 @@ var _ TypeTerm = (*UnderlyingParam)(nil)
 
 func (p *UnderlyingParam) Start() Position {
 	if p.Type != nil {
-		return p.Type.Start()
-	} else if p.Tilde != nil {
+		if start := p.Type.Start(); start != NoPosition {
+			return start
+		}
+	}
+	if p.Tilde != nil {
 		return *p.Tilde
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (p *UnderlyingParam) End() Position {
 	if p.Type != nil {
-		return p.Type.End()
-	} else if p.Tilde != nil {
+		if end := p.Type.End(); end != NoPosition {
+			return end
+		}
+	}
+	if p.Tilde != nil {
 		return deltaPos(*p.Tilde, len("~"))
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (p *UnderlyingParam) Walk(w func(Node)) {
@@ -262,13 +292,15 @@ func (a *TypeArguments) Start() Position {
 	}
 	for _, t := range a.Types {
 		if t != nil {
-			return t.Start()
+			if start := t.Start(); start != NoPosition {
+				return start
+			}
 		}
 	}
 	if a.RBracket != nil {
 		return deltaPos(*a.RBracket, len("]"))
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (a *TypeArguments) End() Position {
@@ -277,13 +309,15 @@ func (a *TypeArguments) End() Position {
 	}
 	for _, t := range slices.Backward(a.Types) {
 		if t != nil {
-			return t.End()
+			if end := t.End(); end != NoPosition {
+				return end
+			}
 		}
 	}
 	if a.LBracket != nil {
 		return deltaPos(*a.LBracket, len("["))
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (a *TypeArguments) Walk(w func(Node)) {
@@ -314,13 +348,15 @@ func (p *TypeParameters) Start() Position {
 	}
 	for _, param := range p.Params {
 		if param != nil {
-			return param.Start()
+			if start := param.Start(); start != NoPosition {
+				return start
+			}
 		}
 	}
 	if p.RBracket != nil {
 		return deltaPos(*p.RBracket, len("]"))
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (p *TypeParameters) End() Position {
@@ -329,13 +365,15 @@ func (p *TypeParameters) End() Position {
 	}
 	for _, param := range slices.Backward(p.Params) {
 		if param != nil {
-			return param.End()
+			if end := param.End(); end != NoPosition {
+				return end
+			}
 		}
 	}
 	if p.LBracket != nil {
 		return deltaPos(*p.LBracket, len("["))
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (p *TypeParameters) Walk(w func(Node)) {
@@ -362,25 +400,33 @@ var _ Node = (*TypeParameter)(nil)
 func (p *TypeParameter) Start() Position {
 	for _, name := range p.Names {
 		if name != nil {
-			return name.Start()
+			if start := name.Start(); start != NoPosition {
+				return start
+			}
 		}
 	}
 	if p.Type != nil {
-		return p.Type.Start()
+		if start := p.Type.Start(); start != NoPosition {
+			return start
+		}
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (p *TypeParameter) End() Position {
 	if p.Type != nil {
-		return p.Type.End()
+		if end := p.Type.End(); end != NoPosition {
+			return end
+		}
 	}
 	for _, name := range slices.Backward(p.Names) {
 		if name != nil {
-			return name.End()
+			if end := name.End(); end != NoPosition {
+				return end
+			}
 		}
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (p *TypeParameter) Walk(w func(Node)) {

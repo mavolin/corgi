@@ -8,16 +8,20 @@ var _ Node = (*Expression)(nil)
 
 func (e *Expression) Start() Position {
 	if e.Nodes != nil {
-		return e.Nodes.Start()
+		if start := e.Nodes.Start(); start != NoPosition {
+			return start
+		}
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (e *Expression) End() Position {
 	if e.Nodes != nil {
-		return e.Nodes.End()
+		if end := e.Nodes.End(); end != NoPosition {
+			return end
+		}
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (e *Expression) Walk(w func(Node)) {

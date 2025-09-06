@@ -37,19 +37,23 @@ type CommentGroup struct {
 func (g CommentGroup) Start() Position {
 	for _, c := range g.Comments {
 		if c != nil {
-			return c.Start()
+			if start := c.Start(); start != NoPosition {
+				return start
+			}
 		}
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (g CommentGroup) End() Position {
 	for _, c := range slices.Backward(g.Comments) {
 		if c != nil {
-			return c.End()
+			if end := c.End(); end != NoPosition {
+				return end
+			}
 		}
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (g CommentGroup) Walk(w func(Node)) {

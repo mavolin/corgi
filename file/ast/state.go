@@ -18,18 +18,21 @@ var _ TopLevelNode = (*StateDeclaration)(nil)
 func (s *StateDeclaration) Start() Position {
 	if s.State != nil {
 		return *s.State
-	} else if s.LParen != nil {
+	}
+	if s.LParen != nil {
 		return *s.LParen
 	}
 	for _, spec := range s.Specs {
 		if spec != nil {
-			return spec.Start()
+			if start := spec.Start(); start != NoPosition {
+				return start
+			}
 		}
 	}
 	if s.RParen != nil {
 		return *s.RParen
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (s *StateDeclaration) End() Position {
@@ -38,15 +41,18 @@ func (s *StateDeclaration) End() Position {
 	}
 	for _, spec := range slices.Backward(s.Specs) {
 		if spec != nil {
-			return spec.End()
+			if end := spec.End(); end != NoPosition {
+				return end
+			}
 		}
 	}
 	if s.LParen != nil {
 		return deltaPos(*s.LParen, len("("))
-	} else if s.State != nil {
+	}
+	if s.State != nil {
 		return deltaPos(*s.State, len("state"))
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (s *StateDeclaration) Walk(w func(Node)) {
@@ -88,39 +94,53 @@ var _ Node = (*StateSpec)(nil)
 func (v *StateSpec) Start() Position {
 	for _, name := range v.Names {
 		if name != nil {
-			return name.Start()
+			if start := name.Start(); start != NoPosition {
+				return start
+			}
 		}
 	}
 	if v.Type != nil {
-		return v.Type.Start()
-	} else if v.EqualSign != nil {
+		if start := v.Type.Start(); start != NoPosition {
+			return start
+		}
+	}
+	if v.EqualSign != nil {
 		return *v.EqualSign
 	}
 	for _, value := range v.Values {
 		if value != nil {
-			return value.Start()
+			if start := value.Start(); start != NoPosition {
+				return start
+			}
 		}
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (v *StateSpec) End() Position {
 	for _, value := range slices.Backward(v.Values) {
 		if value != nil {
-			return value.End()
+			if end := value.End(); end != NoPosition {
+				return end
+			}
 		}
 	}
 	if v.EqualSign != nil {
 		return deltaPos(*v.EqualSign, len("="))
-	} else if v.Type != nil {
-		return v.Type.End()
+	}
+	if v.Type != nil {
+		if end := v.Type.End(); end != NoPosition {
+			return end
+		}
 	}
 	for _, name := range slices.Backward(v.Names) {
 		if name != nil {
-			return name.End()
+			if end := name.End(); end != NoPosition {
+				return end
+			}
 		}
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (v *StateSpec) Walk(w func(Node)) {

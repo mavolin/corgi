@@ -22,27 +22,37 @@ var (
 )
 
 func (c *ComponentCall) Start() Position {
-	switch {
-	case c.Colon != nil:
+	if c.Colon != nil {
 		return *c.Colon
-	case c.Header != nil:
-		return c.Header.Start()
-	case c.Body != nil:
-		return c.Body.Start()
 	}
-	return Position{}
+	if c.Header != nil {
+		if start := c.Header.Start(); start != NoPosition {
+			return start
+		}
+	}
+	if c.Body != nil {
+		if start := c.Body.Start(); start != NoPosition {
+			return start
+		}
+	}
+	return NoPosition
 }
 
 func (c *ComponentCall) End() Position {
-	switch {
-	case c.Body != nil:
-		return c.Body.End()
-	case c.Header != nil:
-		return c.Header.End()
-	case c.Colon != nil:
+	if c.Body != nil {
+		if end := c.Body.End(); end != NoPosition {
+			return end
+		}
+	}
+	if c.Header != nil {
+		if end := c.Header.End(); end != NoPosition {
+			return end
+		}
+	}
+	if c.Colon != nil {
 		return deltaPos(*c.Colon, len(":"))
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (c *ComponentCall) Walk(w func(Node)) {
@@ -57,7 +67,9 @@ func (c *ComponentCall) Walk(w func(Node)) {
 func (c *ComponentCall) Highlight() (start, end Position) {
 	if c.Colon != nil {
 		if c.Header != nil && c.Header.Name != nil {
-			return *c.Colon, c.Header.Name.End()
+			if end = c.Header.Name.End(); end != NoPosition {
+				return *c.Colon, end
+			}
 		}
 		return *c.Colon, deltaPos(*c.Colon, len(":"))
 	}
@@ -86,27 +98,41 @@ type ComponentCallHeader struct {
 var _ Node = (*ComponentCallHeader)(nil)
 
 func (h *ComponentCallHeader) Start() Position {
-	switch {
-	case h.Name != nil:
-		return h.Name.Start()
-	case h.TypeArguments != nil:
-		return h.TypeArguments.Start()
-	case h.Arguments != nil:
-		return h.Arguments.Start()
+	if h.Name != nil {
+		if start := h.Name.Start(); start != NoPosition {
+			return start
+		}
 	}
-	return Position{}
+	if h.TypeArguments != nil {
+		if start := h.TypeArguments.Start(); start != NoPosition {
+			return start
+		}
+	}
+	if h.Arguments != nil {
+		if start := h.Arguments.Start(); start != NoPosition {
+			return start
+		}
+	}
+	return NoPosition
 }
 
 func (h *ComponentCallHeader) End() Position {
-	switch {
-	case h.Arguments != nil:
-		return h.Arguments.End()
-	case h.TypeArguments != nil:
-		return h.TypeArguments.End()
-	case h.Name != nil:
-		return h.Name.End()
+	if h.Arguments != nil {
+		if end := h.Arguments.End(); end != NoPosition {
+			return end
+		}
 	}
-	return Position{}
+	if h.TypeArguments != nil {
+		if end := h.TypeArguments.End(); end != NoPosition {
+			return end
+		}
+	}
+	if h.Name != nil {
+		if end := h.Name.End(); end != NoPosition {
+			return end
+		}
+	}
+	return NoPosition
 }
 
 func (h *ComponentCallHeader) Walk(w func(Node)) {
@@ -169,19 +195,25 @@ func (s *DefaultBlockShorthand) Name() string {
 func (s *DefaultBlockShorthand) Start() Position {
 	if s.Position != nil {
 		return *s.Position
-	} else if s.Body != nil {
-		return s.Body.Start()
 	}
-	return Position{}
+	if s.Body != nil {
+		if start := s.Body.Start(); start != NoPosition {
+			return start
+		}
+	}
+	return NoPosition
 }
 
 func (s *DefaultBlockShorthand) End() Position {
 	if s.Body != nil {
-		return s.Body.End()
-	} else if s.Position != nil {
+		if end := s.Body.End(); end != NoPosition {
+			return end
+		}
+	}
+	if s.Position != nil {
 		return deltaPos(*s.Position, len("_"))
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (s *DefaultBlockShorthand) Walk(w func(Node)) {
@@ -236,27 +268,37 @@ func (w *With) Name() string {
 }
 
 func (w *With) Start() Position {
-	switch {
-	case w.With != nil:
+	if w.With != nil {
 		return *w.With
-	case w.Identifier != nil:
-		return w.Identifier.Start()
-	case w.Body != nil:
-		return w.Body.Start()
 	}
-	return Position{}
+	if w.Identifier != nil {
+		if start := w.Identifier.Start(); start != NoPosition {
+			return start
+		}
+	}
+	if w.Body != nil {
+		if start := w.Body.Start(); start != NoPosition {
+			return start
+		}
+	}
+	return NoPosition
 }
 
 func (w *With) End() Position {
-	switch {
-	case w.Body != nil:
-		return w.Body.End()
-	case w.Identifier != nil:
-		return w.Identifier.End()
-	case w.With != nil:
+	if w.Body != nil {
+		if end := w.Body.End(); end != NoPosition {
+			return end
+		}
+	}
+	if w.Identifier != nil {
+		if end := w.Identifier.End(); end != NoPosition {
+			return end
+		}
+	}
+	if w.With != nil {
 		return deltaPos(*w.With, len("with"))
 	}
-	return Position{}
+	return NoPosition
 }
 
 func (w *With) Walk(f func(Node)) {
@@ -271,7 +313,9 @@ func (w *With) Walk(f func(Node)) {
 func (w *With) Highlight() (start, end Position) {
 	if w.With != nil {
 		if w.Identifier != nil {
-			return *w.With, w.Identifier.End()
+			if end := w.Identifier.End(); end != NoPosition {
+				return *w.With, end
+			}
 		}
 		return *w.With, deltaPos(*w.With, len("with"))
 	}
