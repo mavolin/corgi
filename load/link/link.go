@@ -44,9 +44,8 @@ type (
 		Logger *slog.Logger
 
 		// Importer loads imports.
-		// If not specified, the linker will run in local-only mode, where only
+		// If not specified, the linker will run in local-only mode, where
 		// files must not make any imports.
-		// This does not affect the use of built-in package.
 		//
 		// The linker does not cache results of the Importer on its own.
 		// In a package where n files import the same package, the linker will

@@ -4,6 +4,8 @@ import (
 	"context"
 	"testing"
 
+	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/file/diagnostic"
 	"github.com/mavolin/corgi/v2/internal/test/should"
 )
 
@@ -13,43 +15,41 @@ func TestLinker_CheckDuplicateDotImports(t *testing.T) {
 	t.Run("no duplicates", func(t *testing.T) {
 		t.Parallel()
 
+		var start ast.Position
 		pkgA := createPackage("pkg/a")
 		pkgB := createPackage("pkg/b")
 
 		mainPkg := createPackage("main")
 		mainFile := createFile(mainPkg, "main.corgi")
-		createImport(mainFile, nil, ".", pkgA.ImportPath)
-		createImport(mainFile, nil, ".", pkgB.ImportPath)
+		createImport(mainFile, &start, ".", pkgA.ImportPath)
+		createImport(mainFile, &start, ".", pkgB.ImportPath)
 
-		ds := Link(context.Background(), mainPkg, Options{
+		d := Link(context.Background(), mainPkg, Options{
 			Importer: ImporterFor(pkgA, pkgB),
 		})
-		if !should.Equal(t, len(ds), 0) {
-			t.Log(ds.Short())
-		}
+
+		t.Log(d.Pretty(diagnostic.PrettyOptions{}))
+		should.Equal(t, len(d), 0)
 	})
 
 	t.Run("duplicate dot imports", func(t *testing.T) {
 		t.Parallel()
 
+		var start ast.Position
 		pkgA := createPackage("pkg/a")
 
 		mainPkg := createPackage("main")
 		mainFile := createFile(mainPkg, "main.corgi")
 
-		createImport(mainFile, nil, ".", pkgA.ImportPath)
-		createImport(mainFile, nil, ".", pkgA.ImportPath)
+		createImport(mainFile, &start, ".", pkgA.ImportPath)
+		createImport(mainFile, &start, ".", pkgA.ImportPath)
 
-		ds := Link(context.Background(), mainPkg, Options{
+		d := Link(context.Background(), mainPkg, Options{
 			Importer: ImporterFor(pkgA),
 		})
 
-		if should.Equal(t, len(ds), 1) {
-			if !should.Equal(t, ds[0].Message, "duplicated dot imports") {
-				t.Log(ds[0].Short())
-			}
-		} else {
-			t.Log(ds.Short())
+		if should.Equal(t, len(d), 1) {
+			should.Equal(t, d[0].Message, "duplicated dot imports")
 		}
 	})
 }

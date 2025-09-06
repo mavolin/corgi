@@ -7,6 +7,8 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/mavolin/corgi/v2/file"
+	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/file/diagnostic"
 	"github.com/mavolin/corgi/v2/internal/test/should"
 )
 
@@ -23,23 +25,23 @@ func testLinker_LinkComponentCalls_success(t *testing.T) { //nolint:revive
 	t.Run("local", func(t *testing.T) {
 		t.Parallel()
 
+		var start ast.Position
 		builtinPkg := createPackage("builtin")
 		builtinF := createFile(builtinPkg, "builtin.corgi")
-		createComponent(builtinF, nil, "test")
+		createComponent(builtinF, &start, "test")
 
 		p := createPackage("test")
 		f := createFile(p, "test.corgi")
-		comp := createComponent(f, nil, "test")
-		call := createComponentCall(f, nil, "", comp.AST.Header.Name.Name)
+		comp := createComponent(f, &start, "test")
+		call := createComponentCall(f, &start, "", comp.AST.Header.Name.Name)
 
-		ds := Link(context.Background(), p, Options{
+		d := Link(context.Background(), p, Options{
 			Importer:    ImporterFor(builtinPkg),
 			BuiltinPath: builtinPkg.ImportPath,
 		})
 
-		if !should.Equal(t, len(ds), 0) {
-			t.Log(ds.Short())
-		}
+		t.Log(d.Pretty(diagnostic.PrettyOptions{}))
+		should.Equal(t, len(d), 0)
 		if !should.True(t, comp == call.Component) {
 			t.Log(cmp.Diff(comp, call.Component))
 		}
@@ -48,22 +50,22 @@ func testLinker_LinkComponentCalls_success(t *testing.T) { //nolint:revive
 	t.Run("builtin", func(t *testing.T) {
 		t.Parallel()
 
+		var start ast.Position
 		builtinPkg := createPackage("builtin")
 		builtinF := createFile(builtinPkg, "builtin.corgi")
-		comp := createComponent(builtinF, nil, "test")
+		comp := createComponent(builtinF, &start, "test")
 
 		p := createPackage("test")
 		f := createFile(p, "test.corgi")
-		call := createComponentCall(f, nil, "", comp.AST.Header.Name.Name)
+		call := createComponentCall(f, &start, "", comp.AST.Header.Name.Name)
 
-		ds := Link(context.Background(), p, Options{
+		d := Link(context.Background(), p, Options{
 			Importer:    ImporterFor(builtinPkg),
 			BuiltinPath: builtinPkg.ImportPath,
 		})
 
-		if !should.Equal(t, len(ds), 0) {
-			t.Log(ds.Short())
-		}
+		t.Log(d.Pretty(diagnostic.PrettyOptions{}))
+		should.Equal(t, len(d), 0)
 		if !should.True(t, comp == call.Component) {
 			t.Log(cmp.Diff(comp, call.Component))
 		}
@@ -91,12 +93,13 @@ func testLinker_LinkComponentCalls_success(t *testing.T) { //nolint:revive
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
+			var start ast.Position
 			importedPkg := createPackage("imported")
 			if c.packageNameDiffersFromDir {
 				importedPkg.Name += "pkg"
 			}
 			importedF := createFile(importedPkg, "imported.corgi")
-			importedComp := createComponent(importedF, nil, "Test")
+			importedComp := createComponent(importedF, &start, "Test")
 
 			namespace := importedPkg.Name
 			if c.alias == "." {
@@ -107,16 +110,15 @@ func testLinker_LinkComponentCalls_success(t *testing.T) { //nolint:revive
 
 			mainPkg := createPackage("main")
 			mainFile := createFile(mainPkg, "main.corgi")
-			createImport(mainFile, nil, c.alias, importedPkg.ImportPath)
-			call := createComponentCall(mainFile, nil, namespace, importedComp.AST.Header.Name.Name)
+			createImport(mainFile, &start, c.alias, importedPkg.ImportPath)
+			call := createComponentCall(mainFile, &start, namespace, importedComp.AST.Header.Name.Name)
 
-			ds := Link(context.Background(), mainPkg, Options{
+			d := Link(context.Background(), mainPkg, Options{
 				Importer: ImporterFor(importedPkg),
 			})
 
-			if !should.Equal(t, len(ds), 0) {
-				t.Log(ds.Short())
-			}
+			t.Log(d.Pretty(diagnostic.PrettyOptions{}))
+			should.Equal(t, len(d), 0)
 			if !should.True(t, importedComp == call.Component) {
 				t.Log(cmp.Diff(importedComp, call.Component))
 			}
@@ -138,9 +140,10 @@ func testLinker_LinkComponentCalls_failure(t *testing.T) { //nolint:revive
 			name:    "unresolved unqualified call",
 			message: "component call: unresolved reference",
 			setup: func() (p *file.Package, packages []*file.Package, packageErrors map[importPath]error) {
+				var start ast.Position
 				p = createPackage("test")
 				f := createFile(p, "test.corgi")
-				createComponentCall(f, nil, "", "Test")
+				createComponentCall(f, &start, "", "Test")
 
 				return p, nil, nil
 			},
@@ -148,9 +151,10 @@ func testLinker_LinkComponentCalls_failure(t *testing.T) { //nolint:revive
 			name:    "builtin not loaded",
 			message: "failed to load builtin package",
 			setup: func() (p *file.Package, packages []*file.Package, packageErrors map[importPath]error) {
+				var start ast.Position
 				p = createPackage("test")
 				f := createFile(p, "test.corgi")
-				createComponentCall(f, nil, "", "test")
+				createComponentCall(f, &start, "", "test")
 
 				return p, nil, map[importPath]error{
 					builtinPath: errors.New("stub error"),
@@ -160,14 +164,15 @@ func testLinker_LinkComponentCalls_failure(t *testing.T) { //nolint:revive
 			name:    "import not loaded",
 			message: "import: failed to load package",
 			setup: func() (p *file.Package, packages []*file.Package, packageErrors map[importPath]error) {
+				var start ast.Position
 				importedPkg := createPackage("imported")
 				importedPkg.PackageSymbols = nil
 				createFile(importedPkg, "imported.corgi")
 
 				p = createPackage("test")
 				f := createFile(p, "test.corgi")
-				imp := createImport(f, nil, "", importedPkg.ImportPath)
-				createComponentCall(f, nil, "imported", "Test")
+				imp := createImport(f, &start, "", importedPkg.ImportPath)
+				createComponentCall(f, &start, "imported", "Test")
 
 				return p, []*file.Package{importedPkg},
 					map[importPath]error{
@@ -178,10 +183,11 @@ func testLinker_LinkComponentCalls_failure(t *testing.T) { //nolint:revive
 			name:    "dot import not loaded",
 			message: "import: failed to load package",
 			setup: func() (p *file.Package, packages []*file.Package, packageErrors map[importPath]error) {
+				var start ast.Position
 				p = createPackage("test")
 				f := createFile(p, "test.corgi")
-				imp := createImport(f, nil, ".", "imported")
-				createComponentCall(f, nil, "", "Test")
+				imp := createImport(f, &start, ".", "imported")
+				createComponentCall(f, &start, "", "Test")
 
 				return p, nil, map[importPath]error{
 					imp.Path: errors.New("stub error"),
@@ -191,13 +197,14 @@ func testLinker_LinkComponentCalls_failure(t *testing.T) { //nolint:revive
 			name:    "qualified call to unexported component",
 			message: "component call: cannot call unexported component",
 			setup: func() (p *file.Package, packages []*file.Package, packageErrors map[importPath]error) {
+				var start ast.Position
 				importedPkg := createPackage("imported")
 				importedF := createFile(importedPkg, "imported.corgi")
-				comp := createComponent(importedF, nil, "test")
+				comp := createComponent(importedF, &start, "test")
 
 				p = createPackage("test")
 				f := createFile(p, "test.corgi")
-				createComponentCall(f, nil, importedPkg.Name, comp.AST.Header.Name.Name)
+				createComponentCall(f, &start, importedPkg.Name, comp.AST.Header.Name.Name)
 
 				return p, []*file.Package{importedPkg}, nil
 			},
@@ -205,9 +212,10 @@ func testLinker_LinkComponentCalls_failure(t *testing.T) { //nolint:revive
 			name:    "qualified call to unknown package",
 			message: "component call: unresolved reference to package",
 			setup: func() (p *file.Package, packages []*file.Package, packageErrors map[importPath]error) {
+				var start ast.Position
 				p = createPackage("test")
 				f := createFile(p, "test.corgi")
-				createComponentCall(f, nil, "unknown", "Test")
+				createComponentCall(f, &start, "unknown", "Test")
 
 				return p, nil, nil
 			},
@@ -215,13 +223,14 @@ func testLinker_LinkComponentCalls_failure(t *testing.T) { //nolint:revive
 			name:    "qualified call to unknown component",
 			message: "component call: unresolved reference",
 			setup: func() (p *file.Package, packages []*file.Package, packageErrors map[importPath]error) {
+				var start ast.Position
 				importedPkg := createPackage("imported")
 				createFile(importedPkg, "imported.corgi")
 
 				p = createPackage("test")
 				f := createFile(p, "test.corgi")
-				createImport(f, nil, "", importedPkg.ImportPath)
-				createComponentCall(f, nil, importedPkg.Name, "Test")
+				createImport(f, &start, "", importedPkg.ImportPath)
+				createComponentCall(f, &start, importedPkg.Name, "Test")
 
 				return p, []*file.Package{importedPkg}, nil
 			},
@@ -245,14 +254,11 @@ func testLinker_LinkComponentCalls_failure(t *testing.T) { //nolint:revive
 			} else if _, ok := errs[builtinPath]; ok {
 				o.BuiltinPath = builtinPath
 			}
-			ds := Link(context.Background(), p, o)
+			d := Link(context.Background(), p, o)
 
-			if should.Equal(t, len(ds), 1) {
-				if !should.True(t, ds[0].Message == c.message) {
-					t.Log(ds[0].Short())
-				}
-			} else {
-				t.Log(ds.Short())
+			t.Log(d.Pretty(diagnostic.PrettyOptions{}))
+			if should.Equal(t, len(d), 1) {
+				should.True(t, d[0].Message == c.message)
 			}
 		})
 	}
@@ -267,19 +273,20 @@ func TestLinker_LinkBlockSetterBlocks(t *testing.T) {
 		t.Run("named block", func(t *testing.T) {
 			t.Parallel()
 
+			var start ast.Position
 			p := createPackage("test")
 			f := createFile(p, "test.corgi")
-			comp := createComponent(f, nil, "Test")
+			comp := createComponent(f, &start, "Test")
 			block := createBlock(comp, "content")
 
-			call := createComponentCall(f, nil, "", comp.AST.Header.Name.Name)
+			call := createComponentCall(f, &start, "", comp.AST.Header.Name.Name)
 			blockSetter := createBlockSetter(call, block.Name)
-			createWith(blockSetter, nil)
+			createWith(blockSetter, &start)
 
-			ds := Link(context.Background(), p, Options{})
-			if !should.Equal(t, len(ds), 0) {
-				t.Log(ds.Short())
-			}
+			d := Link(context.Background(), p, Options{})
+			t.Log(d.Pretty(diagnostic.PrettyOptions{}))
+
+			should.Equal(t, len(d), 0)
 
 			should.True(t, blockSetter.Linked)
 			if !should.True(t, comp == call.Component) {
@@ -294,20 +301,20 @@ func TestLinker_LinkBlockSetterBlocks(t *testing.T) {
 		t.Run("default block", func(t *testing.T) {
 			t.Parallel()
 
+			var start ast.Position
 			p := createPackage("test")
 			f := createFile(p, "test.corgi")
 
-			comp := createComponent(f, nil, "Test")
+			comp := createComponent(f, &start, "Test")
 			block := createBlock(comp, "")
 
-			call := createComponentCall(f, nil, "", comp.AST.Header.Name.Name)
+			call := createComponentCall(f, &start, "", comp.AST.Header.Name.Name)
 			blockSetter := createBlockSetter(call, block.Name)
 
-			ds := Link(context.Background(), p, Options{})
+			d := Link(context.Background(), p, Options{})
 
-			if !should.Equal(t, len(ds), 0) {
-				t.Log(ds.Short())
-			}
+			t.Log(d.Pretty(diagnostic.PrettyOptions{}))
+			should.Equal(t, len(d), 0)
 
 			should.True(t, blockSetter.Linked)
 			if !should.True(t, comp == call.Component) {
@@ -323,30 +330,26 @@ func TestLinker_LinkBlockSetterBlocks(t *testing.T) {
 	t.Run("unknown block", func(t *testing.T) {
 		t.Parallel()
 
+		var start ast.Position
 		p := createPackage("test")
 		f := createFile(p, "test.corgi")
 
-		comp := createComponent(f, nil, "Test")
+		comp := createComponent(f, &start, "Test")
 		createBlock(comp, "sidebar")
 
-		call := createComponentCall(f, nil, "", comp.AST.Header.Name.Name)
+		call := createComponentCall(f, &start, "", comp.AST.Header.Name.Name)
 		blockSetter := createBlockSetter(call, "nonexistent")
-		createWith(blockSetter, nil)
+		createWith(blockSetter, &start)
 
-		ds := Link(context.Background(), p, Options{})
+		d := Link(context.Background(), p, Options{})
 
-		if !should.True(t, comp == call.Component) {
-			t.Log(cmp.Diff(comp, call.Component))
-		}
+		should.True(t, comp == call.Component)
 
 		should.True(t, blockSetter.Linked)
 		should.True(t, blockSetter.Block == nil)
-		if should.Equal(t, len(ds), 1) {
-			if !should.True(t, ds[0].Message == "component call: block setter references unknown block") {
-				t.Log(ds[0].Short())
-			}
-		} else {
-			t.Log(ds.Short())
+		t.Log(d.Pretty(diagnostic.PrettyOptions{}))
+		if should.Equal(t, len(d), 1) {
+			should.True(t, d[0].Message == "component call: block setter references unknown block")
 		}
 	})
 }

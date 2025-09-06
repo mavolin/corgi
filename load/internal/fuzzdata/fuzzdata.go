@@ -11,6 +11,8 @@ func AddBaseCorpus(f *testing.F) {
 	f.Add("package")
 	f.Add("package main")
 	f.Add("package main\n\nimport \"std\"")
+	f.Add("import foo \"fmt\"\n")
+	f.Add("import \"example.com/mypackage\"\n")
 	f.Add("comp Woof() {}")
 	f.Add("comp Woof() {\n\tdiv [ Hello World! ]\n}")
 	f.Add(":Bark(woof: 12)")
@@ -62,7 +64,7 @@ func AddBaseCorpus(f *testing.F) {
 	f.Add("continue")
 
 	// Read all .corgi files in the project
-	corgiFiles, err := recursivelyReadAll("../../../", "*.corgi")
+	corgiFiles, err := recursivelyReadAll("../../", "*.corgi")
 	if err != nil {
 		f.Fatalf("failed to read .corgi files: %v", err)
 	}

@@ -55,9 +55,15 @@ func createPackage(pathInModule string) *file.Package {
 
 // createFile is a helper to create a file for testing.
 func createFile(p *file.Package, name string) *file.File {
+	lines := make([]string, 48)
+	for i := range lines {
+		lines[i] = strings.Repeat(" ", 180) // so diagnostics work
+	}
+
 	f := &file.File{
 		Package: p,
 		Name:    name,
+		AST:     &ast.File{Lines: lines},
 		Symbols: &file.Symbols{},
 	}
 	p.Files = append(p.Files, f)
@@ -100,11 +106,11 @@ func addAttributeReference(f *file.File, ref *file.AttributeReference) {
 }
 
 func createComponent(f *file.File, start *ast.Position, name string) *file.Component {
-	if start == nil {
-		start = &ast.Position{Line: 1, Col: 1}
+	if *start == ast.NoPosition {
+		*start = ast.Position{Line: 1, Col: 1}
 	}
 
-	compAST := &ast.Component{Comp: start}
+	compAST := &ast.Component{Comp: clonePos(start)}
 	compAST.Header = &ast.ComponentHeader{
 		Name: &ast.Identifier{
 			Name:     name,
@@ -117,16 +123,18 @@ func createComponent(f *file.File, start *ast.Position, name string) *file.Compo
 		AST:  compAST,
 	}
 	addComponent(f.Package, c)
+	start.Line++
+	start.Col = 1
 	return c
 }
 
 // createElementSpec creates an element spec for testing
 func createElementSpec(f *file.File, start *ast.Position, prefix, name string, typ elemtype.Type) *file.ElementSpec {
-	if start == nil {
-		start = &ast.Position{Line: 1, Col: 1}
+	if *start == ast.NoPosition {
+		*start = ast.Position{Line: 1, Col: 1}
 	}
 
-	definitionAST := &ast.ElementDefinition{Elem: start}
+	definitionAST := &ast.ElementDefinition{Elem: clonePos(start)}
 	if prefix != "" {
 		definitionAST.Prefix = &ast.ElementName{
 			Name:     prefix,
@@ -149,6 +157,8 @@ func createElementSpec(f *file.File, start *ast.Position, prefix, name string, t
 	spec.Type.SetResult(typ)
 
 	addElementSpec(f.Package, spec)
+	start.Line++
+	start.Col = 1
 	return spec
 }
 
@@ -156,11 +166,11 @@ func createElementSpec(f *file.File, start *ast.Position, prefix, name string, t
 //
 // if elemSpec is nil, the attribute spec will match all elements
 func createBasicAttributeSpec(f *file.File, start *ast.Position, prefix, name string, elemSpec *file.ElementSpec, typ attrtype.Type) *file.AttributeSpec {
-	if start == nil {
-		start = &ast.Position{Line: 1, Col: 1}
+	if *start == ast.NoPosition {
+		*start = ast.Position{Line: 1, Col: 1}
 	}
 
-	definitionAST := &ast.AttributeDefinition{Attr: start}
+	definitionAST := &ast.AttributeDefinition{Attr: clonePos(start)}
 	if prefix != "" {
 		definitionAST.Prefix = &ast.AttributeName{
 			Name:     prefix,
@@ -217,6 +227,8 @@ func createBasicAttributeSpec(f *file.File, start *ast.Position, prefix, name st
 	}
 
 	addAttributeSpec(f.Package, spec)
+	start.Line++
+	start.Col = 1
 	return spec
 }
 
@@ -224,11 +236,11 @@ func createBasicAttributeSpec(f *file.File, start *ast.Position, prefix, name st
 //
 // if elemSpec is nil, the attribute spec will match all elements
 func createRegexpAttributeSpec(f *file.File, start *ast.Position, prefix, regex string, elemSpec *file.ElementSpec, typ attrtype.Type) *file.AttributeSpec {
-	if start == nil {
-		start = &ast.Position{Line: 1, Col: 1}
+	if *start == ast.NoPosition {
+		*start = ast.Position{Line: 1, Col: 1}
 	}
 
-	definitionAST := &ast.AttributeDefinition{Attr: start}
+	definitionAST := &ast.AttributeDefinition{Attr: clonePos(start)}
 	if prefix != "" {
 		definitionAST.Prefix = &ast.AttributeName{
 			Name:     prefix,
@@ -287,16 +299,18 @@ func createRegexpAttributeSpec(f *file.File, start *ast.Position, prefix, regex 
 	}
 
 	addAttributeSpec(f.Package, spec)
+	start.Line++
+	start.Col = 1
 	return spec
 }
 
 // createImport is a helper to create an import for testing.
 func createImport(f *file.File, start *ast.Position, alias, impPath string) *file.Import {
-	if start == nil {
-		start = &ast.Position{Line: 1, Col: 1}
+	if *start == ast.NoPosition {
+		*start = ast.Position{Line: 1, Col: 1}
 	}
 
-	impAST := &ast.Import{Import: start}
+	impAST := &ast.Import{Import: clonePos(start)}
 
 	impSpecAST := &ast.ImportSpec{}
 	if alias != "" {
@@ -320,16 +334,18 @@ func createImport(f *file.File, start *ast.Position, alias, impPath string) *fil
 		Alias: alias,
 	}
 	addImport(f, imp)
+	start.Line++
+	start.Col = 1
 	return imp
 }
 
 // createComponentCall is a helper to create a component call for testing.
 func createComponentCall(f *file.File, start *ast.Position, namespace, name string) *file.ComponentCall {
-	if start == nil {
-		start = &ast.Position{Line: 1, Col: 1}
+	if *start == ast.NoPosition {
+		*start = ast.Position{Line: 1, Col: 1}
 	}
 
-	ccAST := &ast.ComponentCall{Colon: start}
+	ccAST := &ast.ComponentCall{Colon: clonePos(start)}
 
 	if namespace != "" {
 		nameAST := &ast.QualifiedIdentifier{
@@ -359,20 +375,22 @@ func createComponentCall(f *file.File, start *ast.Position, namespace, name stri
 	}
 
 	addComponentCall(f, cc)
+	start.Line++
+	start.Col = 1
 	return cc
 }
 
 // createElementReference creates an element reference for testing
 func createElementReference(f *file.File, start *ast.Position, namespace, name string) *file.ElementReference {
-	if start == nil {
-		start = &ast.Position{Line: 1, Col: 1}
+	if *start == ast.NoPosition {
+		*start = ast.Position{Line: 1, Col: 1}
 	}
 
 	refAST := &ast.ElementReference{}
 	if namespace != "" {
 		refAST.Package = &ast.Identifier{
 			Name:     namespace,
-			Position: start,
+			Position: clonePos(start),
 		}
 		refAST.Dot = directlyAfter(refAST)
 		refAST.Name = &ast.ElementName{
@@ -382,26 +400,28 @@ func createElementReference(f *file.File, start *ast.Position, namespace, name s
 	} else {
 		refAST.Name = &ast.ElementName{
 			Name:     name,
-			Position: start,
+			Position: clonePos(start),
 		}
 	}
 
 	ref := &file.ElementReference{AST: refAST}
 	addElementReference(f, ref)
+	start.Line++
+	start.Col = 1
 	return ref
 }
 
 // createAttributeReference creates an attribute reference for testing
 func createAttributeReference(f *file.File, start *ast.Position, namespace, name string) *file.AttributeReference {
-	if start == nil {
-		start = &ast.Position{Line: 1, Col: 1}
+	if *start == ast.NoPosition {
+		*start = ast.Position{Line: 1, Col: 1}
 	}
 
 	refAST := &ast.AttributeReference{}
 	if namespace != "" {
 		refAST.Package = &ast.Identifier{
 			Name:     namespace,
-			Position: start,
+			Position: clonePos(start),
 		}
 		refAST.Dot = directlyAfter(refAST)
 		refAST.Name = &ast.AttributeName{
@@ -411,12 +431,14 @@ func createAttributeReference(f *file.File, start *ast.Position, namespace, name
 	} else {
 		refAST.Name = &ast.AttributeName{
 			Name:     name,
-			Position: start,
+			Position: clonePos(start),
 		}
 	}
 
 	ref := &file.AttributeReference{AST: refAST}
 	addAttributeReference(f, ref)
+	start.Line++
+	start.Col = 1
 	return ref
 }
 
@@ -437,11 +459,11 @@ func createBlockSetter(cc *file.ComponentCall, name string) *file.BlockSetter {
 }
 
 func createWith(group *file.BlockSetter, start *ast.Position) *file.BlockSetterInstance {
-	if start == nil {
-		start = &ast.Position{Line: 1, Col: 1}
+	if *start == ast.NoPosition {
+		*start = ast.Position{Line: 1, Col: 1}
 	}
 
-	withAST := &ast.With{With: start}
+	withAST := &ast.With{With: clonePos(start)}
 	withAST.Identifier = &ast.Identifier{
 		Name:     group.Name,
 		Position: spaceAfter(withAST),
@@ -450,10 +472,19 @@ func createWith(group *file.BlockSetter, start *ast.Position) *file.BlockSetterI
 	withAST.Body = bodyAST
 	bodyAST.RBrace = directlyAfter(withAST)
 
-	return &file.BlockSetterInstance{
+	instance := &file.BlockSetterInstance{
 		Group: group,
 		AST:   withAST,
 	}
+	group.Instances = append(group.Instances, instance)
+	start.Line++
+	start.Col = 1
+	return instance
+}
+
+func clonePos(pos *ast.Position) *ast.Position {
+	pos2 := *pos
+	return &pos2
 }
 
 func deltaPos(p ast.Position, dLine, dCol int) *ast.Position {

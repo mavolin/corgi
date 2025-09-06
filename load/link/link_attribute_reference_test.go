@@ -9,6 +9,8 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/mavolin/corgi/v2/escape/attrtype"
 	"github.com/mavolin/corgi/v2/file"
+	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/file/diagnostic"
 	"github.com/mavolin/corgi/v2/internal/test/should"
 )
 
@@ -47,12 +49,13 @@ func testLinker_LinkAttributeReferences_success(t *testing.T) { //nolint:revive
 					t.Run("local", func(t *testing.T) {
 						t.Parallel()
 
+						var start ast.Position
 						builtinPkg := createPackage("builtin")
 						builtinF := createFile(builtinPkg, "builtin.corgi")
 						if regexp {
-							createRegexpAttributeSpec(builtinF, nil, prefix, "tes.+", nil, attrtype.Innocuous)
+							createRegexpAttributeSpec(builtinF, &start, prefix, "tes.+", nil, attrtype.Innocuous)
 						} else {
-							createBasicAttributeSpec(builtinF, nil, prefix, "test", nil, attrtype.Innocuous)
+							createBasicAttributeSpec(builtinF, &start, prefix, "test", nil, attrtype.Innocuous)
 						}
 
 						p := createPackage("test")
@@ -60,25 +63,24 @@ func testLinker_LinkAttributeReferences_success(t *testing.T) { //nolint:revive
 
 						var spec *file.AttributeSpec
 						if regexp {
-							spec = createRegexpAttributeSpec(f, nil, prefix, "tes.+", nil, attrtype.Innocuous)
+							spec = createRegexpAttributeSpec(f, &start, prefix, "tes.+", nil, attrtype.Innocuous)
 						} else {
-							spec = createBasicAttributeSpec(f, nil, prefix, "test", nil, attrtype.Innocuous)
+							spec = createBasicAttributeSpec(f, &start, prefix, "test", nil, attrtype.Innocuous)
 						}
 
 						htmlName := "test"
 						if prefix != "" {
 							htmlName = prefix + htmlName
 						}
-						ref := createAttributeReference(f, nil, "", strings.ToUpper(htmlName))
+						ref := createAttributeReference(f, &start, "", strings.ToUpper(htmlName))
 
-						ds := Link(context.Background(), p, Options{
+						d := Link(context.Background(), p, Options{
 							Importer:    ImporterFor(builtinPkg),
 							BuiltinPath: builtinPkg.ImportPath,
 						})
 
-						if !should.Equal(t, len(ds), 0) {
-							t.Log(ds.Short())
-						}
+						t.Log(d.Pretty(diagnostic.PrettyOptions{}))
+						should.Equal(t, len(d), 0)
 						if !should.True(t, spec == ref.Spec.ResultOr(nil)) {
 							t.Log(cmp.Diff(spec, ref.Spec.ResultOr(nil)))
 						}
@@ -87,13 +89,14 @@ func testLinker_LinkAttributeReferences_success(t *testing.T) { //nolint:revive
 					t.Run("builtin", func(t *testing.T) {
 						t.Parallel()
 
+						var start ast.Position
 						builtinPkg := createPackage("builtin")
 						builtinF := createFile(builtinPkg, "builtin.corgi")
 						var spec *file.AttributeSpec
 						if regexp {
-							spec = createRegexpAttributeSpec(builtinF, nil, prefix, "tes.+", nil, attrtype.Innocuous)
+							spec = createRegexpAttributeSpec(builtinF, &start, prefix, "tes.+", nil, attrtype.Innocuous)
 						} else {
-							spec = createBasicAttributeSpec(builtinF, nil, prefix, "test", nil, attrtype.Innocuous)
+							spec = createBasicAttributeSpec(builtinF, &start, prefix, "test", nil, attrtype.Innocuous)
 						}
 
 						p := createPackage("test")
@@ -103,16 +106,15 @@ func testLinker_LinkAttributeReferences_success(t *testing.T) { //nolint:revive
 						if prefix != "" {
 							htmlName = prefix + htmlName
 						}
-						ref := createAttributeReference(f, nil, "", strings.ToUpper(htmlName))
+						ref := createAttributeReference(f, &start, "", strings.ToUpper(htmlName))
 
-						ds := Link(context.Background(), p, Options{
+						d := Link(context.Background(), p, Options{
 							Importer:    ImporterFor(builtinPkg),
 							BuiltinPath: builtinPkg.ImportPath,
 						})
 
-						if !should.Equal(t, len(ds), 0) {
-							t.Log(ds.Short())
-						}
+						t.Log(d.Pretty(diagnostic.PrettyOptions{}))
+						should.Equal(t, len(d), 0)
 						if !should.True(t, spec == ref.Spec.ResultOr(nil)) {
 							t.Log(cmp.Diff(spec, ref.Spec.ResultOr(nil)))
 						}
@@ -142,6 +144,7 @@ func testLinker_LinkAttributeReferences_success(t *testing.T) { //nolint:revive
 						t.Run(c.name, func(t *testing.T) {
 							t.Parallel()
 
+							var start ast.Position
 							importedPkg := createPackage("imported")
 							if c.packageNameDiffersFromDir {
 								importedPkg.Name += "pkg"
@@ -149,9 +152,9 @@ func testLinker_LinkAttributeReferences_success(t *testing.T) { //nolint:revive
 							importedF := createFile(importedPkg, "imported.corgi")
 							var importedSpec *file.AttributeSpec
 							if regexp {
-								importedSpec = createRegexpAttributeSpec(importedF, nil, prefix, "tes.+", nil, attrtype.Innocuous)
+								importedSpec = createRegexpAttributeSpec(importedF, &start, prefix, "tes.+", nil, attrtype.Innocuous)
 							} else {
-								importedSpec = createBasicAttributeSpec(importedF, nil, prefix, "test", nil, attrtype.Innocuous)
+								importedSpec = createBasicAttributeSpec(importedF, &start, prefix, "test", nil, attrtype.Innocuous)
 							}
 
 							htmlName := "test"
@@ -165,16 +168,15 @@ func testLinker_LinkAttributeReferences_success(t *testing.T) { //nolint:revive
 
 							mainPkg := createPackage("main")
 							mainFile := createFile(mainPkg, "main.corgi")
-							createImport(mainFile, nil, c.alias, importedPkg.ImportPath)
-							ref := createAttributeReference(mainFile, nil, namespace, strings.ToUpper(htmlName))
+							createImport(mainFile, &start, c.alias, importedPkg.ImportPath)
+							ref := createAttributeReference(mainFile, &start, namespace, strings.ToUpper(htmlName))
 
-							ds := Link(context.Background(), mainPkg, Options{
+							d := Link(context.Background(), mainPkg, Options{
 								Importer: ImporterFor(importedPkg),
 							})
 
-							if !should.Equal(t, len(ds), 0) {
-								t.Log(ds.Short())
-							}
+							t.Log(d.Pretty(diagnostic.PrettyOptions{}))
+							should.Equal(t, len(d), 0)
 							if !should.True(t, importedSpec == ref.Spec.ResultOr(nil)) {
 								t.Log(cmp.Diff(importedSpec, ref.Spec.ResultOr(nil)))
 							}
@@ -200,11 +202,12 @@ func testLinker_LinkAttributeReferences_failure(t *testing.T) { //nolint:revive
 			name:    "multiple local same-specificity matching attributes",
 			message: "attribute: ambiguous reference",
 			setup: func() (p *file.Package, packages []*file.Package, packageErrors map[importPath]error) {
+				var start ast.Position
 				p = createPackage("test")
 				f := createFile(p, "test.corgi")
-				createRegexpAttributeSpec(f, nil, "", "tes.+", nil, attrtype.Innocuous)
-				createRegexpAttributeSpec(f, nil, "", "tes.+", nil, attrtype.Innocuous)
-				createAttributeReference(f, nil, "", "test")
+				createRegexpAttributeSpec(f, &start, "", "tes.+", nil, attrtype.Innocuous)
+				createRegexpAttributeSpec(f, &start, "", "tes.+", nil, attrtype.Innocuous)
+				createAttributeReference(f, &start, "", "test")
 
 				return p, nil, nil
 			},
@@ -212,15 +215,16 @@ func testLinker_LinkAttributeReferences_failure(t *testing.T) { //nolint:revive
 			name:    "multiple builtin same-specificity matching attributes",
 			message: "builtin: attribute: ambiguous reference",
 			setup: func() (p *file.Package, packages []*file.Package, packageErrors map[importPath]error) {
+				var start ast.Position
 				builtinPkg := createPackage("builtin")
 				builtinPkg.ImportPath = builtinPath
 				createFile(builtinPkg, "builtin.corgi")
-				createRegexpAttributeSpec(builtinPkg.Files[0], nil, "", "tes.+", nil, attrtype.Innocuous)
-				createRegexpAttributeSpec(builtinPkg.Files[0], nil, "", "tes.+", nil, attrtype.Innocuous)
+				createRegexpAttributeSpec(builtinPkg.Files[0], &start, "", "tes.+", nil, attrtype.Innocuous)
+				createRegexpAttributeSpec(builtinPkg.Files[0], &start, "", "tes.+", nil, attrtype.Innocuous)
 
 				p = createPackage("test")
 				f := createFile(p, "test.corgi")
-				createAttributeReference(f, nil, "", "test")
+				createAttributeReference(f, &start, "", "test")
 
 				return p, []*file.Package{builtinPkg}, nil
 			},
@@ -228,15 +232,16 @@ func testLinker_LinkAttributeReferences_failure(t *testing.T) { //nolint:revive
 			name:    "multiple qualified same-specificity matching attributes",
 			message: "attribute: ambiguous reference",
 			setup: func() (p *file.Package, packages []*file.Package, packageErrors map[importPath]error) {
+				var start ast.Position
 				importedPkg := createPackage("imported")
 				createFile(importedPkg, "imported.corgi")
-				createRegexpAttributeSpec(importedPkg.Files[0], nil, "", "tes.+", nil, attrtype.Innocuous)
-				createRegexpAttributeSpec(importedPkg.Files[0], nil, "", "tes.+", nil, attrtype.Innocuous)
+				createRegexpAttributeSpec(importedPkg.Files[0], &start, "", "tes.+", nil, attrtype.Innocuous)
+				createRegexpAttributeSpec(importedPkg.Files[0], &start, "", "tes.+", nil, attrtype.Innocuous)
 
 				p = createPackage("test")
 				f := createFile(p, "test.corgi")
-				createImport(f, nil, "", importedPkg.ImportPath)
-				createAttributeReference(f, nil, importedPkg.Name, "test")
+				createImport(f, &start, "", importedPkg.ImportPath)
+				createAttributeReference(f, &start, importedPkg.Name, "test")
 
 				return p, []*file.Package{importedPkg}, nil
 			},
@@ -244,9 +249,10 @@ func testLinker_LinkAttributeReferences_failure(t *testing.T) { //nolint:revive
 			name:    "builtin not loaded",
 			message: "failed to load builtin package",
 			setup: func() (p *file.Package, packages []*file.Package, packageErrors map[importPath]error) {
+				var start ast.Position
 				p = createPackage("test")
 				f := createFile(p, "test.corgi")
-				createAttributeReference(f, nil, "", "test")
+				createAttributeReference(f, &start, "", "test")
 
 				return p, nil, map[importPath]error{
 					builtinPath: errors.New("stub error"),
@@ -256,14 +262,15 @@ func testLinker_LinkAttributeReferences_failure(t *testing.T) { //nolint:revive
 			name:    "import not loaded",
 			message: "import: failed to load package",
 			setup: func() (p *file.Package, packages []*file.Package, packageErrors map[importPath]error) {
+				var start ast.Position
 				importedPkg := createPackage("imported")
 				importedPkg.PackageSymbols = nil
 				createFile(importedPkg, "imported.corgi")
 
 				p = createPackage("test")
 				f := createFile(p, "test.corgi")
-				imp := createImport(f, nil, "", importedPkg.ImportPath)
-				createAttributeReference(f, nil, "imported", "test")
+				imp := createImport(f, &start, "", importedPkg.ImportPath)
+				createAttributeReference(f, &start, "imported", "test")
 
 				return p, []*file.Package{importedPkg}, map[importPath]error{
 					imp.Path: errors.New("stub error"),
@@ -273,10 +280,11 @@ func testLinker_LinkAttributeReferences_failure(t *testing.T) { //nolint:revive
 			name:    "dot import not loaded",
 			message: "import: failed to load package",
 			setup: func() (p *file.Package, packages []*file.Package, packageErrors map[importPath]error) {
+				var start ast.Position
 				p = createPackage("test")
 				f := createFile(p, "test.corgi")
-				imp := createImport(f, nil, ".", "imported")
-				createAttributeReference(f, nil, "", "test")
+				imp := createImport(f, &start, ".", "imported")
+				createAttributeReference(f, &start, "", "test")
 
 				return p, nil, map[importPath]error{
 					imp.Path: errors.New("stub error"),
@@ -286,9 +294,10 @@ func testLinker_LinkAttributeReferences_failure(t *testing.T) { //nolint:revive
 			name:    "qualified ref to unknown package",
 			message: "attribute: unresolved reference to package",
 			setup: func() (p *file.Package, packages []*file.Package, packageErrors map[importPath]error) {
+				var start ast.Position
 				p = createPackage("test")
 				f := createFile(p, "test.corgi")
-				createAttributeReference(f, nil, "unknown", "test")
+				createAttributeReference(f, &start, "unknown", "test")
 
 				return p, nil, nil
 			},
@@ -299,10 +308,11 @@ func testLinker_LinkAttributeReferences_failure(t *testing.T) { //nolint:revive
 				importedPkg := createPackage("imported")
 				createFile(importedPkg, "imported.corgi")
 
+				var start ast.Position
 				p = createPackage("test")
 				f := createFile(p, "test.corgi")
-				createImport(f, nil, "", importedPkg.ImportPath)
-				createAttributeReference(f, nil, importedPkg.Name, "test")
+				createImport(f, &start, "", importedPkg.ImportPath)
+				createAttributeReference(f, &start, importedPkg.Name, "test")
 
 				return p, []*file.Package{importedPkg}, nil
 			},
@@ -325,14 +335,11 @@ func testLinker_LinkAttributeReferences_failure(t *testing.T) { //nolint:revive
 			} else if _, ok := errs[builtinPath]; ok {
 				o.BuiltinPath = builtinPath
 			}
-			ds := Link(context.Background(), p, o)
+			d := Link(context.Background(), p, o)
 
-			if should.Equal(t, len(ds), 1) {
-				if !should.True(t, ds[0].Message == c.message) {
-					t.Log(ds[0].Short())
-				}
-			} else {
-				t.Log(ds.Short())
+			t.Log(d.Pretty(diagnostic.PrettyOptions{}))
+			if should.Equal(t, len(d), 1) {
+				should.True(t, d[0].Message == c.message)
 			}
 		})
 	}

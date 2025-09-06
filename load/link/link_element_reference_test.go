@@ -9,6 +9,8 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/mavolin/corgi/v2/escape/elemtype"
 	"github.com/mavolin/corgi/v2/file"
+	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/file/diagnostic"
 	"github.com/mavolin/corgi/v2/internal/test/should"
 )
 
@@ -36,28 +38,28 @@ func testLinker_LinkElementReferences_success(t *testing.T) { //nolint:revive
 			t.Run("local", func(t *testing.T) {
 				t.Parallel()
 
+				var start ast.Position
 				builtinPkg := createPackage("builtin")
 				builtinF := createFile(builtinPkg, "builtin.corgi")
-				createElementSpec(builtinF, nil, prefix, "test", elemtype.Normal)
+				createElementSpec(builtinF, &start, prefix, "test", elemtype.Normal)
 
 				p := createPackage("test")
 				f := createFile(p, "test.corgi")
-				spec := createElementSpec(f, nil, prefix, "test", elemtype.Normal)
+				spec := createElementSpec(f, &start, prefix, "test", elemtype.Normal)
 
 				htmlName := spec.AST.Name.Name
 				if prefix != "" {
 					htmlName = prefix + htmlName
 				}
-				ref := createElementReference(f, nil, "", strings.ToUpper(htmlName))
+				ref := createElementReference(f, &start, "", strings.ToUpper(htmlName))
 
-				ds := Link(context.Background(), p, Options{
+				d := Link(context.Background(), p, Options{
 					Importer:    ImporterFor(builtinPkg),
 					BuiltinPath: builtinPkg.ImportPath,
 				})
 
-				if !should.Equal(t, len(ds), 0) {
-					t.Log(ds.Short())
-				}
+				t.Log(d.Pretty(diagnostic.PrettyOptions{}))
+				should.Equal(t, len(d), 0)
 				if !should.True(t, spec == ref.Spec) {
 					t.Log(cmp.Diff(spec, ref.Spec))
 				}
@@ -66,9 +68,10 @@ func testLinker_LinkElementReferences_success(t *testing.T) { //nolint:revive
 			t.Run("builtin", func(t *testing.T) {
 				t.Parallel()
 
+				var start ast.Position
 				builtinPkg := createPackage("builtin")
 				builtinF := createFile(builtinPkg, "builtin.corgi")
-				spec := createElementSpec(builtinF, nil, prefix, "test", elemtype.Normal)
+				spec := createElementSpec(builtinF, &start, prefix, "test", elemtype.Normal)
 
 				p := createPackage("test")
 				f := createFile(p, "test.corgi")
@@ -77,16 +80,15 @@ func testLinker_LinkElementReferences_success(t *testing.T) { //nolint:revive
 				if prefix != "" {
 					htmlName = prefix + htmlName
 				}
-				ref := createElementReference(f, nil, "", strings.ToUpper(htmlName))
+				ref := createElementReference(f, &start, "", strings.ToUpper(htmlName))
 
-				ds := Link(context.Background(), p, Options{
+				d := Link(context.Background(), p, Options{
 					Importer:    ImporterFor(builtinPkg),
 					BuiltinPath: builtinPkg.ImportPath,
 				})
 
-				if !should.Equal(t, len(ds), 0) {
-					t.Log(ds.Short())
-				}
+				t.Log(d.Pretty(diagnostic.PrettyOptions{}))
+				should.Equal(t, len(d), 0)
 				if !should.True(t, spec == ref.Spec) {
 					t.Log(cmp.Diff(spec, ref.Spec))
 				}
@@ -116,12 +118,13 @@ func testLinker_LinkElementReferences_success(t *testing.T) { //nolint:revive
 				t.Run(c.name, func(t *testing.T) {
 					t.Parallel()
 
+					var start ast.Position
 					importedPkg := createPackage("imported")
 					if c.packageNameDiffersFromDir {
 						importedPkg.Name += "pkg"
 					}
 					importedF := createFile(importedPkg, "imported.corgi")
-					importedSpec := createElementSpec(importedF, nil, prefix, "test", elemtype.Normal)
+					importedSpec := createElementSpec(importedF, &start, prefix, "test", elemtype.Normal)
 
 					htmlName := importedSpec.AST.Name.Name
 					namespace := importedPkg.Name
@@ -134,16 +137,15 @@ func testLinker_LinkElementReferences_success(t *testing.T) { //nolint:revive
 
 					mainPkg := createPackage("main")
 					mainFile := createFile(mainPkg, "main.corgi")
-					createImport(mainFile, nil, c.alias, importedPkg.ImportPath)
-					ref := createElementReference(mainFile, nil, namespace, strings.ToUpper(htmlName))
+					createImport(mainFile, &start, c.alias, importedPkg.ImportPath)
+					ref := createElementReference(mainFile, &start, namespace, strings.ToUpper(htmlName))
 
-					ds := Link(context.Background(), mainPkg, Options{
+					d := Link(context.Background(), mainPkg, Options{
 						Importer: ImporterFor(importedPkg),
 					})
 
-					if !should.Equal(t, len(ds), 0) {
-						t.Log(ds.Short())
-					}
+					t.Log(d.Pretty(diagnostic.PrettyOptions{}))
+					should.Equal(t, len(d), 0)
 					if !should.True(t, importedSpec == ref.Spec) {
 						t.Log(cmp.Diff(importedSpec, ref.Spec))
 					}
@@ -167,9 +169,10 @@ func testLinker_LinkElementReferences_failure(t *testing.T) { //nolint:revive
 			name:    "unresolved unqualified ref",
 			message: "element: unresolved reference",
 			setup: func() (p *file.Package, packages []*file.Package, packageErrors map[importPath]error) {
+				var start ast.Position
 				p = createPackage("test")
 				f := createFile(p, "test.corgi")
-				createElementReference(f, nil, "", "test")
+				createElementReference(f, &start, "", "test")
 
 				return p, nil, nil
 			},
@@ -177,9 +180,10 @@ func testLinker_LinkElementReferences_failure(t *testing.T) { //nolint:revive
 			name:    "builtin not loaded",
 			message: "failed to load builtin package",
 			setup: func() (p *file.Package, packages []*file.Package, packageErrors map[importPath]error) {
+				var start ast.Position
 				p = createPackage("test")
 				f := createFile(p, "test.corgi")
-				createElementReference(f, nil, "", "test")
+				createElementReference(f, &start, "", "test")
 
 				return p, nil, map[importPath]error{
 					builtinPath: errors.New("stub error"),
@@ -189,14 +193,15 @@ func testLinker_LinkElementReferences_failure(t *testing.T) { //nolint:revive
 			name:    "import not loaded",
 			message: "import: failed to load package",
 			setup: func() (p *file.Package, packages []*file.Package, packageErrors map[importPath]error) {
+				var start ast.Position
 				importedPkg := createPackage("imported")
 				importedPkg.PackageSymbols = nil
 				createFile(importedPkg, "imported.corgi")
 
 				p = createPackage("test")
 				f := createFile(p, "test.corgi")
-				imp := createImport(f, nil, "", importedPkg.ImportPath)
-				createElementReference(f, nil, "imported", "test")
+				imp := createImport(f, &start, "", importedPkg.ImportPath)
+				createElementReference(f, &start, "imported", "test")
 
 				return p, []*file.Package{importedPkg},
 					map[importPath]error{
@@ -207,10 +212,11 @@ func testLinker_LinkElementReferences_failure(t *testing.T) { //nolint:revive
 			name:    "dot import not loaded",
 			message: "import: failed to load package",
 			setup: func() (p *file.Package, packages []*file.Package, packageErrors map[importPath]error) {
+				var start ast.Position
 				p = createPackage("test")
 				f := createFile(p, "test.corgi")
-				imp := createImport(f, nil, ".", "imported")
-				createElementReference(f, nil, "", "test")
+				imp := createImport(f, &start, ".", "imported")
+				createElementReference(f, &start, "", "test")
 
 				return p, nil, map[importPath]error{
 					imp.Path: errors.New("stub error"),
@@ -220,9 +226,10 @@ func testLinker_LinkElementReferences_failure(t *testing.T) { //nolint:revive
 			name:    "qualified ref to unknown package",
 			message: "element: unresolved reference to package",
 			setup: func() (p *file.Package, packages []*file.Package, packageErrors map[importPath]error) {
+				var start ast.Position
 				p = createPackage("test")
 				f := createFile(p, "test.corgi")
-				createElementReference(f, nil, "unknown", "test")
+				createElementReference(f, &start, "unknown", "test")
 
 				return p, nil, nil
 			},
@@ -230,13 +237,14 @@ func testLinker_LinkElementReferences_failure(t *testing.T) { //nolint:revive
 			name:    "qualified ref to unknown element",
 			message: "element: unresolved reference",
 			setup: func() (p *file.Package, packages []*file.Package, packageErrors map[importPath]error) {
+				var start ast.Position
 				importedPkg := createPackage("imported")
 				createFile(importedPkg, "imported.corgi")
 
 				p = createPackage("test")
 				f := createFile(p, "test.corgi")
-				createImport(f, nil, "", importedPkg.ImportPath)
-				createElementReference(f, nil, importedPkg.Name, "test")
+				createImport(f, &start, "", importedPkg.ImportPath)
+				createElementReference(f, &start, importedPkg.Name, "test")
 
 				return p, []*file.Package{importedPkg}, nil
 			},
@@ -259,14 +267,11 @@ func testLinker_LinkElementReferences_failure(t *testing.T) { //nolint:revive
 			} else if _, ok := errs[builtinPath]; ok {
 				o.BuiltinPath = builtinPath
 			}
-			ds := Link(context.Background(), p, o)
+			d := Link(context.Background(), p, o)
 
-			if should.Equal(t, len(ds), 1) {
-				if !should.True(t, ds[0].Message == c.message) {
-					t.Log(ds[0].Short())
-				}
-			} else {
-				t.Log(ds.Short())
+			t.Log(d.Pretty(diagnostic.PrettyOptions{}))
+			if should.Equal(t, len(d), 1) {
+				should.True(t, d[0].Message == c.message)
 			}
 		})
 	}

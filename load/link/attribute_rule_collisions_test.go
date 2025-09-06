@@ -8,6 +8,7 @@ import (
 	"github.com/mavolin/corgi/v2/escape/elemtype"
 	"github.com/mavolin/corgi/v2/file"
 	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/file/diagnostic"
 	"github.com/mavolin/corgi/v2/internal/test/should"
 )
 
@@ -17,19 +18,20 @@ func TestLinker_CheckAttributeRuleCollisions(t *testing.T) {
 	t.Run("no duplicates", func(t *testing.T) {
 		t.Parallel()
 
+		var start ast.Position
 		mainPkg := createPackage("main")
 		mainF := createFile(mainPkg, "main.corgi")
 
-		elem1 := createElementSpec(mainF, nil, "", "div", elemtype.Normal)
-		elem2 := createElementSpec(mainF, nil, "", "span", elemtype.Text)
+		elem1 := createElementSpec(mainF, &start, "", "div", elemtype.Normal)
+		elem2 := createElementSpec(mainF, &start, "", "span", elemtype.Text)
 
-		attrSpec := createBasicAttributeSpec(mainF, nil, "", "foo", nil, attrtype.Innocuous)
+		attrSpec := createBasicAttributeSpec(mainF, &start, "", "foo", nil, attrtype.Innocuous)
 		attrSpec.AST.Ruleset.List = nil
 
 		rule1 := &ast.AttributeRule{
 			Selector: &ast.ListElementSelector{
 				List: []*ast.ElementReference{
-					createElementReference(mainF, nil, "", elem1.HTMLName()).AST,
+					createElementReference(mainF, &start, "", elem1.HTMLName()).AST,
 				},
 			},
 		}
@@ -73,7 +75,8 @@ func TestLinker_CheckAttributeRuleCollisions(t *testing.T) {
 				mainPkg := createPackage("main")
 				mainF := createFile(mainPkg, "main.corgi")
 
-				attrSpec := createBasicAttributeSpec(mainF, nil, "", "foo", nil, attrtype.Innocuous)
+				var start ast.Position
+				attrSpec := createBasicAttributeSpec(mainF, &start, "", "foo", nil, attrtype.Innocuous)
 				attrSpec.AST.Ruleset.List = nil
 
 				rule1 := &ast.AttributeRule{
@@ -84,19 +87,19 @@ func TestLinker_CheckAttributeRuleCollisions(t *testing.T) {
 				rule1.Type = &ast.AttributeTypeName{
 					Name:     attrtype.Innocuous.String(),
 					Type:     attrtype.Innocuous,
-					Position: spaceAfter(attrSpec.AST),
+					Position: spaceAfter(rule1),
 				}
 				attrSpec.AST.Ruleset.List = append(attrSpec.AST.Ruleset.List, rule1)
 
 				rule2 := &ast.AttributeRule{
 					Selector: &ast.WildcardElementSelector{
-						Asterisk: spaceAfter(attrSpec.AST),
+						Asterisk: spaceAfter(rule1),
 					},
 				}
 				rule2.Type = &ast.AttributeTypeName{
 					Name:     attrtype.Innocuous.String(),
 					Type:     attrtype.Innocuous,
-					Position: spaceAfter(attrSpec.AST),
+					Position: spaceAfter(rule2),
 				}
 				attrSpec.AST.Ruleset.List = append(attrSpec.AST.Ruleset.List, rule2)
 
@@ -106,12 +109,13 @@ func TestLinker_CheckAttributeRuleCollisions(t *testing.T) {
 		}, {
 			name: "two duplicate list element selectors",
 			setup: func() *file.Package {
+				var start ast.Position
 				mainPkg := createPackage("main")
 				mainF := createFile(mainPkg, "main.corgi")
 
-				elem := createElementSpec(mainF, nil, "", "div", elemtype.Normal)
+				elem := createElementSpec(mainF, &start, "", "div", elemtype.Normal)
 
-				attrSpec := createBasicAttributeSpec(mainF, nil, "", "foo", elem, attrtype.Innocuous)
+				attrSpec := createBasicAttributeSpec(mainF, &start, "", "foo", elem, attrtype.Innocuous)
 
 				rule2 := &ast.AttributeRule{
 					Selector: &ast.ListElementSelector{
@@ -123,7 +127,7 @@ func TestLinker_CheckAttributeRuleCollisions(t *testing.T) {
 				rule2.Type = &ast.AttributeTypeName{
 					Name:     attrtype.Innocuous.String(),
 					Type:     attrtype.Innocuous,
-					Position: spaceAfter(attrSpec.AST),
+					Position: spaceAfter(rule2.Selector),
 				}
 				attrSpec.AST.Ruleset.List = append(attrSpec.AST.Ruleset.List, rule2)
 
@@ -133,26 +137,26 @@ func TestLinker_CheckAttributeRuleCollisions(t *testing.T) {
 		}, {
 			name: "duplicate list element selector items",
 			setup: func() *file.Package {
+				var start ast.Position
 				mainPkg := createPackage("main")
 				mainF := createFile(mainPkg, "main.corgi")
 
-				elem := createElementSpec(mainF, nil, "", "div", elemtype.Normal)
+				elem := createElementSpec(mainF, &start, "", "div", elemtype.Normal)
 
-				attrSpec := createBasicAttributeSpec(mainF, nil, "", "foo", nil, attrtype.Innocuous)
+				attrSpec := createBasicAttributeSpec(mainF, &start, "", "foo", nil, attrtype.Innocuous)
 				attrSpec.AST.Ruleset.List = nil
 
-				rule := &ast.AttributeRule{
-					Selector: &ast.ListElementSelector{
-						List: []*ast.ElementReference{
-							createElementReference(mainF, spaceAfter(attrSpec.AST), "", elem.HTMLName()).AST,
-							createElementReference(mainF, spaceAfter(attrSpec.AST), "", elem.HTMLName()).AST,
-						},
+				selector := &ast.ListElementSelector{
+					List: []*ast.ElementReference{
+						createElementReference(mainF, spaceAfter(attrSpec.AST), "", elem.HTMLName()).AST,
 					},
 				}
+				selector.List = append(selector.List, createElementReference(mainF, spaceAfter(selector), "", elem.HTMLName()).AST)
+				rule := &ast.AttributeRule{Selector: selector}
 				rule.Type = &ast.AttributeTypeName{
 					Name:     attrtype.Innocuous.String(),
 					Type:     attrtype.Innocuous,
-					Position: spaceAfter(attrSpec.AST),
+					Position: spaceAfter(rule.Selector),
 				}
 				attrSpec.AST.Ruleset.List = append(attrSpec.AST.Ruleset.List, rule)
 
@@ -168,15 +172,12 @@ func TestLinker_CheckAttributeRuleCollisions(t *testing.T) {
 
 			pkg := c.setup()
 
-			ds := Link(context.Background(), pkg, Options{
+			d := Link(context.Background(), pkg, Options{
 				Importer: ImporterFor(),
 			})
-			if should.Equal(t, len(ds), 1) {
-				if !should.Equal(t, ds[0].Message, c.message) {
-					t.Log(ds[0].Short())
-				}
-			} else {
-				t.Log(ds.Short())
+			t.Log(d.Pretty(diagnostic.PrettyOptions{}))
+			if should.Equal(t, len(d), 1) {
+				should.Equal(t, d[0].Message, c.message)
 			}
 		})
 	}
