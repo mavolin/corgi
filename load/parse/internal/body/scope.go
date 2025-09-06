@@ -92,9 +92,12 @@ func BadNode() parser.Func[*ast.BadNode] {
 				break
 			}
 
-			_ = parser.TryOptionalRune(p, ']', nil) ||
+			otherParen := parser.TryOptionalRune(p, ']', nil) ||
 				parser.TryOptionalRune(p, '(', nil) ||
 				parser.TryOptionalRune(p, ')', nil)
+			if !otherParen {
+				parser.TrySkip(p, comment.OrAnyWhitespace())
+			}
 		}
 
 		parser.RestoreWS(p)
