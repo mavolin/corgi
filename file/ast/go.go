@@ -180,7 +180,7 @@ func (s *StaticString) End() Position {
 			return deltaPos(*s.Open, len("`")+len([]rune(s.Contents)))
 		}
 
-		lines := strings.Count(s.Contents[:i], "\n")
+		lines := strings.Count(s.Contents[:i], "\n") + 1
 		return Position{
 			Line: s.Open.Line + lines,
 			Col:  len([]rune(s.Contents[i:])) + 1,
