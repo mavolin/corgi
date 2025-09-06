@@ -10,6 +10,7 @@ import (
 	"github.com/mavolin/corgi/v2/load/parse/internal/comment"
 	"github.com/mavolin/corgi/v2/load/parse/internal/quickanno"
 	"github.com/mavolin/corgi/v2/load/parse/internal/unexpected"
+	"github.com/mavolin/corgi/v2/load/parse/internal/whitespace"
 )
 
 type List[T any] struct {
@@ -53,7 +54,8 @@ func list[T comparable](singular, plural string, opening, closing rune, elemFunc
 			if parser.TryOptionalRune(p, closing, nil) {
 				l.Close = &pos
 				break
-			} else if parser.TryOptionalRune(p, parser.EOF, nil) {
+			} else if parser.TryOptionalRune(p, parser.EOF, nil) ||
+				p.Inline() && parser.MatchesAnyRune(p, whitespace.VerticalRunes...) {
 				p.CaptureError(&diagnostic.Diagnostic{
 					Message: "unclosed " + plural,
 					Primary: quickanno.Expected(p, *l.Open, "a `"+string(closing)+"`"),
@@ -73,15 +75,19 @@ func list[T comparable](singular, plural string, opening, closing rune, elemFunc
 					})
 				} else {
 					err := unexpected.UntilAnyRune(p, comment.OrAnyWhitespace(), ',', closing)
-					err.Message = "missing " + plural
-					err.Primary[0].Annotation = "found these unexpected runes instead"
-					p.CaptureError(err)
+					if err != nil {
+						err.Message = "missing " + plural
+						err.Primary[0].Annotation = "found these unexpected runes instead"
+						p.CaptureError(err)
+					}
 				}
 			}
 
 			parser.TrySkip(p, comment.OrHorizontalWhitespace())
 
 			if parser.MatchesAnyRune(p, closing, parser.EOF) || parser.TryRune(p, ',') {
+				continue
+			} else if p.Inline() && parser.MatchesAnyRune(p, whitespace.VerticalRunes...) {
 				continue
 			}
 
