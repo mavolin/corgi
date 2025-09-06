@@ -176,7 +176,9 @@ func CommaList[T comparable](singular, plural string, elemFunc parser.Func[T]) p
 			} else {
 				p.CaptureError(&diagnostic.Diagnostic{
 					Message: "missing " + singular,
-					Primary: quickanno.Expected(p, commaPos, "found a comma here, but no "+singular+" after it"),
+					Primary: []diagnostic.Annotation{
+						anno.Position(p.File, commaPos, "found a comma here, but no "+singular+" after it"),
+					},
 				})
 			}
 		}
