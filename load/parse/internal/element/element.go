@@ -60,18 +60,20 @@ func Doctype() parser.Func[*ast.Doctype] {
 					Examples: []diagnostic.Example{{Example: "`!doctype(html)`"}},
 				})
 			} else {
-				d.HTML = new(ast.Position)
-				*d.HTML = attr.Name.Start()
-				if attr.Name.Package != nil || attr.Name.Name.Name != "html" {
-					d.HTML = nil
+				if attr.Name != nil && attr.Name.Name != nil && attr.Name.Package == nil && attr.Name.Name.Name == "html" {
+					d.HTML = new(ast.Position)
+					*d.HTML = attr.Name.Start()
+				} else {
 					p.CaptureError(&diagnostic.Diagnostic{
 						Message: "doctype: missing html attribute",
 						Primary: []diagnostic.Annotation{
-							anno.Range(p.File, attr.Name.Start(), attr.Name.End(), "expected `html`, not this"),
+							anno.Node(p.File, attr, "expected `html`, not this"),
 						},
 						Examples: []diagnostic.Example{{Example: "`!doctype(html)`"}},
 					})
-				} else if attr.EqualSign != nil {
+				}
+
+				if attr.EqualSign != nil || attr.Value != nil {
 					p.CaptureError(&diagnostic.Diagnostic{
 						Message: "doctype: html attribute: unexpected value",
 						Primary: []diagnostic.Annotation{
