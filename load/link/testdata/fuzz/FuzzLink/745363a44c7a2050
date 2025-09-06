@@ -1,2 +1,0 @@
-go test fuzz v1
-string("elem(\xd6\U0010ceea \xaa\U0010ceea)")

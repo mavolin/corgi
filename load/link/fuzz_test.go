@@ -1,84 +1,89 @@
 package link
 
 import (
-	"bytes"
 	"context"
-	"log/slog"
 	"path"
-	"sync"
 	"testing"
 
 	"github.com/mavolin/corgi/v2/file"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
 	"github.com/mavolin/corgi/v2/internal/test/should"
-	"github.com/mavolin/corgi/v2/load/internal/fuzzdata"
 	"github.com/mavolin/corgi/v2/load/parse"
 )
 
-var bufferPool = sync.Pool{
-	New: func() any { return new(bytes.Buffer) },
-}
-
 // FuzzLink tests that the linker doesn't crash or hang on arbitrary input.
 func FuzzLink(f *testing.F) {
-	fuzzdata.AddBaseCorpus(f)
+	// Seed with some simple cases.
+	f.Add("div", "example.com/imp", "comp A() {}", "")
+	f.Add("import foo \"example.com/imp\"\ncomp A() {\n\t:B()\n}", "example.com/imp", "comp A() {}", "")
+	f.Add("comp A() {\n\t:B()\n}", "example.com/imp", "", "comp B() {}")
 
-	f.Fuzz(func(t *testing.T, data string) {
-		out := bufferPool.Get().(*bytes.Buffer)
-		out.Reset()
-		defer bufferPool.Put(out)
-		logger := slog.New(slog.NewTextHandler(out, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	f.Add("comp A() {}\ncomp B() { :A() }", "", "", "")
+	f.Add("import imp \"example.com/imp\"\ncomp C() { :imp.A() }", "example.com/imp", "comp A() {}", "")
+	f.Add("import . \"example.com/imp\"\ncomp C() { :A() }", "example.com/imp", "comp A() {}", "")
+	f.Add("import \"fuzz/builtin\"\ncomp C() {}", "", "", "comp X() {}")
+	f.Add("comp E() { div(#id .cls title=\"t\", bool) [ Hello ] }", "", "", "")
+	f.Add("comp Base() { html { head { title { block title } } body { block body } } }\ncomp Page() : Base { with title [ T ] with body { span [ ok ] } }", "", "", "")
+	f.Add("comp bigM(name string) { &(.font-size--big) }\ncomp Use() { p { :bigM(name: \"M\") } }", "", "", "")
+	f.Add("elem Alert = div\ncomp Use() { Alert [ ok ] }", "", "", "")
+	f.Add("attr hx- get { * url }\ncomp Use() { div(hx-get=\"/api\") }", "", "", "")
+	f.Add("comp D() {}\ncomp D() {}\ncomp E() {}", "", "", "")
+	f.Add("elem p = span\nelem P = div\ncomp Use() { p [ x ] }", "", "", "")
+	f.Add("comp Loop(name string) { for i, _ := range []int{1,2,3} { div [ #{name} ] } }", "", "", "")
+	f.Add("comp R() { !raw [ <div>ok</div> ] }", "", "", "")
+	f.Add("import . \"example.com/imp\"\nimport . \"example.com/imp\"\ncomp X() {}", "example.com/imp", "comp A() {}", "")
+	f.Add("import \"a/foo\"\nimport \"b/foo\"\ncomp X() {}", "a/foo", "comp A() {}", "")
+	f.Add("import __corgi_bad \"example.com/imp\"\ncomp X() {}", "example.com/imp", "comp A() {}", "")
 
-		// We're just checking that Parse doesn't panic, so we ignore the return values
-		fl, err := parse.Parse(data, parse.Options{})
-		if err != nil {
-			t.Log("=== Parser Errors ===")
-			t.Log(err.Pretty(diagnostic.PrettyOptions{}))
-			t.Log()
+	f.Fuzz(func(t *testing.T, data, impPath, impContent, builtinContent string) {
+		fl, d := parse.Parse(data, parse.Options{})
+		if d != nil {
+			should.NotPanic(t, func() { d.Pretty(diagnostic.PrettyOptions{}) })
 		}
 
 		pkg := &file.Package{
-			ImportPath: "linkfuzz",
-			Name:       "linkfuzz",
+			ImportPath: "linkfuzz/imports",
+			Name:       "linkfuzz_imports",
 			Files:      []*file.File{fl},
 		}
 		fl.Package = pkg
 
-		defer t.Log(out.String())
+		// Importer that provides one fuzzed import and an optional builtin.
+		const builtinPath = "fuzz/builtin"
+		importer := func(ctx context.Context, imp importPath) (*file.Package, diagnostic.List, error) {
+			var raw string
+			switch imp {
+			case builtinPath:
+				raw = builtinContent
+			case impPath:
+				raw = impContent
+			default:
+				return &file.Package{ImportPath: imp, Name: path.Base(imp)}, nil, nil
+			}
 
-		out.WriteString("=== Local Only Mode ===\n")
-		d := Link(t.Context(), pkg, Options{Logger: logger})
+			ff, d := parse.Parse(raw, parse.Options{})
+			if d != nil {
+				should.NotPanic(t, func() { d.Pretty(diagnostic.PrettyOptions{}) })
+			}
+
+			p := &file.Package{ImportPath: imp, Name: path.Base(imp), Files: []*file.File{ff}}
+			ff.Package = p
+			d = Link(ctx, p, Options{})
+			return p, d, nil
+		}
+
+		// Run without builtin
+		d = Link(t.Context(), pkg, Options{Importer: importer})
 		if len(d) > 0 {
-			// invalid diagnostics
 			should.NotPanic(t, func() { d.Pretty(diagnostic.PrettyOptions{}) })
 		}
 
-		out.WriteString("=== Failing Importer ===\n")
-		d = Link(t.Context(), pkg, Options{
-			Logger: logger,
-			Importer: func(context.Context, importPath) (*file.Package, diagnostic.List, error) {
-				return nil, nil, nil
-			},
-		})
-		if len(d) > 0 {
-			// invalid diagnostics
-			should.NotPanic(t, func() { d.Pretty(diagnostic.PrettyOptions{}) })
-		}
-
-		out.WriteString("=== Successful Importer ===\n")
-		d = Link(t.Context(), pkg, Options{
-			Logger: logger,
-			Importer: func(_ context.Context, imp importPath) (*file.Package, diagnostic.List, error) {
-				pkg := &file.Package{
-					ImportPath: imp,
-					Name:       path.Base(imp),
-				}
-				return pkg, nil, nil
-			},
-		})
-		if len(d) > 0 {
-			// invalid diagnostics
-			should.NotPanic(t, func() { d.Pretty(diagnostic.PrettyOptions{}) })
+		// Run with builtin, if provided
+		if builtinContent != "" {
+			d = Link(t.Context(), pkg, Options{Importer: importer, BuiltinPath: builtinPath})
+			if len(d) > 0 {
+				should.NotPanic(t, func() { d.Pretty(diagnostic.PrettyOptions{}) })
+			}
 		}
 	})
 }

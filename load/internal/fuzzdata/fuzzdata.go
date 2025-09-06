@@ -65,6 +65,20 @@ func AddBaseCorpus(f *testing.F) {
 	f.Add("break")
 	f.Add("continue")
 
+	f.Add("comp A() {}\ncomp B() { :A() }")
+	f.Add("import imp \"example.com/imp\"\ncomp C() { :imp.A() }")
+	f.Add("import . \"example.com/imp\"\ncomp C() { :A() }")
+	f.Add("import \"corgi/builtin\"\ncomp C() {}")
+	f.Add("comp E() { div(#id .cls title=\"t\", bool) [ Hello ] }")
+	f.Add("comp Base() { html { head { title { block title } } body { block body } } }\ncomp Page() : Base { with title [ T ] with body { span [ ok ] } }")
+	f.Add("comp bigM(name string) { &(.font-size--big) }\ncomp Use() { p { :bigM(name: \"M\") } }")
+	f.Add("elem Alert = div\ncomp Use() { Alert [ ok ] }")
+	f.Add("attr hx- get { * url }\ncomp Use() { div(hx-get=\"/api\") }")
+	f.Add("comp D() {}\ncomp D() {}\ncomp E() {}")
+	f.Add("elem p = span\nelem P = div\ncomp Use() { p [ x ] }")
+	f.Add("comp Loop(name string) { for i, _ := range []int{1,2,3} { div [ #{name} ] } }")
+	f.Add("comp R() { !raw [ <div>ok</div> ] }")
+
 	// Read all .corgi files in the project
 	corgiFiles, err := recursivelyReadAll("../../", "*.corgi")
 	if err != nil {
