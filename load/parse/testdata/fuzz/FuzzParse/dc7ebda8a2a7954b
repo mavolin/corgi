@@ -1,0 +1,2 @@
+go test fuzz v1
+string(":\x00ark(woof: 12)\x8d\x8ep\x19\x9e~\rh")
