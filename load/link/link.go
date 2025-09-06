@@ -177,9 +177,11 @@ func (l *linker) reportMissingImport(f *file.File, namespace string, d *diagnost
 
 func filterDotImports(f *file.File) []*file.Import {
 	imps := make([]*file.Import, 0, 8)
+	seen := make(map[importPath]bool, len(f.Imports))
 	for _, imp := range f.Imports {
-		if imp.Explicit() && imp.Alias == "." {
+		if imp.Explicit() && imp.Alias == "." && !seen[imp.Path] {
 			imps = append(imps, imp)
+			seen[imp.Path] = true
 		}
 	}
 	return imps

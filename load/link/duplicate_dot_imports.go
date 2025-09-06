@@ -19,6 +19,7 @@ func (l *linker) CheckDuplicateDotImports() {
 			continue
 		}
 
+		// l.dotImports is deduplicated
 		dotImports := make(map[importPath][]*file.Import)
 
 		for _, imp := range f.Imports {
