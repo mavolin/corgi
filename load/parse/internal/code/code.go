@@ -56,7 +56,9 @@ func BlockFunction() parser.Func[*ast.BlockFunction] {
 
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 
+		argStart := p.Pos()
 		l := parser.Try(p, list.ParenList("argument", "block function arguments", golang.Identifier()))
+		argEnd := p.Pos()
 		if l == nil {
 			return nil
 		}
@@ -69,10 +71,14 @@ func BlockFunction() parser.Func[*ast.BlockFunction] {
 			bf.BlockName = l.Elems[0]
 		}
 		if len(l.Elems) > 1 {
+			excessStart := argStart
+			if l.Elems[1] != nil {
+				excessStart = l.Elems[1].Start()
+			}
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "block function: too many arguments",
 				Primary: []diagnostic.Annotation{
-					anno.Range(p.File, l.Elems[1].Start(), l.Elems[len(l.Elems)-1].End(),
+					anno.Range(p.File, excessStart, argEnd,
 						"unexpected arguments, expected only a single block name"),
 				},
 			})
