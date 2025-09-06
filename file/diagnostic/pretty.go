@@ -526,6 +526,11 @@ func (p *prettyPrinter) annoColor(a annotation) color.Attribute {
 }
 
 func (p *prettyPrinter) printText(text string, indent int, needLineStart bool, style ...color.Attribute) {
+	width := p.o.Width
+	if width-indent < 35 {
+		width = indent + 35
+	}
+
 	p.sb.Grow(len(text))
 
 	regular := color.New(style...)
@@ -553,7 +558,7 @@ func (p *prettyPrinter) printText(text string, indent int, needLineStart bool, s
 		if wordEnd < 0 {
 			wordEnd = len(text) - i
 		}
-		if col+wordEnd > p.o.Width && !forceWrite || r == '\n' {
+		if col+wordEnd > width && !forceWrite || r == '\n' {
 			if inCode {
 				code.UnsetWriter(p.sb)
 			} else {
