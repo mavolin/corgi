@@ -21,6 +21,10 @@ func PackageDirective() parser.Func[*ast.PackageDirective] {
 
 		name := parser.Try(p, golang.Identifier())
 		if name == nil {
+			p.CaptureError(&diagnostic.Diagnostic{
+				Message: "package directive: missing package name",
+				Primary: quickanno.Expected(p, p.Pos(), "a package name"),
+			})
 			return nil
 		}
 
