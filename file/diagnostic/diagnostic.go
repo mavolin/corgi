@@ -49,6 +49,8 @@ type (
 		// character used to underline:
 		// Primary annotation use the caret `^`, secondary annotations use the
 		// tilde `~`.
+		//
+		// Annotations must not overlap.
 		Primary, Secondary []Annotation
 
 		// Cause is the optional cause of the error.

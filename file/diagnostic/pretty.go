@@ -101,6 +101,9 @@ type (
 
 // Pretty returns a pretty printed version of the error, formatted according
 // to the provided options.
+//
+// It panics if the diagnostic is invalid, such as when it contains overlapping
+// annotations.
 func (d *Diagnostic) Pretty(o PrettyOptions) string {
 	o.applyDefaults()
 
@@ -268,10 +271,17 @@ func (p *prettyPrinter) printAnnotationMarkers(lnNo line, ln string, lineAnnotat
 	var offset int
 	for _, la := range lineAnnotations {
 		var numSpaces int
-		if lnNo == la.Start.Line {
+		startOfAnnotation := lnNo == la.Start.Line
+		if startOfAnnotation {
 			numSpaces = la.Start.Col - 1 - offset
+			if numSpaces < 0 {
+				panic("overlapping annotations")
+			}
 		} else {
 			numSpaces = 0
+			if offset != 0 {
+				panic("overlapping annotations")
+			}
 		}
 		p.skip(numSpaces)
 		offset += numSpaces
