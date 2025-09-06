@@ -72,6 +72,10 @@ func (l *linker) linkUnqualifiedAttributeReference(logger *slog.Logger, f *file.
 		}
 
 		packageMatches := imp.Package.AttributeSpecByHTMLName(name)
+		if packageMatches == nil {
+			continue
+		}
+
 		if len(equalSpecificityMatches) == 0 || equalSpecificityMatches[0].Specificity < packageMatches[0].Specificity {
 			equalSpecificityMatches = packageMatches
 			bestImport = imp
