@@ -1,6 +1,7 @@
 package should
 
 import (
+	"fmt"
 	"os"
 	"regexp"
 	"runtime"
@@ -29,6 +30,23 @@ func NotEqual[T any](t testing.TB, got, want T, opts ...cmp.Option) bool {
 		return false
 	}
 	return true
+}
+
+func NotPanic(t testing.TB, f func()) (didPanic bool) {
+	t.Helper()
+
+	path, targetLine := callerInfo(1)
+
+	defer func() {
+		t.Helper()
+		if r := recover(); r != nil {
+			didPanic = true
+			prettyMessage(t, path, targetLine, "NotPanic", "function panicked", fmt.Sprint(r))
+		}
+	}()
+	f()
+
+	return didPanic
 }
 
 func NoError(t testing.TB, err error) bool {
@@ -67,9 +85,45 @@ func False(t testing.TB, got bool) bool {
 func prettyComparison(t testing.TB, name, message, extra string) {
 	t.Helper()
 
-	path, targetLine, ok := callerInfo(2)
-	if !ok {
-		t.Error(message)
+	path, targetLine := callerInfo(2)
+
+	lns := lines(path)
+	arg1, _, arg2 := args(lns, name, false, targetLine)
+
+	var fmtMessage strings.Builder
+	fmtMessage.Grow(len(message))
+
+	i := strings.Index(message, "{{Arg1}}")
+	fmtMessage.WriteString(message[:i])
+	fmtMessage.WriteString(arg1)
+	message = message[i+len("{{Arg1}}"):]
+
+	if strings.Contains(message, "{{Arg2}}") {
+		i = strings.Index(message, "{{Arg2}}")
+		fmtMessage.WriteString(message[:i])
+		fmtMessage.WriteString(arg2)
+		fmtMessage.WriteString(message[i+len("{{Arg2}}"):])
+	} else {
+		fmtMessage.WriteString(message)
+	}
+
+	prettyMessage(t, path, targetLine, name, fmtMessage.String(), extra)
+}
+
+func prettyMessage(t testing.TB, path string, targetLine int, name, message, extra string) {
+	t.Helper()
+
+	if path == "" {
+		var s strings.Builder
+		s.Grow(len(message) + len(":\n") + len(extra))
+
+		s.WriteString(message)
+		if extra != "" {
+			s.WriteString(":\n")
+			s.WriteString(extra)
+		}
+
+		t.Error(s)
 		return
 	}
 	lns := lines(path)
@@ -80,21 +134,7 @@ func prettyComparison(t testing.TB, name, message, extra string) {
 	s.Grow(len(c) + len(message) + len(arg1) + len(arg2) + len(extra))
 
 	writeComment(&s, c, cMultiline)
-
-	i := strings.Index(message, "{{Arg1}}")
-	s.WriteString(message[:i])
-	s.WriteString(arg1)
-	message = message[i+len("{{Arg1}}"):]
-
-	if strings.Contains(message, "{{Arg2}}") {
-		i = strings.Index(message, "{{Arg2}}")
-		s.WriteString(message[:i])
-		s.WriteString(arg2)
-		s.WriteString(message[i+len("{{Arg2}}"):])
-	} else {
-		s.WriteString(message)
-	}
-
+	s.WriteString(message)
 	writeExtra(&s, extra)
 
 	t.Error(s.String())
@@ -103,13 +143,22 @@ func prettyComparison(t testing.TB, name, message, extra string) {
 func prettyCondition(t testing.TB, name string, want bool, extra string) {
 	t.Helper()
 
-	path, targetLine, ok := callerInfo(2)
-	if !ok {
+	path, targetLine := callerInfo(2)
+	if path == "" {
+		var s strings.Builder
+		s.Grow(len("got == false") + len(":\n") + len(extra))
+
 		if want {
-			t.Error("got == false")
+			s.WriteString("got == false")
 		} else {
-			t.Error("got == true")
+			s.WriteString("got == true")
 		}
+		if extra != "" {
+			s.WriteString(":\n")
+			s.WriteString(extra)
+		}
+
+		t.Error(s)
 		return
 	}
 	lns := lines(path)
@@ -312,7 +361,7 @@ func lines(path string) []string {
 	return strings.Split(string(data), "\n")
 }
 
-func callerInfo(skip int) (path string, line int, ok bool) {
+func callerInfo(skip int) (path string, line int) {
 	callers := make([]uintptr, 48)
 	n := runtime.Callers(2+skip, callers)
 
@@ -323,10 +372,10 @@ func callerInfo(skip int) (path string, line int, ok bool) {
 		case strings.HasSuffix(frame.File, "test/should/should.go"):
 		case strings.HasSuffix(frame.File, "test/must/must.go"):
 		default:
-			return frame.File, frame.Line, true
+			return frame.File, frame.Line
 		}
 		if !more {
-			return "", 0, false
+			return "", 0
 		}
 	}
 }
