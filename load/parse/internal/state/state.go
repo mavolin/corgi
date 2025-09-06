@@ -95,18 +95,15 @@ func Spec() parser.Func[*ast.StateSpec] {
 		var s ast.StateSpec
 		s.Names = names
 
-		var pos ast.Position
-		if parser.TrySkip(p, comment.OrHorizontalWhitespace()) {
-			pos = p.Pos()
-			s.Type = parser.TryOptional(p, golang.Type(), comment.OrHorizontalWhitespace())
-		}
+		parser.TrySkip(p, comment.OrHorizontalWhitespace())
+		s.Type = parser.TryOptional(p, golang.Type(), comment.OrHorizontalWhitespace())
 
 		s.EqualSign = parser.TryRuneAt(p, '=')
 		if s.EqualSign == nil {
 			if s.Type == nil {
 				p.CaptureError(&diagnostic.Diagnostic{
 					Message: "state spec: missing type or value",
-					Primary: quickanno.Expected(p, pos, "either a type or an equal sign"),
+					Primary: quickanno.Expected(p, p.Pos(), "either a type or an equal sign"),
 				})
 			}
 			return &s
@@ -132,13 +129,22 @@ func Spec() parser.Func[*ast.StateSpec] {
 
 		if len(s.Names) != len(s.Values) {
 			if len(s.Names) == 1 {
-				p.CaptureError(&diagnostic.Diagnostic{
-					Message: "state spec: mismatched number of values and variables",
-					Primary: []diagnostic.Annotation{
-						anno.Range(p.File, valuesStart, valuesEnd,
-							fmt.Sprint("expected a single expression, but found ", len(s.Values))),
-					},
-				})
+				if len(s.Values) == 0 {
+					p.CaptureError(&diagnostic.Diagnostic{
+						Message: "state spec: mismatched number of values and variables",
+						Primary: []diagnostic.Annotation{
+							anno.Position(p.File, p.Pos(), "expected a single expression, but found none"),
+						},
+					})
+				} else {
+					p.CaptureError(&diagnostic.Diagnostic{
+						Message: "state spec: mismatched number of values and variables",
+						Primary: []diagnostic.Annotation{
+							anno.Range(p.File, valuesStart, valuesEnd,
+								fmt.Sprint("expected a single expression, but found ", len(s.Values))),
+						},
+					})
+				}
 			} else {
 				p.CaptureError(&diagnostic.Diagnostic{
 					Message: "state spec: mismatched number of values and variables",
