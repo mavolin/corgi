@@ -92,7 +92,8 @@ func (p *Parser) next() rune {
 
 	r := p.runes[p.state.runeIndex]
 	if r == utf8.RuneError {
-		p.state.advance(1, r == '\n')
+		_, size := utf8.DecodeRuneInString(p.AST.Raw[p.Index():]) // either 1 or len(utf8.RuneError)
+		p.state.advance(uint32(size), r == '\n')                  //nolint:gosec
 		p.CaptureError(&diagnostic.Diagnostic{
 			Message: "invalid UTF-8 encoding",
 			Primary: []diagnostic.Annotation{

@@ -99,8 +99,6 @@ func BadNode() parser.Func[*ast.BadNode] {
 				break
 			} else if parser.TryAnyOptionalRune(p, nil, ']', '(', ')') != 0 { //nolint:revive
 				// condition is the action
-			} else {
-				parser.TrySkip(p, comment.OrAnyWhitespace())
 			}
 		}
 
