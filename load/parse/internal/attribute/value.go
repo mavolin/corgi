@@ -52,8 +52,9 @@ func TypedAttributeValue() parser.Func[*ast.TypedAttributeValue] {
 		}
 
 		parser.TrySkip(p, comment.OrAnyWhitespace())
-		v.Value = parser.Try(p, ExpressionValue())
-		if v.Value == nil {
+		if ev := parser.Try(p, ExpressionValue()); ev != nil {
+			v.Value = ev // typed nil
+		} else {
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "typed attribute value: missing value",
 				Primary: quickanno.Expected(p, p.Pos(), "an attribute value"),
