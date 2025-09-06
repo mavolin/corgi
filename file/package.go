@@ -64,11 +64,13 @@ type PackageSymbols struct {
 	Components       []*Component
 	componentsByName map[string]*Component
 	componentByNode  map[*ast.Component]*Component
-	State            []*State
-	stateByName      map[string]*State
-	stateByNode      map[*ast.StateSpec][]*State
-	ElementSpecs     []*ElementSpec
-	AttributeSpecs   []*AttributeSpec // ordered by specificity, descending
+	// State are individual state variables in the package.
+	// States belonging to the same spec must be grouped together.
+	State          []*State
+	stateByName    map[string]*State
+	stateByNode    map[*ast.StateSpec][]*State
+	ElementSpecs   []*ElementSpec
+	AttributeSpecs []*AttributeSpec // ordered by specificity, descending
 
 	//
 	// LINKER
@@ -116,9 +118,11 @@ func BuildSymbols(p *Package) {
 					File: f,
 				}
 				if n.Header != nil && n.Header.Parameters != nil && len(n.Header.Parameters.List) > 0 {
-					c.Parameters = make([]*ComponentParameter, len(n.Header.Parameters.List))
-					for i, param := range n.Header.Parameters.List {
-						c.Parameters[i] = &ComponentParameter{AST: param}
+					c.Parameters = make([]*ComponentParameter, 0, len(n.Header.Parameters.List))
+					for _, param := range n.Header.Parameters.List {
+						if param != nil {
+							c.Parameters = append(c.Parameters, &ComponentParameter{AST: param})
+						}
 					}
 				}
 				p.Components = append(p.Components, c)
@@ -127,24 +131,23 @@ func BuildSymbols(p *Package) {
 					if spec == nil {
 						continue
 					}
-					for i := range spec.Names {
-						s := &State{AST: spec, File: f, Index: i}
-						p.State = append(p.State, s)
+					for i, name := range spec.Names {
+						if name != nil {
+							p.State = append(p.State, &State{AST: spec, File: f, Index: i})
+						}
 					}
 				}
 			case *ast.ElementDefinition:
 				for _, spec := range n.Specs {
-					if spec == nil {
-						continue
+					if spec != nil {
+						p.ElementSpecs = append(p.ElementSpecs, &ElementSpec{Definition: n, AST: spec, File: f})
 					}
-					p.ElementSpecs = append(p.ElementSpecs, &ElementSpec{Definition: n, AST: spec, File: f})
 				}
 			case *ast.AttributeDefinition:
 				for _, spec := range n.Specs {
-					if spec == nil {
-						continue
+					if spec != nil {
+						p.AttributeSpecs = append(p.AttributeSpecs, &AttributeSpec{Definition: n, AST: spec, File: f})
 					}
-					p.AttributeSpecs = append(p.AttributeSpecs, &AttributeSpec{Definition: n, AST: spec, File: f})
 				}
 			}
 		}
@@ -165,6 +168,10 @@ func (s *PackageSymbols) ComponentByName(name string) *Component {
 	return s.componentsByName[name]
 }
 
+// StateByNode returns the state symbol for the given state spec node
+// and index in the names list.
+// An index might not exist if there were parse errors and the name is nil.
+// Excess values generally are not part of the package's symbols.
 func (s *PackageSymbols) StateByNode(spec *ast.StateSpec, index int) *State {
 	if states := s.stateByNode[spec]; states != nil && index < len(states) {
 		return states[index]
@@ -274,17 +281,27 @@ func (s *PackageSymbols) RebuildLookupTables() {
 
 	s.stateByNode = make(map[*ast.StateSpec][]*State, len(s.State))
 	s.stateByName = make(map[string]*State, len(s.State))
-	for _, state := range s.State {
-		states := s.stateByNode[state.AST]
-		if states == nil {
-			states = make([]*State, 0, len(state.AST.Names))
-		}
-		states[state.Index] = state
-		s.stateByNode[state.AST] = states
 
+	var specStart int
+	var lastSpec *ast.StateSpec
+	for i, state := range s.State {
 		if name := state.Name(); name != nil {
 			s.stateByName[name.Name] = state
 		}
+
+		// We require that states belonging to the same spec are grouped, so
+		// we can save memory by creating only views into the State slice,
+		// instead of allocating a new slice for every spec.
+		if state.AST != lastSpec {
+			if lastSpec != nil {
+				s.stateByNode[lastSpec] = s.State[specStart:i]
+			}
+			lastSpec = state.AST
+			specStart = i
+		}
+	}
+	if lastSpec != nil { // last group
+		s.stateByNode[lastSpec] = s.State[specStart:]
 	}
 
 	for _, spec := range s.ElementSpecs {

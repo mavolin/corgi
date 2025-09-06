@@ -22,6 +22,12 @@ type Component struct {
 	ComponentCalls []*ComponentCall
 
 	// Parameters are the parameters of the Component.
+	//
+	// Parameters that are nil in the AST's parameters list are omitted.
+	// Therefore, there might be gaps in the indexes and fewer parameters than
+	// in the AST.
+	// Use ParameterByNode to get the parameter by its AST node, not it's
+	// index.
 	Parameters []*ComponentParameter
 
 	// Blocks are the blocks used in the Component in the order they
