@@ -45,11 +45,11 @@ func Horizontal() parser.WhitespaceFunc {
 
 func Vertical() parser.WhitespaceFunc {
 	return func(p *parser.Parser) bool {
-		if parser.TryAnyToken(p, "\n", "\r\n") == "" {
+		if parser.TryAnyToken(p, "\n", "\r\n", "\r") == "" {
 			return false
 		}
 
-		for parser.TryAnyToken(p, "\n", "\r\n") != "" { //nolint:revive
+		for parser.TryAnyToken(p, "\n", "\r\n", "\r") != "" { //nolint:revive
 		}
 		return true
 	}
@@ -57,6 +57,6 @@ func Vertical() parser.WhitespaceFunc {
 
 func SingleVertical() parser.WhitespaceFunc {
 	return func(p *parser.Parser) bool {
-		return parser.TryAnyToken(p, "\n", "\r\n") != ""
+		return parser.TryAnyToken(p, "\n", "\r\n", "\r") != ""
 	}
 }

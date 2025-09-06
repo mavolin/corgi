@@ -37,7 +37,7 @@ import (
 	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
 )
 
-const EOF rune = 0
+const EOF rune = -1
 
 type Preloader func(importPath string)
 
