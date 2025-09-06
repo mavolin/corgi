@@ -293,6 +293,19 @@ func ModeSwitch() parser.Func[*ast.ModeSwitch] {
 			})
 		}
 
+		switch {
+		case parser.TrySkip(p, whitespace.Horizontal()):
+			parser.TrySkip(p, whitespace.EOL())
+			parser.CommitWS(p)
+		case parser.TrySkip(p, whitespace.EOL()): // includes EOF
+			parser.CommitWS(p)
+		case parser.TryRune(p, ';'):
+		default:
+			p.CaptureError(&diagnostic.Diagnostic{
+				Message: "mode switch: end of statement expected",
+				Primary: quickanno.Expected(p, p.Pos(), "a semicolon or whitespace"),
+			})
+		}
 		return &ast.ModeSwitch{Hash: hash, Node: node}
 	}
 }
