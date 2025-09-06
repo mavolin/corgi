@@ -635,7 +635,7 @@ func KeyType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#KeyType
 
 func ChannelType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#ChannelType
 	return func(p *parser.Parser) *ast.Type {
-		pos := p.Pos()
+		from := p.Pos()
 		startIndex := p.Index()
 
 		if parser.TryToken(p, "<-") {
@@ -645,7 +645,7 @@ func ChannelType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#ChannelTy
 					Message: "type: channel: missing `chan` keyword",
 					Primary: quickanno.Expected(p, p.Pos(), "the keyword `chan`"),
 					Secondary: []diagnostic.Annotation{
-						anno.Position(p.File, p.Pos(), "considering, you already placed a `<-` here"),
+						anno.NRunes(p.File, from, len("<-"), "considering, you already placed a `<-` here"),
 					},
 				})
 			}
@@ -659,7 +659,7 @@ func ChannelType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#ChannelTy
 		}
 
 		var t ast.Type
-		t.From = pos
+		t.From = from
 
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 		elemType := parser.Try(p, ElementType())

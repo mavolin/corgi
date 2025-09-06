@@ -48,6 +48,7 @@ func list[T comparable](singular, plural string, opening, closing rune, elemFunc
 		var zero T
 
 		for {
+			lastPos := p.Pos()
 			parser.TrySkip(p, comment.OrAnyWhitespace())
 
 			pos := p.Pos()
@@ -58,7 +59,7 @@ func list[T comparable](singular, plural string, opening, closing rune, elemFunc
 				p.Inline() && parser.MatchesAnyRune(p, whitespace.VerticalRunes...) {
 				p.CaptureError(&diagnostic.Diagnostic{
 					Message: "unclosed " + plural,
-					Primary: quickanno.Expected(p, *l.Open, "a `"+string(closing)+"`"),
+					Primary: quickanno.Expected(p, lastPos, "a `"+string(closing)+"`"),
 					Secondary: []diagnostic.Annotation{
 						anno.Position(p.File, *l.Open, "for the opening `"+string(opening)+"` here"),
 					},
@@ -113,7 +114,7 @@ func list[T comparable](singular, plural string, opening, closing rune, elemFunc
 			if !parser.MatchesAnyRune(p, ',', closing) {
 				p.CaptureError(&diagnostic.Diagnostic{
 					Message: "unclosed " + plural,
-					Primary: quickanno.Expected(p, *l.Open, "a `"+string(closing)+"`"),
+					Primary: quickanno.Expected(p, p.Pos(), "a `"+string(closing)+"`"),
 					Secondary: []diagnostic.Annotation{
 						anno.Position(p.File, *l.Open, "for the opening `"+string(opening)+"` here"),
 					},

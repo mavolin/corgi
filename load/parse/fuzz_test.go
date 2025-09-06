@@ -3,6 +3,8 @@ package parse
 import (
 	"testing"
 
+	"github.com/mavolin/corgi/v2/file/diagnostic"
+	"github.com/mavolin/corgi/v2/internal/test/should"
 	"github.com/mavolin/corgi/v2/load/internal/fuzzdata"
 )
 
@@ -13,7 +15,10 @@ func FuzzParse(f *testing.F) {
 	fuzzdata.AddBaseCorpus(f)
 
 	f.Fuzz(func(t *testing.T, data string) {
-		// We're just checking that Parse doesn't panic, so we ignore the return values
-		_, _ = Parse(data, Options{})
+		_, d := Parse(data, Options{})
+		if len(d) > 0 {
+			// invalid diagnostics
+			should.NotPanic(t, func() { d.Pretty(diagnostic.PrettyOptions{}) })
+		}
 	})
 }

@@ -8,6 +8,7 @@ import (
 
 	"github.com/mavolin/corgi/v2/file"
 	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/file/diagnostic"
 	"github.com/mavolin/corgi/v2/internal/test/should"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 )
@@ -50,7 +51,12 @@ func NoMatch[T any](t *testing.T, input string, f parser.Func[T]) {
 	p := NewParser(t, input)
 	v := f(p)
 
-	if !should.True(t, isZero(v)) {
+	if should.True(t, isZero(v)) {
+		if !should.True(t, len(p.Errors()) == 0) { // should have no errors captured, if no match
+			// invalid diagnostic
+			should.NotPanic(t, func() { p.Errors().Pretty(diagnostic.PrettyOptions{}) })
+		}
+	} else {
 		t.Logf("parsed value: %#v", v)
 	}
 }
@@ -68,9 +74,11 @@ func AssertMatchesButError[T any](t *testing.T, p *parser.Parser, f parser.Func[
 	v := f(p)
 	should.False(t, isZero(v)) // match error
 
-	// diagnostic.List
 	errors := p.Errors()
-	should.True(t, len(errors) > 0)
+	if should.True(t, len(errors) > 0) {
+		// invalid diagnostic
+		should.NotPanic(t, func() { errors.Pretty(diagnostic.PrettyOptions{}) })
+	}
 	should.False(t, slices.Contains(errors, nil)) // nil error was captured
 
 	return v
@@ -83,6 +91,8 @@ func AssertNoError[T any](t *testing.T, p *parser.Parser, f parser.Func[T]) T {
 	should.False(t, isZero(v)) // match error
 
 	for _, err := range p.Errors() {
+		should.NotPanic(t, func() { err.Pretty(diagnostic.PrettyOptions{}) }) // invalid diagnostic
+
 		should.NotEqual(t, err, nil) // diagnostic.List: nil error was captured
 		should.NoError(t, err)       // diagnostic.List: unexpected error
 	}
