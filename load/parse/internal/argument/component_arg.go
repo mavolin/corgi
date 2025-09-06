@@ -41,7 +41,6 @@ func ComponentArgument() parser.Func[*ast.ComponentArgument] {
 			}
 		}
 
-		pos := p.Pos()
 		start := p.Index()
 		value := parser.Try(p, code.Expression(code.Regular))
 		if value == nil {
@@ -55,7 +54,7 @@ func ComponentArgument() parser.Func[*ast.ComponentArgument] {
 			}
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "component argument: missing value",
-				Primary: quickanno.Expected(p, pos, "a value for the argument"),
+				Primary: quickanno.Expected(p, p.Pos(), "a value for the argument"),
 			})
 		}
 

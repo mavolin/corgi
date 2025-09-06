@@ -292,7 +292,7 @@ func StructType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#StructType
 
 func PointerType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#PointerType
 	return func(p *parser.Parser) *ast.Type {
-		pos := p.Pos()
+		from := p.Pos()
 		startIndex := p.Index()
 
 		if !parser.TryRune(p, '*') {
@@ -300,7 +300,7 @@ func PointerType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#PointerTy
 		}
 
 		var t ast.Type
-		t.From = pos
+		t.From = from
 
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 
@@ -337,7 +337,7 @@ func BaseType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#BaseType
 // spec.
 func FunctionType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#FunctionType
 	return func(p *parser.Parser) *ast.Type {
-		pos := p.Pos()
+		from := p.Pos()
 		startIndex := p.Index()
 
 		if !parser.TryToken(p, "func") {
@@ -345,7 +345,7 @@ func FunctionType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#Function
 		}
 
 		var t ast.Type
-		t.From = pos
+		t.From = from
 
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 		signature := parser.Try(p, Signature())
@@ -516,7 +516,7 @@ func InterfaceType() parser.Func[*ast.Type] {
 
 func SliceType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#SliceType
 	return func(p *parser.Parser) *ast.Type {
-		pos := p.Pos()
+		from := p.Pos()
 		startIndex := p.Index()
 
 		if !parser.TryRune(p, '[') {
@@ -524,7 +524,7 @@ func SliceType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#SliceType
 		}
 
 		var t ast.Type
-		t.From = pos
+		t.From = from
 
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 		if !parser.TryRune(p, ']') {
@@ -559,7 +559,7 @@ func SliceType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#SliceType
 
 func MapType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#MapType
 	return func(p *parser.Parser) *ast.Type {
-		pos := p.Pos()
+		from := p.Pos()
 		startIndex := p.Index()
 
 		if !parser.TryToken(p, "map") {
@@ -567,7 +567,7 @@ func MapType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#MapType
 		}
 
 		var t ast.Type
-		t.From = pos
+		t.From = from
 
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 

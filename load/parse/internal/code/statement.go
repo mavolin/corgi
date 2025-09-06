@@ -372,14 +372,13 @@ func zeroCoalescingAssignment(valueExpr *ast.Expression) parser.Func[*ast.ZeroCo
 		zca.ValueExpression = valueExpr
 
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
-		pos := p.Pos()
 		zca.VarComma = parser.TryOptionalRuneAt(p, ',', comment.OrAnyWhitespace())
 		if zca.VarComma != nil {
 			zca.OkExpression = parser.Try(p, Expression(Regular))
 			if zca.OkExpression == nil {
 				p.CaptureError(&diagnostic.Diagnostic{
 					Message: "zero coalescing assignment: missing ok variable",
-					Primary: quickanno.Expected(p, pos, "an ok variable after the comma"),
+					Primary: quickanno.Expected(p, p.Pos(), "an ok variable after the comma"),
 					Secondary: []diagnostic.Annotation{
 						anno.Position(p.File, *zca.VarComma, "because of the comma here"),
 					},
