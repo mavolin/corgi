@@ -84,7 +84,7 @@ func (loader *importLoader) checkIllegalAliases() {
 				Primary: []diagnostic.Annotation{
 					anno.Node(f, imp.AST.Alias, "illegal import alias"),
 				},
-				Explanation: "All import aliases starting with `__corgi_` are reserved for internal use by corgi.",
+				Explanation: "All import aliases starting with `__corgi_` are reserved for internal use.",
 			})
 		}
 	}
@@ -172,7 +172,7 @@ func (loader *importLoader) loadImport(ctx context.Context, f *file.File, imp *f
 				Primary: []diagnostic.Annotation{
 					anno.Node(f, imp.AST, "illegal package name"),
 				},
-				Explanation: "All namespaces starting with `__corgi_` are reserved for internal use by corgi.",
+				Explanation: "All namespaces starting with `__corgi_` are reserved for internal use.",
 				Hints: []diagnostic.Hint{
 					{Hint: "Use an import alias."},
 				},

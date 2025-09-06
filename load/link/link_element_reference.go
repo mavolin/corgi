@@ -92,11 +92,11 @@ func (l *linker) linkUnqualifiedElementReference(logger *slog.Logger, f *file.Fi
 	l.report(&diagnostic.Diagnostic{
 		Message: "element: unresolved reference",
 		Primary: []diagnostic.Annotation{
-			anno.Node(f, ref.AST, "could not resolve reference"),
+			anno.Node(f, ref.AST, "neither defined in the current package nor dot imports"),
 		},
 		Explanation: "As part of corgi's security model, all elements must be defined beforehand. " +
 			"The linker could not find a definition for the element you tried to reference. " +
-			"If you're using a HTML5 element, you probably have a typo. " +
+			"If you're using an HTML5 element, you probably have a typo; " +
 			"If you're using a custom element, define it beforehand.",
 		Docs: "element-definition",
 	})
@@ -136,7 +136,10 @@ func (l *linker) linkQualifiedElementReference(logger *slog.Logger, f *file.File
 	l.report(&diagnostic.Diagnostic{
 		Message: "element: unresolved reference",
 		Primary: []diagnostic.Annotation{
-			anno.Node(f, ref.AST, "element is not defined in package"),
+			anno.Node(f, ref.AST, "could not resolve reference"),
+		},
+		Secondary: []diagnostic.Annotation{
+			anno.Node(f, imp.AST, "searching in this package"),
 		},
 	})
 }

@@ -188,7 +188,10 @@ func (l *linker) linkQualifiedAttributeReference(logger *slog.Logger, f *file.Fi
 		l.report(&diagnostic.Diagnostic{
 			Message: "attribute: unresolved reference",
 			Primary: []diagnostic.Annotation{
-				anno.Node(f, ref.AST, "attribute is not defined in package"),
+				anno.Node(f, ref.AST, "could not resolve reference"),
+			},
+			Secondary: []diagnostic.Annotation{
+				anno.Node(f, imp.AST, "searching in this package"),
 			},
 		})
 		return

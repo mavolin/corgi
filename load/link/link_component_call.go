@@ -95,7 +95,7 @@ func (l *linker) linkUnqualifiedComponentCall(logger *slog.Logger, f *file.File,
 	l.report(&diagnostic.Diagnostic{
 		Message: "component call: unresolved reference",
 		Primary: []diagnostic.Annotation{
-			anno.Node(f, cc.AST.Header.Name, "no component with that name found in the current package or dot imports"),
+			anno.Node(f, cc.AST.Header.Name, "neither defined in the current package nor dot imports"),
 		},
 	})
 }
@@ -163,7 +163,7 @@ func (l *linker) linkQualifiedComponentCall(
 			anno.Node(f, ident.Name, "could not resolve reference"),
 		},
 		Secondary: []diagnostic.Annotation{
-			anno.Node(f, imp.AST, "when searching in this package"),
+			anno.Node(f, imp.AST, "searching in this package"),
 		},
 		Explanation: "The component you are trying to call does not exist in the package.",
 	})
