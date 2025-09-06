@@ -727,9 +727,11 @@ func TypeParameterDecl() parser.Func[*ast.TypeParameter] {
 		tp.Names = names
 
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
+
 		pos := p.Pos()
-		tp.Type = parser.Try(p, Type())
-		if tp.Type == nil {
+		if t := parser.Try(p, Type()); t != nil {
+			tp.Type = t // typed nil
+		} else {
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message:  "type parameter: missing type",
 				Primary:  quickanno.Expected(p, pos, "a type"),

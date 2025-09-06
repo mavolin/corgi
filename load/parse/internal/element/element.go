@@ -26,7 +26,9 @@ func Doctype() parser.Func[*ast.Doctype] {
 		d.Doctype = doctype
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 
+		argsStart := p.Pos()
 		args := parser.Try(p, argument.Arguments())
+		argsEnd := p.Pos()
 		if args == nil {
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "doctype: missing html attribute",
@@ -48,12 +50,12 @@ func Doctype() parser.Func[*ast.Doctype] {
 				},
 			})
 		case len(args.List) == 1:
-			attr, ok := args.List[0].(*ast.NamedAttribute)
-			if !ok {
+			attr, _ := args.List[0].(*ast.NamedAttribute)
+			if attr == nil {
 				p.CaptureError(&diagnostic.Diagnostic{
 					Message: "doctype: invalid html attribute",
 					Primary: []diagnostic.Annotation{
-						anno.Range(p.File, args.List[0].Start(), args.List[0].End(), "expected `html`, not this"),
+						anno.Range(p.File, argsStart, argsEnd, "expected `html`, not this"),
 					},
 					Examples: []diagnostic.Example{{Example: "`!doctype(html)`"}},
 				})
@@ -83,7 +85,7 @@ func Doctype() parser.Func[*ast.Doctype] {
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "doctype: too many attributes",
 				Primary: []diagnostic.Annotation{
-					anno.Range(p.File, args.List[0].Start(), args.List[len(args.List)-1].End(), "only a single `html` attribute"),
+					anno.Range(p.File, argsStart, argsEnd, "only a single `html` attribute"),
 				},
 				Examples: []diagnostic.Example{{Example: "`!doctype(html)`"}},
 			})

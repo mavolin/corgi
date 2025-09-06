@@ -18,10 +18,18 @@ type List[T any] struct {
 	Close *ast.Position
 }
 
+// ParenList parses a list of zero or more elements enclosed in parentheses
+// and separated by commas.
+//
+// Missing elements are reported and represented by the zero value of T.
 func ParenList[T comparable](singular, plural string, elemFunc parser.Func[T]) parser.Func[*List[T]] {
 	return list(singular, plural, '(', ')', elemFunc)
 }
 
+// BracketList parses a list of zero or more elements enclosed in brackets
+// and separated by commas.
+//
+// Missing elements are reported and represented by the zero value of T.
 func BracketList[T comparable](singular, plural string, elemFunc parser.Func[T]) parser.Func[*List[T]] {
 	return list(singular, plural, '[', ']', elemFunc)
 }
@@ -115,6 +123,9 @@ func list[T comparable](singular, plural string, opening, closing rune, elemFunc
 	}
 }
 
+// CommaList parses a list of one or more elements separated by commas.
+//
+// Missing elements are reported and represented by the zero value of T.
 func CommaList[T comparable](singular, plural string, elemFunc parser.Func[T]) parser.Func[[]T] {
 	return func(p *parser.Parser) []T {
 		var zero T

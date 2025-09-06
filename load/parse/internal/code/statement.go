@@ -54,6 +54,8 @@ func ParsedStatement() parser.Func[*ast.Statement] {
 
 func parsedStatement(o Options) parser.Func[*ast.Statement] {
 	return func(p *parser.Parser) *ast.Statement {
+		start := p.Pos()
+
 		if r := parser.Try(p, Return()); r != nil {
 			return &ast.Statement{
 				Nodes:  ReturnAsCode(r),
@@ -81,12 +83,12 @@ func parsedStatement(o Options) parser.Func[*ast.Statement] {
 			}
 		} else if cd := parser.Try(p, ConstDeclaration()); cd != nil {
 			return &ast.Statement{
-				Nodes:  ConstDeclarationAsCode(cd),
+				Nodes:  ConstDeclarationAsCode(start, cd),
 				Parsed: cd,
 			}
 		} else if vd := parser.Try(p, VarDeclaration()); vd != nil {
 			return &ast.Statement{
-				Nodes:  VarDeclarationAsCode(vd),
+				Nodes:  VarDeclarationAsCode(start, vd),
 				Parsed: vd,
 			}
 		} else if l := parser.Try(p, Label()); l != nil {
@@ -117,7 +119,7 @@ func parsedStatement(o Options) parser.Func[*ast.Statement] {
 			}
 		} else if a := parser.Try(p, assignment(e, o)); a != nil {
 			return &ast.Statement{
-				Nodes:  AssignmentAsCode(a),
+				Nodes:  AssignmentAsCode(e.Start(), a),
 				Parsed: a,
 			}
 		}
@@ -125,7 +127,7 @@ func parsedStatement(o Options) parser.Func[*ast.Statement] {
 		p.RestoreState(beforeExpr)
 		if svd := parser.Try(p, ShortVarDeclaration()); svd != nil {
 			return &ast.Statement{
-				Nodes:  ShortVarDeclarationAsCode(svd),
+				Nodes:  ShortVarDeclarationAsCode(e.Start(), svd),
 				Parsed: svd,
 			}
 		}
@@ -196,7 +198,7 @@ func parsedSimpleStatement(o Options) parser.Func[*ast.SimpleStatement] {
 			}
 		} else if a := parser.Try(p, assignment(e, o)); a != nil {
 			return &ast.SimpleStatement{
-				Nodes:  AssignmentAsCode(a),
+				Nodes:  AssignmentAsCode(e.Start(), a),
 				Parsed: a,
 			}
 		}
@@ -204,7 +206,7 @@ func parsedSimpleStatement(o Options) parser.Func[*ast.SimpleStatement] {
 		p.RestoreState(beforeExpr)
 		if svd := parser.Try(p, ShortVarDeclaration()); svd != nil {
 			return &ast.SimpleStatement{
-				Nodes:  ShortVarDeclarationAsCode(svd),
+				Nodes:  ShortVarDeclarationAsCode(e.Start(), svd),
 				Parsed: svd,
 			}
 		}
@@ -590,7 +592,9 @@ func ConstSpec() parser.Func[*ast.ConstSpec] {
 
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 
+		valuesStart := p.Pos()
 		s.Values = parser.Try(p, list.CommaList("const value", "const values", Expression(Regular)))
+		valuesEnd := p.Pos()
 		if s.Values == nil {
 			if len(s.Names) == 1 {
 				p.CaptureError(&diagnostic.Diagnostic{
@@ -610,7 +614,7 @@ func ConstSpec() parser.Func[*ast.ConstSpec] {
 				p.CaptureError(&diagnostic.Diagnostic{
 					Message: "var spec: mismatched number of values and constants",
 					Primary: []diagnostic.Annotation{
-						anno.Range(p.File, s.Values[0].Start(), s.Values[len(s.Values)-1].End(),
+						anno.Range(p.File, valuesStart, valuesEnd,
 							fmt.Sprint("expected a single expression, but found ", len(s.Values))),
 					},
 				})
@@ -618,7 +622,7 @@ func ConstSpec() parser.Func[*ast.ConstSpec] {
 				p.CaptureError(&diagnostic.Diagnostic{
 					Message: "var spec: mismatched number of values and constants",
 					Primary: []diagnostic.Annotation{
-						anno.Range(p.File, s.Values[0].Start(), s.Values[len(s.Values)-1].End(),
+						anno.Range(p.File, valuesStart, valuesEnd,
 							fmt.Sprint("a single or ", len(s.Names), " expressions, but found ", len(s.Values))),
 					},
 				})
@@ -629,25 +633,32 @@ func ConstSpec() parser.Func[*ast.ConstSpec] {
 	}
 }
 
-func ConstDeclarationAsCode(d *ast.ConstDeclaration) ast.Code {
+func ConstDeclarationAsCode(start ast.Position, d *ast.ConstDeclaration) ast.Code {
 	var n int
 	n++ // 'const'
 	if d.LParen != nil {
 		n++
 	}
 	for _, spec := range d.Specs {
+		if spec == nil {
+			continue
+		}
 		n += len(spec.Names) // commas included
 		if spec.EqualSign != nil {
 			n++
 		}
 		for _, val := range spec.Values {
-			n += len(val.Nodes)
+			if val != nil {
+				n += len(val.Nodes)
+			}
 		}
 		n += max(0, len(spec.Values)-1) // commas
 	}
 	if d.RParen != nil {
 		n++
 	}
+
+	lastEnd := start
 
 	c := make(ast.Code, n)
 	c[0] = &ast.GoCode{Code: "const", Position: d.Const}
@@ -657,7 +668,22 @@ func ConstDeclarationAsCode(d *ast.ConstDeclaration) ast.Code {
 		i++
 	}
 	for _, spec := range d.Specs {
+		if spec == nil {
+			continue
+		}
 		for nameI, name := range spec.Names {
+			if name == nil {
+				pos := lastEnd
+				if nameI < len(spec.Names)-1 { // not last
+					c[i] = &ast.GoCode{Code: ",", Position: &pos}
+				} else {
+					c[i] = &ast.GoCode{Code: "", Position: &pos}
+				}
+				lastEnd = c[i].End()
+				i++
+				continue
+			}
+
 			if nameI < len(spec.Names)-1 { // not last
 				c[i] = &ast.GoCode{Code: name.Name + ",", Position: name.Position}
 			} else {
@@ -667,8 +693,20 @@ func ConstDeclarationAsCode(d *ast.ConstDeclaration) ast.Code {
 		}
 		if spec.EqualSign != nil {
 			c[i] = &ast.GoCode{Code: "=", Position: spec.EqualSign}
+			i++
 		}
+		lastEnd = c[i-1].End()
 		for valueI, value := range spec.Values {
+			if value == nil {
+				if valueI < len(spec.Values)-1 { // not last
+					pos := lastEnd
+					c[i] = &ast.GoCode{Code: ",", Position: &pos}
+					lastEnd = c[i].End()
+					i++
+				}
+				continue
+			}
+
 			i += copy(c[i:], value.Nodes)
 			if valueI < len(spec.Values)-1 { // not last
 				comma := value.End()
@@ -786,7 +824,9 @@ func VarSpec() parser.Func[*ast.VarSpec] {
 
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 
+		valuesStart := p.Pos()
 		s.Values = parser.Try(p, list.CommaList("var value", "var values", Expression(Regular)))
+		valuesEnd := p.Pos()
 		if s.Values == nil {
 			if len(s.Names) == 1 {
 				p.CaptureError(&diagnostic.Diagnostic{
@@ -806,7 +846,7 @@ func VarSpec() parser.Func[*ast.VarSpec] {
 				p.CaptureError(&diagnostic.Diagnostic{
 					Message: "var spec: mismatched number of values and variables",
 					Primary: []diagnostic.Annotation{
-						anno.Range(p.File, s.Values[0].Start(), s.Values[len(s.Values)-1].End(),
+						anno.Range(p.File, valuesStart, valuesEnd,
 							fmt.Sprint("expected a single expression, but found ", len(s.Values))),
 					},
 				})
@@ -814,7 +854,7 @@ func VarSpec() parser.Func[*ast.VarSpec] {
 				p.CaptureError(&diagnostic.Diagnostic{
 					Message: "var spec: mismatched number of values and variables",
 					Primary: []diagnostic.Annotation{
-						anno.Range(p.File, s.Values[0].Start(), s.Values[len(s.Values)-1].End(),
+						anno.Range(p.File, valuesStart, valuesEnd,
 							fmt.Sprint("a single or ", len(s.Names), " expressions, but found ", len(s.Values))),
 					},
 				})
@@ -825,25 +865,32 @@ func VarSpec() parser.Func[*ast.VarSpec] {
 	}
 }
 
-func VarDeclarationAsCode(d *ast.VarDeclaration) ast.Code {
+func VarDeclarationAsCode(start ast.Position, d *ast.VarDeclaration) ast.Code {
 	var n int
 	n++ // 'var'
 	if d.LParen != nil {
 		n++
 	}
 	for _, spec := range d.Specs {
+		if spec == nil {
+			continue
+		}
 		n += len(spec.Names) // commas included
 		if spec.EqualSign != nil {
 			n++
 		}
 		for _, val := range spec.Values {
-			n += len(val.Nodes)
+			if val != nil {
+				n += len(val.Nodes)
+			}
 		}
-		n += max(0, len(spec.Values)-1)
+		n += max(0, len(spec.Values)-1) // commas
 	}
 	if d.RParen != nil {
 		n++
 	}
+
+	lastEnd := start
 
 	c := make(ast.Code, n)
 	c[0] = &ast.GoCode{Code: "var", Position: d.Var}
@@ -853,7 +900,22 @@ func VarDeclarationAsCode(d *ast.VarDeclaration) ast.Code {
 		i++
 	}
 	for _, spec := range d.Specs {
+		if spec == nil {
+			continue
+		}
 		for nameI, name := range spec.Names {
+			if name == nil {
+				pos := lastEnd
+				if nameI < len(spec.Names)-1 { // not last
+					c[i] = &ast.GoCode{Code: ",", Position: &pos}
+				} else {
+					c[i] = &ast.GoCode{Code: "", Position: &pos}
+				}
+				lastEnd = c[i].End()
+				i++
+				continue
+			}
+
 			if nameI < len(spec.Names)-1 { // not last
 				c[i] = &ast.GoCode{Code: name.Name + ",", Position: name.Position}
 			} else {
@@ -863,8 +925,20 @@ func VarDeclarationAsCode(d *ast.VarDeclaration) ast.Code {
 		}
 		if spec.EqualSign != nil {
 			c[i] = &ast.GoCode{Code: "=", Position: spec.EqualSign}
+			i++
 		}
+		lastEnd = c[i-1].End()
 		for valueI, value := range spec.Values {
+			if value == nil {
+				if valueI < len(spec.Values)-1 { // not last
+					pos := lastEnd
+					c[i] = &ast.GoCode{Code: ",", Position: &pos}
+					lastEnd = c[i].End()
+					i++
+				}
+				continue
+			}
+
 			i += copy(c[i:], value.Nodes)
 			if valueI < len(spec.Values)-1 { // not last
 				comma := value.End()
@@ -900,7 +974,9 @@ func ShortVarDeclaration() parser.Func[*ast.ShortVarDeclaration] {
 
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 
+		valuesStart := p.Pos()
 		d.Values = parser.Try(p, list.CommaList("value", "values", Expression(Regular)))
+		valuesEnd := p.Pos()
 		if d.Values == nil {
 			if len(d.Names) == 1 {
 				p.CaptureError(&diagnostic.Diagnostic{
@@ -920,7 +996,7 @@ func ShortVarDeclaration() parser.Func[*ast.ShortVarDeclaration] {
 				p.CaptureError(&diagnostic.Diagnostic{
 					Message: "short var declaration: mismatched number of values and variables",
 					Primary: []diagnostic.Annotation{
-						anno.Range(p.File, d.Values[0].Start(), d.Values[len(d.Values)-1].End(),
+						anno.Range(p.File, valuesStart, valuesEnd,
 							fmt.Sprint("expected a single expression, but found ", len(d.Values))),
 					},
 				})
@@ -928,7 +1004,7 @@ func ShortVarDeclaration() parser.Func[*ast.ShortVarDeclaration] {
 				p.CaptureError(&diagnostic.Diagnostic{
 					Message: "short var declaration: mismatched number of values and variables",
 					Primary: []diagnostic.Annotation{
-						anno.Range(p.File, d.Values[0].Start(), d.Values[len(d.Values)-1].End(),
+						anno.Range(p.File, valuesStart, valuesEnd,
 							fmt.Sprint("a single or ", len(d.Names), " expressions, but found ", len(d.Values))),
 					},
 				})
@@ -939,20 +1015,37 @@ func ShortVarDeclaration() parser.Func[*ast.ShortVarDeclaration] {
 	}
 }
 
-func ShortVarDeclarationAsCode(d *ast.ShortVarDeclaration) ast.Code {
+func ShortVarDeclarationAsCode(start ast.Position, d *ast.ShortVarDeclaration) ast.Code {
 	var n int
 	n += len(d.Names) // commas included
 	if d.ColonEqualSign != nil {
 		n++
 	}
 	for _, val := range d.Values {
-		n += len(val.Nodes)
+		if val != nil {
+			n += len(val.Nodes)
+		}
 	}
 	n += max(0, len(d.Values)-1) // commas
+
+	lastEnd := start
 
 	c := make(ast.Code, n)
 	i := 0
 	for nameI, name := range d.Names {
+		if name == nil {
+			pos := lastEnd
+			lastEnd.Col++
+			if nameI < len(d.Names)-1 { // not last
+				c[i] = &ast.GoCode{Code: ",", Position: &pos}
+			} else {
+				c[i] = &ast.GoCode{Code: "", Position: &pos}
+			}
+			lastEnd = c[i].End()
+			i++
+			continue
+		}
+
 		if nameI < len(d.Names)-1 { // not last
 			c[i] = &ast.GoCode{Code: name.Name + ",", Position: name.Position}
 		} else {
@@ -964,12 +1057,24 @@ func ShortVarDeclarationAsCode(d *ast.ShortVarDeclaration) ast.Code {
 		c[i] = &ast.GoCode{Code: ":=", Position: d.ColonEqualSign}
 		i++
 	}
+
+	lastEnd = c[i-1].End()
 	for valueI, value := range d.Values {
+		if value == nil {
+			if valueI < len(d.Values)-1 { // not last
+				pos := lastEnd
+				c[i] = &ast.GoCode{Code: ",", Position: &pos}
+				lastEnd = c[i].End()
+				i++
+			}
+			continue
+		}
+
 		i += copy(c[i:], value.Nodes)
 		if valueI < len(d.Values)-1 { // not last
 			comma := value.End()
-			comma.Col++
 			c[i] = &ast.GoCode{Code: ",", Position: &comma}
+			lastEnd = c[i].End()
 			i++
 		}
 	}
@@ -1049,15 +1154,16 @@ func assignment(e *ast.Expression, o Options) parser.Func[*ast.Assignment] {
 		a.OperatorPosition.Col -= len(op)
 
 		parser.TrySkip(p, comment.OrAnyWhitespace())
-		pos := p.Pos()
+		rhsStart := p.Pos()
 		a.RHS = parser.Try(p, list.CommaList("expression", "expressions", Expression(o)))
+		rhsEnd := p.Pos()
 		if len(a.RHS) > 0 {
 			if len(a.RHS) > 1 && len(a.LHS) != len(a.RHS) {
 				if len(a.LHS) == 1 {
 					p.CaptureError(&diagnostic.Diagnostic{
 						Message: "assigment: mismatched number of values and assignees",
 						Primary: []diagnostic.Annotation{
-							anno.Range(p.File, a.RHS[0].Start(), a.RHS[len(a.RHS)-1].End(),
+							anno.Range(p.File, rhsStart, rhsEnd,
 								fmt.Sprint("expected a single expression, but found ", len(a.RHS))),
 						},
 					})
@@ -1065,7 +1171,7 @@ func assignment(e *ast.Expression, o Options) parser.Func[*ast.Assignment] {
 					p.CaptureError(&diagnostic.Diagnostic{
 						Message: "assigment: mismatched number of values and assignees",
 						Primary: []diagnostic.Annotation{
-							anno.Range(p.File, a.RHS[0].Start(), a.RHS[len(a.RHS)-1].End(),
+							anno.Range(p.File, rhsStart, rhsEnd,
 								fmt.Sprint("a single or ", len(a.LHS), " expressions, but found ", len(a.RHS))),
 						},
 					})
@@ -1074,7 +1180,7 @@ func assignment(e *ast.Expression, o Options) parser.Func[*ast.Assignment] {
 		} else {
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "assignment: missing values",
-				Primary: quickanno.Expected(p, pos, fmt.Sprint("one or a list of ", len(a.LHS), " expressions being assigned to")),
+				Primary: quickanno.Expected(p, rhsStart, fmt.Sprint("one or a list of ", len(a.LHS), " expressions being assigned to")),
 			})
 		}
 
@@ -1082,28 +1188,44 @@ func assignment(e *ast.Expression, o Options) parser.Func[*ast.Assignment] {
 	}
 }
 
-func AssignmentAsCode(a *ast.Assignment) ast.Code {
+func AssignmentAsCode(start ast.Position, a *ast.Assignment) ast.Code {
 	var n int
 	for _, e := range a.LHS {
-		n += len(e.Nodes)
+		if e != nil {
+			n += len(e.Nodes)
+		}
 	}
 	n += max(0, len(a.LHS)-1) // commas
 	if a.OperatorPosition != nil {
 		n++ // operator
 	}
 	for _, e := range a.RHS {
-		n += len(e.Nodes)
+		if e != nil {
+			n += len(e.Nodes)
+		}
 	}
 	n += max(0, len(a.RHS)-1) // commas
+
+	lastEnd := start
 
 	c := make(ast.Code, n)
 	var i int
 	for eI, e := range a.LHS {
+		if e == nil {
+			if eI < len(a.LHS)-1 { // not last
+				pos := lastEnd
+				lastEnd.Col++
+				c[i] = &ast.GoCode{Code: ",", Position: &pos}
+				i++
+			}
+			continue
+		}
+
 		i += copy(c[i:], e.Nodes)
 		if eI < len(a.LHS)-1 { // not last
 			pos := e.End()
-			pos.Col++
 			c[i] = &ast.GoCode{Code: ",", Position: &pos}
+			lastEnd = c[i].End()
 			i++
 		}
 	}
@@ -1111,12 +1233,23 @@ func AssignmentAsCode(a *ast.Assignment) ast.Code {
 		c[i] = &ast.GoCode{Code: a.Operator, Position: a.OperatorPosition}
 		i++
 	}
+
+	lastEnd = c[i-1].End()
 	for eI, e := range a.RHS {
+		if e == nil {
+			if eI < len(a.RHS)-1 { // not last
+				pos := lastEnd
+				c[i] = &ast.GoCode{Code: ",", Position: &pos}
+				lastEnd = c[i].End()
+				i++
+			}
+			continue
+		}
 		i += copy(c[i:], e.Nodes)
 		if eI < len(a.RHS)-1 { // not last
 			pos := e.End()
-			pos.Col++
 			c[i] = &ast.GoCode{Code: ",", Position: &pos}
+			lastEnd = c[i].End()
 			i++
 		}
 	}

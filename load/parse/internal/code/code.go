@@ -91,7 +91,9 @@ func Ternary() parser.Func[*ast.Ternary] {
 
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 
+		argsStart := p.Pos()
 		l := parser.Try(p, list.ParenList("argument", "ternary function arguments", NonZCExpression(Regular)))
+		argsEnd := p.Pos()
 		if l == nil {
 			return nil
 		}
@@ -139,10 +141,14 @@ func Ternary() parser.Func[*ast.Ternary] {
 		}
 
 		if len(l.Elems) > 3 {
+			excessStart := argsStart
+			if l.Elems[3] != nil {
+				excessStart = l.Elems[3].Start()
+			}
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "ternary function: too many arguments",
 				Primary: []diagnostic.Annotation{
-					anno.Range(p.File, l.Elems[3].Start(), l.Elems[len(l.Elems)-1].End(),
+					anno.Range(p.File, excessStart, argsEnd,
 						"unexpected arguments: expected only a condition, "+
 							"a value for if the condition is true, and a value for if the condition is false"),
 				},

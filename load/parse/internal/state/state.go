@@ -113,7 +113,9 @@ func Spec() parser.Func[*ast.StateSpec] {
 		}
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 
+		valuesStart := p.Pos()
 		s.Values = parser.Try(p, list.CommaList("state value", "state values", code.Expression(code.Regular)))
+		valuesEnd := p.Pos()
 		if s.Values == nil {
 			if len(s.Names) == 1 {
 				p.CaptureError(&diagnostic.Diagnostic{
@@ -133,7 +135,7 @@ func Spec() parser.Func[*ast.StateSpec] {
 				p.CaptureError(&diagnostic.Diagnostic{
 					Message: "state spec: mismatched number of values and variables",
 					Primary: []diagnostic.Annotation{
-						anno.Range(p.File, s.Values[0].Start(), s.Values[len(s.Values)-1].End(),
+						anno.Range(p.File, valuesStart, valuesEnd,
 							fmt.Sprint("expected a single expression, but found ", len(s.Values))),
 					},
 				})
@@ -141,7 +143,7 @@ func Spec() parser.Func[*ast.StateSpec] {
 				p.CaptureError(&diagnostic.Diagnostic{
 					Message: "state spec: mismatched number of values and variables",
 					Primary: []diagnostic.Annotation{
-						anno.Range(p.File, s.Values[0].Start(), s.Values[len(s.Values)-1].End(),
+						anno.Range(p.File, valuesStart, valuesEnd,
 							fmt.Sprint("a single or ", len(s.Names), " expressions, but found ", len(s.Values))),
 					},
 				})
