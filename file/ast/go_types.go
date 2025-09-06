@@ -257,24 +257,30 @@ type TypeArguments struct {
 var _ Node = (*TypeArguments)(nil)
 
 func (a *TypeArguments) Start() Position {
-	switch {
-	case a.LBracket != nil:
+	if a.LBracket != nil {
 		return *a.LBracket
-	case len(a.Types) > 0:
-		return a.Types[0].Start()
-	case a.RBracket != nil:
+	}
+	for _, t := range a.Types {
+		if t != nil {
+			return t.Start()
+		}
+	}
+	if a.RBracket != nil {
 		return deltaPos(*a.RBracket, len("]"))
 	}
 	return Position{}
 }
 
 func (a *TypeArguments) End() Position {
-	switch {
-	case a.RBracket != nil:
+	if a.RBracket != nil {
 		return deltaPos(*a.RBracket, len("]"))
-	case len(a.Types) > 0:
-		return a.Types[len(a.Types)-1].End()
-	case a.LBracket != nil:
+	}
+	for _, t := range slices.Backward(a.Types) {
+		if t != nil {
+			return t.End()
+		}
+	}
+	if a.LBracket != nil {
 		return deltaPos(*a.LBracket, len("["))
 	}
 	return Position{}
