@@ -40,7 +40,7 @@ func (f *File) Start() Position {
 }
 
 func (f *File) End() Position {
-	return Position{Line: len(f.Lines), Col: len(f.Lines[len(f.Lines)-1]) + 1}
+	return Position{Line: len(f.Lines), Col: len([]rune(f.Lines[len(f.Lines)-1])) + 1}
 }
 
 func (f *File) Walk(w func(Node)) {

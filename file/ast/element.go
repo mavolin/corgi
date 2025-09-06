@@ -202,7 +202,7 @@ func (n *ElementName) Start() Position {
 
 func (n *ElementName) End() Position {
 	if n.Position != nil {
-		return deltaPos(*n.Position, len(n.Name))
+		return deltaPos(*n.Position, len([]rune(n.Name)))
 	}
 	return NoPosition
 }

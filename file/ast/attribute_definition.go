@@ -281,9 +281,9 @@ func (b *BasicAttributeSelector) End() Position {
 	}
 
 	if b.Wildcard {
-		return deltaPos(*b.Position, len(b.Name)+len("*"))
+		return deltaPos(*b.Position, len([]rune(b.Name))+len("*"))
 	}
-	return deltaPos(*b.Position, len(b.Name))
+	return deltaPos(*b.Position, len([]rune(b.Name)))
 }
 func (b *BasicAttributeSelector) Walk(func(Node)) {}
 

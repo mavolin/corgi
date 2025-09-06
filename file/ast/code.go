@@ -70,7 +70,7 @@ func (c *GoCode) Start() Position {
 
 func (c *GoCode) End() Position {
 	if c.Position != nil {
-		return deltaPos(*c.Position, len(c.Code))
+		return deltaPos(*c.Position, len([]rune(c.Code)))
 	}
 	return NoPosition
 }

@@ -170,7 +170,7 @@ func (t *Text) Start() Position {
 
 func (t *Text) End() Position {
 	if t.Position != nil {
-		return deltaPos(*t.Position, len(t.Text))
+		return deltaPos(*t.Position, len([]rune(t.Text)))
 	}
 	return NoPosition
 }

@@ -47,7 +47,7 @@ func (ident *Identifier) Start() Position {
 
 func (ident *Identifier) End() Position {
 	if ident.Position != nil {
-		return deltaPos(*ident.Position, len(ident.Name))
+		return deltaPos(*ident.Position, len([]rune(ident.Name)))
 	}
 	return NoPosition
 }
