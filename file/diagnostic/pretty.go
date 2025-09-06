@@ -122,15 +122,11 @@ func (d *Diagnostic) pretty(sb *strings.Builder, o PrettyOptions) {
 	}
 	for _, a := range d.Primary {
 		p.insertAnno(a, true, len(d.Primary))
-		if n := numDigits(a.ContextEnd - 1); n > p.nDigits {
-			p.nDigits = n
-		}
+		p.nDigits = max(p.nDigits, numDigits(a.ContextEnd-1))
 	}
 	for _, a := range d.Secondary {
-		p.insertAnno(a, false, len(d.Primary))
-		if n := numDigits(a.ContextEnd - 1); n > p.nDigits {
-			p.nDigits = n
-		}
+		p.insertAnno(a, false, len(d.Secondary))
+		p.nDigits = max(p.nDigits, numDigits(a.ContextEnd-1))
 	}
 
 	p.print()
@@ -302,6 +298,9 @@ func (p *prettyPrinter) printAnnotationMarker(lnNo line, ln string, a annotation
 		end = len(ln) + 1
 	}
 	repeatCount := end - start
+	if repeatCount < 0 {
+		panic("annotation ends before it starts")
+	}
 	if a.primary {
 		p.colored(strings.Repeat("^", repeatCount), p.annoColor(a))
 	} else {
@@ -625,6 +624,15 @@ type lineRange struct {
 func lineRanges(f *fileAnnos) []lineRange {
 	lines := make([]lineRange, len(f.annos))
 	for i, a := range f.annos {
+		switch {
+		case a.ContextStart <= 0:
+			panic(fmt.Sprintf("invalid context start: %d", a.ContextStart))
+		case a.ContextEnd < a.ContextStart:
+			panic(fmt.Sprintf("context end before start: %d < %d", a.ContextEnd, a.ContextStart))
+		case a.ContextEnd > len(f.file.AST.Lines)+1: // +1 because lines are 1-indexed
+			panic("context end out of bounds")
+		}
+
 		lines[i] = lineRange{start: a.ContextStart, end: a.ContextEnd}
 	}
 
