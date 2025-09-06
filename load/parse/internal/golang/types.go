@@ -2,7 +2,6 @@ package golang
 
 import (
 	"slices"
-	"unicode/utf8"
 
 	"github.com/mavolin/corgi/v2/file/ast"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
@@ -165,30 +164,30 @@ func ArrayLength() parser.Func[bool] { // https://go.dev/ref/spec#ArrayType
 		// We parse the input string ourselves, and remember the last
 		// non-whitespace rune we encounter.
 		// We can then call parser.NextRune until we reach that rune.
-		start := p.Index()
 		var bracketCount int
-		end := len(p.AST.Raw)
-		for i, r := range p.AST.Raw[p.Index():] {
+		var nRunes int
+		var nWhitespace int
+		for _, r := range p.AST.Raw[p.Index():] {
 			if r == '[' { //nolint:gocritic
 				bracketCount++
-				end = p.Index() + i + len("[")
 			} else if r == ']' {
 				bracketCount--
 				if bracketCount < 0 {
-					end = p.Index() + i
 					break
 				}
-				end = p.Index() + i + len("]")
 			} else if r == ';' {
 				break
-			} else if !slices.Contains(whitespace.Runes, r) {
-				end = p.Index() + i + utf8.RuneLen(r)
+			} else if slices.Contains(whitespace.Runes, r) {
+				nWhitespace++
+				continue
 			}
+			nRunes += nWhitespace + 1
+			nWhitespace = 0
 		}
-		if start == end {
+		if nRunes == 0 {
 			return false
 		}
-		for p.Index() < end {
+		for range nRunes {
 			parser.NextRune(p)
 		}
 
@@ -246,23 +245,24 @@ func StructType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#StructType
 
 		// see array length on why this is necessary
 		var braceCount int
-		end := len(p.AST.Raw)
-		for i, r := range p.AST.Raw[p.Index():] {
+		var nRunes int
+		var nWhitespace int
+		for _, r := range p.AST.Raw[p.Index():] {
 			if r == '{' { //nolint:gocritic
 				braceCount++
-				end = p.Index() + i + len("{")
 			} else if r == '}' {
 				braceCount--
 				if braceCount < 0 {
-					end = p.Index() + i
 					break
 				}
-				end = p.Index() + i + len("}")
-			} else if !slices.Contains(whitespace.Runes, r) {
-				end = p.Index() + i + utf8.RuneLen(r)
+			} else if slices.Contains(whitespace.Runes, r) {
+				nWhitespace++
+				continue
 			}
+			nRunes += 1 + nWhitespace
+			nWhitespace = 0
 		}
-		for p.Index() < end {
+		for range nRunes {
 			parser.NextRune(p)
 		}
 
@@ -469,23 +469,24 @@ func InterfaceType() parser.Func[*ast.Type] {
 
 		// see array length on why this is necessary
 		var braceCount int
-		end := len(p.AST.Raw)
-		for i, r := range p.AST.Raw[p.Index():] {
+		var nRunes int
+		var nWhitespace int
+		for _, r := range p.AST.Raw[p.Index():] {
 			if r == '{' { //nolint:gocritic
 				braceCount++
-				end = p.Index() + i + len("{")
 			} else if r == '}' {
 				braceCount--
 				if braceCount < 0 {
-					end = p.Index() + i
 					break
 				}
-				end = p.Index() + i + len("}")
-			} else if !slices.Contains(whitespace.Runes, r) {
-				end = p.Index() + i + utf8.RuneLen(r)
+			} else if slices.Contains(whitespace.Runes, r) {
+				nWhitespace++
+				continue
 			}
+			nRunes += nWhitespace + 1
+			nWhitespace = 0
 		}
-		for p.Index() < end {
+		for range nRunes {
 			parser.NextRune(p)
 		}
 
