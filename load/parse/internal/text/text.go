@@ -61,8 +61,8 @@ func Node(term rune) parser.Func[ast.TextNode] {
 	return func(p *parser.Parser) ast.TextNode {
 		if t := parser.Try(p, Text(term)); t != nil {
 			return t
-		} else if interp := parser.Try(p, interpolation.TextInterpolation()); interp != nil {
-			return interp
+		} else if inter := parser.Try(p, interpolation.TextInterpolation()); inter != nil {
+			return inter
 		} else if bi := parser.Try(p, interpolation.BadInterpolation()); bi != nil {
 			return bi
 		}
