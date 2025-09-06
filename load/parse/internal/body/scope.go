@@ -22,12 +22,29 @@ func Scope() parser.Func[*ast.Scope] {
 
 		for {
 			parser.TrySkip(p, comment.OrAnyWhitespace())
-			n := parser.TryOptional(p, ScopeNode(), nil)
-			if n == nil {
+			if parser.MatchesAnyRune(p, '}') {
 				break
 			}
-			s.Nodes = append(s.Nodes, n)
-			parser.Try(p, comment.AndMustEOS())
+
+			n := parser.TryOptional(p, ScopeNode(), nil)
+			if n != nil {
+				s.Nodes = append(s.Nodes, n)
+				parser.Try(p, comment.AndForceEOS())
+				continue
+			}
+
+			bn := parser.TryOptional(p, BadNode(), nil)
+			if bn == nil {
+				break
+			}
+			p.CaptureError(&diagnostic.Diagnostic{
+				Message: "bad scope node",
+				Primary: []diagnostic.Annotation{
+					anno.Range(p.File, bn.From, bn.Until, "unexpected tokens"),
+				},
+			})
+			s.Nodes = append(s.Nodes, bn)
+			parser.Try(p, comment.AndForceEOS())
 		}
 
 		s.RBrace = parser.TryRuneAt(p, '}')
@@ -52,16 +69,6 @@ func ScopeNode() parser.Func[ast.ScopeNode] {
 	return func(p *parser.Parser) ast.ScopeNode {
 		n := parser.Try(p, scopeNode)
 		if n != nil {
-			return n
-		}
-
-		if n := parser.Try(p, BadNode()); n != nil {
-			p.CaptureError(&diagnostic.Diagnostic{
-				Message: "bad scope node",
-				Primary: []diagnostic.Annotation{
-					anno.Range(p.File, n.From, n.Until, "unexpected tokens"),
-				},
-			})
 			return n
 		}
 
@@ -90,12 +97,9 @@ func BadNode() parser.Func[*ast.BadNode] {
 				}
 			} else if parser.Matches(p, comment.AndEOS()) {
 				break
-			}
-
-			otherParen := parser.TryOptionalRune(p, ']', nil) ||
-				parser.TryOptionalRune(p, '(', nil) ||
-				parser.TryOptionalRune(p, ')', nil)
-			if !otherParen {
+			} else if parser.TryAnyOptionalRune(p, nil, ']', '(', ')') != 0 { //nolint:revive
+				// condition is the action
+			} else {
 				parser.TrySkip(p, comment.OrAnyWhitespace())
 			}
 		}

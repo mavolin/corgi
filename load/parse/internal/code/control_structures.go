@@ -280,18 +280,32 @@ func CaseBody() parser.Func[[]ast.ScopeNode] {
 				} else if parser.TryKeywordAt(p, "default", comment.OrAnyWhitespace()) != nil {
 					return true
 				}
-				return false
+				return parser.MatchesAnyRune(p, '}')
 			})
 			if stop {
 				parser.RestoreWS(p)
 				break
 			}
 
-			n := parser.Try(p, body.ScopeNode())
-			if n == nil {
+			n := parser.TryOptional(p, body.ScopeNode(), nil)
+			if n != nil {
+				ns = append(ns, n)
+				parser.Try(p, comment.AndMustEOS())
+				continue
+			}
+
+			bn := parser.TryOptional(p, body.BadNode(), nil)
+			if bn == nil {
 				break
 			}
-			ns = append(ns, n)
+			p.CaptureError(&diagnostic.Diagnostic{
+				Message: "bad scope node",
+				Primary: []diagnostic.Annotation{
+					anno.Range(p.File, bn.From, bn.Until, "unexpected tokens"),
+				},
+			})
+			ns = append(ns, bn)
+			parser.Try(p, comment.AndMustEOS())
 			parser.TrySkip(p, comment.OrAnyWhitespace())
 		}
 		if len(ns) == 0 {
