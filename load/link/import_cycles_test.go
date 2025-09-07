@@ -115,6 +115,33 @@ func TestLinker_CheckImportCycles(t *testing.T) {
 				return pkgA, packages, importGraph
 			},
 		}, {
+			name: "cycle via module path",
+			setup: func() (p *file.Package, packages map[importPath]*file.Package, importGraph []*file.Package) {
+				var start ast.Position
+				// A imports B, B imports C, C imports A - indirect cycle
+				pkgA := createPackage("pkg/a")
+				fileA := createFile(pkgA, "a.corgi")
+
+				pkgB := createPackage("pkg/b")
+				fileB := createFile(pkgB, "b.corgi")
+
+				pkgC := createPackage("pkg/c")
+				fileC := createFile(pkgC, "c.corgi")
+
+				createImport(fileA, &start, "", pkgB.ImportPath)
+				createImport(fileB, &start, "", pkgC.ImportPath)
+				createImport(fileC, &start, "", pkgA.ModulePath())
+
+				packages = map[importPath]*file.Package{
+					pkgA.ImportPath: pkgA,
+					pkgB.ImportPath: pkgB,
+					pkgC.ImportPath: pkgC,
+				}
+				importGraph = []*file.Package{pkgA, pkgB, pkgC}
+
+				return pkgA, packages, importGraph
+			},
+		}, {
 			name: "same cycle in multiple imports", // test that we still get only a single diagnostic
 			setup: func() (p *file.Package, packages map[importPath]*file.Package, importGraph []*file.Package) {
 				var start ast.Position

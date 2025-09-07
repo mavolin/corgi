@@ -42,7 +42,7 @@ func (l *linker) CheckImportCycles(ctx context.Context) {
 			}
 
 			for i, parentPackage := range slices.Backward(importersGraph) {
-				if parentPackage.ImportPath != imp.Path {
+				if parentPackage.ImportPath != imp.Path && parentPackage.ModulePath() != imp.Path {
 					continue
 				}
 
