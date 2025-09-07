@@ -199,7 +199,7 @@ func TestDiagnostic_Pretty(t *testing.T) {
 			expectShort: "error: foo: bar",
 			expectPretty: "error: foo\n" +
 				"\n" +
-				"Cause: bar",
+				"Cause: Bar",
 		}, {
 			name: "explanation",
 			diag: &Diagnostic{
@@ -351,7 +351,7 @@ func TestDiagnostic_Pretty(t *testing.T) {
 				`3 │ import "bar"` + "\n" +
 				"  │ ~~~~~~~~~~~~ import\n" +
 				"\n" +
-				"Cause: bar\n" +
+				"Cause: Bar\n" +
 				"\n" +
 				"baz\n" +
 				"\n" +

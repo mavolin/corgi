@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/fatih/color"
 	"github.com/mavolin/corgi/v2/file"
@@ -355,7 +357,7 @@ func (p *prettyPrinter) printCause() {
 	if p.diagnostic.Cause != nil {
 		p.uncolored("\n\n")
 		p.colored("Cause: ", color.Bold)
-		p.uncolored(p.diagnostic.Cause.Error())
+		p.uncolored(capitalize(p.diagnostic.Cause.Error()))
 	}
 }
 
@@ -663,4 +665,15 @@ func lineRanges(f *fileAnnos) []lineRange {
 	}
 
 	return merged
+}
+
+func capitalize(s string) string {
+	if s == "" {
+		return s
+	}
+	r, _ := utf8.DecodeRuneInString(s)
+	if r == utf8.RuneError {
+		return s
+	}
+	return string(unicode.ToTitle(r)) + s[len(string(r)):]
 }
