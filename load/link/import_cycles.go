@@ -27,16 +27,17 @@ func (l *linker) CheckImportCycles(ctx context.Context) {
 		return
 	}
 
-	// don't report the same import multiple times
-	reported := make(map[importPath]bool)
-
 	for _, f := range l.p.Files {
 		logger := logger.With(slog.String("file", f.Name))
+
+		// don't report the same import multiple times
+		reported := make(map[importPath]bool)
 
 		for _, imp := range f.Imports {
 			if !imp.Explicit() || imp.Path == "" {
 				continue
 			} else if reported[imp.Path] {
+				imp.Loaded = true
 				continue
 			}
 
