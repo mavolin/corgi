@@ -37,7 +37,7 @@ func (l *linker) CheckImportCycles(ctx context.Context) {
 			if !imp.Explicit() || imp.Path == "" {
 				continue
 			} else if reported[imp.Path] {
-				imp.Loaded = true
+				imp.Loaded = true // prevent deadlock
 				continue
 			}
 
@@ -69,7 +69,7 @@ func (l *linker) CheckImportCycles(ctx context.Context) {
 						"Break the cycle by removing one of the imports.",
 				})
 
-				imp.Loaded = true
+				imp.Loaded = true // prevent deadlock
 				reported[imp.Path] = true
 
 				// once we've found a cycle for this import, no need to check more parent packages

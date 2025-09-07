@@ -137,6 +137,7 @@ func Link(ctx context.Context, p *file.Package, o Options) diagnostic.List {
 		}
 	}
 
+	l.CheckSelfImport()
 	l.CheckImportCycles(ctx)
 	ctx = addToImportersGraph(ctx, p)
 	l.CheckDuplicateDotImports()
