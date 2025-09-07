@@ -19,7 +19,7 @@ const (
 	// Text is an attribute containing text consumed by humans.
 	// Effectively, its only difference from Innocuous is that Text attributes
 	// should be localized while Innocuous attributes should not.
-	Text
+	Text        // todo: remove
 	Innocuous   // text attribute containing text consumed by machines
 	CSS         // CSS code
 	JS          // JS code
@@ -29,6 +29,15 @@ const (
 	Srcset      // a srcset-like attribute
 	invalid
 )
+
+// All is the list of all valid Types.
+var All = func() [invalid - 1]Type {
+	var ts [invalid - 1]Type
+	for t := Unknown + 1; t < invalid; t++ {
+		ts[int(t)-1] = t
+	}
+	return ts
+}()
 
 func (t Type) IsValid() bool {
 	return t > Unknown && t < invalid

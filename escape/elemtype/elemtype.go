@@ -35,6 +35,15 @@ const (
 	invalid
 )
 
+// All is the list of all valid Types.
+var All = func() [invalid - 1]Type {
+	var ts [invalid - 1]Type
+	for t := Unknown + 1; t < invalid; t++ {
+		ts[int(t)-1] = t
+	}
+	return ts
+}()
+
 // IsValid returns whether t is a valid Type.
 func (t Type) IsValid() bool {
 	return t > Unknown && t < invalid
