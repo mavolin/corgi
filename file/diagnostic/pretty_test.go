@@ -111,7 +111,7 @@ func TestDiagnostic_Pretty(t *testing.T) {
 				Message: "foo",
 				Primary: []Annotation{packageAnno},
 			},
-			expectShort: "error: foo",
+			expectShort: "error: foo.corgi:1:1: foo",
 			expectPretty: "error: foo\n" +
 				"  ╭─ ./foo.corgi:1:1\n" +
 				"1 │ package foo\n" +
@@ -125,7 +125,7 @@ func TestDiagnostic_Pretty(t *testing.T) {
 					packageNameAnno,
 				},
 			},
-			expectShort: "error: foo",
+			expectShort: "error: foo.corgi:1:1: foo",
 			expectPretty: "error: foo\n" +
 				"  ╭─ ./foo.corgi:1:1\n" +
 				"1 │ package foo\n" +
@@ -146,7 +146,7 @@ func TestDiagnostic_Pretty(t *testing.T) {
 					},
 				},
 			},
-			expectShort: "error: foo",
+			expectShort: "error: foo.corgi:1:1: foo",
 			expectPretty: "error: foo\n" +
 				"  ╭─ ./foo.corgi:1:1\n" +
 				"1 │ package foo\n" +
@@ -168,7 +168,7 @@ func TestDiagnostic_Pretty(t *testing.T) {
 					},
 				},
 			},
-			expectShort: "error: foo",
+			expectShort: "error: foo.corgi:1:1: foo",
 			expectPretty: "error: foo\n" +
 				"  ╭─ ./foo.corgi:1:1\n" +
 				"1 │ package foo\n" +
@@ -182,7 +182,7 @@ func TestDiagnostic_Pretty(t *testing.T) {
 				Primary:   []Annotation{packageAnno},
 				Secondary: []Annotation{importAnno},
 			},
-			expectShort: "error: foo",
+			expectShort: "error: foo.corgi:1:1: foo",
 			expectPretty: "error: foo\n" +
 				"  ╭─ ./foo.corgi:1:1\n" +
 				"1 │ package foo\n" +
@@ -196,7 +196,7 @@ func TestDiagnostic_Pretty(t *testing.T) {
 				Message: "foo",
 				Cause:   errors.New("bar"),
 			},
-			expectShort: "error: foo",
+			expectShort: "error: foo: bar",
 			expectPretty: "error: foo\n" +
 				"\n" +
 				"Cause: bar",
@@ -342,7 +342,7 @@ func TestDiagnostic_Pretty(t *testing.T) {
 				},
 				Docs: "corgi",
 			},
-			expectShort: "error: foo",
+			expectShort: "error: foo.corgi:1:1: foo: bar",
 			expectPretty: "error: foo\n" +
 				"  ╭─ ./foo.corgi:1:1\n" +
 				"1 │ package foo\n" +
