@@ -57,6 +57,12 @@ type (
 		// [github.com/mavolin/corgi/v2/load.Load], as that will not use any
 		// caching logic.
 		//
+		// The linker expects that the Importer respects the deadline of the
+		// context passed to it.
+		// That means, unless you know that you can complete the import in
+		// short, constant time, you should check the context's deadline before
+		// trying to load the package.
+		//
 		// Default: nil
 		Importer Importer
 
@@ -191,7 +197,11 @@ type importersGraphKey struct{}
 
 func addToImportersGraph(ctx context.Context, p *file.Package) context.Context {
 	importers, _ := ctx.Value(importersGraphKey{}).([]*file.Package)
-	return context.WithValue(ctx, importersGraphKey{}, append(importers, p))
+
+	clone := make([]*file.Package, len(importers)+1)
+	copy(clone, importers)
+	clone[len(importers)] = p
+	return context.WithValue(ctx, importersGraphKey{}, clone)
 }
 
 // importersGraph returns the linear graph outlining the importers of a package,
