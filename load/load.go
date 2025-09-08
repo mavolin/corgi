@@ -105,21 +105,6 @@ type (
 		// If the import isn't cached, it invokes compute and returns its
 		// result instead, optionally caching it.
 		Import(ctx context.Context, path importPath, compute ComputeFunc) (*file.Package, diagnostic.List, error)
-		// Preload informs the cache that the parser found the given import path
-		// while parsing and that it subsequently might be used by the linker
-		// later.
-		//
-		// If the cache already contains the import, it is expected to do
-		// nothing.
-		// If it doesn't, however, the cache may preload the import using the
-		// compute function at its own discretion.
-		// This means, it is also allowed to ignore the call, for example if
-		// it deems the import to be irrelevant.
-		// [Load] and friends already filter out stdlib imports, so caches need
-		// not implement logic for that.
-		//
-		// Preload must not block.
-		Preload(ctx context.Context, path importPath, compute ComputeFunc)
 	}
 )
 
@@ -129,7 +114,14 @@ type Options struct {
 
 	// Cache is an optional cache.
 	//
-	// Default: NewMemoizer()
+	// Since within a single load operation, packages are already cached, this
+	// is primarily beneficial if you want to load multiple different
+	// packages that may share imports.
+	//
+	// A simple cache is a [Memoizer].
+	// Refer to its documentation for more information about its behavior.
+	//
+	// Default: nil
 	Cache Cache
 
 	// BuiltinPath is the import path of the corgi builtin package.
@@ -142,12 +134,20 @@ type Options struct {
 
 const NoBuiltin = "no builtin"
 
+type nopCache struct{}
+
+var _ Cache = nopCache{}
+
+func (nopCache) Import(ctx context.Context, _ importPath, compute ComputeFunc) (*file.Package, diagnostic.List, error) {
+	return compute(ctx)
+}
+
 func (o *Options) applyDefaults() {
 	if o.Logger == nil {
 		o.Logger = slog.New(slog.DiscardHandler)
 	}
 	if o.Cache == nil {
-		o.Cache = NewMemoizer()
+		o.Cache = nopCache{}
 	}
 	if o.BuiltinPath == "" {
 		o.BuiltinPath = "corgi/builtin"
@@ -245,7 +245,7 @@ func (l *loader) loadUncachedImport(ctx context.Context, logger *slog.Logger, im
 		slog.String("module", p.Module),
 		slog.String("path_in_module", p.PathInModule))
 
-	parseErrs := l.parse(ctx, logger, p, data.Files)
+	parseErrs := l.parse(logger, p, data.Files)
 
 	// the linker can recover from parser errors
 	linkErrs := l.link(ctx, logger, p)
@@ -265,15 +265,13 @@ func (l *loader) loadUncachedImport(ctx context.Context, logger *slog.Logger, im
 	return p, nil, nil
 }
 
-func (l *loader) parse(ctx context.Context, logger *slog.Logger, p *file.Package, files []File) diagnostic.List {
+func (l *loader) parse(logger *slog.Logger, p *file.Package, files []File) diagnostic.List {
 	logger = logger.WithGroup("parse")
 	logger.Info("Parsing package", slog.Int("n_files", len(p.Files)))
 
 	errsChan := make(chan diagnostic.List)
 
-	o := parse.Options{
-		Preloader: l.newPreloadHook(ctx, logger),
-	}
+	o := parse.Options{}
 
 	for i, fileData := range files {
 		go func() {
@@ -342,25 +340,6 @@ func (l *loader) analyze(logger *slog.Logger, p *file.Package) diagnostic.List {
 	}
 
 	return errs
-}
-
-// newPreloadHook returns a preloader for use alongside a cache.
-func (l *loader) newPreloadHook(ctx context.Context, logger *slog.Logger) func(importPath) {
-	logger = logger.WithGroup("preload_hook")
-	return func(impPath importPath) {
-		logger := logger.With(slog.String("import", impPath))
-		logger.Info("Received preload request")
-
-		if isstdlib.IsStdlib(impPath) {
-			logger.Debug("Discarding Go stdlib import")
-			return
-		}
-
-		l.cache.Preload(ctx, impPath, func(ctx context.Context) (*file.Package, diagnostic.List, error) {
-			logger.Debug("Cache called compute: Preloading package")
-			return l.loadUncachedImport(ctx, logger, impPath)
-		})
-	}
 }
 
 func (l *loader) importHook(ctx context.Context, impPath importPath) (*file.Package, diagnostic.List, error) {

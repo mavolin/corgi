@@ -43,7 +43,6 @@ type Preloader func(importPath string)
 
 type Parser struct {
 	*file.File
-	Preload Preloader
 
 	state    *State
 	errs     diagnostic.List
@@ -76,7 +75,6 @@ func (p *pool[T]) Put(s *T) {
 func New(f *file.File) *Parser {
 	return &Parser{
 		File:      f,
-		Preload:   func(string) {},
 		state:     newState(),
 		errs:      make(diagnostic.List, 0, 48),
 		comments:  make([]*ast.CommentGroup, 0, 128),

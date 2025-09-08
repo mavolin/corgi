@@ -46,11 +46,3 @@ func (l *Memoizer) Import(ctx context.Context, path importPath, compute ComputeF
 	})
 	return result.Package, result.Diagnostics, result.Error
 }
-
-// Preload preloads all packages it is called on.
-func (l *Memoizer) Preload(ctx context.Context, path importPath, compute ComputeFunc) {
-	l.c.Preload(path, func() *computeResult {
-		p, d, err := compute(ctx)
-		return &computeResult{p, d, err}
-	})
-}

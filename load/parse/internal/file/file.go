@@ -125,11 +125,6 @@ func File() parser.Func[bool] {
 				break
 			}
 			p.AST.Imports = append(p.AST.Imports, imp)
-			for _, spec := range imp.Specs {
-				if spec.Path != nil {
-					p.Preload(spec.Path.Unquote())
-				}
-			}
 			parser.Try(p, comment.AndForceEOS())
 			parser.TrySkip(p, comment.OrAnyWhitespace())
 		}

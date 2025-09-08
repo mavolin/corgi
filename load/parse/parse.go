@@ -10,17 +10,7 @@ import (
 	fileparser "github.com/mavolin/corgi/v2/load/parse/internal/file"
 )
 
-type Options struct {
-	// Preloader injects a preloader into the parser.
-	//
-	// The preloader is called everytime an import statement is encountered.
-	// Since import statements appear early in the file, this can give the
-	// loader a head start on loading the imported package before it is
-	// actually needed by the linker.
-	//
-	// A preloader must not block.
-	Preloader func(importPath string)
-}
+type Options struct{}
 
 // Parse parses the given input and returns a [file.File] with its AST set.
 // The remaining fields of the returned file are left empty and are expected to
@@ -33,7 +23,7 @@ type Options struct {
 // Therefore, Parse may return both a non-nil file and an error, indicating
 // that the passed input is erroneous, but could be recovered from.
 // The number of errors is capped at 255, additional errors are discarded.
-func Parse(input string, o Options) (*file.File, diagnostic.List) {
+func Parse(input string, _ Options) (*file.File, diagnostic.List) {
 	lines := strings.Split(input, "\n")
 	for i, line := range lines {
 		last := len(line) - 1
@@ -51,9 +41,6 @@ func Parse(input string, o Options) (*file.File, diagnostic.List) {
 	}
 
 	p := parser.New(f)
-	if o.Preloader != nil {
-		p.Preload = o.Preloader
-	}
 
 	parser.Try(p, fileparser.File())
 	return f, p.Errors()
