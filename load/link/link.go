@@ -145,11 +145,11 @@ func Link(ctx context.Context, p *file.Package, o Options) diagnostic.List {
 		}
 	}
 
+	ctx, g := importGraphFromContext(ctx)
+
 	l.CheckSelfImport()
-	l.CheckImportCycles(ctx)
-	ctx = addToImportersGraph(ctx, p)
 	l.CheckDuplicateDotImports()
-	l.LoadImports(ctx)
+	l.LoadImports(ctx, g)
 	l.CheckExplicitBuiltinImport()
 	l.CheckImportNamespaceCollisions()
 	l.CheckDotImportComponentCollisions()
@@ -200,23 +200,4 @@ func filterDotImports(f *file.File) []*file.Import {
 		}
 	}
 	return imps
-}
-
-type importersGraphKey struct{}
-
-func addToImportersGraph(ctx context.Context, p *file.Package) context.Context {
-	importers, _ := ctx.Value(importersGraphKey{}).([]*file.Package)
-
-	clone := make([]*file.Package, len(importers)+1)
-	copy(clone, importers)
-	clone[len(importers)] = p
-	return context.WithValue(ctx, importersGraphKey{}, clone)
-}
-
-// importersGraph returns the linear graph outlining the importers of a package,
-// the last node being the package itself and the first node being the root
-// package.
-func importersGraph(ctx context.Context) []*file.Package {
-	importers, _ := ctx.Value(importersGraphKey{}).([]*file.Package)
-	return importers
 }

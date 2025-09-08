@@ -5,26 +5,25 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
-	"sync"
 
 	"github.com/mavolin/corgi/v2/file"
 	"github.com/mavolin/corgi/v2/file/ast"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
 	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
-	"github.com/sourcegraph/conc"
 )
 
-func (l *linker) LoadImports(ctx context.Context) {
+func (l *linker) LoadImports(ctx context.Context, g *importGraph) {
 	(&importLoader{
 		l:      l,
 		logger: l.logger.WithGroup("imports"),
+		graph:  g,
 	}).load(ctx)
 }
 
 type importLoader struct {
-	l         *linker
-	logger    *slog.Logger
-	reportMut sync.Mutex
+	l      *linker
+	logger *slog.Logger
+	graph  *importGraph
 }
 
 func (loader *importLoader) load(ctx context.Context) {
@@ -93,26 +92,24 @@ func (loader *importLoader) checkIllegalAliases() {
 func (loader *importLoader) loadImports(ctx context.Context) {
 	loader.logger.Info("Concurrently loading imports")
 
-	var wg conc.WaitGroup
-
 	for _, f := range loader.l.p.Files {
 		for _, imp := range f.Imports {
-			if !imp.Explicit() || imp.CorgiPath == "" || imp.Loaded {
-				continue
-			}
-
-			wg.Go(func() {
+			if imp.Explicit() && imp.CorgiPath != "" && !imp.Loaded {
 				loader.loadImport(ctx, f, imp)
-			})
+			}
 		}
 	}
 
-	builtin, builtinDiagnostics, builtinErr := loader.loadBuiltin(ctx)
-	loader.logger.Debug("Waiting for all goroutines to finish")
-	wg.Wait()
-	if loader.l.builtinPath != "" {
-		loader.setBuiltinImport(builtin, builtinDiagnostics, builtinErr)
+	loader.loadBuiltin(ctx)
+
+	for _, f := range loader.l.p.Files {
+		for _, imp := range f.Imports {
+			if imp.Explicit() && imp.CorgiPath != "" && !imp.Loaded {
+				loader.processImport(f, imp)
+			}
+		}
 	}
+
 	loader.logger.Info("Finished loading imports")
 }
 
@@ -123,34 +120,60 @@ func (loader *importLoader) loadImport(ctx context.Context, f *file.File, imp *f
 		slog.String("import_pos", imp.AST.Start().String()))
 	logger.Debug("Loading import")
 
+	cycle := loader.graph.AddImport(loader.l.p, imp.CorgiPath, func() (*file.Package, diagnostic.List, error) {
+		return loader.l.importer(ctx, imp.CorgiPath)
+	})
+	if cycle != nil {
+		loader.reportImportCycle(logger, f, imp, cycle)
+	}
+}
+
+func (loader *importLoader) processImport(f *file.File, imp *file.Import) {
+	logger := loader.logger.With(
+		slog.String("file", f.Name),
+		slog.String("import", imp.CorgiPath),
+		slog.String("import_pos", imp.AST.Start().String()))
+
 	var d diagnostic.List
 	var err error
-	imp.Package, d, err = loader.l.importer(ctx, imp.CorgiPath)
-	if len(d) > 0 || err != nil {
-		loader.reportMut.Lock()
+	imp.Package, d, err = loader.graph.AwaitImport(imp.CorgiPath)
+	imp.Loaded = true
 
-		if err != nil {
-			logger.Error("Failed to load import", slog.String("err", err.Error()))
-			loader.l.report(&diagnostic.Diagnostic{
-				Message: "import: failed to load package",
-				Cause:   err,
-				Primary: []diagnostic.Annotation{
-					anno.Node(f, imp.AST, "couldn't load this import"),
-				},
-			})
-		}
-		if len(d) > 0 {
-			loader.l.report(d...)
-			logger.Error("Import contains errors", slog.String("err", d.Short()))
-		}
-		loader.reportMut.Unlock()
+	if err != nil {
+		logger.Error("Failed to load import", slog.String("err", err.Error()))
+		loader.l.report(&diagnostic.Diagnostic{
+			Message: "import: failed to load package",
+			Cause:   err,
+			Primary: []diagnostic.Annotation{
+				anno.Node(f, imp.AST, "couldn't load this import"),
+			},
+		})
+	}
+	if len(d) > 0 {
+		loader.l.report(d...)
+		logger.Error("Import contains errors", slog.String("err", d.Short()))
 	}
 
-	imp.Loaded = true
 	logger.Debug("Successfully loaded import")
 
 	if imp.Package == nil {
 		return
+	}
+
+	imp.GoPath = imp.Package.GoImportPath()
+
+	if imp.Package.CorgiImportPath != imp.CorgiPath {
+		logger.Error("Import using non-corgi path",
+			slog.String("go_import_path", imp.GoPath))
+		loader.l.report(&diagnostic.Diagnostic{
+			Message: "import: use of Go import path when symbolic path exists",
+			Primary: []diagnostic.Annotation{
+				anno.Node(f, imp.AST, "expected import path to be `"+imp.Package.CorgiImportPath+"`"),
+			},
+			Explanation: "Special import paths, like the standard library imports starting with `corgi/` " +
+				"are available under a special short symbolic path. " +
+				"If such a symbolic path exists, you must use it, so the linker can properly resolve imports.",
+		})
 	}
 
 	switch {
@@ -165,7 +188,6 @@ func (loader *importLoader) loadImport(ctx context.Context, f *file.File, imp *f
 				slog.String("namespace", imp.Namespace),
 				slog.String("import_path", imp.CorgiPath))
 
-			loader.reportMut.Lock()
 			loader.l.report(&diagnostic.Diagnostic{
 				Message: "import: import uses reserved `__corgi_` package name prefix",
 				Primary: []diagnostic.Annotation{
@@ -176,14 +198,15 @@ func (loader *importLoader) loadImport(ctx context.Context, f *file.File, imp *f
 					{Hint: "Use an import alias."},
 				},
 			})
-			loader.reportMut.Unlock()
 		}
 	}
 }
 
-func (loader *importLoader) loadBuiltin(ctx context.Context) (*file.Package, diagnostic.List, error) {
+func (loader *importLoader) loadBuiltin(ctx context.Context) {
 	if loader.l.builtinPath == "" {
-		return nil, nil, nil // no builtin path set, nothing to load
+		return // no builtin path set, nothing to load
+	} else if loader.l.p.CorgiImportPath == loader.l.builtinPath {
+		return // this is the builtin package, nothing to do
 	}
 	logger := loader.logger.With(slog.String("import", loader.l.builtinPath))
 
@@ -208,12 +231,20 @@ func (loader *importLoader) loadBuiltin(ctx context.Context) (*file.Package, dia
 	}
 	if !needBuiltin {
 		logger.Debug("All files already have a builtin import, no need to load it again")
-		return nil, nil, nil // no builtin import needed, nothing to load
+		return // no builtin import needed, nothing to load
 	}
 
-	logger.Debug("Loading builtin import in current goroutine")
+	logger.Debug("Loading builtin import")
 
-	p, d, err := loader.l.importer(ctx, loader.l.builtinPath)
+	cycle := loader.graph.AddImport(loader.l.p, loader.l.builtinPath, func() (*file.Package, diagnostic.List, error) {
+		return loader.l.importer(ctx, loader.l.builtinPath)
+	})
+	if cycle != nil {
+		loader.reportImportCycle(logger, loader.l.p.Files[0], nil, cycle)
+		return
+	}
+
+	p, d, err := loader.graph.AwaitImport(loader.l.builtinPath)
 	switch {
 	case err != nil:
 		logger.Error("Failed to load builtin import", slog.String("err", err.Error()))
@@ -223,10 +254,6 @@ func (loader *importLoader) loadBuiltin(ctx context.Context) (*file.Package, dia
 		logger.Debug("Successfully loaded builtin import")
 	}
 
-	return p, d, err
-}
-
-func (loader *importLoader) setBuiltinImport(p *file.Package, d diagnostic.List, err error) {
 	if len(d) > 0 {
 		loader.l.report(d...)
 	}
@@ -250,4 +277,36 @@ func (loader *importLoader) setBuiltinImport(p *file.Package, d diagnostic.List,
 			f.AddBuiltinImport(alias, p)
 		}
 	}
+}
+
+func (loader *importLoader) reportImportCycle(logger *slog.Logger, f *file.File, imp *file.Import, cycle []importPath) {
+	logger.Error("Circular import detected")
+
+	// Build the import cycle message
+	var msg strings.Builder
+	msg.Grow(512)
+	msg.WriteString("This package imports:")
+	for i, p := range cycle {
+		if i > 0 {
+			msg.WriteString(", which imports")
+		}
+		msg.WriteString("\n  ")
+		msg.WriteString(p)
+	}
+
+	var primary []diagnostic.Annotation
+	if imp.AST != nil {
+		primary = []diagnostic.Annotation{anno.Node(f, imp.AST.Path, msg.String())}
+	} else {
+		primary = []diagnostic.Annotation{anno.Position(f, ast.Position{Line: 1, Col: 1}, msg.String())}
+	}
+
+	loader.l.report(&diagnostic.Diagnostic{
+		Message: "circular import",
+		Primary: primary,
+		Explanation: "A circular import occurs when two or more packages import each other, " +
+			"directly or indirectly. " +
+			"Break the cycle by removing one of the imports.",
+	})
+	imp.Loaded = true
 }

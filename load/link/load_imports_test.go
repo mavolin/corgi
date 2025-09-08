@@ -267,3 +267,108 @@ func TestLinker_LoadImports(t *testing.T) {
 		}
 	})
 }
+
+func TestLinker_ImportCycles(t *testing.T) {
+	t.Parallel()
+
+	t.Run("no cycle", func(t *testing.T) {
+		t.Parallel()
+
+		var start ast.Position
+		// A imports B, no cycle
+		pkgB := createPackage("pkg/b")
+
+		pkgA := createPackage("pkg/a")
+		fileA := createFile(pkgA, "a.corgi")
+
+		imp := createImport(fileA, &start, "", pkgB.CorgiImportPath)
+		imp.Package = pkgB
+
+		d := Link(context.Background(), pkgA, Options{
+			Importer: ImporterFor(pkgB),
+		})
+
+		t.Log(d.Pretty(diagnostic.PrettyOptions{}))
+		should.Equal(t, len(d), 0)
+	})
+
+	cycleTests := []struct {
+		name  string
+		setup func() []*file.Package
+	}{
+		{
+			name: "direct cycle",
+			setup: func() []*file.Package {
+				var start ast.Position
+				// A imports B, B imports A - direct cycle
+				pkgA := createPackage("pkg/a")
+				fileA := createFile(pkgA, "a.corgi")
+
+				pkgB := createPackage("pkg/b")
+				fileB := createFile(pkgB, "b.corgi")
+
+				createImport(fileA, &start, "", pkgB.CorgiImportPath)
+				createImport(fileB, &start, "", pkgA.CorgiImportPath)
+
+				return []*file.Package{pkgA, pkgB}
+			},
+		}, {
+			name: "indirect cycle",
+			setup: func() []*file.Package {
+				var start ast.Position
+				// A imports B, B imports C, C imports A - indirect cycle
+				pkgA := createPackage("pkg/a")
+				fileA := createFile(pkgA, "a.corgi")
+
+				pkgB := createPackage("pkg/b")
+				fileB := createFile(pkgB, "b.corgi")
+
+				pkgC := createPackage("pkg/c")
+				fileC := createFile(pkgC, "c.corgi")
+
+				createImport(fileA, &start, "", pkgB.CorgiImportPath)
+				createImport(fileB, &start, "", pkgC.CorgiImportPath)
+				createImport(fileC, &start, "", pkgA.CorgiImportPath)
+
+				return []*file.Package{pkgA, pkgB, pkgC}
+			},
+		}, {
+			name: "hook",
+			setup: func() []*file.Package {
+				var start ast.Position
+				// A imports B, B imports C, C imports B - indirect cycle with a hook
+				pkgA := createPackage("pkg/a")
+				fileA := createFile(pkgA, "a.corgi")
+
+				pkgB := createPackage("pkg/b")
+				fileB := createFile(pkgB, "b.corgi")
+
+				pkgC := createPackage("pkg/c")
+				fileC := createFile(pkgC, "c.corgi")
+
+				createImport(fileA, &start, "", pkgB.CorgiImportPath)
+				createImport(fileB, &start, "", pkgC.CorgiImportPath)
+				createImport(fileC, &start, "", pkgB.CorgiImportPath)
+
+				return []*file.Package{pkgA, pkgB, pkgC}
+			},
+		},
+	}
+
+	for _, c := range cycleTests {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+
+			pkgs := c.setup()
+
+			d := Link(t.Context(), pkgs[0], Options{
+				Importer: LinkingImporterFor(pkgs...),
+			})
+
+			t.Log(d.Pretty(diagnostic.PrettyOptions{}))
+			if should.Equal(t, len(d), 1) {
+				should.Equal(t, d[0].Message, "circular import")
+			}
+		})
+	}
+}

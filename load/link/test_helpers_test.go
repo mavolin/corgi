@@ -20,7 +20,10 @@ type mockImporter struct {
 	errors   map[importPath]error
 }
 
-var _ Importer = (*mockImporter)(nil).Import
+var (
+	_ Importer = (*mockImporter)(nil).Import
+	_ Importer = (*mockImporter)(nil).LinkedImport
+)
 
 func (m *mockImporter) Import(_ context.Context, path importPath) (*file.Package, diagnostic.List, error) {
 	if p, ok := m.packages[path]; ok {
@@ -33,12 +36,32 @@ func (m *mockImporter) Import(_ context.Context, path importPath) (*file.Package
 	return nil, nil, fmt.Errorf("package %q not found", path)
 }
 
+func (m *mockImporter) LinkedImport(ctx context.Context, path importPath) (*file.Package, diagnostic.List, error) {
+	if p, ok := m.packages[path]; ok {
+		var err error
+		if m.errors != nil {
+			err = m.errors[path]
+			return p, nil, err
+		}
+		return p, Link(ctx, p, Options{Importer: m.LinkedImport}), nil
+	}
+	return nil, nil, fmt.Errorf("package %q not found", path)
+}
+
 func ImporterFor(ps ...*file.Package) Importer {
 	packages := make(map[string]*file.Package)
 	for _, p := range ps {
 		packages[p.CorgiImportPath] = p
 	}
 	return (&mockImporter{packages: packages}).Import
+}
+
+func LinkingImporterFor(ps ...*file.Package) Importer {
+	packages := make(map[string]*file.Package)
+	for _, p := range ps {
+		packages[p.CorgiImportPath] = p
+	}
+	return (&mockImporter{packages: packages}).LinkedImport
 }
 
 // createPackage is a helper to create a package for testing.
