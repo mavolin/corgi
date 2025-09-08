@@ -22,9 +22,6 @@ type (
 
 var _ Cache = (*Memoizer)(nil)
 
-// todo: research how go handles diff versions of libs used in two diff modules?
-// prob defaults to version in root module file?
-
 // NewMemoizer creates a cache that memoizes the results of calls to Import so
 // that subsequent calls with the same path will always return the same result.
 //

@@ -55,7 +55,7 @@ func testLinker_LinkElementReferences_success(t *testing.T) { //nolint:revive
 
 				d := Link(context.Background(), p, Options{
 					Importer:    ImporterFor(builtinPkg),
-					BuiltinPath: builtinPkg.ImportPath,
+					BuiltinPath: builtinPkg.CorgiImportPath,
 				})
 
 				t.Log(d.Pretty(diagnostic.PrettyOptions{}))
@@ -84,7 +84,7 @@ func testLinker_LinkElementReferences_success(t *testing.T) { //nolint:revive
 
 				d := Link(context.Background(), p, Options{
 					Importer:    ImporterFor(builtinPkg),
-					BuiltinPath: builtinPkg.ImportPath,
+					BuiltinPath: builtinPkg.CorgiImportPath,
 				})
 
 				t.Log(d.Pretty(diagnostic.PrettyOptions{}))
@@ -137,7 +137,7 @@ func testLinker_LinkElementReferences_success(t *testing.T) { //nolint:revive
 
 					mainPkg := createPackage("main")
 					mainFile := createFile(mainPkg, "main.corgi")
-					createImport(mainFile, &start, c.alias, importedPkg.ImportPath)
+					createImport(mainFile, &start, c.alias, importedPkg.CorgiImportPath)
 					ref := createElementReference(mainFile, &start, namespace, strings.ToUpper(htmlName))
 
 					d := Link(context.Background(), mainPkg, Options{
@@ -200,12 +200,12 @@ func testLinker_LinkElementReferences_failure(t *testing.T) { //nolint:revive
 
 				p = createPackage("test")
 				f := createFile(p, "test.corgi")
-				imp := createImport(f, &start, "", importedPkg.ImportPath)
+				imp := createImport(f, &start, "", importedPkg.CorgiImportPath)
 				createElementReference(f, &start, "imported", "test")
 
 				return p, []*file.Package{importedPkg},
 					map[importPath]error{
-						imp.Path: errors.New("stub error"),
+						imp.CorgiPath: errors.New("stub error"),
 					}
 			},
 		}, {
@@ -219,7 +219,7 @@ func testLinker_LinkElementReferences_failure(t *testing.T) { //nolint:revive
 				createElementReference(f, &start, "", "test")
 
 				return p, nil, map[importPath]error{
-					imp.Path: errors.New("stub error"),
+					imp.CorgiPath: errors.New("stub error"),
 				}
 			},
 		}, {
@@ -243,7 +243,7 @@ func testLinker_LinkElementReferences_failure(t *testing.T) { //nolint:revive
 
 				p = createPackage("test")
 				f := createFile(p, "test.corgi")
-				createImport(f, &start, "", importedPkg.ImportPath)
+				createImport(f, &start, "", importedPkg.CorgiImportPath)
 				createElementReference(f, &start, importedPkg.Name, "test")
 
 				return p, []*file.Package{importedPkg}, nil
@@ -257,7 +257,7 @@ func testLinker_LinkElementReferences_failure(t *testing.T) { //nolint:revive
 			p, packages, errs := c.setup()
 			packagesMap := make(map[importPath]*file.Package, len(packages))
 			for _, pkg := range packages {
-				packagesMap[pkg.ImportPath] = pkg
+				packagesMap[pkg.CorgiImportPath] = pkg
 			}
 
 			importer := &mockImporter{packages: packagesMap, errors: errs}

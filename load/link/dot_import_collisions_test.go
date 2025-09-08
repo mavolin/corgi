@@ -25,7 +25,7 @@ func TestLinker_CheckDotImportComponentCollisions(t *testing.T) {
 
 		mainPkg := createPackage("main")
 		mainF := createFile(mainPkg, "main.corgi")
-		createImport(mainF, &start, ".", importedPkg.ImportPath)
+		createImport(mainF, &start, ".", importedPkg.CorgiImportPath)
 		createComponent(mainF, &start, "Test")
 
 		d := Link(context.Background(), mainPkg, Options{
@@ -52,8 +52,8 @@ func TestLinker_CheckDotImportComponentCollisions(t *testing.T) {
 
 		mainPkg := createPackage("main")
 		mainF := createFile(mainPkg, "main.corgi")
-		createImport(mainF, &start, ".", importedPkg.ImportPath)
-		createImport(mainF, &start, ".", imported2Pkg.ImportPath)
+		createImport(mainF, &start, ".", importedPkg.CorgiImportPath)
+		createImport(mainF, &start, ".", imported2Pkg.CorgiImportPath)
 
 		d := Link(context.Background(), mainPkg, Options{
 			Importer: ImporterFor(importedPkg, imported2Pkg),
@@ -75,8 +75,8 @@ func TestLinker_CheckDotImportComponentCollisions(t *testing.T) {
 
 		mainPkg := createPackage("main")
 		mainF := createFile(mainPkg, "main.corgi")
-		createImport(mainF, &start, ".", importedPkg.ImportPath)
-		createImport(mainF, &start, ".", importedPkg.ImportPath)
+		createImport(mainF, &start, ".", importedPkg.CorgiImportPath)
+		createImport(mainF, &start, ".", importedPkg.CorgiImportPath)
 
 		d := Link(context.Background(), mainPkg, Options{
 			Importer: ImporterFor(importedPkg),
@@ -99,7 +99,7 @@ func TestLinker_CheckDotImportComponentCollisions(t *testing.T) {
 
 		mainPkg := createPackage("main")
 		mainF := createFile(mainPkg, "main.corgi")
-		createImport(mainF, &start, ".", importedPkg.ImportPath)
+		createImport(mainF, &start, ".", importedPkg.CorgiImportPath)
 
 		d := Link(context.Background(), mainPkg, Options{
 			Importer: ImporterFor(importedPkg),
@@ -123,7 +123,7 @@ func TestLinker_CheckDotImportElementSpecCollisions(t *testing.T) {
 
 		mainPkg := createPackage("main")
 		mainF := createFile(mainPkg, "main.corgi")
-		createImport(mainF, &start, ".", importedPkg.ImportPath)
+		createImport(mainF, &start, ".", importedPkg.CorgiImportPath)
 		createElementSpec(mainF, &start, "", "prefixTest", elemtype.Normal)
 
 		d := Link(context.Background(), mainPkg, Options{
@@ -150,8 +150,8 @@ func TestLinker_CheckDotImportElementSpecCollisions(t *testing.T) {
 
 		mainPkg := createPackage("main")
 		mainF := createFile(mainPkg, "main.corgi")
-		createImport(mainF, &start, ".", importedPkg.ImportPath)
-		createImport(mainF, &start, ".", imported2Pkg.ImportPath)
+		createImport(mainF, &start, ".", importedPkg.CorgiImportPath)
+		createImport(mainF, &start, ".", imported2Pkg.CorgiImportPath)
 
 		d := Link(context.Background(), mainPkg, Options{
 			Importer: ImporterFor(importedPkg, imported2Pkg),
@@ -173,8 +173,8 @@ func TestLinker_CheckDotImportElementSpecCollisions(t *testing.T) {
 
 		mainPkg := createPackage("main")
 		mainF := createFile(mainPkg, "main.corgi")
-		createImport(mainF, &start, ".", importedPkg.ImportPath)
-		createImport(mainF, &start, ".", importedPkg.ImportPath)
+		createImport(mainF, &start, ".", importedPkg.CorgiImportPath)
+		createImport(mainF, &start, ".", importedPkg.CorgiImportPath)
 
 		d := Link(context.Background(), mainPkg, Options{
 			Importer: ImporterFor(importedPkg),
@@ -197,7 +197,7 @@ func TestLinker_CheckDotImportElementSpecCollisions(t *testing.T) {
 
 		mainPkg := createPackage("main")
 		mainF := createFile(mainPkg, "main.corgi")
-		createImport(mainF, &start, ".", importedPkg.ImportPath)
+		createImport(mainF, &start, ".", importedPkg.CorgiImportPath)
 
 		d := Link(context.Background(), mainPkg, Options{
 			Importer: ImporterFor(importedPkg),
@@ -221,7 +221,7 @@ func TestLinker_CheckDotImportAttributeSpecCollisions(t *testing.T) {
 
 		mainPkg := createPackage("main")
 		mainF := createFile(mainPkg, "main.corgi")
-		createImport(mainF, &start, ".", importedPkg.ImportPath)
+		createImport(mainF, &start, ".", importedPkg.CorgiImportPath)
 		createBasicAttributeSpec(mainF, &start, "", "prefixTest", nil, attrtype.Innocuous)
 
 		d := Link(context.Background(), mainPkg, Options{
@@ -248,8 +248,8 @@ func TestLinker_CheckDotImportAttributeSpecCollisions(t *testing.T) {
 
 		mainPkg := createPackage("main")
 		mainF := createFile(mainPkg, "main.corgi")
-		createImport(mainF, &start, ".", importedPkg.ImportPath)
-		createImport(mainF, &start, ".", imported2Pkg.ImportPath)
+		createImport(mainF, &start, ".", importedPkg.CorgiImportPath)
+		createImport(mainF, &start, ".", imported2Pkg.CorgiImportPath)
 
 		d := Link(context.Background(), mainPkg, Options{
 			Importer: ImporterFor(importedPkg, imported2Pkg),
@@ -271,8 +271,8 @@ func TestLinker_CheckDotImportAttributeSpecCollisions(t *testing.T) {
 
 		mainPkg := createPackage("main")
 		mainF := createFile(mainPkg, "main.corgi")
-		createImport(mainF, &start, ".", importedPkg.ImportPath)
-		createImport(mainF, &start, ".", importedPkg.ImportPath)
+		createImport(mainF, &start, ".", importedPkg.CorgiImportPath)
+		createImport(mainF, &start, ".", importedPkg.CorgiImportPath)
 
 		d := Link(context.Background(), mainPkg, Options{
 			Importer: ImporterFor(importedPkg),
@@ -295,7 +295,7 @@ func TestLinker_CheckDotImportAttributeSpecCollisions(t *testing.T) {
 
 		mainPkg := createPackage("main")
 		mainF := createFile(mainPkg, "main.corgi")
-		createImport(mainF, &start, ".", importedPkg.ImportPath)
+		createImport(mainF, &start, ".", importedPkg.CorgiImportPath)
 
 		d := Link(context.Background(), mainPkg, Options{
 			Importer: ImporterFor(importedPkg),

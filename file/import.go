@@ -11,10 +11,19 @@ type Import struct {
 	AST *ast.ImportSpec
 
 	Alias string // may be empty
-	// Path is the import path.
+	// CorgiPath is the import path as found in the corgi file it was sourced
+	// from.
 	//
-	// Guaranteed to be non-empty for both explicit and implicit imports.
-	Path string
+	// Guaranteed to be non-empty for explicit imports.
+	CorgiPath string
+	// GoPath is the Go import path of the import.
+	//
+	// For explicit imports, the Go import path is determined by the linker.
+	//
+	// See the documentation of [Package].GoImportPath for more information.
+	//
+	// Must be set for implicit imports.
+	GoPath string
 
 	//
 	// LINKER

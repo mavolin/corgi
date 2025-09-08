@@ -31,7 +31,7 @@ func (ctx *Context) SafeImport(f *file.File) *file.Import {
 
 	imp := &file.Import{
 		Alias:     "__corgi_safe",
-		Path:      file.SafeImport,
+		CorgiPath: file.SafeImport,
 		Namespace: "__corgi_safe",
 		Forward:   true,
 	}

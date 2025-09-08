@@ -18,16 +18,15 @@ type Package struct {
 	//
 	// Always specified as a forward slash separated path.
 	PathInModule string // load
-	// ImportPath is the import path with which the package was imported.
+	// CorgiImportPath is the import path with which the package was
+	// imported in the corgi source file.
 	//
-	// This needn't necessarily be a correct import, corresponding to
-	// path.Join(Module, PathInModule), if the path is symbolic.
+	// This might be different from the [Package.GoImportPath], if the path is
+	// symbolic.
 	// The most common case for that is a corgi stdlib import, that uses the
-	// "corgi/" import path prefix, but is obviously located in this module.
-	//
-	// In that case ImportPath might be "corgi/fmt", while Module is
-	// "github.com/mavolin/corgi/v2" and PathInModule is "std/fmt".
-	ImportPath string // load
+	// "corgi/" import path prefix, but is obviously imported in the generated
+	// Go code using another import path.
+	CorgiImportPath string // load
 
 	Name string // analyze
 
@@ -40,7 +39,7 @@ type Package struct {
 	Files []*File
 }
 
-func (p *Package) ModulePath() string {
+func (p *Package) GoImportPath() string {
 	if p.Module != "" {
 		return path.Join(p.Module, p.PathInModule)
 	}

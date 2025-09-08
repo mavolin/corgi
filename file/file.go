@@ -35,7 +35,7 @@ type File struct {
 }
 
 func (f *File) ModulePath() string {
-	return path.Join(f.Package.ModulePath(), f.Name)
+	return path.Join(f.Package.GoImportPath(), f.Name)
 }
 
 func (f *File) PathInModule() string {
@@ -110,7 +110,7 @@ func buildSymbols(f *File) {
 				imp.Alias = spec.Alias.Name
 			}
 			if spec.Path != nil {
-				imp.Path = spec.Path.Unquote()
+				imp.CorgiPath = spec.Path.Unquote()
 			}
 			f.Imports = append(f.Imports, imp)
 		}
@@ -227,7 +227,8 @@ func buildSymbols(f *File) {
 func (s *Symbols) AddBuiltinImport(alias string, builtin *Package) {
 	imp := &Import{
 		Alias:     alias,
-		Path:      builtin.ImportPath,
+		CorgiPath: builtin.CorgiImportPath,
+		GoPath:    builtin.GoImportPath(),
 		Package:   builtin,
 		Namespace: cmp.Or(alias, builtin.Name),
 		Builtin:   true,
@@ -240,6 +241,8 @@ func (s *Symbols) AddBuiltinImport(alias string, builtin *Package) {
 // Always use this method if adding implicit imports.
 //
 // AddImport panics if any of the following conditions are violated:
+//   - If the import is implicit (except builtin), it must have a Go import path.
+//   - If the import is explicit, it must have a corgi import path.
 //   - If the import is a builtin import, the file must not already have a
 //     builtin import, i.e. BuiltinImport() == nil.
 //   - The import's namespace must match the alias, if set.
@@ -249,8 +252,12 @@ func (s *Symbols) AddBuiltinImport(alias string, builtin *Package) {
 //   - The import must be marked as forwarded, unless it is explicit.
 func (s *Symbols) AddImport(imp *Import) {
 	switch {
+	case !imp.Builtin && imp.Implicit() && imp.GoPath == "":
+		panic("cannot add implicit import with no Go import path")
+	case imp.Explicit() && imp.CorgiPath == "":
+		panic("cannot add explicit import with no corgi import path")
 	case imp.Builtin && s.BuiltinImport() != nil:
-		panic(fmt.Sprintf("symbols already contain builtin import for %q", s.BuiltinImport().Path))
+		panic(fmt.Sprintf("symbols already contain builtin import for %q", s.BuiltinImport().CorgiPath))
 	case imp.Implicit() && imp.Alias == ".":
 		panic("cannot add implicit dot import")
 	case !imp.Builtin && imp.Alias != "" && imp.Alias != imp.Namespace:
@@ -280,7 +287,7 @@ func (s *Symbols) ImportByNamespace(namespace string) *Import {
 
 func (s *Symbols) ImportByPath(p string) *Import {
 	for _, imp := range s.Imports {
-		if imp.Path == p {
+		if imp.CorgiPath == p {
 			return imp
 		}
 	}

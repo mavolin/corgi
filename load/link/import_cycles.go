@@ -18,7 +18,7 @@ func (l *linker) CheckImportCycles(ctx context.Context) {
 	if logger.Enabled(ctx, slog.LevelInfo) {
 		imports := make([]string, len(importersGraph))
 		for i, p := range importersGraph {
-			imports[i] = p.ImportPath
+			imports[i] = p.CorgiImportPath
 		}
 		logger.Debug("Checking for import cycles", slog.Any("chain", imports))
 	}
@@ -34,20 +34,20 @@ func (l *linker) CheckImportCycles(ctx context.Context) {
 		reported := make(map[importPath]bool)
 
 		for _, imp := range f.Imports {
-			if !imp.Explicit() || imp.Path == "" {
+			if !imp.Explicit() || imp.CorgiPath == "" {
 				continue
-			} else if reported[imp.Path] {
+			} else if reported[imp.CorgiPath] {
 				imp.Loaded = true // prevent deadlock
 				continue
 			}
 
 			for i, parentPackage := range slices.Backward(importersGraph) {
-				if parentPackage.ImportPath != imp.Path && parentPackage.ModulePath() != imp.Path {
+				if parentPackage.CorgiImportPath != imp.CorgiPath && parentPackage.GoImportPath() != imp.CorgiPath {
 					continue
 				}
 
 				logger.Error("Circular import detected",
-					slog.String("import", imp.Path),
+					slog.String("import", imp.CorgiPath),
 					slog.String("pos", imp.AST.Start().String()))
 
 				// Build the import cycle message
@@ -59,7 +59,7 @@ func (l *linker) CheckImportCycles(ctx context.Context) {
 						msg.WriteString(", which imports")
 					}
 					msg.WriteString("\n  ")
-					msg.WriteString(p.ImportPath)
+					msg.WriteString(p.CorgiImportPath)
 				}
 				l.report(&diagnostic.Diagnostic{
 					Message: "circular import",
@@ -70,7 +70,7 @@ func (l *linker) CheckImportCycles(ctx context.Context) {
 				})
 
 				imp.Loaded = true // prevent deadlock
-				reported[imp.Path] = true
+				reported[imp.CorgiPath] = true
 
 				// once we've found a cycle for this import, no need to check more parent packages
 				break

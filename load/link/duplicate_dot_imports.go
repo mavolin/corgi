@@ -23,11 +23,11 @@ func (l *linker) CheckDuplicateDotImports() {
 		dotImports := make(map[importPath][]*file.Import)
 
 		for _, imp := range f.Imports {
-			if imp.Path == "" || imp.AST == nil || imp.AST.Alias == nil || imp.AST.Alias.Name != "." {
+			if imp.CorgiPath == "" || imp.AST == nil || imp.AST.Alias == nil || imp.AST.Alias.Name != "." {
 				continue
 			}
 
-			dotImports[imp.Path] = append(dotImports[imp.Path], imp)
+			dotImports[imp.CorgiPath] = append(dotImports[imp.CorgiPath], imp)
 		}
 
 		for path, imports := range dotImports {

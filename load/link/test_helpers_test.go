@@ -36,7 +36,7 @@ func (m *mockImporter) Import(_ context.Context, path importPath) (*file.Package
 func ImporterFor(ps ...*file.Package) Importer {
 	packages := make(map[string]*file.Package)
 	for _, p := range ps {
-		packages[p.ImportPath] = p
+		packages[p.CorgiImportPath] = p
 	}
 	return (&mockImporter{packages: packages}).Import
 }
@@ -44,18 +44,18 @@ func ImporterFor(ps ...*file.Package) Importer {
 // createPackage is a helper to create a package for testing.
 func createPackage(pathInModule string) *file.Package {
 	p := &file.Package{
-		Module:         "github.com/mavolin/linktest",
-		PathInModule:   pathInModule,
-		ImportPath:     "linktest/" + pathInModule,
-		Name:           path.Base(pathInModule),
-		PackageSymbols: &file.PackageSymbols{},
+		Module:          "github.com/mavolin/linktest",
+		PathInModule:    pathInModule,
+		CorgiImportPath: "linktest/" + pathInModule,
+		Name:            path.Base(pathInModule),
+		PackageSymbols:  &file.PackageSymbols{},
 	}
 	return p
 }
 
 // createFile is a helper to create a file for testing.
 func createFile(p *file.Package, name string) *file.File {
-	lines := make([]string, 48)
+	lines := make([]string, 256)
 	for i := range lines {
 		lines[i] = strings.Repeat(" ", 180) // so diagnostics work
 	}
@@ -329,9 +329,9 @@ func createImport(f *file.File, start *ast.Position, alias, impPath string) *fil
 	impAST.Specs = []*ast.ImportSpec{impSpecAST}
 
 	imp := &file.Import{
-		AST:   impSpecAST,
-		Path:  impPath,
-		Alias: alias,
+		AST:       impSpecAST,
+		CorgiPath: impPath,
+		Alias:     alias,
 	}
 	addImport(f, imp)
 	start.Line++

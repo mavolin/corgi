@@ -78,7 +78,7 @@ func (loader *importLoader) checkIllegalAliases() {
 
 			logger.Error("Import alias with reserved prefix",
 				slog.String("alias", imp.Alias),
-				slog.String("import_path", imp.Path))
+				slog.String("import_path", imp.CorgiPath))
 			loader.l.report(&diagnostic.Diagnostic{
 				Message: "import alias: cannot use `__corgi_` prefix",
 				Primary: []diagnostic.Annotation{
@@ -97,7 +97,7 @@ func (loader *importLoader) loadImports(ctx context.Context) {
 
 	for _, f := range loader.l.p.Files {
 		for _, imp := range f.Imports {
-			if !imp.Explicit() || imp.Path == "" || imp.Loaded {
+			if !imp.Explicit() || imp.CorgiPath == "" || imp.Loaded {
 				continue
 			}
 
@@ -119,15 +119,13 @@ func (loader *importLoader) loadImports(ctx context.Context) {
 func (loader *importLoader) loadImport(ctx context.Context, f *file.File, imp *file.Import) {
 	logger := loader.logger.With(
 		slog.String("file", f.Name),
-		slog.String("import", imp.Path),
+		slog.String("import", imp.CorgiPath),
 		slog.String("import_pos", imp.AST.Start().String()))
 	logger.Debug("Loading import")
 
-	imp.Loaded = true
-
 	var d diagnostic.List
 	var err error
-	imp.Package, d, err = loader.l.importer(ctx, imp.Path)
+	imp.Package, d, err = loader.l.importer(ctx, imp.CorgiPath)
 	if len(d) > 0 || err != nil {
 		loader.reportMut.Lock()
 
@@ -148,6 +146,7 @@ func (loader *importLoader) loadImport(ctx context.Context, f *file.File, imp *f
 		loader.reportMut.Unlock()
 	}
 
+	imp.Loaded = true
 	logger.Debug("Successfully loaded import")
 
 	if imp.Package == nil {
@@ -164,7 +163,7 @@ func (loader *importLoader) loadImport(ctx context.Context, f *file.File, imp *f
 		if strings.HasPrefix(imp.Namespace, "__corgi_") {
 			logger.Error("Import has package name with reserved prefix",
 				slog.String("namespace", imp.Namespace),
-				slog.String("import_path", imp.Path))
+				slog.String("import_path", imp.CorgiPath))
 
 			loader.reportMut.Lock()
 			loader.l.report(&diagnostic.Diagnostic{

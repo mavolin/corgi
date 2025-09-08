@@ -23,7 +23,7 @@ func TestLinker_CheckImportCycles(t *testing.T) {
 		pkgA := createPackage("pkg/a")
 		fileA := createFile(pkgA, "a.corgi")
 
-		imp := createImport(fileA, &start, "", pkgB.ImportPath)
+		imp := createImport(fileA, &start, "", pkgB.CorgiImportPath)
 		imp.Package = pkgB
 
 		d := Link(context.Background(), pkgA, Options{
@@ -36,11 +36,11 @@ func TestLinker_CheckImportCycles(t *testing.T) {
 
 	cycleTests := []struct {
 		name  string
-		setup func() (p *file.Package, packages map[importPath]*file.Package, importGraph []*file.Package)
+		setup func() (p *file.Package, importGraph []*file.Package)
 	}{
 		{
 			name: "direct cycle",
-			setup: func() (p *file.Package, packages map[importPath]*file.Package, importGraph []*file.Package) {
+			setup: func() (p *file.Package, importGraph []*file.Package) {
 				var start ast.Position
 				// A imports B, B imports A - direct cycle
 				pkgA := createPackage("pkg/a")
@@ -49,20 +49,16 @@ func TestLinker_CheckImportCycles(t *testing.T) {
 				pkgB := createPackage("pkg/b")
 				fileB := createFile(pkgB, "b.corgi")
 
-				createImport(fileA, &start, "", pkgB.ImportPath)
-				createImport(fileB, &start, "", pkgA.ImportPath)
+				createImport(fileA, &start, "", pkgB.CorgiImportPath)
+				createImport(fileB, &start, "", pkgA.CorgiImportPath)
 
-				packages = map[importPath]*file.Package{
-					pkgA.ImportPath: pkgA,
-					pkgB.ImportPath: pkgB,
-				}
-				importGraph = []*file.Package{pkgA, pkgB}
+				importGraph = []*file.Package{pkgA}
 
-				return pkgA, packages, importGraph
+				return pkgB, importGraph
 			},
 		}, {
 			name: "indirect cycle",
-			setup: func() (p *file.Package, packages map[importPath]*file.Package, importGraph []*file.Package) {
+			setup: func() (p *file.Package, importGraph []*file.Package) {
 				var start ast.Position
 				// A imports B, B imports C, C imports A - indirect cycle
 				pkgA := createPackage("pkg/a")
@@ -74,22 +70,17 @@ func TestLinker_CheckImportCycles(t *testing.T) {
 				pkgC := createPackage("pkg/c")
 				fileC := createFile(pkgC, "c.corgi")
 
-				createImport(fileA, &start, "", pkgB.ImportPath)
-				createImport(fileB, &start, "", pkgC.ImportPath)
-				createImport(fileC, &start, "", pkgA.ImportPath)
+				createImport(fileA, &start, "", pkgB.CorgiImportPath)
+				createImport(fileB, &start, "", pkgC.CorgiImportPath)
+				createImport(fileC, &start, "", pkgA.CorgiImportPath)
 
-				packages = map[importPath]*file.Package{
-					pkgA.ImportPath: pkgA,
-					pkgB.ImportPath: pkgB,
-					pkgC.ImportPath: pkgC,
-				}
-				importGraph = []*file.Package{pkgA, pkgB, pkgC}
+				importGraph = []*file.Package{pkgA, pkgB}
 
-				return pkgA, packages, importGraph
+				return pkgC, importGraph
 			},
 		}, {
 			name: "hook",
-			setup: func() (p *file.Package, packages map[importPath]*file.Package, importGraph []*file.Package) {
+			setup: func() (p *file.Package, importGraph []*file.Package) {
 				var start ast.Position
 				// A imports B, B imports C, C imports B - indirect cycle with a hook
 				pkgA := createPackage("pkg/a")
@@ -101,22 +92,17 @@ func TestLinker_CheckImportCycles(t *testing.T) {
 				pkgC := createPackage("pkg/c")
 				fileC := createFile(pkgC, "c.corgi")
 
-				createImport(fileA, &start, "", pkgB.ImportPath)
-				createImport(fileB, &start, "", pkgC.ImportPath)
-				createImport(fileC, &start, "", pkgB.ImportPath)
+				createImport(fileA, &start, "", pkgB.CorgiImportPath)
+				createImport(fileB, &start, "", pkgC.CorgiImportPath)
+				createImport(fileC, &start, "", pkgB.CorgiImportPath)
 
-				packages = map[importPath]*file.Package{
-					pkgA.ImportPath: pkgA,
-					pkgB.ImportPath: pkgB,
-					pkgC.ImportPath: pkgC,
-				}
-				importGraph = []*file.Package{pkgA, pkgB, pkgC}
+				importGraph = []*file.Package{pkgA, pkgB}
 
-				return pkgA, packages, importGraph
+				return pkgC, importGraph
 			},
 		}, {
 			name: "cycle via module path",
-			setup: func() (p *file.Package, packages map[importPath]*file.Package, importGraph []*file.Package) {
+			setup: func() (p *file.Package, importGraph []*file.Package) {
 				var start ast.Position
 				// A imports B, B imports C, C imports A - indirect cycle
 				pkgA := createPackage("pkg/a")
@@ -128,22 +114,17 @@ func TestLinker_CheckImportCycles(t *testing.T) {
 				pkgC := createPackage("pkg/c")
 				fileC := createFile(pkgC, "c.corgi")
 
-				createImport(fileA, &start, "", pkgB.ImportPath)
-				createImport(fileB, &start, "", pkgC.ImportPath)
-				createImport(fileC, &start, "", pkgA.ModulePath())
+				createImport(fileA, &start, "", pkgB.CorgiImportPath)
+				createImport(fileB, &start, "", pkgC.CorgiImportPath)
+				createImport(fileC, &start, "", pkgA.GoImportPath())
 
-				packages = map[importPath]*file.Package{
-					pkgA.ImportPath: pkgA,
-					pkgB.ImportPath: pkgB,
-					pkgC.ImportPath: pkgC,
-				}
-				importGraph = []*file.Package{pkgA, pkgB, pkgC}
+				importGraph = []*file.Package{pkgA, pkgB}
 
-				return pkgA, packages, importGraph
+				return pkgC, importGraph
 			},
 		}, {
 			name: "same cycle in multiple imports", // test that we still get only a single diagnostic
-			setup: func() (p *file.Package, packages map[importPath]*file.Package, importGraph []*file.Package) {
+			setup: func() (p *file.Package, importGraph []*file.Package) {
 				var start ast.Position
 				// A imports B, B imports A - direct cycle
 				pkgA := createPackage("pkg/a")
@@ -152,17 +133,13 @@ func TestLinker_CheckImportCycles(t *testing.T) {
 				pkgB := createPackage("pkg/b")
 				fileB := createFile(pkgB, "b.corgi")
 
-				createImport(fileA, &start, "", pkgB.ImportPath)
-				createImport(fileA, &start, "foo", pkgB.ImportPath)
-				createImport(fileB, &start, "", pkgA.ImportPath)
+				createImport(fileA, &start, "", pkgB.CorgiImportPath)
+				createImport(fileA, &start, "foo", pkgB.CorgiImportPath)
+				createImport(fileB, &start, "", pkgA.CorgiImportPath)
 
-				packages = map[importPath]*file.Package{
-					pkgA.ImportPath: pkgA,
-					pkgB.ImportPath: pkgB,
-				}
 				importGraph = []*file.Package{pkgA, pkgB}
 
-				return pkgA, packages, importGraph
+				return pkgB, importGraph
 			},
 		},
 	}
@@ -171,12 +148,11 @@ func TestLinker_CheckImportCycles(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			pkg, packages, importGraph := c.setup()
+			pkg, importGraph := c.setup()
 
-			ctx := context.WithValue(context.Background(), importersGraphKey{}, importGraph)
-			importer := &mockImporter{packages: packages}
+			ctx := context.WithValue(t.Context(), importersGraphKey{}, importGraph)
 			d := Link(ctx, pkg, Options{
-				Importer: importer.Import,
+				Importer: ImporterFor(),
 			})
 
 			t.Log(d.Pretty(diagnostic.PrettyOptions{}))

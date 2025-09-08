@@ -79,7 +79,7 @@ func (z *analyzer) checkNoInfiniteRecursion(logger *slog.Logger, cc *file.Compon
 	sb.Grow(48 * len("github.com/mavolin/corgi/v2/mycomponents/foo/bar.Baz\n"))
 	for _, c := range slices.Backward(callerChain[2000:]) {
 		sb.WriteByte('\n')
-		sb.WriteString(c.File.Package.ImportPath)
+		sb.WriteString(c.File.Package.CorgiImportPath)
 		sb.WriteByte('.')
 		sb.WriteString(c.AST.Header.Name.Name)
 	}

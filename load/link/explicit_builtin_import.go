@@ -20,13 +20,13 @@ func (l *linker) CheckExplicitBuiltinImport() {
 		}
 
 		for _, imp := range f.Imports {
-			if !imp.Explicit() || imp.Path != builtin.Path {
+			if !imp.Explicit() || imp.CorgiPath != builtin.CorgiPath {
 				continue
 			}
 
 			logger := logger.With(
 				slog.String("pos", imp.AST.Start().String()),
-				slog.String("import", imp.Path))
+				slog.String("import", imp.CorgiPath))
 
 			logger.Error("Explicit import of builtin package")
 			l.report(&diagnostic.Diagnostic{

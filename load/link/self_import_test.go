@@ -15,7 +15,7 @@ func TestLinker_CheckSelfImport(t *testing.T) {
 	var start ast.Position
 	pkgA := createPackage("pkg/a")
 	fileA := createFile(pkgA, "a.corgi")
-	imp := createImport(fileA, &start, "", pkgA.ImportPath)
+	imp := createImport(fileA, &start, "", pkgA.CorgiImportPath)
 	imp.Package = pkgA
 
 	d := Link(context.Background(), pkgA, Options{

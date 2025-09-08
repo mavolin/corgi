@@ -42,9 +42,9 @@ func FuzzLink(f *testing.F) {
 		}
 
 		pkg := &file.Package{
-			ImportPath: "linkfuzz/imports",
-			Name:       "linkfuzz_imports",
-			Files:      []*file.File{fl},
+			CorgiImportPath: "linkfuzz/imports",
+			Name:            "linkfuzz_imports",
+			Files:           []*file.File{fl},
 		}
 		fl.Package = pkg
 
@@ -58,7 +58,7 @@ func FuzzLink(f *testing.F) {
 			case impPath:
 				raw = impContent
 			default:
-				return &file.Package{ImportPath: imp, Name: path.Base(imp)}, nil, nil
+				return &file.Package{CorgiImportPath: imp, Name: path.Base(imp)}, nil, nil
 			}
 
 			ff, d := parse.Parse(raw, parse.Options{})
@@ -66,7 +66,7 @@ func FuzzLink(f *testing.F) {
 				should.NotPanic(t, func() { d.Pretty(diagnostic.PrettyOptions{}) })
 			}
 
-			p := &file.Package{ImportPath: imp, Name: path.Base(imp), Files: []*file.File{ff}}
+			p := &file.Package{CorgiImportPath: imp, Name: path.Base(imp), Files: []*file.File{ff}}
 			ff.Package = p
 			d = Link(ctx, p, Options{})
 			return p, d, nil

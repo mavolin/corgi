@@ -21,8 +21,8 @@ func TestLinker_CheckDuplicateDotImports(t *testing.T) {
 
 		mainPkg := createPackage("main")
 		mainFile := createFile(mainPkg, "main.corgi")
-		createImport(mainFile, &start, ".", pkgA.ImportPath)
-		createImport(mainFile, &start, ".", pkgB.ImportPath)
+		createImport(mainFile, &start, ".", pkgA.CorgiImportPath)
+		createImport(mainFile, &start, ".", pkgB.CorgiImportPath)
 
 		d := Link(context.Background(), mainPkg, Options{
 			Importer: ImporterFor(pkgA, pkgB),
@@ -41,8 +41,8 @@ func TestLinker_CheckDuplicateDotImports(t *testing.T) {
 		mainPkg := createPackage("main")
 		mainFile := createFile(mainPkg, "main.corgi")
 
-		createImport(mainFile, &start, ".", pkgA.ImportPath)
-		createImport(mainFile, &start, ".", pkgA.ImportPath)
+		createImport(mainFile, &start, ".", pkgA.CorgiImportPath)
+		createImport(mainFile, &start, ".", pkgA.CorgiImportPath)
 
 		d := Link(context.Background(), mainPkg, Options{
 			Importer: ImporterFor(pkgA),

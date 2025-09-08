@@ -47,10 +47,18 @@ type (
 		// If not specified, the linker will run in local-only mode, where
 		// files must not make any imports.
 		//
-		// The linker does not cache results of the Importer on its own.
-		// In a package where n files import the same package, the linker will
-		// call the importer n times for that package.
-		// It is highly recommend to implement some sort of caching logic.
+		// The linker caches loaded packages and guarantees that from the root
+		// package down, it will call the Importer at most once per unique
+		// import path.
+		//
+		// The cache is shared through the context passed to the Importer, and
+		// also carries information necessary to detect import cycles.
+		// It is utmost important that when you call the linker in the importer
+		// function, you pass it the context given to the importer function.
+		// Otherwise, deadlocks may occur if there are import cycles.
+		//
+		// Caching can still be beneficial if you call the linker for multiple
+		// different root packages that may share imports.
 		//
 		// If you're not using the high-level load package, but are using the
 		// linker directly, refrain from setting the Importer to
@@ -186,9 +194,9 @@ func filterDotImports(f *file.File) []*file.Import {
 	imps := make([]*file.Import, 0, 8)
 	seen := make(map[importPath]bool, len(f.Imports))
 	for _, imp := range f.Imports {
-		if imp.Explicit() && imp.Alias == "." && !seen[imp.Path] {
+		if imp.Explicit() && imp.Alias == "." && !seen[imp.CorgiPath] {
 			imps = append(imps, imp)
-			seen[imp.Path] = true
+			seen[imp.CorgiPath] = true
 		}
 	}
 	return imps

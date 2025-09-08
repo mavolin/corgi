@@ -232,10 +232,10 @@ func (l *loader) loadUncachedImport(ctx context.Context, logger *slog.Logger, im
 	}
 
 	p := &file.Package{
-		Module:       data.Module,
-		PathInModule: data.PathInModule,
-		ImportPath:   imp,
-		Files:        make([]*file.File, len(data.Files)),
+		Module:          data.Module,
+		PathInModule:    data.PathInModule,
+		CorgiImportPath: imp,
+		Files:           make([]*file.File, len(data.Files)),
 	}
 	if len(p.Files) == 0 {
 		return p, nil, nil

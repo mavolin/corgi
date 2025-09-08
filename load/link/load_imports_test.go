@@ -26,7 +26,7 @@ func TestLinker_LoadImports(t *testing.T) {
 
 		mainPkg := createPackage("main")
 		mainF := createFile(mainPkg, "main.corgi")
-		imp := createImport(mainF, &start, "", importedPkg.ImportPath)
+		imp := createImport(mainF, &start, "", importedPkg.CorgiImportPath)
 
 		d := Link(context.Background(), mainPkg, Options{
 			Importer: ImporterFor(importedPkg),
@@ -86,7 +86,7 @@ func TestLinker_LoadImports(t *testing.T) {
 
 		mainPkg := createPackage("main")
 		mainF := createFile(mainPkg, "main.corgi")
-		createImport(mainF, &start, "__corgi_illegal", importedPkg.ImportPath)
+		createImport(mainF, &start, "__corgi_illegal", importedPkg.CorgiImportPath)
 
 		d := Link(context.Background(), mainPkg, Options{
 			Importer: ImporterFor(importedPkg),
@@ -109,7 +109,7 @@ func TestLinker_LoadImports(t *testing.T) {
 
 		mainPkg := createPackage("main")
 		mainF := createFile(mainPkg, "main.corgi")
-		imp := createImport(mainF, &start, ".", importedPkg.ImportPath)
+		imp := createImport(mainF, &start, ".", importedPkg.CorgiImportPath)
 
 		d := Link(context.Background(), mainPkg, Options{
 			Importer: ImporterFor(importedPkg),
@@ -131,7 +131,7 @@ func TestLinker_LoadImports(t *testing.T) {
 
 		mainPkg := createPackage("main")
 		mainF := createFile(mainPkg, "main.corgi")
-		createImport(mainF, &start, "", importedPkg.ImportPath)
+		createImport(mainF, &start, "", importedPkg.CorgiImportPath)
 
 		d := Link(context.Background(), mainPkg, Options{
 			Importer: ImporterFor(importedPkg),
@@ -150,11 +150,11 @@ func TestLinker_LoadImports(t *testing.T) {
 		importedPkg := createPackage("imported")
 		mainPkg := createPackage("main")
 		mainF := createFile(mainPkg, "main.corgi")
-		imp := createImport(mainF, &start, "", importedPkg.ImportPath)
+		imp := createImport(mainF, &start, "", importedPkg.CorgiImportPath)
 
 		d := Link(context.Background(), mainPkg, Options{
 			Importer: func(_ context.Context, path string) (*file.Package, diagnostic.List, error) {
-				if path == importedPkg.ImportPath {
+				if path == importedPkg.CorgiImportPath {
 					return importedPkg, diagnostic.List{{Message: "test diagnostic"}}, nil
 				}
 				return nil, nil, errors.New("unknown import")
@@ -175,12 +175,12 @@ func TestLinker_LoadImports(t *testing.T) {
 		importedPkg := createPackage("imported")
 		mainPkg := createPackage("main")
 		mainF := createFile(mainPkg, "main.corgi")
-		imp := createImport(mainF, &start, "", importedPkg.ImportPath)
+		imp := createImport(mainF, &start, "", importedPkg.CorgiImportPath)
 
 		d := Link(context.Background(), mainPkg, Options{
 			Importer: (&mockImporter{
 				errors: map[importPath]error{
-					importedPkg.ImportPath: errors.New("test error"),
+					importedPkg.CorgiImportPath: errors.New("test error"),
 				},
 			}).Import,
 		})
@@ -207,7 +207,7 @@ func TestLinker_LoadImports(t *testing.T) {
 
 		d := Link(context.Background(), mainPkg, Options{
 			Importer:    ImporterFor(builtinPkg),
-			BuiltinPath: builtinPkg.ImportPath,
+			BuiltinPath: builtinPkg.CorgiImportPath,
 		})
 
 		t.Log(d.Pretty(diagnostic.PrettyOptions{}))

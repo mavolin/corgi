@@ -17,9 +17,9 @@ func (l *linker) CheckSelfImport() {
 		var reported bool
 
 		for _, imp := range f.Imports {
-			if !imp.Explicit() || imp.Path == "" {
+			if !imp.Explicit() || imp.CorgiPath == "" {
 				continue
-			} else if imp.Path != l.p.ImportPath && imp.Path != l.p.ModulePath() {
+			} else if imp.CorgiPath != l.p.CorgiImportPath && imp.CorgiPath != l.p.GoImportPath() {
 				continue
 			}
 
@@ -29,7 +29,7 @@ func (l *linker) CheckSelfImport() {
 			}
 
 			logger.Error("Import to current package detected",
-				slog.String("import", imp.Path),
+				slog.String("import", imp.CorgiPath),
 				slog.String("pos", imp.AST.Start().String()))
 			l.report(&diagnostic.Diagnostic{
 				Message:     "package imports itself",

@@ -22,8 +22,8 @@ func TestLinker_CheckImportNamespaceCollisions(t *testing.T) {
 		mainPkg := createPackage("main")
 		mainFile := createFile(mainPkg, "main.corgi")
 
-		createImport(mainFile, &start, "", pkgA.ImportPath)
-		createImport(mainFile, &start, "", pkgB.ImportPath)
+		createImport(mainFile, &start, "", pkgA.CorgiImportPath)
+		createImport(mainFile, &start, "", pkgB.CorgiImportPath)
 
 		d := Link(context.Background(), mainPkg, Options{
 			Importer: ImporterFor(pkgA, pkgB),
@@ -67,8 +67,8 @@ func TestLinker_CheckImportNamespaceCollisions(t *testing.T) {
 				mainPkg := createPackage("main")
 				mainFile := createFile(mainPkg, "main.corgi")
 
-				createImport(mainFile, &start, c.aliasA, pkgA.ImportPath)
-				createImport(mainFile, &start, c.aliasB, pkgB.ImportPath)
+				createImport(mainFile, &start, c.aliasA, pkgA.CorgiImportPath)
+				createImport(mainFile, &start, c.aliasB, pkgB.CorgiImportPath)
 
 				d := Link(context.Background(), mainPkg, Options{
 					Importer: ImporterFor(pkgA, pkgB),

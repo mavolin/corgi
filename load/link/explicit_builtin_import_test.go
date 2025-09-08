@@ -23,7 +23,7 @@ func TestLinker_CheckExplicitBuiltinImport(t *testing.T) {
 
 		d := Link(context.Background(), mainPkg, Options{
 			Importer:    ImporterFor(builtinPkg),
-			BuiltinPath: builtinPkg.ImportPath,
+			BuiltinPath: builtinPkg.CorgiImportPath,
 		})
 
 		should.Equal(t, len(d), 0)
@@ -37,11 +37,11 @@ func TestLinker_CheckExplicitBuiltinImport(t *testing.T) {
 
 		mainPkg := createPackage("main")
 		mainF := createFile(mainPkg, "main.corgi")
-		createImport(mainF, &start, "", builtinPkg.ImportPath)
+		createImport(mainF, &start, "", builtinPkg.CorgiImportPath)
 
 		d := Link(context.Background(), mainPkg, Options{
 			Importer:    ImporterFor(builtinPkg),
-			BuiltinPath: builtinPkg.ImportPath,
+			BuiltinPath: builtinPkg.CorgiImportPath,
 		})
 
 		t.Log(d.Pretty(diagnostic.PrettyOptions{}))
