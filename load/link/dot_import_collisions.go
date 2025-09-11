@@ -43,9 +43,9 @@ func (l *linker) CheckDotImportComponentCollisions() {
 			secondaries := make([]diagnostic.Annotation, 0, len(comps))
 			for i, comp := range comps {
 				if comp.File.Package == f.Package {
-					primaries[i] = anno.Node(f, comp.AST, "`"+name+"` defined locally")
+					primaries[i] = anno.Node(comp.File, comp.AST, "`"+name+"` defined locally")
 				} else {
-					primaries[i] = anno.Node(f, findImport(dotImports, comp.File.Package).AST, "defines `"+name+"`")
+					primaries[i] = anno.Node(comp.File, findImport(dotImports, comp.File.Package).AST, "defines `"+name+"`")
 					secondaries = append(secondaries, anno.Anno(comp.File, anno.Annotation{
 						Highlight:  anno.HighlightNode(comp.AST),
 						Context:    anno.ContextNode(comp.AST.Header),

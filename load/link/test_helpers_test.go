@@ -188,7 +188,9 @@ func createElementSpec(f *file.File, start *ast.Position, prefix, name string, t
 // createBasicAttributeSpec creates an attribute spec for testing.
 //
 // if elemSpec is nil, the attribute spec will match all elements
-func createBasicAttributeSpec(f *file.File, start *ast.Position, prefix, name string, elemSpec *file.ElementSpec, typ attrtype.Type) *file.AttributeSpec {
+func createBasicAttributeSpec(
+	f *file.File, start *ast.Position, prefix, name string, elemSpec *file.ElementSpec, typ attrtype.Type,
+) *file.AttributeSpec {
 	if *start == ast.NoPosition {
 		*start = ast.Position{Line: 1, Col: 1}
 	}
@@ -258,7 +260,9 @@ func createBasicAttributeSpec(f *file.File, start *ast.Position, prefix, name st
 // createRegexpAttributeSpec creates an attribute spec for testing.
 //
 // if elemSpec is nil, the attribute spec will match all elements
-func createRegexpAttributeSpec(f *file.File, start *ast.Position, prefix, regex string, elemSpec *file.ElementSpec, typ attrtype.Type) *file.AttributeSpec {
+func createRegexpAttributeSpec(
+	f *file.File, start *ast.Position, prefix, regex string, elemSpec *file.ElementSpec, typ attrtype.Type,
+) *file.AttributeSpec {
 	if *start == ast.NoPosition {
 		*start = ast.Position{Line: 1, Col: 1}
 	}
@@ -277,12 +281,12 @@ func createRegexpAttributeSpec(f *file.File, start *ast.Position, prefix, regex 
 
 	selAST.LParen = directlyAfter(definitionAST)
 	selAST.Raw = &ast.StaticString{
-		Open:     directlyAfter(selAST),
+		Open:     directlyAfter(definitionAST),
 		Quote:    '"',
 		Contents: strconv.Quote(regex),
 	}
 	selAST.Compiled = regexp.MustCompile(regex)
-	selAST.Raw.Close = deltaPos(*selAST.LParen, 0, len(`"`)+len(selAST.Raw.Contents))
+	selAST.Raw.Close = deltaPos(definitionAST.End(), len(`"`)+len([]rune(selAST.Raw.Contents)))
 	selAST.RParen = directlyAfter(definitionAST)
 
 	specAST.Ruleset = &ast.AttributeRuleset{LBrace: spaceAfter(definitionAST)}
@@ -348,8 +352,8 @@ func createImport(f *file.File, start *ast.Position, alias, impPath string) *fil
 		Quote:    '"',
 		Contents: strconv.Quote(impPath),
 	}
-	impSpecAST.Path.Close = deltaPos(*impSpecAST.Path.Open, 0, len(`"`)+len(impSpecAST.Path.Contents))
 	impAST.Specs = []*ast.ImportSpec{impSpecAST}
+	impSpecAST.Path.Close = deltaPos(impAST.End(), len(`"`)+len([]rune(impSpecAST.Path.Contents)))
 
 	imp := &file.Import{
 		AST:       impSpecAST,
@@ -510,21 +514,15 @@ func clonePos(pos *ast.Position) *ast.Position {
 	return &pos2
 }
 
-func deltaPos(p ast.Position, dLine, dCol int) *ast.Position {
-	if dLine == 0 {
-		return &ast.Position{
-			Line: p.Line,
-			Col:  p.Col + dCol,
-		}
-	}
+func deltaPos(p ast.Position, dCol int) *ast.Position {
 	return &ast.Position{
-		Line: p.Line + dLine,
-		Col:  1,
+		Line: p.Line,
+		Col:  p.Col + dCol,
 	}
 }
 
 func spaceAfter(n ast.Node) *ast.Position {
-	return deltaPos(n.End(), 0, len(" "))
+	return deltaPos(n.End(), len(" "))
 }
 
 func directlyAfter(n ast.Node) *ast.Position {
