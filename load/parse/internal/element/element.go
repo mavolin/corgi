@@ -191,7 +191,7 @@ func Name() parser.Func[*ast.ElementName] {
 				return false
 			}
 
-			return !parser.MatchesAnyRune(p, ',', '\r', ';', '(', '{', '[', '}', ']', ')', '_')
+			return !parser.MatchesAnyRune(p, '.', ',', '\r', ';', '(', '{', '[', '}', ']', ')', '_')
 		})
 		if name == "" {
 			return nil

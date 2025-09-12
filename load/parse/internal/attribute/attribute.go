@@ -177,7 +177,7 @@ func Name() parser.Func[*ast.AttributeName] {
 				return parenCount >= 0
 			}
 
-			return !parser.MatchesAnyRune(p, ',', ';', '{', '}')
+			return !parser.MatchesAnyRune(p, '.', ',', ';', '{', '}')
 		})
 
 		if nameStr == "" {
