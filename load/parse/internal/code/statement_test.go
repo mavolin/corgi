@@ -239,38 +239,14 @@ func TestFallthrough(t *testing.T) {
 }
 
 func testFallthrough(t *testing.T, f parser.Func[*ast.Fallthrough]) {
-	tests := []struct {
-		name string
-		in   string
-		want *ast.Fallthrough
-	}{
-		{
-			name: "no label",
-			in:   "fallthrough",
-			want: &ast.Fallthrough{
-				Fallthrough: &ast.Position{Line: 1, Col: 1},
-			},
-		}, {
-			name: "with label",
-			in:   "fallthrough myLabel",
-			want: &ast.Fallthrough{
-				Fallthrough: &ast.Position{Line: 1, Col: 1},
-				Label: &ast.Identifier{
-					Name:     "myLabel",
-					Position: &ast.Position{Line: 1, Col: 13},
-				},
-			},
-		},
+	t.Parallel()
+	in := "fallthrough"
+	want := &ast.Fallthrough{
+		Fallthrough: &ast.Position{Line: 1, Col: 1},
 	}
 
-	for _, c := range tests {
-		t.Run(c.name, func(t *testing.T) {
-			t.Parallel()
-
-			got := parsesCodeNodeFully(t, c.in, f)
-			should.Equal(t, got, c.want)
-		})
-	}
+	got := parsetest.ParsesUntilEOS(t, in, f)
+	should.Equal(t, got, want)
 }
 
 func TestDefer(t *testing.T) {

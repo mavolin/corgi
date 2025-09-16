@@ -280,28 +280,17 @@ func ContinueAsCode(c *ast.Continue) ast.Code {
 
 func Fallthrough() parser.Func[*ast.Fallthrough] {
 	return func(p *parser.Parser) *ast.Fallthrough {
-		_fallthrough := parser.TryKeywordAt(p, "fallthrough", comment.OrHorizontalWhitespace())
+		_fallthrough := parser.TryKeywordAt(p, "fallthrough", nil)
 		if _fallthrough == nil {
 			return nil
 		}
 
-		var f ast.Fallthrough
-		f.Fallthrough = _fallthrough
-
-		f.Label = parser.TryOptional(p, golang.Identifier(), nil)
-
-		return &f
+		return &ast.Fallthrough{Fallthrough: _fallthrough}
 	}
 }
 
 func FallthroughAsCode(f *ast.Fallthrough) ast.Code {
-	if f.Label == nil {
-		return ast.Code{&ast.GoCode{Code: "fallthrough", Position: f.Fallthrough}}
-	}
-	return ast.Code{
-		&ast.GoCode{Code: "fallthrough", Position: f.Fallthrough},
-		&ast.GoCode{Code: f.Label.Name, Position: f.Label.Position},
-	}
+	return ast.Code{&ast.GoCode{Code: "fallthrough", Position: f.Fallthrough}}
 }
 
 func Defer() parser.Func[*ast.Defer] {

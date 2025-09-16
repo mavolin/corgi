@@ -276,7 +276,6 @@ func (*Continue) _parsedStatement() {}
 
 type Fallthrough struct {
 	Fallthrough *Position
-	Label       *Identifier // optional
 }
 
 var _ ParsedStatement = (*Fallthrough)(nil)
@@ -285,32 +284,17 @@ func (f *Fallthrough) Start() Position {
 	if f.Fallthrough != nil {
 		return *f.Fallthrough
 	}
-	if f.Label != nil {
-		if start := f.Label.Start(); start != NoPosition {
-			return start
-		}
-	}
 	return NoPosition
 }
 
 func (f *Fallthrough) End() Position {
-	if f.Label != nil {
-		if end := f.Label.End(); end != NoPosition {
-			return end
-		}
-	}
 	if f.Fallthrough != nil {
 		return deltaPos(*f.Fallthrough, len("fallthrough"))
 	}
 	return NoPosition
 }
 
-func (f *Fallthrough) Walk(w func(Node)) {
-	if f.Label != nil {
-		w(f.Label)
-	}
-}
-
+func (f *Fallthrough) Walk(func(Node)) {}
 func (*Fallthrough) _node()            {}
 func (*Fallthrough) _parsedStatement() {}
 
