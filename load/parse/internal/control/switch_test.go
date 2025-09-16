@@ -97,7 +97,7 @@ func TestSwitch(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := parsesCodeNodeFully(t, c.in, Switch())
+			got := parsetest.ParsesUntilEOS(t, c.in, Switch())
 			should.Equal(t, got, c.want)
 		})
 	}
@@ -105,13 +105,13 @@ func TestSwitch(t *testing.T) {
 
 func TestSwitchCase(t *testing.T) {
 	t.Parallel()
-	parsetest.AssertAlsoFulfils(t, SwitchCase(), testCase)
-	parsetest.AssertAlsoFulfils(t, SwitchCase(), testDefault)
+	parsetest.AlsoFulfils(t, SwitchCase(), testCase)
+	parsetest.AlsoFulfils(t, SwitchCase(), testDefault)
 }
 
 func TestCase(t *testing.T) {
 	t.Parallel()
-	parsetest.AssertAlsoFulfils(t, Case(), testCase)
+	parsetest.AlsoFulfils(t, Case(), testCase)
 }
 
 func testCase(t *testing.T, f parser.Func[*ast.Case]) {
@@ -145,7 +145,7 @@ func testCase(t *testing.T, f parser.Func[*ast.Case]) {
 
 func TestDefault(t *testing.T) {
 	t.Parallel()
-	parsetest.AssertAlsoFulfils(t, Default(), testDefault)
+	parsetest.AlsoFulfils(t, Default(), testDefault)
 }
 
 func testDefault(t *testing.T, f parser.Func[*ast.Case]) {
@@ -239,10 +239,5 @@ func TestCaseBody(t *testing.T) {
 }
 
 func parsesSwitchCaseFully[T any](t *testing.T, in string, suffix string, f parser.Func[T]) T {
-	p := parsetest.NewParser(t, in+suffix+"} 1other stuff")
-	got := parsetest.AssertNoError(t, p, f)
-
-	line, col, index := parsetest.CalcEnd(1, 1, 0, in)
-	parsetest.AssertPosition(t, p, line, col, index)
-	return got
+	return parsetest.ParsesUntilExtra(t, in, suffix+"} 1other stuff", f)
 }

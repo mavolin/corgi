@@ -21,7 +21,7 @@ func BlockFunction() parser.Func[*ast.BlockFunction] {
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 
 		argStart := p.Pos()
-		l := parser.Try(p, list.ParenList("argument", "block function arguments", golang.Identifier()))
+		l := parser.Try(p, list.ParenList("block function", "argument", "arguments", golang.Identifier()))
 		argEnd := p.Pos()
 		if l == nil {
 			return nil
@@ -62,7 +62,7 @@ func Ternary() parser.Func[*ast.Ternary] {
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 
 		argsStart := p.Pos()
-		l := parser.Try(p, list.ParenList("argument", "ternary function arguments", SimpleExpression()))
+		l := parser.Try(p, list.ParenList("ternary function", "argument", "arguments", SimpleExpression()))
 		argsEnd := p.Pos()
 		if l == nil {
 			return nil

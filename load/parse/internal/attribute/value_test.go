@@ -11,8 +11,8 @@ import (
 
 func TestValue(t *testing.T) {
 	t.Parallel()
-	parsetest.AssertAlsoFulfils(t, Value(), testExpressionValue)
-	parsetest.AssertAlsoFulfils(t, Value(), testTypedAttributeValue)
+	parsetest.AlsoFulfils(t, Value(), testExpressionValue)
+	parsetest.AlsoFulfils(t, Value(), testTypedAttributeValue)
 }
 
 func TestExpressionValue(t *testing.T) {
@@ -31,12 +31,7 @@ func testExpressionValue(t *testing.T, f parser.Func[*ast.ExpressionAttributeVal
 		},
 	}
 
-	p := parsetest.NewParser(t, in+", 1other stuff")
-	got := parsetest.AssertNoError(t, p, f)
-
-	line, col, index := parsetest.CalcEnd(1, 1, 0, in)
-	parsetest.AssertPosition(t, p, line, col, index)
-
+	got := parsetest.ParsesUntilComma(t, in, f)
 	should.Equal(t, got, want)
 }
 
@@ -87,11 +82,7 @@ func testTypedAttributeValue(t *testing.T, f parser.Func[*ast.TypedAttributeValu
 				RParen: &ast.Position{Line: 1, Col: 1 + len("'") + len(c.name) + len("(woof")},
 			}
 
-			p := parsetest.NewParser(t, in+", 1other stuff")
-			got := parsetest.AssertNoError(t, p, f)
-
-			line, col, index := parsetest.CalcEnd(1, 1, 0, in)
-			parsetest.AssertPosition(t, p, line, col, index)
+			got := parsetest.ParsesUntilComma(t, in, f)
 			should.Equal(t, got, want)
 		})
 	}

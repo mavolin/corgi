@@ -2,6 +2,7 @@ package parser
 
 import (
 	"slices"
+	"unicode"
 
 	"github.com/mavolin/corgi/v2/file/ast"
 )
@@ -66,17 +67,15 @@ func TryAnyOptionalToken(p *Parser, ws WhitespaceFunc, ss ...string) string {
 	return ""
 }
 
-func TryKeywordAt(p *Parser, k string, ws WhitespaceFunc) *ast.Position {
+func TryKeywordAt(p *Parser, k string) *ast.Position {
 	ln, col := p.Line(), p.Col()
-	if !TryToken(p, k) || (!MatchesAnyRune(p, EOF, ':', '(', ';', '}', '\n', '\r') && !TrySkip(p, ws)) {
+	if !TryToken(p, k) {
 		return nil
 	}
-	return &ast.Position{Line: int(ln), Col: int(col)}
-}
-
-func TryOptionalKeywordAt(p *Parser, k string, ws WhitespaceFunc) *ast.Position {
-	ln, col := p.Line(), p.Col()
-	if !TryOptionalToken(p, k, nil) || (!MatchesAnyRune(p, EOF, '(', ';', '}', '\n', '\r') && !TrySkip(p, ws)) {
+	matchesIdent := MatchesRunePredicate(p, func(r rune) bool {
+		return unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_'
+	})
+	if matchesIdent {
 		return nil
 	}
 	return &ast.Position{Line: int(ln), Col: int(col)}

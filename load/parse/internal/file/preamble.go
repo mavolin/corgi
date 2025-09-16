@@ -14,10 +14,12 @@ import (
 
 func PackageDirective() parser.Func[*ast.PackageDirective] {
 	return func(p *parser.Parser) *ast.PackageDirective {
-		pkg := parser.TryKeywordAt(p, "package", comment.OrAnyWhitespace())
+		pkg := parser.TryKeywordAt(p, "package")
 		if pkg == nil {
 			return nil
 		}
+
+		parser.TrySkip(p, comment.OrAnyWhitespace())
 
 		name := parser.Try(p, golang.Identifier())
 		if name == nil {

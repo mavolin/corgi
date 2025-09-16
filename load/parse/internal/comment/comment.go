@@ -69,7 +69,7 @@ func GeneralComment() parser.Func[*ast.Comment] {
 		c.Close = parser.TryTokenAt(p, "*/")
 		if c.Close == nil {
 			p.CaptureError(&diagnostic.Diagnostic{
-				Message: "unclosed block comment",
+				Message: "unclosed general comment",
 				Primary: []diagnostic.Annotation{
 					anno.NRunes(p.File, *c.Open, len("/*"), "this comment is never closed"),
 				},
@@ -85,7 +85,7 @@ func GeneralComment() parser.Func[*ast.Comment] {
 			// the file, just because of the missing `*/`
 			if p.Inline() && c.Open.Line != c.Close.Line {
 				p.CaptureError(&diagnostic.Diagnostic{
-					Message: "illegal placement of multiline block comment",
+					Message: "illegal placement of multiline general comment",
 					Primary: []diagnostic.Annotation{
 						anno.Anno(p.File, anno.Annotation{
 							Context:    anno.ContextRange(*c.Open, c.Until),
@@ -93,7 +93,7 @@ func GeneralComment() parser.Func[*ast.Comment] {
 							Annotation: "at this position, only single-line comments are allowed",
 						}),
 					},
-					Explanation: "A block comment placed here must be closed on the same line it was opened on.",
+					Explanation: "A general comment placed here must be closed on the same line it was opened on.",
 				})
 			}
 		}

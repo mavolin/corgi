@@ -11,7 +11,7 @@ import (
 func TestArgument(t *testing.T) {
 	t.Parallel()
 	// can't test attribute because it's in a different package
-	parsetest.AssertAlsoFulfils(t, Argument(), testComponentArgument)
+	parsetest.AlsoFulfils(t, Argument(), testComponentArgument)
 }
 
 func TestArguments(t *testing.T) {
@@ -245,11 +245,8 @@ func TestArguments(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			p := parsetest.NewParser(t, c.in+"other")
-			got := parsetest.AssertNoError(t, p, Arguments())
-			if should.Equal(t, got, c.want) {
-				parsetest.AssertPosition(t, p, c.want.End().Line, c.want.End().Col, len(c.in))
-			}
+			got := parsetest.ParsesExact(t, c.in, Arguments("test"))
+			should.Equal(t, got, c.want)
 		})
 	}
 }

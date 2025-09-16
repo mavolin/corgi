@@ -79,7 +79,7 @@ func NamedAttribute() parser.Func[*ast.NamedAttribute] {
 			p.CaptureError(err)
 		}
 
-		equalSign := parser.TryOptionalRuneAt(p, '=', comment.OrAnyWhitespace())
+		equalSign := parser.TryRuneAt(p, '=')
 		if equalSign == nil {
 			if name == nil { // we have neither a name nor a =, this is not an attr
 				return nil
@@ -90,6 +90,7 @@ func NamedAttribute() parser.Func[*ast.NamedAttribute] {
 			return &attr
 		}
 
+		parser.TrySkip(p, comment.OrAnyWhitespace())
 		value := parser.Try(p, Value())
 
 		var attr ast.NamedAttribute

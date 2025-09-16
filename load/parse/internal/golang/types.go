@@ -73,9 +73,9 @@ func TypeName() parser.Func[ast.FullIdentifier] { // https://go.dev/ref/spec#Typ
 	return FullIdent()
 }
 
-func TypeArgs() parser.Func[*ast.TypeArguments] { // https://go.dev/ref/spec#TypeArgs
+func TypeArgs(attachedTo string) parser.Func[*ast.TypeArguments] { // https://go.dev/ref/spec#TypeArgs
 	return func(p *parser.Parser) *ast.TypeArguments {
-		l := parser.Try(p, list.BracketList("type argument", "type arguments", Type()))
+		l := parser.Try(p, list.BracketList(attachedTo, "type argument", "type arguments", Type()))
 		if l == nil {
 			return nil
 		}
@@ -216,7 +216,7 @@ func StructType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#StructType
 		startIndex := p.Index()
 		from := p.Pos()
 
-		if !parser.TryToken(p, "struct") {
+		if parser.TryKeywordAt(p, "struct") == nil {
 			return nil
 		}
 
@@ -340,7 +340,7 @@ func FunctionType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#Function
 		from := p.Pos()
 		startIndex := p.Index()
 
-		if !parser.TryToken(p, "func") {
+		if parser.TryKeywordAt(p, "func") == nil {
 			return nil
 		}
 
@@ -367,7 +367,7 @@ func FunctionType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#Function
 // Go spec.
 func Signature() parser.Func[bool] { // https://go.dev/ref/spec#Signature
 	return func(p *parser.Parser) bool {
-		if !parser.Try(p, Parameters()) {
+		if !parser.Try(p, Parameters("function")) {
 			return false
 		}
 
@@ -380,27 +380,27 @@ func Signature() parser.Func[bool] { // https://go.dev/ref/spec#Signature
 // Result parses a simpler superset of the result defined in the Go spec.
 func Result() parser.Func[bool] { // https://go.dev/ref/spec#Result
 	return func(p *parser.Parser) bool {
-		return parser.Try(p, Parameters()) || parser.Try(p, Type()) != nil
+		return parser.Try(p, Parameters("return parameters")) || parser.Try(p, Type()) != nil
 	}
 }
 
 // Parameters parses a simpler superset of the parameters defined in the Go
 // spec.
 // In particular, it allows variadic parameters everywhere.
-func Parameters() parser.Func[bool] { // https://go.dev/ref/spec#Parameters
+func Parameters(attachedTo string) parser.Func[bool] { // https://go.dev/ref/spec#Parameters
 	return func(p *parser.Parser) bool {
-		l := parser.Try(p, list.ParenList("parameter", "parameters", NamedParameterDecl()))
+		l := parser.Try(p, list.ParenList(attachedTo, "parameter", "parameters", NamedParameterDecl(attachedTo)))
 		if l != nil {
 			return true
 		}
 
-		return parser.Try(p, list.ParenList("parameter", "parameters", UnnamedParameterDecl())) != nil
+		return parser.Try(p, list.ParenList(attachedTo, "parameter", "parameters", UnnamedParameterDecl())) != nil
 	}
 }
 
-func NamedParameterDecl() parser.Func[bool] { // https://go.dev/ref/spec#ParameterDecl
+func NamedParameterDecl(belongsTo string) parser.Func[bool] { // https://go.dev/ref/spec#ParameterDecl
 	return func(p *parser.Parser) bool {
-		l := parser.Try(p, list.CommaList("parameter declaration", "parameter declarations", Identifier()))
+		l := parser.Try(p, list.CommaList(belongsTo, "parameter declaration", "parameter declarations", Identifier()))
 		if l == nil {
 			return false
 		}
@@ -441,7 +441,7 @@ func InterfaceType() parser.Func[*ast.Type] {
 		from := p.Pos()
 		startIndex := p.Index()
 
-		if !parser.TryToken(p, "interface") {
+		if parser.TryKeywordAt(p, "interface") == nil {
 			return nil
 		}
 
@@ -562,7 +562,7 @@ func MapType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#MapType
 		from := p.Pos()
 		startIndex := p.Index()
 
-		if !parser.TryToken(p, "map") {
+		if parser.TryKeywordAt(p, "map") == nil {
 			return nil
 		}
 
@@ -576,7 +576,7 @@ func MapType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#MapType
 			keyType := parser.Try(p, KeyType())
 			if keyType == nil {
 				p.CaptureError(&diagnostic.Diagnostic{
-					Message:  "map: missing key type",
+					Message:  "type: map: missing key type",
 					Primary:  quickanno.Expected(p, p.Pos(), "a key type"),
 					Examples: []diagnostic.Example{{Example: "`map[string]int`"}},
 				})
@@ -585,7 +585,7 @@ func MapType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#MapType
 			parser.TrySkip(p, comment.OrHorizontalWhitespace())
 			if !parser.TryRune(p, ']') {
 				p.CaptureError(&diagnostic.Diagnostic{
-					Message: "map: missing closing bracket",
+					Message: "type: map: key: missing closing bracket",
 					Primary: quickanno.Expected(p, p.Pos(), "a closing bracket"),
 					Secondary: []diagnostic.Annotation{
 						anno.Position(p.File, t.Start(), "for the opening bracket here"),
@@ -594,20 +594,17 @@ func MapType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#MapType
 			}
 		} else {
 			p.CaptureError(&diagnostic.Diagnostic{
-				Message:  "map: missing key",
+				Message:  "type: map: missing key",
 				Primary:  quickanno.Expected(p, p.Pos(), "a key type enclosed in `[` and `]`"),
 				Examples: []diagnostic.Example{{Example: "`map[string]int`"}},
 			})
-			t.Type = p.AST.Raw[startIndex:p.Index()]
-			t.Until = p.Pos()
-			return &t
 		}
 
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 		elementType := parser.Try(p, ElementType())
 		if elementType == nil {
 			p.CaptureError(&diagnostic.Diagnostic{
-				Message:  "map: missing element type",
+				Message:  "type: map: missing element type",
 				Primary:  quickanno.Expected(p, p.Pos(), "an element type"),
 				Examples: []diagnostic.Example{{Example: "`map[string]int`"}},
 			})
@@ -640,7 +637,7 @@ func ChannelType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#ChannelTy
 
 		if parser.TryToken(p, "<-") {
 			parser.TrySkip(p, comment.OrAnyWhitespace())
-			if !parser.TryToken(p, "chan") {
+			if parser.TryKeywordAt(p, "chan") == nil {
 				p.CaptureError(&diagnostic.Diagnostic{
 					Message: "type: channel: missing `chan` keyword",
 					Primary: quickanno.Expected(p, p.Pos(), "the keyword `chan`"),
@@ -650,7 +647,7 @@ func ChannelType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#ChannelTy
 				})
 			}
 		} else {
-			if !parser.TryToken(p, "chan") {
+			if parser.TryKeywordAt(p, "chan") == nil {
 				return nil
 			}
 
@@ -692,7 +689,7 @@ func NamedType() parser.Func[*ast.NamedType] { // essentially the first of https
 		t.Name = name
 
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
-		t.TypeArgs = parser.Try(p, TypeArgs())
+		t.TypeArgs = parser.Try(p, TypeArgs("type"))
 
 		return &t
 	}
@@ -702,9 +699,9 @@ func NamedType() parser.Func[*ast.NamedType] { // essentially the first of https
 // Type parameter declarations
 // ======================================================================================
 
-func TypeParameters() parser.Func[*ast.TypeParameters] {
+func TypeParameters(attachedTo string) parser.Func[*ast.TypeParameters] {
 	return func(p *parser.Parser) *ast.TypeParameters {
-		l := parser.Try(p, list.BracketList("type parameter", "type parameters", TypeParameterDecl()))
+		l := parser.Try(p, list.BracketList(attachedTo, "type parameter", "type parameters", TypeParameterDecl(attachedTo)))
 		if l == nil {
 			return nil
 		}
@@ -717,9 +714,9 @@ func TypeParameters() parser.Func[*ast.TypeParameters] {
 	}
 }
 
-func TypeParameterDecl() parser.Func[*ast.TypeParameter] {
+func TypeParameterDecl(belongsTo string) parser.Func[*ast.TypeParameter] {
 	return func(p *parser.Parser) *ast.TypeParameter {
-		names := parser.Try(p, list.CommaList("type parameter name", "type parameter names", Identifier()))
+		names := parser.Try(p, list.CommaList(belongsTo, "type parameter name", "type parameter names", Identifier()))
 		if names == nil {
 			return nil
 		}

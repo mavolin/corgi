@@ -18,10 +18,12 @@ import (
 
 func Definition() parser.Func[*ast.AttributeDefinition] {
 	return func(p *parser.Parser) *ast.AttributeDefinition {
-		attr := parser.TryKeywordAt(p, "attr", comment.OrAnyWhitespace())
+		attr := parser.TryKeywordAt(p, "attr")
 		if attr == nil {
 			return nil
 		}
+
+		parser.TrySkip(p, comment.OrAnyWhitespace())
 
 		def := parser.TryInOrder(p,
 			definitionList(attr), singleDefinitionWithPrefix(attr), singleDefinitionWithoutPrefix(attr))
@@ -325,7 +327,7 @@ func WildcardElementSelector() parser.Func[*ast.WildcardElementSelector] {
 
 func ListElementSelector() parser.Func[*ast.ListElementSelector] {
 	return func(p *parser.Parser) *ast.ListElementSelector {
-		names := parser.Try(p, list.CommaList("element name", "element names", elementReference))
+		names := parser.Try(p, list.CommaList("list element-selector", "element name", "element names", elementReference))
 		if len(names) == 0 {
 			return nil
 		}

@@ -11,7 +11,7 @@ import (
 
 func TestBody(t *testing.T) {
 	t.Parallel()
-	parsetest.AssertAlsoFulfils(t, Body(), testExtend)
+	parsetest.AlsoFulfils(t, Body(), testExtend)
 	t.Run("Body", func(t *testing.T) {
 		t.Parallel()
 		in := "{\n" +
@@ -34,7 +34,7 @@ func TestBody(t *testing.T) {
 			RBrace: &ast.Position{Line: 3, Col: 1},
 		}
 
-		got := parsetest.ParsesFully(t, in, Body())
+		got := parsetest.ParsesExact(t, in, Body())
 		should.Equal[ast.ComponentBody](t, got, want)
 	})
 }
@@ -79,6 +79,6 @@ func testExtend(t *testing.T, f parser.Func[*ast.Extend]) {
 		},
 	}
 
-	got := parsetest.ParsesFully(t, in, f)
+	got := parsetest.ParsesExact(t, in, f)
 	should.Equal(t, got, want)
 }

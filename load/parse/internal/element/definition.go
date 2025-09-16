@@ -16,10 +16,12 @@ import (
 
 func Definition() parser.Func[*ast.ElementDefinition] {
 	return func(p *parser.Parser) *ast.ElementDefinition {
-		elem := parser.TryKeywordAt(p, "elem", comment.OrAnyWhitespace())
+		elem := parser.TryKeywordAt(p, "elem")
 		if elem == nil {
 			return nil
 		}
+
+		parser.TrySkip(p, comment.OrAnyWhitespace())
 
 		def := parser.TryInOrder(p,
 			definitionList(elem), singleDefinitionWithoutPrefix(elem), singleDefinitionWithPrefix(elem))

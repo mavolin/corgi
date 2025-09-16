@@ -32,21 +32,22 @@ func NotEqual[T any](t testing.TB, got, want T, opts ...cmp.Option) bool {
 	return true
 }
 
-func NotPanic(t testing.TB, f func()) (didPanic bool) {
+func NotPanic(t testing.TB, f func()) (didntPanic bool) {
 	t.Helper()
 
 	path, targetLine := callerInfo(1)
 
+	didntPanic = true
 	defer func() {
 		t.Helper()
 		if r := recover(); r != nil {
-			didPanic = true
+			didntPanic = false
 			prettyMessage(t, path, targetLine, "NotPanic", "function panicked", fmt.Sprint(r))
 		}
 	}()
 	f()
 
-	return didPanic
+	return didntPanic
 }
 
 func NoError(t testing.TB, err error) bool {

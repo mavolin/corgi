@@ -3,7 +3,6 @@ package whitespace
 import (
 	"testing"
 
-	"github.com/mavolin/corgi/v2/internal/test/should"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/mavolin/corgi/v2/load/parse/internal/parsetest"
 )
@@ -25,11 +24,7 @@ func testEOL(t *testing.T, f parser.WhitespaceFunc) {
 	for _, in := range tests {
 		t.Run(testName(in), func(t *testing.T) {
 			t.Parallel()
-
-			p := parsetest.NewParser(t, in)
-			should.True(t, f(p))
-			line, col, index := parsetest.CalcEnd(1, 1, 0, in)
-			parsetest.AssertPosition(t, p, line, col, index)
+			parsetest.SkipsWhitespaceUntilIdentifier(t, in, f)
 		})
 	}
 }
@@ -45,11 +40,7 @@ func testEOF(t *testing.T, f parser.WhitespaceFunc) {
 	for _, in := range tests {
 		t.Run(testName(in), func(t *testing.T) {
 			t.Parallel()
-
-			p := parsetest.NewParser(t, in)
-			should.True(t, f(p))
-			line, col, index := parsetest.CalcEnd(1, 1, 0, in)
-			parsetest.AssertPosition(t, p, line, col, index)
+			parsetest.SkipsWhitespace(t, in, f)
 		})
 	}
 }

@@ -221,11 +221,7 @@ func UnambiguousHash() parser.Func[bool] {
 			return false
 		}
 
-		if (p.Inline() && parser.TryAnyRune(p, whitespace.HorizontalRunes...) == 0) ||
-			(!p.Inline() && parser.TryAnyRune(p, whitespace.Runes...) == 0) {
-			return false
-		}
-		return true
+		return parser.MatchesWS(p, whitespace.Single())
 	}
 }
 

@@ -1,6 +1,7 @@
 package state
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/mavolin/corgi/v2/file/ast"
@@ -81,7 +82,7 @@ func TestDeclaration(t *testing.T) {
 	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
-			got := parsetest.ParsesFully(t, c.in, Declaration())
+			got := parsetest.ParsesExact(t, c.in, Declaration())
 			should.Equal(t, got, c.want)
 		})
 	}
@@ -225,11 +226,12 @@ func TestSpec(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			p := parsetest.NewParser(t, c.in+"\n 1other stuff")
-			got := parsetest.AssertNoError(t, p, Spec())
-
-			line, col, index := parsetest.CalcEnd(1, 1, 0, c.in)
-			parsetest.AssertPosition(t, p, line, col, index)
+			var got *ast.StateSpec
+			if strings.Contains(c.in, "=") {
+				got = parsetest.ParsesUntilEOS(t, c.in, Spec())
+			} else {
+				got = parsetest.ParsesExact(t, c.in, Spec())
+			}
 			should.Equal(t, got, c.want)
 		})
 	}

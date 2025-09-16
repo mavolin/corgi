@@ -11,10 +11,10 @@ import (
 
 func TestAttribute(t *testing.T) {
 	t.Parallel()
-	parsetest.AssertAlsoFulfils(t, Attribute(), testAndPlaceholder)
-	parsetest.AssertAlsoFulfils(t, Attribute(), testIDShorthand)
-	parsetest.AssertAlsoFulfils(t, Attribute(), testClassShorthand)
-	parsetest.AssertAlsoFulfils(t, Attribute(), testNamedAttribute)
+	parsetest.AlsoFulfils(t, Attribute(), testAndPlaceholder)
+	parsetest.AlsoFulfils(t, Attribute(), testIDShorthand)
+	parsetest.AlsoFulfils(t, Attribute(), testClassShorthand)
+	parsetest.AlsoFulfils(t, Attribute(), testNamedAttribute)
 }
 
 func TestAndPlaceholder(t *testing.T) {
@@ -27,11 +27,8 @@ func testAndPlaceholder(t *testing.T, f parser.Func[*ast.AndPlaceholder]) {
 		And: &ast.Position{Line: 1, Col: 1},
 	}
 
-	p := parsetest.NewParser(t, "&, other")
-	got := parsetest.AssertNoError(t, p, f)
-	if should.Equal(t, got, want) {
-		parsetest.AssertPosition(t, p, want.End().Line, want.End().Col, 1)
-	}
+	got := parsetest.ParsesUntilComma(t, "&", f)
+	should.Equal(t, got, want)
 }
 
 func TestNamedAttribute(t *testing.T) {
@@ -83,13 +80,8 @@ func testNamedAttribute(t *testing.T, f parser.Func[*ast.NamedAttribute]) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			// we add ", other" to the input to ensure that the parser stops at
-			// the correct position
-			p := parsetest.NewParser(t, c.in+", other")
-			got := parsetest.AssertNoError(t, p, f)
-			if should.Equal(t, got, c.want) {
-				parsetest.AssertPosition(t, p, c.want.End().Line, c.want.End().Col, len(c.in))
-			}
+			got := parsetest.ParsesUntilComma(t, c.in, f)
+			should.Equal(t, got, c.want)
 		})
 	}
 }
@@ -132,7 +124,7 @@ func TestReference(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := parsetest.ParsesFully(t, c.in, Reference())
+			got := parsetest.ParsesExact(t, c.in, Reference())
 			should.Equal(t, got, c.want)
 		})
 	}

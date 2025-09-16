@@ -19,7 +19,7 @@ func TestDoctype(t *testing.T) {
 		RParen:  &ast.Position{Line: 1, Col: 14},
 	}
 
-	got := parsetest.ParsesFully(t, in, Doctype())
+	got := parsetest.ParsesExact(t, in, Doctype())
 	should.Equal(t, got, want)
 }
 
@@ -112,11 +112,7 @@ func TestElement(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			p := parsetest.NewParser(t, c.in+"; 1other stuff")
-			got := parsetest.AssertNoError(t, p, Element())
-
-			line, col, index := parsetest.CalcEnd(1, 1, 0, c.in)
-			parsetest.AssertPosition(t, p, line, col, index)
+			got := parsetest.ParsesUntilEOS(t, c.in, Element())
 			should.Equal(t, got, c.want)
 		})
 	}
@@ -181,7 +177,7 @@ func TestHeader(t *testing.T) {
 	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
-			got := parsetest.ParsesFully(t, c.in, Header())
+			got := parsetest.ParsesExact(t, c.in, Header())
 			should.Equal(t, got, c.want)
 		})
 	}
@@ -225,7 +221,7 @@ func TestReference(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := parsetest.ParsesFully(t, c.in, Reference())
+			got := parsetest.ParsesExact(t, c.in, Reference())
 			should.Equal(t, got, c.want)
 		})
 	}
@@ -240,7 +236,7 @@ func TestName(t *testing.T) {
 		Position: &ast.Position{Line: 1, Col: 1},
 	}
 
-	got := parsetest.ParsesFully(t, in, Name())
+	got := parsetest.ParsesExact(t, in, Name())
 	should.Equal(t, got, want)
 }
 
@@ -264,7 +260,7 @@ func TestRaw(t *testing.T) {
 		},
 	}
 
-	got := parsetest.ParsesFully(t, in, Raw())
+	got := parsetest.ParsesExact(t, in, Raw())
 	should.Equal(t, got, want)
 }
 
@@ -290,6 +286,6 @@ func TestAnd(t *testing.T) {
 		},
 	}
 
-	got := parsetest.ParsesFully(t, in, And())
+	got := parsetest.ParsesExact(t, in, And())
 	should.Equal(t, got, want)
 }

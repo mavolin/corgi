@@ -17,7 +17,7 @@ func TestPackageDirective(t *testing.T) {
 		Name:    &ast.Identifier{Name: "foo", Position: &ast.Position{Line: 1, Col: 9}},
 	}
 
-	got := parsetest.ParsesFully(t, in, PackageDirective())
+	got := parsetest.ParsesExact(t, in, PackageDirective())
 	should.Equal(t, got, want)
 }
 
@@ -80,7 +80,7 @@ func TestImport(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := parsetest.ParsesFully(t, c.in, Import())
+			got := parsetest.ParsesExact(t, c.in, Import())
 			should.Equal(t, got, c.want)
 		})
 	}
@@ -124,7 +124,7 @@ func TestImportSpec(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := parsetest.ParsesFully(t, c.in, ImportSpec())
+			got := parsetest.ParsesExact(t, c.in, ImportSpec())
 			should.Equal(t, got, c.want)
 		})
 	}

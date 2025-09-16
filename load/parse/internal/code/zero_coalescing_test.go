@@ -82,7 +82,7 @@ func testZeroCoalescing(t *testing.T, f parser.Func[*ast.ZeroCoalescing]) {
 		DerefPosition: &ast.Position{Line: 1, Col: 1},
 	}
 
-	got := parsetest.ParsesFully(t, in, f)
+	got := parsetest.ParsesExact(t, in, f)
 	should.Equal(t, got, want)
 }
 
@@ -165,7 +165,7 @@ func TestZCIndexExpression(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := parsetest.ParsesFully(t, c.in, ZCIndexExpression())
+			got := parsetest.ParsesExact(t, c.in, ZCIndexExpression())
 			should.Equal(t, got, c.want)
 		})
 	}
@@ -201,7 +201,7 @@ func TestZCSelectorExpression(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := parsetest.ParsesFully(t, c.in, ZCSelectorExpression())
+			got := parsetest.ParsesExact(t, c.in, ZCSelectorExpression())
 			should.Equal(t, got, c.want)
 		})
 	}
@@ -288,7 +288,7 @@ func TestZCParenExpression(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := parsetest.ParsesFully(t, c.in, ZCParenExpression())
+			got := parsetest.ParsesExact(t, c.in, ZCParenExpression())
 			should.Equal(t, got, c.want)
 		})
 	}
@@ -393,7 +393,7 @@ func TestZCTypeAssertionExpression(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := parsetest.ParsesFully(t, c.in, ZCTypeAssertionExpression())
+			got := parsetest.ParsesExact(t, c.in, ZCTypeAssertionExpression())
 			should.Equal(t, got, c.want)
 		})
 	}

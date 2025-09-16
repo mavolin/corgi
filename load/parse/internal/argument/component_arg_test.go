@@ -11,7 +11,7 @@ import (
 
 func TestComponentArgument(t *testing.T) {
 	t.Parallel()
-	parsetest.AssertAlsoFulfils(t, ComponentArgument(), testComponentArgument)
+	parsetest.AlsoFulfils(t, ComponentArgument(), testComponentArgument)
 }
 
 func testComponentArgument(t *testing.T, f parser.Func[*ast.ComponentArgument]) {
@@ -36,21 +36,18 @@ func testComponentArgument(t *testing.T, f parser.Func[*ast.ComponentArgument]) 
 			},
 		}
 
-		// we add ", other" to test that the parser stops at the comma
-		p := parsetest.NewParser(t, in+", other")
-		got := parsetest.AssertNoError(t, p, f)
-		if should.Equal(t, got, want) {
-			parsetest.AssertPosition(t, p, want.End().Line, want.End().Col, len(in))
-		}
+		got := parsetest.ParsesUntilComma(t, in, f)
+		should.Equal(t, got, want)
 	})
 
 	t.Run("recover", func(t *testing.T) {
 		t.Parallel()
 
 		tests := []struct {
-			name string
-			in   string
-			want *ast.ComponentArgument
+			name      string
+			in        string
+			want      *ast.ComponentArgument
+			wantError string
 		}{
 			{
 				name: "no colon space: no equal sign",
@@ -70,6 +67,7 @@ func testComponentArgument(t *testing.T, f parser.Func[*ast.ComponentArgument]) 
 						},
 					},
 				},
+				wantError: "missing whitespace after colon",
 			}, {
 				name: "no colon space: string",
 				in:   `name:"value"`,
@@ -95,19 +93,16 @@ func testComponentArgument(t *testing.T, f parser.Func[*ast.ComponentArgument]) 
 						},
 					},
 				},
+				wantError: "missing whitespace after colon",
 			},
 		}
 
 		for _, c := range tests {
 			t.Run(c.name, func(t *testing.T) {
 				t.Parallel()
-				// we add ", other" to test that the parser stops at the comma
 
-				p := parsetest.NewParser(t, c.in+", other")
-				got := parsetest.AssertMatchesButError(t, p, f)
-				if should.Equal(t, got, c.want) {
-					parsetest.AssertPosition(t, p, c.want.End().Line, c.want.End().Col, len(c.in))
-				}
+				got := parsetest.ParsesUntilComma(t, c.in, f, parsetest.WantErrors(c.wantError))
+				should.Equal(t, got, c.want)
 			})
 		}
 	})

@@ -19,7 +19,7 @@ func TestDefinition(t *testing.T) {
 		want *ast.ElementDefinition
 	}{
 		{
-			name: "single",
+			name: "single without prefix",
 			in:   "elem foo normal",
 			want: &ast.ElementDefinition{
 				Elem: &ast.Position{Line: 1, Col: 1},
@@ -56,7 +56,7 @@ func TestDefinition(t *testing.T) {
 				},
 			},
 		}, {
-			name: "multiple",
+			name: "multiple without prefix",
 			in: "elem (\n" +
 				"\tfoo normal\n" +
 				"\tbar = div\n" +
@@ -124,7 +124,7 @@ func TestDefinition(t *testing.T) {
 	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
-			got := parsetest.ParsesFully(t, c.in, Definition())
+			got := parsetest.ParsesUntilEOS(t, c.in, Definition())
 			should.Equal(t, got, c.want)
 		})
 	}
@@ -170,11 +170,7 @@ func TestSpec(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			p := parsetest.NewParser(t, c.in+"; 1other stuff")
-			got := parsetest.AssertNoError(t, p, Spec())
-
-			line, col, index := parsetest.CalcEnd(1, 1, 0, c.in)
-			parsetest.AssertPosition(t, p, line, col, index)
+			got := parsetest.ParsesExact(t, c.in, Spec())
 			should.Equal(t, got, c.want)
 		})
 	}
@@ -182,8 +178,8 @@ func TestSpec(t *testing.T) {
 
 func TestType(t *testing.T) {
 	t.Parallel()
-	parsetest.AssertAlsoFulfils(t, Type(), testBasicType)
-	parsetest.AssertAlsoFulfils(t, Type(), testAliasType)
+	parsetest.AlsoFulfils(t, Type(), testBasicType)
+	parsetest.AlsoFulfils(t, Type(), testAliasType)
 }
 
 func TestBasicType(t *testing.T) {
@@ -201,7 +197,7 @@ func testBasicType(t *testing.T, f parser.Func[*ast.BasicElementType]) {
 		},
 	}
 
-	got := parsetest.ParsesFully(t, in, f)
+	got := parsetest.ParsesExact(t, in, f)
 	should.Equal(t, got, want)
 }
 
@@ -219,7 +215,7 @@ func testAliasType(t *testing.T, f parser.Func[*ast.AliasElementType]) {
 		},
 	}
 
-	got := parsetest.ParsesFully(t, in, f)
+	got := parsetest.ParsesExact(t, in, f)
 	should.Equal(t, got, want)
 }
 
@@ -261,7 +257,7 @@ func TestTypeName(t *testing.T) {
 				Position: &ast.Position{Line: 1, Col: 1},
 			}
 
-			got := parsetest.ParsesFully(t, c.name, TypeName())
+			got := parsetest.ParsesExact(t, c.name, TypeName())
 			should.Equal(t, got, want)
 		})
 	}

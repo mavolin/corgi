@@ -62,13 +62,13 @@ func testScope(t *testing.T, f parser.Func[*ast.Scope]) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := parsetest.ParsesFully(t, c.in, f)
+			got := parsetest.ParsesExact(t, c.in, f)
 			should.Equal(t, got, c.want)
 		})
 	}
 }
 
-func TestBadScopeNode(t *testing.T) {
+func TestBadNode(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -102,11 +102,8 @@ func TestBadScopeNode(t *testing.T) {
 				Until: ast.Position{Line: 1, Col: 1 + len(c.in)},
 			}
 
-			p := parsetest.NewParser(t, c.in+"\n foo")
-			got := parsetest.AssertNoError(t, p, BadNode())
+			got := parsetest.ParsesUntilEOS(t, c.in, BadNode())
 			should.Equal(t, got, want)
-
-			parsetest.AssertPosition(t, p, want.Until.Line, want.Until.Col, len(c.in))
 		})
 	}
 }

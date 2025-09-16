@@ -207,7 +207,7 @@ func TestDefinition(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := parsetest.ParsesFully(t, c.in, Definition())
+			got := parsetest.ParsesExact(t, c.in, Definition())
 			should.Equal(t, got, c.want)
 		})
 	}
@@ -240,7 +240,7 @@ func TestSpec(t *testing.T) {
 		},
 	}
 
-	got := parsetest.ParsesFully(t, in, Spec())
+	got := parsetest.ParsesExact(t, in, Spec())
 	should.Equal(t, got, want)
 }
 
@@ -372,7 +372,7 @@ func TestRuleset(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := parsetest.ParsesFully(t, c.in, Ruleset())
+			got := parsetest.ParsesExact(t, c.in, Ruleset())
 			should.Equal(t, got, c.want)
 		})
 	}
@@ -393,15 +393,15 @@ func TestRule(t *testing.T) {
 		},
 	}
 
-	got := parsetest.ParsesFully(t, in, Rule())
+	got := parsetest.ParsesExact(t, in, Rule())
 	should.Equal(t, got, want)
 }
 
 func TestSelector(t *testing.T) {
 	t.Parallel()
 
-	parsetest.AssertAlsoFulfils(t, Selector(), testBasicSelector)
-	parsetest.AssertAlsoFulfils(t, Selector(), testRegexpSelector)
+	parsetest.AlsoFulfils(t, Selector(), testBasicSelector)
+	parsetest.AlsoFulfils(t, Selector(), testRegexpSelector)
 }
 
 func TestBasicSelector(t *testing.T) {
@@ -430,7 +430,7 @@ func testBasicSelector(t *testing.T, f parser.Func[*ast.BasicAttributeSelector])
 		t.Run(c.in, func(t *testing.T) {
 			t.Parallel()
 
-			got := parsetest.ParsesFully(t, c.in, f)
+			got := parsetest.ParsesExact(t, c.in, f)
 			should.Equal(t, got, c.want)
 		})
 	}
@@ -456,15 +456,15 @@ func testRegexpSelector(t *testing.T, f parser.Func[*ast.RegexpAttributeSelector
 		Regexp:   &ast.Position{Line: 1, Col: 1},
 	}
 
-	got := parsetest.ParsesFully(t, in, f)
+	got := parsetest.ParsesExact(t, in, f)
 	should.Equal(t, got, want, cmpopts.IgnoreFields(ast.RegexpAttributeSelector{}, "Compiled"))
 }
 
 func TestElementSelector(t *testing.T) {
 	t.Parallel()
 
-	parsetest.AssertAlsoFulfils(t, ElementSelector(), testWildcardElementSelector)
-	parsetest.AssertAlsoFulfils(t, ElementSelector(), testListElementSelector)
+	parsetest.AlsoFulfils(t, ElementSelector(), testWildcardElementSelector)
+	parsetest.AlsoFulfils(t, ElementSelector(), testListElementSelector)
 }
 
 func TestWildcardElementSelector(t *testing.T) {
@@ -476,7 +476,7 @@ func testWildcardElementSelector(t *testing.T, f parser.Func[*ast.WildcardElemen
 	in := "*"
 	want := &ast.WildcardElementSelector{Asterisk: &ast.Position{Line: 1, Col: 1}}
 
-	got := parsetest.ParsesFully(t, in, f)
+	got := parsetest.ParsesExact(t, in, f)
 	should.Equal(t, got, want)
 }
 
@@ -523,7 +523,7 @@ func testListElementSelector(t *testing.T, f parser.Func[*ast.ListElementSelecto
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := parsetest.ParsesFully(t, c.in, f)
+			got := parsetest.ParsesExact(t, c.in, f)
 			should.Equal(t, got, c.want)
 		})
 	}
@@ -540,6 +540,6 @@ func TestListElementSelectorItem(t *testing.T) {
 		},
 	}
 
-	got := parsetest.ParsesFully(t, in, elementReference)
+	got := parsetest.ParsesExact(t, in, elementReference)
 	should.Equal(t, got, want)
 }

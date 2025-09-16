@@ -10,14 +10,17 @@ import (
 	"github.com/mavolin/corgi/v2/load/parse/internal/comment"
 	"github.com/mavolin/corgi/v2/load/parse/internal/quickanno"
 	"github.com/mavolin/corgi/v2/load/parse/internal/unexpected"
+	"github.com/mavolin/corgi/v2/load/parse/internal/whitespace"
 )
 
 func For() parser.Func[*ast.For] {
 	return func(p *parser.Parser) *ast.For {
-		forKw := parser.TryKeywordAt(p, "for", comment.OrAnyWhitespace())
+		forKw := parser.TryKeywordAt(p, "for")
 		if forKw == nil {
 			return nil
 		}
+
+		parser.TrySkip(p, comment.OrAnyWhitespace())
 
 		var f ast.For
 		f.For = forKw
@@ -71,8 +74,9 @@ func ForClauseHeader() parser.Func[*ast.ForClauseHeader] {
 
 		var h ast.ForClauseHeader
 
-		h.Init = parser.TryOptional(p, code.SimpleStatement(), nil)
-		if matches := parser.Try(p, comment.AndEOS()); !matches {
+		h.Init = parser.TryOptional(p, code.SimpleStatement(), comment.OrHorizontalWhitespace())
+		if parser.MatchesWS(p, whitespace.EOF()) || !parser.Try(p, comment.AndEOS()) {
+			// if we're at the EOF now, this is more likely a condition header
 			return nil
 		}
 		parser.TrySkip(p, comment.OrAnyWhitespace())
@@ -81,7 +85,7 @@ func ForClauseHeader() parser.Func[*ast.ForClauseHeader] {
 			return nil
 		}
 		parser.TrySkip(p, comment.OrAnyWhitespace())
-		h.Post = parser.TryOptional(p, code.SimpleStatement(), nil)
+		h.Post = parser.Try(p, code.SimpleStatement())
 
 		return &h
 	}
@@ -93,9 +97,10 @@ func ForRangeHeader() parser.Func[*ast.ForRangeHeader] {
 
 		pos := p.Pos()
 		var comma *ast.Position
-		if !parser.Matches(p, func(p *parser.Parser) bool {
-			return parser.TryKeywordAt(p, "range", comment.OrAnyWhitespace()) != nil
-		}) {
+		nakedRange := parser.Matches(p, func(p *parser.Parser) bool {
+			return parser.TryKeywordAt(p, "range") != nil
+		})
+		if !nakedRange {
 			h.Var1 = parser.TryOptional(p, code.Expression(), comment.OrHorizontalWhitespace())
 			comma = parser.TryOptionalRuneAt(p, ',', comment.OrAnyWhitespace())
 			if comma != nil {
@@ -144,10 +149,12 @@ func ForRangeHeader() parser.Func[*ast.ForRangeHeader] {
 		}
 
 		parser.TrySkip(p, comment.OrAnyWhitespace())
-		h.Range = parser.TryKeywordAt(p, "range", comment.OrAnyWhitespace())
+		h.Range = parser.TryKeywordAt(p, "range")
 		if h.Range == nil {
 			return nil
 		}
+
+		parser.TrySkip(p, comment.OrAnyWhitespace())
 
 		h.Expression = parser.Try(p, code.Expression())
 		if h.Expression == nil {

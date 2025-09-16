@@ -16,10 +16,12 @@ import (
 
 func Component() parser.Func[*ast.Component] {
 	return func(p *parser.Parser) *ast.Component {
-		comp := parser.TryKeywordAt(p, "comp", comment.OrAnyWhitespace())
+		comp := parser.TryKeywordAt(p, "comp")
 		if comp == nil {
 			return nil
 		}
+
+		parser.TrySkip(p, comment.OrAnyWhitespace())
 
 		var c ast.Component
 		c.Comp = comp
@@ -52,7 +54,7 @@ func Component() parser.Func[*ast.Component] {
 func Header() parser.Func[*ast.ComponentHeader] {
 	return func(p *parser.Parser) *ast.ComponentHeader {
 		name := parser.TryOptional(p, golang.Identifier(), comment.OrHorizontalWhitespace())
-		typeParameters := parser.TryOptional(p, golang.TypeParameters(), comment.OrHorizontalWhitespace())
+		typeParameters := parser.TryOptional(p, golang.TypeParameters("component"), comment.OrHorizontalWhitespace())
 		parameters := parser.TryOptional(p, Parameters(), nil)
 		if name == nil {
 			p.CaptureError(&diagnostic.Diagnostic{
@@ -84,7 +86,7 @@ func Header() parser.Func[*ast.ComponentHeader] {
 
 func Parameters() parser.Func[*ast.ComponentParameters] {
 	return func(p *parser.Parser) *ast.ComponentParameters {
-		l := parser.Try(p, list.ParenList("parameter", "component parameters", Parameter()))
+		l := parser.Try(p, list.ParenList("component", "parameter", "parameters", Parameter()))
 		if l == nil {
 			return nil
 		}
@@ -173,10 +175,12 @@ func ParameterType() parser.Func[*ast.Type] {
 
 func Block() parser.Func[*ast.Block] {
 	return func(p *parser.Parser) *ast.Block {
-		block := parser.TryKeywordAt(p, "block", comment.OrAnyWhitespace())
+		block := parser.TryKeywordAt(p, "block")
 		if block == nil {
 			return nil
 		}
+
+		parser.TrySkip(p, comment.OrAnyWhitespace())
 
 		var b ast.Block
 		b.Block = block

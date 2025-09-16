@@ -16,10 +16,12 @@ import (
 
 func Switch() parser.Func[*ast.Switch] {
 	return func(p *parser.Parser) *ast.Switch {
-		switchKw := parser.TryKeywordAt(p, "switch", comment.OrAnyWhitespace())
+		switchKw := parser.TryKeywordAt(p, "switch")
 		if switchKw == nil {
 			return nil
 		}
+
+		parser.TrySkip(p, comment.OrAnyWhitespace())
 
 		var s ast.Switch
 		s.Switch = switchKw
@@ -90,10 +92,12 @@ func SwitchCase() parser.Func[*ast.Case] {
 
 func Case() parser.Func[*ast.Case] {
 	return func(p *parser.Parser) *ast.Case {
-		caseKw := parser.TryKeywordAt(p, "case", comment.OrAnyWhitespace())
+		caseKw := parser.TryKeywordAt(p, "case")
 		if caseKw == nil {
 			return nil
 		}
+
+		parser.TrySkip(p, comment.OrAnyWhitespace())
 
 		var c ast.Case
 		c.Case = caseKw
@@ -121,10 +125,12 @@ func Case() parser.Func[*ast.Case] {
 
 func Default() parser.Func[*ast.Case] {
 	return func(p *parser.Parser) *ast.Case {
-		defaultKw := parser.TryKeywordAt(p, "default", comment.OrAnyWhitespace())
+		defaultKw := parser.TryKeywordAt(p, "default")
 		if defaultKw == nil {
 			return nil
 		}
+
+		parser.TrySkip(p, comment.OrAnyWhitespace())
 
 		var c ast.Case
 		c.Default = defaultKw
@@ -147,9 +153,9 @@ func CaseBody() parser.Func[[]ast.ScopeNode] {
 		var ns []ast.ScopeNode
 		for {
 			stop := parser.Matches(p, func(p *parser.Parser) bool {
-				if parser.TryKeywordAt(p, "case", comment.OrAnyWhitespace()) != nil {
+				if parser.TryKeywordAt(p, "case") != nil {
 					return true
-				} else if parser.TryKeywordAt(p, "default", comment.OrAnyWhitespace()) != nil {
+				} else if parser.TryKeywordAt(p, "default") != nil {
 					return true
 				}
 				return parser.MatchesAnyRune(p, '}')

@@ -183,7 +183,7 @@ func TestFor(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := parsesCodeNodeFully(t, c.in, For())
+			got := parsetest.ParsesUntilEOS(t, c.in, For())
 			should.Equal(t, got, c.want)
 		})
 	}
@@ -191,9 +191,9 @@ func TestFor(t *testing.T) {
 
 func TestForHeader(t *testing.T) {
 	t.Parallel()
-	parsetest.AssertAlsoFulfils(t, ForHeader(), testForConditionHeader)
-	parsetest.AssertAlsoFulfils(t, ForHeader(), testForClauseHeader)
-	parsetest.AssertAlsoFulfils(t, ForHeader(), testForRangeHeader)
+	parsetest.AlsoFulfils(t, ForHeader(), testForConditionHeader)
+	parsetest.AlsoFulfils(t, ForHeader(), testForClauseHeader)
+	parsetest.AlsoFulfils(t, ForHeader(), testForRangeHeader)
 }
 
 func TestForConditionHeader(t *testing.T) {
@@ -211,11 +211,7 @@ func testForConditionHeader(t *testing.T, f parser.Func[*ast.ForConditionHeader]
 		},
 	}
 
-	p := parsetest.NewParser(t, in+" { 1other stuff }")
-	got := parsetest.AssertNoError(t, p, f)
-
-	line, col, index := parsetest.CalcEnd(1, 1, 0, in)
-	parsetest.AssertPosition(t, p, line, col, index)
+	got := parsetest.ParsesUntilBody(t, in, f)
 	should.Equal(t, got, want)
 }
 
@@ -339,7 +335,7 @@ func testForClauseHeader(t *testing.T, f parser.Func[*ast.ForClauseHeader]) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := parsesCodeNodeFully(t, c.in, f)
+			got := parsetest.ParsesUntilBody(t, c.in, f)
 			should.Equal(t, got, c.want)
 		})
 	}
@@ -436,7 +432,7 @@ func testForRangeHeader(t *testing.T, f parser.Func[*ast.ForRangeHeader]) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := parsesCodeNodeFully(t, c.in, f)
+			got := parsetest.ParsesUntilEOS(t, c.in, f)
 			should.Equal(t, got, c.want)
 		})
 	}

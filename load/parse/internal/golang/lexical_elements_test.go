@@ -23,7 +23,7 @@ func TestRuneLit(t *testing.T) {
 	for _, c := range tests {
 		t.Run(c, func(t *testing.T) {
 			t.Parallel()
-			parsetest.ParsesFully(t, c, RuneLit())
+			parsetest.ParsesExact(t, c, RuneLit())
 		})
 	}
 }
@@ -31,19 +31,19 @@ func TestRuneLit(t *testing.T) {
 func TestUnicodeValue(t *testing.T) {
 	t.Parallel()
 
-	parsetest.AssertAlsoFulfils(t, UnicodeValue('\''), testLittleUValue)
-	parsetest.AssertAlsoFulfils(t, UnicodeValue('\''), testBigUValue)
-	parsetest.AssertAlsoFulfils(t, UnicodeValue('\''), testEscapedChar('\''))
-	parsetest.AssertAlsoFulfils(t, UnicodeValue('\''), func(t *testing.T, f parser.Func[bool]) {
+	parsetest.AlsoFulfils(t, UnicodeValue('\''), testLittleUValue)
+	parsetest.AlsoFulfils(t, UnicodeValue('\''), testBigUValue)
+	parsetest.AlsoFulfils(t, UnicodeValue('\''), testEscapedChar('\''))
+	parsetest.AlsoFulfils(t, UnicodeValue('\''), func(t *testing.T, f parser.Func[bool]) {
 		testUnicodeChar(t, '\'', func(p *parser.Parser) bool {
 			return parser.Try(p, f)
 		})
 	})
 
-	parsetest.AssertAlsoFulfils(t, UnicodeValue('"'), testLittleUValue)
-	parsetest.AssertAlsoFulfils(t, UnicodeValue('"'), testBigUValue)
-	parsetest.AssertAlsoFulfils(t, UnicodeValue('"'), testEscapedChar('"'))
-	parsetest.AssertAlsoFulfils(t, UnicodeValue('"'), func(t *testing.T, f parser.Func[bool]) {
+	parsetest.AlsoFulfils(t, UnicodeValue('"'), testLittleUValue)
+	parsetest.AlsoFulfils(t, UnicodeValue('"'), testBigUValue)
+	parsetest.AlsoFulfils(t, UnicodeValue('"'), testEscapedChar('"'))
+	parsetest.AlsoFulfils(t, UnicodeValue('"'), func(t *testing.T, f parser.Func[bool]) {
 		testUnicodeChar(t, '"', func(p *parser.Parser) bool {
 			return parser.Try(p, f)
 		})
@@ -53,8 +53,8 @@ func TestUnicodeValue(t *testing.T) {
 func TestByteValue(t *testing.T) {
 	t.Parallel()
 
-	parsetest.AssertAlsoFulfils(t, ByteValue(), testOctalByteValue)
-	parsetest.AssertAlsoFulfils(t, ByteValue(), testHexByteValue)
+	parsetest.AlsoFulfils(t, ByteValue(), testOctalByteValue)
+	parsetest.AlsoFulfils(t, ByteValue(), testHexByteValue)
 }
 
 func TestOctalByteValue(t *testing.T) {
@@ -71,7 +71,7 @@ func testOctalByteValue(t *testing.T, f parser.Func[bool]) {
 	for _, c := range tests {
 		t.Run(c, func(t *testing.T) {
 			t.Parallel()
-			parsetest.ParsesFully(t, c, f)
+			parsetest.ParsesExact(t, c, f)
 		})
 	}
 }
@@ -91,7 +91,7 @@ func testHexByteValue(t *testing.T, f parser.Func[bool]) {
 	for _, c := range tests {
 		t.Run(c, func(t *testing.T) {
 			t.Parallel()
-			parsetest.ParsesFully(t, c, f)
+			parsetest.ParsesExact(t, c, f)
 		})
 	}
 }
@@ -118,7 +118,7 @@ func testUnicodeChar(t *testing.T, except rune, f parser.Func[bool]) {
 		for _, c := range tests {
 			t.Run(string(c), func(t *testing.T) {
 				t.Parallel()
-				parsetest.ParsesFully(t, string(c), f)
+				parsetest.ParsesExact(t, string(c), f)
 			})
 		}
 	})
@@ -147,7 +147,7 @@ func testLittleUValue(t *testing.T, f parser.Func[bool]) {
 	for _, c := range tests {
 		t.Run(c, func(t *testing.T) {
 			t.Parallel()
-			parsetest.ParsesFully(t, c, f)
+			parsetest.ParsesExact(t, c, f)
 		})
 	}
 }
@@ -163,7 +163,7 @@ func testBigUValue(t *testing.T, f parser.Func[bool]) {
 	for _, c := range tests {
 		t.Run(c, func(t *testing.T) {
 			t.Parallel()
-			parsetest.ParsesFully(t, c, f)
+			parsetest.ParsesExact(t, c, f)
 		})
 	}
 }
@@ -182,7 +182,7 @@ func testEscapedChar(term rune) func(t *testing.T, f parser.Func[bool]) {
 		for _, c := range tests {
 			t.Run(c, func(t *testing.T) {
 				t.Parallel()
-				parsetest.ParsesFully(t, c, f)
+				parsetest.ParsesExact(t, c, f)
 			})
 		}
 	}
@@ -195,8 +195,8 @@ func testEscapedChar(term rune) func(t *testing.T, f parser.Func[bool]) {
 func TestStringLit(t *testing.T) {
 	t.Parallel()
 
-	parsetest.AssertAlsoFulfils(t, StringLit(), testRawStringLit)
-	parsetest.AssertAlsoFulfils(t, StringLit(), testInterpretedStringLit)
+	parsetest.AlsoFulfils(t, StringLit(), testRawStringLit)
+	parsetest.AlsoFulfils(t, StringLit(), testInterpretedStringLit)
 }
 
 func TestRawStringLit(t *testing.T) {
@@ -215,7 +215,7 @@ func testRawStringLit(t *testing.T, f parser.Func[*ast.StaticString]) {
 	for _, c := range tests {
 		t.Run(c, func(t *testing.T) {
 			t.Parallel()
-			parsetest.ParsesFully(t, c, f)
+			parsetest.ParsesExact(t, c, f)
 		})
 	}
 }
@@ -234,7 +234,7 @@ func testInterpretedStringLit(t *testing.T, f parser.Func[*ast.StaticString]) {
 	for _, c := range tests {
 		t.Run(c, func(t *testing.T) {
 			t.Parallel()
-			parsetest.ParsesFully(t, c, f)
+			parsetest.ParsesExact(t, c, f)
 		})
 	}
 }

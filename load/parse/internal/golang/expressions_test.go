@@ -28,6 +28,6 @@ func testQualifiedIdent(t *testing.T, f parser.Func[*ast.QualifiedIdentifier]) {
 		},
 	}
 
-	got := parsetest.ParsesFully(t, in, f)
+	got := parsetest.ParsesExact(t, in, f)
 	should.Equal(t, got, want)
 }

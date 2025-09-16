@@ -62,7 +62,7 @@ func TestType(t *testing.T) {
 						Col:  1 + len("'") + len(at.name) + len("[") + len(at.attr),
 					}
 				}
-				got := parsetest.ParsesFully(t, "'"+s, Type())
+				got := parsetest.ParsesExact(t, "'"+s, Type())
 				should.Equal(t, got, want)
 			})
 		}
@@ -81,7 +81,9 @@ func TestType(t *testing.T) {
 					Position: &ast.Position{Line: 1, Col: 2},
 				},
 			}
-			got := parsetest.MatchesButError(t, "'foo", Type())
+			wantError := "unknown attribute type"
+
+			got := parsetest.ParsesExact(t, "'"+want.Name.Name, Type(), parsetest.WantErrors(wantError))
 			should.Equal(t, got, want)
 		})
 	})
@@ -102,7 +104,7 @@ func TestTypeName(t *testing.T) {
 					Type:     c.typ,
 					Position: &ast.Position{Line: 1, Col: 1},
 				}
-				got := parsetest.ParsesFully(t, c.name, TypeName())
+				got := parsetest.ParsesExact(t, c.name, TypeName())
 				should.Equal(t, got, want)
 			})
 		}
@@ -118,7 +120,9 @@ func TestTypeName(t *testing.T) {
 				Type:     attrtype.Unknown,
 				Position: &ast.Position{Line: 1, Col: 1},
 			}
-			got := parsetest.MatchesButError(t, "foo", TypeName())
+			wantError := "unknown attribute type"
+
+			got := parsetest.ParsesExact(t, want.Name, TypeName(), parsetest.WantErrors(wantError))
 			should.Equal(t, got, want)
 		})
 	})

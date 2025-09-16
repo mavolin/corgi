@@ -202,16 +202,17 @@ func parsedSimpleStatement(p *parser.Parser) (*ast.SimpleStatement, bool) {
 
 func Return() parser.Func[*ast.Return] {
 	return func(p *parser.Parser) *ast.Return {
-		ret := parser.TryKeywordAt(p, "return", comment.OrHorizontalWhitespace())
+		ret := parser.TryKeywordAt(p, "return")
 		if ret == nil {
 			return nil
 		}
 
+		parser.TrySkip(p, comment.OrHorizontalWhitespace())
+
 		var r ast.Return
 		r.Return = ret
 
-		r.Error = parser.TryOptional(p, Expression(), nil)
-
+		r.Error = parser.Try(p, Expression())
 		return &r
 	}
 }
@@ -229,15 +230,17 @@ func ReturnAsCode(r *ast.Return) ast.Code {
 
 func Break() parser.Func[*ast.Break] {
 	return func(p *parser.Parser) *ast.Break {
-		brk := parser.TryKeywordAt(p, "break", comment.OrHorizontalWhitespace())
+		brk := parser.TryKeywordAt(p, "break")
 		if brk == nil {
 			return nil
 		}
 
+		parser.TrySkip(p, comment.OrHorizontalWhitespace())
+
 		var b ast.Break
 		b.Break = brk
 
-		b.Label = parser.TryOptional(p, golang.Identifier(), nil)
+		b.Label = parser.Try(p, golang.Identifier())
 		return &b
 	}
 }
@@ -254,15 +257,17 @@ func BreakAsCode(b *ast.Break) ast.Code {
 
 func Continue() parser.Func[*ast.Continue] {
 	return func(p *parser.Parser) *ast.Continue {
-		_continue := parser.TryKeywordAt(p, "continue", comment.OrHorizontalWhitespace())
+		_continue := parser.TryKeywordAt(p, "continue")
 		if _continue == nil {
 			return nil
 		}
 
+		parser.TrySkip(p, comment.OrHorizontalWhitespace())
+
 		var c ast.Continue
 		c.Continue = _continue
 
-		c.Label = parser.TryOptional(p, golang.Identifier(), nil)
+		c.Label = parser.Try(p, golang.Identifier())
 
 		return &c
 	}
@@ -280,7 +285,7 @@ func ContinueAsCode(c *ast.Continue) ast.Code {
 
 func Fallthrough() parser.Func[*ast.Fallthrough] {
 	return func(p *parser.Parser) *ast.Fallthrough {
-		_fallthrough := parser.TryKeywordAt(p, "fallthrough", nil)
+		_fallthrough := parser.TryKeywordAt(p, "fallthrough")
 		if _fallthrough == nil {
 			return nil
 		}
@@ -295,10 +300,12 @@ func FallthroughAsCode(f *ast.Fallthrough) ast.Code {
 
 func Defer() parser.Func[*ast.Defer] {
 	return func(p *parser.Parser) *ast.Defer {
-		deferKeyword := parser.TryKeywordAt(p, "defer", comment.OrAnyWhitespace())
+		deferKeyword := parser.TryKeywordAt(p, "defer")
 		if deferKeyword == nil {
 			return nil
 		}
+
+		parser.TrySkip(p, comment.OrAnyWhitespace())
 
 		var d ast.Defer
 		d.Defer = deferKeyword
@@ -468,10 +475,12 @@ func IncDecAsCode(incDec *ast.IncDec) ast.Code {
 
 func ConstDeclaration() parser.Func[*ast.ConstDeclaration] {
 	return func(p *parser.Parser) *ast.ConstDeclaration {
-		constKeyword := parser.TryKeywordAt(p, "const", comment.OrAnyWhitespace())
+		constKeyword := parser.TryKeywordAt(p, "const")
 		if constKeyword == nil {
 			return nil
 		}
+
+		parser.TrySkip(p, comment.OrAnyWhitespace())
 
 		var d ast.ConstDeclaration
 		d.Const = constKeyword
@@ -535,7 +544,7 @@ func ConstDeclaration() parser.Func[*ast.ConstDeclaration] {
 
 func ConstSpec() parser.Func[*ast.ConstSpec] {
 	return func(p *parser.Parser) *ast.ConstSpec {
-		names := parser.Try(p, list.CommaList("const name", "const names", golang.Identifier()))
+		names := parser.Try(p, list.CommaList("const", "name", "names", golang.Identifier()))
 		if names == nil {
 			return nil
 		}
@@ -565,7 +574,7 @@ func ConstSpec() parser.Func[*ast.ConstSpec] {
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 
 		valuesStart := p.Pos()
-		s.Values = parser.Try(p, list.CommaList("const value", "const values", Expression()))
+		s.Values = parser.Try(p, list.CommaList("const", "value", "values", Expression()))
 		valuesEnd := p.Pos()
 		if s.Values == nil {
 			if len(s.Names) == 1 {
@@ -697,10 +706,12 @@ func ConstDeclarationAsCode(start ast.Position, d *ast.ConstDeclaration) ast.Cod
 
 func VarDeclaration() parser.Func[*ast.VarDeclaration] {
 	return func(p *parser.Parser) *ast.VarDeclaration {
-		varKeyword := parser.TryKeywordAt(p, "var", comment.OrAnyWhitespace())
+		varKeyword := parser.TryKeywordAt(p, "var")
 		if varKeyword == nil {
 			return nil
 		}
+
+		parser.TrySkip(p, comment.OrAnyWhitespace())
 
 		var d ast.VarDeclaration
 		d.Var = varKeyword
@@ -764,7 +775,7 @@ func VarDeclaration() parser.Func[*ast.VarDeclaration] {
 
 func VarSpec() parser.Func[*ast.VarSpec] {
 	return func(p *parser.Parser) *ast.VarSpec {
-		names := parser.Try(p, list.CommaList("var name", "var names", golang.Identifier()))
+		names := parser.Try(p, list.CommaList("var spec", "name", "names", golang.Identifier()))
 		if names == nil {
 			return nil
 		}
@@ -797,7 +808,7 @@ func VarSpec() parser.Func[*ast.VarSpec] {
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 
 		valuesStart := p.Pos()
-		s.Values = parser.Try(p, list.CommaList("var value", "var values", Expression()))
+		s.Values = parser.Try(p, list.CommaList("var spec", "value", "values", Expression()))
 		valuesEnd := p.Pos()
 		if s.Values == nil {
 			if len(s.Names) == 1 {
@@ -929,7 +940,7 @@ func VarDeclarationAsCode(start ast.Position, d *ast.VarDeclaration) ast.Code {
 
 func ShortVarDeclaration() parser.Func[*ast.ShortVarDeclaration] {
 	return func(p *parser.Parser) *ast.ShortVarDeclaration {
-		names := parser.Try(p, list.CommaList("identifier", "identifiers", golang.Identifier()))
+		names := parser.Try(p, list.CommaList("short var declaration", "identifier", "identifiers", golang.Identifier()))
 		if names == nil {
 			return nil
 		}
@@ -947,7 +958,7 @@ func ShortVarDeclaration() parser.Func[*ast.ShortVarDeclaration] {
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 
 		valuesStart := p.Pos()
-		d.Values = parser.Try(p, list.CommaList("value", "values", Expression()))
+		d.Values = parser.Try(p, list.CommaList("short var declaration", "value", "values", Expression()))
 		valuesEnd := p.Pos()
 		if d.Values == nil {
 			if len(d.Names) == 1 {
@@ -1094,7 +1105,7 @@ func assignment(e *ast.Expression) parser.Func[*ast.Assignment] {
 			if parser.TryOptionalRune(p, ',', nil) {
 				parser.TrySkip(p, comment.OrAnyWhitespace())
 
-				es := parser.Try(p, list.CommaList("expression", "expressions", Expression()))
+				es := parser.Try(p, list.CommaList("assignment", "assignee", "assignee", Expression()))
 				if es == nil {
 					p.CaptureError(&diagnostic.Diagnostic{
 						Message: "assignment: missing assignees",
@@ -1106,7 +1117,7 @@ func assignment(e *ast.Expression) parser.Func[*ast.Assignment] {
 				lhs = []*ast.Expression{e}
 			}
 		} else {
-			lhs = parser.Try(p, list.CommaList("expression", "expressions", Expression()))
+			lhs = parser.Try(p, list.CommaList("assignment", "assignee", "assignee", Expression()))
 			if lhs == nil {
 				return nil
 			}
@@ -1127,7 +1138,7 @@ func assignment(e *ast.Expression) parser.Func[*ast.Assignment] {
 
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 		rhsStart := p.Pos()
-		a.RHS = parser.Try(p, list.CommaList("expression", "expressions", Expression()))
+		a.RHS = parser.Try(p, list.CommaList("assignment", "value", "values", Expression()))
 		rhsEnd := p.Pos()
 		if len(a.RHS) > 0 {
 			if len(a.RHS) > 1 && len(a.LHS) != len(a.RHS) {

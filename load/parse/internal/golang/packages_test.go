@@ -9,5 +9,5 @@ import (
 func TestPackageName(t *testing.T) {
 	t.Parallel()
 
-	parsetest.AssertAlsoFulfils(t, PackageName(), testIdentifier)
+	parsetest.AlsoFulfils(t, PackageName(), testIdentifier)
 }

@@ -101,7 +101,7 @@ func TestComponent(t *testing.T) {
 	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
-			got := parsetest.ParsesFully(t, c.in, Component())
+			got := parsetest.ParsesExact(t, c.in, Component())
 			should.Equal(t, got, c.want)
 		})
 	}
@@ -188,7 +188,7 @@ func TestHeader(t *testing.T) {
 	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
-			got := parsetest.ParsesFully(t, c.in, Header())
+			got := parsetest.ParsesExact(t, c.in, Header())
 			should.Equal(t, got, c.want)
 		})
 	}
@@ -284,7 +284,7 @@ func TestParameters(t *testing.T) {
 	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
-			got := parsetest.ParsesFully(t, c.in, Parameters())
+			got := parsetest.ParsesExact(t, c.in, Parameters())
 			should.Equal(t, got, c.want)
 		})
 	}
@@ -386,11 +386,7 @@ func TestParameter(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			p := parsetest.NewParser(t, c.in+", 1other stuff")
-			got := parsetest.AssertNoError(t, p, Parameter())
-
-			line, col, index := parsetest.CalcEnd(1, 1, 0, c.in)
-			parsetest.AssertPosition(t, p, line, col, index)
+			got := parsetest.ParsesUntilComma(t, c.in, Parameter())
 			should.Equal(t, got, c.want)
 		})
 	}
@@ -478,7 +474,15 @@ func TestBlock(t *testing.T) {
 	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
-			got := parsetest.ParsesFully(t, c.in, Block())
+
+			var got *ast.Block
+			if c.in == "block" {
+				// parser would greedily consume what follows as block name
+				got = parsetest.ParsesUntilEOS(t, c.in, Block())
+			} else {
+				got = parsetest.ParsesExact(t, c.in, Block())
+			}
+
 			should.Equal(t, got, c.want)
 		})
 	}

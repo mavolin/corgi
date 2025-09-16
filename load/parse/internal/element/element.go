@@ -27,7 +27,7 @@ func Doctype() parser.Func[*ast.Doctype] {
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 
 		argsStart := p.Pos()
-		args := parser.Try(p, argument.Arguments())
+		args := parser.Try(p, argument.Arguments("doctype"))
 		argsEnd := p.Pos()
 		if args == nil {
 			p.CaptureError(&diagnostic.Diagnostic{
@@ -111,10 +111,10 @@ func Element() parser.Func[*ast.Element] {
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 		e.Body = parser.Try(p, body.Body())
 
-		// Only match, if we have a name, and either arguments a body or have
+		// Only match, if we have a name, and either arguments, a body or have
 		// reached the EOS.
 		// Otherwise, we can't be sure that this is actually an element, since
-		// we might've matched an assignment.
+		// we might've matched the start of an assignment.
 		if e.Header.Attributes == nil && e.Body == nil && !parser.Matches(p, comment.AndEOS()) {
 			return nil
 		}
@@ -134,7 +134,7 @@ func Header() parser.Func[*ast.ElementHeader] {
 		var h ast.ElementHeader
 		h.Name = name
 
-		h.Attributes = parser.Try(p, argument.Arguments())
+		h.Attributes = parser.Try(p, argument.Arguments("element"))
 		return &h
 	}
 }
@@ -215,7 +215,7 @@ func Raw() parser.Func[*ast.RawElement] {
 		e.Raw = raw
 
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
-		args := parser.TryOptional(p, argument.Arguments(), comment.OrHorizontalWhitespace())
+		args := parser.TryOptional(p, argument.Arguments("raw element"), comment.OrHorizontalWhitespace())
 		if args != nil {
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "raw element: unexpected attributes",
@@ -263,7 +263,7 @@ func And() parser.Func[*ast.And] {
 		var a ast.And
 		a.And = and
 
-		a.Attributes = parser.Try(p, argument.Arguments())
+		a.Attributes = parser.Try(p, argument.Arguments("&"))
 		if a.Attributes == nil {
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "&-attributes: missing attributes",

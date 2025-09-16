@@ -7,15 +7,16 @@ import (
 	"github.com/mavolin/corgi/v2/internal/test/should"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/mavolin/corgi/v2/load/parse/internal/parsetest"
+	"github.com/mavolin/corgi/v2/load/parse/internal/whitespace"
 )
 
 func TestTextInterpolation(t *testing.T) {
 	t.Parallel()
 
-	parsetest.AssertAlsoFulfils(t, TextInterpolation(), testTextCharacterEscape)
-	parsetest.AssertAlsoFulfils(t, TextInterpolation(), testExpressionInterpolation)
-	parsetest.AssertAlsoFulfils(t, TextInterpolation(), testCharacterReference)
-	parsetest.AssertAlsoFulfils(t, TextInterpolation(), testExpressionInterpolation)
+	parsetest.AlsoFulfils(t, TextInterpolation(), testTextCharacterEscape)
+	parsetest.AlsoFulfils(t, TextInterpolation(), testExpressionInterpolation)
+	parsetest.AlsoFulfils(t, TextInterpolation(), testCharacterReference)
+	parsetest.AlsoFulfils(t, TextInterpolation(), testExpressionInterpolation)
 }
 
 func TestStringInterpolation(t *testing.T) {
@@ -24,10 +25,10 @@ func TestStringInterpolation(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		parsetest.AssertAlsoFulfils(t, StringInterpolation(), testStringCharacterEscape)
-		parsetest.AssertAlsoFulfils(t, StringInterpolation(), testExpressionInterpolation)
-		parsetest.AssertAlsoFulfils(t, StringInterpolation(), testComponentCallInterpolation)
-		parsetest.AssertAlsoFulfils(t, StringInterpolation(), testCharacterReference)
+		parsetest.AlsoFulfils(t, StringInterpolation(), testStringCharacterEscape)
+		parsetest.AlsoFulfils(t, StringInterpolation(), testExpressionInterpolation)
+		parsetest.AlsoFulfils(t, StringInterpolation(), testComponentCallInterpolation)
+		parsetest.AlsoFulfils(t, StringInterpolation(), testCharacterReference)
 	})
 
 	t.Run("failure", func(t *testing.T) {
@@ -39,9 +40,10 @@ func TestStringInterpolation(t *testing.T) {
 				From:  ast.Position{Line: 1, Col: 1},
 				Until: ast.Position{Line: 1, Col: 3},
 			}
+			wantError := "string interpolation: cannot use hash space here"
 
-			si := parsetest.MatchesButError(t, "#_", StringInterpolation())
-			should.Equal(t, si, ast.StringInterpolation(want))
+			got := parsetest.ParsesExact(t, "#_", StringInterpolation(), parsetest.WantErrors(wantError))
+			should.Equal(t, got, ast.StringInterpolation(want))
 		})
 
 		t.Run("bad interpolation", func(t *testing.T) {
@@ -50,9 +52,10 @@ func TestStringInterpolation(t *testing.T) {
 				From:  ast.Position{Line: 1, Col: 1},
 				Until: ast.Position{Line: 1, Col: 2},
 			}
+			wantError := "bad interpolation"
 
-			si := parsetest.MatchesButError(t, "#@", StringInterpolation())
-			should.Equal(t, si, ast.StringInterpolation(want))
+			got := parsetest.ParsesUntilExtra(t, "#", "@", StringInterpolation(), parsetest.WantErrors(wantError))
+			should.Equal(t, got, ast.StringInterpolation(want))
 		})
 	})
 }
@@ -60,16 +63,12 @@ func TestStringInterpolation(t *testing.T) {
 func TestBadInterpolation(t *testing.T) {
 	t.Parallel()
 
-	in := "#@"
 	want := &ast.BadInterpolation{
 		From:  ast.Position{Line: 1, Col: 1},
 		Until: ast.Position{Line: 1, Col: 2},
 	}
 
-	p := parsetest.NewParser(t, in+" 1other stuff")
-	got := parsetest.AssertNoError(t, p, BadInterpolation())
-
-	parsetest.AssertPosition(t, p, 1, 2, 1)
+	got := parsetest.ParsesUntilExtra(t, "#", "@", BadInterpolation())
 	should.Equal(t, got, want)
 }
 
@@ -96,7 +95,7 @@ func testStringCharacterEscape(t *testing.T, f parser.Func[*ast.CharacterEscape]
 				Rune:   c.Rune,
 			}
 
-			got := parsetest.ParsesFully(t, in, f)
+			got := parsetest.ParsesExact(t, in, f)
 			should.Equal(t, got, want)
 		})
 	}
@@ -127,7 +126,7 @@ func testTextCharacterEscape(t *testing.T, f parser.Func[*ast.CharacterEscape]) 
 				Rune:   c.Rune,
 			}
 
-			got := parsetest.ParsesFully(t, in, f)
+			got := parsetest.ParsesExact(t, in, f)
 			should.Equal(t, got, want)
 		})
 	}
@@ -153,7 +152,7 @@ func TestVerbatimTextCharacterEscape(t *testing.T) {
 				Rune:   c.Rune,
 			}
 
-			got := parsetest.ParsesFully(t, in, VerbatimTextCharacterEscape())
+			got := parsetest.ParsesExact(t, in, VerbatimTextCharacterEscape())
 			should.Equal(t, got, want)
 		})
 	}
@@ -162,37 +161,12 @@ func TestVerbatimTextCharacterEscape(t *testing.T) {
 func TestUnambiguousHash(t *testing.T) {
 	t.Parallel()
 
-	tests := []struct {
-		char     rune
-		noInline bool
-	}{
-		{char: ' ', noInline: false},
-		{char: '\t', noInline: false},
-		{char: '\n', noInline: true},
-		{char: '\r', noInline: true},
-	}
-
-	for _, c := range tests {
-		t.Run(string(c.char), func(t *testing.T) {
+	for _, c := range whitespace.Runes {
+		t.Run(string(c), func(t *testing.T) {
 			t.Parallel()
 
-			in := "#" + string(c.char)
-
-			if !c.noInline {
-				t.Run("inline", func(t *testing.T) {
-					t.Parallel()
-
-					p := parsetest.NewParser(t, in)
-					p.DoInline(func() {
-						parsetest.AssertNoError(t, p, UnambiguousHash())
-						line, col, index := parsetest.CalcEnd(1, 1, 0, in)
-						parsetest.AssertPosition(t, p, line, col, index)
-					})
-				})
-			}
-			t.Run("no inline", func(t *testing.T) {
-				parsetest.ParsesFully(t, in, UnambiguousHash())
-			})
+			got := parsetest.ParsesUntilExtra(t, "#", string(c)+"other stuff", UnambiguousHash())
+			should.True(t, got)
 		})
 	}
 }
@@ -223,7 +197,7 @@ func testCharacterReference(t *testing.T, f parser.Func[*ast.CharacterReference]
 				Hash:  &ast.Position{Line: 1, Col: 1},
 			}
 
-			got := parsetest.ParsesFully(t, in, f)
+			got := parsetest.ParsesExact(t, in, f)
 			should.Equal(t, got, want)
 		})
 	}
@@ -253,21 +227,24 @@ func testExpressionInterpolation(t *testing.T, f parser.Func[*ast.ExpressionInte
 			Hash:   &ast.Position{Line: 1, Col: 1},
 		}
 
-		got := parsetest.ParsesFully(t, in, f)
+		got := parsetest.ParsesExact(t, in, f)
 		should.Equal(t, got, want)
 	})
 
 	t.Run("failure", func(t *testing.T) {
 		t.Parallel()
+
 		t.Run("no expression", func(t *testing.T) {
 			t.Parallel()
+
 			want := &ast.ExpressionInterpolation{
 				LBrace: &ast.Position{Line: 1, Col: 2},
 				RBrace: &ast.Position{Line: 1, Col: 3},
 				Hash:   &ast.Position{Line: 1, Col: 1},
 			}
+			wantError := "expression interpolation: missing expression"
 
-			got := parsetest.MatchesButError(t, "#{}", f)
+			got := parsetest.ParsesExact(t, "#{}", f, parsetest.WantErrors(wantError))
 			should.Equal(t, got, want)
 		})
 	})
@@ -332,7 +309,7 @@ func testComponentCallInterpolation(t *testing.T, f parser.Func[*ast.ComponentCa
 	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
-			got := parsetest.ParsesFully(t, c.in, f)
+			got := parsetest.ParsesExact(t, c.in, f)
 			should.Equal(t, got, c.want)
 		})
 	}

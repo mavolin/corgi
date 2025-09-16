@@ -88,7 +88,7 @@ func testString() func(t *testing.T, f parser.Func[*ast.String]) {
 				t.Run(c.name, func(t *testing.T) {
 					t.Parallel()
 
-					got := parsesCodeNodeFully(t, c.in, f)
+					got := parsetest.ParsesUntilEOS(t, c.in, f)
 					should.Equal(t, got, c.want)
 				})
 			}
@@ -97,9 +97,10 @@ func testString() func(t *testing.T, f parser.Func[*ast.String]) {
 			t.Parallel()
 
 			tests := []struct {
-				name string
-				in   string
-				want *ast.String
+				name      string
+				in        string
+				want      *ast.String
+				wantError string
 			}{
 				{
 					name: "missing closing quote",
@@ -114,6 +115,7 @@ func testString() func(t *testing.T, f parser.Func[*ast.String]) {
 							},
 						},
 					},
+					wantError: "string: missing closing quote",
 				},
 			}
 
@@ -121,7 +123,7 @@ func testString() func(t *testing.T, f parser.Func[*ast.String]) {
 				t.Run(c.name, func(t *testing.T) {
 					t.Parallel()
 
-					got := parsetest.MatchesButError(t, c.in, f)
+					got := parsetest.ParsesUntilExtra(t, c.in, "", f, parsetest.WantErrors(c.wantError))
 					should.Equal(t, got, c.want)
 				})
 			}

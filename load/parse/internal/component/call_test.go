@@ -64,7 +64,7 @@ func TestCall(t *testing.T) {
 	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
-			got := parsetest.ParsesFully(t, c.in, Call())
+			got := parsetest.ParsesExact(t, c.in, Call())
 			should.Equal(t, got, c.want)
 		})
 	}
@@ -190,7 +190,7 @@ func TestCallHeader(t *testing.T) {
 	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
-			got := parsetest.ParsesFully(t, c.in, CallHeader())
+			got := parsetest.ParsesExact(t, c.in, CallHeader())
 			should.Equal(t, got, c.want)
 		})
 	}
@@ -262,7 +262,7 @@ func TestWith(t *testing.T) {
 	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
-			got := parsetest.ParsesFully(t, c.in, With())
+			got := parsetest.ParsesExact(t, c.in, With())
 			should.Equal(t, got, c.want)
 		})
 	}

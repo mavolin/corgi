@@ -5,7 +5,6 @@ import (
 
 	"github.com/mavolin/corgi/v2/file/ast"
 	"github.com/mavolin/corgi/v2/internal/test/should"
-	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/mavolin/corgi/v2/load/parse/internal/parsetest"
 )
 
@@ -64,7 +63,7 @@ func TestArrowBlock(t *testing.T) {
 	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
-			got := parsesTextFully(t, c.in, ArrowBlock())
+			got := parsetest.ParsesUntilExtra(t, c.in, "\nwoof", ArrowBlock())
 			should.Equal(t, got, c.want)
 		})
 	}
@@ -100,7 +99,7 @@ func TestLine(t *testing.T) {
 		&ast.CharacterEscape{Hash: &ast.Position{Line: 1, Col: 17}, Symbol: '_', Rune: ' '},
 	}
 
-	got := parsesTextFully(t, in, Line('\n'))
+	got := parsetest.ParsesUntilExtra(t, in, "\nwoof", Line('\n'))
 	should.Equal(t, got, want)
 }
 
@@ -115,7 +114,7 @@ func TestVerbatimLine(t *testing.T) {
 		},
 	}
 
-	got := parsesTextFully(t, in, VerbatimLine('\n'))
+	got := parsetest.ParsesUntilExtra(t, in, "\nwoof", VerbatimLine('\n'))
 	should.Equal(t, got, want)
 }
 
@@ -146,20 +145,8 @@ func TestText(t *testing.T) {
 				Text:     c.in,
 				Position: &ast.Position{Line: 1, Col: 1},
 			}
-			got := parsesTextFully(t, c.in, Text('\n'))
+			got := parsetest.ParsesUntilExtra(t, c.in, "\nwoof", Text('\n'))
 			should.Equal(t, got, want)
 		})
 	}
-}
-
-func parsesTextFully[T any](t *testing.T, input string, f parser.Func[T]) T {
-	t.Helper()
-
-	p := parsetest.NewParser(t, input+"\n1other stuff")
-	v := parsetest.AssertNoError(t, p, f)
-
-	line, col, index := parsetest.CalcEnd(1, 1, 0, input)
-	parsetest.AssertPosition(t, p, line, col, index)
-
-	return v
 }

@@ -1,6 +1,7 @@
 package golang
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/mavolin/corgi/v2/file/ast"
@@ -42,7 +43,7 @@ func TestType(t *testing.T) {
 				Until: parsetest.CalcEndPos(in),
 			}
 
-			got := parsetest.ParsesFully(t, in, Type())
+			got := parsetest.ParsesExact(t, in, Type())
 			should.Equal(t, got, want)
 		})
 		t.Run("paren type", func(t *testing.T) {
@@ -55,35 +56,38 @@ func TestType(t *testing.T) {
 				Until: parsetest.CalcEndPos(in),
 			}
 
-			got := parsetest.ParsesFully(t, in, Type())
+			got := parsetest.ParsesExact(t, in, Type())
 			should.Equal(t, got, want)
 		})
 	})
 
-	t.Run("restore", func(t *testing.T) {
+	t.Run("recover", func(t *testing.T) {
 		t.Parallel()
 
 		t.Run("paren type", func(t *testing.T) {
 			t.Parallel()
 
-			restoreCases := []string{
-				"(foo",
+			tests := []struct {
+				in        string
+				wantError string
+			}{
+				{
+					in:        "(foo",
+					wantError: "missing closing parenthesis",
+				},
 			}
 
-			for _, in := range restoreCases {
-				t.Run(in, func(t *testing.T) {
+			for _, c := range tests {
+				t.Run(c.in, func(t *testing.T) {
 					t.Parallel()
 
 					want := &ast.Type{
-						Type:  in,
+						Type:  c.in,
 						From:  ast.Position{Line: 1, Col: 1},
-						Until: parsetest.CalcEndPos(in),
+						Until: parsetest.CalcEndPos(c.in),
 					}
 
-					p := parsetest.NewParser(t, in+" 123")
-					got := parsetest.AssertMatchesButError(t, p, Type())
-					wantLine, wantCol, wantIndex := parsetest.CalcEnd(1, 1, 0, in)
-					parsetest.AssertPosition(t, p, wantLine, wantCol, wantIndex)
+					got := parsetest.ParsesUntilExtra(t, c.in, " 123", Type(), parsetest.WantErrors(c.wantError))
 					should.Equal(t, got, want)
 				})
 			}
@@ -144,14 +148,14 @@ func TestArrayType(t *testing.T) {
 }
 
 func testArrayType(t *testing.T, f parser.Func[*ast.Type]) {
-	successCases := []string{
-		"[3]int", "[2+3]string", "[2][3]int",
-	}
-
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		for _, in := range successCases {
+		tests := []string{
+			"[3]int", "[2+3]string", "[2][3]int",
+		}
+
+		for _, in := range tests {
 			t.Run(in, func(t *testing.T) {
 				t.Parallel()
 
@@ -161,33 +165,42 @@ func testArrayType(t *testing.T, f parser.Func[*ast.Type]) {
 					Until: parsetest.CalcEndPos(in),
 				}
 
-				got := parsetest.ParsesFully(t, in, f)
+				got := parsetest.ParsesExact(t, in, f)
 				should.Equal(t, got, want)
 			})
 		}
 	})
 
-	recoverCases := []string{
-		"[3", "[3]",
-	}
-
 	t.Run("recover", func(t *testing.T) {
 		t.Parallel()
 
-		for _, in := range recoverCases {
-			t.Run(in, func(t *testing.T) {
+		tests := []struct {
+			in         string
+			wantErrors []string
+		}{
+			{
+				in: "[3",
+				wantErrors: []string{
+					"type: array: length: missing closing bracket",
+					"type: array: missing element type",
+				},
+			}, {
+				in:         "[3]",
+				wantErrors: []string{"type: array: missing element type"},
+			},
+		}
+
+		for _, c := range tests {
+			t.Run(c.in, func(t *testing.T) {
 				t.Parallel()
 
 				want := &ast.Type{
-					Type:  in,
+					Type:  c.in,
 					From:  ast.Position{Line: 1, Col: 1},
-					Until: parsetest.CalcEndPos(in),
+					Until: parsetest.CalcEndPos(c.in),
 				}
 
-				p := parsetest.NewParser(t, in+" ; aa")
-				got := parsetest.AssertMatchesButError(t, p, f)
-				wantLine, wantCol, wantIndex := parsetest.CalcEnd(1, 1, 0, in)
-				parsetest.AssertPosition(t, p, wantLine, wantCol, wantIndex)
+				got := parsetest.ParsesUntilExtra(t, c.in, " ;", f, parsetest.WantErrors(c.wantErrors...))
 				should.Equal(t, got, want)
 			})
 		}
@@ -200,13 +213,13 @@ func TestStructType(t *testing.T) {
 }
 
 func testStructType(t *testing.T, f parser.Func[*ast.Type]) {
-	successCases := []string{
-		"struct{}", "struct{foo int; bar string}",
-		"struct{\nfoo int\nbar string\n}",
-	}
-
 	t.Run("success", func(t *testing.T) {
-		for _, in := range successCases {
+		tests := []string{
+			"struct{}", "struct{foo int; bar string}",
+			"struct{\nfoo int\nbar string\n}",
+		}
+
+		for _, in := range tests {
 			t.Run(in, func(t *testing.T) {
 				t.Parallel()
 
@@ -216,33 +229,46 @@ func testStructType(t *testing.T, f parser.Func[*ast.Type]) {
 					Until: parsetest.CalcEndPos(in),
 				}
 
-				got := parsetest.ParsesFully(t, in, f)
+				got := parsetest.ParsesUntilEOS(t, in, f)
 				should.Equal(t, got, want)
 			})
 		}
 	})
 
-	recoverCases := []string{
-		"struct", "struct{", "struct{foo", "struct{\nfoo int",
-	}
-
 	t.Run("recover", func(t *testing.T) {
 		t.Parallel()
 
-		for _, in := range recoverCases {
-			t.Run(in, func(t *testing.T) {
+		tests := []struct {
+			in        string
+			wantError string
+		}{
+			{
+				in:        "struct",
+				wantError: "type: struct: missing opening brace",
+			}, {
+				in:        "struct{",
+				wantError: "type: struct: missing closing brace",
+			}, {
+				in:        "struct{foo",
+				wantError: "type: struct: missing closing brace",
+			}, {
+				in: "struct{\n" +
+					"foo int",
+				wantError: "type: struct: missing closing brace",
+			},
+		}
+
+		for _, c := range tests {
+			t.Run(c.in, func(t *testing.T) {
 				t.Parallel()
 
 				want := &ast.Type{
-					Type:  in,
+					Type:  c.in,
 					From:  ast.Position{Line: 1, Col: 1},
-					Until: parsetest.CalcEndPos(in),
+					Until: parsetest.CalcEndPos(c.in),
 				}
 
-				p := parsetest.NewParser(t, in+" ")
-				got := parsetest.AssertMatchesButError(t, p, f)
-				wantLine, wantCol, wantIndex := parsetest.CalcEnd(1, 1, 0, in)
-				parsetest.AssertPosition(t, p, wantLine, wantCol, wantIndex)
+				got := parsetest.ParsesUntilExtra(t, c.in, " ", f, parsetest.WantErrors(c.wantError))
 				should.Equal(t, got, want)
 			})
 		}
@@ -255,11 +281,11 @@ func TestPointerType(t *testing.T) {
 }
 
 func testPointerType(t *testing.T, f parser.Func[*ast.Type]) {
-	successCases := []string{
+	tests := []string{
 		"*int", "*string", "*[]int", "*[3]int",
 	}
 
-	for _, in := range successCases {
+	for _, in := range tests {
 		t.Run(in, func(t *testing.T) {
 			t.Parallel()
 
@@ -269,7 +295,7 @@ func testPointerType(t *testing.T, f parser.Func[*ast.Type]) {
 				Until: parsetest.CalcEndPos(in),
 			}
 
-			got := parsetest.ParsesFully(t, in, f)
+			got := parsetest.ParsesExact(t, in, f)
 			should.Equal(t, got, want)
 		})
 	}
@@ -281,15 +307,15 @@ func TestFunctionType(t *testing.T) {
 }
 
 func testFunctionType(t *testing.T, f parser.Func[*ast.Type]) {
-	successCases := []string{
-		"func()", "func(int) string", "func(foo int, bar string) (int, string)",
-		"func(foo, bar int, baz string)", "func() (foo, bar int, baz string)",
-	}
-
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		for _, in := range successCases {
+		tests := []string{
+			"func()", "func(int) string", "func(foo int, bar string) (int, string)",
+			"func(foo, bar int, baz string)", "func() (foo, bar int, baz string)",
+		}
+
+		for _, in := range tests {
 			t.Run(in, func(t *testing.T) {
 				t.Parallel()
 
@@ -299,33 +325,41 @@ func testFunctionType(t *testing.T, f parser.Func[*ast.Type]) {
 					Until: parsetest.CalcEndPos(in),
 				}
 
-				got := parsetest.ParsesFully(t, in, f)
+				var got *ast.Type
+				if strings.Contains(in, ") ") { // has return values
+					got = parsetest.ParsesExact(t, in, f)
+				} else {
+					got = parsetest.ParsesUntilComma(t, in, f)
+				}
 				should.Equal(t, got, want)
 			})
 		}
 	})
 
-	recoverCases := []string{
-		"func",
-	}
-
 	t.Run("recover", func(t *testing.T) {
 		t.Parallel()
 
-		for _, in := range recoverCases {
-			t.Run(in, func(t *testing.T) {
+		tests := []struct {
+			in        string
+			wantError string
+		}{
+			{
+				in:        "func",
+				wantError: "type: function: missing signature",
+			},
+		}
+
+		for _, c := range tests {
+			t.Run(c.in, func(t *testing.T) {
 				t.Parallel()
 
 				want := &ast.Type{
-					Type:  in,
+					Type:  c.in,
 					From:  ast.Position{Line: 1, Col: 1},
-					Until: parsetest.CalcEndPos(in),
+					Until: parsetest.CalcEndPos(c.in),
 				}
 
-				p := parsetest.NewParser(t, in+" 123")
-				got := parsetest.AssertMatchesButError(t, p, f)
-				wantLine, wantCol, wantIndex := parsetest.CalcEnd(1, 1, 0, in)
-				parsetest.AssertPosition(t, p, wantLine, wantCol, wantIndex)
+				got := parsetest.ParsesUntilExtra(t, c.in, " 123", f, parsetest.WantErrors(c.wantError))
 				should.Equal(t, got, want)
 			})
 		}
@@ -338,15 +372,15 @@ func TestInterfaceType(t *testing.T) {
 }
 
 func testInterfaceType(t *testing.T, f parser.Func[*ast.Type]) {
-	successCases := []string{
-		"interface{}", "interface{foo(); bar() int}",
-		"interface{\nfoo()\nbar() int\n}",
-	}
-
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		for _, in := range successCases {
+		tests := []string{
+			"interface{}", "interface{foo(); bar() int}",
+			"interface{\nfoo()\nbar() int\n}",
+		}
+
+		for _, in := range tests {
 			t.Run(in, func(t *testing.T) {
 				t.Parallel()
 
@@ -356,33 +390,45 @@ func testInterfaceType(t *testing.T, f parser.Func[*ast.Type]) {
 					Until: parsetest.CalcEndPos(in),
 				}
 
-				got := parsetest.ParsesFully(t, in, f)
+				got := parsetest.ParsesExact(t, in, f)
 				should.Equal(t, got, want)
 			})
 		}
 	})
 
-	recoverCases := []string{
-		"interface", "interface{", "interface{foo", "interface{foo()",
-	}
-
 	t.Run("recover", func(t *testing.T) {
 		t.Parallel()
 
-		for _, in := range recoverCases {
-			t.Run(in, func(t *testing.T) {
+		tests := []struct {
+			in        string
+			wantError string
+		}{
+			{
+				in:        "interface",
+				wantError: "type: interface: missing opening brace",
+			}, {
+				in:        "interface{",
+				wantError: "type: interface: missing closing brace",
+			}, {
+				in:        "interface{foo",
+				wantError: "type: interface: missing closing brace",
+			}, {
+				in:        "interface{foo()",
+				wantError: "type: interface: missing closing brace",
+			},
+		}
+
+		for _, c := range tests {
+			t.Run(c.in, func(t *testing.T) {
 				t.Parallel()
 
 				want := &ast.Type{
-					Type:  in,
+					Type:  c.in,
 					From:  ast.Position{Line: 1, Col: 1},
-					Until: parsetest.CalcEndPos(in),
+					Until: parsetest.CalcEndPos(c.in),
 				}
 
-				p := parsetest.NewParser(t, in+" ")
-				got := parsetest.AssertMatchesButError(t, p, f)
-				wantLine, wantCol, wantIndex := parsetest.CalcEnd(1, 1, 0, in)
-				parsetest.AssertPosition(t, p, wantLine, wantCol, wantIndex)
+				got := parsetest.ParsesUntilExtra(t, c.in, " ", f, parsetest.WantErrors(c.wantError))
 				should.Equal(t, got, want)
 			})
 		}
@@ -395,14 +441,14 @@ func TestSliceType(t *testing.T) {
 }
 
 func testSliceType(t *testing.T, f parser.Func[*ast.Type]) {
-	successCases := []string{
-		"[]int", "[]string", "[][]int",
-	}
-
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		for _, in := range successCases {
+		tests := []string{
+			"[]int", "[]string", "[][]int",
+		}
+
+		for _, in := range tests {
 			t.Run(in, func(t *testing.T) {
 				t.Parallel()
 
@@ -412,33 +458,36 @@ func testSliceType(t *testing.T, f parser.Func[*ast.Type]) {
 					Until: parsetest.CalcEndPos(in),
 				}
 
-				got := parsetest.ParsesFully(t, in, f)
+				got := parsetest.ParsesExact(t, in, f)
 				should.Equal(t, got, want)
 			})
 		}
 	})
 
-	recoverCases := []string{
-		"[]",
-	}
-
 	t.Run("recover", func(t *testing.T) {
 		t.Parallel()
 
-		for _, in := range recoverCases {
-			t.Run(in, func(t *testing.T) {
+		tests := []struct {
+			in        string
+			wantError string
+		}{
+			{
+				in:        "[]",
+				wantError: "type: slice: missing element type",
+			},
+		}
+
+		for _, c := range tests {
+			t.Run(c.in, func(t *testing.T) {
 				t.Parallel()
 
 				want := &ast.Type{
-					Type:  in,
+					Type:  c.in,
 					From:  ast.Position{Line: 1, Col: 1},
-					Until: parsetest.CalcEndPos(in),
+					Until: parsetest.CalcEndPos(c.in),
 				}
 
-				p := parsetest.NewParser(t, in+" 123")
-				got := parsetest.AssertMatchesButError(t, p, f)
-				wantLine, wantCol, wantIndex := parsetest.CalcEnd(1, 1, 0, in)
-				parsetest.AssertPosition(t, p, wantLine, wantCol, wantIndex)
+				got := parsetest.ParsesUntilExtra(t, c.in, " 123", f, parsetest.WantErrors(c.wantError))
 				should.Equal(t, got, want)
 			})
 		}
@@ -451,14 +500,14 @@ func TestMapType(t *testing.T) {
 }
 
 func testMapType(t *testing.T, f parser.Func[*ast.Type]) {
-	successCases := []string{
-		"map[int]string", "map[string]int", "map[int]map[string]string",
-	}
-
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		for _, in := range successCases {
+		tests := []string{
+			"map[int]string", "map[string]int", "map[int]map[string]string",
+		}
+
+		for _, in := range tests {
 			t.Run(in, func(t *testing.T) {
 				t.Parallel()
 
@@ -468,33 +517,48 @@ func testMapType(t *testing.T, f parser.Func[*ast.Type]) {
 					Until: parsetest.CalcEndPos(in),
 				}
 
-				got := parsetest.ParsesFully(t, in, f)
+				got := parsetest.ParsesExact(t, in, f)
 				should.Equal(t, got, want)
 			})
 		}
 	})
 
-	recoverCases := []string{
-		"map", "map[int", "map[int]",
-	}
-
 	t.Run("recover", func(t *testing.T) {
 		t.Parallel()
 
-		for _, in := range recoverCases {
-			t.Run(in, func(t *testing.T) {
+		tests := []struct {
+			in         string
+			wantErrors []string
+		}{
+			{
+				in: "map",
+				wantErrors: []string{
+					"type: map: missing key",
+					"type: map: missing element type",
+				},
+			}, {
+				in: "map[int",
+				wantErrors: []string{
+					"type: map: key: missing closing bracket",
+					"type: map: missing element type",
+				},
+			}, {
+				in:         "map[int]",
+				wantErrors: []string{"type: map: missing element type"},
+			},
+		}
+
+		for _, c := range tests {
+			t.Run(c.in, func(t *testing.T) {
 				t.Parallel()
 
 				want := &ast.Type{
-					Type:  in,
+					Type:  c.in,
 					From:  ast.Position{Line: 1, Col: 1},
-					Until: parsetest.CalcEndPos(in),
+					Until: parsetest.CalcEndPos(c.in),
 				}
 
-				p := parsetest.NewParser(t, in+" 123")
-				got := parsetest.AssertMatchesButError(t, p, f)
-				wantLine, wantCol, wantIndex := parsetest.CalcEnd(1, 1, 0, in)
-				parsetest.AssertPosition(t, p, wantLine, wantCol, wantIndex)
+				got := parsetest.ParsesUntilExtra(t, c.in, " 123", f, parsetest.WantErrors(c.wantErrors...))
 				should.Equal(t, got, want)
 			})
 		}
@@ -507,15 +571,15 @@ func TestChannelType(t *testing.T) {
 }
 
 func testChannelType(t *testing.T, f parser.Func[*ast.Type]) {
-	successCases := []string{
-		"chan int", "chan string", "chan int",
-		"chan<- int", "<-chan string", "<-chan<- chan int",
-	}
-
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		for _, in := range successCases {
+		tests := []string{
+			"chan int", "chan string", "chan int",
+			"chan<- int", "<-chan string", "<-chan<- chan int",
+		}
+
+		for _, in := range tests {
 			t.Run(in, func(t *testing.T) {
 				t.Parallel()
 
@@ -525,33 +589,54 @@ func testChannelType(t *testing.T, f parser.Func[*ast.Type]) {
 					Until: parsetest.CalcEndPos(in),
 				}
 
-				got := parsetest.ParsesFully(t, in, f)
+				got := parsetest.ParsesExact(t, in, f)
 				should.Equal(t, got, want)
 			})
 		}
 	})
 
-	recoverCases := []string{
-		"chan", "<-", "<-chan", "chan<-", "<-chan<-",
-	}
-
 	t.Run("recover", func(t *testing.T) {
 		t.Parallel()
 
-		for _, in := range recoverCases {
-			t.Run(in, func(t *testing.T) {
+		tests := []struct {
+			in         string
+			wantErrors []string
+		}{
+			{
+				in:         "chan",
+				wantErrors: []string{"type: channel: missing element type"},
+			}, {
+				in: "<-",
+				wantErrors: []string{
+					"type: channel: missing `chan` keyword",
+					"type: channel: missing element type",
+				},
+			}, {
+				in:         "<-chan",
+				wantErrors: []string{"type: channel: missing element type"},
+			}, {
+				in:         "chan<-",
+				wantErrors: []string{"type: channel: missing element type"},
+			}, {
+				in: "<-chan<-",
+				wantErrors: []string{
+					"type: channel: missing element type",
+					"type: channel: missing `chan` keyword",
+				},
+			},
+		}
+
+		for _, c := range tests {
+			t.Run(c.in, func(t *testing.T) {
 				t.Parallel()
 
 				want := &ast.Type{
-					Type:  in,
+					Type:  c.in,
 					From:  ast.Position{Line: 1, Col: 1},
-					Until: parsetest.CalcEndPos(in),
+					Until: parsetest.CalcEndPos(c.in),
 				}
 
-				p := parsetest.NewParser(t, in+" 123")
-				got := parsetest.AssertMatchesButError(t, p, f)
-				wantLine, wantCol, wantIndex := parsetest.CalcEnd(1, 1, 0, in)
-				parsetest.AssertPosition(t, p, wantLine, wantCol, wantIndex)
+				got := parsetest.ParsesUntilExtra(t, c.in, " 123", f, parsetest.WantErrors(c.wantErrors...))
 				should.Equal(t, got, want)
 			})
 		}
@@ -653,7 +738,7 @@ func testNamedType(t *testing.T, f parser.Func[*ast.NamedType]) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := parsetest.ParsesFully(t, c.in, f)
+			got := parsetest.ParsesExact(t, c.in, f)
 			should.Equal(t, got, c.want)
 		})
 	}
@@ -759,7 +844,7 @@ func TestTypeParameters(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := parsetest.ParsesFully(t, c.in, TypeParameters())
+			got := parsetest.ParsesExact(t, c.in, TypeParameters("test"))
 			should.Equal(t, got, c.want)
 		})
 	}
@@ -813,7 +898,7 @@ func TestTypeParameterDecl(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := parsetest.ParsesFully(t, c.in, TypeParameterDecl())
+			got := parsetest.ParsesExact(t, c.in, TypeParameterDecl("test"))
 			should.Equal(t, got, c.want)
 		})
 	}

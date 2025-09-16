@@ -59,16 +59,13 @@ func TestOrHorizontalWhitespace(t *testing.T) {
 			t.Run(testName(c.in), func(t *testing.T) {
 				t.Parallel()
 
-				p := parsetest.NewParser(t, c.in)
-				skipped := parser.TrySkip(p, OrHorizontalWhitespace())
-				should.True(t, skipped)
-				parsetest.AssertEOF(t, p)
-
 				wantGroups := make([]*ast.CommentGroup, len(c.wantComments))
 				for i, comment := range c.wantComments {
 					wantGroups[i] = &ast.CommentGroup{Comments: []*ast.Comment{comment}}
 				}
-				should.Equal(t, p.Comments(), wantGroups)
+
+				gotGroups := parsetest.SkipsWhitespace(t, c.in, OrHorizontalWhitespace())
+				should.Equal(t, gotGroups, wantGroups)
 			})
 		}
 	})
@@ -161,15 +158,15 @@ func TestAndEOS(t *testing.T) {
 				c.wantIndex = len(c.in)
 			}
 
-			p := parsetest.NewParser(t, c.in)
-			matches := parser.Try(p, AndEOS())
-			should.Equal(t, matches, true)
-			should.Equal(t, p.Index(), c.wantIndex)
-
 			wantGroups := make([]*ast.CommentGroup, len(c.wantComments))
 			for i, comment := range c.wantComments {
 				wantGroups[i] = &ast.CommentGroup{Comments: []*ast.Comment{comment}}
 			}
+
+			p := parsetest.NewParser(t, c.in)
+			matches := parser.Try(p, AndEOS())
+			should.Equal(t, matches, true)
+			should.Equal(t, p.Index(), c.wantIndex)
 			should.Equal(t, p.Comments(), wantGroups)
 		})
 	}
@@ -178,23 +175,15 @@ func TestAndEOS(t *testing.T) {
 func TestAndEOL(t *testing.T) {
 	t.Parallel()
 
-	t.Run("special", func(t *testing.T) {
+	t.Run("special/eof", func(t *testing.T) {
 		t.Parallel()
-
-		t.Run("eof", func(t *testing.T) {
-			t.Parallel()
-
-			p := parsetest.NewParser(t, "")
-			skipped := parser.TrySkip(p, AndEOL())
-			should.True(t, skipped)
-			parsetest.AssertEOF(t, p)
-		})
+		parsetest.SkipsWhitespace(t, "", AndEOL())
 	})
 
-	testOrEOL(t, AndEOL())
+	testAndEOL(t, AndEOL())
 }
 
-func testOrEOL(t *testing.T, f parser.WhitespaceFunc) {
+func testAndEOL(t *testing.T, f parser.WhitespaceFunc) {
 	tests := []struct {
 		in           string
 		wantComments []*ast.Comment
@@ -250,16 +239,13 @@ func testOrEOL(t *testing.T, f parser.WhitespaceFunc) {
 		t.Run(testName(c.in), func(t *testing.T) {
 			t.Parallel()
 
-			p := parsetest.NewParser(t, c.in)
-			skipped := parser.TrySkip(p, f)
-			should.True(t, skipped)
-			parsetest.AssertEOF(t, p)
-
 			wantGroups := make([]*ast.CommentGroup, len(c.wantComments))
 			for i, comment := range c.wantComments {
 				wantGroups[i] = &ast.CommentGroup{Comments: []*ast.Comment{comment}}
 			}
-			should.Equal(t, p.Comments(), wantGroups)
+
+			gotGroups := parsetest.SkipsWhitespace(t, c.in, f)
+			should.Equal(t, gotGroups, wantGroups)
 		})
 	}
 }
@@ -323,21 +309,18 @@ func TestOrAnyWhitespace(t *testing.T) {
 		t.Run(testName(c.in), func(t *testing.T) {
 			t.Parallel()
 
-			p := parsetest.NewParser(t, c.in)
-			skipped := parser.TrySkip(p, OrAnyWhitespace())
-			should.True(t, skipped)
-			parsetest.AssertEOF(t, p)
-
 			wantGroups := make([]*ast.CommentGroup, len(c.wantComments))
 			for i, comment := range c.wantComments {
 				wantGroups[i] = &ast.CommentGroup{Comments: []*ast.Comment{comment}}
 			}
-			should.Equal(t, p.Comments(), wantGroups)
+
+			gotGroups := parsetest.SkipsWhitespace(t, c.in, OrAnyWhitespace())
+			should.Equal(t, gotGroups, wantGroups)
 		})
 	}
 
 	t.Run("eol", func(t *testing.T) {
-		testOrEOL(t, OrAnyWhitespace())
+		testAndEOL(t, OrAnyWhitespace())
 	})
 }
 
@@ -421,16 +404,13 @@ func TestOrLoneWS(t *testing.T) {
 		t.Run(testName(c.in), func(t *testing.T) {
 			t.Parallel()
 
-			p := parsetest.NewParser(t, c.in)
-			skipped := parser.TrySkip(p, OrLoneWS())
-			should.True(t, skipped)
-			parsetest.AssertEOF(t, p)
-
 			wantGroups := make([]*ast.CommentGroup, len(c.wantComments))
 			for i, comment := range c.wantComments {
 				wantGroups[i] = &ast.CommentGroup{Comments: []*ast.Comment{comment}}
 			}
-			should.Equal(t, p.Comments(), wantGroups)
+
+			gotGroups := parsetest.SkipsWhitespace(t, c.in, OrLoneWhitespace())
+			should.Equal(t, gotGroups, wantGroups)
 		})
 	}
 }
@@ -463,7 +443,7 @@ func testName(input string) string {
 					}
 				}
 			case '*':
-				name.WriteString("<block comment>")
+				name.WriteString("<general comment>")
 				for ; i < len(input); i++ {
 					if input[i] == '*' && i+1 < len(input) && input[i+1] == '/' {
 						i++

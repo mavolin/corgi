@@ -13,15 +13,15 @@ import (
 
 func TestParenList(t *testing.T) {
 	t.Parallel()
-	testList(t, "paren list", '(', ')')
+	testList(t, '(', ')', ParenList)
 }
 
 func TestBracketList(t *testing.T) {
 	t.Parallel()
-	testList(t, "bracket list", '[', ']')
+	testList(t, '[', ']', BracketList)
 }
 
-func testList(t *testing.T, name string, opening, closing rune) {
+func testList(t *testing.T, opening, closing rune, f func(belongsTo, singular, plural string, elemFunc parser.Func[string]) parser.Func[*List[string]]) {
 	elemFunc := func(p *parser.Parser) string {
 		return parser.TokenWhile(p, func() bool {
 			return parser.MatchesRunePredicate(p, func(r rune) bool {
@@ -78,39 +78,48 @@ func testList(t *testing.T, name string, opening, closing rune) {
 					want.Close.Col = len(in[strings.LastIndex(in, "\n")+1:])
 				}
 
-				got := parsetest.ParsesFully(t, in, list(name, name, opening, closing, elemFunc))
+				got := parsetest.ParsesExact(t, in, f("belongsTo", "singular", "plural", elemFunc))
 				should.Equal(t, got, want)
 			})
 		}
 	})
 
 	recoverCases := []struct {
-		name    string
-		elems   string
-		noClose bool
-		want    []string
+		name       string
+		elems      string
+		noClose    bool
+		want       []string
+		wantErrors []string
 	}{
 		{
-			name:  "empty elem",
-			elems: "foo, , baz",
-			want:  []string{"foo", "", "baz"},
+			name:       "empty elem",
+			elems:      "foo, , baz",
+			want:       []string{"foo", "", "baz"},
+			wantErrors: []string{"belongsTo: missing singular"},
 		}, {
-			name:    "unclosed",
-			elems:   "foo",
-			noClose: true,
-			want:    []string{"foo"},
+			name:       "unclosed",
+			elems:      "foo",
+			noClose:    true,
+			want:       []string{"foo"},
+			wantErrors: []string{"belongsTo: unclosed plural"},
 		}, {
-			name:  "unexpected after elem",
-			elems: "foo 123, baz",
-			want:  []string{"foo", "baz"},
+			name:       "unexpected after elem",
+			elems:      "foo 123, baz",
+			want:       []string{"foo", "baz"},
+			wantErrors: []string{"belongsTo: unexpected runes after singular"},
 		}, {
-			name:  "no elem match",
-			elems: "foo, 123, baz",
-			want:  []string{"foo", "", "baz"},
+			name:       "no elem match",
+			elems:      "foo, 123, baz",
+			want:       []string{"foo", "", "baz"},
+			wantErrors: []string{"belongsTo: missing singular"},
 		}, {
 			name:  "missing comma",
 			elems: "foo bar baz, qux",
 			want:  []string{"foo", "bar", "baz", "qux"},
+			wantErrors: []string{
+				"belongsTo: missing comma",
+				"belongsTo: missing comma",
+			},
 		},
 	}
 
@@ -132,15 +141,14 @@ func testList(t *testing.T, name string, opening, closing rune) {
 					want.Close = nil
 				}
 
-				gotIn := in
+				extra := " "
 				if !c.noClose {
-					gotIn += " other"
+					extra = " other"
 				}
-				p := parsetest.NewParser(t, gotIn)
-				got := parsetest.AssertMatchesButError(t, p, list(name, name, opening, closing, elemFunc))
-				if should.Equal(t, got, want) {
-					should.Equal(t, len(in), p.Index())
-				}
+
+				got := parsetest.ParsesUntilExtra(t, in, extra, list("belongsTo", "singular", "plural", opening, closing, elemFunc),
+					parsetest.WantErrors(c.wantErrors...))
+				should.Equal(t, got, want)
 			})
 		}
 	})
@@ -184,28 +192,28 @@ func TestCommaList(t *testing.T) {
 			t.Run(c.name, func(t *testing.T) {
 				t.Parallel()
 
-				p := parsetest.NewParser(t, c.in+" other")
-				got := parsetest.AssertNoError(t, p, CommaList("a", "as", elemFunc))
-				if should.Equal(t, got, c.want) {
-					should.Equal(t, p.Index(), len(c.in))
-				}
+				got := parsetest.ParsesExact(t, c.in, CommaList("belongsTo", "singular", "plural", elemFunc))
+				should.Equal(t, got, c.want)
 			})
 		}
 	})
 
 	recoverCases := []struct {
-		name string
-		in   string
-		want []string
+		name       string
+		in         string
+		want       []string
+		wantErrors []string
 	}{
 		{
-			name: "empty elem",
-			in:   "foo, , baz",
-			want: []string{"foo", "", "baz"},
+			name:       "empty elem",
+			in:         "foo, , baz",
+			want:       []string{"foo", "", "baz"},
+			wantErrors: []string{"belongsTo: missing singular"},
 		}, {
-			name: "no elems but comma",
-			in:   ",",
-			want: []string{"", ""},
+			name:       "no elems but comma",
+			in:         ",",
+			want:       []string{"", ""},
+			wantErrors: []string{"belongsTo: missing singular", "belongsTo: missing singular"},
 		},
 	}
 
@@ -216,11 +224,9 @@ func TestCommaList(t *testing.T) {
 			t.Run(c.name, func(t *testing.T) {
 				t.Parallel()
 
-				p := parsetest.NewParser(t, c.in+" 123")
-				got := parsetest.AssertMatchesButError(t, p, CommaList("a", "as", elemFunc))
-				if should.Equal(t, got, c.want) {
-					should.Equal(t, p.Index(), len(c.in))
-				}
+				got := parsetest.ParsesUntilEOS(t, c.in, CommaList("belongsTo", "singular", "plural", elemFunc),
+					parsetest.WantErrors(c.wantErrors...))
+				should.Equal(t, got, c.want)
 			})
 		}
 	})

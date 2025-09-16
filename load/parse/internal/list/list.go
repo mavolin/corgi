@@ -23,19 +23,19 @@ type List[T any] struct {
 // and separated by commas.
 //
 // Missing elements are reported and represented by the zero value of T.
-func ParenList[T comparable](singular, plural string, elemFunc parser.Func[T]) parser.Func[*List[T]] {
-	return list(singular, plural, '(', ')', elemFunc)
+func ParenList[T comparable](belongsTo, singular, plural string, elemFunc parser.Func[T]) parser.Func[*List[T]] {
+	return list(belongsTo, singular, plural, '(', ')', elemFunc)
 }
 
 // BracketList parses a list of zero or more elements enclosed in brackets
 // and separated by commas.
 //
 // Missing elements are reported and represented by the zero value of T.
-func BracketList[T comparable](singular, plural string, elemFunc parser.Func[T]) parser.Func[*List[T]] {
-	return list(singular, plural, '[', ']', elemFunc)
+func BracketList[T comparable](belongsTo, singular, plural string, elemFunc parser.Func[T]) parser.Func[*List[T]] {
+	return list(belongsTo, singular, plural, '[', ']', elemFunc)
 }
 
-func list[T comparable](singular, plural string, opening, closing rune, elemFunc parser.Func[T]) parser.Func[*List[T]] {
+func list[T comparable](belongsTo, singular, plural string, opening, closing rune, elemFunc parser.Func[T]) parser.Func[*List[T]] {
 	return func(p *parser.Parser) *List[T] {
 		open := parser.TryRuneAt(p, opening)
 		if open == nil {
@@ -55,10 +55,14 @@ func list[T comparable](singular, plural string, opening, closing rune, elemFunc
 			if parser.TryOptionalRune(p, closing, nil) {
 				l.Close = &pos
 				break
-			} else if parser.TryOptionalRune(p, parser.EOF, nil) ||
-				p.Inline() && parser.MatchesAnyRune(p, whitespace.VerticalRunes...) {
+			}
+
+			prematureEnd := parser.MatchesAnyRune(p, ';', parser.EOF) ||
+				p.Inline() && parser.MatchesAnyRune(p, whitespace.VerticalRunes...)
+			if prematureEnd {
+				parser.RestoreWS(p)
 				p.CaptureError(&diagnostic.Diagnostic{
-					Message: "unclosed " + plural,
+					Message: belongsTo + ": unclosed " + plural,
 					Primary: quickanno.Expected(p, lastPos, "a `"+string(closing)+"`"),
 					Secondary: []diagnostic.Annotation{
 						anno.Position(p.File, *l.Open, "for the opening `"+string(opening)+"` here"),
@@ -66,18 +70,19 @@ func list[T comparable](singular, plural string, opening, closing rune, elemFunc
 				})
 				break
 			}
+
 			elem := parser.TryOptional(p, elemFunc, nil)
 			l.Elems = append(l.Elems, elem)
 			if elem == zero {
 				if parser.MatchesToken(p, ",") { // missing elem
 					p.CaptureError(&diagnostic.Diagnostic{
-						Message: "missing " + singular,
+						Message: belongsTo + ": missing " + singular,
 						Primary: quickanno.Expected(p, pos, plural),
 					})
 				} else {
 					err := unexpected.UntilAnyRune(p, comment.OrAnyWhitespace(), ',', closing)
 					if err != nil {
-						err.Message = "missing " + plural
+						err.Message = belongsTo + ": missing " + singular
 						err.Primary[0].Annotation = "found these unexpected runes instead"
 						p.CaptureError(err)
 					}
@@ -86,9 +91,12 @@ func list[T comparable](singular, plural string, opening, closing rune, elemFunc
 
 			parser.TrySkip(p, comment.OrHorizontalWhitespace())
 
-			if parser.MatchesAnyRune(p, closing, parser.EOF) || parser.TryRune(p, ',') {
+			switch {
+			case parser.MatchesAnyRune(p, ';', closing, parser.EOF):
 				continue
-			} else if p.Inline() && parser.MatchesAnyRune(p, whitespace.VerticalRunes...) {
+			case parser.TryRune(p, ','):
+				continue
+			case p.Inline() && parser.MatchesAnyRune(p, whitespace.VerticalRunes...):
 				continue
 			}
 
@@ -97,7 +105,7 @@ func list[T comparable](singular, plural string, opening, closing rune, elemFunc
 			parser.TrySkip(p, comment.OrHorizontalWhitespace())
 			if parser.Matches(p, elemFunc) {
 				p.CaptureError(&diagnostic.Diagnostic{
-					Message: "missing comma",
+					Message: belongsTo + ": missing comma",
 					Primary: quickanno.Expected(p, p.Pos(), "a comma here"),
 				})
 				continue
@@ -107,13 +115,13 @@ func list[T comparable](singular, plural string, opening, closing rune, elemFunc
 
 			err := unexpected.UntilAnyRune(p, comment.OrHorizontalWhitespace(), ',', closing)
 			if err != nil {
-				err.Message = "unexpected runes before `,` or `" + string(closing) + "`"
+				err.Message = belongsTo + ": unexpected runes after " + singular
 				p.CaptureError(err)
 			}
 
 			if !parser.MatchesAnyRune(p, ',', closing) {
 				p.CaptureError(&diagnostic.Diagnostic{
-					Message: "unclosed " + plural,
+					Message: belongsTo + ": unclosed " + plural,
 					Primary: quickanno.Expected(p, p.Pos(), "a `"+string(closing)+"`"),
 					Secondary: []diagnostic.Annotation{
 						anno.Position(p.File, *l.Open, "for the opening `"+string(opening)+"` here"),
@@ -133,7 +141,7 @@ func list[T comparable](singular, plural string, opening, closing rune, elemFunc
 // CommaList parses a list of one or more elements separated by commas.
 //
 // Missing elements are reported and represented by the zero value of T.
-func CommaList[T comparable](singular, plural string, elemFunc parser.Func[T]) parser.Func[[]T] {
+func CommaList[T comparable](belongsTo, singular, plural string, elemFunc parser.Func[T]) parser.Func[[]T] {
 	return func(p *parser.Parser) []T {
 		var zero T
 
@@ -141,8 +149,8 @@ func CommaList[T comparable](singular, plural string, elemFunc parser.Func[T]) p
 		if elem0 == zero {
 			if parser.MatchesToken(p, ",") { // missing elem
 				p.CaptureError(&diagnostic.Diagnostic{
-					Message: "missing " + singular,
-					Primary: quickanno.Expected(p, p.Pos(), "one or more "+plural),
+					Message: belongsTo + ": missing " + singular,
+					Primary: quickanno.Expected(p, p.Pos(), "one "+singular+" in front of the comma"),
 				})
 			} else {
 				return nil
@@ -170,12 +178,12 @@ func CommaList[T comparable](singular, plural string, elemFunc parser.Func[T]) p
 			}
 			if parser.MatchesToken(p, ",") { // missing elem
 				p.CaptureError(&diagnostic.Diagnostic{
-					Message: "missing " + singular,
+					Message: belongsTo + ": missing " + singular,
 					Primary: quickanno.Expected(p, commaPos, plural),
 				})
 			} else {
 				p.CaptureError(&diagnostic.Diagnostic{
-					Message: "missing " + singular,
+					Message: belongsTo + ": missing " + singular,
 					Primary: []diagnostic.Annotation{
 						anno.Position(p.File, commaPos, "found a comma here, but no "+singular+" after it"),
 					},

@@ -195,7 +195,7 @@ func TestConditional(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := parsesCodeNodeFully(t, c.in, Conditional())
+			got := parsetest.ParsesUntilEOS(t, c.in, Conditional())
 			should.Equal(t, got, c.want)
 		})
 	}
@@ -234,7 +234,7 @@ func TestIf(t *testing.T) {
 		},
 	}
 
-	got := parsesCodeNodeFully(t, in, If())
+	got := parsetest.ParsesUntilEOS(t, in, If())
 	should.Equal(t, got, want)
 }
 
@@ -272,7 +272,7 @@ func TestElseIf(t *testing.T) {
 		},
 	}
 
-	got := parsesCodeNodeFully(t, in, ElseIf())
+	got := parsetest.ParsesUntilEOS(t, in, ElseIf())
 	should.Equal(t, got, want)
 }
 
@@ -302,7 +302,7 @@ func TestElse(t *testing.T) {
 		},
 	}
 
-	got := parsesCodeNodeFully(t, in, Else())
+	got := parsetest.ParsesUntilEOS(t, in, Else())
 	should.Equal(t, got, want)
 }
 
@@ -361,11 +361,7 @@ func TestIfHeader(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			p := parsetest.NewParser(t, c.in+" { 1other stuff }")
-			got := parsetest.AssertNoError(t, p, IfHeader())
-
-			line, col, index := parsetest.CalcEnd(1, 1, 0, c.in)
-			parsetest.AssertPosition(t, p, line, col, index)
+			got := parsetest.ParsesUntilBody(t, c.in, IfHeader())
 			should.Equal(t, got, c.want)
 		})
 	}

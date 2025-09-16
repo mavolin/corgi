@@ -9,6 +9,7 @@ import (
 	"github.com/mavolin/corgi/v2/load/parse/internal/code"
 	"github.com/mavolin/corgi/v2/load/parse/internal/comment"
 	"github.com/mavolin/corgi/v2/load/parse/internal/quickanno"
+	"github.com/mavolin/corgi/v2/load/parse/internal/whitespace"
 )
 
 func Conditional() parser.Func[*ast.Conditional] {
@@ -30,10 +31,12 @@ func Conditional() parser.Func[*ast.Conditional] {
 
 func If() parser.Func[*ast.If] {
 	return func(p *parser.Parser) *ast.If {
-		ifKw := parser.TryKeywordAt(p, "if", comment.OrAnyWhitespace())
+		ifKw := parser.TryKeywordAt(p, "if")
 		if ifKw == nil {
 			return nil
 		}
+
+		parser.TrySkip(p, comment.OrAnyWhitespace())
 
 		var i ast.If
 		i.If = ifKw
@@ -53,11 +56,17 @@ func If() parser.Func[*ast.If] {
 
 func ElseIf() parser.Func[*ast.ElseIf] {
 	return func(p *parser.Parser) *ast.ElseIf {
-		elseKw := parser.TryKeywordAt(p, "else", comment.OrAnyWhitespace())
-		ifKw := parser.TryKeywordAt(p, "if", comment.OrAnyWhitespace())
-		if elseKw == nil || ifKw == nil {
+		elseKw := parser.TryKeywordAt(p, "else")
+		if elseKw == nil {
 			return nil
 		}
+		parser.TrySkip(p, comment.OrAnyWhitespace())
+		ifKw := parser.TryKeywordAt(p, "if")
+		if ifKw == nil {
+			return nil
+		}
+
+		parser.TrySkip(p, comment.OrAnyWhitespace())
 
 		var ei ast.ElseIf
 		ei.Else = elseKw
@@ -78,10 +87,12 @@ func ElseIf() parser.Func[*ast.ElseIf] {
 
 func Else() parser.Func[*ast.Else] {
 	return func(p *parser.Parser) *ast.Else {
-		elseKw := parser.TryKeywordAt(p, "else", comment.OrAnyWhitespace())
+		elseKw := parser.TryKeywordAt(p, "else")
 		if elseKw == nil {
 			return nil
 		}
+
+		parser.TrySkip(p, comment.OrAnyWhitespace())
 
 		var e ast.Else
 		e.Else = elseKw
@@ -106,6 +117,10 @@ func ifHeaderWithStatement() parser.Func[*ast.IfHeader] {
 			return nil
 		}
 
+		parser.TrySkip(p, comment.OrHorizontalWhitespace())
+		if parser.MatchesWS(p, whitespace.EOF()) {
+			return nil
+		}
 		if !parser.Try(p, comment.AndEOS()) {
 			return nil
 		}

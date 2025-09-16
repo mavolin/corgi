@@ -241,7 +241,7 @@ func ZCParenExpression() parser.Func[*ast.ZCParenExpression] {
 
 func zcParenExpression() parser.Func[*zeroCoalescingNodeData[*ast.ZCParenExpression]] {
 	return func(p *parser.Parser) *zeroCoalescingNodeData[*ast.ZCParenExpression] {
-		l := parser.Try(p, list.ParenList("argument", "arguments", SimpleExpression()))
+		l := parser.Try(p, list.ParenList("function", "argument", "arguments", SimpleExpression()))
 		if l == nil {
 			return nil
 		}

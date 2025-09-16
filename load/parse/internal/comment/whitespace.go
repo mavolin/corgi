@@ -35,7 +35,7 @@ func OrHorizontalWhitespace() parser.WhitespaceFunc {
 	}
 }
 
-// AndEOS matches the end of statement, optionally preceded by block comments.
+// AndEOS matches the end of statement, optionally preceded by general comments.
 // It consumes trailing horizontal whitespace; it doesn't consume the EOL.
 // If the line ends with a line comment, AndEOS accepts, but does not consume
 // it.
@@ -65,7 +65,7 @@ func AndEOS() parser.Func[bool] {
 	}
 }
 
-// AndMustEOS matches the end of statement, optionally preceded by block
+// AndMustEOS matches the end of statement, optionally preceded by general
 // comments.
 // If not at the end of statement, it captures an error and returns at the
 // current position.
@@ -149,12 +149,12 @@ func OrAnyWhitespace() parser.WhitespaceFunc {
 			p.CaptureComment(&ast.CommentGroup{Comments: []*ast.Comment{c}})
 		}
 
-		parser.TrySkip(p, OrLoneWS())
+		parser.TrySkip(p, OrLoneWhitespace())
 		return start != p.Index()
 	}
 }
 
-func OrLoneWS() parser.WhitespaceFunc {
+func OrLoneWhitespace() parser.WhitespaceFunc {
 	return func(p *parser.Parser) bool {
 		hasWS := parser.TrySkip(p, whitespace.Any())
 
@@ -178,7 +178,7 @@ func OrLoneWS() parser.WhitespaceFunc {
 			c = parser.Try(p, LineComment())
 		}
 		p.CaptureComment(&ast.CommentGroup{Comments: slices.Clip(cs)})
-		parser.TrySkip(p, OrLoneWS())
+		parser.TrySkip(p, OrLoneWhitespace())
 		return true
 	}
 }

@@ -18,9 +18,9 @@ func Argument() parser.Func[ast.Argument] {
 	}
 }
 
-func Arguments() parser.Func[*ast.Arguments] {
+func Arguments(attachedTo string) parser.Func[*ast.Arguments] {
 	return func(p *parser.Parser) *ast.Arguments {
-		l := parser.Try(p, list.ParenList("argument", "arguments", Argument()))
+		l := parser.Try(p, list.ParenList(attachedTo, "argument", "arguments", Argument()))
 		if l == nil {
 			return nil
 		}

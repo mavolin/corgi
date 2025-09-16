@@ -13,7 +13,7 @@ var (
 func Any() parser.WhitespaceFunc {
 	return func(p *parser.Parser) bool {
 		if p.Inline() {
-			return Horizontal()(p)
+			return parser.TrySkip(p, Horizontal())
 		}
 
 		h := parser.TrySkip(p, Horizontal())
@@ -31,6 +31,16 @@ func Any() parser.WhitespaceFunc {
 	}
 }
 
+func Single() parser.WhitespaceFunc {
+	return func(p *parser.Parser) bool {
+		if p.Inline() {
+			return parser.TrySkip(p, SingleHorizontal())
+		}
+
+		return parser.TrySkip(p, SingleHorizontal()) || parser.TrySkip(p, SingleVertical())
+	}
+}
+
 func Horizontal() parser.WhitespaceFunc {
 	return func(p *parser.Parser) bool {
 		if parser.TryAnyRune(p, ' ', '\t') == 0 {
@@ -40,6 +50,12 @@ func Horizontal() parser.WhitespaceFunc {
 		for parser.TryAnyRune(p, ' ', '\t') > 0 { //nolint:revive
 		}
 		return true
+	}
+}
+
+func SingleHorizontal() parser.WhitespaceFunc {
+	return func(p *parser.Parser) bool {
+		return parser.TryAnyRune(p, ' ', '\t') != 0
 	}
 }
 

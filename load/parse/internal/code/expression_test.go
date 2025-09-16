@@ -13,7 +13,7 @@ import (
 func TestExpression(t *testing.T) {
 	t.Parallel()
 
-	parsetest.AssertAlsoFulfils(t, Expression(), func(t *testing.T, f parser.Func[*ast.Expression]) {
+	parsetest.AlsoFulfils(t, Expression(), func(t *testing.T, f parser.Func[*ast.Expression]) {
 		testZeroCoalescing(t, func(p *parser.Parser) *ast.ZeroCoalescing {
 			e := f(p)
 			if e == nil {
@@ -27,7 +27,7 @@ func TestExpression(t *testing.T) {
 			return e.Nodes[0].(*ast.ZeroCoalescing)
 		})
 	})
-	parsetest.AssertAlsoFulfils(t, Expression(), testSimpleExpression)
+	parsetest.AlsoFulfils(t, Expression(), testSimpleExpression)
 
 	t.Run("body follows", func(t *testing.T) {
 		t.Parallel()
@@ -53,48 +53,8 @@ func TestExpression(t *testing.T) {
 			},
 		}
 
-		tests := []struct {
-			name string
-			body string
-			want *ast.Expression
-		}{
-			{
-				name: "scope",
-				body: "{\n\tfoo\n}",
-			}, {
-				name: "bracket text",
-				body: "[\n\tfoo\n]",
-			},
-		}
-
-		for _, c := range tests {
-			t.Run(c.name, func(t *testing.T) {
-				t.Parallel()
-				t.Run("inline", func(t *testing.T) {
-					t.Parallel()
-
-					p := parsetest.NewParser(t, in+" "+c.body+" 1other stuff")
-					var got *ast.Expression
-					p.DoInline(func() {
-						got = parsetest.AssertNoError(t, p, Expression())
-					})
-
-					line, col, index := parsetest.CalcEnd(1, 1, 0, in)
-					parsetest.AssertPosition(t, p, line, col, index)
-					should.Equal(t, got, want)
-				})
-				t.Run("not inline", func(t *testing.T) {
-					t.Parallel()
-
-					p := parsetest.NewParser(t, in+" "+c.body+" 1other stuff")
-					got := parsetest.AssertNoError(t, p, Expression())
-
-					line, col, index := parsetest.CalcEnd(1, 1, 0, in)
-					parsetest.AssertPosition(t, p, line, col, index)
-					should.Equal(t, got, want)
-				})
-			})
-		}
+		got := parsetest.ParsesUntilBody(t, in, Expression())
+		should.Equal(t, got, want)
 	})
 }
 
@@ -104,10 +64,10 @@ func TestSimpleExpression(t *testing.T) {
 }
 
 func testSimpleExpression(t *testing.T, f parser.Func[*ast.Expression]) {
-	parsetest.AssertAlsoFulfils(t, f, testEnhancedExpression())
-	parsetest.AssertAlsoFulfils(t, f, nodeAsExpression(testBlockFunction()))
-	parsetest.AssertAlsoFulfils(t, f, nodeAsExpression(testString()))
-	parsetest.AssertAlsoFulfils(t, f, nodeAsExpression(testTernary()))
+	parsetest.AlsoFulfils(t, f, testEnhancedExpression())
+	parsetest.AlsoFulfils(t, f, nodeAsExpression(testBlockFunction()))
+	parsetest.AlsoFulfils(t, f, nodeAsExpression(testString()))
+	parsetest.AlsoFulfils(t, f, nodeAsExpression(testTernary()))
 	t.Run("mix", func(t *testing.T) {
 		t.Parallel()
 
@@ -182,7 +142,7 @@ func testSimpleExpression(t *testing.T, f parser.Func[*ast.Expression]) {
 			},
 		}
 
-		got := parsesCodeNodeFully(t, in, f)
+		got := parsetest.ParsesUntilEOS(t, in, f)
 		should.Equal(t, got, want)
 	})
 }
@@ -249,7 +209,7 @@ func testEnhancedExpression() func(t *testing.T, f parser.Func[*ast.Expression])
 					c.want = ast.Code{&ast.GoCode{Code: c.code, Position: &ast.Position{Line: 1, Col: 1}}}
 				}
 
-				got := parsesCodeNodeFully(t, c.code, f)
+				got := parsetest.ParsesUntilEOS(t, c.code, f)
 				should.Equal(t, got, &ast.Expression{Nodes: c.want})
 			})
 		}

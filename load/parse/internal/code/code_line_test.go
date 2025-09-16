@@ -11,7 +11,7 @@ import (
 
 func TestImplicitCodeLine(t *testing.T) {
 	t.Parallel()
-	parsetest.AssertAlsoFulfils(t, ImplicitCodeLine(), func(t *testing.T, f parser.Func[*ast.ImplicitCodeLine]) {
+	parsetest.AlsoFulfils(t, ImplicitCodeLine(), func(t *testing.T, f parser.Func[*ast.ImplicitCodeLine]) {
 		testParsedStatement(t, func(p *parser.Parser) *ast.Statement {
 			f := f(p)
 			if f == nil {
@@ -36,6 +36,6 @@ func TestExplicitCodeLine(t *testing.T) {
 		},
 	}
 
-	got := parsesCodeNodeFully(t, in, ExplicitCodeLine())
+	got := parsetest.ParsesUntilEOS(t, in, ExplicitCodeLine())
 	should.Equal(t, got, want)
 }

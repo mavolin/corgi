@@ -4,7 +4,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mavolin/corgi/v2/internal/test/should"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/mavolin/corgi/v2/load/parse/internal/parsetest"
 )
@@ -17,11 +16,7 @@ func TestAny(t *testing.T) {
 	for _, in := range tests {
 		t.Run(testName(in), func(t *testing.T) {
 			t.Parallel()
-
-			p := parsetest.NewParser(t, in)
-			should.True(t, Any()(p))
-			line, col, index := parsetest.CalcEnd(1, 1, 0, in)
-			parsetest.AssertPosition(t, p, line, col, index)
+			parsetest.SkipsWhitespaceUntilIdentifier(t, in, Any())
 		})
 	}
 
@@ -47,11 +42,23 @@ func testHorizontal(t *testing.T, f parser.WhitespaceFunc, trail string) {
 	for _, in := range tests {
 		t.Run(testName(in), func(t *testing.T) {
 			t.Parallel()
+			parsetest.SkipsWhitespaceUntil(t, in, trail, f)
+		})
+	}
+}
 
-			p := parsetest.NewParser(t, in+trail)
-			should.True(t, f(p))
-			line, col, index := parsetest.CalcEnd(1, 1, 0, in)
-			parsetest.AssertPosition(t, p, line, col, index)
+func TestSingleHorizontal(t *testing.T) {
+	t.Parallel()
+	testSingleHorizontal(t, SingleHorizontal())
+}
+
+func testSingleHorizontal(t *testing.T, f parser.WhitespaceFunc) {
+	tests := []string{" ", "\t"}
+
+	for _, in := range tests {
+		t.Run(testName(in), func(t *testing.T) {
+			t.Parallel()
+			parsetest.SkipsWhitespaceUntil(t, in, " ", f)
 		})
 	}
 }
@@ -67,28 +74,23 @@ func testVertical(t *testing.T, f parser.WhitespaceFunc, trail string) {
 	for _, in := range tests {
 		t.Run(testName(in), func(t *testing.T) {
 			t.Parallel()
-
-			p := parsetest.NewParser(t, in+trail)
-			should.True(t, f(p))
-			line, col, index := parsetest.CalcEnd(1, 1, 0, in)
-			parsetest.AssertPosition(t, p, line, col, index)
+			parsetest.SkipsWhitespaceUntil(t, in, trail, f)
 		})
 	}
 }
 
 func TestSingleVertical(t *testing.T) {
 	t.Parallel()
+	testSingleVertical(t, SingleVertical())
+}
 
+func testSingleVertical(t *testing.T, f parser.WhitespaceFunc) {
 	tests := []string{"\n", "\r\n"}
 
 	for _, in := range tests {
 		t.Run(testName(in), func(t *testing.T) {
 			t.Parallel()
-
-			p := parsetest.NewParser(t, in+"\n")
-			should.True(t, SingleVertical()(p))
-			line, col, index := parsetest.CalcEnd(1, 1, 0, in)
-			parsetest.AssertPosition(t, p, line, col, index)
+			parsetest.SkipsWhitespaceUntil(t, in, "\n", f)
 		})
 	}
 }

@@ -49,7 +49,7 @@ func testBlockFunction() func(t *testing.T, f parser.Func[*ast.BlockFunction]) {
 			for _, c := range tests {
 				t.Run(c.name, func(t *testing.T) {
 					t.Parallel()
-					got := parsesCodeNodeFully(t, c.in, f)
+					got := parsetest.ParsesUntilEOS(t, c.in, f)
 					should.Equal(t, got, c.want)
 				})
 			}
@@ -58,9 +58,10 @@ func testBlockFunction() func(t *testing.T, f parser.Func[*ast.BlockFunction]) {
 			t.Parallel()
 
 			tests := []struct {
-				name string
-				in   string
-				want *ast.BlockFunction
+				name      string
+				in        string
+				want      *ast.BlockFunction
+				wantError string
 			}{
 				{
 					name: "missing closing parenthesis",
@@ -69,6 +70,7 @@ func testBlockFunction() func(t *testing.T, f parser.Func[*ast.BlockFunction]) {
 						LParen: &ast.Position{Line: 1, Col: 6},
 						Block:  &ast.Position{Line: 1, Col: 1},
 					},
+					wantError: "block function: unclosed arguments",
 				}, {
 					name: "too many arguments",
 					in:   "block(foo, bar)",
@@ -78,6 +80,7 @@ func testBlockFunction() func(t *testing.T, f parser.Func[*ast.BlockFunction]) {
 						RParen:    &ast.Position{Line: 1, Col: 15},
 						Block:     &ast.Position{Line: 1, Col: 1},
 					},
+					wantError: "block function: too many arguments",
 				},
 			}
 
@@ -85,7 +88,7 @@ func testBlockFunction() func(t *testing.T, f parser.Func[*ast.BlockFunction]) {
 				t.Run(c.name, func(t *testing.T) {
 					t.Parallel()
 
-					got := parsetest.MatchesButError(t, c.in, f)
+					got := parsetest.ParsesUntilExtra(t, c.in, " ", f, parsetest.WantErrors(c.wantError))
 					should.Equal(t, got, c.want)
 				})
 			}
@@ -125,7 +128,7 @@ func testTernary() func(t *testing.T, f parser.Func[*ast.Ternary]) {
 				RParen: &ast.Position{Line: 1, Col: 29},
 			}
 
-			got := parsesCodeNodeFully(t, in, f)
+			got := parsetest.ParsesUntilEOS(t, in, f)
 			should.Equal(t, got, want)
 		})
 
@@ -133,9 +136,10 @@ func testTernary() func(t *testing.T, f parser.Func[*ast.Ternary]) {
 			t.Parallel()
 
 			tests := []struct {
-				name string
-				in   string
-				want *ast.Ternary
+				name      string
+				in        string
+				want      *ast.Ternary
+				wantError string
 			}{
 				{
 					name: "no args",
@@ -145,6 +149,7 @@ func testTernary() func(t *testing.T, f parser.Func[*ast.Ternary]) {
 						LParen:       &ast.Position{Line: 1, Col: 2},
 						RParen:       &ast.Position{Line: 1, Col: 3},
 					},
+					wantError: "ternary function: missing arguments",
 				}, {
 					name: "only condition",
 					in:   "?(condition)",
@@ -158,6 +163,7 @@ func testTernary() func(t *testing.T, f parser.Func[*ast.Ternary]) {
 						},
 						RParen: &ast.Position{Line: 1, Col: 12},
 					},
+					wantError: "ternary function: missing if-true and if-false values",
 				}, {
 					name: "missing ifFalse",
 					in:   "?(condition, ifTrue)",
@@ -176,6 +182,7 @@ func testTernary() func(t *testing.T, f parser.Func[*ast.Ternary]) {
 						},
 						RParen: &ast.Position{Line: 1, Col: 20},
 					},
+					wantError: "ternary function: missing if-false value",
 				}, {
 					name: "too many args",
 					in:   "?(condition, ifTrue, ifFalse, foo)",
@@ -199,6 +206,7 @@ func testTernary() func(t *testing.T, f parser.Func[*ast.Ternary]) {
 						},
 						RParen: &ast.Position{Line: 1, Col: 34},
 					},
+					wantError: "ternary function: too many arguments",
 				},
 			}
 
@@ -206,22 +214,10 @@ func testTernary() func(t *testing.T, f parser.Func[*ast.Ternary]) {
 				t.Run(c.name, func(t *testing.T) {
 					t.Parallel()
 
-					got := parsetest.MatchesButError(t, c.in, f)
+					got := parsetest.ParsesUntilEOS(t, c.in, f, parsetest.WantErrors(c.wantError))
 					should.Equal(t, got, c.want)
 				})
 			}
 		})
 	}
-}
-
-func parsesCodeNodeFully[T any](t *testing.T, input string, f parser.Func[T]) T {
-	t.Helper()
-
-	p := parsetest.NewParser(t, input+"; 1other stuff")
-	v := parsetest.AssertNoError(t, p, f)
-
-	line, col, index := parsetest.CalcEnd(1, 1, 0, input)
-	parsetest.AssertPosition(t, p, line, col, index)
-
-	return v
 }

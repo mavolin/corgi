@@ -9,6 +9,6 @@ import (
 func TestFullIdent(t *testing.T) {
 	t.Parallel()
 
-	parsetest.AssertAlsoFulfils(t, FullIdent(), testIdentifier)
-	parsetest.AssertAlsoFulfils(t, FullIdent(), testQualifiedIdent)
+	parsetest.AlsoFulfils(t, FullIdent(), testIdentifier)
+	parsetest.AlsoFulfils(t, FullIdent(), testQualifiedIdent)
 }

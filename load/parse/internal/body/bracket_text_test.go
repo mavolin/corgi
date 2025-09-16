@@ -72,7 +72,7 @@ func testBracketText(t *testing.T, f parser.Func[*ast.BracketText]) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := parsetest.ParsesFully(t, c.in, f)
+			got := parsetest.ParsesExact(t, c.in, f)
 			should.Equal(t, got, c.want)
 		})
 	}
@@ -138,7 +138,7 @@ func TestVerbatimBracketText(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := parsetest.ParsesFully(t, c.in, VerbatimBracketText())
+			got := parsetest.ParsesExact(t, c.in, VerbatimBracketText())
 			should.Equal(t, got, c.want)
 		})
 	}

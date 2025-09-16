@@ -82,10 +82,6 @@ func (p *enhancedParser) skipWS(ws parser.WhitespaceFunc) {
 	p.hasWS = parser.TrySkip(p.Parser, ws)
 }
 
-func (p *enhancedParser) isEmpty() bool {
-	return len(p.nodes) == 0 && p.start >= p.end
-}
-
 func enhancedExpressionParser(p *enhancedParser) {
 	for {
 		switch {

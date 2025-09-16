@@ -18,7 +18,7 @@ import (
 
 func Declaration() parser.Func[*ast.StateDeclaration] {
 	return func(p *parser.Parser) *ast.StateDeclaration {
-		state := parser.TryTokenAt(p, "state")
+		state := parser.TryKeywordAt(p, "state")
 		if state == nil {
 			return nil
 		}
@@ -87,7 +87,7 @@ func Declaration() parser.Func[*ast.StateDeclaration] {
 
 func Spec() parser.Func[*ast.StateSpec] {
 	return func(p *parser.Parser) *ast.StateSpec {
-		names := parser.Try(p, list.CommaList("state name", "state names", golang.Identifier()))
+		names := parser.Try(p, list.CommaList("state spec", "name", "names", golang.Identifier()))
 		if names == nil {
 			return nil
 		}
@@ -111,7 +111,7 @@ func Spec() parser.Func[*ast.StateSpec] {
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 
 		valuesStart := p.Pos()
-		s.Values = parser.Try(p, list.CommaList("state value", "state values", code.Expression()))
+		s.Values = parser.Try(p, list.CommaList("state spec", "value", "values", code.Expression()))
 		valuesEnd := p.Pos()
 
 		if len(s.Names) != len(s.Values) {

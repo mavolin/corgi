@@ -1,6 +1,8 @@
 package unexpected
 
 import (
+	"slices"
+
 	"github.com/mavolin/corgi/v2/file/ast"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
 	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
@@ -29,7 +31,9 @@ func UntilAnyRune(p *parser.Parser, ws parser.WhitespaceFunc, runes ...rune) *di
 	if ws == nil {
 		start = p.Pos()
 		s := parser.OptionalTokenWhile(p, nil, func() bool {
-			return !parser.MatchesAnyRune(p, runes...) && !parser.MatchesAnyRune(p, whitespace.Runes...)
+			r := parser.PeekRune(p)
+			return r != parser.EOF && !slices.Contains(runes, r) && !parser.MatchesAnyRune(p, whitespace.Runes...) &&
+				!parser.MatchesAnyToken(p, "//", "/*")
 		})
 		if s == "" {
 			return nil
@@ -40,7 +44,9 @@ func UntilAnyRune(p *parser.Parser, ws parser.WhitespaceFunc, runes ...rune) *di
 		start = p.Pos()
 		for {
 			s := parser.OptionalTokenWhile(p, nil, func() bool {
-				return !parser.MatchesAnyRune(p, runes...) && !parser.MatchesAnyRune(p, whitespace.Runes...)
+				r := parser.PeekRune(p)
+				return r != parser.EOF && !slices.Contains(runes, r) && !parser.MatchesAnyRune(p, whitespace.Runes...) &&
+					!parser.MatchesAnyToken(p, "//", "/*")
 			})
 			if s == "" {
 				break

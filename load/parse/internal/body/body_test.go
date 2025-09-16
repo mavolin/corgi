@@ -9,6 +9,6 @@ import (
 func TestBody(t *testing.T) {
 	t.Parallel()
 
-	parsetest.AssertAlsoFulfils(t, Body(), testBracketText)
-	parsetest.AssertAlsoFulfils(t, Body(), testScope)
+	parsetest.AlsoFulfils(t, Body(), testBracketText)
+	parsetest.AlsoFulfils(t, Body(), testScope)
 }

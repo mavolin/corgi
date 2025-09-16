@@ -35,7 +35,7 @@ func testIDShorthand(t *testing.T, f parser.Func[*ast.IDShorthand]) {
 		},
 	}
 
-	got := parsetest.ParsesFully(t, "#foo#{bar}", f)
+	got := parsetest.ParsesExact(t, "#foo#{bar}", f)
 	should.Equal(t, got, want)
 }
 
@@ -117,11 +117,7 @@ func testClassShorthand(t *testing.T, f parser.Func[*ast.ClassShorthand]) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			p := parsetest.NewParser(t, c.in+", 1other stuff")
-			got := parsetest.AssertNoError(t, p, f)
-
-			line, col, index := parsetest.CalcEnd(1, 1, 0, c.in)
-			parsetest.AssertPosition(t, p, line, col, index)
+			got := parsetest.ParsesUntilComma(t, c.in, f)
 			should.Equal(t, got, c.want)
 		})
 	}
@@ -183,7 +179,7 @@ func testShorthand(t *testing.T, f parser.Func[ast.Shorthand]) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := parsetest.ParsesFully(t, c.in, f)
+			got := parsetest.ParsesExact(t, c.in, f)
 			should.Equal(t, got, c.want)
 		})
 	}
@@ -191,8 +187,8 @@ func testShorthand(t *testing.T, f parser.Func[ast.Shorthand]) {
 
 func TestShorthandNode(t *testing.T) {
 	t.Parallel()
-	parsetest.AssertAlsoFulfils(t, ShorthandNode(), testShorthandText)
-	parsetest.AssertAlsoFulfils(t, ShorthandNode(), testShorthandInterpolation)
+	parsetest.AlsoFulfils(t, ShorthandNode(), testShorthandText)
+	parsetest.AlsoFulfils(t, ShorthandNode(), testShorthandInterpolation)
 }
 
 func TestShorthandText(t *testing.T) {
@@ -204,7 +200,7 @@ func testShorthandText(t *testing.T, f parser.Func[*ast.ShorthandText]) {
 	t.Run("text", func(t *testing.T) {
 		t.Parallel()
 		want := &ast.ShorthandText{Text: "foo", Position: &ast.Position{Line: 1, Col: 1}}
-		got := parsetest.ParsesFully(t, "foo", f)
+		got := parsetest.ParsesExact(t, "foo", f)
 		should.Equal(t, got, want)
 	})
 
@@ -233,7 +229,7 @@ func testShorthandInterpolation(t *testing.T, f parser.Func[*ast.ShorthandInterp
 			Hash:   &ast.Position{Line: 1, Col: 1},
 		}
 
-		got := parsetest.ParsesFully(t, "#{foo}", f)
+		got := parsetest.ParsesExact(t, "#{foo}", f)
 		should.Equal(t, got, want)
 	})
 

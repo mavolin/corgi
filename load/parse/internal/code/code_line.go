@@ -4,8 +4,8 @@ import (
 	"github.com/mavolin/corgi/v2/file/ast"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
+	"github.com/mavolin/corgi/v2/load/parse/internal/comment"
 	"github.com/mavolin/corgi/v2/load/parse/internal/quickanno"
-	"github.com/mavolin/corgi/v2/load/parse/internal/whitespace"
 )
 
 func ImplicitCodeLine() parser.Func[*ast.ImplicitCodeLine] {
@@ -21,10 +21,12 @@ func ImplicitCodeLine() parser.Func[*ast.ImplicitCodeLine] {
 
 func ExplicitCodeLine() parser.Func[*ast.ExplicitCodeLine] {
 	return func(p *parser.Parser) *ast.ExplicitCodeLine {
-		minus := parser.TryKeywordAt(p, "-", whitespace.Horizontal())
+		minus := parser.TryKeywordAt(p, "-")
 		if minus == nil {
 			return nil
 		}
+
+		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 
 		var e ast.ExplicitCodeLine
 		e.Minus = minus

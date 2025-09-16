@@ -6,10 +6,10 @@ import (
 	"github.com/mavolin/corgi/v2/file/ast"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
+	"github.com/mavolin/corgi/v2/load/parse/internal/comment"
 	"github.com/mavolin/corgi/v2/load/parse/internal/html/codepoint"
 	"github.com/mavolin/corgi/v2/load/parse/internal/interpolation"
 	"github.com/mavolin/corgi/v2/load/parse/internal/quickanno"
-	"github.com/mavolin/corgi/v2/load/parse/internal/whitespace"
 )
 
 func IDShorthand() parser.Func[*ast.IDShorthand] {
@@ -51,7 +51,7 @@ func ClassShorthand() parser.Func[*ast.ClassShorthand] {
 		s.Dot = dot
 		s.Names = []ast.Shorthand{name0}
 
-		for parser.TrySkip(p, whitespace.Horizontal()) {
+		for parser.TrySkip(p, comment.OrHorizontalWhitespace()) {
 			name := parser.Try(p, Shorthand())
 			if name == nil {
 				break
@@ -88,7 +88,7 @@ func ShorthandNode() parser.Func[ast.ShorthandNode] {
 func ShorthandText() parser.Func[*ast.ShorthandText] {
 	return func(p *parser.Parser) *ast.ShorthandText {
 		text := parser.TokenWhile(p, func() bool {
-			return !parser.MatchesWS(p, whitespace.Any()) && !parser.MatchesAnyRune(p, '#', ',', ')') &&
+			return !parser.MatchesWS(p, comment.OrAnyWhitespace()) && !parser.MatchesAnyRune(p, '#', ',', ')') &&
 				// https://html.spec.whatwg.org/multipage/common-microsyntaxes.html#set-of-space-separated-tokens
 				!codepoint.MatchesAny(p, codepoint.ASCIIWhitespace) // includes FF
 		})

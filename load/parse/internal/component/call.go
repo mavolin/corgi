@@ -46,12 +46,12 @@ func CallHeader() parser.Func[*ast.ComponentCallHeader] {
 		if !p.Inline() {
 			parser.TrySkip(p, comment.OrHorizontalWhitespace())
 		}
-		typeArguments := parser.TryOptional(p, golang.TypeArgs(), nil)
+		typeArguments := parser.TryOptional(p, golang.TypeArgs("component call"), nil)
 		if typeArguments != nil && !p.Inline() {
 			parser.TrySkip(p, comment.OrHorizontalWhitespace())
 		}
 
-		arguments := parser.Try(p, argument.Arguments())
+		arguments := parser.Try(p, argument.Arguments("component call"))
 		if name == nil && arguments == nil {
 			return nil
 		}
@@ -66,10 +66,12 @@ func CallHeader() parser.Func[*ast.ComponentCallHeader] {
 
 func With() parser.Func[*ast.With] {
 	return func(p *parser.Parser) *ast.With {
-		with := parser.TryKeywordAt(p, "with", comment.OrAnyWhitespace())
+		with := parser.TryKeywordAt(p, "with")
 		if with == nil {
 			return nil
 		}
+
+		parser.TrySkip(p, comment.OrAnyWhitespace())
 
 		var w ast.With
 		w.With = with

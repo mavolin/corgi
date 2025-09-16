@@ -12,7 +12,7 @@ import (
 func TestComponentCallBody(t *testing.T) {
 	t.Parallel()
 
-	parsetest.AssertAlsoFulfils(t, CallBody(), testDefaultBlockShorthand)
+	parsetest.AlsoFulfils(t, CallBody(), testDefaultBlockShorthand)
 	t.Run("Body", func(t *testing.T) {
 		t.Parallel()
 		in := "{\n" +
@@ -35,7 +35,7 @@ func TestComponentCallBody(t *testing.T) {
 			RBrace: &ast.Position{Line: 3, Col: 1},
 		}
 
-		got := parsetest.ParsesFully(t, in, Body())
+		got := parsetest.ParsesExact(t, in, Body())
 		should.Equal[ast.ComponentBody](t, got, want)
 	})
 }
@@ -85,7 +85,7 @@ func testDefaultBlockShorthand(t *testing.T, f parser.Func[*ast.DefaultBlockShor
 	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
-			got := parsetest.ParsesFully(t, c.in, f)
+			got := parsetest.ParsesExact(t, c.in, f)
 			should.Equal(t, got, c.want)
 		})
 	}

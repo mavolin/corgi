@@ -12,8 +12,8 @@ import (
 func TestStatement(t *testing.T) {
 	t.Parallel()
 
-	parsetest.AssertAlsoFulfils(t, ParsedStatement(), testParsedStatement)
-	parsetest.AssertAlsoFulfils(t, Statement(), func(t *testing.T, f parser.Func[*ast.Statement]) {
+	parsetest.AlsoFulfils(t, ParsedStatement(), testParsedStatement)
+	parsetest.AlsoFulfils(t, Statement(), func(t *testing.T, f parser.Func[*ast.Statement]) {
 		testSimpleStatement(t, func(p *parser.Parser) *ast.SimpleStatement {
 			s := f(p)
 			if s == nil {
@@ -35,19 +35,19 @@ func TestParsedStatement(t *testing.T) {
 }
 
 func testParsedStatement(t *testing.T, f parser.Func[*ast.Statement]) {
-	parsetest.AssertAlsoFulfils(t, f, parsedStatementAsStatement(testReturn))
-	parsetest.AssertAlsoFulfils(t, f, parsedStatementAsStatement(testBreak))
-	parsetest.AssertAlsoFulfils(t, f, parsedStatementAsStatement(testContinue))
-	parsetest.AssertAlsoFulfils(t, f, parsedStatementAsStatement(testFallthrough))
-	parsetest.AssertAlsoFulfils(t, f, parsedStatementAsStatement(testDefer))
-	parsetest.AssertAlsoFulfils(t, f, parsedStatementAsStatement(testIncDec))
-	parsetest.AssertAlsoFulfils(t, f, parsedStatementAsStatement(testLabel))
-	parsetest.AssertAlsoFulfils(t, f, parsedStatementAsStatement(testZeroCoalescingAssignment))
-	parsetest.AssertAlsoFulfils(t, f, parsedStatementAsStatement(testConstDeclaration))
-	parsetest.AssertAlsoFulfils(t, f, parsedStatementAsStatement(testVarDeclaration))
-	parsetest.AssertAlsoFulfils(t, f, parsedStatementAsStatement(testShortVarDeclaration))
-	parsetest.AssertAlsoFulfils(t, f, parsedStatementAsStatement(testLabel))
-	parsetest.AssertAlsoFulfils(t, f, parsedStatementAsStatement(testAssignment))
+	parsetest.AlsoFulfils(t, f, parsedStatementAsStatement(testReturn))
+	parsetest.AlsoFulfils(t, f, parsedStatementAsStatement(testBreak))
+	parsetest.AlsoFulfils(t, f, parsedStatementAsStatement(testContinue))
+	parsetest.AlsoFulfils(t, f, parsedStatementAsStatement(testFallthrough))
+	parsetest.AlsoFulfils(t, f, parsedStatementAsStatement(testDefer))
+	parsetest.AlsoFulfils(t, f, parsedStatementAsStatement(testIncDec))
+	parsetest.AlsoFulfils(t, f, parsedStatementAsStatement(testLabel))
+	parsetest.AlsoFulfils(t, f, parsedStatementAsStatement(testZeroCoalescingAssignment))
+	parsetest.AlsoFulfils(t, f, parsedStatementAsStatement(testConstDeclaration))
+	parsetest.AlsoFulfils(t, f, parsedStatementAsStatement(testVarDeclaration))
+	parsetest.AlsoFulfils(t, f, parsedStatementAsStatement(testShortVarDeclaration))
+	parsetest.AlsoFulfils(t, f, parsedStatementAsStatement(testLabel))
+	parsetest.AlsoFulfils(t, f, parsedStatementAsStatement(testAssignment))
 }
 
 func parsedStatementAsStatement[PS ast.ParsedStatement](subTest func(*testing.T, parser.Func[PS])) func(*testing.T, parser.Func[*ast.Statement]) {
@@ -75,7 +75,7 @@ func TestSimpleStatement(t *testing.T) {
 }
 
 func testSimpleStatement(t *testing.T, f parser.Func[*ast.SimpleStatement]) {
-	parsetest.AssertAlsoFulfils(t, f, testParsedSimpleStatement)
+	parsetest.AlsoFulfils(t, f, testParsedSimpleStatement)
 }
 
 func TestParsedSimpleStatement(t *testing.T) {
@@ -84,10 +84,10 @@ func TestParsedSimpleStatement(t *testing.T) {
 }
 
 func testParsedSimpleStatement(t *testing.T, f parser.Func[*ast.SimpleStatement]) {
-	parsetest.AssertAlsoFulfils(t, f, parsedSimpleStatementAsSimpleStatement(testIncDec))
-	parsetest.AssertAlsoFulfils(t, f, parsedSimpleStatementAsSimpleStatement(testZeroCoalescingAssignment))
-	parsetest.AssertAlsoFulfils(t, f, parsedSimpleStatementAsSimpleStatement(testShortVarDeclaration))
-	parsetest.AssertAlsoFulfils(t, f, parsedSimpleStatementAsSimpleStatement(testAssignment))
+	parsetest.AlsoFulfils(t, f, parsedSimpleStatementAsSimpleStatement(testIncDec))
+	parsetest.AlsoFulfils(t, f, parsedSimpleStatementAsSimpleStatement(testZeroCoalescingAssignment))
+	parsetest.AlsoFulfils(t, f, parsedSimpleStatementAsSimpleStatement(testShortVarDeclaration))
+	parsetest.AlsoFulfils(t, f, parsedSimpleStatementAsSimpleStatement(testAssignment))
 }
 
 func parsedSimpleStatementAsSimpleStatement[PS ast.ParsedSimpleStatement](subTest func(*testing.T, parser.Func[PS])) func(*testing.T, parser.Func[*ast.SimpleStatement]) {
@@ -147,7 +147,7 @@ func testReturn(t *testing.T, f parser.Func[*ast.Return]) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := parsesCodeNodeFully(t, c.in, f)
+			got := parsetest.ParsesUntilEOS(t, c.in, f)
 			should.Equal(t, got, c.want)
 		})
 	}
@@ -187,7 +187,7 @@ func testBreak(t *testing.T, f parser.Func[*ast.Break]) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := parsesCodeNodeFully(t, c.in, f)
+			got := parsetest.ParsesUntilEOS(t, c.in, f)
 			should.Equal(t, got, c.want)
 		})
 	}
@@ -227,7 +227,7 @@ func testContinue(t *testing.T, f parser.Func[*ast.Continue]) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := parsesCodeNodeFully(t, c.in, f)
+			got := parsetest.ParsesUntilEOS(t, c.in, f)
 			should.Equal(t, got, c.want)
 		})
 	}
@@ -239,7 +239,6 @@ func TestFallthrough(t *testing.T) {
 }
 
 func testFallthrough(t *testing.T, f parser.Func[*ast.Fallthrough]) {
-	t.Parallel()
 	in := "fallthrough"
 	want := &ast.Fallthrough{
 		Fallthrough: &ast.Position{Line: 1, Col: 1},
@@ -268,7 +267,7 @@ func testDefer(t *testing.T, f parser.Func[*ast.Defer]) {
 		},
 	}
 
-	got := parsesCodeNodeFully(t, in, f)
+	got := parsetest.ParsesUntilEOS(t, in, f)
 	should.Equal(t, got, want)
 }
 
@@ -355,7 +354,7 @@ func testZeroCoalescingAssignment(t *testing.T, f parser.Func[*ast.ZeroCoalescin
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := parsesCodeNodeFully(t, c.in, f)
+			got := parsetest.ParsesUntilEOS(t, c.in, f)
 			should.Equal(t, got, c.want)
 		})
 	}
@@ -401,7 +400,7 @@ func testIncDec(t *testing.T, f parser.Func[*ast.IncDec]) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := parsesCodeNodeFully(t, c.in, f)
+			got := parsetest.ParsesUntilEOS(t, c.in, f)
 			should.Equal(t, got, c.want)
 		})
 	}
@@ -419,7 +418,7 @@ func testLabel(t *testing.T, f parser.Func[*ast.Label]) {
 		Colon: &ast.Position{Line: 1, Col: 8},
 	}
 
-	got := parsesCodeNodeFully(t, in, f)
+	got := parsetest.ParsesUntilEOS(t, in, f)
 	should.Equal(t, got, want)
 }
 
@@ -577,7 +576,7 @@ func testConstDeclaration(t *testing.T, f parser.Func[*ast.ConstDeclaration]) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := parsesCodeNodeFully(t, c.in, f)
+			got := parsetest.ParsesUntilEOS(t, c.in, f)
 			should.Equal(t, got, c.want)
 		})
 	}
@@ -758,7 +757,7 @@ func testVarDeclaration(t *testing.T, f parser.Func[*ast.VarDeclaration]) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := parsesCodeNodeFully(t, c.in, f)
+			got := parsetest.ParsesUntilEOS(t, c.in, f)
 			should.Equal(t, got, c.want)
 		})
 	}
@@ -836,7 +835,7 @@ func testShortVarDeclaration(t *testing.T, f parser.Func[*ast.ShortVarDeclaratio
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := parsesCodeNodeFully(t, c.in, f)
+			got := parsetest.ParsesUntilEOS(t, c.in, f)
 			should.Equal(t, got, c.want)
 		})
 	}
@@ -956,7 +955,7 @@ func testAssignment(t *testing.T, f parser.Func[*ast.Assignment]) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := parsesCodeNodeFully(t, c.in, f)
+			got := parsetest.ParsesUntilEOS(t, c.in, f)
 			should.Equal(t, got, c.want)
 		})
 	}
