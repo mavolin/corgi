@@ -13,7 +13,7 @@ func TestStatement(t *testing.T) {
 	t.Parallel()
 
 	parsetest.AssertAlsoFulfils(t, ParsedStatement(), testParsedStatement)
-	parsetest.AssertAlsoFulfils(t, Statement(Regular), func(t *testing.T, f parser.Func[*ast.Statement]) {
+	parsetest.AssertAlsoFulfils(t, Statement(), func(t *testing.T, f parser.Func[*ast.Statement]) {
 		testSimpleStatement(t, func(p *parser.Parser) *ast.SimpleStatement {
 			s := f(p)
 			if s == nil {
@@ -71,7 +71,7 @@ func parsedStatementAsStatement[PS ast.ParsedStatement](subTest func(*testing.T,
 
 func TestSimpleStatement(t *testing.T) {
 	t.Parallel()
-	testSimpleStatement(t, SimpleStatement(Regular))
+	testSimpleStatement(t, SimpleStatement())
 }
 
 func testSimpleStatement(t *testing.T, f parser.Func[*ast.SimpleStatement]) {

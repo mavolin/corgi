@@ -29,7 +29,7 @@ func ExplicitCodeLine() parser.Func[*ast.ExplicitCodeLine] {
 		var e ast.ExplicitCodeLine
 		e.Minus = minus
 
-		e.Statement = parser.Try(p, Statement(Regular))
+		e.Statement = parser.Try(p, Statement())
 		if e.Statement == nil {
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "explicit code line: missing statement",

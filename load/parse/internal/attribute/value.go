@@ -22,7 +22,7 @@ func Value() parser.Func[ast.AttributeValue] {
 
 func ExpressionValue() parser.Func[*ast.ExpressionAttributeValue] {
 	return func(p *parser.Parser) *ast.ExpressionAttributeValue {
-		expr := parser.Try(p, code.Expression(code.Regular))
+		expr := parser.Try(p, code.Expression())
 		if expr == nil {
 			return nil
 		}

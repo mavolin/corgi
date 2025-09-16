@@ -15,44 +15,46 @@ import (
 	"github.com/mavolin/corgi/v2/load/parse/internal/unexpected"
 )
 
-func Statement(o Options) parser.Func[*ast.Statement] {
+func Statement() parser.Func[*ast.Statement] {
 	return func(p *parser.Parser) *ast.Statement {
-		s := parser.Try(p, parsedStatement(o))
+		s := parser.Try(p, parsedStatement())
 		if s != nil && s.Parsed != nil {
 			return s
 		}
 
-		c := parser.Try(p, GoCode(o|Statements))
+		// parsedStatement might also have returned an expression belonging to
+		// the start of the statement
+
+		parser.TrySkip(p, comment.OrHorizontalWhitespace())
+
+		extra := parser.Try(p, enhancedStatementNodes())
 		if s == nil || s.Nodes == nil {
-			if len(c) == 0 {
+			if len(extra) == 0 {
 				return nil
 			}
-			return &ast.Statement{Nodes: c}
+			return &ast.Statement{Nodes: extra}
 		}
 
-		if len(c) == 0 {
+		if len(extra) == 0 {
 			return s
 		}
-		c2 := make(ast.Code, len(s.Nodes)+len(c))
-		copy(c2, s.Nodes)
-		copy(c2[len(s.Nodes):], c)
-		return &ast.Statement{Nodes: c2}
+		s.Nodes = slices.Grow(s.Nodes, len(extra))
+		s.Nodes = append(s.Nodes, extra...)
+		return s
 	}
 }
 
 func ParsedStatement() parser.Func[*ast.Statement] {
 	return func(p *parser.Parser) *ast.Statement {
-		s := parser.Try(p, parsedStatement(Regular))
-		if s == nil {
-			return nil
-		} else if s.Parsed == nil {
+		s := parser.Try(p, parsedStatement())
+		if s == nil || s.Parsed == nil {
 			return nil
 		}
 		return s
 	}
 }
 
-func parsedStatement(o Options) parser.Func[*ast.Statement] {
+func parsedStatement() parser.Func[*ast.Statement] {
 	return func(p *parser.Parser) *ast.Statement {
 		start := p.Pos()
 
@@ -99,7 +101,7 @@ func parsedStatement(o Options) parser.Func[*ast.Statement] {
 		}
 
 		beforeExpr := p.CloneState()
-		e := parser.Try(p, Expression(o))
+		e := parser.Try(p, Expression())
 		if e == nil {
 			return nil
 		}
@@ -117,7 +119,7 @@ func parsedStatement(o Options) parser.Func[*ast.Statement] {
 				Nodes:  IncDecAsCode(incDec),
 				Parsed: incDec,
 			}
-		} else if a := parser.Try(p, assignment(e, o)); a != nil {
+		} else if a := parser.Try(p, assignment(e)); a != nil {
 			return &ast.Statement{
 				Nodes:  AssignmentAsCode(e.Start(), a),
 				Parsed: a,
@@ -137,83 +139,65 @@ func parsedStatement(o Options) parser.Func[*ast.Statement] {
 	}
 }
 
-func SimpleStatement(o Options) parser.Func[*ast.SimpleStatement] {
+func SimpleStatement() parser.Func[*ast.SimpleStatement] {
 	return func(p *parser.Parser) *ast.SimpleStatement {
-		ss := parser.Try(p, parsedSimpleStatement(o))
+		ss, ok := parsedSimpleStatement(p)
 		if ss != nil && ss.Parsed != nil {
 			return ss
 		}
 
-		c := parser.Try(p, GoCode(o|Statements))
-		if ss == nil || ss.Nodes == nil {
-			if len(c) == 0 {
-				return nil
-			}
-			return &ast.SimpleStatement{Nodes: c}
+		if !ok { // a non-simple statement is ahead
+			return nil
 		}
 
-		if len(c) == 0 {
+		// parsedSimpleStatement might also have returned an expression
+		// belonging to the start of the statement
+
+		parser.TrySkip(p, comment.OrHorizontalWhitespace())
+
+		extra := parser.Try(p, enhancedStatementNodes())
+		if ss == nil || ss.Nodes == nil {
+			if len(extra) == 0 {
+				return nil
+			}
+			return &ast.SimpleStatement{Nodes: extra}
+		}
+
+		if len(extra) == 0 {
 			return ss
 		}
-		c2 := make(ast.Code, len(ss.Nodes)+len(c))
-		copy(c2, ss.Nodes)
-		copy(c2[len(ss.Nodes):], c)
-		return &ast.SimpleStatement{Nodes: c2}
+		ss.Nodes = slices.Grow(ss.Nodes, len(extra))
+		ss.Nodes = append(ss.Nodes, extra...)
+		return ss
 	}
 }
 
 func ParsedSimpleStatement() parser.Func[*ast.SimpleStatement] {
 	return func(p *parser.Parser) *ast.SimpleStatement {
-		ss := parser.Try(p, parsedSimpleStatement(Regular))
-		if ss == nil {
-			return nil
-		} else if ss.Parsed == nil {
+		ss, _ := parsedSimpleStatement(p)
+		if ss == nil || ss.Parsed == nil {
 			return nil
 		}
 		return ss
 	}
 }
 
-func parsedSimpleStatement(o Options) parser.Func[*ast.SimpleStatement] {
-	return func(p *parser.Parser) *ast.SimpleStatement {
-		beforeExpr := p.CloneState()
-
-		e := parser.Try(p, Expression(o))
-		if e == nil {
-			return nil
-		}
-		afterExpr := p.CloneState()
-
-		parser.TrySkip(p, comment.OrHorizontalWhitespace())
-
-		if zca := parser.TryOptional(p, zeroCoalescingAssignment(e), nil); zca != nil {
-			return &ast.SimpleStatement{
-				Nodes:  ZeroCoalescingAssignmentAsCode(zca),
-				Parsed: zca,
-			}
-		} else if incDec := parser.TryOptional(p, incDec(e), nil); incDec != nil {
-			return &ast.SimpleStatement{
-				Nodes:  IncDecAsCode(incDec),
-				Parsed: incDec,
-			}
-		} else if a := parser.Try(p, assignment(e, o)); a != nil {
-			return &ast.SimpleStatement{
-				Nodes:  AssignmentAsCode(e.Start(), a),
-				Parsed: a,
-			}
-		}
-
-		p.RestoreState(beforeExpr)
-		if svd := parser.Try(p, ShortVarDeclaration()); svd != nil {
-			return &ast.SimpleStatement{
-				Nodes:  ShortVarDeclarationAsCode(e.Start(), svd),
-				Parsed: svd,
-			}
-		}
-
-		p.RestoreState(afterExpr)
-		return &ast.SimpleStatement{Nodes: e.Nodes}
+func parsedSimpleStatement(p *parser.Parser) (*ast.SimpleStatement, bool) {
+	s := parser.Try(p, parsedStatement())
+	if s == nil {
+		return nil, true
+	} else if s.Parsed == nil {
+		return &ast.SimpleStatement{Nodes: s.Nodes}, true
 	}
+
+	pss, _ := s.Parsed.(ast.ParsedSimpleStatement)
+	if pss == nil {
+		return nil, false
+	}
+	return &ast.SimpleStatement{
+		Nodes:  s.Nodes,
+		Parsed: pss,
+	}, true
 }
 
 func Return() parser.Func[*ast.Return] {
@@ -226,7 +210,7 @@ func Return() parser.Func[*ast.Return] {
 		var r ast.Return
 		r.Return = ret
 
-		r.Error = parser.TryOptional(p, Expression(Regular), nil)
+		r.Error = parser.TryOptional(p, Expression(), nil)
 
 		return &r
 	}
@@ -331,7 +315,7 @@ func Defer() parser.Func[*ast.Defer] {
 		d.Defer = deferKeyword
 
 		pos := p.Pos()
-		d.Expression = parser.Try(p, Expression(Regular))
+		d.Expression = parser.Try(p, Expression())
 		if d.Expression == nil {
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "defer: missing expression",
@@ -355,7 +339,7 @@ func DeferAsCode(d *ast.Defer) ast.Code {
 
 func ZeroCoalescingAssignment() parser.Func[*ast.ZeroCoalescingAssignment] {
 	return func(p *parser.Parser) *ast.ZeroCoalescingAssignment {
-		valueExpr := parser.Try(p, Expression(Regular))
+		valueExpr := parser.Try(p, Expression())
 		if valueExpr == nil {
 			return nil
 		}
@@ -374,7 +358,7 @@ func zeroCoalescingAssignment(valueExpr *ast.Expression) parser.Func[*ast.ZeroCo
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 		zca.VarComma = parser.TryOptionalRuneAt(p, ',', comment.OrAnyWhitespace())
 		if zca.VarComma != nil {
-			zca.OkExpression = parser.Try(p, Expression(Regular))
+			zca.OkExpression = parser.Try(p, Expression())
 			if zca.OkExpression == nil {
 				p.CaptureError(&diagnostic.Diagnostic{
 					Message: "zero coalescing assignment: missing ok variable",
@@ -449,7 +433,7 @@ func ZeroCoalescingAssignmentAsCode(zca *ast.ZeroCoalescingAssignment) ast.Code 
 
 func IncDec() parser.Func[*ast.IncDec] {
 	return func(p *parser.Parser) *ast.IncDec {
-		expr := parser.Try(p, Expression(Regular))
+		expr := parser.Try(p, Expression())
 		if expr == nil {
 			return nil
 		}
@@ -592,7 +576,7 @@ func ConstSpec() parser.Func[*ast.ConstSpec] {
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 
 		valuesStart := p.Pos()
-		s.Values = parser.Try(p, list.CommaList("const value", "const values", Expression(Regular)))
+		s.Values = parser.Try(p, list.CommaList("const value", "const values", Expression()))
 		valuesEnd := p.Pos()
 		if s.Values == nil {
 			if len(s.Names) == 1 {
@@ -824,7 +808,7 @@ func VarSpec() parser.Func[*ast.VarSpec] {
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 
 		valuesStart := p.Pos()
-		s.Values = parser.Try(p, list.CommaList("var value", "var values", Expression(Regular)))
+		s.Values = parser.Try(p, list.CommaList("var value", "var values", Expression()))
 		valuesEnd := p.Pos()
 		if s.Values == nil {
 			if len(s.Names) == 1 {
@@ -974,7 +958,7 @@ func ShortVarDeclaration() parser.Func[*ast.ShortVarDeclaration] {
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 
 		valuesStart := p.Pos()
-		d.Values = parser.Try(p, list.CommaList("value", "values", Expression(Regular)))
+		d.Values = parser.Try(p, list.CommaList("value", "values", Expression()))
 		valuesEnd := p.Pos()
 		if d.Values == nil {
 			if len(d.Names) == 1 {
@@ -1110,10 +1094,10 @@ func LabelAsCode(l *ast.Label) ast.Code {
 }
 
 func Assignment() parser.Func[*ast.Assignment] {
-	return assignment(nil, Regular)
+	return assignment(nil)
 }
 
-func assignment(e *ast.Expression, o Options) parser.Func[*ast.Assignment] {
+func assignment(e *ast.Expression) parser.Func[*ast.Assignment] {
 	return func(p *parser.Parser) *ast.Assignment {
 		var lhs []*ast.Expression
 		if e != nil {
@@ -1121,7 +1105,7 @@ func assignment(e *ast.Expression, o Options) parser.Func[*ast.Assignment] {
 			if parser.TryOptionalRune(p, ',', nil) {
 				parser.TrySkip(p, comment.OrAnyWhitespace())
 
-				es := parser.Try(p, list.CommaList("expression", "expressions", Expression(Regular)))
+				es := parser.Try(p, list.CommaList("expression", "expressions", Expression()))
 				if es == nil {
 					p.CaptureError(&diagnostic.Diagnostic{
 						Message: "assignment: missing assignees",
@@ -1133,7 +1117,7 @@ func assignment(e *ast.Expression, o Options) parser.Func[*ast.Assignment] {
 				lhs = []*ast.Expression{e}
 			}
 		} else {
-			lhs = parser.Try(p, list.CommaList("expression", "expressions", Expression(Regular)))
+			lhs = parser.Try(p, list.CommaList("expression", "expressions", Expression()))
 			if lhs == nil {
 				return nil
 			}
@@ -1154,7 +1138,7 @@ func assignment(e *ast.Expression, o Options) parser.Func[*ast.Assignment] {
 
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 		rhsStart := p.Pos()
-		a.RHS = parser.Try(p, list.CommaList("expression", "expressions", Expression(o)))
+		a.RHS = parser.Try(p, list.CommaList("expression", "expressions", Expression()))
 		rhsEnd := p.Pos()
 		if len(a.RHS) > 0 {
 			if len(a.RHS) > 1 && len(a.LHS) != len(a.RHS) {

@@ -111,7 +111,7 @@ func Parameter() parser.Func[*ast.ComponentParameter] {
 		param.Type = typ
 		param.Colon = colon
 
-		param.Default = parser.Try(p, code.Expression(code.Regular))
+		param.Default = parser.Try(p, code.Expression())
 		if param.Default == nil {
 			if param.Colon != nil {
 				p.CaptureError(&diagnostic.Diagnostic{

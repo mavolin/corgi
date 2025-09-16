@@ -111,7 +111,7 @@ func Spec() parser.Func[*ast.StateSpec] {
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 
 		valuesStart := p.Pos()
-		s.Values = parser.Try(p, list.CommaList("state value", "state values", code.Expression(code.Regular)))
+		s.Values = parser.Try(p, list.CommaList("state value", "state values", code.Expression()))
 		valuesEnd := p.Pos()
 
 		if len(s.Names) != len(s.Values) {

@@ -65,7 +65,7 @@ func ZeroCoalescing() parser.Func[*ast.ZeroCoalescing] {
 		}
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 
-		zc.Default = parser.Try(p, NonZCExpression(Regular))
+		zc.Default = parser.Try(p, SimpleExpression())
 		if zc.Default == nil {
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "zero coalescing: missing default value",
@@ -101,8 +101,8 @@ func ZeroCoalescing() parser.Func[*ast.ZeroCoalescing] {
 
 func zeroCoalescingRoot() parser.Func[*ast.Expression] {
 	return func(p *parser.Parser) *ast.Expression {
-		if parser.MatchesAnyRune(p, '(') {
-			return parser.Try(p, NonZCExpression(FirstParen))
+		if parenExpr := parser.Try(p, ParenExpression()); parenExpr != nil {
+			return parenExpr
 		}
 
 		ident := parser.Try(p, golang.Identifier())
@@ -158,7 +158,7 @@ func zcIndexExpression() parser.Func[*zeroCoalescingNodeData[*ast.ZCIndexExpress
 
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 		pos := p.Pos()
-		ie.Index = parser.Try(p, NonZCExpression(Regular))
+		ie.Index = parser.Try(p, SimpleExpression())
 		if ie.Index == nil {
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "index expression: missing index",
@@ -241,7 +241,7 @@ func ZCParenExpression() parser.Func[*ast.ZCParenExpression] {
 
 func zcParenExpression() parser.Func[*zeroCoalescingNodeData[*ast.ZCParenExpression]] {
 	return func(p *parser.Parser) *zeroCoalescingNodeData[*ast.ZCParenExpression] {
-		l := parser.Try(p, list.ParenList("argument", "arguments", NonZCExpression(Regular)))
+		l := parser.Try(p, list.ParenList("argument", "arguments", SimpleExpression()))
 		if l == nil {
 			return nil
 		}

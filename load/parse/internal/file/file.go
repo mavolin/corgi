@@ -13,6 +13,7 @@ import (
 	"github.com/mavolin/corgi/v2/load/parse/internal/code"
 	"github.com/mavolin/corgi/v2/load/parse/internal/comment"
 	"github.com/mavolin/corgi/v2/load/parse/internal/component"
+	"github.com/mavolin/corgi/v2/load/parse/internal/control"
 	"github.com/mavolin/corgi/v2/load/parse/internal/element"
 	"github.com/mavolin/corgi/v2/load/parse/internal/interpolation"
 	"github.com/mavolin/corgi/v2/load/parse/internal/quickanno"
@@ -24,7 +25,7 @@ import (
 func init() {
 	code.SetComponentCall(component.Call())
 
-	interpolation.SetExpression(code.Expression(code.Regular))
+	interpolation.SetExpression(code.Expression())
 	interpolation.SetComponentCall(component.Call())
 
 	attribute.SetElementReference(element.Reference())
@@ -41,11 +42,11 @@ func scopeNode(p *parser.Parser) ast.ScopeNode {
 		return n
 	} else if n := parser.Try(p, component.With()); n != nil {
 		return n
-	} else if n := parser.Try(p, code.Conditional()); n != nil {
+	} else if n := parser.Try(p, control.Conditional()); n != nil {
 		return n
-	} else if n := parser.Try(p, code.Switch()); n != nil {
+	} else if n := parser.Try(p, control.Switch()); n != nil {
 		return n
-	} else if n := parser.Try(p, code.For()); n != nil {
+	} else if n := parser.Try(p, control.For()); n != nil {
 		return n
 	} else if n := parser.Try(p, text.ArrowBlock()); n != nil {
 		return n
@@ -57,7 +58,7 @@ func scopeNode(p *parser.Parser) ast.ScopeNode {
 		return n
 	} else if n := parser.Try(p, code.ExplicitCodeLine()); n != nil {
 		return n
-	} else if b := parser.Try(p, code.ElseIf()); b != nil {
+	} else if b := parser.Try(p, control.ElseIf()); b != nil {
 		p.CaptureError(&diagnostic.Diagnostic{
 			Message: "unexpected `else if`",
 			Primary: []diagnostic.Annotation{
@@ -69,7 +70,7 @@ func scopeNode(p *parser.Parser) ast.ScopeNode {
 			From:  b.Start(),
 			Until: b.End(),
 		}
-	} else if b := parser.Try(p, code.Else()); b != nil {
+	} else if b := parser.Try(p, control.Else()); b != nil {
 		p.CaptureError(&diagnostic.Diagnostic{
 			Message: "unexpected `else`",
 			Primary: []diagnostic.Annotation{
@@ -237,7 +238,7 @@ func TopLevelNode() parser.Func[ast.TopLevelNode] {
 
 func implicitTopLevelCodeLine() parser.Func[*ast.ImplicitCodeLine] {
 	return func(p *parser.Parser) *ast.ImplicitCodeLine {
-		s := code.Statement(code.Regular)(p)
+		s := code.Statement()(p)
 		if s == nil {
 			return nil
 		}

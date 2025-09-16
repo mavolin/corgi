@@ -5,34 +5,74 @@ import (
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 )
 
-func Expression(o Options) parser.Func[*ast.Expression] {
-	o &= ^Statements
+// Expression parses a full expression, either a zero-coalescing expression or
+// a simple expression.
+func Expression() parser.Func[*ast.Expression] {
 	return func(p *parser.Parser) *ast.Expression {
-		var e ast.Expression
-
-		e.Nodes = parser.Try(p, Code(o))
-		if e.Nodes == nil {
-			return nil
+		if zc := parser.Try(p, ZeroCoalescing()); zc != nil {
+			return &ast.Expression{Nodes: ast.Code{zc}}
 		}
-
-		return &e
+		return parser.Try(p, SimpleExpression())
 	}
 }
 
-func NonZCExpression(o Options) parser.Func[*ast.Expression] {
-	o &= ^Statements
+// SimpleExpression parses a simple expression, either a component call or an
+// enhanced expression.
+func SimpleExpression() parser.Func[*ast.Expression] {
 	return func(p *parser.Parser) *ast.Expression {
-		cc := parser.Try(p, componentCall)
-		if cc != nil {
-			return &ast.Expression{Nodes: []ast.CodeNode{cc}}
+		if cc := parser.Try(p, componentCall); cc != nil {
+			return &ast.Expression{Nodes: ast.Code{cc}}
+		} else if ee := parser.Try(p, EnhancedExpression()); ee != nil {
+			return ee
 		}
 
-		var e ast.Expression
-		e.Nodes = parser.Try(p, GoCode(o))
-		if e.Nodes == nil {
+		return nil
+	}
+}
+
+// ParenExpression parses a parenthesised enhanced expression, e.g.
+// `(foo.bar())`.
+func ParenExpression() parser.Func[*ast.Expression] {
+	return func(p *parser.Parser) *ast.Expression {
+		if !parser.MatchesAnyRune(p, '(') {
 			return nil
 		}
 
-		return &e
+		nodes := parseEnhanced(p, enhancedParenExpressionParser)
+		if len(nodes) == 0 {
+			return nil
+		}
+		return &ast.Expression{Nodes: nodes}
+	}
+}
+
+func EnhancedExpression() parser.Func[*ast.Expression] {
+	return func(p *parser.Parser) *ast.Expression {
+		// expression can't start with a brace or bracket
+		if parser.MatchesAnyRune(p, '{', '[') {
+			return nil
+		}
+
+		nodes := parseEnhanced(p, enhancedExpressionParser)
+		if len(nodes) == 0 {
+			return nil
+		}
+		return &ast.Expression{Nodes: nodes}
+	}
+}
+
+// Enhancement parses one of corgi's extensions to Go's expression syntax, that
+// can appear inside an expression.
+func Enhancement() parser.Func[ast.CodeNode] {
+	return func(p *parser.Parser) ast.CodeNode {
+		if bf := parser.Try(p, BlockFunction()); bf != nil {
+			return bf
+		} else if s := parser.Try(p, String()); s != nil {
+			return s
+		} else if t := parser.Try(p, Ternary()); t != nil {
+			return t
+		}
+
+		return nil
 	}
 }

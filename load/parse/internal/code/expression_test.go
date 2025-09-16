@@ -13,7 +13,7 @@ import (
 func TestExpression(t *testing.T) {
 	t.Parallel()
 
-	parsetest.AssertAlsoFulfils(t, Expression(Regular), func(t *testing.T, f parser.Func[*ast.Expression]) {
+	parsetest.AssertAlsoFulfils(t, Expression(), func(t *testing.T, f parser.Func[*ast.Expression]) {
 		testZeroCoalescing(t, func(p *parser.Parser) *ast.ZeroCoalescing {
 			e := f(p)
 			if e == nil {
@@ -27,7 +27,7 @@ func TestExpression(t *testing.T) {
 			return e.Nodes[0].(*ast.ZeroCoalescing)
 		})
 	})
-	parsetest.AssertAlsoFulfils(t, Expression(Regular), testNonZCExpression)
+	parsetest.AssertAlsoFulfils(t, Expression(), testSimpleExpression)
 
 	t.Run("body follows", func(t *testing.T) {
 		t.Parallel()
@@ -76,7 +76,7 @@ func TestExpression(t *testing.T) {
 					p := parsetest.NewParser(t, in+" "+c.body+" 1other stuff")
 					var got *ast.Expression
 					p.DoInline(func() {
-						got = parsetest.AssertNoError(t, p, Expression(Regular))
+						got = parsetest.AssertNoError(t, p, Expression())
 					})
 
 					line, col, index := parsetest.CalcEnd(1, 1, 0, in)
@@ -87,7 +87,7 @@ func TestExpression(t *testing.T) {
 					t.Parallel()
 
 					p := parsetest.NewParser(t, in+" "+c.body+" 1other stuff")
-					got := parsetest.AssertNoError(t, p, Expression(Regular))
+					got := parsetest.AssertNoError(t, p, Expression())
 
 					line, col, index := parsetest.CalcEnd(1, 1, 0, in)
 					parsetest.AssertPosition(t, p, line, col, index)
@@ -98,13 +98,13 @@ func TestExpression(t *testing.T) {
 	})
 }
 
-func TestNonZCExpression(t *testing.T) {
+func TestSimpleExpression(t *testing.T) {
 	t.Parallel()
-	testNonZCExpression(t, NonZCExpression(Regular))
+	testSimpleExpression(t, SimpleExpression())
 }
 
-func testNonZCExpression(t *testing.T, f parser.Func[*ast.Expression]) {
-	parsetest.AssertAlsoFulfils(t, f, codeAsExpression(testGoCode()))
+func testSimpleExpression(t *testing.T, f parser.Func[*ast.Expression]) {
+	parsetest.AssertAlsoFulfils(t, f, testEnhancedExpression())
 	parsetest.AssertAlsoFulfils(t, f, nodeAsExpression(testBlockFunction()))
 	parsetest.AssertAlsoFulfils(t, f, nodeAsExpression(testString()))
 	parsetest.AssertAlsoFulfils(t, f, nodeAsExpression(testTernary()))
@@ -187,15 +187,72 @@ func testNonZCExpression(t *testing.T, f parser.Func[*ast.Expression]) {
 	})
 }
 
-func codeAsExpression(subTest func(t *testing.T, f parser.Func[ast.Code])) func(*testing.T, parser.Func[*ast.Expression]) {
+func TestEnhancedExpression(t *testing.T) {
+	t.Parallel()
+	testEnhancedExpression()(t, EnhancedExpression())
+}
+
+func testEnhancedExpression() func(t *testing.T, f parser.Func[*ast.Expression]) {
 	return func(t *testing.T, f parser.Func[*ast.Expression]) {
-		subTest(t, func(p *parser.Parser) ast.Code {
-			e := f(p)
-			if e == nil {
-				return nil
-			}
-			return e.Nodes
-		})
+		tests := []struct {
+			name string
+			code string
+			want ast.Code
+		}{
+			{
+				name: "identifier",
+				code: "woof",
+			}, {
+				name: "comparison",
+				code: "len(woof) >= len(bark)",
+			}, {
+				name: "comma in parentheses",
+				code: "(woof, bark)",
+			}, {
+				name: "comma in brackets",
+				code: "a[woof, bark]",
+			}, {
+				name: "comma in braces",
+				code: "func(){woof, bark}",
+			}, {
+				name: "semicolon in braces",
+				code: "func(){woof; bark}",
+			}, {
+				name: "rune literal",
+				code: "';'",
+			}, {
+				name: "mix",
+				code: "foo(bar, baz) + string(';')",
+			}, {
+				name: "string in parentheses",
+				code: "(\"foo\")",
+				want: ast.Code{
+					&ast.GoCode{Code: "(", Position: &ast.Position{Line: 1, Col: 1}},
+					&ast.String{
+						Open:  &ast.Position{Line: 1, Col: 2},
+						Quote: '"',
+						Contents: []ast.StringNode{
+							&ast.StringText{Text: "foo", Position: &ast.Position{Line: 1, Col: 3}},
+						},
+						Close: &ast.Position{Line: 1, Col: 6},
+					},
+					&ast.GoCode{Code: ")", Position: &ast.Position{Line: 1, Col: 7}},
+				},
+			},
+		}
+
+		for _, c := range tests {
+			t.Run(c.name, func(t *testing.T) {
+				t.Parallel()
+
+				if c.want == nil {
+					c.want = ast.Code{&ast.GoCode{Code: c.code, Position: &ast.Position{Line: 1, Col: 1}}}
+				}
+
+				got := parsesCodeNodeFully(t, c.code, f)
+				should.Equal(t, got, &ast.Expression{Nodes: c.want})
+			})
+		}
 	}
 }
 
