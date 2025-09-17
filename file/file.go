@@ -225,7 +225,7 @@ func buildSymbols(f *File) {
 // You must add a builtin import using this method, not by adding it to the
 // [Symbols.Imports] slice directly.
 func (s *Symbols) AddBuiltinImport(alias string, builtin *Package) {
-	imp := &Import{
+	s.AddImport(&Import{
 		Alias:     alias,
 		CorgiPath: builtin.CorgiImportPath,
 		GoPath:    builtin.GoImportPath(),
@@ -233,8 +233,7 @@ func (s *Symbols) AddBuiltinImport(alias string, builtin *Package) {
 		Namespace: cmp.Or(alias, builtin.Name),
 		Builtin:   true,
 		Loaded:    true,
-	}
-	s.AddImport(imp)
+	})
 }
 
 // AddImport adds the given import to the file.

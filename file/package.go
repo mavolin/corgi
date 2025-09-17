@@ -39,6 +39,12 @@ type Package struct {
 	Files []*File
 }
 
+// GoImportPath returns the import path with which the package should be
+// imported in Go code.
+//
+// This might be different from the [Package.CorgiImportPath], if the path is
+// symbolic.
+// See [Package.CorgiImportPath] for more information.
 func (p *Package) GoImportPath() string {
 	if p.Module != "" {
 		return path.Join(p.Module, p.PathInModule)
