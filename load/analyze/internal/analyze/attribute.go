@@ -527,7 +527,8 @@ func (z *analyzer) analyzeInferredAttributeType(logger *slog.Logger, f *file.Fil
 			},
 			Explanation: "As part of the security model, non-constant attributes must be typed. " +
 				"For example, the `href` attribute placed on an `<a>` element is defined as `url`.\n" +
-				"Since this attribute is forwarded out of the component, it must be assigned an explicit type.",
+				"Since this attribute is forwarded out of the component, it must be assigned an explicit type " +
+				"or hold a constant value.",
 			Hints: []diagnostic.Hint{
 				{
 					Hint:    "Explicitly type the attribute.",
@@ -580,7 +581,8 @@ func (z *analyzer) analyzeInferredAttributeType(logger *slog.Logger, f *file.Fil
 			Explanation: "As part of the security model, non-constant attributes must be typed.\n" +
 				"You can type an attribute using one of two ways:\n" +
 				"Either explicitly type the attribute, e.g. `data-foo='url(myVar)`, " +
-				"or define the attribute for the elements it is attached to.\n" +
+				"define the attribute for the elements it is attached to, " +
+				"or set it to a constant value.\n" +
 				"For example, the `href` attribute placed on an `<a>` element is defined as `url`.",
 			Hints: []diagnostic.Hint{
 				{
