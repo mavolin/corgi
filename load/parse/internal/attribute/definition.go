@@ -7,6 +7,7 @@ import (
 
 	"github.com/mavolin/corgi/v2/file/ast"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
+	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/mavolin/corgi/v2/load/parse/internal/comment"
 	"github.com/mavolin/corgi/v2/load/parse/internal/golang"
@@ -280,14 +281,62 @@ func RegexpSelector() parser.Func[*ast.RegexpAttributeSelector] {
 				Examples: []diagnostic.Example{{Example: "'regexp(`hx-\\d{3}`)"}},
 			})
 		} else {
-			var err error
-			s.Compiled, err = regexp.Compile(s.Raw.Unquote())
-			if err != nil {
+			expr := s.Raw.Unquote()
+			if strings.HasPrefix(expr, "^") {
+				caretPos := s.Raw.Start()
+				caretPos.Col += len(`"`)
 				p.CaptureError(&diagnostic.Diagnostic{
-					Message: "invalid regular expression",
-					Primary: quickanno.Expected(p, s.Raw.Start(), "a valid regular expression"),
-					Cause:   err,
+					Message: "regexp attribute selector: unnecessary start anchor",
+					Primary: []diagnostic.Annotation{
+						anno.Position(p.File, caretPos, "remove this start anchor"),
+					},
+					Explanation: "Matches against a regular expression selector always match the entire attribute name anyway, " +
+						"so there is no point in adding this start anchor.\n" +
+						"Remove it to avoid confusion.",
+					Hints: []diagnostic.Hint{
+						{Hint: "The formatter (`corgi fmt`) can automatically fix this error."},
+					},
 				})
+			} else {
+				expr = "^" + expr
+			}
+			if strings.HasSuffix(expr, "$") {
+				dollarPos := s.Raw.End()
+				dollarPos.Col -= len(`"`)
+				p.CaptureError(&diagnostic.Diagnostic{
+					Message: "regexp attribute selector: unnecessary end anchor",
+					Primary: []diagnostic.Annotation{
+						anno.Position(p.File, dollarPos, "remove this end anchor"),
+					},
+					Explanation: "Matches against a regular expression selector always match the entire attribute name anyway, " +
+						"so there is no point in adding this end anchor.\n" +
+						"Remove it to avoid confusion.",
+					Hints: []diagnostic.Hint{
+						{Hint: "The formatter (`corgi fmt`) can automatically fix this error."},
+					},
+				})
+			} else {
+				expr = expr + "$"
+			}
+
+			var err error
+			s.Compiled, err = regexp.Compile(expr)
+			if err != nil {
+				_, origErr := regexp.Compile(s.Raw.Unquote()) // try without anchors to get a better error message
+				if origErr != nil {
+					p.CaptureError(&diagnostic.Diagnostic{
+						Message: "regexp attribute selector: invalid regular expression",
+						Primary: []diagnostic.Annotation{anno.Node(p.File, s.Raw, err.Error())},
+					})
+				} else {
+					p.CaptureError(&diagnostic.Diagnostic{
+						Message: "regexp attribute selector: invalid regular expression: could not apply anchors",
+						Primary: []diagnostic.Annotation{anno.Node(p.File, s.Raw, err.Error())},
+						Explanation: "The anchors (`^` and `$`) are automatically added to the regular expression, " +
+							"to enforce full matches.\n" +
+							"When trying to compile the regular expression with anchors, it fails, but without anchors it succeeds.",
+					})
+				}
 			}
 		}
 

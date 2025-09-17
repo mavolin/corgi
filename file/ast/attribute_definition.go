@@ -303,9 +303,11 @@ func (b *BasicAttributeSelector) _attributeSelector() {}
 // ============================== Regexp Attribute Matcher ==============================
 
 type RegexpAttributeSelector struct {
-	Regexp   *Position
-	LParen   *Position
-	Raw      *StaticString
+	Regexp *Position
+	LParen *Position
+	Raw    *StaticString
+	// Compiled is the compiled version of Raw, with start and end anchors
+	// added to ensure full-string matches.
 	Compiled *regexp.Regexp
 	RParen   *Position
 }
