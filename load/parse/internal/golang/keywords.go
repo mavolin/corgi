@@ -35,7 +35,6 @@ func IsKeyword(s string) bool { // https://go.dev/ref/spec#Keywords
 	case "state":
 	case "attr":
 	case "elem":
-	case "ordered":
 	default:
 		return false
 	}
