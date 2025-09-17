@@ -80,8 +80,8 @@ type Attribute struct {
 	//       require attribute to be constant
 	//       return attrtype.Unknown
 	//   for each element spec in attribute.ContainingElementSpecs:
-	//       require attribute.Reference.Spec has definition for element spec
-	//           and attribute type for that element spec to be equal to t
+	//       let rule = attribute.Reference.Spec.RuleFor(element spec)
+	//       require rule to be non-nil and rule.Type to be t
 	//       otherwise fail
 	Type Analysis[attrtype.Type]
 }

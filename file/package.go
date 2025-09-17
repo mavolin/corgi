@@ -144,9 +144,26 @@ func BuildSymbols(p *Package) {
 				}
 			case *ast.AttributeDefinition:
 				for _, spec := range n.Specs {
-					if spec != nil {
-						p.AttributeSpecs = append(p.AttributeSpecs, &AttributeSpec{Definition: n, AST: spec, File: f})
+					if spec == nil {
+						continue
 					}
+
+					var wildcardRule *ast.AttributeRule
+					if spec.Ruleset != nil {
+						for _, rule := range spec.Ruleset.List {
+							if _, ok := rule.Selector.(*ast.WildcardElementSelector); ok {
+								wildcardRule = rule
+								break
+							}
+						}
+					}
+
+					p.AttributeSpecs = append(p.AttributeSpecs, &AttributeSpec{
+						Definition:   n,
+						AST:          spec,
+						File:         f,
+						WildcardRule: wildcardRule,
+					})
 				}
 			}
 		}

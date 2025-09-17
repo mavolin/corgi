@@ -3,6 +3,7 @@ package file
 import (
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/mavolin/corgi/v2/escape/attrtype"
 	"github.com/mavolin/corgi/v2/file/ast"
@@ -15,6 +16,14 @@ type AttributeSpec struct {
 	AST        *ast.AttributeSpec
 	Definition *ast.AttributeDefinition
 	File       *File
+
+	// WildcardRule is the rule with the wildcard selector, if such a rule
+	// exists.
+	// It's presence indicates that the attribute is defined for all elements.
+	WildcardRule *ast.AttributeRule
+
+	explicitRules     map[*ElementSpec]*ast.AttributeRule
+	explicitRulesOnce sync.Once
 
 	// Specificity is the specificity of the attribute definition.
 	//
@@ -52,14 +61,48 @@ func (spec *AttributeSpec) MatchesQualifiedName(name string) bool {
 }
 
 // RuleFor returns the rule on the attribute definition for the given element.
+//
+// If there is no explicit match for the element, the wildcard rule is returned,
+// if it exists.
+//
+// The file must have been linked.
 func (spec *AttributeSpec) RuleFor(elemSpec *ElementSpec) *ast.AttributeRule {
-	if spec.AST.Ruleset == nil {
-		return nil
+	if !spec.File.Linked {
+		panic("AttributeSpec.RuleFor called on unlinked file")
 	}
 
+	if spec.AST.Ruleset == nil {
+		return nil
+	} else if spec.WildcardRule != nil && len(spec.AST.Ruleset.List) == 1 { // fast path
+		return spec.WildcardRule
+	}
+
+	spec.explicitRulesOnce.Do(func() {
+		spec.explicitRules = make(map[*ElementSpec]*ast.AttributeRule)
+		for _, rule := range spec.AST.Ruleset.List {
+			if rule == nil {
+				continue
+			}
+
+			switch sel := rule.Selector.(type) {
+			case *ast.WildcardElementSelector:
+				// used as fallback: spec.WildcardRule
+			case *ast.ListElementSelector:
+				for _, elemRefAST := range sel.List {
+					elemRef := spec.File.ElementReferenceByNode(elemRefAST)
+					if elemRef != nil && elemRef.Spec != nil {
+						spec.explicitRules[elemRef.Spec] = rule
+					}
+				}
+			default:
+				panic(fmt.Sprintf("AttributeSpec.RuleFor: unknown selector type: %T", sel))
+			}
+		}
+	})
+
 	for elemSpec != nil {
-		if r := spec.ruleFor(elemSpec); r != nil {
-			return r
+		if rule := spec.explicitRules[elemSpec]; rule != nil {
+			return rule
 		}
 
 		// If the passed element is an alias of another element, check if
@@ -78,33 +121,7 @@ func (spec *AttributeSpec) RuleFor(elemSpec *ElementSpec) *ast.AttributeRule {
 		elemSpec = elemRef.Spec
 	}
 
-	return nil
-}
-
-func (spec *AttributeSpec) ruleFor(elemSpec *ElementSpec) *ast.AttributeRule {
-	var fallback *ast.AttributeRule
-
-	for _, rule := range spec.AST.Ruleset.List {
-		if rule == nil {
-			continue
-		}
-
-		switch sel := rule.Selector.(type) {
-		case *ast.WildcardElementSelector:
-			fallback = rule
-		case *ast.ListElementSelector:
-			for _, elemRefAST := range sel.List {
-				elemRef := spec.File.ElementReferenceByNode(elemRefAST)
-				if elemRef.Spec == elemSpec {
-					return rule
-				}
-			}
-		default:
-			panic(fmt.Sprintf("AttributeSpec.RuleFor: unknown selector type: %T", sel))
-		}
-	}
-
-	return fallback
+	return spec.WildcardRule
 }
 
 // TypeFor returns the type of the attribute for the given element.
@@ -114,32 +131,6 @@ func (spec *AttributeSpec) TypeFor(elemSpec *ElementSpec) attrtype.Type {
 		return attrtype.Unknown
 	}
 	return r.Type.Type
-}
-
-// GenericType returns the one type an attribute would have, regardless of the
-// element it is used on.
-//
-// In other words, it only returns a type if the attribute definition contains
-// a single wildcard selector rule.
-func (spec *AttributeSpec) GenericType() attrtype.Type {
-	if spec.AST.Ruleset == nil {
-		return attrtype.Unknown
-	}
-
-	if len(spec.AST.Ruleset.List) != 1 {
-		return attrtype.Unknown
-	}
-
-	rule := spec.AST.Ruleset.List[0]
-	if rule.Selector == nil || rule.Type == nil {
-		return attrtype.Unknown
-	}
-
-	wildcard, _ := rule.Selector.(*ast.WildcardElementSelector)
-	if wildcard == nil {
-		return attrtype.Unknown
-	}
-	return rule.Type.Type
 }
 
 func (spec *AttributeSpec) specificity() int {
