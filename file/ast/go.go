@@ -8,7 +8,7 @@ import (
 // Types representing their Go counterparts.
 
 // ============================================================================
-// Identifier
+// Name
 // ======================================================================================
 
 // FullIdentifier is a pointer to either an [Identifier] or a [QualifiedIdentifier].
@@ -27,7 +27,7 @@ var (
 )
 
 // ============================================================================
-// Identifier
+// Name
 // ======================================================================================
 
 // Identifier is a Go identifier.
@@ -58,7 +58,7 @@ func (*Identifier) _node()      {}
 func (*Identifier) _fullIdent() {}
 
 // ============================================================================
-// Qualified Identifier
+// Qualified Name
 // ======================================================================================
 
 // QualifiedIdentifier is a qualified Go identifier.

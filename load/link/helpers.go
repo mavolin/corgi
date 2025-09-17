@@ -2,7 +2,6 @@ package link
 
 import (
 	"log/slog"
-	"strings"
 
 	"github.com/mavolin/corgi/v2/file"
 	"github.com/mavolin/corgi/v2/file/ast"
@@ -10,46 +9,34 @@ import (
 	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
 )
 
-type attrDefinitionInfo struct {
-	qualifiedName string // without prefix
-	htmlName      string // with prefix
-	wildcard      bool
+func qualifiableAttrSelector(spec *file.AttributeSpec) file.CanonicalQualifiableAttributeName {
+	if spec.AST.Selector == nil {
+		return ""
+	}
+
+	sel, _ := spec.AST.Selector.(*ast.BasicAttributeSelector)
+	if sel == nil || sel.CanonicalName == "" {
+		return ""
+	}
+	if sel.Wildcard {
+		return file.CanonicalQualifiableAttributeName(sel.CanonicalName) + "*"
+	}
+	return file.CanonicalQualifiableAttributeName(sel.CanonicalName)
 }
 
-func (i attrDefinitionInfo) qualifiedSelector() string {
-	if i.wildcard {
-		return i.qualifiedName + "*"
-	}
-	return i.qualifiedName
-}
-
-func (i attrDefinitionInfo) htmlNameSelector() string {
-	if i.wildcard {
-		return i.htmlName + "*"
-	}
-	return i.htmlName
-}
-
-func attrSpecInfo(attr *file.AttributeSpec) *attrDefinitionInfo {
-	if attr.AST.Selector == nil {
-		return nil
+func htmlAttrName(spec *file.AttributeSpec) file.CanonicalAttributeName {
+	if spec.AST.Selector == nil {
+		return ""
 	}
 
-	sel, _ := attr.AST.Selector.(*ast.BasicAttributeSelector)
-	if sel == nil || sel.Name == "" {
-		return nil
+	sel, _ := spec.AST.Selector.(*ast.BasicAttributeSelector)
+	if sel == nil || sel.CanonicalName == "" {
+		return ""
 	}
-
-	var info attrDefinitionInfo
-	info.qualifiedName = strings.ToLower(sel.Name)
-	if attr.Definition != nil && attr.Definition.Prefix != nil {
-		info.htmlName = strings.ToLower(attr.Definition.Prefix.Name) + info.qualifiedName
-	} else {
-		info.htmlName = info.qualifiedName
+	if sel.Wildcard {
+		return spec.Prefix + file.CanonicalAttributeName(sel.CanonicalName) + "*"
 	}
-	info.wildcard = sel.Wildcard
-
-	return &info
+	return spec.Prefix + file.CanonicalAttributeName(sel.CanonicalName)
 }
 
 func (l *linker) implicitImportCheck(logger *slog.Logger, f *file.File, imp *file.Import, node ast.Node, indefiniteArticle, name string) bool {

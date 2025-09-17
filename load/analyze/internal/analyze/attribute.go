@@ -26,7 +26,7 @@ func (z *analyzer) AnalyzeAttributes() {
 	logger.Debug("Analyzing attribute references")
 
 	for _, f := range z.P.Files {
-		logger := logger.With(slog.String("file", f.Name))
+		logger := logger.With(slog.String("file", string(f.Name)))
 		walk.WalkT(f.AST, func(w *walk.ContextT[ast.Attribute]) walk.Action {
 			z.AnalyzeAttribute(logger, f, w.Parents, f.AttributeByNode(w.Node))
 			return walk.Continue
@@ -117,7 +117,7 @@ func (z *analyzer) shorthandToAttributeValue(v file.Text, s ast.Shorthand) file.
 	return v
 }
 
-func (z *analyzer) namedAttributeToAttributeValue(f *file.File, attrAST *ast.NamedAttribute) file.ResolvedAttributeValue {
+func (z *analyzer) namedAttributeToAttributeValue(f *file.File, attrAST *ast.NamedAttribute) file.ResolvedValue {
 	if attrAST.Value == nil {
 		return file.ConstantBool(true)
 	}
@@ -126,27 +126,29 @@ func (z *analyzer) namedAttributeToAttributeValue(f *file.File, attrAST *ast.Nam
 	return z.expressionToResolvedAttributeValue(f, expr)
 }
 
-func (z *analyzer) expressionToResolvedAttributeValue(f *file.File, expr *ast.Expression) file.ResolvedAttributeValue {
-	n0 := expr.Nodes[0]
-	switches.CodeNodeR(n0,
-		func(*ast.BlockFunction) file.ResolvedAttributeValue { return nil },
-		func(*ast.ComponentCall) file.ResolvedAttributeValue { return nil },
-		func(gc *ast.GoCode) file.ResolvedAttributeValue {
-			switch gc.Code {
-			case "true":
-				return file.ConstantBool(true)
-			case "false":
-				return file.ConstantBool(false)
-			default:
-				return nil
-			}
-		},
-		func(s *ast.String) file.ResolvedAttributeValue {
-			return z.stringToAttributeValue(s)
-		},
-		func(*ast.Ternary) file.ResolvedAttributeValue { return nil },
-		func(*ast.ZeroCoalescing) file.ResolvedAttributeValue { return nil },
-	)
+func (z *analyzer) expressionToResolvedAttributeValue(f *file.File, expr *ast.Expression) file.ResolvedValue {
+	if len(expr.Nodes) == 1 {
+		n0 := expr.Nodes[0]
+		return switches.CodeNodeR(n0,
+			func(*ast.BlockFunction) file.ResolvedValue { return nil },
+			func(*ast.ComponentCall) file.ResolvedValue { return nil },
+			func(gc *ast.GoCode) file.ResolvedValue {
+				switch gc.Code {
+				case "true":
+					return file.ConstantBool(true)
+				case "false":
+					return file.ConstantBool(false)
+				default:
+					return nil
+				}
+			},
+			func(s *ast.String) file.ResolvedValue {
+				return z.stringToAttributeValue(s)
+			},
+			func(*ast.Ternary) file.ResolvedValue { return nil },
+			func(*ast.ZeroCoalescing) file.ResolvedValue { return nil },
+		)
+	}
 
 	typ, _ := InferType(f, expr)
 	switch typ {
@@ -257,7 +259,7 @@ func (z *analyzer) AnalyzeAttributeForwarded(f *file.File, parents []*walk.Conte
 				ccAST := parents[ccI].Node.(*ast.ComponentCall) //nolint:errcheck
 				cc := f.ComponentCallByNode(ccAST)
 
-				s := cc.BlockSetterByName(parent.Name())
+				s := cc.BlockSetterByNode(parent)
 				if s == nil || s.Block == nil {
 					// Continue checking: if the attribute has another element as
 					// parent, we can still be sure it's not forwarded.
@@ -322,7 +324,7 @@ func (z *analyzer) AnalyzeAttributeContainingElements(f *file.File, parents []*w
 				ccAST := parents[ccI].Node.(*ast.ComponentCall) //nolint:errcheck
 				cc := f.ComponentCallByNode(ccAST)
 
-				s := cc.BlockSetterByName(parent.Name())
+				s := cc.BlockSetterByNode(parent)
 				if s == nil || s.Block == nil || s.Block.ContainingElements.Failed() {
 					attr.ContainingElements.SetFailed()
 					return true
@@ -398,7 +400,7 @@ func (z *analyzer) AnalyzeAttributeContainingElementSpecs(f *file.File, attr *fi
 			},
 			func(e *ast.BlockSetterContainingElement) {
 				cc := f.ComponentCallByNode(e.ComponentCall)
-				s := cc.BlockSetterByName(e.BlockSetter.Name())
+				s := cc.BlockSetterByNode(e.BlockSetter)
 				if s == nil || s.Block == nil || s.Block.ContainingElementSpecs.Failed() {
 					attr.ContainingElementSpecs.SetFailed()
 					return
@@ -515,7 +517,7 @@ func (z *analyzer) analyzeInferredAttributeType(logger *slog.Logger, f *file.Fil
 		}
 
 		attr.Type.SetResult(attrtype.Unknown)
-		if attr.Constant() {
+		if attr.Value.Constant() {
 			return
 		}
 
@@ -568,7 +570,7 @@ func (z *analyzer) analyzeInferredAttributeType(logger *slog.Logger, f *file.Fil
 		return
 	} else if attr.Reference.Spec.Result() == nil {
 		attr.Type.SetResult(attrtype.Unknown)
-		if attr.Constant() {
+		if attr.Value.Constant() {
 			return
 		}
 
@@ -629,16 +631,16 @@ func (z *analyzer) analyzeInferredAttributeType(logger *slog.Logger, f *file.Fil
 
 		if len(secondaries) == 0 {
 			if refRule == nil {
-				secondaries = append(secondaries, anno.Node(attrSpec.File, attrSpec.AST.Selector, "not defined for `"+refSpec.HTMLName()+"`"))
+				secondaries = append(secondaries, anno.Node(attrSpec.File, attrSpec.AST.Selector, "not defined for `"+refSpec.StylizedHTMLName+"`"))
 			} else {
-				secondaries = append(secondaries, anno.Node(attrSpec.File, refRule.Type, "defined as `"+refTyp.String()+"` for `"+refSpec.HTMLName()+"`"))
+				secondaries = append(secondaries, anno.Node(attrSpec.File, refRule.Type, "defined as `"+refTyp.String()+"` for `"+refSpec.StylizedHTMLName+"`"))
 			}
 		}
 
 		if rule == nil {
-			secondaries = append(secondaries, anno.Node(attrSpec.File, attrSpec.AST.Selector, "not defined for `"+spec.HTMLName()+"`"))
+			secondaries = append(secondaries, anno.Node(attrSpec.File, attrSpec.AST.Selector, "not defined for `"+spec.StylizedHTMLName+"`"))
 		} else {
-			secondaries = append(secondaries, anno.Node(attrSpec.File, rule.Type, "defined as `"+rule.Type.Type.String()+"` for `"+spec.HTMLName()+"`"))
+			secondaries = append(secondaries, anno.Node(attrSpec.File, rule.Type, "defined as `"+rule.Type.Type.String()+"` for `"+spec.StylizedHTMLName+"`"))
 			typSeen[rule.Type.Type] = true
 		}
 	}
@@ -664,7 +666,7 @@ func (z *analyzer) analyzeInferredAttributeType(logger *slog.Logger, f *file.Fil
 	}
 
 	attr.Type.SetResult(refTyp)
-	if refTyp.IsValid() || attr.Constant() {
+	if refTyp.IsValid() || attr.Value.Constant() {
 		return
 	}
 

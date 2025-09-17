@@ -16,8 +16,8 @@ import (
 )
 
 type mockImporter struct {
-	packages map[importPath]*file.Package
-	errors   map[importPath]error
+	packages map[file.CorgiImportPath]*file.Package
+	errors   map[file.CorgiImportPath]error
 }
 
 var (
@@ -25,7 +25,7 @@ var (
 	_ Importer = (*mockImporter)(nil).LinkedImport
 )
 
-func (m *mockImporter) Import(_ context.Context, path importPath) (*file.Package, diagnostic.List, error) {
+func (m *mockImporter) Import(_ context.Context, path file.CorgiImportPath) (*file.Package, diagnostic.List, error) {
 	if p, ok := m.packages[path]; ok {
 		var err error
 		if m.errors != nil {
@@ -36,7 +36,7 @@ func (m *mockImporter) Import(_ context.Context, path importPath) (*file.Package
 	return nil, nil, fmt.Errorf("package %q not found", path)
 }
 
-func (m *mockImporter) LinkedImport(ctx context.Context, path importPath) (*file.Package, diagnostic.List, error) {
+func (m *mockImporter) LinkedImport(ctx context.Context, path file.CorgiImportPath) (*file.Package, diagnostic.List, error) {
 	if p, ok := m.packages[path]; ok {
 		var err error
 		if m.errors != nil {
@@ -49,7 +49,7 @@ func (m *mockImporter) LinkedImport(ctx context.Context, path importPath) (*file
 }
 
 func ImporterFor(ps ...*file.Package) Importer {
-	packages := make(map[string]*file.Package)
+	packages := make(map[file.CorgiImportPath]*file.Package)
 	for _, p := range ps {
 		packages[p.CorgiImportPath] = p
 	}
@@ -57,7 +57,7 @@ func ImporterFor(ps ...*file.Package) Importer {
 }
 
 func LinkingImporterFor(ps ...*file.Package) Importer {
-	packages := make(map[string]*file.Package)
+	packages := make(map[file.CorgiImportPath]*file.Package)
 	for _, p := range ps {
 		packages[p.CorgiImportPath] = p
 	}
@@ -65,19 +65,19 @@ func LinkingImporterFor(ps ...*file.Package) Importer {
 }
 
 // createPackage is a helper to create a package for testing.
-func createPackage(pathInModule string) *file.Package {
+func createPackage(pathInModule file.PackagePath) *file.Package {
 	p := &file.Package{
 		Module:          "github.com/mavolin/linktest",
 		PathInModule:    pathInModule,
-		CorgiImportPath: "linktest/" + pathInModule,
-		Name:            path.Base(pathInModule),
+		CorgiImportPath: file.CorgiImportPath("linktest/" + pathInModule),
+		Name:            file.Qualifier(path.Base(string(pathInModule))),
 		PackageSymbols:  &file.PackageSymbols{},
 	}
 	return p
 }
 
 // createFile is a helper to create a file for testing.
-func createFile(p *file.Package, name string) *file.File {
+func createFile(p *file.Package, name file.Name) *file.File {
 	lines := make([]string, 256)
 	for i := range lines {
 		lines[i] = strings.Repeat(" ", 180) // so diagnostics work
@@ -128,7 +128,7 @@ func addAttributeReference(f *file.File, ref *file.AttributeReference) {
 	f.RebuildLookupTables()
 }
 
-func createComponent(f *file.File, start *ast.Position, name string) *file.Component {
+func createComponent(f *file.File, start *ast.Position, name file.Identifier) *file.Component {
 	if *start == ast.NoPosition {
 		*start = ast.Position{Line: 1, Col: 1}
 	}
@@ -136,7 +136,7 @@ func createComponent(f *file.File, start *ast.Position, name string) *file.Compo
 	compAST := &ast.Component{Comp: clonePos(start)}
 	compAST.Header = &ast.ComponentHeader{
 		Name: &ast.Identifier{
-			Name:     name,
+			Name:     string(name),
 			Position: spaceAfter(compAST),
 		},
 	}
@@ -144,6 +144,7 @@ func createComponent(f *file.File, start *ast.Position, name string) *file.Compo
 	c := &file.Component{
 		File: f,
 		AST:  compAST,
+		Name: name,
 	}
 	addComponent(f.Package, c)
 	start.Line++
@@ -152,7 +153,9 @@ func createComponent(f *file.File, start *ast.Position, name string) *file.Compo
 }
 
 // createElementSpec creates an element spec for testing
-func createElementSpec(f *file.File, start *ast.Position, prefix, name string, typ elemtype.Type) *file.ElementSpec {
+func createElementSpec(
+	f *file.File, start *ast.Position, prefix file.CanonicalElementName, name string, typ elemtype.Type,
+) *file.ElementSpec {
 	if *start == ast.NoPosition {
 		*start = ast.Position{Line: 1, Col: 1}
 	}
@@ -160,7 +163,7 @@ func createElementSpec(f *file.File, start *ast.Position, prefix, name string, t
 	definitionAST := &ast.ElementDefinition{Elem: clonePos(start)}
 	if prefix != "" {
 		definitionAST.Prefix = &ast.ElementName{
-			Name:     prefix,
+			Name:     string(prefix),
 			Position: spaceAfter(definitionAST),
 		}
 	}
@@ -173,9 +176,12 @@ func createElementSpec(f *file.File, start *ast.Position, prefix, name string, t
 	definitionAST.Specs = []*ast.ElementSpec{specAST}
 
 	spec := &file.ElementSpec{
-		File:       f,
-		Definition: definitionAST,
-		AST:        specAST,
+		File:             f,
+		Definition:       definitionAST,
+		AST:              specAST,
+		StylizedHTMLName: string(prefix) + name,
+		HTMLName:         prefix + file.CanonicalElementName(strings.ToLower(name)),
+		QualifiableName:  file.CanonicalQualifiableElementName(strings.ToLower(name)),
 	}
 	spec.Type.SetResult(typ)
 
@@ -189,7 +195,8 @@ func createElementSpec(f *file.File, start *ast.Position, prefix, name string, t
 //
 // if elemSpec is nil, the attribute spec will match all elements
 func createBasicAttributeSpec(
-	f *file.File, start *ast.Position, prefix, name string, elemSpec *file.ElementSpec, typ attrtype.Type,
+	f *file.File, start *ast.Position, prefix file.CanonicalAttributeName, name string, elemSpec *file.ElementSpec,
+	typ attrtype.Type,
 ) *file.AttributeSpec {
 	if *start == ast.NoPosition {
 		*start = ast.Position{Line: 1, Col: 1}
@@ -198,7 +205,7 @@ func createBasicAttributeSpec(
 	definitionAST := &ast.AttributeDefinition{Attr: clonePos(start)}
 	if prefix != "" {
 		definitionAST.Prefix = &ast.AttributeName{
-			Name:     prefix,
+			Name:     string(prefix),
 			Position: spaceAfter(definitionAST),
 		}
 	}
@@ -206,12 +213,14 @@ func createBasicAttributeSpec(
 	specAST := &ast.AttributeSpec{}
 	definitionAST.Specs = []*ast.AttributeSpec{specAST}
 	selAST := &ast.BasicAttributeSelector{
-		Name:     name,
-		Position: spaceAfter(definitionAST),
+		Name:          name,
+		CanonicalName: strings.ToLower(name),
+		Position:      spaceAfter(definitionAST),
 	}
 	specAST.Selector = selAST
 	if strings.HasSuffix(selAST.Name, "*") {
 		selAST.Name = strings.TrimSuffix(selAST.Name, "*")
+		selAST.CanonicalName = strings.TrimSuffix(selAST.CanonicalName, "*")
 		selAST.Wildcard = true
 	}
 
@@ -221,16 +230,16 @@ func createBasicAttributeSpec(
 	if elemSpec == nil {
 		ruleSelAST = &ast.WildcardElementSelector{Asterisk: spaceAfter(definitionAST)}
 	} else {
-		var namespace string
+		var qualifier file.Qualifier
 		for _, imp := range f.Imports {
 			if imp.Package == elemSpec.File.Package {
-				namespace = imp.Namespace
+				qualifier = imp.Qualifier
 			}
 		}
 
 		ruleSelAST = &ast.ListElementSelector{
 			List: []*ast.ElementReference{
-				createElementReference(f, spaceAfter(definitionAST), namespace, elemSpec.HTMLName()).AST,
+				createElementReference(f, spaceAfter(definitionAST), qualifier, elemSpec.StylizedHTMLName).AST,
 			},
 		}
 	}
@@ -249,6 +258,7 @@ func createBasicAttributeSpec(
 		File:       f,
 		Definition: definitionAST,
 		AST:        specAST,
+		Prefix:     prefix,
 	}
 
 	addAttributeSpec(f.Package, spec)
@@ -261,7 +271,8 @@ func createBasicAttributeSpec(
 //
 // if elemSpec is nil, the attribute spec will match all elements
 func createRegexpAttributeSpec(
-	f *file.File, start *ast.Position, prefix, regex string, elemSpec *file.ElementSpec, typ attrtype.Type,
+	f *file.File, start *ast.Position, prefix file.CanonicalAttributeName, regex string,
+	elemSpec *file.ElementSpec, typ attrtype.Type,
 ) *file.AttributeSpec {
 	if *start == ast.NoPosition {
 		*start = ast.Position{Line: 1, Col: 1}
@@ -270,7 +281,7 @@ func createRegexpAttributeSpec(
 	definitionAST := &ast.AttributeDefinition{Attr: clonePos(start)}
 	if prefix != "" {
 		definitionAST.Prefix = &ast.AttributeName{
-			Name:     prefix,
+			Name:     string(prefix),
 			Position: spaceAfter(definitionAST),
 		}
 	}
@@ -295,16 +306,16 @@ func createRegexpAttributeSpec(
 	if elemSpec == nil {
 		ruleSelAST = &ast.WildcardElementSelector{Asterisk: spaceAfter(definitionAST)}
 	} else {
-		var namespace string
+		var qualifier file.Qualifier
 		for _, imp := range f.Imports {
 			if imp.Package == elemSpec.File.Package {
-				namespace = imp.Namespace
+				qualifier = imp.Qualifier
 			}
 		}
 
 		ruleSelAST = &ast.ListElementSelector{
 			List: []*ast.ElementReference{
-				createElementReference(f, spaceAfter(definitionAST), namespace, elemSpec.HTMLName()).AST,
+				createElementReference(f, spaceAfter(definitionAST), qualifier, elemSpec.StylizedHTMLName).AST,
 			},
 		}
 	}
@@ -323,6 +334,7 @@ func createRegexpAttributeSpec(
 		File:       f,
 		Definition: definitionAST,
 		AST:        specAST,
+		Prefix:     prefix,
 	}
 
 	addAttributeSpec(f.Package, spec)
@@ -332,7 +344,7 @@ func createRegexpAttributeSpec(
 }
 
 // createImport is a helper to create an import for testing.
-func createImport(f *file.File, start *ast.Position, alias, impPath string) *file.Import {
+func createImport(f *file.File, start *ast.Position, alias file.Qualifier, impPath file.CorgiImportPath) *file.Import {
 	if *start == ast.NoPosition {
 		*start = ast.Position{Line: 1, Col: 1}
 	}
@@ -342,7 +354,7 @@ func createImport(f *file.File, start *ast.Position, alias, impPath string) *fil
 	impSpecAST := &ast.ImportSpec{}
 	if alias != "" {
 		impSpecAST.Alias = &ast.Identifier{
-			Name:     alias,
+			Name:     string(alias),
 			Position: spaceAfter(impAST),
 		}
 	}
@@ -350,7 +362,7 @@ func createImport(f *file.File, start *ast.Position, alias, impPath string) *fil
 	impSpecAST.Path = &ast.StaticString{
 		Open:     spaceAfter(impAST),
 		Quote:    '"',
-		Contents: strconv.Quote(impPath),
+		Contents: strconv.Quote(string(impPath)),
 	}
 	impAST.Specs = []*ast.ImportSpec{impSpecAST}
 	impSpecAST.Path.Close = deltaPos(impAST.End(), len(`"`)+len([]rune(impSpecAST.Path.Contents)))
@@ -367,38 +379,39 @@ func createImport(f *file.File, start *ast.Position, alias, impPath string) *fil
 }
 
 // createComponentCall is a helper to create a component call for testing.
-func createComponentCall(f *file.File, start *ast.Position, namespace, name string) *file.ComponentCall {
+func createComponentCall(f *file.File, start *ast.Position, qualifier file.Qualifier, name file.Identifier) *file.ComponentCall {
 	if *start == ast.NoPosition {
 		*start = ast.Position{Line: 1, Col: 1}
 	}
 
-	ccAST := &ast.ComponentCall{Colon: clonePos(start)}
+	cc := &file.ComponentCall{File: f}
 
-	if namespace != "" {
+	ccAST := &ast.ComponentCall{Colon: clonePos(start)}
+	cc.AST = ccAST
+
+	if qualifier != "" {
 		nameAST := &ast.QualifiedIdentifier{
 			Package: &ast.Identifier{
-				Name:     namespace,
+				Name:     string(qualifier),
 				Position: directlyAfter(ccAST),
 			},
 		}
 		ccAST.Header = &ast.ComponentCallHeader{Name: nameAST}
 		nameAST.Dot = directlyAfter(ccAST)
 		nameAST.Name = &ast.Identifier{
-			Name:     name,
+			Name:     string(name),
 			Position: directlyAfter(ccAST),
 		}
+		cc.Qualifier = qualifier
+		cc.Name = name
 	} else {
 		ccAST.Header = &ast.ComponentCallHeader{
 			Name: &ast.Identifier{
-				Name:     name,
+				Name:     string(name),
 				Position: directlyAfter(ccAST),
 			},
 		}
-	}
-
-	cc := &file.ComponentCall{
-		AST:  ccAST,
-		File: f,
+		cc.Name = name
 	}
 
 	addComponentCall(f, cc)
@@ -408,15 +421,19 @@ func createComponentCall(f *file.File, start *ast.Position, namespace, name stri
 }
 
 // createElementReference creates an element reference for testing
-func createElementReference(f *file.File, start *ast.Position, namespace, name string) *file.ElementReference {
+func createElementReference(f *file.File, start *ast.Position, qualifier file.Qualifier, name string) *file.ElementReference {
 	if *start == ast.NoPosition {
 		*start = ast.Position{Line: 1, Col: 1}
 	}
 
+	ref := &file.ElementReference{}
+
 	refAST := &ast.ElementReference{}
-	if namespace != "" {
+	ref.AST = refAST
+
+	if qualifier != "" {
 		refAST.Package = &ast.Identifier{
-			Name:     namespace,
+			Name:     string(qualifier),
 			Position: clonePos(start),
 		}
 		refAST.Dot = directlyAfter(refAST)
@@ -424,14 +441,16 @@ func createElementReference(f *file.File, start *ast.Position, namespace, name s
 			Name:     name,
 			Position: directlyAfter(refAST),
 		}
+		ref.Qualifier = qualifier
+		ref.QualifiableName = file.CanonicalQualifiableElementName(strings.ToLower(name))
 	} else {
 		refAST.Name = &ast.ElementName{
 			Name:     name,
 			Position: clonePos(start),
 		}
+		ref.UnqualifiedName = file.CanonicalElementName(strings.ToLower(name))
 	}
 
-	ref := &file.ElementReference{AST: refAST}
 	addElementReference(f, ref)
 	start.Line++
 	start.Col = 1
@@ -439,15 +458,19 @@ func createElementReference(f *file.File, start *ast.Position, namespace, name s
 }
 
 // createAttributeReference creates an attribute reference for testing
-func createAttributeReference(f *file.File, start *ast.Position, namespace, name string) *file.AttributeReference {
+func createAttributeReference(f *file.File, start *ast.Position, qualifier file.Qualifier, name string) *file.AttributeReference {
 	if *start == ast.NoPosition {
 		*start = ast.Position{Line: 1, Col: 1}
 	}
 
+	ref := &file.AttributeReference{}
+
 	refAST := &ast.AttributeReference{}
-	if namespace != "" {
+	ref.AST = refAST
+
+	if qualifier != "" {
 		refAST.Package = &ast.Identifier{
-			Name:     namespace,
+			Name:     string(qualifier),
 			Position: clonePos(start),
 		}
 		refAST.Dot = directlyAfter(refAST)
@@ -455,21 +478,23 @@ func createAttributeReference(f *file.File, start *ast.Position, namespace, name
 			Name:     name,
 			Position: directlyAfter(refAST),
 		}
+		ref.Qualifier = qualifier
+		ref.QualifiableName = file.CanonicalQualifiableAttributeName(strings.ToLower(name))
 	} else {
 		refAST.Name = &ast.AttributeName{
 			Name:     name,
 			Position: clonePos(start),
 		}
+		ref.UnqualifiedName = file.CanonicalAttributeName(strings.ToLower(name))
 	}
 
-	ref := &file.AttributeReference{AST: refAST}
 	addAttributeReference(f, ref)
 	start.Line++
 	start.Col = 1
 	return ref
 }
 
-func createBlock(comp *file.Component, name string) *file.Block {
+func createBlock(comp *file.Component, name file.Identifier) *file.Block {
 	block := &file.Block{
 		Name: name,
 	}
@@ -477,7 +502,7 @@ func createBlock(comp *file.Component, name string) *file.Block {
 	return block
 }
 
-func createBlockSetter(cc *file.ComponentCall, name string) *file.BlockSetter {
+func createBlockSetter(cc *file.ComponentCall, name file.Identifier) *file.BlockSetter {
 	blockSetter := &file.BlockSetter{
 		Name: name,
 	}
@@ -492,7 +517,7 @@ func createWith(group *file.BlockSetter, start *ast.Position) *file.BlockSetterI
 
 	withAST := &ast.With{With: clonePos(start)}
 	withAST.Identifier = &ast.Identifier{
-		Name:     group.Name,
+		Name:     string(group.Name),
 		Position: spaceAfter(withAST),
 	}
 	bodyAST := &ast.Scope{LBrace: spaceAfter(withAST)}

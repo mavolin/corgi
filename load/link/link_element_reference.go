@@ -13,7 +13,7 @@ func (l *linker) LinkElementReferences() {
 	logger.Debug("Linking element references")
 
 	for _, f := range l.p.Files {
-		logger := logger.With(slog.String("file", f.Name))
+		logger := logger.With(slog.String("file", string(f.Name)))
 
 		for _, ref := range f.ElementReferences {
 			ref.Linked = true
@@ -42,10 +42,8 @@ func (l *linker) LinkElementReferences() {
 }
 
 func (l *linker) linkUnqualifiedElementReference(logger *slog.Logger, f *file.File, ref *file.ElementReference) {
-	name := ref.AST.Name.Name
-
 	// search in current package
-	if def := f.Package.ElementSpecByHTMLName(name); def != nil {
+	if def := f.Package.ElementSpecByHTMLName(ref.UnqualifiedName); def != nil {
 		ref.Spec = def
 		return
 	}
@@ -57,13 +55,13 @@ func (l *linker) linkUnqualifiedElementReference(logger *slog.Logger, f *file.Fi
 			ignoreError = true
 		}
 		switch {
-		case !imp.Explicit() || imp.Namespace != "":
+		case !imp.Explicit() || imp.Qualifier != "":
 			continue
 		case imp.Package == nil || imp.Package.PackageSymbols == nil:
 			continue
 		}
 
-		if spec := imp.Package.ElementSpecByHTMLName(name); spec != nil {
+		if spec := imp.Package.ElementSpecByHTMLName(ref.UnqualifiedName); spec != nil {
 			ref.Spec = spec
 			imp.Forward = true
 			return
@@ -72,7 +70,7 @@ func (l *linker) linkUnqualifiedElementReference(logger *slog.Logger, f *file.Fi
 
 	builtinImp := f.BuiltinImport()
 	if builtinImp != nil && builtinImp.Package != nil && builtinImp.Package.PackageSymbols != nil {
-		if spec := builtinImp.Package.ElementSpecByHTMLName(name); spec != nil {
+		if spec := builtinImp.Package.ElementSpecByHTMLName(ref.UnqualifiedName); spec != nil {
 			ref.Spec = spec
 			builtinImp.Forward = true
 			return
@@ -103,10 +101,14 @@ func (l *linker) linkUnqualifiedElementReference(logger *slog.Logger, f *file.Fi
 }
 
 func (l *linker) linkQualifiedElementReference(logger *slog.Logger, f *file.File, ref *file.ElementReference) {
-	imp := f.ImportByNamespace(ref.AST.Package.Name)
+	if ref.Qualifier == "" {
+		return
+	}
+
+	imp := f.ImportByQualifier(ref.Qualifier)
 	if imp == nil || !imp.Explicit() {
 		logger.Error("Could not find import for package")
-		l.reportMissingImport(f, ref.AST.Package.Name, &diagnostic.Diagnostic{
+		l.reportMissingImport(f, ref.Qualifier, &diagnostic.Diagnostic{
 			Message: "element: unresolved reference to package",
 			Primary: []diagnostic.Annotation{
 				anno.Node(f, ref.AST.Package, "missing import for this package"),
@@ -120,7 +122,7 @@ func (l *linker) linkQualifiedElementReference(logger *slog.Logger, f *file.File
 	}
 
 	if imp.Package != nil && imp.Package.PackageSymbols != nil {
-		ref.Spec = imp.Package.ElementSpecByQualifiedName(ref.AST.Name.Name)
+		ref.Spec = imp.Package.ElementSpecByQualifiableName(ref.QualifiableName)
 		if ref.Spec != nil {
 			imp.Forward = true
 			return

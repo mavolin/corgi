@@ -2,7 +2,6 @@ package file
 
 import (
 	"fmt"
-	"strings"
 	"sync"
 
 	"github.com/mavolin/corgi/v2/escape/attrtype"
@@ -25,6 +24,9 @@ type AttributeSpec struct {
 	explicitRules     map[*ElementSpec]*ast.AttributeRule
 	explicitRulesOnce sync.Once
 
+	// Prefix is the prefix of the attribute definition, if it has one.
+	Prefix CanonicalAttributeName
+
 	// Specificity is the specificity of the attribute definition.
 	//
 	// For basic attribute selectors the specificity is calculated as the length of
@@ -38,26 +40,20 @@ type AttributeSpec struct {
 	Specificity int
 }
 
-func (spec *AttributeSpec) MatchesHTMLName(name string) bool {
+func (spec *AttributeSpec) MatchesHTMLName(name CanonicalAttributeName) bool {
 	if spec.AST.Selector == nil {
+		return false
+	} else if len(name) < len(spec.Prefix) {
 		return false
 	}
 
-	name = strings.ToLower(name)
-	if spec.Definition != nil {
-		if spec.Definition.Prefix != nil {
-			prefix := strings.ToLower(spec.Definition.Prefix.Name)
-			if !strings.HasPrefix(name, prefix) {
-				return false
-			}
-			name = name[len(prefix):]
-		}
-	}
-	return spec.AST.Selector.Matches(name)
+	prefixPart := name[:len(spec.Prefix)]
+	selectorPart := name[len(spec.Prefix):]
+	return prefixPart == spec.Prefix && spec.AST.Selector.Matches(string(selectorPart))
 }
 
-func (spec *AttributeSpec) MatchesQualifiedName(name string) bool {
-	return spec.AST.Selector.Matches(name)
+func (spec *AttributeSpec) MatchesQualifiableName(name CanonicalQualifiableAttributeName) bool {
+	return spec.AST.Selector.Matches(string(name))
 }
 
 // RuleFor returns the rule on the attribute definition for the given element.

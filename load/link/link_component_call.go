@@ -14,7 +14,7 @@ func (l *linker) LinkComponentCalls() {
 	logger.Debug("Linking component calls")
 
 	for _, f := range l.p.Files {
-		logger := logger.With(slog.String("file", f.Name))
+		logger := logger.With(slog.String("file", string(f.Name)))
 
 		for _, cc := range f.ComponentCalls {
 			cc.Linked = true
@@ -45,16 +45,16 @@ func (l *linker) linkUnqualifiedComponentCall(logger *slog.Logger, f *file.File,
 	}
 
 	// search in current package
-	if c := l.p.ComponentByName(ident.Name); c != nil {
+	if c := l.p.ComponentByName(cc.Name); c != nil {
 		cc.Component = c
 		return
 	}
 
 	// if this is unexported: check if this is a builtin component
-	if !file.IsExported(ident.Name) {
+	if !file.IsExported(cc.Name) {
 		builtinImp := f.BuiltinImport()
 		if builtinImp != nil && builtinImp.Package != nil && builtinImp.Package.PackageSymbols != nil {
-			if c := builtinImp.Package.ComponentByName(ident.Name); c != nil {
+			if c := builtinImp.Package.ComponentByName(cc.Name); c != nil {
 				builtinImp.Forward = true
 				cc.Component = c
 				return
@@ -72,13 +72,13 @@ func (l *linker) linkUnqualifiedComponentCall(logger *slog.Logger, f *file.File,
 				ignoreError = true
 			}
 			switch {
-			case !imp.Explicit() || imp.Namespace != "":
+			case !imp.Explicit() || imp.Qualifier != "":
 				continue
 			case imp.Package == nil || imp.Package.PackageSymbols == nil:
 				continue
 			}
 
-			cc.Component = imp.Package.ComponentByName(ident.Name)
+			cc.Component = imp.Package.ComponentByName(cc.Name)
 			if cc.Component != nil {
 				imp.Forward = true
 				return
@@ -100,24 +100,18 @@ func (l *linker) linkUnqualifiedComponentCall(logger *slog.Logger, f *file.File,
 	})
 }
 
-func (l *linker) linkQualifiedComponentCall(
-	logger *slog.Logger, f *file.File, cc *file.ComponentCall, ident *ast.QualifiedIdentifier,
-) {
-	if ident == nil {
-		return
-	}
-
+func (l *linker) linkQualifiedComponentCall(logger *slog.Logger, f *file.File, cc *file.ComponentCall, ident *ast.QualifiedIdentifier) {
 	switch {
-	case ident.Package == nil:
+	case cc.Qualifier == "":
 		return
-	case ident.Name == nil:
+	case cc.Name == "":
 		return
-	case !file.IsExported(ident.Name.Name):
+	case !file.IsExported(cc.Name):
 		logger.Error("Qualified call to unexported component")
 		l.report(&diagnostic.Diagnostic{
 			Message: "component call: cannot call unexported component",
 			Primary: []diagnostic.Annotation{
-				anno.Node(f, ident.Name, "the component you are trying to call is unexported"),
+				anno.Node(f, cc.AST.Header.Name, "the component you are trying to call is unexported"),
 			},
 			Explanation: "You can only call components from other packages if they are exported.\n" +
 				"If you control the source of the package, " +
@@ -127,13 +121,13 @@ func (l *linker) linkQualifiedComponentCall(
 	}
 
 	// find import for package
-	imp := f.ImportByNamespace(ident.Package.Name)
+	imp := f.ImportByQualifier(cc.Qualifier)
 	if imp == nil {
 		logger.Error("Could not find import for package")
-		l.reportMissingImport(f, ident.Package.Name, &diagnostic.Diagnostic{
+		l.reportMissingImport(f, cc.Qualifier, &diagnostic.Diagnostic{
 			Message: "component call: unresolved reference to package",
 			Primary: []diagnostic.Annotation{
-				anno.Node(f, ident.Package, "missing import for package"),
+				anno.Node(f, cc.AST.Header.Name, "missing import for package"),
 			},
 		})
 		return
@@ -144,7 +138,7 @@ func (l *linker) linkQualifiedComponentCall(
 	}
 
 	if imp.Package != nil && imp.Package.PackageSymbols != nil {
-		cc.Component = imp.Package.ComponentByName(ident.Name.Name)
+		cc.Component = imp.Package.ComponentByName(cc.Name)
 		if cc.Component != nil {
 			imp.Forward = true
 			return
@@ -175,7 +169,7 @@ func (l *linker) linkBlockSetterBlocks(logger *slog.Logger, cc *file.ComponentCa
 	logger = logger.WithGroup("block_setter_blocks")
 
 	for _, blockSetter := range cc.BlockSetters {
-		logger := logger.With(slog.String("with_name", blockSetter.Name))
+		logger := logger.With(slog.String("with_name", string(blockSetter.Name)))
 		blockSetter.Linked = true
 
 		blockSetter.Block = cc.Component.BlockByName(blockSetter.Name)

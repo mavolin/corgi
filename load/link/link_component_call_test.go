@@ -33,7 +33,7 @@ func testLinker_LinkComponentCalls_success(t *testing.T) { //nolint:revive
 		p := createPackage("test")
 		f := createFile(p, "test.corgi")
 		comp := createComponent(f, &start, "test")
-		call := createComponentCall(f, &start, "", comp.AST.Header.Name.Name)
+		call := createComponentCall(f, &start, "", comp.Name)
 
 		d := Link(context.Background(), p, Options{
 			Importer:    ImporterFor(builtinPkg),
@@ -57,7 +57,7 @@ func testLinker_LinkComponentCalls_success(t *testing.T) { //nolint:revive
 
 		p := createPackage("test")
 		f := createFile(p, "test.corgi")
-		call := createComponentCall(f, &start, "", comp.AST.Header.Name.Name)
+		call := createComponentCall(f, &start, "", comp.Name)
 
 		d := Link(context.Background(), p, Options{
 			Importer:    ImporterFor(builtinPkg),
@@ -74,7 +74,7 @@ func testLinker_LinkComponentCalls_success(t *testing.T) { //nolint:revive
 	importTests := []struct {
 		name                      string
 		packageNameDiffersFromDir bool
-		alias                     string
+		alias                     file.Qualifier
 	}{
 		{
 			name: "qualified/package name/matches directory",
@@ -101,17 +101,17 @@ func testLinker_LinkComponentCalls_success(t *testing.T) { //nolint:revive
 			importedF := createFile(importedPkg, "imported.corgi")
 			importedComp := createComponent(importedF, &start, "Test")
 
-			namespace := importedPkg.Name
+			qualifier := importedPkg.Name
 			if c.alias == "." {
-				namespace = ""
+				qualifier = ""
 			} else if c.alias != "" {
-				namespace = c.alias
+				qualifier = c.alias
 			}
 
 			mainPkg := createPackage("main")
 			mainFile := createFile(mainPkg, "main.corgi")
 			createImport(mainFile, &start, c.alias, importedPkg.CorgiImportPath)
-			call := createComponentCall(mainFile, &start, namespace, importedComp.AST.Header.Name.Name)
+			call := createComponentCall(mainFile, &start, qualifier, importedComp.Name)
 
 			d := Link(context.Background(), mainPkg, Options{
 				Importer: ImporterFor(importedPkg),
@@ -134,12 +134,12 @@ func testLinker_LinkComponentCalls_failure(t *testing.T) { //nolint:revive
 	tests := []struct {
 		name    string
 		message string
-		setup   func() (p *file.Package, packages []*file.Package, packageErrors map[importPath]error)
+		setup   func() (p *file.Package, packages []*file.Package, packageErrors map[file.CorgiImportPath]error)
 	}{
 		{
 			name:    "unresolved unqualified call",
 			message: "component call: unresolved reference",
-			setup: func() (p *file.Package, packages []*file.Package, packageErrors map[importPath]error) {
+			setup: func() (p *file.Package, packages []*file.Package, packageErrors map[file.CorgiImportPath]error) {
 				var start ast.Position
 				p = createPackage("test")
 				f := createFile(p, "test.corgi")
@@ -150,20 +150,20 @@ func testLinker_LinkComponentCalls_failure(t *testing.T) { //nolint:revive
 		}, {
 			name:    "builtin not loaded",
 			message: "failed to load builtin package",
-			setup: func() (p *file.Package, packages []*file.Package, packageErrors map[importPath]error) {
+			setup: func() (p *file.Package, packages []*file.Package, packageErrors map[file.CorgiImportPath]error) {
 				var start ast.Position
 				p = createPackage("test")
 				f := createFile(p, "test.corgi")
 				createComponentCall(f, &start, "", "test")
 
-				return p, nil, map[importPath]error{
+				return p, nil, map[file.CorgiImportPath]error{
 					builtinPath: errors.New("stub error"),
 				}
 			},
 		}, {
 			name:    "import not loaded",
 			message: "import: failed to load package",
-			setup: func() (p *file.Package, packages []*file.Package, packageErrors map[importPath]error) {
+			setup: func() (p *file.Package, packages []*file.Package, packageErrors map[file.CorgiImportPath]error) {
 				var start ast.Position
 				importedPkg := createPackage("imported")
 				importedPkg.PackageSymbols = nil
@@ -175,28 +175,28 @@ func testLinker_LinkComponentCalls_failure(t *testing.T) { //nolint:revive
 				createComponentCall(f, &start, "imported", "Test")
 
 				return p, []*file.Package{importedPkg},
-					map[importPath]error{
+					map[file.CorgiImportPath]error{
 						imp.CorgiPath: errors.New("stub error"),
 					}
 			},
 		}, {
 			name:    "dot import not loaded",
 			message: "import: failed to load package",
-			setup: func() (p *file.Package, packages []*file.Package, packageErrors map[importPath]error) {
+			setup: func() (p *file.Package, packages []*file.Package, packageErrors map[file.CorgiImportPath]error) {
 				var start ast.Position
 				p = createPackage("test")
 				f := createFile(p, "test.corgi")
 				imp := createImport(f, &start, ".", "imported")
 				createComponentCall(f, &start, "", "Test")
 
-				return p, nil, map[importPath]error{
+				return p, nil, map[file.CorgiImportPath]error{
 					imp.CorgiPath: errors.New("stub error"),
 				}
 			},
 		}, {
 			name:    "qualified call to unexported component",
 			message: "component call: cannot call unexported component",
-			setup: func() (p *file.Package, packages []*file.Package, packageErrors map[importPath]error) {
+			setup: func() (p *file.Package, packages []*file.Package, packageErrors map[file.CorgiImportPath]error) {
 				var start ast.Position
 				importedPkg := createPackage("imported")
 				importedF := createFile(importedPkg, "imported.corgi")
@@ -204,14 +204,14 @@ func testLinker_LinkComponentCalls_failure(t *testing.T) { //nolint:revive
 
 				p = createPackage("test")
 				f := createFile(p, "test.corgi")
-				createComponentCall(f, &start, importedPkg.Name, comp.AST.Header.Name.Name)
+				createComponentCall(f, &start, importedPkg.Name, comp.Name)
 
 				return p, []*file.Package{importedPkg}, nil
 			},
 		}, {
 			name:    "qualified call to unknown package",
 			message: "component call: unresolved reference to package",
-			setup: func() (p *file.Package, packages []*file.Package, packageErrors map[importPath]error) {
+			setup: func() (p *file.Package, packages []*file.Package, packageErrors map[file.CorgiImportPath]error) {
 				var start ast.Position
 				p = createPackage("test")
 				f := createFile(p, "test.corgi")
@@ -222,7 +222,7 @@ func testLinker_LinkComponentCalls_failure(t *testing.T) { //nolint:revive
 		}, {
 			name:    "qualified call to unknown component",
 			message: "component call: unresolved reference",
-			setup: func() (p *file.Package, packages []*file.Package, packageErrors map[importPath]error) {
+			setup: func() (p *file.Package, packages []*file.Package, packageErrors map[file.CorgiImportPath]error) {
 				var start ast.Position
 				importedPkg := createPackage("imported")
 				createFile(importedPkg, "imported.corgi")
@@ -242,7 +242,7 @@ func testLinker_LinkComponentCalls_failure(t *testing.T) { //nolint:revive
 
 			p, packages, errs := c.setup()
 
-			packagesMap := make(map[importPath]*file.Package, len(packages))
+			packagesMap := make(map[file.CorgiImportPath]*file.Package, len(packages))
 			for _, pkg := range packages {
 				packagesMap[pkg.CorgiImportPath] = pkg
 			}
@@ -279,7 +279,7 @@ func TestLinker_LinkBlockSetterBlocks(t *testing.T) {
 			comp := createComponent(f, &start, "Test")
 			block := createBlock(comp, "content")
 
-			call := createComponentCall(f, &start, "", comp.AST.Header.Name.Name)
+			call := createComponentCall(f, &start, "", comp.Name)
 			blockSetter := createBlockSetter(call, block.Name)
 			createWith(blockSetter, &start)
 
@@ -308,7 +308,7 @@ func TestLinker_LinkBlockSetterBlocks(t *testing.T) {
 			comp := createComponent(f, &start, "Test")
 			block := createBlock(comp, "")
 
-			call := createComponentCall(f, &start, "", comp.AST.Header.Name.Name)
+			call := createComponentCall(f, &start, "", comp.Name)
 			blockSetter := createBlockSetter(call, block.Name)
 
 			d := Link(context.Background(), p, Options{})
@@ -337,7 +337,7 @@ func TestLinker_LinkBlockSetterBlocks(t *testing.T) {
 		comp := createComponent(f, &start, "Test")
 		createBlock(comp, "sidebar")
 
-		call := createComponentCall(f, &start, "", comp.AST.Header.Name.Name)
+		call := createComponentCall(f, &start, "", comp.Name)
 		blockSetter := createBlockSetter(call, "nonexistent")
 		createWith(blockSetter, &start)
 

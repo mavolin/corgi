@@ -12,7 +12,7 @@ type Block struct {
 	// BUILD SYMBOLS
 
 	// Name is the name of the block.
-	Name string
+	Name Identifier
 
 	Instances []*BlockInstance
 

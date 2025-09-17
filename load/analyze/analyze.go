@@ -119,8 +119,8 @@ func Analyze(p *file.Package, o Options) diagnostic.List {
 	o.applyDefaults()
 
 	logger := o.Logger.With(
-		slog.String("module", p.Module),
-		slog.String("path_in_module", p.PathInModule),
+		slog.String("module", string(p.Module)),
+		slog.String("path_in_module", string(p.PathInModule)),
 	)
 
 	p.Analyzed = true

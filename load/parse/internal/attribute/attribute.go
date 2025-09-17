@@ -188,6 +188,7 @@ func Name() parser.Func[*ast.AttributeName] {
 		var name ast.AttributeName
 		name.Position = &pos
 		name.Name = nameStr
+		name.CanonicalName = canonicalize(name.Name)
 
 		if parenCount > 0 {
 			p.CaptureError(&diagnostic.Diagnostic{

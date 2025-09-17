@@ -10,20 +10,21 @@ type Import struct {
 	// imported.
 	AST *ast.ImportSpec
 
-	Alias string // may be empty
+	Alias Qualifier // may be empty
 	// CorgiPath is the import path as found in the corgi file it was sourced
 	// from.
 	//
-	// Guaranteed to be non-empty for explicit imports.
-	CorgiPath string
+	// Only set for explicit imports.
+	CorgiPath CorgiImportPath
 	// GoPath is the Go import path of the import.
 	//
 	// For explicit imports, the Go import path is determined by the linker.
 	//
 	// See the documentation of [Package].GoImportPath for more information.
 	//
-	// Must be set for implicit imports.
-	GoPath string
+	// Always set for implicit imports, and always set for explicit imports
+	// that were successfully loaded.
+	GoPath GoImportPath
 
 	//
 	// LINKER
@@ -41,33 +42,33 @@ type Import struct {
 	// the only exception being a builtin package, if provided.
 	Package *Package
 
-	// Namespace is the namespace of the import.
+	// Qualifier is the qualifier of the import.
 	//
 	// The responsibility of setting this field depends on whether the import
 	// is explicit or implicit:
 	//
 	// For explicit imports, it is the linker's responsibility to set this
 	// field, as it loads the package and reads the package name.
-	// If the linker chooses not to load this import, the Namespace field
+	// If the linker chooses not to load this import, the Qualifier field
 	// may remain empty.
 	//
 	// For implicit imports, it is the responsibility of the adder of the
 	// import to set this field.
 	//
-	// All forwarded imports must have a valid namespace.
+	// All forwarded imports must have a valid qualifier.
 	//
 	// For dot imports, this field is set to the empty sting.
 	//
 	// The corgi module reserves all namespaces prefixed with "__corgi_".
-	Namespace string
+	Qualifier Qualifier
 
 	// Forward indicates whether this import should be forwarded, i.e. included,
 	// in the output file's list of imports.
 	//
-	// Like with the Namespace field, this is set by the linker for explicit
+	// Like with the Qualifier field, this is set by the linker for explicit
 	// imports, and by the adder of the import for implicit imports.
 	//
-	// All forwarded imports must have a valid, unique, namespace.
+	// All forwarded imports must have a valid, unique, qualifier.
 	// All forwarded explicit imports must have a valid Package.
 	Forward bool
 
@@ -78,20 +79,16 @@ type Import struct {
 func (imp *Import) Explicit() bool { return imp.AST != nil }
 func (imp *Import) Implicit() bool { return !imp.Explicit() }
 
-// EnsureUniqueNamespace ensures that the import's namespace is unique
+// EnsureUniqueQualifier ensures that the import's qualifier is unique
 // within the file's symbols.
 //
-// If the namespace is already taken, it appends underscores until it is
-// unique and returns false.
-// Otherwise, it returns true.
-func (imp *Import) EnsureUniqueNamespace(s *Symbols) (ok bool) {
-	if s.ImportByNamespace(imp.Namespace) == nil {
-		return true
+// If the qualifier is already taken, it appends underscores until it is
+// unique and sets the import's Alias to the new qualifier.
+func (imp *Import) EnsureUniqueQualifier(f *File) {
+	if f.ImportByQualifier(imp.Qualifier) == nil {
+		return
 	}
 
-	for s.ImportByNamespace(imp.Namespace) != nil {
-		imp.Namespace += "_"
-	}
-	imp.Alias = imp.Namespace
-	return false
+	imp.Qualifier = f.UniqueQualifier(imp.Qualifier)
+	imp.Alias = imp.Qualifier
 }

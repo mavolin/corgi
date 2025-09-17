@@ -12,7 +12,7 @@ func (l *linker) CheckExplicitBuiltinImport() {
 	logger.Info("Checking for an illegal explicit import of the builtin package")
 
 	for _, f := range l.p.Files {
-		logger := logger.With(slog.String("file", f.Name))
+		logger := logger.With(slog.String("file", string(f.Name)))
 
 		builtin := f.BuiltinImport()
 		if builtin == nil {
@@ -26,7 +26,7 @@ func (l *linker) CheckExplicitBuiltinImport() {
 
 			logger := logger.With(
 				slog.String("pos", imp.AST.Start().String()),
-				slog.String("import", imp.CorgiPath))
+				slog.String("import", string(imp.CorgiPath)))
 
 			logger.Error("Explicit import of builtin package")
 			l.report(&diagnostic.Diagnostic{

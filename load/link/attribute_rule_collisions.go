@@ -24,7 +24,7 @@ func (l *linker) CheckAttributeRuleCollisions() {
 		}
 
 		logger := logger.With(
-			slog.String("file", spec.File.Name),
+			slog.String("file", string(spec.File.Name)),
 			slog.String("spec_pos", spec.AST.Start().String()))
 
 		wildcardDupls := duplicateWildcardElementSelectors(spec)
@@ -35,7 +35,7 @@ func (l *linker) CheckAttributeRuleCollisions() {
 		elemDupls := duplicateListElementSelectors(spec)
 		for elemSpec, dupls := range elemDupls {
 			if len(dupls) >= 2 {
-				reportDuplicateElements(l, logger, spec.File, elemSpec.HTMLName(), dupls)
+				reportDuplicateElements(l, logger, spec.File, elemSpec.StylizedHTMLName, dupls)
 			}
 		}
 	}

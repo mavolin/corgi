@@ -2,6 +2,7 @@ package element
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/mavolin/corgi/v2/file/ast"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
@@ -200,8 +201,37 @@ func Name() parser.Func[*ast.ElementName] {
 		pos := p.Pos()
 		pos.Col -= len([]rune(name))
 
-		return &ast.ElementName{Name: name, Position: &pos}
+		return &ast.ElementName{
+			Name:          name,
+			CanonicalName: canonicalize(name),
+			Position:      &pos,
+		}
 	}
+}
+
+func canonicalize(name string) string {
+	var b strings.Builder
+	for i, r := range name {
+		if r < 'A' || r > 'Z' {
+			continue
+		}
+
+		b.Grow(len(name))
+		b.WriteString(name[:i])
+		b.WriteRune((r - 'A') + 'a')
+		for _, r := range name[i+1:] {
+			if r >= 'A' && r <= 'Z' {
+				b.WriteRune((r - 'A') + 'a')
+			} else {
+				b.WriteRune(r)
+			}
+		}
+	}
+
+	if b.Len() == 0 {
+		return name
+	}
+	return b.String()
 }
 
 func Raw() parser.Func[*ast.RawElement] {

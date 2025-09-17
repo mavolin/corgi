@@ -19,7 +19,7 @@ func (z *analyzer) AnalyzeBlocks(logger *slog.Logger, c *file.Component) {
 	logger = logger.WithGroup("blocks")
 
 	for _, block := range c.Blocks {
-		logger := logger.With(slog.String("block", block.Name))
+		logger := logger.With(slog.String("block", string(block.Name)))
 
 		z.AnalyzeBlockRequired(logger, c, block)
 		z.AnalyzeBlockForwarded(block)
@@ -75,7 +75,7 @@ Erroneous:
 		Hints: []diagnostic.Hint{
 			{
 				Hint:    "To insert nothing, if the block is not set, use `{}` as default",
-				Example: "`block " + b.Name + " {}`",
+				Example: "`block " + string(b.Name) + " {}`",
 			},
 		},
 	})

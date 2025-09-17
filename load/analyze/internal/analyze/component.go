@@ -38,7 +38,7 @@ func (z *analyzer) AnalyzeComponents() {
 // Depends on Fields: None
 func (z *analyzer) AnalyzeComponent(ctx context.Context, logger *slog.Logger, c *file.Component) {
 	logger = logger.With(
-		slog.String("file", c.File.Name),
+		slog.String("file", string(c.File.Name)),
 		slog.String("comp", c.AST.Header.Name.Name),
 		slog.String("comp_pos", c.AST.Start().String()))
 

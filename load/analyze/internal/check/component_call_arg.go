@@ -5,7 +5,6 @@ import (
 
 	"github.com/mavolin/corgi/v2/escape/attrtype"
 	"github.com/mavolin/corgi/v2/file"
-	"github.com/mavolin/corgi/v2/file/ast"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
 	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
 	"github.com/mavolin/corgi/v2/file/switches"
@@ -26,23 +25,18 @@ func (ch *checker) CheckNoDuplicateComponentArgs(logger *slog.Logger, cc *file.C
 
 	if cc.Component == nil {
 		return
-	} else if cc.AST.Header.Arguments == nil || len(cc.AST.Header.Arguments.List) <= 1 {
+	} else if len(cc.ComponentArguments) <= 1 {
 		return
 	}
 
-	args := make(map[string][]*ast.ComponentArgument, len(cc.AST.Header.Arguments.List))
-	for _, arg := range cc.AST.Header.Arguments.List {
-		carg, _ := arg.(*ast.ComponentArgument)
-		if carg == nil {
-			continue
-		}
-		if cc.Component.ParameterByName(carg.Name.Name) == nil {
-			// non-existent arguments are handled by CheckComponentArgsExist
+	args := make(map[file.Identifier][]*file.ComponentArgument, len(cc.ComponentArguments))
+	for _, arg := range cc.ComponentArguments {
+		if arg.Parameter == nil {
+			// already reported by linker
 			continue
 		}
 
-		name := carg.Name.Name
-		args[name] = append(args[name], carg)
+		args[arg.Name] = append(args[arg.Name], arg)
 	}
 
 	for _, dupls := range args {
@@ -51,11 +45,11 @@ func (ch *checker) CheckNoDuplicateComponentArgs(logger *slog.Logger, cc *file.C
 		}
 
 		logger := logger.With(
-			slog.String("arg_name", dupls[0].Name.Name))
+			slog.String("arg_name", string(dupls[0].Name)))
 
 		primaries := make([]diagnostic.Annotation, len(dupls))
 		for i, dupl := range dupls {
-			primaries[i] = anno.Node(cc.File, dupl, "set here")
+			primaries[i] = anno.Node(cc.File, dupl.AST, "set here")
 		}
 
 		logger.Error("Found duplicate component call argument")
@@ -71,38 +65,30 @@ func (ch *checker) CheckComponentArgsExist(logger *slog.Logger, cc *file.Compone
 
 	if cc.Component == nil {
 		return
-	} else if cc.AST.Header.Arguments == nil || len(cc.AST.Header.Arguments.List) == 0 {
-		return
 	}
 
-	reported := make(map[string]bool)
-	for _, arg := range cc.AST.Header.Arguments.List {
-		carg, _ := arg.(*ast.ComponentArgument)
-		if carg == nil {
+	reported := make(map[file.Identifier]bool)
+	for _, arg := range cc.ComponentArguments {
+		if reported[arg.Name] {
 			continue
-		}
-
-		name := carg.Name.Name
-		if reported[name] {
-			continue
-		} else if cc.Component.ParameterByName(name) != nil {
+		} else if arg.Parameter != nil {
 			continue
 		}
 
 		logger.Error("Component call argument does not exist",
-			slog.String("arg_pos", carg.Start().String()),
-			slog.String("arg_name", name))
+			slog.String("arg_pos", arg.AST.Start().String()),
+			slog.String("arg_name", string(arg.Name)))
 		ch.Report(&diagnostic.Diagnostic{
 			Message: "component call: argument does not exist",
 			Primary: []diagnostic.Annotation{
 				anno.Anno(cc.File, anno.Annotation{
-					Highlight:  anno.HighlightNode(carg.Name),
+					Highlight:  anno.HighlightNode(arg.AST),
 					Context:    anno.ContextNode(cc.AST.Header),
-					Annotation: "component defines no parameter `" + name + "`",
+					Annotation: "component defines no parameter `" + string(arg.Name) + "`",
 				}),
 			},
 		})
-		reported[name] = true
+		reported[arg.Name] = true
 	}
 }
 
@@ -113,7 +99,6 @@ func (ch *checker) CheckRequiredComponentParamsSet(logger *slog.Logger, cc *file
 		return
 	}
 
-Params:
 	for _, param := range cc.Component.Parameters {
 		if !param.Required() {
 			continue
@@ -121,15 +106,9 @@ Params:
 
 		logger := logger.With(slog.String("param", param.AST.Name.Name))
 
-		for _, arg := range cc.AST.Header.Arguments.List {
-			carg, _ := arg.(*ast.ComponentArgument)
-			if carg == nil {
-				continue
-			}
-
-			if carg.Name.Name == param.AST.Name.Name {
-				continue Params // parameter is set
-			}
+		arg := cc.ComponentArgumentForParameter(param)
+		if arg != nil {
+			continue
 		}
 
 		// parameter is not set
@@ -206,38 +185,31 @@ func (ch *checker) CheckNoInterpolationInUnsafeTypedArguments(logger *slog.Logge
 
 	if cc.Component == nil {
 		return
-	} else if cc.AST.Header.Arguments == nil {
-		return
 	}
 
-	for _, arg := range cc.AST.Header.Arguments.List {
-		carg, _ := arg.(*ast.ComponentArgument)
-		if carg == nil {
-			continue
-		}
-
-		param := cc.Component.ParameterByName(carg.Name.Name)
-		if param.AttributeType.Failed() {
-			continue
-		} else if param.AttributeType.Result() != attrtype.Unsafe && param.AttributeType.Result() != attrtype.UnsafeBool {
-			continue
-		}
-
-		s, _ := carg.Value.Nodes[0].(*ast.String)
-		if s == nil {
+	for _, arg := range cc.ComponentArguments {
+		if arg.Parameter == nil {
 			return
 		}
 
-		for _, n := range s.Contents {
-			ok := switches.StringNodeR(n,
-				func(bi *ast.BadInterpolation) bool {
-					panic("analyzer called with parser errors: " + bi.Start().String())
-				},
-				func(*ast.CharacterEscape) bool { return true },
-				func(*ast.CharacterReference) bool { return true },
-				func(*ast.ComponentCallInterpolation) bool { return false },
-				func(*ast.ExpressionInterpolation) bool { return false },
-				func(*ast.StringText) bool { return true })
+		if arg.Parameter.AttributeType.Failed() {
+			continue
+		}
+
+		typ := arg.Parameter.AttributeType.Result()
+		if typ != attrtype.Unsafe && typ != attrtype.UnsafeBool {
+			continue
+		}
+
+		txt, _ := arg.Value.(file.Text)
+		if txt == nil {
+			return
+		}
+		for _, n := range txt {
+			ok := switches.TextPartR(n,
+				func(*file.ComponentCallPart) bool { return false },
+				func(file.ConstantPart) bool { return true },
+				func(*file.ExpressionPart) bool { return false })
 			if ok {
 				continue
 			}
@@ -246,20 +218,19 @@ func (ch *checker) CheckNoInterpolationInUnsafeTypedArguments(logger *slog.Logge
 			ch.Report(&diagnostic.Diagnostic{
 				Message: "component call: unsafe*-typed argument contains interpolation",
 				Primary: []diagnostic.Annotation{
-					anno.Node(cc.File, n, "cannot use interpolation here"),
+					anno.Node(cc.File, arg.AST, "cannot use interpolation here"),
 				},
 				Secondary: []diagnostic.Annotation{
 					anno.Anno(cc.Component.File, anno.Annotation{
 						Context:    anno.ContextNode(cc.Component.AST.Header),
-						Highlight:  anno.HighlightNode(param.AST),
-						Annotation: "typed as `" + param.AttributeType.Result().String() + "`",
+						Highlight:  anno.HighlightNode(arg.Parameter.AST),
+						Annotation: "typed as `" + typ.String() + "`",
 					}),
 				},
 				Hints: []diagnostic.Hint{
 					{
 						Hint: "If you are sure, the value you are constructing is safe, " +
-							"wrap the entire expression in a `safe.TrustedUnsafe` call. " +
-							"Make sure to read the documentation of `safe.TrustedUnsafe` before doing so!",
+							"consult package `safe` to construct a trusted value.",
 					},
 				},
 				Explanation: "Arguments marked as `unsafe` must not use any interpolation, " +

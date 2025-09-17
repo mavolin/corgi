@@ -38,7 +38,7 @@ func (ch *checker) CheckScope() {
 	logger.Debug("Checking scope")
 
 	for _, f := range ch.P.Files {
-		logger := logger.With(slog.String("file", f.Name))
+		logger := logger.With(slog.String("file", string(f.Name)))
 
 		walk.Walk(f.AST, func(w *walk.Context) walk.Action {
 			switch n := w.Node.(type) {

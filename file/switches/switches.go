@@ -13,4 +13,4 @@
 // Patch version increments do not allow breaking changes.
 package switches
 
-//go:generate go test -run=Generate -tags=generate
+//go:generate go test -run Generate -tags=generate

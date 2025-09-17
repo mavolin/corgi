@@ -29,7 +29,7 @@ import (
 type (
 	importGraph struct {
 		mu       sync.Mutex
-		packages map[importPath]*packageNode // all vertices in the graph
+		packages map[file.CorgiImportPath]*packageNode // all vertices in the graph
 	}
 
 	packageNode struct {
@@ -38,7 +38,7 @@ type (
 		diagnostics diagnostic.List
 		err         error
 
-		imports map[importPath]*packageNode // edges to other vertices
+		imports map[file.CorgiImportPath]*packageNode // edges to other vertices
 	}
 )
 
@@ -55,13 +55,13 @@ func importGraphFromContext(ctx context.Context) (context.Context, *importGraph)
 
 func newImportGraph() *importGraph {
 	return &importGraph{
-		packages: make(map[importPath]*packageNode),
+		packages: make(map[file.CorgiImportPath]*packageNode),
 	}
 }
 
 func (g *importGraph) AddImport(
-	parent *file.Package, impPath importPath, compute func() (*file.Package, diagnostic.List, error),
-) (cycle []importPath) {
+	parent *file.Package, impPath file.CorgiImportPath, compute func() (*file.Package, diagnostic.List, error),
+) (cycle []file.CorgiImportPath) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
@@ -69,7 +69,7 @@ func (g *importGraph) AddImport(
 	if parentNode == nil {
 		parentNode = &packageNode{
 			loaded:  make(chan struct{}),
-			imports: make(map[importPath]*packageNode),
+			imports: make(map[file.CorgiImportPath]*packageNode),
 		}
 		close(parentNode.loaded) // parent is already loaded
 		g.packages[parent.CorgiImportPath] = parentNode
@@ -79,7 +79,7 @@ func (g *importGraph) AddImport(
 	if childNode == nil {
 		childNode = &packageNode{
 			loaded:  make(chan struct{}),
-			imports: make(map[importPath]*packageNode),
+			imports: make(map[file.CorgiImportPath]*packageNode),
 		}
 		g.packages[impPath] = childNode
 		parentNode.imports[impPath] = childNode
@@ -107,7 +107,7 @@ func (g *importGraph) AddImport(
 	return nil
 }
 
-func (g *importGraph) AwaitImport(impPath importPath) (*file.Package, diagnostic.List, error) {
+func (g *importGraph) AwaitImport(impPath file.CorgiImportPath) (*file.Package, diagnostic.List, error) {
 	g.mu.Lock()
 	node := g.packages[impPath]
 	g.mu.Unlock()
@@ -124,14 +124,14 @@ func (g *importGraph) AwaitImport(impPath importPath) (*file.Package, diagnostic
 // findPath returns the shortest path from 'from' to 'to' if one exists.
 //
 // from and to must not be equal.
-func (g *importGraph) findPath(from, to *packageNode) []importPath {
+func (g *importGraph) findPath(from, to *packageNode) []file.CorgiImportPath {
 	type queueItem struct {
 		node  *packageNode
-		cycle []importPath
+		cycle []file.CorgiImportPath
 	}
 
 	// Use BFS to find the shortest path.
-	queue := []queueItem{{from, make([]importPath, 0, 8)}}
+	queue := []queueItem{{from, make([]file.CorgiImportPath, 0, 8)}}
 	seen := make(map[*packageNode]bool)
 	seen[from] = true
 	for len(queue) > 0 {
@@ -144,7 +144,7 @@ func (g *importGraph) findPath(from, to *packageNode) []importPath {
 			}
 			seen[child] = true
 
-			path := make([]importPath, len(parent.cycle)+1)
+			path := make([]file.CorgiImportPath, len(parent.cycle)+1)
 			copy(path, parent.cycle)
 			path[len(parent.cycle)] = childImportPath
 

@@ -31,7 +31,7 @@ func TestLinker_CheckAttributeRuleCollisions(t *testing.T) {
 		rule1 := &ast.AttributeRule{
 			Selector: &ast.ListElementSelector{
 				List: []*ast.ElementReference{
-					createElementReference(mainF, &start, "", elem1.HTMLName()).AST,
+					createElementReference(mainF, &start, "", elem1.StylizedHTMLName).AST,
 				},
 			},
 		}
@@ -45,7 +45,7 @@ func TestLinker_CheckAttributeRuleCollisions(t *testing.T) {
 		rule2 := &ast.AttributeRule{
 			Selector: &ast.ListElementSelector{
 				List: []*ast.ElementReference{
-					createElementReference(mainF, spaceAfter(attrSpec.AST), "", elem2.HTMLName()).AST,
+					createElementReference(mainF, spaceAfter(attrSpec.AST), "", elem2.StylizedHTMLName).AST,
 				},
 			},
 		}
@@ -120,7 +120,7 @@ func TestLinker_CheckAttributeRuleCollisions(t *testing.T) {
 				rule2 := &ast.AttributeRule{
 					Selector: &ast.ListElementSelector{
 						List: []*ast.ElementReference{
-							createElementReference(mainF, spaceAfter(attrSpec.AST), "", elem.HTMLName()).AST,
+							createElementReference(mainF, spaceAfter(attrSpec.AST), "", elem.StylizedHTMLName).AST,
 						},
 					},
 				}
@@ -148,10 +148,10 @@ func TestLinker_CheckAttributeRuleCollisions(t *testing.T) {
 
 				selector := &ast.ListElementSelector{
 					List: []*ast.ElementReference{
-						createElementReference(mainF, spaceAfter(attrSpec.AST), "", elem.HTMLName()).AST,
+						createElementReference(mainF, spaceAfter(attrSpec.AST), "", elem.StylizedHTMLName).AST,
 					},
 				}
-				selector.List = append(selector.List, createElementReference(mainF, spaceAfter(selector), "", elem.HTMLName()).AST)
+				selector.List = append(selector.List, createElementReference(mainF, spaceAfter(selector), "", elem.StylizedHTMLName).AST)
 				rule := &ast.AttributeRule{Selector: selector}
 				rule.Type = &ast.AttributeTypeName{
 					Name:     attrtype.Innocuous.String(),

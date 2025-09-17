@@ -117,7 +117,7 @@ func TestLinker_LoadImports(t *testing.T) {
 
 		t.Log(d.Pretty(diagnostic.PrettyOptions{}))
 		should.Equal(t, len(d), 0)
-		should.Equal(t, imp.Namespace, "")
+		should.Equal(t, imp.Qualifier, "")
 	})
 
 	t.Run("import with reserved package name prefix", func(t *testing.T) {
@@ -153,7 +153,7 @@ func TestLinker_LoadImports(t *testing.T) {
 		imp := createImport(mainF, &start, "", importedPkg.CorgiImportPath)
 
 		d := Link(context.Background(), mainPkg, Options{
-			Importer: func(_ context.Context, path string) (*file.Package, diagnostic.List, error) {
+			Importer: func(_ context.Context, path file.CorgiImportPath) (*file.Package, diagnostic.List, error) {
 				if path == importedPkg.CorgiImportPath {
 					return importedPkg, diagnostic.List{{Message: "test diagnostic"}}, nil
 				}
@@ -179,7 +179,7 @@ func TestLinker_LoadImports(t *testing.T) {
 
 		d := Link(context.Background(), mainPkg, Options{
 			Importer: (&mockImporter{
-				errors: map[importPath]error{
+				errors: map[file.CorgiImportPath]error{
 					importedPkg.CorgiImportPath: errors.New("test error"),
 				},
 			}).Import,

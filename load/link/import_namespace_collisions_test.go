@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/mavolin/corgi/v2/file"
 	"github.com/mavolin/corgi/v2/file/ast"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
 	"github.com/mavolin/corgi/v2/internal/test/should"
@@ -38,8 +39,8 @@ func TestLinker_CheckImportNamespaceCollisions(t *testing.T) {
 
 		tests := []struct {
 			name                 string
-			aliasA, packageNameA string
-			aliasB, packageNameB string
+			aliasA, packageNameA file.Qualifier
+			aliasB, packageNameB file.Qualifier
 		}{
 			{
 				name:   "same alias",
@@ -61,8 +62,8 @@ func TestLinker_CheckImportNamespaceCollisions(t *testing.T) {
 				t.Parallel()
 
 				var start ast.Position
-				pkgA := createPackage(c.packageNameA)
-				pkgB := createPackage(c.packageNameB)
+				pkgA := createPackage(file.PackagePath(c.packageNameA))
+				pkgB := createPackage(file.PackagePath(c.packageNameB))
 
 				mainPkg := createPackage("main")
 				mainFile := createFile(mainPkg, "main.corgi")

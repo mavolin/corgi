@@ -15,12 +15,14 @@ type Attribute struct {
 	//
 	// ANALYZER
 
-	// Analyzed indicates whether the AttributeReference has been analyzed,
+	// Analyzed indicates whether the Attribute has been analyzed,
 	// albeit with errors.
 	Analyzed bool
 
 	// Value is the value of the attribute.
-	Value ResolvedAttributeValue
+	//
+	// Nil for &-placeholders.
+	Value ResolvedValue
 
 	// Forwarded indicates whether the attribute reference is forwarded to the
 	// component calling the component containing it.
@@ -86,26 +88,16 @@ type Attribute struct {
 	Type Analysis[attrtype.Type]
 }
 
-func (a *Attribute) Constant() bool {
-	switch val := a.Value.(type) {
-	case ConstantBool:
-		return true
-	case Text:
-		return val.Constant()
-	default:
-		return false
-	}
-}
-
 // ============================================================================
 // Attribute Value
 // ======================================================================================
 
 type (
-	// ResolvedAttributeValue is either a [ConstantBool],
+	// ResolvedValue is either a [ConstantBool],
 	// [BoolExpression], [UndeterminedExpression], or
 	// [Text].
-	ResolvedAttributeValue interface {
+	ResolvedValue interface {
+		Constant() bool
 		_attributeValue()
 	}
 
@@ -124,23 +116,23 @@ type (
 )
 
 var (
-	_ ResolvedAttributeValue = ConstantBool(false)
-	_ ResolvedAttributeValue = (*BoolExpression)(nil)
-	_ ResolvedAttributeValue = (*UndeterminedExpression)(nil)
-	_ ResolvedAttributeValue = (Text)(nil)
+	_ ResolvedValue = ConstantBool(false)
+	_ ResolvedValue = (*BoolExpression)(nil)
+	_ ResolvedValue = (*UndeterminedExpression)(nil)
+	_ ResolvedValue = (Text)(nil)
 
 	_ TextPart = ConstantPart("")
 	_ TextPart = (*ExpressionPart)(nil)
+	_ TextPart = (*ComponentCallPart)(nil)
 )
 
 func (ConstantBool) _attributeValue()            {}
+func (ConstantBool) Constant() bool              { return true }
 func (*BoolExpression) _attributeValue()         {}
+func (*BoolExpression) Constant() bool           { return false }
 func (*UndeterminedExpression) _attributeValue() {}
+func (*UndeterminedExpression) Constant() bool   { return false }
 func (Text) _attributeValue()                    {}
-
-func (ConstantPart) _textualAttributeValuePart()       {}
-func (*ExpressionPart) _textualAttributeValuePart()    {}
-func (*ComponentCallPart) _textualAttributeValuePart() {}
 
 func (v Text) Constant() bool {
 	if len(v) != 1 {
@@ -149,3 +141,7 @@ func (v Text) Constant() bool {
 	_, ok := v[0].(ConstantPart)
 	return ok
 }
+
+func (ConstantPart) _textualAttributeValuePart()       {}
+func (*ExpressionPart) _textualAttributeValuePart()    {}
+func (*ComponentCallPart) _textualAttributeValuePart() {}

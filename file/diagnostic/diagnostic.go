@@ -189,7 +189,7 @@ func (d *Diagnostic) Error() string {
 	var sb strings.Builder
 	if len(d.Primary) > 0 {
 		p := d.Primary[0]
-		sb.WriteString(p.File.PathInModule())
+		sb.WriteString(string(p.File.PathInModule()))
 		sb.WriteString(":")
 		sb.WriteString(strconv.Itoa(p.Start.Line))
 		sb.WriteString(":")

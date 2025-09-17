@@ -91,7 +91,7 @@ func (ch *checker) CheckBlockFunctionDefined(logger *slog.Logger, f *file.File, 
 	}
 
 	c := f.Package.ComponentByNode(cAST)
-	if c.BlockByName(bf.Name()) != nil {
+	if c.BlockByName(file.Identifier(bf.Name())) != nil {
 		return
 	}
 

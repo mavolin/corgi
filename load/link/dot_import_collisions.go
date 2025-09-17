@@ -2,7 +2,6 @@ package link
 
 import (
 	"log/slog"
-	"strings"
 
 	"github.com/mavolin/corgi/v2/file"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
@@ -23,9 +22,9 @@ func (l *linker) CheckDotImportComponentCollisions() {
 			continue
 		}
 
-		logger := logger.With(slog.String("file", f.Name))
+		logger := logger.With(slog.String("file", string(f.Name)))
 
-		dupls := make(map[componentName][]*file.Component)
+		dupls := make(map[file.Identifier][]*file.Component)
 		for _, imp := range dotImports {
 			addComponentsFromPackage(dupls, imp.Package)
 		}
@@ -36,16 +35,16 @@ func (l *linker) CheckDotImportComponentCollisions() {
 				continue // no collision
 			}
 
-			logger := logger.With(slog.String("name", name))
+			logger := logger.With(slog.String("name", string(name)))
 			logger.Error("Component collision", slog.Int("count", len(comps)))
 
 			primaries := make([]diagnostic.Annotation, len(comps))
 			secondaries := make([]diagnostic.Annotation, 0, len(comps))
 			for i, comp := range comps {
 				if comp.File.Package == f.Package {
-					primaries[i] = anno.Node(comp.File, comp.AST, "`"+name+"` defined locally")
+					primaries[i] = anno.Node(comp.File, comp.AST, "`"+string(name)+"` defined locally")
 				} else {
-					primaries[i] = anno.Node(f, findImport(dotImports, comp.File.Package).AST, "defines `"+name+"`")
+					primaries[i] = anno.Node(f, findImport(dotImports, comp.File.Package).AST, "defines `"+string(name)+"`")
 					secondaries = append(secondaries, anno.Anno(comp.File, anno.Annotation{
 						Highlight:  anno.HighlightNode(comp.AST),
 						Context:    anno.ContextNode(comp.AST.Header),
@@ -66,7 +65,7 @@ func (l *linker) CheckDotImportComponentCollisions() {
 	}
 }
 
-func addComponentsFromPackage(dupls map[componentName][]*file.Component, p *file.Package) {
+func addComponentsFromPackage(dupls map[file.Identifier][]*file.Component, p *file.Package) {
 	if p == nil || p.PackageSymbols == nil || p.Components == nil {
 		return
 	}
@@ -76,12 +75,11 @@ Components:
 		if comp.AST.Header == nil || comp.AST.Header.Name == nil {
 			continue
 		}
-		name := comp.AST.Header.Name.Name
-		if !file.IsExported(name) {
+		if !file.IsExported(comp.Name) {
 			continue
 		}
 
-		for _, dupl := range dupls[name] {
+		for _, dupl := range dupls[comp.Name] {
 			if dupl.File.Package == comp.File.Package {
 				// don't report collisions within the same package or report
 				// the same component multiple times if there are duplicate
@@ -89,7 +87,7 @@ Components:
 				continue Components
 			}
 		}
-		dupls[name] = append(dupls[name], comp)
+		dupls[comp.Name] = append(dupls[comp.Name], comp)
 	}
 }
 
@@ -107,9 +105,9 @@ func (l *linker) CheckDotImportElementSpecCollisions() {
 			continue
 		}
 
-		logger := logger.With(slog.String("file", f.Name))
+		logger := logger.With(slog.String("file", string(f.Name)))
 
-		dupls := make(map[fullElementName][]*file.ElementSpec)
+		dupls := make(map[file.CanonicalElementName][]*file.ElementSpec)
 		for _, imp := range dotImports {
 			addElementSpecsFromPackage(dupls, imp.Package)
 		}
@@ -121,16 +119,16 @@ func (l *linker) CheckDotImportElementSpecCollisions() {
 			}
 
 			logger.Error("Element definition collision",
-				slog.String("name", name),
+				slog.String("name", string(name)),
 				slog.Int("count", len(elems)))
 
 			primaries := make([]diagnostic.Annotation, 0, len(elems)+1)
 			secondaries := make([]diagnostic.Annotation, 0, 2*len(elems))
 			for _, elem := range elems {
 				if elem.File.Package == f.Package {
-					primaries = appendElementSpecLocationAnnotations(primaries, nil, elem, "`"+elem.HTMLName()+"` defined locally")
+					primaries = appendElementSpecLocationAnnotations(primaries, nil, elem, "`"+elem.StylizedHTMLName+"` defined locally")
 				} else {
-					primaries = append(primaries, anno.Node(f, findImport(dotImports, elem.File.Package).AST, "defines `"+elem.HTMLName()+"`"))
+					primaries = append(primaries, anno.Node(f, findImport(dotImports, elem.File.Package).AST, "defines `"+elem.StylizedHTMLName+"`"))
 					secondaries = appendElementSpecLocationAnnotations(secondaries, nil, elem, "defined here")
 				}
 			}
@@ -148,19 +146,18 @@ func (l *linker) CheckDotImportElementSpecCollisions() {
 	}
 }
 
-func addElementSpecsFromPackage(dupls map[fullElementName][]*file.ElementSpec, p *file.Package) {
+func addElementSpecsFromPackage(dupls map[file.CanonicalElementName][]*file.ElementSpec, p *file.Package) {
 	if p == nil || p.PackageSymbols == nil || p.ElementSpecs == nil {
 		return
 	}
 
 Specs:
 	for _, elem := range p.ElementSpecs {
-		name := strings.ToLower(elem.HTMLName())
-		if name == "" {
+		if elem.HTMLName == "" {
 			continue
 		}
 
-		for _, dupl := range dupls[name] {
+		for _, dupl := range dupls[elem.HTMLName] {
 			if dupl.File.Package == elem.File.Package {
 				// don't report collisions within the same package or report
 				// the same spec multiple times if there are duplicate
@@ -168,7 +165,7 @@ Specs:
 				continue Specs
 			}
 		}
-		dupls[name] = append(dupls[name], elem)
+		dupls[elem.HTMLName] = append(dupls[elem.HTMLName], elem)
 	}
 }
 
@@ -186,9 +183,9 @@ func (l *linker) CheckDotImportAttributeSpecCollisions() {
 			continue
 		}
 
-		logger := logger.With(slog.String("file", f.Name))
+		logger := logger.With(slog.String("file", string(f.Name)))
 
-		dupls := make(map[fullAttributeSelector][]*file.AttributeSpec)
+		dupls := make(map[file.CanonicalAttributeName][]*file.AttributeSpec)
 		for _, imp := range dotImports {
 			addAttributeSpecsFromPackage(dupls, imp.Package)
 		}
@@ -200,16 +197,16 @@ func (l *linker) CheckDotImportAttributeSpecCollisions() {
 			}
 
 			logger.Error("Attribute definition collision",
-				slog.String("selector", sel),
+				slog.String("selector", string(sel)),
 				slog.Int("count", len(attrs)))
 
 			primaries := make([]diagnostic.Annotation, 0, len(attrs))
 			secondaries := make([]diagnostic.Annotation, 0, len(attrs))
 			for _, attr := range attrs {
 				if attr.File.Package == f.Package {
-					primaries = appendAttrSpecLocationAnnotations(primaries, nil, attr, "`"+sel+"` defined locally")
+					primaries = appendAttrSpecLocationAnnotations(primaries, nil, attr, "`"+string(sel)+"` defined locally")
 				} else {
-					primaries = append(primaries, anno.Node(f, findImport(dotImports, attr.File.Package).AST, "defines `"+sel+"`"))
+					primaries = append(primaries, anno.Node(f, findImport(dotImports, attr.File.Package).AST, "defines `"+string(sel)+"`"))
 					secondaries = appendAttrSpecLocationAnnotations(secondaries, nil, attr, "defined here")
 				}
 			}
@@ -227,28 +224,27 @@ func (l *linker) CheckDotImportAttributeSpecCollisions() {
 	}
 }
 
-func addAttributeSpecsFromPackage(dupls map[fullAttributeSelector][]*file.AttributeSpec, p *file.Package) {
+func addAttributeSpecsFromPackage(dupls map[file.CanonicalAttributeName][]*file.AttributeSpec, p *file.Package) {
 	if p == nil || p.PackageSymbols == nil || p.AttributeSpecs == nil {
 		return
 	}
 
 Specs:
-	for _, attr := range p.AttributeSpecs {
-		info := attrSpecInfo(attr)
-		if info == nil {
+	for _, spec := range p.AttributeSpecs {
+		sel := htmlAttrName(spec)
+		if sel == "" {
 			continue
 		}
-		sel := info.htmlNameSelector()
 
 		for _, dupl := range dupls[sel] {
-			if dupl.File.Package == attr.File.Package {
+			if dupl.File.Package == spec.File.Package {
 				// don't report collisions within the same package or report
 				// the same spec multiple times if there are duplicate
 				// dot imports
 				continue Specs
 			}
 		}
-		dupls[sel] = append(dupls[sel], attr)
+		dupls[sel] = append(dupls[sel], spec)
 	}
 }
 

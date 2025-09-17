@@ -3,7 +3,6 @@ package link
 import (
 	"log/slog"
 	"slices"
-	"strings"
 
 	"github.com/mavolin/corgi/v2/file"
 	"github.com/mavolin/corgi/v2/file/ast"
@@ -24,15 +23,12 @@ func (l *linker) CheckComponentCollisions() {
 		return
 	}
 
-	dupls := make(map[componentName][]*file.Component)
+	dupls := make(map[file.Identifier][]*file.Component)
 
 	for _, comp := range l.p.Components {
-		if comp.AST.Header == nil || comp.AST.Header.Name == nil {
-			continue
+		if comp.Name != "" {
+			dupls[comp.Name] = append(dupls[comp.Name], comp)
 		}
-
-		name := comp.AST.Header.Name.Name
-		dupls[name] = append(dupls[name], comp)
 	}
 
 	for name, comps := range dupls {
@@ -41,7 +37,7 @@ func (l *linker) CheckComponentCollisions() {
 		}
 
 		logger.Error("Found component collisions",
-			slog.String("name", name),
+			slog.String("name", string(name)),
 			slog.Int("count", len(comps)))
 
 		primaries := make([]diagnostic.Annotation, len(comps))
@@ -68,8 +64,8 @@ func (l *linker) CheckElementSpecCollisions() {
 		return
 	}
 
-	qualifiedDupls := make(map[elementName][]*file.ElementSpec)
-	htmlNameDupls := make(map[fullElementName][]*file.ElementSpec)
+	qualifiedDupls := make(map[file.CanonicalQualifiableElementName][]*file.ElementSpec)
+	htmlNameDupls := make(map[file.CanonicalElementName][]*file.ElementSpec)
 
 	// Collect all element specs
 	for _, elem := range l.p.ElementSpecs {
@@ -77,14 +73,14 @@ func (l *linker) CheckElementSpecCollisions() {
 			continue
 		}
 
-		qualName, htmlName := strings.ToLower(elem.QualifiedName()), strings.ToLower(elem.HTMLName())
-		if qualName == "" {
+		if elem.QualifiableName == "" {
 			continue
 		}
-		qualifiedDupls[qualName] = append(qualifiedDupls[qualName], elem)
+		qualifiedDupls[elem.QualifiableName] = append(qualifiedDupls[elem.QualifiableName], elem)
 
-		if htmlName != qualName {
-			htmlNameDupls[htmlName] = append(htmlNameDupls[htmlName], elem)
+		// don't report twice, if canonical and qualifiable name are the same
+		if elem.HTMLName != file.CanonicalElementName(elem.QualifiableName) {
+			htmlNameDupls[elem.HTMLName] = append(htmlNameDupls[elem.HTMLName], elem)
 		}
 	}
 
@@ -94,7 +90,7 @@ func (l *linker) CheckElementSpecCollisions() {
 		}
 
 		logger.Error("Found duplicate element specs",
-			slog.String("qualified_name", name),
+			slog.String("qualified_name", string(name)),
 			slog.Int("count", len(elems)))
 
 		primaries := make([]diagnostic.Annotation, len(elems))
@@ -115,13 +111,13 @@ func (l *linker) CheckElementSpecCollisions() {
 
 		// Don't report again if exactly the same elements were already
 		// reported for clashing qualified names.
-		qualifiedElems := qualifiedDupls[strings.ToLower(elems[0].QualifiedName())]
+		qualifiedElems := qualifiedDupls[elems[0].QualifiableName]
 		if slices.Equal(elems, qualifiedElems) {
 			continue
 		}
 
 		logger.Error("Found duplicate element specs",
-			slog.String("full_name", name),
+			slog.String("full_name", string(name)),
 			slog.Int("count", len(elems)))
 
 		primaries := make([]diagnostic.Annotation, 0, 2*len(elems))
@@ -165,21 +161,20 @@ func (l *linker) CheckAttributeSpecCollisions() {
 		return
 	}
 
-	qualifiedDupls := make(map[attributeSelector][]*file.AttributeSpec)
-	htmlNameDupls := make(map[fullAttributeSelector][]*file.AttributeSpec)
+	qualifiedDupls := make(map[file.CanonicalQualifiableAttributeName][]*file.AttributeSpec)
+	htmlNameDupls := make(map[file.CanonicalAttributeName][]*file.AttributeSpec)
 
-	for _, attr := range l.p.AttributeSpecs {
-		info := attrSpecInfo(attr)
-		if info == nil {
+	for _, spec := range l.p.AttributeSpecs {
+		qualifiableSel := qualifiableAttrSelector(spec)
+		htmlName := htmlAttrName(spec)
+		if qualifiableSel == "" || htmlName == "" {
 			continue
 		}
 
-		sel := info.qualifiedSelector()
-		qualifiedDupls[sel] = append(qualifiedDupls[sel], attr)
+		qualifiedDupls[qualifiableSel] = append(qualifiedDupls[qualifiableSel], spec)
 
-		fullSel := info.htmlNameSelector()
-		if fullSel != sel {
-			htmlNameDupls[fullSel] = append(htmlNameDupls[fullSel], attr)
+		if htmlName != file.CanonicalAttributeName(qualifiableSel) {
+			htmlNameDupls[htmlName] = append(htmlNameDupls[htmlName], spec)
 		}
 	}
 
@@ -189,7 +184,7 @@ func (l *linker) CheckAttributeSpecCollisions() {
 		}
 
 		logger.Error("Found duplicate attribute specs",
-			slog.String("selector", sel),
+			slog.String("selector", string(sel)),
 			slog.Int("count", len(attrs)))
 
 		primaries := make([]diagnostic.Annotation, len(attrs))
@@ -213,13 +208,13 @@ func (l *linker) CheckAttributeSpecCollisions() {
 
 		// Don't report again if exactly the same elements were already
 		// reported for clashing qualified names.
-		qualifiedElems := qualifiedDupls[attrSpecInfo(attrs[0]).qualifiedSelector()]
+		qualifiedElems := qualifiedDupls[qualifiableAttrSelector(attrs[0])]
 		if slices.Equal(attrs, qualifiedElems) {
 			continue
 		}
 
 		logger.Error("Found duplicate attribute specs",
-			slog.String("selector", sel),
+			slog.String("selector", string(sel)),
 			slog.Int("count", len(attrs)))
 
 		primaries := make([]diagnostic.Annotation, 0, 2*len(attrs))

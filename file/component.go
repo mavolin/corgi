@@ -5,10 +5,6 @@ import (
 	"github.com/mavolin/corgi/v2/file/ast"
 )
 
-// ============================================================================
-// Component
-// ======================================================================================
-
 type Component struct {
 	//
 	// BUILD SYMBOLS
@@ -17,6 +13,8 @@ type Component struct {
 
 	// File is the file the Component is defined in.
 	File *File
+
+	Name Identifier
 
 	// ComponentCalls are the component calls this component calls.
 	ComponentCalls []*ComponentCall
@@ -80,9 +78,9 @@ type Component struct {
 	AlwaysWritesElements AnalysisWithReason[ast.ElementWriter]
 }
 
-func (c *Component) ParameterByName(name string) *ComponentParameter {
+func (c *Component) ParameterByName(name Identifier) *ComponentParameter {
 	for _, p := range c.Parameters {
-		if p.AST.Name.Name == name {
+		if Identifier(p.AST.Name.Name) == name {
 			return p
 		}
 	}
@@ -98,7 +96,7 @@ func (c *Component) ParameterByNode(p *ast.ComponentParameter) *ComponentParamet
 	return nil
 }
 
-func (c *Component) BlockByName(name string) *Block {
+func (c *Component) BlockByName(name Identifier) *Block {
 	for _, block := range c.Blocks {
 		if block.Name == name {
 			return block
@@ -108,7 +106,7 @@ func (c *Component) BlockByName(name string) *Block {
 }
 
 func (c *Component) BlockByNode(b *ast.Block) *Block {
-	block := c.BlockByName(b.Name())
+	block := c.BlockByName(Identifier(b.Name()))
 	if block == nil {
 		return nil
 	}
@@ -122,7 +120,7 @@ func (c *Component) BlockByNode(b *ast.Block) *Block {
 }
 
 func (c *Component) BlockInstanceByNode(b *ast.Block) *BlockInstance {
-	block := c.BlockByName(b.Name())
+	block := c.BlockByName(Identifier(b.Name()))
 	if block == nil {
 		return nil
 	}
@@ -130,8 +128,12 @@ func (c *Component) BlockInstanceByNode(b *ast.Block) *BlockInstance {
 }
 
 func (c *Component) Exported() bool {
-	return IsExported(c.AST.Header.Name.Name)
+	return IsExported(c.Name)
 }
+
+// ============================================================================
+// Parameter
+// ======================================================================================
 
 type ComponentParameter struct {
 	//
@@ -144,15 +146,15 @@ type ComponentParameter struct {
 
 	// The InferredType of this value, if there is no explicit type or if using
 	// a special type, like an attribute type.
-	InferredType  Analysis[string]
+	InferredType  Analysis[Type]
 	AttributeType Analysis[attrtype.Type] // if type is a safe.*
 	AttributeName Analysis[string]        // if type is safe.Unsafe*
 }
 
-func (p *ComponentParameter) ResolvedType() Analysis[string] {
+func (p *ComponentParameter) ResolvedType() Analysis[Type] {
 	if p.AST.Type != nil {
-		var a Analysis[string]
-		a.SetResult(p.AST.Type.Type)
+		var a Analysis[Type]
+		a.SetResult(Type(p.AST.Type.Type))
 		return a
 	}
 	return p.InferredType

@@ -32,7 +32,7 @@ type PrettyOptions struct {
 
 	// FileNamePrinter is a function that returns the name of the file.
 	//
-	// Default: f.PathInModule
+	// Default: f.PackagePath
 	FileNamePrinter func(f *file.File) string
 
 	// DocsBaseURL is the base URL to the documentation.
@@ -58,7 +58,7 @@ func (o *PrettyOptions) applyDefaults() {
 	}
 	if o.FileNamePrinter == nil {
 		o.FileNamePrinter = func(f *file.File) string {
-			return filepath.FromSlash("./" + f.PathInModule())
+			return filepath.FromSlash(string("./" + f.PathInModule()))
 		}
 	}
 	if o.DocsBaseURL == "" {

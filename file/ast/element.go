@@ -187,8 +187,9 @@ func (*ElementHeader) _node() {}
 // ======================================================================================
 
 type ElementName struct {
-	Name     string
-	Position *Position
+	Name          string
+	CanonicalName string // ascii-lowercase version of Name
+	Position      *Position
 }
 
 var _ Node = (*ElementName)(nil)

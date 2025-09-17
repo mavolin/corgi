@@ -21,7 +21,7 @@ import (
 // While the expression can be cast to the type returned, but in the context of
 // the expression it might also be used to yield a different, more concrete
 // type.
-func InferType(f *file.File, expr *ast.Expression) (typ string, sure bool) {
+func InferType(f *file.File, expr *ast.Expression) (typ file.Type, sure bool) {
 	if expr == nil || len(expr.Nodes) == 0 {
 		return "", false
 	}
@@ -55,7 +55,7 @@ func InferType(f *file.File, expr *ast.Expression) (typ string, sure bool) {
 	return typ, sure
 }
 
-func inferTernaryType(f *file.File, expr *ast.Ternary) (typ string, sure bool) {
+func inferTernaryType(f *file.File, expr *ast.Ternary) (typ file.Type, sure bool) {
 	if expr == nil || (expr.TrueVal == nil && expr.FalseVal == nil) {
 		return "", false
 	}
@@ -81,7 +81,7 @@ func inferTernaryType(f *file.File, expr *ast.Ternary) (typ string, sure bool) {
 	return "", false
 }
 
-func inferZeroCoalescingType(f *file.File, expr *ast.ZeroCoalescing) (typ string, sure bool) {
+func inferZeroCoalescingType(f *file.File, expr *ast.ZeroCoalescing) (typ file.Type, sure bool) {
 	if expr == nil {
 		return "", false
 	}
@@ -98,7 +98,7 @@ func inferZeroCoalescingType(f *file.File, expr *ast.ZeroCoalescing) (typ string
 		func(*ast.ZCIndexExpression) {},
 		func(*ast.ZCParenExpression) {},
 		func(*ast.ZCSelectorExpression) {},
-		func(e *ast.ZCTypeAssertionExpression) { typ, sure = e.Type.Full(), true },
+		func(e *ast.ZCTypeAssertionExpression) { typ, sure = file.Type(e.Type.Full()), true },
 	)
 	if typ != "" {
 		return typ, sure
@@ -110,7 +110,7 @@ func inferZeroCoalescingType(f *file.File, expr *ast.ZeroCoalescing) (typ string
 	return "", false
 }
 
-func inferGoCodeType(f *file.File, expr *ast.GoCode) (typ string, sure bool) {
+func inferGoCodeType(f *file.File, expr *ast.GoCode) (typ file.Type, sure bool) {
 	if expr == nil {
 		return "", false
 	}
@@ -128,7 +128,7 @@ func inferGoCodeType(f *file.File, expr *ast.GoCode) (typ string, sure bool) {
 	return "", false
 }
 
-func inferBooleanType(expr *ast.GoCode) string {
+func inferBooleanType(expr *ast.GoCode) file.Type {
 	if expr == nil {
 		return ""
 	}
@@ -170,14 +170,14 @@ func inferBooleanType(expr *ast.GoCode) string {
 
 var stateRegexp = regexp.MustCompile(`^state[ \t]*\.\s*([a-zA-Z_][a-zA-Z0-9_]*)`)
 
-func inferStateVariableType(f *file.File, expr *ast.GoCode) string {
+func inferStateVariableType(f *file.File, expr *ast.GoCode) file.Type {
 	c := expr.Code
 	t := stateRegexp.FindStringSubmatch(c)
 	if len(t) != 2 {
 		return ""
 	}
 
-	name := t[1]
+	name := file.Identifier(t[1])
 	state := f.Package.StateByName(name)
 	if state == nil {
 		return ""
@@ -186,7 +186,7 @@ func inferStateVariableType(f *file.File, expr *ast.GoCode) string {
 	return state.ResolvedType().ResultOr("")
 }
 
-func inferLit(expr *ast.GoCode) string {
+func inferLit(expr *ast.GoCode) file.Type {
 	if t := inferPrimitiveLit(expr); t != "" {
 		return t
 	} else if t = inferCompositeLit(expr); t != "" {
@@ -208,7 +208,7 @@ var (
 		`)`)
 )
 
-func inferPrimitiveLit(expr *ast.GoCode) string {
+func inferPrimitiveLit(expr *ast.GoCode) file.Type {
 	c := expr.Code
 	if len(c) == 0 {
 		return ""
@@ -242,9 +242,9 @@ var compositeLitRegexp = regexp.MustCompile(`(?i)^(?:` +
 	`[a-z0-9_]+(?: *\. *[a-z0-9_]+)? *(?:\[\s+[^[\]]+])?` + // named type
 	`)`)
 
-func inferCompositeLit(expr *ast.GoCode) string {
+func inferCompositeLit(expr *ast.GoCode) file.Type {
 	c := expr.Code
-	t := compositeLitRegexp.FindString(c)
+	t := file.Type(compositeLitRegexp.FindString(c))
 	if t == "struct" || t == "interface" {
 		return ""
 	}
@@ -263,17 +263,17 @@ var makeRegexp = regexp.MustCompile(`(?i)^(?:make|new)\s*\(\s*(?:` +
 	`[a-z0-9_]+(?: *\. *[a-z0-9_]+)? *(?:\[\s*[^[\]]+])?` + // named type
 	`)`)
 
-func inferMakeNewType(expr *ast.GoCode) string {
+func inferMakeNewType(expr *ast.GoCode) file.Type {
 	c := expr.Code
 	t := makeRegexp.FindStringSubmatch(c)
 	if len(t) != 2 {
 		return ""
 	}
 
-	return t[1]
+	return file.Type(t[1])
 }
 
-func inferLastGoCodeType(expr *ast.GoCode) (typ string, sure bool) {
+func inferLastGoCodeType(expr *ast.GoCode) (typ file.Type, sure bool) {
 	if expr == nil {
 		return "", false
 	}
@@ -287,7 +287,7 @@ func inferLastGoCodeType(expr *ast.GoCode) (typ string, sure bool) {
 
 var typeAssertionRegexp = regexp.MustCompile(`(?i)\. *\(([^)]+)\)$`)
 
-func inferTypeAssertion(expr *ast.GoCode) string {
+func inferTypeAssertion(expr *ast.GoCode) file.Type {
 	c := expr.Code
 	t := typeAssertionRegexp.FindStringSubmatch(c)
 
@@ -295,5 +295,5 @@ func inferTypeAssertion(expr *ast.GoCode) string {
 		return ""
 	}
 
-	return t[1]
+	return file.Type(t[1])
 }

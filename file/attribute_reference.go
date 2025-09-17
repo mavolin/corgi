@@ -8,6 +8,18 @@ type AttributeReference struct {
 
 	AST *ast.AttributeReference
 
+	// Qualifier is the qualifier of the attribute reference, if the reference
+	// is qualified.
+	Qualifier Qualifier
+	// QualifiableName is the identifier used to refer to the attribute in a
+	// qualified reference.
+	// Set to the empty string if the reference is unqualified.
+	QualifiableName CanonicalQualifiableAttributeName
+
+	// UnqualifiedName is the ascii-lowercased name of the attribute, if the
+	// reference is unqualified.
+	UnqualifiedName CanonicalAttributeName
+
 	//
 	// LINKER
 
@@ -26,26 +38,18 @@ type AttributeReference struct {
 	// It is the analyzer's responsibility to report cases in which it expects
 	// an attribute reference to have a spec, but it doesn't.
 	Spec Analysis[*AttributeSpec] // may be nil
+
+	// HTMLName is the ascii-lowercased name of the attribute.
+	HTMLName Analysis[CanonicalAttributeName]
+
+	//
+	// ANALYZER
+
+	// Analyzed indicates whether the AttributeReference has been analyzed,
+	// albeit with errors.
+	Analyzed bool
 }
 
-// HTMLName returns the name of the attribute.
-func (r *AttributeReference) HTMLName() (a Analysis[string]) {
-	// possibly has a prefix
-	if r.AST.Package != nil {
-		if r.Spec.Equal(nil) { // externally defined attribute, but no spec?
-			a.SetFailed()
-			return a
-		}
-
-		// prepend the prefix
-		if r.Spec.Result().Definition.Prefix != nil {
-			a.SetResult(r.Spec.Result().Definition.Prefix.Name + r.AST.Name.Name)
-			return a
-		}
-
-		// fallthrough, no prefix
-	}
-
-	a.SetResult(r.AST.Name.Name)
-	return a
+func (ref *AttributeReference) Qualified() bool {
+	return ref.AST.Package != nil || ref.AST.Dot != nil
 }

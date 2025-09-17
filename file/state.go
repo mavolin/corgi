@@ -26,7 +26,7 @@ type State struct {
 	Analyzed bool
 
 	// The InferredType of this value, if there is no explicit type.
-	InferredType Analysis[string]
+	InferredType Analysis[Type]
 }
 
 func (s *State) Name() *ast.Identifier {
@@ -40,10 +40,10 @@ func (s *State) Value() *ast.Expression {
 	return s.AST.Values[s.Index]
 }
 
-func (s *State) ResolvedType() Analysis[string] {
+func (s *State) ResolvedType() Analysis[Type] {
 	if s.AST.Type != nil {
-		var a Analysis[string]
-		a.SetResult(s.AST.Type.Type)
+		var a Analysis[Type]
+		a.SetResult(Type(s.AST.Type.Type))
 		return a
 	}
 	return s.InferredType

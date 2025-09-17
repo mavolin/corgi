@@ -13,28 +13,18 @@ import (
 
 // BuiltinAlias is the alias used for the builtin package, if it is loaded by
 // the linker.
-const BuiltinAlias = "__corgi_builtin"
+const BuiltinAlias file.Qualifier = "__corgi_builtin"
 
 type linker struct {
 	p           *file.Package
 	logger      *slog.Logger
 	importer    Importer
 	diagnostics diagnostic.List
-	builtinPath importPath
+	builtinPath file.CorgiImportPath
 
-	reportedMissingImports map[*file.File]map[namespace]bool
+	reportedMissingImports map[*file.File]map[file.Qualifier]bool
 	dotImports             map[*file.File][]*file.Import // file -> dot imports
 }
-
-type (
-	namespace             = string
-	importPath            = string
-	attributeSelector     = string
-	fullAttributeSelector = string
-	componentName         = string
-	elementName           = string
-	fullElementName       = string
-)
 
 type (
 	Options struct {
@@ -89,10 +79,10 @@ type (
 		//
 		// If set, the Importer must be set as well and no file in the package
 		// must already have a builtin import.
-		BuiltinPath importPath
+		BuiltinPath file.CorgiImportPath
 	}
 
-	Importer func(ctx context.Context, path importPath) (*file.Package, diagnostic.List, error)
+	Importer func(ctx context.Context, path file.CorgiImportPath) (*file.Package, diagnostic.List, error)
 )
 
 func (o *Options) applyDefaults() {
@@ -122,8 +112,8 @@ func Link(ctx context.Context, p *file.Package, o Options) diagnostic.List {
 	o.applyDefaults()
 
 	logger := o.Logger.With(
-		slog.String("module", p.Module),
-		slog.String("path_in_module", p.PathInModule))
+		slog.String("module", string(p.Module)),
+		slog.String("path_in_module", string(p.PathInModule)))
 
 	if p.PackageSymbols == nil {
 		file.BuildSymbols(p)
@@ -135,11 +125,11 @@ func Link(ctx context.Context, p *file.Package, o Options) diagnostic.List {
 		importer:               o.Importer,
 		diagnostics:            make(diagnostic.List, 0, 128),
 		builtinPath:            o.BuiltinPath,
-		reportedMissingImports: make(map[*file.File]map[namespace]bool, len(p.Files)),
+		reportedMissingImports: make(map[*file.File]map[file.Qualifier]bool, len(p.Files)),
 		dotImports:             make(map[*file.File][]*file.Import, len(p.Files)),
 	}
 	for _, f := range p.Files {
-		l.reportedMissingImports[f] = make(map[namespace]bool)
+		l.reportedMissingImports[f] = make(map[file.Qualifier]bool)
 		if imps := filterDotImports(f); len(imps) > 0 {
 			l.dotImports[f] = imps
 		}
@@ -181,18 +171,18 @@ func (l *linker) report(d ...*diagnostic.Diagnostic) {
 	l.diagnostics = append(l.diagnostics, d...)
 }
 
-func (l *linker) reportMissingImport(f *file.File, namespace string, d *diagnostic.Diagnostic) {
-	if l.reportedMissingImports[f][namespace] {
+func (l *linker) reportMissingImport(f *file.File, qualifier file.Qualifier, d *diagnostic.Diagnostic) {
+	if l.reportedMissingImports[f][qualifier] {
 		return
 	}
 
-	l.reportedMissingImports[f][namespace] = true
+	l.reportedMissingImports[f][qualifier] = true
 	l.report(d)
 }
 
 func filterDotImports(f *file.File) []*file.Import {
 	imps := make([]*file.Import, 0, 8)
-	seen := make(map[importPath]bool, len(f.Imports))
+	seen := make(map[file.CorgiImportPath]bool, len(f.Imports))
 	for _, imp := range f.Imports {
 		if imp.Explicit() && imp.Alias == "." && !seen[imp.CorgiPath] {
 			imps = append(imps, imp)

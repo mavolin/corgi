@@ -25,17 +25,17 @@ func New(p *file.Package, logger *slog.Logger) *Context {
 // SafeImport returns the import for the safe package for the given file, or
 // adds it if it does not exist yet.
 func (ctx *Context) SafeImport(f *file.File) *file.Import {
-	if imp := f.ImportByPath(file.SafeImport); imp != nil {
+	if imp := f.ImportByGoPath(file.SafeImport); imp != nil {
 		return imp
 	}
 
 	imp := &file.Import{
 		Alias:     "__corgi_safe",
-		CorgiPath: file.SafeImport,
-		Namespace: "__corgi_safe",
+		GoPath:    file.SafeImport,
+		Qualifier: "__corgi_safe",
 		Forward:   true,
 	}
-	imp.EnsureUniqueNamespace(f.Symbols)
+	imp.EnsureUniqueQualifier(f)
 	f.AddImport(imp)
 	return imp
 }

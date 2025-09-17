@@ -41,7 +41,7 @@ func (z *analyzer) AnalyzeComponentParameters(logger *slog.Logger, c *file.Compo
 //
 // Sets Fields:
 //   - Components.Parameters.AttributeType
-//   - Components.Parameters.AttributeName
+//   - Components.Parameters.CanonicalAttributeName
 //
 // Depends on Fields: None
 func (z *analyzer) AnalyzeAttrTypeComponentParam(logger *slog.Logger, c *file.Component, param *file.ComponentParameter) {
@@ -96,7 +96,7 @@ func (z *analyzer) AnalyzeAttrTypeComponentParam(logger *slog.Logger, c *file.Co
 		param.AttributeType.SetFailed()
 	}
 
-	inferredType := z.SafeImport(c.File).Namespace + "."
+	inferredType := file.Type(z.SafeImport(c.File).Qualifier + ".")
 	switch t.Name.Type {
 	case attrtype.Unsafe:
 		inferredType += "Unsafe"

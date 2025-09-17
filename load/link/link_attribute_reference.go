@@ -19,7 +19,7 @@ func (l *linker) LinkAttributeReferences() {
 	logger.Debug("Linking attribute references")
 
 	for _, f := range l.p.Files {
-		logger := logger.With(slog.String("file", f.Name))
+		logger := logger.With(slog.String("file", string(f.Name)))
 
 		for _, ref := range f.AttributeReferences {
 			ref.Linked = true
@@ -38,25 +38,29 @@ func (l *linker) LinkAttributeReferences() {
 				slog.String("name", name),
 				slog.String("pos", ref.AST.Start().String()))
 
-			if ref.AST.Package != nil {
+			if ref.Qualified() {
 				l.linkQualifiedAttributeReference(logger, f, ref)
+				if ref.Spec.NotZero() {
+					ref.HTMLName.SetResult(ref.Spec.Result().Prefix + file.CanonicalAttributeName(ref.AST.Name.Name))
+				}
 			} else {
 				l.linkUnqualifiedAttributeReference(logger, f, ref)
+				if ref.Spec.NotZero() {
+					ref.HTMLName.SetResult(file.CanonicalAttributeName(ref.AST.Name.CanonicalName))
+				}
 			}
 		}
 	}
 }
 
 func (l *linker) linkUnqualifiedAttributeReference(logger *slog.Logger, f *file.File, ref *file.AttributeReference) {
-	name := ref.AST.Name.Name
-
 	var (
 		equalSpecificityMatches []*file.AttributeSpec
 		bestImport              *file.Import
 	)
 
 	// search in current package
-	equalSpecificityMatches = f.Package.AttributeSpecByHTMLName(name)
+	equalSpecificityMatches = f.Package.AttributeSpecByHTMLName(ref.UnqualifiedName)
 
 	// search in dot imports
 	var ignoreError bool
@@ -65,13 +69,13 @@ func (l *linker) linkUnqualifiedAttributeReference(logger *slog.Logger, f *file.
 			ignoreError = true
 		}
 		switch {
-		case !imp.Explicit() || imp.Namespace != "":
+		case !imp.Explicit() || imp.Qualifier != "":
 			continue
 		case imp.Package == nil || imp.Package.PackageSymbols == nil:
 			continue
 		}
 
-		packageMatches := imp.Package.AttributeSpecByHTMLName(name)
+		packageMatches := imp.Package.AttributeSpecByHTMLName(ref.UnqualifiedName)
 		if packageMatches == nil {
 			continue
 		}
@@ -121,7 +125,7 @@ func (l *linker) linkUnqualifiedAttributeReference(logger *slog.Logger, f *file.
 		return
 	}
 
-	packageMatches := builtinImp.Package.AttributeSpecByHTMLName(name)
+	packageMatches := builtinImp.Package.AttributeSpecByHTMLName(ref.UnqualifiedName)
 	if len(packageMatches) == 1 {
 		ref.Spec.SetResult(packageMatches[0])
 		builtinImp.Forward = true
@@ -152,11 +156,15 @@ func (l *linker) linkUnqualifiedAttributeReference(logger *slog.Logger, f *file.
 }
 
 func (l *linker) linkQualifiedAttributeReference(logger *slog.Logger, f *file.File, ref *file.AttributeReference) {
-	imp := f.ImportByNamespace(ref.AST.Package.Name)
+	if ref.Qualifier == "" {
+		return
+	}
+
+	imp := f.ImportByQualifier(ref.Qualifier)
 	if imp == nil {
 		ref.Spec.SetFailed()
 		logger.Error("Could not find import for package")
-		l.reportMissingImport(f, ref.AST.Package.Name, &diagnostic.Diagnostic{
+		l.reportMissingImport(f, ref.Qualifier, &diagnostic.Diagnostic{
 			Message: "attribute: unresolved reference to package",
 			Primary: []diagnostic.Annotation{
 				anno.Node(f, ref.AST.Package, "missing import for this package"),
@@ -172,7 +180,7 @@ func (l *linker) linkQualifiedAttributeReference(logger *slog.Logger, f *file.Fi
 
 	var matches []*file.AttributeSpec
 	if imp.Package != nil && imp.Package.PackageSymbols != nil {
-		matches = imp.Package.AttributeSpecByQualifiedName(ref.AST.Name.Name)
+		matches = imp.Package.AttributeSpecByQualifiableName(ref.QualifiableName)
 		if len(matches) == 1 {
 			ref.Spec.SetResult(matches[0])
 			imp.Forward = true

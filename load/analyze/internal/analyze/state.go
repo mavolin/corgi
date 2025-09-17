@@ -21,7 +21,7 @@ func (z *analyzer) AnalyzeState() {
 
 	for _, s := range z.P.State {
 		logger := logger.With(
-			slog.String("file", s.File.Name),
+			slog.String("file", string(s.File.Name)),
 			slog.String("name", s.Name().Name))
 
 		z.InferStateType(logger, s)

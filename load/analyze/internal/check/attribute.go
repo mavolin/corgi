@@ -14,8 +14,7 @@ import (
 func (ch *checker) CheckAttribute(logger *slog.Logger, f *file.File, attr *file.Attribute) {
 	switch attrAST := attr.AST.(type) {
 	case *ast.NamedAttribute:
-		name := attr.Reference.HTMLName()
-		ch.CheckClassAlwaysInnocuous(logger, f, attr, name, attrAST)
+		ch.CheckClassAlwaysInnocuous(logger, f, attr, attrAST)
 		ch.CheckNoInterpolationInUnsafeAttribute(logger, f, attr, attrAST)
 		ch.CheckNonBoolAttributeSpecifiedAsBool(logger, f, attr, attrAST)
 		ch.CheckBoolAttributeSetToNonBoolExpression(logger, f, attr, attrAST)
@@ -28,15 +27,15 @@ func (ch *checker) CheckAttribute(logger *slog.Logger, f *file.File, attr *file.
 // ======================================================================================
 
 func (ch *checker) CheckClassAlwaysInnocuous(
-	logger *slog.Logger, f *file.File, attr *file.Attribute, name file.Analysis[string], attrAST *ast.NamedAttribute,
+	logger *slog.Logger, f *file.File, attr *file.Attribute, attrAST *ast.NamedAttribute,
 ) {
 	logger = logger.WithGroup("class_not_typed")
 
-	if name.Failed() || name.Result() != "class" {
+	if !attr.Reference.HTMLName.Equal("class") {
 		return
 	}
 
-	isBool := switches.ResolvedAttributeValueR(attr.Value,
+	isBool := switches.ResolvedValueR(attr.Value,
 		func(*file.BoolExpression) bool { return true },
 		func(file.ConstantBool) bool { return true },
 		func(file.Text) bool { return false },
@@ -61,7 +60,7 @@ func (ch *checker) CheckClassAlwaysInnocuous(
 	if typ == attrtype.Innocuous {
 		return
 	} else if typ == attrtype.Unknown {
-		ok := switches.ResolvedAttributeValueR(attr.Value,
+		ok := switches.ResolvedValueR(attr.Value,
 			func(*file.BoolExpression) bool { return false },
 			func(file.ConstantBool) bool { return false },
 			// If the value is constant, we can use it as a class attribute.
@@ -152,7 +151,7 @@ func (ch *checker) CheckNoInterpolationInUnsafeAttribute(logger *slog.Logger, f 
 		return
 	}
 
-	ok := switches.ResolvedAttributeValueR(attr.Value,
+	ok := switches.ResolvedValueR(attr.Value,
 		func(*file.BoolExpression) bool { return true }, // different error
 		func(file.ConstantBool) bool { return true },    // different error
 		func(t file.Text) bool { return t.Constant() },
@@ -220,7 +219,7 @@ func (ch *checker) CheckNonBoolAttributeSpecifiedAsBool(logger *slog.Logger, f *
 		return
 	}
 
-	ok := switches.ResolvedAttributeValueR(attr.Value,
+	ok := switches.ResolvedValueR(attr.Value,
 		func(*file.BoolExpression) bool { return false },
 		func(file.ConstantBool) bool { return false },
 		func(file.Text) bool { return true },
@@ -275,7 +274,7 @@ func (ch *checker) CheckNonBoolAttributeSpecifiedAsBool(logger *slog.Logger, f *
 func (ch *checker) CheckBoolAttributeSetToNonBoolExpression(logger *slog.Logger, f *file.File, attr *file.Attribute, attrAST *ast.NamedAttribute) {
 	logger = logger.WithGroup("bool_attribute_set_to_non_bool_expression")
 
-	ok := switches.ResolvedAttributeValueR(attr.Value,
+	ok := switches.ResolvedValueR(attr.Value,
 		func(*file.BoolExpression) bool { return true },
 		func(file.ConstantBool) bool { return true },
 		func(file.Text) bool { return false },

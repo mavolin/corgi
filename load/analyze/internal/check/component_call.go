@@ -17,7 +17,7 @@ func (ch *checker) CheckComponentCalls() {
 	logger.Debug("Checking component calls")
 
 	for _, f := range ch.P.Files {
-		logger := logger.With(slog.String("file", f.Name))
+		logger := logger.With(slog.String("file", string(f.Name)))
 
 		for _, cc := range f.ComponentCalls {
 			logger := logger.With(
@@ -182,13 +182,13 @@ func (ch *checker) CheckRequiredBlocksAreSet(logger *slog.Logger, cc *file.Compo
 			continue
 		}
 
-		logger.Error("Required block not set", slog.String("block", block.Name))
+		logger.Error("Required block not set", slog.String("block", string(block.Name)))
 		ch.Report(&diagnostic.Diagnostic{
 			Message: "required block not set",
 			Primary: []diagnostic.Annotation{
-				anno.Node(cc.File, cc.AST.Header.Name, "requires block `"+block.Name+"` to be set"),
+				anno.Node(cc.File, cc.AST.Header.Name, "requires block `"+string(block.Name)+"` to be set"),
 			},
-			Explanation: "This component requires that the `" + block.Name + "` block is always set.\n" +
+			Explanation: "This component requires that the `" + string(block.Name) + "` block is always set.\n" +
 				"You can set a block using a with clause.",
 			Docs: "component-call",
 		})

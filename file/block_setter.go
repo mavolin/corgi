@@ -6,7 +6,7 @@ type BlockSetter struct {
 	//
 	// BUILD SYMBOLS
 
-	Name      string
+	Name      Identifier
 	Instances []*BlockSetterInstance
 
 	//

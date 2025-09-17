@@ -3,7 +3,6 @@ package link
 import (
 	"context"
 	"math/rand/v2"
-	"path"
 	"sync"
 	"testing"
 	"time"
@@ -40,9 +39,9 @@ func FuzzLink(f *testing.F) {
 			}
 		}
 
-		seen := make(map[importPath]bool, len(g.pkgs))
+		seen := make(map[file.CorgiImportPath]bool, len(g.pkgs))
 		var seenMu sync.Mutex
-		opts.Importer = func(ctx context.Context, imp importPath) (*file.Package, diagnostic.List, error) {
+		opts.Importer = func(ctx context.Context, imp file.CorgiImportPath) (*file.Package, diagnostic.List, error) {
 			seenMu.Lock()
 			if seen[imp] {
 				seenMu.Unlock()
@@ -90,7 +89,7 @@ func FuzzLink(f *testing.F) {
 
 type PackageTree struct {
 	r       *rand.Rand
-	pkgs    map[string]*file.Package
+	pkgs    map[file.CorgiImportPath]*file.Package
 	Root    *file.Package
 	Builtin *file.Package
 }
@@ -98,7 +97,7 @@ type PackageTree struct {
 func GeneratePackageTree(r *rand.Rand) *PackageTree {
 	g := &PackageTree{
 		r:    r,
-		pkgs: make(map[string]*file.Package, 64),
+		pkgs: make(map[file.CorgiImportPath]*file.Package, 64),
 	}
 
 	g.Root = createPackage("fuzz/root")
@@ -123,7 +122,7 @@ func (t *PackageTree) genBuiltin() {
 
 	nFiles := t.r.IntN(3) + 1
 	for i := range nFiles {
-		f := createFile(t.Builtin, "builtin"+itoa(i)+".corgi")
+		f := createFile(t.Builtin, file.Name("builtin"+itoa(i)+".corgi"))
 		t.genNodesInFile(new(ast.Position), f, nil)
 	}
 }
@@ -135,12 +134,12 @@ func (t *PackageTree) genPackageTree(p *file.Package, depth int) {
 	}
 	files := make([]*file.File, 0, nFiles)
 	for i := range nFiles {
-		files = append(files, createFile(p, "f"+itoa(i)+".corgi"))
+		files = append(files, createFile(p, file.Name("f"+itoa(i)+".corgi")))
 	}
 
 	// add imports and nodes for each file independently
 	for _, f := range files {
-		namespaces := make([]string, 0, 8)
+		namespaces := make([]file.Qualifier, 0, 8)
 		var pos ast.Position
 		t.addImports(&pos, f, depth, &namespaces)
 		t.genNodesInFile(&pos, f, namespaces)
@@ -160,7 +159,7 @@ func (t *PackageTree) genPackageTree(p *file.Package, depth int) {
 	}
 }
 
-func (t *PackageTree) addImports(pos *ast.Position, f *file.File, depth int, namespaces *[]string) {
+func (t *PackageTree) addImports(pos *ast.Position, f *file.File, depth int, namespaces *[]file.Qualifier) {
 	attempts := 1 + t.r.IntN(5)
 	for i := range attempts {
 		// the deeper we go, the less imports
@@ -181,7 +180,7 @@ func (t *PackageTree) addImports(pos *ast.Position, f *file.File, depth int, nam
 			}
 		}
 		if child == nil {
-			impPath := path.Join(f.PathInModule(), "imp"+itoa(i)) // guaranteed unique
+			impPath := file.PackagePath(string(f.PathInModule()) + "/imp" + itoa(i)) // guaranteed unique
 			child = createPackage(impPath)
 			child.Name = t.pickAlias()
 			t.pkgs[child.CorgiImportPath] = child
@@ -196,50 +195,50 @@ func (t *PackageTree) addImports(pos *ast.Position, f *file.File, depth int, nam
 	}
 }
 
-func (t *PackageTree) genNodesInFile(pos *ast.Position, f *file.File, aliases []string) {
-	localNames := make([]string, 0, 16)
+func (t *PackageTree) genNodesInFile(pos *ast.Position, f *file.File, aliases []file.Qualifier) {
+	localNames := make([]file.Identifier, 0, 16)
 	n := 3 + t.r.IntN(30)
 	for range n {
 		switch t.r.IntN(8) {
 		case 0:
-			name := t.pickName()
+			name := t.pickIdentifier()
 			createComponent(f, pos, name)
 			localNames = append(localNames, name)
 		case 1:
 			createElementSpec(f, pos, "", t.pickElem(), t.pickElemType())
 		case 2:
-			prefix := pick(t.r, "hx-", "data-", "")
+			prefix := file.CanonicalAttributeName(pick(t.r, "hx-", "data-", ""))
 			name := t.pickAttr()
 			createBasicAttributeSpec(f, pos, prefix, name, nil, t.pickAttrType())
 		case 3:
-			var ns string
+			var q file.Qualifier
 			if len(aliases) > 0 && chance(t.r, 0.5) {
-				ns = pick(t.r, aliases...)
+				q = pick(t.r, aliases...)
 			}
-			var name string
-			if ns == "" && len(localNames) > 0 && chance(t.r, 0.5) {
+			var name file.Identifier
+			if q == "" && len(localNames) > 0 && chance(t.r, 0.5) {
 				name = pick(t.r, localNames...)
 			} else {
-				name = pick(t.r, "A", "B", "C")
+				name = file.Identifier(pick(t.r, "A", "B", "C"))
 			}
-			createComponentCall(f, pos, ns, name)
+			createComponentCall(f, pos, q, name)
 		case 4:
-			var ns string
+			var q file.Qualifier
 			if len(aliases) > 0 && chance(t.r, 0.33) {
-				ns = pick(t.r, aliases...)
+				q = pick(t.r, aliases...)
 			}
-			createElementReference(f, pos, ns, t.pickElem())
+			createElementReference(f, pos, q, t.pickElem())
 		case 5:
-			var ns string
+			var q file.Qualifier
 			if len(aliases) > 0 && chance(t.r, 0.33) {
-				ns = pick(t.r, aliases...)
+				q = pick(t.r, aliases...)
 			}
-			createAttributeReference(f, pos, ns, t.pickAttr())
+			createAttributeReference(f, pos, q, t.pickAttr())
 		}
 	}
 }
 
-func (t *PackageTree) pickAlias() string {
+func (t *PackageTree) pickAlias() file.Qualifier {
 	// Bias: most imports unaliased.
 	switch {
 	case chance(t.r, 0.85):
@@ -247,26 +246,26 @@ func (t *PackageTree) pickAlias() string {
 	case chance(t.r, 0.15):
 		return "."
 	case chance(t.r, 0.9):
-		return "imp" + itoa(t.r.IntN(10))
+		return file.Qualifier("imp" + itoa(t.r.IntN(10)))
 	default:
 		return "__corgi_disallowed"
 	}
 }
 
-var names = func() []string {
-	ns := make([]string, 0, 26)
+var names = func() []file.Identifier {
+	qualifier := make([]file.Identifier, 0, 26)
 	for c := 'A'; c <= 'Z'; c++ {
-		ns = append(ns, string(c))
+		qualifier = append(qualifier, file.Identifier(c))
 	}
 	for c := 'a'; c <= 'z'; c++ {
-		ns = append(ns, string(c))
+		qualifier = append(qualifier, file.Identifier(c))
 	}
-	ns = append(ns, "Biscuit", "Muffin", "Waffles", "Toast", "Pancake")
-	ns = append(ns, "biscuit", "muffin", "waffles", "toast", "pancake")
-	return ns
+	qualifier = append(qualifier, "Biscuit", "Muffin", "Waffles", "Toast", "Pancake")
+	qualifier = append(qualifier, "biscuit", "muffin", "waffles", "toast", "pancake")
+	return qualifier
 }()
 
-func (t *PackageTree) pickName() string {
+func (t *PackageTree) pickIdentifier() file.Identifier {
 	return pick(t.r, names...)
 }
 
@@ -308,7 +307,7 @@ func chance(r *rand.Rand, p float64) bool { return r.Float64() < p }
 // pick selects a random value from xs using r. xs must be non-empty.
 func pick[T any](r *rand.Rand, xs ...T) T { return xs[r.IntN(len(xs))] }
 
-func appendNamespace(aliases *[]string, imp *file.Import, child *file.Package) {
+func appendNamespace(aliases *[]file.Qualifier, imp *file.Import, child *file.Package) {
 	switch {
 	case imp.Alias == ".":
 		*aliases = append(*aliases, "")

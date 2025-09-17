@@ -6,17 +6,9 @@ package file
 import (
 	"cmp"
 	"fmt"
-	"path"
 	"slices"
 
 	"github.com/mavolin/corgi/v2/file/ast"
-	"github.com/mavolin/corgi/v2/internal/meta"
-)
-
-const (
-	EscapeImport  = meta.Module + "/escape"
-	SafeImport    = EscapeImport + "/safe"
-	RuntimeImport = meta.Module + "/runtime"
 )
 
 // File represents a parsed corgi file.
@@ -27,22 +19,18 @@ type File struct {
 	// METADATA
 
 	// Name is the name of the file.
-	Name string
+	Name Name
 
 	AST *ast.File
 
 	*Symbols
 }
 
-func (f *File) ModulePath() string {
-	return path.Join(f.Package.GoImportPath(), f.Name)
-}
-
-func (f *File) PathInModule() string {
+func (f *File) PathInModule() Path {
 	if f.Package == nil {
-		return "<unknown package>/" + f.Name
+		return Path("<unknown package>/" + f.Name)
 	}
-	return path.Join(f.Package.PathInModule, f.Name)
+	return f.Package.PathInModule.FilePath(f.Name)
 }
 
 // ============================================================================
@@ -107,10 +95,10 @@ func buildSymbols(f *File) {
 		for _, spec := range impStmt.Specs {
 			imp := &Import{AST: spec}
 			if spec.Alias != nil {
-				imp.Alias = spec.Alias.Name
+				imp.Alias = Qualifier(spec.Alias.Name)
 			}
 			if spec.Path != nil {
-				imp.CorgiPath = spec.Path.Unquote()
+				imp.CorgiPath = CorgiImportPath(spec.Path.Unquote())
 			}
 			f.Imports = append(f.Imports, imp)
 		}
@@ -126,9 +114,44 @@ func buildSymbols(f *File) {
 	walk = func(n ast.Node) {
 		switch n := n.(type) {
 		case *ast.ComponentCall:
-			ccw := &ComponentCall{AST: n, File: f, BlockSetters: make([]*BlockSetter, 0, 24)}
+			ccw := &ComponentCall{
+				AST:          n,
+				File:         f,
+				BlockSetters: make([]*BlockSetter, 0, 24),
+			}
 			f.ComponentCalls = append(f.ComponentCalls, ccw)
 			f.componentCallsByNode[n] = ccw
+
+			if n.Header != nil {
+				switch name := n.Header.Name.(type) {
+				case *ast.Identifier:
+					ccw.Name = Identifier(name.Name)
+				case *ast.QualifiedIdentifier:
+					if name.Package != nil {
+						ccw.Qualifier = Qualifier(name.Package.Name)
+					}
+					if name.Name != nil {
+						ccw.Name = Identifier(name.Name.Name)
+					}
+				default:
+					panic(fmt.Sprintf("unhandled component call name type %T", name))
+				}
+
+				if n.Header.Arguments != nil && len(n.Header.Arguments.List) > 0 {
+					ccw.ComponentArguments = make([]*ComponentArgument, 0, len(n.Header.Arguments.List))
+					for _, argAST := range n.Header.Arguments.List {
+						argAST, _ := argAST.(*ast.ComponentArgument)
+						if argAST != nil {
+							arg := ComponentArgument{AST: argAST}
+							if arg.AST.Name != nil {
+								arg.Name = Identifier(arg.AST.Name.Name)
+							}
+							ccw.ComponentArguments = append(ccw.ComponentArguments, &arg)
+						}
+					}
+					ccw.ComponentArguments = slices.Clip(ccw.ComponentArguments)
+				}
+			}
 
 			oldCC := cc
 			cc = ccw
@@ -145,9 +168,9 @@ func buildSymbols(f *File) {
 				break
 			}
 			instance := &BlockSetterInstance{AST: n}
-			group := cc.BlockSetterByName(n.Name())
+			group := cc.BlockSetterByName(Identifier(n.Name()))
 			if group == nil {
-				group = &BlockSetter{Name: n.Name(), Instances: make([]*BlockSetterInstance, 0, 16)}
+				group = &BlockSetter{Name: Identifier(n.Name()), Instances: make([]*BlockSetterInstance, 0, 16)}
 				cc.BlockSetters = append(cc.BlockSetters, group)
 			}
 			instance.Group = group
@@ -159,9 +182,9 @@ func buildSymbols(f *File) {
 			if n.Default != nil {
 				instance.Default = &BlockInstanceDefault{AST: n.Default}
 			}
-			group := comp.BlockByName(n.Name())
+			group := comp.BlockByName(Identifier(n.Name()))
 			if group == nil {
-				group = &Block{Name: n.Name(), Instances: make([]*BlockInstance, 0, 16)}
+				group = &Block{Name: Identifier(n.Name()), Instances: make([]*BlockInstance, 0, 16)}
 				comp.Blocks = append(comp.Blocks, group)
 			}
 			instance.Group = group
@@ -172,14 +195,52 @@ func buildSymbols(f *File) {
 			n.Walk(walk)
 			parentBlock = oldParent
 		case *ast.ElementReference:
-			f.ElementReferences = append(f.ElementReferences, &ElementReference{AST: n})
+			var qual Qualifier
+			var qualifiableName CanonicalQualifiableElementName
+			var unqualifiedName CanonicalElementName
+			if n.Package != nil {
+				qual = Qualifier(n.Package.Name)
+			}
+			if n.Name != nil {
+				if n.Package != nil || n.Dot != nil {
+					qualifiableName = CanonicalQualifiableElementName(n.Name.CanonicalName)
+				} else {
+					unqualifiedName = CanonicalElementName(n.Name.CanonicalName)
+				}
+			}
+
+			f.ElementReferences = append(f.ElementReferences, &ElementReference{
+				AST:             n,
+				Qualifier:       qual,
+				QualifiableName: qualifiableName,
+				UnqualifiedName: unqualifiedName,
+			})
 			n.Walk(walk)
 		case ast.Attribute:
 			attr = &Attribute{AST: n}
 			f.Attributes = append(f.Attributes, attr)
 			n.Walk(walk)
 		case *ast.AttributeReference:
-			ref := &AttributeReference{AST: n}
+			var qual Qualifier
+			var qualifiableName CanonicalQualifiableAttributeName
+			var unqualifiedName CanonicalAttributeName
+			if n.Package != nil {
+				qual = Qualifier(n.Package.Name)
+			}
+			if n.Name != nil {
+				if n.Package != nil || n.Dot != nil {
+					qualifiableName = CanonicalQualifiableAttributeName(n.Name.CanonicalName)
+				} else {
+					unqualifiedName = CanonicalAttributeName(n.Name.CanonicalName)
+				}
+			}
+
+			ref := &AttributeReference{
+				AST:             n,
+				Qualifier:       qual,
+				QualifiableName: qualifiableName,
+				UnqualifiedName: unqualifiedName,
+			}
 			if attr != nil {
 				attr.Reference = ref
 				attr = nil
@@ -219,18 +280,19 @@ func buildSymbols(f *File) {
 // You needn't specify an alias, however, the alias must not be ".".
 //
 // The file must not already have a builtin import or use the given alias.
+// You can generate a unique alias using [Symbols.UniqueQualifier].
 //
 // The package must not contain any exported symbols.
 //
 // You must add a builtin import using this method, not by adding it to the
 // [Symbols.Imports] slice directly.
-func (s *Symbols) AddBuiltinImport(alias string, builtin *Package) {
+func (s *Symbols) AddBuiltinImport(alias Qualifier, builtin *Package) {
 	s.AddImport(&Import{
 		Alias:     alias,
 		CorgiPath: builtin.CorgiImportPath,
 		GoPath:    builtin.GoImportPath(),
 		Package:   builtin,
-		Namespace: cmp.Or(alias, builtin.Name),
+		Qualifier: cmp.Or(alias, builtin.Name),
 		Builtin:   true,
 		Loaded:    true,
 	})
@@ -240,53 +302,73 @@ func (s *Symbols) AddBuiltinImport(alias string, builtin *Package) {
 // Always use this method if adding implicit imports.
 //
 // AddImport panics if any of the following conditions are violated:
-//   - If the import is implicit (except builtin), it must have a Go import path.
+//   - If the import is implicit, it must have a Go import path.
 //   - If the import is explicit, it must have a corgi import path.
 //   - If the import is a builtin import, the file must not already have a
 //     builtin import, i.e. BuiltinImport() == nil.
-//   - The import's namespace must match the alias, if set.
+//   - If the import is a builtin import, it must have a package.
+//   - The import's qualifier must match the alias, if set.
 //   - If implicit, the import must not be a dot import.
-//   - The file must not already have an import with the namespace.
-//     You can ensure a unique namespace using [Import.EnsureUniqueNamespace].
-//   - The import must be marked as forwarded, unless it is explicit.
+//   - The file must not already have an import with the qualifier.
+//     You can ensure a unique qualifier using [Import.EnsureUniqueQualifier].
+//   - The import must be marked as forwarded, unless it is explicit or the
+//     builtin import.
 func (s *Symbols) AddImport(imp *Import) {
 	switch {
-	case !imp.Builtin && imp.Implicit() && imp.GoPath == "":
+	case imp.Implicit() && imp.GoPath == "":
 		panic("cannot add implicit import with no Go import path")
 	case imp.Explicit() && imp.CorgiPath == "":
 		panic("cannot add explicit import with no corgi import path")
 	case imp.Builtin && s.BuiltinImport() != nil:
-		panic(fmt.Sprintf("symbols already contain builtin import for %q", s.BuiltinImport().CorgiPath))
+		panic(fmt.Sprintf("symbols already contain builtin import for %q", s.BuiltinImport().GoPath))
+	case imp.Builtin && imp.Package == nil:
+		panic("cannot add builtin import with no package")
 	case imp.Implicit() && imp.Alias == ".":
 		panic("cannot add implicit dot import")
-	case !imp.Builtin && imp.Alias != "" && imp.Alias != imp.Namespace:
-		panic(fmt.Sprintf("import alias %s does not match namespace %s", imp.Alias, imp.Namespace))
-	case s.ImportByNamespace(imp.Namespace) != nil:
-		panic(fmt.Sprintf("symbols already contain import with namespace %s: you need to chose a (different) alias", imp.Namespace))
-	case !imp.Implicit() && !imp.Forward:
+	case !imp.Builtin && imp.Alias != "" && imp.Alias != imp.Qualifier:
+		panic(fmt.Sprintf("import alias %s does not match qualifier %s", imp.Alias, imp.Qualifier))
+	case s.ImportByQualifier(imp.Qualifier) != nil:
+		panic(fmt.Sprintf("symbols already contain import with qualifier %s: you need to chose a (different) alias", imp.Qualifier))
+	case imp.Implicit() && !imp.Builtin && !imp.Forward:
 		panic("cannot add implicit import that is not forwarded")
 	}
 
 	s.Imports = append(s.Imports, imp)
 }
 
-// ImportByNamespace returns the first import with the given namespace.
+// ImportByQualifier returns the first import with the given qualifier.
 //
-// Does not work for the "." namespace.
+// Does not work for the "." qualifier.
 //
 // Only available after linking.
-func (s *Symbols) ImportByNamespace(namespace string) *Import {
+func (s *Symbols) ImportByQualifier(qual Qualifier) *Import {
 	for _, imp := range s.Imports {
-		if imp.Namespace == namespace {
+		if imp.Qualifier == qual {
 			return imp
 		}
 	}
 	return nil
 }
 
-func (s *Symbols) ImportByPath(p string) *Import {
+// ImportByCorgiPath returns the first import with the given corgi import path.
+func (s *Symbols) ImportByCorgiPath(p CorgiImportPath) *Import {
 	for _, imp := range s.Imports {
 		if imp.CorgiPath == p {
+			return imp
+		}
+	}
+	return nil
+}
+
+// ImportByGoPath returns the first import with the given Go import path.
+//
+// For explicit imports to be included in the search, the file must have been
+// linked.
+// Otherwise, only implicit imports and others with an already set/resolved Go
+// import path are included.
+func (s *Symbols) ImportByGoPath(p GoImportPath) *Import {
+	for _, imp := range s.Imports {
+		if imp.GoPath == p {
 			return imp
 		}
 	}
@@ -309,6 +391,16 @@ func (s *Symbols) BuiltinImport() *Import {
 		}
 	}
 	return nil
+}
+
+// UniqueQualifier returns a unique qualifier in the file, using the given
+// qualifier as base, by appending underscores ("_") until the qualifier is
+// unique.
+func (s *Symbols) UniqueQualifier(base Qualifier) Qualifier {
+	for s.ImportByQualifier(base) != nil {
+		base += "_"
+	}
+	return base
 }
 
 func (s *Symbols) ComponentCallByNode(node *ast.ComponentCall) *ComponentCall {

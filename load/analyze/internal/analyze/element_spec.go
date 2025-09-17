@@ -18,8 +18,8 @@ func (z *analyzer) AnalyzeElementSpecs() {
 
 	for _, spec := range z.P.ElementSpecs {
 		logger := logger.With(
-			slog.String("file", spec.File.Name),
-			slog.String("name", spec.HTMLName()),
+			slog.String("file", string(spec.File.Name)),
+			slog.String("name", spec.StylizedHTMLName),
 			slog.String("pos", spec.AST.Start().String()))
 
 		z.AnalyzeElementSpec(logger, spec)
@@ -96,8 +96,8 @@ func (z *analyzer) checkElementSpecCycles(logger *slog.Logger, chain []*file.Ele
 	}
 
 	logger.Error("Found element definition cycle",
-		slog.String("name", spec.HTMLName()),
-		slog.String("file", spec.File.Name),
+		slog.String("name", spec.StylizedHTMLName),
+		slog.String("file", string(spec.File.Name)),
 		slog.String("pos", spec.AST.Start().String()))
 	z.Report(&diagnostic.Diagnostic{
 		Message: "element definition cycle",

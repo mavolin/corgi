@@ -93,7 +93,7 @@ func (z *analyzer) cannotAttributes(
 
 					cc := f.ComponentCallByNode(ccAST)
 					z.AnalyzeComponentCall(ctx, cc)
-					s := cc.BlockSetterByName(parent.Name())
+					s := cc.BlockSetterByNode(parent)
 					switch {
 					case s == nil || s.Block.CannotForwardAttributes.Failed():
 						reason.SetFailed()

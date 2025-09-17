@@ -250,8 +250,34 @@ func BasicSelector() parser.Func[*ast.BasicAttributeSelector] {
 			}
 		}
 
+		s.CanonicalName = canonicalize(s.Name)
 		return &s
 	}
+}
+
+func canonicalize(name string) string {
+	var b strings.Builder
+	for i, r := range name {
+		if r < 'A' || r > 'Z' {
+			continue
+		}
+
+		b.Grow(len(name))
+		b.WriteString(name[:i])
+		b.WriteRune((r - 'A') + 'a')
+		for _, r := range name[i+1:] {
+			if r >= 'A' && r <= 'Z' {
+				b.WriteRune((r - 'A') + 'a')
+			} else {
+				b.WriteRune(r)
+			}
+		}
+	}
+
+	if b.Len() == 0 {
+		return name
+	}
+	return b.String()
 }
 
 func RegexpSelector() parser.Func[*ast.RegexpAttributeSelector] {
@@ -336,6 +362,28 @@ func RegexpSelector() parser.Func[*ast.RegexpAttributeSelector] {
 							"to enforce full matches.\n" +
 							"When trying to compile the regular expression with anchors, it fails, but without anchors it succeeds.",
 					})
+				}
+			} else {
+				prefix, _ := s.Compiled.LiteralPrefix()
+				for _, r := range prefix {
+					if r >= 'A' && r <= 'Z' {
+						p.CaptureError(&diagnostic.Diagnostic{
+							Message: "regexp attribute selector: expression is not in canonical form",
+							Primary: []diagnostic.Annotation{
+								anno.Node(p.File, s.Raw, "contains uppercase ASCII letters"),
+							},
+							Explanation: "HTML attribute names are ASCII-case-insensitive, meaning that uppercase and " +
+								"lowercase ASCII letters are considered equivalent." +
+								"To satisfy this interchangeability, attribute names are always lowercased before matching, " +
+								"so regular expression selectors must always accept the lowercase variant of an attribute name " +
+								"to be able to make a match.\n" +
+								"This restriction does not apply to non-ASCII letters, which are case-sensitive in HTML.",
+							Hints: []diagnostic.Hint{
+								{Hint: "Only use lowercase ASCII letters in the regular expression."},
+							},
+						})
+						break
+					}
 				}
 			}
 		}

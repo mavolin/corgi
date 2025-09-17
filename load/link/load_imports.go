@@ -42,7 +42,7 @@ func (loader *importLoader) localOnlyModeCheck() {
 	loader.logger.Info("Running in local-only mode, not allowed to use imports")
 
 	for _, f := range loader.l.p.Files {
-		logger := loader.logger.With(slog.String("file", f.Name))
+		logger := loader.logger.With(slog.String("file", string(f.Name)))
 
 		if len(f.Imports) == 0 {
 			continue
@@ -69,15 +69,15 @@ func (loader *importLoader) checkIllegalAliases() {
 	loader.logger.Debug("Checking for import aliases using the reserved `__corgi_` prefix")
 
 	for _, f := range loader.l.p.Files {
-		logger := loader.logger.With(slog.String("file", f.Name))
+		logger := loader.logger.With(slog.String("file", string(f.Name)))
 		for _, imp := range f.Imports {
-			if !imp.Explicit() || imp.Alias == "" || !strings.HasPrefix(imp.Alias, "__corgi_") {
+			if !imp.Explicit() || imp.Alias == "" || !strings.HasPrefix(string(imp.Alias), "__corgi_") {
 				continue
 			}
 
 			logger.Error("Import alias with reserved prefix",
-				slog.String("alias", imp.Alias),
-				slog.String("import_path", imp.CorgiPath))
+				slog.String("alias", string(imp.Alias)),
+				slog.String("import_path", string(imp.CorgiPath)))
 			loader.l.report(&diagnostic.Diagnostic{
 				Message: "import alias: cannot use `__corgi_` prefix",
 				Primary: []diagnostic.Annotation{
@@ -94,7 +94,7 @@ func (loader *importLoader) loadImports(ctx context.Context) {
 
 	for _, f := range loader.l.p.Files {
 		for _, imp := range f.Imports {
-			if imp.Explicit() && imp.CorgiPath != "" && !imp.Loaded {
+			if imp.Explicit() && !imp.Loaded {
 				loader.loadImport(ctx, f, imp)
 			}
 		}
@@ -104,7 +104,7 @@ func (loader *importLoader) loadImports(ctx context.Context) {
 
 	for _, f := range loader.l.p.Files {
 		for _, imp := range f.Imports {
-			if imp.Explicit() && imp.CorgiPath != "" && !imp.Loaded {
+			if imp.Explicit() && !imp.Loaded {
 				loader.processImport(f, imp)
 			}
 		}
@@ -115,8 +115,8 @@ func (loader *importLoader) loadImports(ctx context.Context) {
 
 func (loader *importLoader) loadImport(ctx context.Context, f *file.File, imp *file.Import) {
 	logger := loader.logger.With(
-		slog.String("file", f.Name),
-		slog.String("import", imp.CorgiPath),
+		slog.String("file", string(f.Name)),
+		slog.String("import", string(imp.CorgiPath)),
 		slog.String("import_pos", imp.AST.Start().String()))
 	logger.Debug("Loading import")
 
@@ -130,8 +130,8 @@ func (loader *importLoader) loadImport(ctx context.Context, f *file.File, imp *f
 
 func (loader *importLoader) processImport(f *file.File, imp *file.Import) {
 	logger := loader.logger.With(
-		slog.String("file", f.Name),
-		slog.String("import", imp.CorgiPath),
+		slog.String("file", string(f.Name)),
+		slog.String("import", string(imp.CorgiPath)),
 		slog.String("import_pos", imp.AST.Start().String()))
 
 	var d diagnostic.List
@@ -164,11 +164,11 @@ func (loader *importLoader) processImport(f *file.File, imp *file.Import) {
 
 	if imp.Package.CorgiImportPath != imp.CorgiPath {
 		logger.Error("Import using non-corgi path",
-			slog.String("go_import_path", imp.GoPath))
+			slog.String("go_import_path", string(imp.GoPath)))
 		loader.l.report(&diagnostic.Diagnostic{
 			Message: "import: use of Go import path when symbolic path exists",
 			Primary: []diagnostic.Annotation{
-				anno.Node(f, imp.AST, "expected import path to be `"+imp.Package.CorgiImportPath+"`"),
+				anno.Node(f, imp.AST, "expected import path to be `"+string(imp.Package.CorgiImportPath)+"`"),
 			},
 			Explanation: "Special import paths, like the standard library imports starting with `corgi/` " +
 				"are available under a special short symbolic path. " +
@@ -178,15 +178,15 @@ func (loader *importLoader) processImport(f *file.File, imp *file.Import) {
 
 	switch {
 	case imp.Alias == ".":
-		imp.Namespace = ""
+		imp.Qualifier = ""
 	case imp.Alias != "":
-		imp.Namespace = imp.Alias
+		imp.Qualifier = imp.Alias
 	default:
-		imp.Namespace = imp.Package.Name
-		if strings.HasPrefix(imp.Namespace, "__corgi_") {
+		imp.Qualifier = imp.Package.Name
+		if strings.HasPrefix(string(imp.Qualifier), "__corgi_") {
 			logger.Error("Import has package name with reserved prefix",
-				slog.String("namespace", imp.Namespace),
-				slog.String("import_path", imp.CorgiPath))
+				slog.String("qualifier", string(imp.Qualifier)),
+				slog.String("import_path", string(imp.CorgiPath)))
 
 			loader.l.report(&diagnostic.Diagnostic{
 				Message: "import: import uses reserved `__corgi_` package name prefix",
@@ -208,7 +208,7 @@ func (loader *importLoader) loadBuiltin(ctx context.Context) {
 	} else if loader.l.p.CorgiImportPath == loader.l.builtinPath {
 		return // this is the builtin package, nothing to do
 	}
-	logger := loader.logger.With(slog.String("import", loader.l.builtinPath))
+	logger := loader.logger.With(slog.String("import", string(loader.l.builtinPath)))
 
 	var needBuiltin bool
 	for _, f := range loader.l.p.Files {
@@ -218,7 +218,7 @@ func (loader *importLoader) loadBuiltin(ctx context.Context) {
 		}
 
 		logger.Error("File already has a builtin import",
-			slog.String("file", f.Name))
+			slog.String("file", string(f.Name)))
 		loader.l.report(&diagnostic.Diagnostic{
 			Type:    diagnostic.InternalError,
 			Message: "file already has a builtin import",
@@ -270,16 +270,12 @@ func (loader *importLoader) loadBuiltin(ctx context.Context) {
 				continue
 			}
 
-			alias := BuiltinAlias
-			for f.ImportByNamespace(alias) != nil {
-				alias += "_"
-			}
-			f.AddBuiltinImport(alias, p)
+			f.AddBuiltinImport(f.UniqueQualifier(BuiltinAlias), p)
 		}
 	}
 }
 
-func (loader *importLoader) reportImportCycle(logger *slog.Logger, f *file.File, imp *file.Import, cycle []importPath) {
+func (loader *importLoader) reportImportCycle(logger *slog.Logger, f *file.File, imp *file.Import, cycle []file.CorgiImportPath) {
 	logger.Error("Circular import detected")
 
 	// Build the import cycle message
@@ -291,7 +287,7 @@ func (loader *importLoader) reportImportCycle(logger *slog.Logger, f *file.File,
 			msg.WriteString(", which imports")
 		}
 		msg.WriteString("\n  ")
-		msg.WriteString(p)
+		msg.WriteString(string(p))
 	}
 
 	var primary []diagnostic.Annotation

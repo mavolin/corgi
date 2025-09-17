@@ -27,7 +27,7 @@ func (z *analyzer) AnalyzeBlockInstance(
 ) {
 	logger = logger.
 		WithGroup("blocks").
-		With(slog.String("block", bi.Group.Name))
+		With(slog.String("block", string(bi.Group.Name)))
 
 	z.AnalyzeBlockInstanceForwarded(ctx, c, parents, bi)
 	z.AnalyzeBlockInstanceContainingElements(ctx, c, parents, bi)
@@ -73,7 +73,7 @@ func (z *analyzer) AnalyzeBlockInstanceForwarded(ctx context.Context, c *file.Co
 				cc := c.File.ComponentCallByNode(ccAST)
 				z.AnalyzeComponentCall(ctx, cc)
 
-				s := cc.BlockSetterByName(parent.Name())
+				s := cc.BlockSetterByNode(parent)
 				if s == nil || s.Block == nil {
 					// Continue checking: if the instance has another element as
 					// parent, we can still be sure it's not forwarded.
@@ -130,7 +130,7 @@ func (z *analyzer) AnalyzeBlockInstanceContainingElements(ctx context.Context, c
 				cc := c.File.ComponentCallByNode(ccAST)
 				z.AnalyzeComponentCall(ctx, cc)
 
-				s := cc.BlockSetterByName(parent.Name())
+				s := cc.BlockSetterByNode(parent)
 				if s == nil || s.Block == nil || s.Block.ContainingElements.Failed() {
 					bi.ContainingElements.SetFailed()
 					return true
@@ -206,7 +206,7 @@ func (z *analyzer) AnalyzeBlockInstanceContainingElementSpecs(f *file.File, bi *
 			},
 			func(e *ast.BlockSetterContainingElement) {
 				cc := f.ComponentCallByNode(e.ComponentCall)
-				s := cc.BlockSetterByName(e.BlockSetter.Name())
+				s := cc.BlockSetterByNode(e.BlockSetter)
 				if s == nil || s.Block == nil || s.Block.ContainingElementSpecs.Failed() {
 					bi.ContainingElementSpecs.SetFailed()
 					return
@@ -315,7 +315,7 @@ func (z *analyzer) CheckBlockInstanceInAllowedElement(logger *slog.Logger, f *fi
 				case elemtype.JS:
 					logger.
 						WithGroup("checks.not_in_script").
-						Error("Block instance in JS-typed element", slog.String("block", bi.Group.Name))
+						Error("Block instance in JS-typed element", slog.String("block", string(bi.Group.Name)))
 					z.Report(&diagnostic.Diagnostic{
 						Message: "block placed in `js`-typed element",
 						Primary: []diagnostic.Annotation{
@@ -326,7 +326,7 @@ func (z *analyzer) CheckBlockInstanceInAllowedElement(logger *slog.Logger, f *fi
 				case elemtype.CSS:
 					logger.
 						WithGroup("checks.not_in_script").
-						Error("Block instance in CSS-typed element", slog.String("block", bi.Group.Name))
+						Error("Block instance in CSS-typed element", slog.String("block", string(bi.Group.Name)))
 					z.Report(&diagnostic.Diagnostic{
 						Message: "block placed in `css`-typed element",
 						Primary: []diagnostic.Annotation{

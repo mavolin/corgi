@@ -2,7 +2,7 @@ package file
 
 // IsExported reports whether the given identifier, assumed to be valid, would
 // be exported.
-func IsExported(s string) bool {
+func IsExported(s Identifier) bool {
 	if len(s) == 0 {
 		return false
 	}

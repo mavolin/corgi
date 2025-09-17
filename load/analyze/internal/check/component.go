@@ -16,7 +16,7 @@ func (ch *checker) CheckComponents() {
 
 	for _, c := range ch.P.Components {
 		logger := logger.With(
-			slog.String("file", c.File.Name),
+			slog.String("file", string(c.File.Name)),
 			slog.String("comp", c.AST.Header.Name.Name),
 			slog.String("comp_pos", c.AST.Start().String()))
 
@@ -161,7 +161,7 @@ func (ch *checker) CheckReservedComponentParamName(logger *slog.Logger, c *file.
 func (ch *checker) CheckDataComponent(logger *slog.Logger, c *file.Component) {
 	logger = logger.WithGroup("no_data_component")
 
-	name := c.AST.Header.Name.Name
+	name := c.Name
 	if len(name) <= len("Data") || name[len(name)-len("Data"):] != "Data" {
 		return
 	}
@@ -173,7 +173,7 @@ func (ch *checker) CheckDataComponent(logger *slog.Logger, c *file.Component) {
 	}
 
 	logger.Error("Component with suffix `Data` defined",
-		slog.String("other_file", other.File.Name),
+		slog.String("other_file", string(other.File.Name)),
 		slog.String("other_comp", other.AST.Header.Name.Name),
 		slog.String("other_comp_pos", other.AST.Start().String()))
 	ch.Report(&diagnostic.Diagnostic{
@@ -185,8 +185,8 @@ func (ch *checker) CheckDataComponent(logger *slog.Logger, c *file.Component) {
 			anno.Node(other.File, other.AST.Header.Name, "because another component without the `Data` suffix exists"),
 		},
 		Explanation: "For every component `Foo`, corgi creates a struct `FooData` used for calling the component " +
-			"in Go code. Since `" + name + "`'s generated data struct and `" + name + "Data` would clash, " +
-			"you cannot define a component called `" + name + "Data`.",
-		Hints: []diagnostic.Hint{{Hint: "Rename `" + name + "Data`."}},
+			"in Go code. Since `" + string(name) + "`'s generated data struct and `" + string(name) + "Data` would clash, " +
+			"you cannot define a component called `" + string(name) + "Data`.",
+		Hints: []diagnostic.Hint{{Hint: "Rename `" + string(name) + "Data`."}},
 	})
 }

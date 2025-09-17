@@ -35,7 +35,7 @@ func testLinker_LinkAttributeReferences_success(t *testing.T) { //nolint:revive
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			for _, prefix := range []string{"", "prefix"} {
+			for _, prefix := range []file.CanonicalAttributeName{"", "prefix"} {
 				var name string
 				if prefix == "" {
 					name = "without prefix"
@@ -70,7 +70,7 @@ func testLinker_LinkAttributeReferences_success(t *testing.T) { //nolint:revive
 
 						htmlName := "test"
 						if prefix != "" {
-							htmlName = prefix + htmlName
+							htmlName = string(prefix) + htmlName
 						}
 						ref := createAttributeReference(f, &start, "", strings.ToUpper(htmlName))
 
@@ -104,7 +104,7 @@ func testLinker_LinkAttributeReferences_success(t *testing.T) { //nolint:revive
 
 						htmlName := "test"
 						if prefix != "" {
-							htmlName = prefix + htmlName
+							htmlName = string(prefix) + htmlName
 						}
 						ref := createAttributeReference(f, &start, "", strings.ToUpper(htmlName))
 
@@ -123,7 +123,7 @@ func testLinker_LinkAttributeReferences_success(t *testing.T) { //nolint:revive
 					importTests := []struct {
 						name                      string
 						packageNameDiffersFromDir bool
-						alias                     string
+						alias                     file.Qualifier
 					}{
 						{
 							name: "qualified/package name/matches directory",
@@ -158,18 +158,18 @@ func testLinker_LinkAttributeReferences_success(t *testing.T) { //nolint:revive
 							}
 
 							htmlName := "test"
-							namespace := importedPkg.Name
+							qualifier := importedPkg.Name
 							if c.alias == "." {
-								namespace = ""
-								htmlName = prefix + htmlName
+								qualifier = ""
+								htmlName = string(prefix) + htmlName
 							} else if c.alias != "" {
-								namespace = c.alias
+								qualifier = c.alias
 							}
 
 							mainPkg := createPackage("main")
 							mainFile := createFile(mainPkg, "main.corgi")
 							createImport(mainFile, &start, c.alias, importedPkg.CorgiImportPath)
-							ref := createAttributeReference(mainFile, &start, namespace, strings.ToUpper(htmlName))
+							ref := createAttributeReference(mainFile, &start, qualifier, strings.ToUpper(htmlName))
 
 							d := Link(context.Background(), mainPkg, Options{
 								Importer: ImporterFor(importedPkg),
@@ -196,12 +196,12 @@ func testLinker_LinkAttributeReferences_failure(t *testing.T) { //nolint:revive
 	tests := []struct {
 		name    string
 		message string
-		setup   func() (p *file.Package, packages []*file.Package, packageErrors map[importPath]error)
+		setup   func() (p *file.Package, packages []*file.Package, packageErrors map[file.CorgiImportPath]error)
 	}{
 		{
 			name:    "multiple local same-specificity matching attributes",
 			message: "attribute: ambiguous reference",
-			setup: func() (p *file.Package, packages []*file.Package, packageErrors map[importPath]error) {
+			setup: func() (p *file.Package, packages []*file.Package, packageErrors map[file.CorgiImportPath]error) {
 				var start ast.Position
 				p = createPackage("test")
 				f := createFile(p, "test.corgi")
@@ -214,7 +214,7 @@ func testLinker_LinkAttributeReferences_failure(t *testing.T) { //nolint:revive
 		}, {
 			name:    "multiple builtin same-specificity matching attributes",
 			message: "builtin: attribute: ambiguous reference",
-			setup: func() (p *file.Package, packages []*file.Package, packageErrors map[importPath]error) {
+			setup: func() (p *file.Package, packages []*file.Package, packageErrors map[file.CorgiImportPath]error) {
 				var start ast.Position
 				builtinPkg := createPackage("builtin")
 				builtinPkg.CorgiImportPath = builtinPath
@@ -231,7 +231,7 @@ func testLinker_LinkAttributeReferences_failure(t *testing.T) { //nolint:revive
 		}, {
 			name:    "multiple qualified same-specificity matching attributes",
 			message: "attribute: ambiguous reference",
-			setup: func() (p *file.Package, packages []*file.Package, packageErrors map[importPath]error) {
+			setup: func() (p *file.Package, packages []*file.Package, packageErrors map[file.CorgiImportPath]error) {
 				var start ast.Position
 				importedPkg := createPackage("imported")
 				createFile(importedPkg, "imported.corgi")
@@ -248,20 +248,20 @@ func testLinker_LinkAttributeReferences_failure(t *testing.T) { //nolint:revive
 		}, {
 			name:    "builtin not loaded",
 			message: "failed to load builtin package",
-			setup: func() (p *file.Package, packages []*file.Package, packageErrors map[importPath]error) {
+			setup: func() (p *file.Package, packages []*file.Package, packageErrors map[file.CorgiImportPath]error) {
 				var start ast.Position
 				p = createPackage("test")
 				f := createFile(p, "test.corgi")
 				createAttributeReference(f, &start, "", "test")
 
-				return p, nil, map[importPath]error{
+				return p, nil, map[file.CorgiImportPath]error{
 					builtinPath: errors.New("stub error"),
 				}
 			},
 		}, {
 			name:    "import not loaded",
 			message: "import: failed to load package",
-			setup: func() (p *file.Package, packages []*file.Package, packageErrors map[importPath]error) {
+			setup: func() (p *file.Package, packages []*file.Package, packageErrors map[file.CorgiImportPath]error) {
 				var start ast.Position
 				importedPkg := createPackage("imported")
 				importedPkg.PackageSymbols = nil
@@ -272,28 +272,28 @@ func testLinker_LinkAttributeReferences_failure(t *testing.T) { //nolint:revive
 				imp := createImport(f, &start, "", importedPkg.CorgiImportPath)
 				createAttributeReference(f, &start, "imported", "test")
 
-				return p, []*file.Package{importedPkg}, map[importPath]error{
+				return p, []*file.Package{importedPkg}, map[file.CorgiImportPath]error{
 					imp.CorgiPath: errors.New("stub error"),
 				}
 			},
 		}, {
 			name:    "dot import not loaded",
 			message: "import: failed to load package",
-			setup: func() (p *file.Package, packages []*file.Package, packageErrors map[importPath]error) {
+			setup: func() (p *file.Package, packages []*file.Package, packageErrors map[file.CorgiImportPath]error) {
 				var start ast.Position
 				p = createPackage("test")
 				f := createFile(p, "test.corgi")
 				imp := createImport(f, &start, ".", "imported")
 				createAttributeReference(f, &start, "", "test")
 
-				return p, nil, map[importPath]error{
+				return p, nil, map[file.CorgiImportPath]error{
 					imp.CorgiPath: errors.New("stub error"),
 				}
 			},
 		}, {
 			name:    "qualified ref to unknown package",
 			message: "attribute: unresolved reference to package",
-			setup: func() (p *file.Package, packages []*file.Package, packageErrors map[importPath]error) {
+			setup: func() (p *file.Package, packages []*file.Package, packageErrors map[file.CorgiImportPath]error) {
 				var start ast.Position
 				p = createPackage("test")
 				f := createFile(p, "test.corgi")
@@ -304,7 +304,7 @@ func testLinker_LinkAttributeReferences_failure(t *testing.T) { //nolint:revive
 		}, {
 			name:    "qualified ref to unknown attribute",
 			message: "attribute: unresolved reference",
-			setup: func() (p *file.Package, packages []*file.Package, packageErrors map[importPath]error) {
+			setup: func() (p *file.Package, packages []*file.Package, packageErrors map[file.CorgiImportPath]error) {
 				importedPkg := createPackage("imported")
 				createFile(importedPkg, "imported.corgi")
 
@@ -323,7 +323,7 @@ func testLinker_LinkAttributeReferences_failure(t *testing.T) { //nolint:revive
 			t.Parallel()
 
 			p, packages, errs := c.setup()
-			packagesMap := make(map[importPath]*file.Package, len(packages))
+			packagesMap := make(map[file.CorgiImportPath]*file.Package, len(packages))
 			for _, pkg := range packages {
 				packagesMap[pkg.CorgiImportPath] = pkg
 			}

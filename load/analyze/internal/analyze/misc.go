@@ -1,6 +1,7 @@
 package analyze
 
 import (
+	"github.com/mavolin/corgi/v2/file"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
 	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
 )
@@ -24,11 +25,11 @@ func (z *analyzer) CheckPackageNamesMatch() (ok bool) {
 		return true
 	}
 
-	expect := z.P.Files[0].Name
+	expect := file.Qualifier(z.P.Files[0].AST.Package.Name.Name)
 	primaries := make([]diagnostic.Annotation, 1, len(z.P.Files))
 	primaries[0] = anno.Node(z.P.Files[0], z.P.Files[0].AST.Package.Name, "found this name here")
 	for _, f := range z.P.Files[1:] {
-		if f.Name != expect {
+		if file.Qualifier(f.AST.Package.Name.Name) != expect {
 			primaries = append(primaries, anno.Node(f, f.AST.Package.Name, "but found other name here"))
 		}
 	}
@@ -62,6 +63,6 @@ func (z *analyzer) SetPackageName() {
 		return
 	}
 
-	z.P.Name = z.P.Files[0].Name
+	z.P.Name = file.Qualifier(z.P.Files[0].AST.Package.Name.Name)
 	logger.Debug("Set package name", "name", z.P.Name)
 }

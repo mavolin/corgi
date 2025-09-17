@@ -10,42 +10,42 @@ import (
 
 func (l *linker) CheckImportNamespaceCollisions() {
 	logger := l.logger.WithGroup("checks.import_namespace_collisions")
-	logger.Debug("Checking for import namespace collisions")
+	logger.Debug("Checking for import qualifier collisions")
 
 	for _, f := range l.p.Files {
-		logger := logger.With(slog.String("file", f.Name))
+		logger := logger.With(slog.String("file", string(f.Name)))
 
 		if len(f.Imports) <= 1 {
 			continue
 		}
 
-		dupls := make(map[namespace][]*file.Import)
+		dupls := make(map[file.Qualifier][]*file.Import)
 
 		for _, imp := range f.Imports {
-			if imp.Explicit() && imp.Namespace != "" {
-				dupls[imp.Namespace] = append(dupls[imp.Namespace], imp)
+			if imp.Explicit() && imp.Qualifier != "" {
+				dupls[imp.Qualifier] = append(dupls[imp.Qualifier], imp)
 			}
 		}
 
-		for namespace, imports := range dupls {
+		for qualifier, imports := range dupls {
 			if len(imports) <= 1 {
 				continue
 			}
 
-			logger.Error("Import namespace collisions",
-				slog.String("namespace", namespace),
+			logger.Error("Import qualifier collisions",
+				slog.String("qualifier", string(qualifier)),
 				slog.Int("count", len(imports)))
 
 			primaries := make([]diagnostic.Annotation, len(imports))
 			for i, imp := range imports {
-				primaries[i] = anno.Node(f, imp.AST, "has namespace `"+imp.Namespace+"`")
+				primaries[i] = anno.Node(f, imp.AST, "has qualifier `"+string(imp.Qualifier)+"`")
 			}
 			l.report(&diagnostic.Diagnostic{
 				Message:     "import collision",
 				Primary:     primaries,
-				Explanation: "There can only be one import per namespace.",
+				Explanation: "There can only be one import per qualifier.",
 				Hints: []diagnostic.Hint{
-					{Hint: "Use an import alias, so that each import has a unique namespace."},
+					{Hint: "Use an import alias, so that each import has a unique qualifier."},
 				},
 			})
 		}

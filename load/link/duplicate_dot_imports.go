@@ -13,17 +13,17 @@ func (l *linker) CheckDuplicateDotImports() {
 	logger.Debug("Checking for duplicate dot imports")
 
 	for _, f := range l.p.Files {
-		logger := logger.With(slog.String("file", f.Name))
+		logger := logger.With(slog.String("file", string(f.Name)))
 
 		if len(f.Imports) <= 1 {
 			continue
 		}
 
 		// l.dotImports is deduplicated
-		dotImports := make(map[importPath][]*file.Import)
+		dotImports := make(map[file.CorgiImportPath][]*file.Import)
 
 		for _, imp := range f.Imports {
-			if imp.CorgiPath == "" || imp.AST == nil || imp.AST.Alias == nil || imp.AST.Alias.Name != "." {
+			if !imp.Explicit() || imp.AST.Alias == nil || imp.AST.Alias.Name != "." {
 				continue
 			}
 
@@ -36,7 +36,7 @@ func (l *linker) CheckDuplicateDotImports() {
 			}
 
 			logger.Error("Duplicate dot imports",
-				slog.String("import_path", path),
+				slog.String("import_path", string(path)),
 				slog.Int("count", len(imports)))
 
 			primaries := make([]diagnostic.Annotation, 0, len(imports))

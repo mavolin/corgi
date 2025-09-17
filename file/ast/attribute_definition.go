@@ -3,7 +3,6 @@ package ast
 import (
 	"regexp"
 	"slices"
-	"strings"
 
 	"github.com/mavolin/corgi/v2/escape/attrtype"
 )
@@ -254,16 +253,19 @@ func (*AttributeRule) _node() {}
 
 type AttributeSelector interface {
 	Node
-	Matches(s string) bool
+	// Matches returns true if the given attribute name, in canonical form,
+	// matches this selector.
+	Matches(canonicalName string) bool
 	_attributeSelector()
 }
 
 // ============================== Basic Attribute Matcher ===============================
 
 type BasicAttributeSelector struct {
-	Name     string
-	Wildcard bool // optional
-	Position *Position
+	Name          string
+	CanonicalName string // ascii-lowercase version of Name
+	Wildcard      bool   // optional
+	Position      *Position
 }
 
 var _ AttributeSelector = (*BasicAttributeSelector)(nil)
@@ -287,14 +289,12 @@ func (b *BasicAttributeSelector) End() Position {
 }
 func (b *BasicAttributeSelector) Walk(func(Node)) {}
 
-func (b *BasicAttributeSelector) Matches(s string) bool {
-	name := strings.ToLower(b.Name)
-	s = strings.ToLower(s)
+func (b *BasicAttributeSelector) Matches(canonicalName string) bool {
 	if !b.Wildcard {
-		return name == s
+		return canonicalName == b.CanonicalName
 	}
 	// at least one rune longer than b.Name
-	return len(s) > len(name) && s[:len(name)] == b.Name
+	return len(canonicalName) > len(b.CanonicalName) && canonicalName[:len(b.CanonicalName)] == b.CanonicalName
 }
 
 func (b *BasicAttributeSelector) _node()              {}
@@ -356,9 +356,8 @@ func (r *RegexpAttributeSelector) Walk(w func(Node)) {
 	}
 }
 
-func (r *RegexpAttributeSelector) Matches(s string) bool {
-	s = strings.ToLower(s)
-	return r.Compiled.MatchString(s)
+func (r *RegexpAttributeSelector) Matches(canonicalName string) bool {
+	return r.Compiled.MatchString(canonicalName)
 }
 
 func (r *RegexpAttributeSelector) _node()              {}

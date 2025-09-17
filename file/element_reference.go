@@ -8,6 +8,18 @@ type ElementReference struct {
 
 	AST *ast.ElementReference
 
+	// Qualifier is the qualifier of the element reference, if the reference
+	// is qualified.
+	Qualifier Qualifier
+	// QualifiableName is the identifier used to refer to the element in a
+	// qualified reference.
+	// Set to the empty string if the reference is unqualified.
+	QualifiableName CanonicalQualifiableElementName
+
+	// UnqualifiedName is the html name of the element, in ascii-lowercase,
+	// if the reference is unqualified.
+	UnqualifiedName CanonicalElementName
+
 	//
 	// LINKER
 
@@ -22,9 +34,6 @@ type ElementReference struct {
 	Spec *ElementSpec
 }
 
-// HTMLName returns the name of the element.
-//
-// Can only be called after successful linking.
-func (r *ElementReference) HTMLName() string {
-	return r.Spec.HTMLName()
+func (ref *ElementReference) Qualified() bool {
+	return ref.AST.Package != nil || ref.AST.Dot != nil
 }

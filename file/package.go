@@ -1,9 +1,7 @@
 package file
 
 import (
-	"path"
 	"slices"
-	"strings"
 
 	"github.com/mavolin/corgi/v2/file/ast"
 )
@@ -12,23 +10,23 @@ type Package struct {
 	// Module is the path/name of the Go module providing this directory.
 	//
 	// Empty for Corgi stdlib.
-	Module string // load
+	Module Module // load
 	// PathInModule is the path to the directory in the Go module, relative
 	// to the module root.
 	//
 	// Always specified as a forward slash separated path.
-	PathInModule string // load
-	// CorgiImportPath is the import path with which the package was
-	// imported in the corgi source file.
+	PathInModule PackagePath // load
+	// CorgiImportPath is the import path with which the package should be
+	// imported in Corgi code.
 	//
 	// This might be different from the [Package.GoImportPath], if the path is
 	// symbolic.
 	// The most common case for that is a corgi stdlib import, that uses the
 	// "corgi/" import path prefix, but is obviously imported in the generated
 	// Go code using another import path.
-	CorgiImportPath string // load
+	CorgiImportPath CorgiImportPath // load
 
-	Name string // analyze
+	Name Qualifier // analyze
 
 	// Analyzed indicates whether the package has been analyzed, albeit with
 	// errors.
@@ -45,11 +43,11 @@ type Package struct {
 // This might be different from the [Package.CorgiImportPath], if the path is
 // symbolic.
 // See [Package.CorgiImportPath] for more information.
-func (p *Package) GoImportPath() string {
+func (p *Package) GoImportPath() GoImportPath {
 	if p.Module != "" {
-		return path.Join(p.Module, p.PathInModule)
+		return p.Module.ImportPathFor(p.PathInModule)
 	}
-	return p.PathInModule
+	return GoImportPath(p.PathInModule)
 }
 
 // ============================================================================
@@ -67,12 +65,12 @@ func (p *Package) GoImportPath() string {
 // lookup tables used by the methods on the respective types.
 type PackageSymbols struct {
 	Components       []*Component
-	componentsByName map[string]*Component
+	componentsByName map[Identifier]*Component
 	componentByNode  map[*ast.Component]*Component
 	// State are individual state variables in the package.
 	// States belonging to the same spec must be grouped together.
 	State          []*State
-	stateByName    map[string]*State
+	stateByName    map[Identifier]*State
 	stateByNode    map[*ast.StateSpec][]*State
 	ElementSpecs   []*ElementSpec
 	AttributeSpecs []*AttributeSpec // ordered by specificity, descending
@@ -122,11 +120,16 @@ func BuildSymbols(p *Package) {
 					AST:  n,
 					File: f,
 				}
-				if n.Header != nil && n.Header.Parameters != nil && len(n.Header.Parameters.List) > 0 {
-					c.Parameters = make([]*ComponentParameter, 0, len(n.Header.Parameters.List))
-					for _, param := range n.Header.Parameters.List {
-						if param != nil {
-							c.Parameters = append(c.Parameters, &ComponentParameter{AST: param})
+				if n.Header != nil {
+					if n.Header.Name != nil {
+						c.Name = Identifier(n.Header.Name.Name)
+					}
+					if n.Header.Parameters != nil && len(n.Header.Parameters.List) > 0 {
+						c.Parameters = make([]*ComponentParameter, 0, len(n.Header.Parameters.List))
+						for _, param := range n.Header.Parameters.List {
+							if param != nil {
+								c.Parameters = append(c.Parameters, &ComponentParameter{AST: param})
+							}
 						}
 					}
 				}
@@ -143,12 +146,36 @@ func BuildSymbols(p *Package) {
 					}
 				}
 			case *ast.ElementDefinition:
+				var stylizedPrefix, canonicalPrefix string
+				if n.Prefix != nil {
+					stylizedPrefix = n.Prefix.Name
+					canonicalPrefix = n.Prefix.CanonicalName
+				}
+
 				for _, spec := range n.Specs {
 					if spec != nil {
-						p.ElementSpecs = append(p.ElementSpecs, &ElementSpec{Definition: n, AST: spec, File: f})
+						var stylizedQualifiableName, canonicalQualifiableName string
+						if spec.Name != nil {
+							stylizedQualifiableName = spec.Name.Name
+							canonicalQualifiableName = spec.Name.CanonicalName
+						}
+
+						p.ElementSpecs = append(p.ElementSpecs, &ElementSpec{
+							Definition:       n,
+							AST:              spec,
+							File:             f,
+							StylizedHTMLName: stylizedPrefix + stylizedQualifiableName,
+							HTMLName:         CanonicalElementName(canonicalPrefix + canonicalQualifiableName),
+							QualifiableName:  CanonicalQualifiableElementName(canonicalQualifiableName),
+						})
 					}
 				}
 			case *ast.AttributeDefinition:
+				var canonicalPrefix CanonicalAttributeName
+				if n.Prefix != nil {
+					canonicalPrefix = CanonicalAttributeName(n.Prefix.CanonicalName)
+				}
+
 				for _, spec := range n.Specs {
 					if spec == nil {
 						continue
@@ -169,6 +196,7 @@ func BuildSymbols(p *Package) {
 						AST:          spec,
 						File:         f,
 						WildcardRule: wildcardRule,
+						Prefix:       canonicalPrefix,
 					})
 				}
 			}
@@ -186,7 +214,7 @@ func (s *PackageSymbols) ComponentByNode(c *ast.Component) *Component {
 	return s.componentByNode[c]
 }
 
-func (s *PackageSymbols) ComponentByName(name string) *Component {
+func (s *PackageSymbols) ComponentByName(name Identifier) *Component {
 	return s.componentsByName[name]
 }
 
@@ -201,7 +229,7 @@ func (s *PackageSymbols) StateByNode(spec *ast.StateSpec, index int) *State {
 	return nil
 }
 
-func (s *PackageSymbols) StateByName(name string) *State {
+func (s *PackageSymbols) StateByName(name Identifier) *State {
 	return s.stateByName[name]
 }
 
@@ -214,23 +242,18 @@ func (s *PackageSymbols) ElementSpecByNode(spec *ast.ElementSpec) *ElementSpec {
 	return nil
 }
 
-func (s *PackageSymbols) ElementSpecByHTMLName(name string) *ElementSpec {
-	name = strings.ToLower(name)
+func (s *PackageSymbols) ElementSpecByHTMLName(name CanonicalElementName) *ElementSpec {
 	for _, def := range s.ElementSpecs {
-		if len(name) <= len(def.lowerPrefix) {
-			continue
-		}
-		if name[:len(def.lowerPrefix)] == def.lowerPrefix && name[len(def.lowerPrefix):] == def.lowerName {
+		if name == def.HTMLName {
 			return def
 		}
 	}
 	return nil
 }
 
-func (s *PackageSymbols) ElementSpecByQualifiedName(name string) *ElementSpec {
-	name = strings.ToLower(name)
+func (s *PackageSymbols) ElementSpecByQualifiableName(name CanonicalQualifiableElementName) *ElementSpec {
 	for _, def := range s.ElementSpecs {
-		if def.lowerName == name {
+		if name == def.QualifiableName {
 			return def
 		}
 	}
@@ -251,7 +274,7 @@ func (s *PackageSymbols) AttributeSpecByNode(spec *ast.AttributeSpec) *Attribute
 //
 // It might return multiple definitions if there are multiple selectors with
 // the same specificity that both match the name.
-func (s *PackageSymbols) AttributeSpecByHTMLName(name string) []*AttributeSpec {
+func (s *PackageSymbols) AttributeSpecByHTMLName(name CanonicalAttributeName) []*AttributeSpec {
 	var matches []*AttributeSpec
 	for _, def := range s.AttributeSpecs {
 		if def.MatchesHTMLName(name) {
@@ -264,15 +287,15 @@ func (s *PackageSymbols) AttributeSpecByHTMLName(name string) []*AttributeSpec {
 	return matches
 }
 
-// AttributeSpecByQualifiedName returns the attribute definition that
+// AttributeSpecByQualifiableName returns the attribute definition that
 // matches the given qualified name.
 //
 // It might return multiple definitions if there are multiple selectors with
 // the same specificity that both match the name.
-func (s *PackageSymbols) AttributeSpecByQualifiedName(name string) []*AttributeSpec {
+func (s *PackageSymbols) AttributeSpecByQualifiableName(name CanonicalQualifiableAttributeName) []*AttributeSpec {
 	var matches []*AttributeSpec
 	for _, def := range s.AttributeSpecs {
-		if def.MatchesQualifiedName(name) {
+		if def.MatchesQualifiableName(name) {
 			if def.Specificity > 0 {
 				return []*AttributeSpec{def}
 			}
@@ -291,24 +314,24 @@ func (s *PackageSymbols) AttributeSpecByQualifiedName(name string) []*AttributeS
 // method to ensure that the lookup tables are up-to-date.
 func (s *PackageSymbols) RebuildLookupTables() {
 	s.componentByNode = make(map[*ast.Component]*Component, len(s.Components))
-	s.componentsByName = make(map[string]*Component, len(s.Components))
+	s.componentsByName = make(map[Identifier]*Component, len(s.Components))
 
 	for _, c := range s.Components {
 		s.componentByNode[c.AST] = c
 
 		if c.AST.Header != nil && c.AST.Header.Name != nil {
-			s.componentsByName[c.AST.Header.Name.Name] = c
+			s.componentsByName[Identifier(c.AST.Header.Name.Name)] = c
 		}
 	}
 
 	s.stateByNode = make(map[*ast.StateSpec][]*State, len(s.State))
-	s.stateByName = make(map[string]*State, len(s.State))
+	s.stateByName = make(map[Identifier]*State, len(s.State))
 
 	var specStart int
 	var lastSpec *ast.StateSpec
 	for i, state := range s.State {
 		if name := state.Name(); name != nil {
-			s.stateByName[name.Name] = state
+			s.stateByName[Identifier(name.Name)] = state
 		}
 
 		// We require that states belonging to the same spec are grouped, so
@@ -324,15 +347,6 @@ func (s *PackageSymbols) RebuildLookupTables() {
 	}
 	if lastSpec != nil { // last group
 		s.stateByNode[lastSpec] = s.State[specStart:]
-	}
-
-	for _, spec := range s.ElementSpecs {
-		if spec.Definition.Prefix != nil {
-			spec.lowerPrefix = strings.ToLower(spec.Definition.Prefix.Name)
-		}
-		if spec.AST.Name != nil {
-			spec.lowerName = strings.ToLower(spec.AST.Name.Name)
-		}
 	}
 
 	for _, spec := range s.AttributeSpecs {

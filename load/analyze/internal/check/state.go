@@ -16,7 +16,7 @@ func (ch *checker) CheckState() {
 
 	for _, s := range ch.P.State {
 		logger := logger.With(
-			slog.String("file", s.File.Name),
+			slog.String("file", string(s.File.Name)),
 			slog.String("name", s.Name().Name))
 
 		ch.CheckStateUnexported(logger, s)
@@ -36,7 +36,7 @@ func (ch *checker) CheckStateDuplicates(logger *slog.Logger) {
 
 	for ai, a := range ch.P.State[:len(ch.P.State)-1] {
 		logger := logger.With(
-			slog.String("file", a.File.Name),
+			slog.String("file", string(a.File.Name)),
 			slog.String("name", a.Name().Name))
 
 		if reported[a.Name().Name] {
@@ -74,7 +74,7 @@ func (ch *checker) CheckStateDuplicates(logger *slog.Logger) {
 func (ch *checker) CheckStateUnexported(logger *slog.Logger, s *file.State) {
 	logger = logger.WithGroup("unexported")
 
-	if file.IsExported(s.Name().Name) {
+	if file.IsExported(file.Identifier(s.Name().Name)) {
 		logger.Error("state variable is exported")
 		ch.Report(&diagnostic.Diagnostic{
 			Message: "exported state variable",

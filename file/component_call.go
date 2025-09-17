@@ -11,11 +11,20 @@ type ComponentCall struct {
 	// File is the file the Component is defined in.
 	File *File
 
+	// ComponentArguments are the component arguments to the component call.
+	ComponentArguments []*ComponentArgument
+
 	// BlockSetters are the block setters used in this component call.
 	//
 	// All block setters and their instances are guaranteed to be correctly set after
 	// analyzing, even if [AnalyzedWithErrors] is true.
 	BlockSetters []*BlockSetter
+
+	// Qualifier is the qualifier of the component call, if the call is
+	// qualified.
+	Qualifier Qualifier
+	// Name is the identifier of the component being called.
+	Name Identifier
 
 	//
 	// LINKER
@@ -126,10 +135,43 @@ type ComponentCall struct {
 	ElementSpecsWithAndPlaceholder Analysis[*[]*ElementSpec]
 }
 
-func (cc *ComponentCall) External() bool { return cc.File.Package != cc.Component.File.Package }
-func (cc *ComponentCall) Local() bool    { return !cc.External() }
+func (cc *ComponentCall) External() bool {
+	if cc.AST.Header != nil && cc.AST.Header.Name != nil {
+		qi, _ := cc.AST.Header.Name.(*ast.QualifiedIdentifier)
+		return qi != nil
+	}
+	return false
+}
 
-func (cc *ComponentCall) BlockSetterByName(name string) *BlockSetter {
+func (cc *ComponentCall) Local() bool { return !cc.External() }
+
+func (cc *ComponentCall) ComponentArgumentByName(name Identifier) *ComponentArgument {
+	for _, a := range cc.ComponentArguments {
+		if Identifier(a.AST.Name.Name) == name {
+			return a
+		}
+	}
+	return nil
+}
+
+func (cc *ComponentCall) ComponentArgumentByNode(n *ast.ComponentArgument) *ComponentArgument {
+	a := cc.ComponentArgumentByName(Identifier(n.Name.Name))
+	if a == nil || a.AST != n {
+		return nil
+	}
+	return a
+}
+
+func (cc *ComponentCall) ComponentArgumentForParameter(param *ComponentParameter) *ComponentArgument {
+	for _, a := range cc.ComponentArguments {
+		if a.Parameter == param {
+			return a
+		}
+	}
+	return nil
+}
+
+func (cc *ComponentCall) BlockSetterByName(name Identifier) *BlockSetter {
 	for _, s := range cc.BlockSetters {
 		if s.Name == name {
 			return s
@@ -139,7 +181,7 @@ func (cc *ComponentCall) BlockSetterByName(name string) *BlockSetter {
 }
 
 func (cc *ComponentCall) BlockSetterByNode(n ast.BlockSetter) *BlockSetter {
-	w := cc.BlockSetterByName(n.Name())
+	w := cc.BlockSetterByName(Identifier(n.Name()))
 	if w == nil {
 		return nil
 	}
@@ -321,4 +363,27 @@ func (cc *ComponentCall) WritesElements() (a Analysis[bool]) {
 	}
 
 	return a
+}
+
+// ============================================================================
+// Argument
+// ======================================================================================
+
+type ComponentArgument struct {
+	//
+	// BUILD SYMBOLS
+
+	AST  *ast.ComponentArgument
+	Name Identifier
+
+	//
+	// LINKER
+
+	Parameter *ComponentParameter
+
+	//
+	// ANALYZER
+
+	// Value is the resolve value of the argument.
+	Value ResolvedValue
 }
