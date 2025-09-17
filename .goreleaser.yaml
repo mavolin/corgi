@@ -1,6 +1,7 @@
 before:
   hooks:
     - ./scripts/check_need_regenerate.sh
+    - go test -race ./...
     - go mod tidy
 builds:
   - main: ./cmd/corgi
