@@ -284,8 +284,9 @@ func RegexpSelector() parser.Func[*ast.RegexpAttributeSelector] {
 			s.Compiled, err = regexp.Compile(s.Raw.Unquote())
 			if err != nil {
 				p.CaptureError(&diagnostic.Diagnostic{
-					Message: "invalid regular expression: " + err.Error(),
+					Message: "invalid regular expression",
 					Primary: quickanno.Expected(p, s.Raw.Start(), "a valid regular expression"),
+					Cause:   err,
 				})
 			}
 		}
