@@ -202,8 +202,11 @@ func (t *PackageTree) genNodesInFile(pos *ast.Position, f *file.File, aliases []
 		switch t.r.IntN(8) {
 		case 0:
 			name := t.pickIdentifier()
-			createComponent(f, pos, name)
+			comp := createComponent(f, pos, name)
 			localNames = append(localNames, name)
+			for range t.r.IntN(4) {
+				createParameter(comp, pos, t.pickIdentifier())
+			}
 		case 1:
 			createElementSpec(f, pos, "", t.pickElem(), t.pickElemType())
 		case 2:
@@ -221,7 +224,10 @@ func (t *PackageTree) genNodesInFile(pos *ast.Position, f *file.File, aliases []
 			} else {
 				name = file.Identifier(pick(t.r, "A", "B", "C"))
 			}
-			createComponentCall(f, pos, q, name)
+			cc := createComponentCall(f, pos, q, name)
+			for range t.r.IntN(4) {
+				createArgument(cc, pos, t.pickIdentifier())
+			}
 		case 4:
 			var q file.Qualifier
 			if len(aliases) > 0 && chance(t.r, 0.33) {

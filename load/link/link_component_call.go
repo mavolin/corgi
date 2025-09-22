@@ -34,6 +34,7 @@ func (l *linker) LinkComponentCalls() {
 			}
 			if cc.Component != nil {
 				l.linkBlockSetterBlocks(logger, cc)
+				l.linkComponentArguments(logger, cc)
 			}
 		}
 	}
@@ -196,6 +197,27 @@ func (l *linker) linkBlockSetterBlocks(logger *slog.Logger, cc *file.ComponentCa
 			Primary: primaries,
 			Secondary: []diagnostic.Annotation{
 				anno.Node(cc.File, cc.AST, "in this component call"),
+			},
+		})
+	}
+}
+
+func (l *linker) linkComponentArguments(logger *slog.Logger, cc *file.ComponentCall) {
+	logger = logger.WithGroup("component_arguments")
+
+	for _, arg := range cc.ComponentArguments {
+		logger := logger.With(slog.String("name", string(arg.Name)))
+
+		arg.Parameter = cc.Component.ParameterByName(arg.Name)
+		if arg.Parameter != nil {
+			continue
+		}
+
+		logger.Error("Could not find parameter for argument")
+		l.report(&diagnostic.Diagnostic{
+			Message: "component call: argument: unresolved reference",
+			Primary: []diagnostic.Annotation{
+				anno.Node(cc.File, arg.AST, "`"+string(cc.Name)+"` defines no parameter `"+string(arg.Name)+"`"),
 			},
 		})
 	}

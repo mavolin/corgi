@@ -534,6 +534,46 @@ func createWith(group *file.BlockSetter, start *ast.Position) *file.BlockSetterI
 	return instance
 }
 
+// createParameter adds a parameter with the given name to the component.
+func createParameter(comp *file.Component, start *ast.Position, name file.Identifier) *file.ComponentParameter {
+	if *start == ast.NoPosition {
+		*start = ast.Position{Line: 1, Col: 1}
+	}
+	param := &file.ComponentParameter{
+		Name: name,
+		AST: &ast.ComponentParameter{
+			Name: &ast.Identifier{
+				Name:     string(name),
+				Position: clonePos(start),
+			},
+		},
+	}
+	comp.Parameters = append(comp.Parameters, param)
+	start.Line++
+	start.Col = 1
+	return param
+}
+
+// createArgument adds an argument with the given name to the component call.
+func createArgument(call *file.ComponentCall, start *ast.Position, name file.Identifier) *file.ComponentArgument {
+	if *start == ast.NoPosition {
+		*start = ast.Position{Line: 1, Col: 1}
+	}
+	arg := &file.ComponentArgument{
+		Name: name,
+		AST: &ast.ComponentArgument{
+			Name: &ast.Identifier{
+				Name:     string(name),
+				Position: clonePos(start),
+			},
+		},
+	}
+	call.ComponentArguments = append(call.ComponentArguments, arg)
+	start.Line++
+	start.Col = 1
+	return arg
+}
+
 func clonePos(pos *ast.Position) *ast.Position {
 	pos2 := *pos
 	return &pos2

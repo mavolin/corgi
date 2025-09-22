@@ -3,6 +3,7 @@ package link
 import (
 	"context"
 	"errors"
+	"slices"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -19,7 +20,7 @@ func TestLinker_LinkComponentCalls(t *testing.T) {
 	t.Run("failure", testLinker_LinkComponentCalls_failure)
 }
 
-func testLinker_LinkComponentCalls_success(t *testing.T) { //nolint:revive
+func testLinker_LinkComponentCalls_success(t *testing.T) {
 	t.Parallel()
 
 	t.Run("local", func(t *testing.T) {
@@ -126,7 +127,7 @@ func testLinker_LinkComponentCalls_success(t *testing.T) { //nolint:revive
 	}
 }
 
-func testLinker_LinkComponentCalls_failure(t *testing.T) { //nolint:revive
+func testLinker_LinkComponentCalls_failure(t *testing.T) {
 	t.Parallel()
 
 	const builtinPath = "builtin"
@@ -264,7 +265,7 @@ func testLinker_LinkComponentCalls_failure(t *testing.T) { //nolint:revive
 	}
 }
 
-func TestLinker_LinkBlockSetterBlocks(t *testing.T) {
+func TestLinker_linkBlockSetterBlocks(t *testing.T) {
 	t.Parallel()
 
 	t.Run("success", func(t *testing.T) {
@@ -352,4 +353,71 @@ func TestLinker_LinkBlockSetterBlocks(t *testing.T) {
 			should.True(t, d[0].Message == "component call: block setter references unknown block")
 		}
 	})
+}
+
+func Test_linkComponentArguments(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		params []file.Identifier
+		args   []file.Identifier
+		error  string
+	}{
+		{
+			name:   "all arguments match",
+			params: []file.Identifier{"foo", "bar"},
+			args:   []file.Identifier{"foo", "bar"},
+		}, {
+			name:   "argument missing parameter",
+			params: []file.Identifier{"foo"},
+			args:   []file.Identifier{"foo", "baz"},
+			error:  "component call: argument: unresolved reference",
+		}, {
+			name:   "no arguments",
+			params: []file.Identifier{"foo"},
+			args:   []file.Identifier{},
+		},
+	}
+
+	for _, c := range tests {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+
+			var start ast.Position
+			p := createPackage("test")
+			f := createFile(p, "test.corgi")
+			comp := createComponent(f, &start, "Test")
+			for _, param := range c.params {
+				createParameter(comp, &start, param)
+			}
+			cc := createComponentCall(f, &start, "", comp.Name)
+			for _, arg := range c.args {
+				createArgument(cc, &start, arg)
+			}
+
+			ds := Link(context.Background(), p, Options{})
+			t.Log(ds.Pretty(diagnostic.PrettyOptions{}))
+
+			should.Equal(t, len(cc.ComponentArguments), len(c.args)) // argument count mismatch
+			for _, arg := range cc.ComponentArguments {
+				if slices.Contains(c.params, arg.Name) {
+					if should.NotEqual(t, arg.Parameter, nil) { // argument should be linked
+						should.Equal(t, arg.Parameter.Name, arg.Name) // linked to wrong parameter
+					}
+				} else {
+					should.Equal(t, arg.Parameter, nil) // argument should not be linked
+				}
+			}
+
+			if len(ds) == 0 {
+				should.Equal(t, len(c.error), 0) // no error expected
+			} else {
+				should.Equal(t, len(ds), 1) // only one error expected
+				if len(c.error) > 0 {
+					should.Equal(t, ds[0].Message, c.error)
+				}
+			}
+		})
+	}
 }
