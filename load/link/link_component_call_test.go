@@ -289,7 +289,6 @@ func TestLinker_linkBlockSetterBlocks(t *testing.T) {
 
 			should.Equal(t, len(d), 0)
 
-			should.True(t, blockSetter.Linked)
 			if !should.True(t, comp == call.Component) {
 				t.Log(cmp.Diff(comp, call.Component))
 			}
@@ -317,7 +316,6 @@ func TestLinker_linkBlockSetterBlocks(t *testing.T) {
 			t.Log(d.Pretty(diagnostic.PrettyOptions{}))
 			should.Equal(t, len(d), 0)
 
-			should.True(t, blockSetter.Linked)
 			if !should.True(t, comp == call.Component) {
 				t.Log(cmp.Diff(comp, call.Component))
 			}
@@ -346,7 +344,6 @@ func TestLinker_linkBlockSetterBlocks(t *testing.T) {
 
 		should.True(t, comp == call.Component)
 
-		should.True(t, blockSetter.Linked)
 		should.True(t, blockSetter.Block == nil)
 		t.Log(d.Pretty(diagnostic.PrettyOptions{}))
 		if should.Equal(t, len(d), 1) {

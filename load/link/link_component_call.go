@@ -171,7 +171,6 @@ func (l *linker) linkBlockSetterBlocks(logger *slog.Logger, cc *file.ComponentCa
 
 	for _, blockSetter := range cc.BlockSetters {
 		logger := logger.With(slog.String("with_name", string(blockSetter.Name)))
-		blockSetter.Linked = true
 
 		blockSetter.Block = cc.Component.BlockByName(blockSetter.Name)
 		if blockSetter.Block != nil {

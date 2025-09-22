@@ -12,13 +12,6 @@ type BlockSetter struct {
 	//
 	// LINKER
 
-	// Linked indicates whether this BlockSetter has been seen by the
-	// linker, and it attempted to link it.
-	//
-	// If this is true, but [Block] is nil, the linker encountered an error
-	// while linking the BlockSetter.
-	Linked bool
-
 	Block *Block
 }
 
