@@ -80,7 +80,7 @@ type Component struct {
 
 func (c *Component) ParameterByName(name Identifier) *ComponentParameter {
 	for _, p := range c.Parameters {
-		if Identifier(p.AST.Name.Name) == name {
+		if p.Name == name {
 			return p
 		}
 	}
@@ -139,7 +139,8 @@ type ComponentParameter struct {
 	//
 	// BUILD SYMBOLS
 
-	AST *ast.ComponentParameter
+	AST  *ast.ComponentParameter
+	Name Identifier
 
 	//
 	// ANALYZER

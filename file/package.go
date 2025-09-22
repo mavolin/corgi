@@ -126,9 +126,13 @@ func BuildSymbols(p *Package) {
 					}
 					if n.Header.Parameters != nil && len(n.Header.Parameters.List) > 0 {
 						c.Parameters = make([]*ComponentParameter, 0, len(n.Header.Parameters.List))
-						for _, param := range n.Header.Parameters.List {
-							if param != nil {
-								c.Parameters = append(c.Parameters, &ComponentParameter{AST: param})
+						for _, paramAST := range n.Header.Parameters.List {
+							if paramAST != nil {
+								param := ComponentParameter{AST: paramAST}
+								if paramAST.Name != nil {
+									param.Name = Identifier(paramAST.Name.Name)
+								}
+								c.Parameters = append(c.Parameters, &param)
 							}
 						}
 					}

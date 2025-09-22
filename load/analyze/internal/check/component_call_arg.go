@@ -104,7 +104,7 @@ func (ch *checker) CheckRequiredComponentParamsSet(logger *slog.Logger, cc *file
 			continue
 		}
 
-		logger := logger.With(slog.String("param", param.AST.Name.Name))
+		logger := logger.With(slog.String("param", string(param.Name)))
 
 		arg := cc.ComponentArgumentForParameter(param)
 		if arg != nil {
@@ -116,10 +116,10 @@ func (ch *checker) CheckRequiredComponentParamsSet(logger *slog.Logger, cc *file
 		ch.Report(&diagnostic.Diagnostic{
 			Message: "component call: required parameter not set",
 			Primary: []diagnostic.Annotation{
-				anno.Node(cc.File, cc.AST.Header.Name, "requires parameter `"+param.AST.Name.Name+"` to be set"),
+				anno.Node(cc.File, cc.AST.Header.Name, "requires parameter `"+string(param.Name)+"` to be set"),
 			},
 			Explanation: "Parameters with no default, " +
-				"like `" + param.AST.Name.Name + "`, " +
+				"like `" + string(param.Name) + "`, " +
 				"are required to be set in every component call.",
 		})
 	}

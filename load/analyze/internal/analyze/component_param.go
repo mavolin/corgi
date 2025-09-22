@@ -22,7 +22,7 @@ func (z *analyzer) AnalyzeComponentParameters(logger *slog.Logger, c *file.Compo
 
 	for _, param := range c.Parameters {
 		logger := logger.With(
-			slog.String("param", param.AST.Name.Name),
+			slog.String("param", string(param.Name)),
 			slog.String("param_pos", param.AST.Name.Start().String()))
 
 		z.AnalyzeAttrTypeComponentParam(logger, c, param)
@@ -158,7 +158,7 @@ func (z *analyzer) AnalyzeAttrTypeComponentParam(logger *slog.Logger, c *file.Co
 // Depends on Fields: None
 func (z *analyzer) InferTypeFromComponentParamDefault(logger *slog.Logger, c *file.Component, param *file.ComponentParameter) {
 	logger = logger.WithGroup("infer_type_from_default").
-		With(slog.String("param", param.AST.Name.Name),
+		With(slog.String("param", string(param.Name)),
 			slog.String("param_pos", param.AST.Name.Start().String()))
 
 	if param.AST.Type != nil {
@@ -179,10 +179,10 @@ func (z *analyzer) InferTypeFromComponentParamDefault(logger *slog.Logger, c *fi
 			Hints: []diagnostic.Hint{
 				{
 					Hint:    "Add an explicit type to this parameter.",
-					Example: "`" + param.AST.Name.Name + " MyType`",
+					Example: "`" + string(param.Name) + " MyType`",
 				}, {
 					Hint:    "Set a default value from which the type can be inferred.",
-					Example: "`" + param.AST.Name.Name + " = 123`",
+					Example: "`" + string(param.Name) + " = 123`",
 				},
 			},
 		})
@@ -206,7 +206,7 @@ func (z *analyzer) InferTypeFromComponentParamDefault(logger *slog.Logger, c *fi
 			"inferred from the default value. If that is not possible, specify the type as you" +
 			"normally would behind the parameter's name.",
 		Examples: []diagnostic.Example{
-			{Example: "`" + param.AST.Name.Name + " MyType = ...`"},
+			{Example: "`" + string(param.Name) + " MyType = ...`"},
 		},
 	})
 }

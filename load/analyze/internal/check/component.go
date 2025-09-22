@@ -26,7 +26,7 @@ func (ch *checker) CheckComponents() {
 
 		for _, param := range c.Parameters {
 			logger := logger.With(
-				slog.String("param", param.AST.Name.Name),
+				slog.String("param", string(param.Name)),
 				slog.String("param_pos", param.AST.Name.Start().String()))
 
 			ch.CheckReservedComponentParamName(logger, c, param)
@@ -47,9 +47,9 @@ func (ch *checker) CheckDuplicateComponentParams(logger *slog.Logger, c *file.Co
 		return
 	}
 
-	params := make(map[string][]*file.ComponentParameter, len(c.Parameters))
+	params := make(map[file.Identifier][]*file.ComponentParameter, len(c.Parameters))
 	for _, param := range c.Parameters {
-		params[param.AST.Name.Name] = append(params[param.AST.Name.Name], param)
+		params[param.Name] = append(params[param.Name], param)
 	}
 
 	for _, dupls := range params {
@@ -100,7 +100,7 @@ func (ch *checker) CheckReservedComponentNames(logger *slog.Logger, c *file.Comp
 func (ch *checker) CheckUpperComponentParamName(logger *slog.Logger, c *file.Component, param *file.ComponentParameter) {
 	logger = logger.WithGroup("no_upper_names")
 
-	r, _ := utf8.DecodeRuneInString(param.AST.Name.Name)
+	r, _ := utf8.DecodeRuneInString(string(param.Name))
 	if unicode.IsUpper(r) {
 		logger.Error("Component parameter uses uppercase name")
 		ch.Report(&diagnostic.Diagnostic{
@@ -120,7 +120,7 @@ func (ch *checker) CheckUpperComponentParamName(logger *slog.Logger, c *file.Com
 func (ch *checker) CheckUnderscoreComponentParamName(logger *slog.Logger, c *file.Component, param *file.ComponentParameter) {
 	logger = logger.WithGroup("no_underscore_names")
 
-	if param.AST.Name.Name[0] == '_' {
+	if param.Name[0] == '_' {
 		logger.Error("Component parameter uses name starting with an underscore")
 		ch.Report(&diagnostic.Diagnostic{
 			Message: "component parameter: use of name with underscore-prefix",
@@ -139,7 +139,7 @@ func (ch *checker) CheckUnderscoreComponentParamName(logger *slog.Logger, c *fil
 func (ch *checker) CheckReservedComponentParamName(logger *slog.Logger, c *file.Component, param *file.ComponentParameter) {
 	logger = logger.WithGroup("reserved_param_name")
 
-	name := param.AST.Name.Name
+	name := param.Name
 	if name != "ctx" {
 		return
 	}
@@ -148,7 +148,7 @@ func (ch *checker) CheckReservedComponentParamName(logger *slog.Logger, c *file.
 	ch.Report(&diagnostic.Diagnostic{
 		Message: "component parameter uses reserved name",
 		Primary: []diagnostic.Annotation{
-			anno.Node(c.File, param.AST.Name, "`"+name+"` is a reserved name"),
+			anno.Node(c.File, param.AST.Name, "`"+string(name)+"` is a reserved name"),
 		},
 		Hints: []diagnostic.Hint{{Hint: "Rename this parameter."}},
 	})
