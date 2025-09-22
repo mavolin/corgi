@@ -35,6 +35,10 @@ func IsKeyword(s string) bool { // https://go.dev/ref/spec#Keywords
 	case "state":
 	case "attr":
 	case "elem":
+	case "jsfunc":
+	case "script":
+	case "stylesheet":
+	case "style":
 	default:
 		return false
 	}
