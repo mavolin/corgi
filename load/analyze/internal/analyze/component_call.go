@@ -67,6 +67,8 @@ func (z *analyzer) AnalyzeComponentCall(ctx context.Context, cc *file.ComponentC
 	z.AnalyzeAcceptsAttributes(cc)
 	z.AnalyzeForwardsReceivedAttributes(cc)
 
+	z.AnalyzeComponentArguments(cc)
+
 	cc.Analyzed = true
 }
 

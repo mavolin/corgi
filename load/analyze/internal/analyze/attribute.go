@@ -123,10 +123,10 @@ func (z *analyzer) namedAttributeToAttributeValue(f *file.File, attrAST *ast.Nam
 	}
 
 	expr := z.expressionFromAttributeValue(attrAST.Value)
-	return z.expressionToResolvedAttributeValue(f, expr)
+	return z.expressionToAttributeValue(f, expr)
 }
 
-func (z *analyzer) expressionToResolvedAttributeValue(f *file.File, expr *ast.Expression) file.ResolvedValue {
+func (z *analyzer) expressionToAttributeValue(f *file.File, expr *ast.Expression) file.ResolvedValue {
 	if len(expr.Nodes) == 1 {
 		n0 := expr.Nodes[0]
 		return switches.CodeNodeR(n0,
