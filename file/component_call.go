@@ -55,9 +55,9 @@ type (
 		// filled.
 		//
 		// If the reason is a [ast.ComponentCall], then because that call's
-		// component forwards attributes, because that call receives attributes and
-		// forwards them, or because one of the call's block setters forwards
-		// attributes ([ComponentCall.BlockSetterForwardsAttributes]).
+		// component forwards attributes, because that call receives attributes
+		// and forwards them, or because one of the call's block setters
+		// forwards attributes ([ComponentCall.BlockSetterForwardsAttributes]).
 		ReceivesAttributes AnalysisWithReason[ast.AttributeWriter]
 		// ReceivesAndPlaceholder indicates that the call's &-placeholder gets
 		// filled with the &-placeholder of the component containing this call.
@@ -185,13 +185,13 @@ func (cc *ComponentCall) AcceptsAttributes() (a AnalysisWithReason[ast.AndPlaceh
 		return a
 	}
 
-	if cc.Component.AlwaysWritesAndPlaceholder.True() {
-		a.SetReason(cc.Component.AlwaysWritesAndPlaceholder.Reason())
+	if cc.Component.AlwaysAcceptsAttributes.True() {
+		a.SetReason(cc.Component.AlwaysAcceptsAttributes.Reason())
 		return a
 	}
 
 	a.SetFalse()
-	if cc.Component.AlwaysWritesAndPlaceholder.Failed() {
+	if cc.Component.AlwaysAcceptsAttributes.Failed() {
 		a.SetFailed()
 	}
 
@@ -203,10 +203,10 @@ func (cc *ComponentCall) AcceptsAttributes() (a AnalysisWithReason[ast.AndPlaceh
 				continue
 			}
 
-			if instance.Default.WritesAndPlaceholder.True() {
-				a.SetReason(instance.Default.WritesAndPlaceholder.Reason())
+			if instance.Default.AcceptsAttributes.True() {
+				a.SetReason(instance.Default.AcceptsAttributes.Reason())
 				return a
-			} else if instance.Default.WritesAndPlaceholder.Failed() {
+			} else if instance.Default.AcceptsAttributes.Failed() {
 				a.SetFailed()
 			}
 		}
@@ -234,13 +234,13 @@ func (cc *ComponentCall) ForwardsAcceptedAttributes() (a AnalysisWithReason[ast.
 		return a
 	}
 
-	if cc.Component.AlwaysForwardsAndPlaceholder.True() {
-		a.SetReason(cc.Component.AlwaysForwardsAndPlaceholder.Reason())
+	if cc.Component.AlwaysForwardsReceivedAttributes.True() {
+		a.SetReason(cc.Component.AlwaysForwardsReceivedAttributes.Reason())
 		return a
 	}
 
 	a.SetFalse()
-	if cc.Component.AlwaysForwardsAndPlaceholder.Failed() {
+	if cc.Component.AlwaysForwardsReceivedAttributes.Failed() {
 		a.SetFailed()
 	}
 
@@ -252,9 +252,9 @@ func (cc *ComponentCall) ForwardsAcceptedAttributes() (a AnalysisWithReason[ast.
 				continue
 			}
 
-			forwardsAndPlaceholder := ConditionalAnalysis(instance.Forwarded, instance.Default.ForwardsAndPlaceholder)
+			forwardsAndPlaceholder := ConditionalAnalysis(instance.Forwarded, instance.Default.ForwardsReceivedAttributes)
 			if forwardsAndPlaceholder.True() {
-				a.SetReason(instance.Default.ForwardsAndPlaceholder.Reason())
+				a.SetReason(instance.Default.ForwardsReceivedAttributes.Reason())
 				return a
 			} else if forwardsAndPlaceholder.Failed() {
 				a.SetFailed()

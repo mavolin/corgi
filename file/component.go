@@ -49,18 +49,18 @@ type Component struct {
 	// CouldForwardReceivedAttributes implies CouldAcceptAttributes.
 	CouldForwardReceivedAttributes AnalysisWithReason[ast.AndPlaceholderWriter]
 
-	// AlwaysWritesAndPlaceholder indicates whether the component has a
-	// permanent &-placeholder writer, i.e. a &-placeholder writer that is not
+	// AlwaysAcceptsAttributes indicates whether the component has a
+	// permanent &-placeholder writer, i.e. an &-placeholder writer that is not
 	// part of a block default.
 	//
 	// The reason is that &-placeholder writer.
-	AlwaysWritesAndPlaceholder AnalysisWithReason[ast.AndPlaceholderWriter]
-	// AlwaysForwardsAndPlaceholder indicates whether the component has
-	// a permanent &-placeholder writer that is forwarded and not part of a block
-	// default.
+	AlwaysAcceptsAttributes AnalysisWithReason[ast.AndPlaceholderWriter]
+	// AlwaysForwardsReceivedAttributes indicates whether the component has
+	// a permanent &-placeholder writer that is forwarded and not part of a
+	// block default.
 	//
 	// The reason is that &-placeholder writer.
-	AlwaysForwardsAndPlaceholder AnalysisWithReason[ast.AndPlaceholderWriter]
+	AlwaysForwardsReceivedAttributes AnalysisWithReason[ast.AndPlaceholderWriter]
 
 	// AlwaysForwardsAttributes indicates whether the component has a
 	// permanent attribute writer that is forwarded and not part of a block

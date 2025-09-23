@@ -503,7 +503,7 @@ func (z *analyzer) analyzeInferredAttributeType(logger *slog.Logger, f *file.Fil
 				Primary: []diagnostic.Annotation{
 					anno.Node(f, attr.AST, "neither always inside an element nor explicitly typed"),
 				},
-				Explanation: "As part of the security model, forwarded attributes must be typed." +
+				Explanation: "As part of corgi's security model, forwarded attributes must be typed." +
 					"For example, the `href` attribute placed on an `<a>` element is defined as `url`.\n" +
 					"While this attribute is sometimes attached to an element, there is at least one case " +
 					"where it is forwarded out of the component, requiring explicit typing.",

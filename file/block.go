@@ -75,6 +75,10 @@ func (b *Block) InstanceByNode(n *ast.Block) *BlockInstance {
 	return nil
 }
 
+// ============================================================================
+// Block Instance
+// ======================================================================================
+
 type (
 	BlockInstance struct {
 		//
@@ -157,21 +161,21 @@ type (
 		//
 		// ANALYZER
 
-		// WritesAndPlaceholder indicates that this block instance default
+		// AcceptsAttributes indicates that this block instance default
 		// writes the &-placeholder.
 		//
 		// The reason is the first &-placeholder writer that writes the
 		// &-placeholder.
-		WritesAndPlaceholder AnalysisWithReason[ast.AndPlaceholderWriter]
-		// ForwardsAndPlaceholder indicates that this block instance default
+		AcceptsAttributes AnalysisWithReason[ast.AndPlaceholderWriter]
+		// ForwardsReceivedAttributes indicates that this block instance default
 		// forwards the &-placeholder to the element containing the block
 		// instance.
 		//
 		// The reason is the first &-placeholder writer that forwards the
 		// &-placeholder.
 		//
-		// ForwardsAndPlaceholder implies WritesAndPlaceholder.
-		ForwardsAndPlaceholder AnalysisWithReason[ast.AndPlaceholderWriter]
+		// ForwardsReceivedAttributes implies AcceptsAttributes.
+		ForwardsReceivedAttributes AnalysisWithReason[ast.AndPlaceholderWriter]
 
 		ForwardsAttributes AnalysisWithReason[ast.AttributeWriter]
 		WritesContent      AnalysisWithReason[ast.ContentWriter]

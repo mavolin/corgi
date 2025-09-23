@@ -74,6 +74,8 @@ func (z *analyzer) checkNoInfiniteRecursion(logger *slog.Logger, cc *file.Compon
 		return
 	}
 
+	cc.Circular = true
+
 	var sb strings.Builder
 	sb.Grow(48 * len("github.com/mavolin/corgi/v2/mycomponents/foo/bar.Baz\n"))
 	for _, c := range slices.Backward(callerChain[2000:]) {
@@ -86,7 +88,7 @@ func (z *analyzer) checkNoInfiniteRecursion(logger *slog.Logger, cc *file.Compon
 	logger.Error("AnalyzeComponentCall: Recursion depth exceeded")
 	z.Report(&diagnostic.Diagnostic{
 		Type:    diagnostic.InternalError,
-		Message: "AnalyzeComponent: recursion depth exceeded",
+		Message: "AnalyzeComponent: maximum recursion depth exceeded",
 		Primary: []diagnostic.Annotation{
 			anno.Node(cc.File, callerChain[0].AST, "while analyzing this component"),
 		},

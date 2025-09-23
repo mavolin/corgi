@@ -173,23 +173,23 @@ func (z *analyzer) checkComponentCallCycles(root *file.Component, chain []*file.
 //   - Components.CouldForwardReceivedAttributes
 //
 // Depends on Fields:
-//   - Components.AlwaysForwardsAndPlaceholder
+//   - Components.AlwaysForwardsReceivedAttributes
 //   - Components.Blocks.Instances.Forwarded
-//   - Components.Blocks.Instances.Default.ForwardsAndPlaceholder
+//   - Components.Blocks.Instances.Default.ForwardsReceivedAttributes
 func (z *analyzer) AnalyzeCouldForwardReceivedAttributes(c *file.Component) {
-	if c.AlwaysForwardsAndPlaceholder.True() {
-		c.CouldForwardReceivedAttributes.SetReason(c.AlwaysForwardsAndPlaceholder.Reason())
+	if c.AlwaysForwardsReceivedAttributes.True() {
+		c.CouldForwardReceivedAttributes.SetReason(c.AlwaysForwardsReceivedAttributes.Reason())
 		return
 	}
 
 	c.CouldForwardReceivedAttributes.SetFalse()
-	if c.AlwaysForwardsAndPlaceholder.Failed() {
+	if c.AlwaysForwardsReceivedAttributes.Failed() {
 		c.CouldForwardReceivedAttributes.SetFailed()
 	}
 
 	for _, block := range c.Blocks {
 		for _, instance := range block.Instances {
-			forwardsAndPlaceholder := file.ConditionalAnalysis(instance.Forwarded, instance.Default.ForwardsAndPlaceholder)
+			forwardsAndPlaceholder := file.ConditionalAnalysis(instance.Forwarded, instance.Default.ForwardsReceivedAttributes)
 			if forwardsAndPlaceholder.True() {
 				c.CouldForwardReceivedAttributes.SetReason(forwardsAndPlaceholder.Reason())
 				return
@@ -214,29 +214,29 @@ func (z *analyzer) AnalyzeCouldForwardReceivedAttributes(c *file.Component) {
 //
 // Depends on Fields:
 //   - Components.CouldForwardReceivedAttributes
-//   - Components.Blocks.Instances.Default.WritesAndPlaceholder
+//   - Components.Blocks.Instances.Default.AcceptsAttributes
 func (z *analyzer) AnalyzeCouldAcceptAttributes(c *file.Component) {
 	if c.CouldForwardReceivedAttributes.True() {
 		c.CouldAcceptAttributes.SetReason(c.CouldForwardReceivedAttributes.Reason())
 		return
 	}
 
-	if c.AlwaysWritesAndPlaceholder.True() {
-		c.CouldAcceptAttributes.SetReason(c.AlwaysWritesAndPlaceholder.Reason())
+	if c.AlwaysAcceptsAttributes.True() {
+		c.CouldAcceptAttributes.SetReason(c.AlwaysAcceptsAttributes.Reason())
 		return
 	}
 
 	c.CouldAcceptAttributes.SetFalse()
-	if c.AlwaysWritesAndPlaceholder.Failed() {
+	if c.AlwaysAcceptsAttributes.Failed() {
 		c.CouldAcceptAttributes.SetFailed()
 	}
 
 	for _, block := range c.Blocks {
 		for _, instance := range block.Instances {
-			if instance.Default.WritesAndPlaceholder.True() {
-				c.CouldAcceptAttributes.SetReason(instance.Default.WritesAndPlaceholder.Reason())
+			if instance.Default.AcceptsAttributes.True() {
+				c.CouldAcceptAttributes.SetReason(instance.Default.AcceptsAttributes.Reason())
 				return
-			} else if instance.Default.WritesAndPlaceholder.Failed() {
+			} else if instance.Default.AcceptsAttributes.Failed() {
 				c.CouldAcceptAttributes.SetFailed()
 			}
 		}
@@ -253,7 +253,7 @@ func (z *analyzer) AnalyzeCouldAcceptAttributes(c *file.Component) {
 // Depends on Checks: None
 //
 // Sets Fields:
-//   - Components.AlwaysForwardsAndPlaceholder
+//   - Components.AlwaysForwardsReceivedAttributes
 //
 // Depends on Fields: None
 func (z *analyzer) AnalyzeAlwaysForwardsAndPlaceholder(c *file.Component) {
@@ -270,13 +270,13 @@ func (z *analyzer) AnalyzeAlwaysForwardsAndPlaceholder(c *file.Component) {
 // Depends on Checks: None
 //
 // Sets Fields:
-//   - Components.AlwaysWritesAndPlaceholder
+//   - Components.AlwaysAcceptsAttributes
 //
 // Depends on Fields:
-//   - Components.AlwaysForwardsAndPlaceholder
+//   - Components.AlwaysForwardsReceivedAttributes
 func (z *analyzer) AnalyzedAlwaysWritesAndPlaceholder(c *file.Component) {
-	if c.AlwaysForwardsAndPlaceholder.True() {
-		c.AlwaysWritesAndPlaceholder.SetReason(c.AlwaysForwardsAndPlaceholder.Reason())
+	if c.AlwaysForwardsReceivedAttributes.True() {
+		c.AlwaysAcceptsAttributes.SetReason(c.AlwaysForwardsReceivedAttributes.Reason())
 		return
 	}
 
