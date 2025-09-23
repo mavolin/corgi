@@ -166,8 +166,7 @@ func (ch *checker) CheckComponentAcceptsAttributes(logger *slog.Logger, cc *file
 			"you cannot hand attributes to it.",
 		Docs: "attribute-placeholder",
 	}
-	couldAcceptAttributes := cc.Component.CouldAcceptAttributes.True()
-	if couldAcceptAttributes {
+	if cc.Component.CouldAcceptAttributes().True() {
 		diag.Hints = []diagnostic.Hint{
 			{
 				Hint: "The only &-placeholders of this component are specified in defaults of blocks, " +

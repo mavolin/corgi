@@ -325,7 +325,7 @@ func singleAttributeRule(attr *file.Attribute) *ast.AttributeRule {
 	spec := attr.Reference.Spec.Result()
 
 	var rule *ast.AttributeRule
-	for _, elemSpec := range *attr.ReceivingElementSpecs.Result() {
+	for _, elemSpec := range attr.ReceivingElementSpecs.Result().Get() {
 		if rule == nil {
 			rule = spec.RuleFor(elemSpec)
 		} else {

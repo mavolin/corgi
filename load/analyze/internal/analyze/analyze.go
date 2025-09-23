@@ -10,16 +10,16 @@ import (
 	"log/slog"
 
 	"github.com/mavolin/corgi/v2/file"
-	. "github.com/mavolin/corgi/v2/load/analyze/internal/context"
+	"github.com/mavolin/corgi/v2/load/analyze/internal/context"
 )
 
 type analyzer struct {
-	*Context
+	*context.Context
 	Logger                 *slog.Logger
 	analyzedComponentCalls map[*file.ComponentCall]bool
 }
 
-func Analyze(ctx *Context) {
+func Analyze(ctx *context.Context) {
 	var numCCs int
 	for _, f := range ctx.P.Files {
 		numCCs += len(f.ComponentCalls)

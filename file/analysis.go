@@ -28,6 +28,24 @@ func ConditionalAnalysis[C, R comparable, CA AnalysisCondition[C]](condition CA,
 	return final
 }
 
+// SliceRef is a wrapper type around a slice, so that it can fulfil the
+// comparable constraint, as needed for Analysis* types.
+//
+// A zero SliceRef is not valid, use NilSliceRef to get a valid zero value.
+type SliceRef[T any] struct {
+	s *[]T
+}
+
+func SliceRefFrom[T any](s []T) SliceRef[T] { return SliceRef[T]{s: &s} }
+
+func NilSliceRef[T any]() SliceRef[T] {
+	var s []T
+	return SliceRef[T]{s: &s}
+}
+
+func (r SliceRef[T]) Get() []T { return *r.s }
+func (r SliceRef[T]) Len() int { return len(*r.s) }
+
 // ============================================================================
 // Analysis
 // ======================================================================================

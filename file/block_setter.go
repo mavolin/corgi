@@ -2,18 +2,40 @@ package file
 
 import "github.com/mavolin/corgi/v2/file/ast"
 
-type BlockSetter struct {
-	//
-	// BUILD SYMBOLS
+type (
+	BlockSetter struct {
+		//
+		// BUILD SYMBOLS
 
-	Name      Identifier
-	Instances []*BlockSetterInstance
+		// ComponentCall is the component call this block setter belongs to.
+		ComponentCall *ComponentCall
 
-	//
-	// LINKER
+		Name      Identifier
+		Instances []*BlockSetterInstance
 
-	Block *Block
-}
+		//
+		// LINKER
+
+		Block *Block
+	}
+
+	BlockSetterInstance struct {
+		//
+		// BUILD SYMBOLS
+
+		Group *BlockSetter
+		AST   ast.BlockSetter
+
+		//
+		// ANALYZER
+
+		WritesAndPlaceholder   AnalysisWithReason[ast.AndPlaceholderWriter]
+		ForwardsAndPlaceholder AnalysisWithReason[ast.AndPlaceholderWriter]
+		ForwardsAttributes     AnalysisWithReason[ast.AttributeWriter]
+		WritesContent          AnalysisWithReason[ast.ContentWriter]
+		WritesElements         AnalysisWithReason[ast.ElementWriter]
+	}
+)
 
 func (s *BlockSetter) InstanceByNode(n ast.BlockSetter) *BlockSetterInstance {
 	for _, instance := range s.Instances {
@@ -105,15 +127,4 @@ func (s *BlockSetter) WritesElements() (a AnalysisWithReason[*BlockSetterInstanc
 		}
 	}
 	return a
-}
-
-type BlockSetterInstance struct {
-	Group *BlockSetter
-	AST   ast.BlockSetter
-
-	WritesAndPlaceholder   AnalysisWithReason[ast.AndPlaceholderWriter]
-	ForwardsAndPlaceholder AnalysisWithReason[ast.AndPlaceholderWriter]
-	ForwardsAttributes     AnalysisWithReason[ast.AttributeWriter]
-	WritesContent          AnalysisWithReason[ast.ContentWriter]
-	WritesElements         AnalysisWithReason[ast.ElementWriter]
 }

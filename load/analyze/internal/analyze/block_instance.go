@@ -2,14 +2,10 @@ package analyze
 
 import (
 	"context"
-	"log/slog"
 	"slices"
 
-	"github.com/mavolin/corgi/v2/escape/elemtype"
 	"github.com/mavolin/corgi/v2/file"
 	"github.com/mavolin/corgi/v2/file/ast"
-	"github.com/mavolin/corgi/v2/file/diagnostic"
-	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
 	"github.com/mavolin/corgi/v2/file/switches"
 	"github.com/mavolin/corgi/v2/file/walk"
 	"github.com/mavolin/corgi/v2/load/analyze/internal/candidate"
@@ -23,16 +19,11 @@ import (
 //
 // Depends on Fields: None
 func (z *analyzer) AnalyzeBlockInstance(
-	ctx context.Context, logger *slog.Logger, c *file.Component, parents []*walk.Context, bi *file.BlockInstance,
+	ctx context.Context, c *file.Component, parents []*walk.Context, bi *file.BlockInstance,
 ) {
-	logger = logger.
-		WithGroup("blocks").
-		With(slog.String("block", string(bi.Group.Name)))
-
 	z.AnalyzeBlockInstanceForwarded(ctx, c, parents, bi)
 	z.AnalyzeBlockInstanceContainingElements(ctx, c, parents, bi)
 	z.AnalyzeBlockInstanceContainingElementSpecs(c.File, bi)
-	z.AnalyzeBlockInstanceElementType(logger, c.File, bi)
 }
 
 // ============================================================================
@@ -48,7 +39,9 @@ func (z *analyzer) AnalyzeBlockInstance(
 //   - Components.Blocks.Instances.Forwarded
 //
 // Depends on Fields: None
-func (z *analyzer) AnalyzeBlockInstanceForwarded(ctx context.Context, c *file.Component, parents []*walk.Context, bi *file.BlockInstance) {
+func (z *analyzer) AnalyzeBlockInstanceForwarded(
+	ctx context.Context, c *file.Component, parents []*walk.Context, bi *file.BlockInstance,
+) {
 	bi.Forwarded.SetResult(true)
 
 	i := len(parents) - 1
@@ -78,7 +71,7 @@ func (z *analyzer) AnalyzeBlockInstanceForwarded(ctx context.Context, c *file.Co
 					// Continue checking: if the instance has another element as
 					// parent, we can still be sure it's not forwarded.
 					bi.Forwarded.SetFailed()
-				} else if s.Block.Forwarded.False() {
+				} else if s.Block.Forwarded().False() {
 					bi.Forwarded.SetResult(false)
 					return
 				}
@@ -101,11 +94,13 @@ func (z *analyzer) AnalyzeBlockInstanceForwarded(ctx context.Context, c *file.Co
 // Depends on Checks: None
 //
 // Sets Fields:
-//   - Components.Blocks.Instances.Receivers
+//   - Components.Blocks.Instances.ContainingElements
 //
 // Depends on Fields: None
-func (z *analyzer) AnalyzeBlockInstanceContainingElements(ctx context.Context, c *file.Component, parents []*walk.Context, bi *file.BlockInstance) {
-	bi.ContainingElements.SetZero()
+func (z *analyzer) AnalyzeBlockInstanceContainingElements(
+	ctx context.Context, c *file.Component, parents []*walk.Context, bi *file.BlockInstance,
+) {
+	bi.ContainingElements.SetResult(file.NilSliceRef[ast.ContainingElement]())
 	var containingElements []ast.ContainingElement
 
 	i := len(parents) - 1
@@ -131,16 +126,22 @@ func (z *analyzer) AnalyzeBlockInstanceContainingElements(ctx context.Context, c
 				z.AnalyzeComponentCall(ctx, cc)
 
 				s := cc.BlockSetterByNode(parent)
-				if s == nil || s.Block == nil || s.Block.ContainingElements.Failed() {
+				if s == nil || s.Block == nil {
 					bi.ContainingElements.SetFailed()
 					return true
+				}
+				for _, instance := range s.Block.Instances {
+					if instance.ContainingElements.Failed() {
+						bi.ContainingElements.SetFailed()
+						return true
+					}
 				}
 
 				containingElements = append(containingElements, &ast.BlockSetterContainingElement{
 					ComponentCall: ccAST,
 					BlockSetter:   parent,
 				})
-				if s.Block.Forwarded.False() {
+				if s.Block.Forwarded().False() {
 					return true
 				}
 				i = ccI // continue with the parent of the component call
@@ -154,8 +155,7 @@ func (z *analyzer) AnalyzeBlockInstanceContainingElements(ctx context.Context, c
 	}
 
 	if !bi.ContainingElements.Failed() {
-		containingElements = slices.Clip(containingElements)
-		bi.ContainingElements.SetResult(&containingElements)
+		bi.ContainingElements.SetResult(file.SliceRefFrom(slices.Clip(containingElements)))
 	}
 }
 
@@ -169,40 +169,41 @@ func (z *analyzer) AnalyzeBlockInstanceContainingElements(ctx context.Context, c
 // Depends on Checks: None
 //
 // Sets Fields:
-//   - Components.Blocks.Instances.ReceivingElementSpecs
+//   - Components.Blocks.Instances.ContainingElementSpecs
 //
 // Depends on Fields:
-//   - Components.Blocks.Instances.Receivers
-//   - ComponentCalls.ElementSpecsWithAndPlaceholder
-//   - Components.Blocks.ReceivingElementSpecs
+//   - Components.Blocks.Instances.ContainingElements
 func (z *analyzer) AnalyzeBlockInstanceContainingElementSpecs(f *file.File, bi *file.BlockInstance) {
 	if bi.ContainingElements.Failed() {
 		bi.ContainingElementSpecs.SetFailed()
 		return
 	}
 
-	containingElements := *bi.ContainingElements.Result()
-	if len(containingElements) == 0 {
-		var specs []*file.ElementSpec
-		bi.ContainingElementSpecs.SetResult(&specs)
+	if bi.ContainingElements.Result().Len() == 0 {
+		bi.ContainingElementSpecs.SetResult(file.NilSliceRef[*file.ElementSpec]())
 		return
 	}
 
-	bi.ContainingElementSpecs.SetZero()
-
-	specsSet := make(map[*file.ElementSpec]struct{}, len(containingElements))
-	for _, e := range containingElements {
+	specSet := make(map[*file.ElementSpec]struct{}, bi.ContainingElements.Result().Len())
+	for _, e := range bi.ContainingElements.Result().Get() {
 		switches.ContainingElement(e,
 			func(e *ast.BlockSetterContainingElement) {
 				cc := f.ComponentCallByNode(e.ComponentCall)
 				s := cc.BlockSetterByNode(e.BlockSetter)
-				if s == nil || s.Block == nil || s.Block.ContainingElementSpecs.Failed() {
+				if s == nil || s.Block == nil {
 					bi.ContainingElementSpecs.SetFailed()
 					return
 				}
 
-				for _, spec := range *s.Block.ContainingElementSpecs.Result() {
-					specsSet[spec] = struct{}{}
+				for _, instance := range s.Block.Instances {
+					if instance.ContainingElementSpecs.Failed() {
+						bi.ContainingElementSpecs.SetFailed()
+						return
+					}
+
+					for _, spec := range instance.ContainingElementSpecs.Result().Get() {
+						specSet[spec] = struct{}{}
+					}
 				}
 			},
 			func(e *ast.Element) {
@@ -211,122 +212,18 @@ func (z *analyzer) AnalyzeBlockInstanceContainingElementSpecs(f *file.File, bi *
 					bi.ContainingElementSpecs.SetFailed()
 					return
 				}
-				specsSet[ref.Spec] = struct{}{}
+				specSet[ref.Spec] = struct{}{}
 			})
 		if bi.ContainingElementSpecs.Failed() {
 			return
 		}
 	}
 
-	specs := make([]*file.ElementSpec, 0, len(specsSet))
-	for spec := range specsSet {
+	specs := make([]*file.ElementSpec, 0, len(specSet))
+	for spec := range specSet {
 		specs = append(specs, spec)
 	}
-
-	bi.ContainingElementSpecs.SetResult(&specs)
-}
-
-// ============================================================================
-// Element Type
-// ======================================================================================
-
-// AnalyzeBlockInstanceElementType determines the element type of the given
-// block instance.
-//
-// Sets Fields:
-//   - Components.Blocks.Instances.ElementType
-//
-// Depends on Fields:
-//   - Components.Blocks.Instances.Receivers
-//
-// Depends on Checks: None
-func (z *analyzer) AnalyzeBlockInstanceElementType(logger *slog.Logger, f *file.File, bi *file.BlockInstance) {
-	bi.ElementType.SetZero()
-
-	z.CheckBlockInstanceInAllowedElement(logger, f, bi)
-	if bi.ElementType.Failed() {
-		return
-	}
-
-	if bi.ContainingElementSpecs.Failed() {
-		bi.ElementType.SetFailed()
-		return
-	}
-
-	containingElementSpecs := *bi.ContainingElementSpecs.Result()
-	if len(containingElementSpecs) == 0 {
-		bi.ElementType.SetResult(elemtype.Unknown)
-		return
-	}
-
-	t := elemtype.Normal
-	for _, spec := range containingElementSpecs[1:] {
-		if spec.Type.Failed() {
-			bi.ElementType.SetFailed()
-			return
-		}
-
-		specType := spec.Type.Result()
-		if specType == elemtype.Void {
-			specType = elemtype.Nothing
-		}
-		t = min(t, specType)
-	}
-	bi.ElementType.SetResult(t)
-}
-
-// ============================================================================
-// Check Block Instance in Script
-// ======================================================================================
-
-// CheckBlockInstanceInAllowedElement verifies that the given block instance is not
-// placed inside a JS-typed or CSS-typed element.
-func (z *analyzer) CheckBlockInstanceInAllowedElement(logger *slog.Logger, f *file.File, bi *file.BlockInstance) {
-	if bi.ContainingElements.Failed() {
-		bi.ElementType.SetFailed()
-		return
-	}
-
-	elems := *bi.ContainingElements.Result()
-	for _, e := range elems {
-		switches.ContainingElement(e,
-			// Handled when CheckBlockInstanceInAllowedElement is called on the
-			// component for that call.
-			func(*ast.BlockSetterContainingElement) {},
-			func(e *ast.Element) {
-				ref := f.ElementReferenceByNode(e.Header.Name)
-				if ref.Spec.Type.Failed() {
-					return
-				}
-
-				switch ref.Spec.Type.Result() {
-				case elemtype.JS:
-					logger.
-						WithGroup("checks.not_in_script").
-						Error("Block instance in JS-typed element", slog.String("block", string(bi.Group.Name)))
-					z.Report(&diagnostic.Diagnostic{
-						Message: "block placed in `js`-typed element",
-						Primary: []diagnostic.Annotation{
-							anno.Node(f, bi.AST, "cannot place `block` here"),
-						},
-						Explanation: "You cannot place blocks inside `js`-typed elements.",
-					})
-				case elemtype.CSS:
-					logger.
-						WithGroup("checks.not_in_script").
-						Error("Block instance in CSS-typed element", slog.String("block", string(bi.Group.Name)))
-					z.Report(&diagnostic.Diagnostic{
-						Message: "block placed in `css`-typed element",
-						Primary: []diagnostic.Annotation{
-							anno.Node(f, bi.AST, "cannot place `block` here"),
-						},
-						Explanation: "You cannot place blocks inside `css`-typed elements.",
-					})
-				case elemtype.Unknown, elemtype.Void, elemtype.Nothing, elemtype.Text, elemtype.Normal: // for linting
-					// do nothing
-				}
-			})
-	}
+	bi.ContainingElementSpecs.SetResult(file.SliceRefFrom(specs))
 }
 
 // ============================================================================

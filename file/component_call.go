@@ -69,19 +69,11 @@ type (
 
 		// ElementsWithAndPlaceholder are the elements in the component's body
 		// that contain an &-placeholder.
-		//
-		// The pointer to the slice has no significance and is just there to
-		// satisfy the comparable constraint of Analysis.
-		// It is never nil.
-		ElementsWithAndPlaceholder Analysis[*[]ast.ContainingElement]
+		ElementsWithAndPlaceholder Analysis[SliceRef[ast.AttributeReceiver]]
 		// ElementSpecsWithAndPlaceholder are the unique specs of all elements
 		// containing an &-placeholder, including those containing the elements
 		// indirectly.
-		//
-		// The pointer to the slice has no significance and is just there to
-		// satisfy the comparable constraint of Analysis.
-		// It is never nil.
-		ElementSpecsWithAndPlaceholder Analysis[*[]*ElementSpec]
+		ElementSpecsWithAndPlaceholder Analysis[SliceRef[*ElementSpec]]
 	}
 
 	ComponentArgument struct {
@@ -180,11 +172,6 @@ func (cc *ComponentCall) AcceptsAttributes() (a AnalysisWithReason[ast.AndPlaceh
 		return a
 	}
 
-	if cc.Component.CouldAcceptAttributes.False() {
-		a.SetFalse()
-		return a
-	}
-
 	if cc.Component.AlwaysAcceptsAttributes.True() {
 		a.SetReason(cc.Component.AlwaysAcceptsAttributes.Reason())
 		return a
@@ -226,11 +213,6 @@ func (cc *ComponentCall) AcceptsAttributes() (a AnalysisWithReason[ast.AndPlaceh
 func (cc *ComponentCall) ForwardsAcceptedAttributes() (a AnalysisWithReason[ast.AndPlaceholderWriter]) {
 	if cc.Component == nil {
 		a.SetFailed()
-		return a
-	}
-
-	if cc.Component.CouldForwardReceivedAttributes.False() {
-		a.SetFalse()
 		return a
 	}
 
@@ -314,7 +296,7 @@ func (cc *ComponentCall) BlockSetterForwardsAndPlaceholder() (a AnalysisWithReas
 			continue
 		}
 
-		fap = ConditionalAnalysis(s.Block.Forwarded, fap)
+		fap = ConditionalAnalysis(s.Block.Forwarded(), fap)
 		if fap.True() {
 			a.SetReason(s)
 			return a
@@ -430,7 +412,7 @@ func (cc *ComponentCall) BlockSetterForwardsAttributes() (a AnalysisWithReason[*
 			continue
 		}
 
-		fa = ConditionalAnalysis(s.Block.Forwarded, fa)
+		fa = ConditionalAnalysis(s.Block.Forwarded(), fa)
 		if fa.True() {
 			a.SetReason(s)
 			return a

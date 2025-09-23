@@ -33,6 +33,8 @@ func (ch *checker) CheckComponents() {
 			ch.CheckUpperComponentParamName(logger, c, param)
 			ch.CheckUnderscoreComponentParamName(logger, c, param)
 		}
+
+		ch.CheckBlocks(logger, c)
 	}
 }
 

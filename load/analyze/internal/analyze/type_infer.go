@@ -51,7 +51,7 @@ func InferType(f *file.File, expr *ast.Expression) (typ file.Type, sure bool) {
 		func(gc *ast.GoCode) { typ, sure = inferLastGoCodeType(gc) },
 		func(*ast.String) { typ, sure = "string", false },
 		func(n *ast.Ternary) { typ, sure = inferTernaryType(f, n) },
-		func(n *ast.ZeroCoalescing) {})
+		func(*ast.ZeroCoalescing) {})
 	return typ, sure
 }
 

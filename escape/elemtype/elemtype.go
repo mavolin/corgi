@@ -9,11 +9,11 @@ type Type uint8
 
 const (
 	Unknown Type = iota
-	// A Void element has no body and no closing tag.
-	Void
 	// A Nothing element is akin to a void element: It has a closing tag, but
 	// must have an empty body.
 	Nothing
+	// A Void element has no body and no closing tag.
+	Void
 	// A Text element can only contain text, but no child elements.
 	// Ampersand escapes are allowed in text elements.
 	Text

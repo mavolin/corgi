@@ -39,16 +39,6 @@ type Component struct {
 	// albeit with errors.
 	Analyzed bool
 
-	// CouldAcceptAttributes indicates whether the component could accept
-	// attributes passed to it.
-	CouldAcceptAttributes AnalysisWithReason[ast.AndPlaceholderWriter]
-	// CouldForwardReceivedAttributes indicates whether the component could forward
-	// attributes it receives to the element containing a component call
-	// to it.
-	//
-	// CouldForwardReceivedAttributes implies CouldAcceptAttributes.
-	CouldForwardReceivedAttributes AnalysisWithReason[ast.AndPlaceholderWriter]
-
 	// AlwaysAcceptsAttributes indicates whether the component has a
 	// permanent &-placeholder writer, i.e. an &-placeholder writer that is not
 	// part of a block default.
@@ -129,6 +119,64 @@ func (c *Component) BlockInstanceByNode(b *ast.Block) *BlockInstance {
 
 func (c *Component) Exported() bool {
 	return c.Name.Exported()
+}
+
+// CouldAcceptAttributes indicates whether the component could accept
+// attributes passed to it.
+func (c *Component) CouldAcceptAttributes() (a AnalysisWithReason[ast.AndPlaceholderWriter]) {
+	if c.AlwaysAcceptsAttributes.True() {
+		a.SetReason(c.AlwaysAcceptsAttributes.Reason())
+		return a
+	}
+
+	a.SetFalse()
+	if c.AlwaysAcceptsAttributes.Failed() {
+		a.SetFailed()
+	}
+
+	for _, block := range c.Blocks {
+		for _, instance := range block.Instances {
+			if instance.Default.AcceptsAttributes.True() {
+				a.SetReason(instance.Default.AcceptsAttributes.Reason())
+				return a
+			} else if instance.Default.AcceptsAttributes.Failed() {
+				a.SetFailed()
+			}
+		}
+	}
+
+	return a
+}
+
+// CouldForwardReceivedAttributes indicates whether the component could forward
+// attributes it receives to the element containing a component call
+// to it.
+//
+// CouldForwardReceivedAttributes implies CouldAcceptAttributes.
+func (c *Component) CouldForwardReceivedAttributes() (a AnalysisWithReason[ast.AndPlaceholderWriter]) {
+	if c.AlwaysForwardsReceivedAttributes.True() {
+		a.SetReason(c.AlwaysForwardsReceivedAttributes.Reason())
+		return a
+	}
+
+	a.SetFalse()
+	if c.AlwaysForwardsReceivedAttributes.Failed() {
+		a.SetFailed()
+	}
+
+	for _, block := range c.Blocks {
+		for _, instance := range block.Instances {
+			forwardsAndPlaceholder := ConditionalAnalysis(instance.Forwarded, instance.Default.ForwardsReceivedAttributes)
+			if forwardsAndPlaceholder.True() {
+				a.SetReason(forwardsAndPlaceholder.Reason())
+				return a
+			} else if forwardsAndPlaceholder.Failed() {
+				a.SetFailed()
+			}
+		}
+	}
+
+	return a
 }
 
 // ============================================================================

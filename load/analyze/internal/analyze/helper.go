@@ -94,10 +94,16 @@ func (z *analyzer) cannotAttributes(
 					cc := f.ComponentCallByNode(ccAST)
 					z.AnalyzeComponentCall(ctx, cc)
 					s := cc.BlockSetterByNode(parent)
-					switch {
-					case s == nil || s.Block.CannotForwardAttributes.Failed():
+					if s == nil {
 						reason.SetFailed()
-					case s.Block.CannotForwardAttributes.True():
+						return
+					}
+
+					blockCannotForwardAttrs := s.Block.CannotForwardAttributes()
+					switch {
+					case blockCannotForwardAttrs.Failed():
+						reason.SetFailed()
+					case blockCannotForwardAttrs.True():
 						reason.SetReason(&ast.BlockSetterAttributeInhibitor{
 							ComponentCall: ccAST,
 							BlockSetter:   parent,
@@ -197,7 +203,7 @@ func (z *analyzer) cannotAttributes(
 
 		candidate.SwitchAttributeInhibitor(w.Parents[len(w.Parents)-1].Node,
 			func(n *ast.Block) { next.SetReason(n) },
-			func(parent ast.BlockSetter) {},
+			func(ast.BlockSetter) {},
 			func(n *ast.CharacterEscape) { next.SetReason(n) },
 			func(n *ast.CharacterReference) { next.SetReason(n) },
 			func(ccAST *ast.ComponentCall) {

@@ -264,7 +264,7 @@ func (z *analyzer) AnalyzeAttributeForwarded(f *file.File, parents []*walk.Conte
 					// Continue checking: if the attribute has another element as
 					// parent, we can still be sure it's not forwarded.
 					attr.Forwarded.SetFailed()
-				} else if s.Block.Forwarded.False() {
+				} else if s.Block.Forwarded().False() {
 					attr.Forwarded.SetResult(false)
 				}
 				i = ccI // continue with the parent of the component call
@@ -293,7 +293,6 @@ func (z *analyzer) AnalyzeAttributeForwarded(f *file.File, parents []*walk.Conte
 //   - Components.Blocks.Receivers
 //   - Components.Blocks.Forwarded
 func (z *analyzer) AnalyzeAttributeReceivers(f *file.File, parents []*walk.Context, attr *file.Attribute) {
-	attr.Receivers.SetZero()
 	var receivers []ast.AttributeReceiver
 
 	i := len(parents) - 1
@@ -311,7 +310,7 @@ func (z *analyzer) AnalyzeAttributeReceivers(f *file.File, parents []*walk.Conte
 					return true
 				}
 
-				if cc.ElementsWithAndPlaceholder.NotZero() {
+				if cc.ElementsWithAndPlaceholder.Result().Len() > 0 {
 					receivers = append(receivers, (*ast.AndPlaceholderAttributeReceiver)(parent))
 				}
 				return forwardsReceivedAttributes.False()
@@ -327,16 +326,22 @@ func (z *analyzer) AnalyzeAttributeReceivers(f *file.File, parents []*walk.Conte
 				cc := f.ComponentCallByNode(ccAST)
 
 				s := cc.BlockSetterByNode(parent)
-				if s == nil || s.Block == nil || s.Block.ContainingElements.Failed() {
+				if s == nil || s.Block == nil {
 					attr.Receivers.SetFailed()
 					return true
+				}
+				for _, instance := range s.Block.Instances {
+					if instance.ContainingElements.Failed() {
+						attr.Receivers.SetFailed()
+						return true
+					}
 				}
 
 				receivers = append(receivers, &ast.BlockSetterContainingElement{
 					ComponentCall: ccAST,
 					BlockSetter:   parent,
 				})
-				if s.Block.Forwarded.False() {
+				if s.Block.Forwarded().False() {
 					return true
 				}
 				i = ccI // continue with the parent of the component call
@@ -351,7 +356,7 @@ func (z *analyzer) AnalyzeAttributeReceivers(f *file.File, parents []*walk.Conte
 
 	if !attr.Receivers.Failed() {
 		receivers = slices.Clip(receivers)
-		attr.Receivers.SetResult(&receivers)
+		attr.Receivers.SetResult(file.SliceRefFrom(receivers))
 	}
 }
 
@@ -377,16 +382,13 @@ func (z *analyzer) AnalyzeAttributeReceivingElementSpecs(f *file.File, attr *fil
 		return
 	}
 
-	containingElements := *attr.Receivers.Result()
+	containingElements := attr.Receivers.Result().Get()
 	if len(containingElements) == 0 {
-		var specs []*file.ElementSpec
-		attr.ReceivingElementSpecs.SetResult(&specs)
+		attr.ReceivingElementSpecs.SetResult(file.NilSliceRef[*file.ElementSpec]())
 		return
 	}
 
-	attr.ReceivingElementSpecs.SetZero()
-
-	specsSet := make(map[*file.ElementSpec]struct{}, len(containingElements))
+	specSet := make(map[*file.ElementSpec]struct{}, len(containingElements))
 	for _, e := range containingElements {
 		switches.AttributeReceiver(e,
 			func(e *ast.AndPlaceholderAttributeReceiver) {
@@ -396,20 +398,27 @@ func (z *analyzer) AnalyzeAttributeReceivingElementSpecs(f *file.File, attr *fil
 					return
 				}
 
-				for _, spec := range *cc.ElementSpecsWithAndPlaceholder.Result() {
-					specsSet[spec] = struct{}{}
+				for _, spec := range cc.ElementSpecsWithAndPlaceholder.Result().Get() {
+					specSet[spec] = struct{}{}
 				}
 			},
 			func(e *ast.BlockSetterContainingElement) {
 				cc := f.ComponentCallByNode(e.ComponentCall)
 				s := cc.BlockSetterByNode(e.BlockSetter)
-				if s == nil || s.Block == nil || s.Block.ContainingElementSpecs.Failed() {
+				if s == nil || s.Block == nil {
 					attr.ReceivingElementSpecs.SetFailed()
 					return
 				}
 
-				for _, spec := range *s.Block.ContainingElementSpecs.Result() {
-					specsSet[spec] = struct{}{}
+				for _, instance := range s.Block.Instances {
+					if instance.ContainingElementSpecs.Failed() {
+						attr.ReceivingElementSpecs.SetFailed()
+						return
+					}
+
+					for _, spec := range instance.ContainingElementSpecs.Result().Get() {
+						specSet[spec] = struct{}{}
+					}
 				}
 			},
 			func(e *ast.Element) {
@@ -418,19 +427,18 @@ func (z *analyzer) AnalyzeAttributeReceivingElementSpecs(f *file.File, attr *fil
 					attr.ReceivingElementSpecs.SetFailed()
 					return
 				}
-				specsSet[ref.Spec] = struct{}{}
+				specSet[ref.Spec] = struct{}{}
 			})
 		if attr.ReceivingElementSpecs.Failed() {
 			return
 		}
 	}
 
-	specs := make([]*file.ElementSpec, 0, len(specsSet))
-	for spec := range specsSet {
+	specs := make([]*file.ElementSpec, 0, len(specSet))
+	for spec := range specSet {
 		specs = append(specs, spec)
 	}
-
-	attr.ReceivingElementSpecs.SetResult(&specs)
+	attr.ReceivingElementSpecs.SetResult(file.SliceRefFrom(specs))
 }
 
 // ============================================================================
@@ -494,7 +502,7 @@ func (z *analyzer) analyzeExplicitAttributeType(logger *slog.Logger, f *file.Fil
 
 func (z *analyzer) analyzeInferredAttributeType(logger *slog.Logger, f *file.File, attr *file.Attribute) {
 	if attr.Forwarded.Equal(true) {
-		partial := !attr.Receivers.Failed() && len(*attr.Receivers.Result()) > 0
+		partial := !attr.Receivers.Failed() && attr.Receivers.Result().Len() > 0
 		if partial {
 			attr.Type.SetFailed()
 			logger.Error("Untyped attribute")
@@ -552,7 +560,7 @@ func (z *analyzer) analyzeInferredAttributeType(logger *slog.Logger, f *file.Fil
 		return
 	}
 
-	containingElementSpecs := *attr.ReceivingElementSpecs.Result()
+	containingElementSpecs := attr.ReceivingElementSpecs.Result().Get()
 	if len(containingElementSpecs) == 0 {
 		attr.Type.SetFailed()
 		logger.Error("attribute not forwarded but not contained in any element")
@@ -633,16 +641,20 @@ func (z *analyzer) analyzeInferredAttributeType(logger *slog.Logger, f *file.Fil
 
 		if len(secondaries) == 0 {
 			if refRule == nil {
-				secondaries = append(secondaries, anno.Node(attrSpec.File, attrSpec.AST.Selector, "not defined for `"+refSpec.StylizedHTMLName+"`"))
+				secondaries = append(secondaries,
+					anno.Node(attrSpec.File, attrSpec.AST.Selector, "not defined for `"+refSpec.StylizedHTMLName+"`"))
 			} else {
-				secondaries = append(secondaries, anno.Node(attrSpec.File, refRule.Type, "defined as `"+refTyp.String()+"` for `"+refSpec.StylizedHTMLName+"`"))
+				secondaries = append(secondaries,
+					anno.Node(attrSpec.File, refRule.Type, "defined as `"+refTyp.String()+"` for `"+refSpec.StylizedHTMLName+"`"))
 			}
 		}
 
 		if rule == nil {
-			secondaries = append(secondaries, anno.Node(attrSpec.File, attrSpec.AST.Selector, "not defined for `"+spec.StylizedHTMLName+"`"))
+			secondaries = append(secondaries,
+				anno.Node(attrSpec.File, attrSpec.AST.Selector, "not defined for `"+spec.StylizedHTMLName+"`"))
 		} else {
-			secondaries = append(secondaries, anno.Node(attrSpec.File, rule.Type, "defined as `"+rule.Type.Type.String()+"` for `"+spec.StylizedHTMLName+"`"))
+			secondaries = append(secondaries,
+				anno.Node(attrSpec.File, rule.Type, "defined as `"+rule.Type.Type.String()+"` for `"+spec.StylizedHTMLName+"`"))
 			typSeen[rule.Type.Type] = true
 		}
 	}

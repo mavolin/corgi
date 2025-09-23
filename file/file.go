@@ -170,7 +170,11 @@ func buildSymbols(f *File) {
 			instance := &BlockSetterInstance{AST: n}
 			group := cc.BlockSetterByName(Identifier(n.Name()))
 			if group == nil {
-				group = &BlockSetter{Name: Identifier(n.Name()), Instances: make([]*BlockSetterInstance, 0, 16)}
+				group = &BlockSetter{
+					ComponentCall: cc,
+					Name:          Identifier(n.Name()),
+					Instances:     make([]*BlockSetterInstance, 0, 16),
+				}
 				cc.BlockSetters = append(cc.BlockSetters, group)
 			}
 			instance.Group = group
@@ -178,13 +182,17 @@ func buildSymbols(f *File) {
 
 			n.Walk(walk)
 		case *ast.Block:
-			instance := &BlockInstance{AST: n, Parent: parentBlock}
+			instance := &BlockInstance{AST: n, ContainingInstance: parentBlock}
 			if n.Default != nil {
 				instance.Default = &BlockInstanceDefault{AST: n.Default}
 			}
 			group := comp.BlockByName(Identifier(n.Name()))
 			if group == nil {
-				group = &Block{Name: Identifier(n.Name()), Instances: make([]*BlockInstance, 0, 16)}
+				group = &Block{
+					Component: comp,
+					Name:      Identifier(n.Name()),
+					Instances: make([]*BlockInstance, 0, 16),
+				}
 				comp.Blocks = append(comp.Blocks, group)
 			}
 			instance.Group = group
@@ -254,18 +262,18 @@ func buildSymbols(f *File) {
 		if astC == nil {
 			continue
 		}
-		c := f.Package.ComponentByNode(astC)
-		c.Blocks = make([]*Block, 0, 24)
+		comp = f.Package.ComponentByNode(astC)
+		comp.Blocks = make([]*Block, 0, 24)
 
 		ccsStart := len(f.ComponentCalls)
 		n.Walk(walk)
 		ccEnd := len(f.ComponentCalls)
 		if ccEnd > ccsStart {
-			c.ComponentCalls = f.ComponentCalls[ccsStart:ccEnd:ccEnd]
+			comp.ComponentCalls = f.ComponentCalls[ccsStart:ccEnd:ccEnd]
 		}
 
-		c.Blocks = slices.Clip(c.Blocks)
-		for _, block := range c.Blocks {
+		comp.Blocks = slices.Clip(comp.Blocks)
+		for _, block := range comp.Blocks {
 			block.Instances = slices.Clip(block.Instances)
 		}
 	}

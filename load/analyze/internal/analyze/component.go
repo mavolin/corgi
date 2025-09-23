@@ -46,10 +46,8 @@ func (z *analyzer) AnalyzeComponent(ctx context.Context, logger *slog.Logger, c 
 
 	z.AnalyzeComponentParameters(logger, c)
 
-	z.AnalyzeComponentAST(ctx, logger, c)
+	z.AnalyzeComponentAST(ctx, c)
 
-	z.AnalyzeCouldForwardReceivedAttributes(c)
-	z.AnalyzeCouldAcceptAttributes(c)
 	z.AnalyzeAlwaysForwardsAndPlaceholder(c)
 	z.AnalyzedAlwaysWritesAndPlaceholder(c)
 
@@ -87,7 +85,7 @@ func (z *analyzer) AnalyzeCallComponent(ctx context.Context, cc *file.ComponentC
 // Sets Fields: None
 //
 // Depends on Fields: None
-func (z *analyzer) AnalyzeComponentAST(ctx context.Context, logger *slog.Logger, c *file.Component) {
+func (z *analyzer) AnalyzeComponentAST(ctx context.Context, c *file.Component) {
 	var cannotAttributes file.AnalysisWithReason[ast.AttributeInhibitor]
 	cannotAttributes.SetFalse()
 
@@ -96,7 +94,7 @@ func (z *analyzer) AnalyzeComponentAST(ctx context.Context, logger *slog.Logger,
 		case *ast.Block:
 			bi := c.BlockInstanceByNode(n)
 			z.AnalyzeBlockInstanceCannotForwardAttributes(bi, cannotAttributes)
-			z.AnalyzeBlockInstance(ctx, logger, c, w.Parents, bi)
+			z.AnalyzeBlockInstance(ctx, c, w.Parents, bi)
 		}
 		return walk.Continue
 	}, z.cannotAttributes(ctx, c.File, &cannotAttributes))
@@ -157,89 +155,6 @@ func (z *analyzer) checkComponentCallCycles(root *file.Component, chain []*file.
 		}
 
 		z.checkComponentCallCycles(root, append(chain, cc), cc.Component)
-	}
-}
-
-// ============================================================================
-// Could Forward Attributes
-// ======================================================================================
-
-// AnalyzeCouldForwardReceivedAttributes attempts to see if the given component could
-// forward the attributes it receives to the element containing it.
-//
-// Depends on Checks: None
-//
-// Sets Fields:
-//   - Components.CouldForwardReceivedAttributes
-//
-// Depends on Fields:
-//   - Components.AlwaysForwardsReceivedAttributes
-//   - Components.Blocks.Instances.Forwarded
-//   - Components.Blocks.Instances.Default.ForwardsReceivedAttributes
-func (z *analyzer) AnalyzeCouldForwardReceivedAttributes(c *file.Component) {
-	if c.AlwaysForwardsReceivedAttributes.True() {
-		c.CouldForwardReceivedAttributes.SetReason(c.AlwaysForwardsReceivedAttributes.Reason())
-		return
-	}
-
-	c.CouldForwardReceivedAttributes.SetFalse()
-	if c.AlwaysForwardsReceivedAttributes.Failed() {
-		c.CouldForwardReceivedAttributes.SetFailed()
-	}
-
-	for _, block := range c.Blocks {
-		for _, instance := range block.Instances {
-			forwardsAndPlaceholder := file.ConditionalAnalysis(instance.Forwarded, instance.Default.ForwardsReceivedAttributes)
-			if forwardsAndPlaceholder.True() {
-				c.CouldForwardReceivedAttributes.SetReason(forwardsAndPlaceholder.Reason())
-				return
-			} else if forwardsAndPlaceholder.Failed() {
-				c.CouldForwardReceivedAttributes.SetFailed()
-			}
-		}
-	}
-}
-
-// ============================================================================
-// Could Accept Attributes
-// ======================================================================================
-
-// AnalyzeCouldAcceptAttributes attempts to see if the given component could
-// accept attributes.
-//
-// Depends on Checks: None
-//
-// Sets Fields:
-//   - Components.CouldAcceptAttributes
-//
-// Depends on Fields:
-//   - Components.CouldForwardReceivedAttributes
-//   - Components.Blocks.Instances.Default.AcceptsAttributes
-func (z *analyzer) AnalyzeCouldAcceptAttributes(c *file.Component) {
-	if c.CouldForwardReceivedAttributes.True() {
-		c.CouldAcceptAttributes.SetReason(c.CouldForwardReceivedAttributes.Reason())
-		return
-	}
-
-	if c.AlwaysAcceptsAttributes.True() {
-		c.CouldAcceptAttributes.SetReason(c.AlwaysAcceptsAttributes.Reason())
-		return
-	}
-
-	c.CouldAcceptAttributes.SetFalse()
-	if c.AlwaysAcceptsAttributes.Failed() {
-		c.CouldAcceptAttributes.SetFailed()
-	}
-
-	for _, block := range c.Blocks {
-		for _, instance := range block.Instances {
-			if instance.Default.AcceptsAttributes.True() {
-				c.CouldAcceptAttributes.SetReason(instance.Default.AcceptsAttributes.Reason())
-				return
-			} else if instance.Default.AcceptsAttributes.Failed() {
-				c.CouldAcceptAttributes.SetFailed()
-			}
-		}
 	}
 }
 

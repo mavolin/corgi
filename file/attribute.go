@@ -40,19 +40,10 @@ type Attribute struct {
 	//
 	// A nil/empty slice indicates that the attribute reference is fully
 	// forwarded.
-	//
-	// The pointer to the slice has no significance and is just there to
-	// satisfy the comparable constraint of Analysis.
-	// It is never nil.
-	Receivers Analysis[*[]ast.AttributeReceiver]
-
+	Receivers Analysis[SliceRef[ast.AttributeReceiver]]
 	// ReceivingElementSpecs are the unique specs of all containing elements,
 	// including those containing the attribute indirectly.
-	//
-	// The pointer to the slice has no significance and is just there to
-	// satisfy the comparable constraint of Analysis.
-	// It is never nil.
-	ReceivingElementSpecs Analysis[*[]*ElementSpec]
+	ReceivingElementSpecs Analysis[SliceRef[*ElementSpec]]
 
 	// Type is the type of the attribute, resolved from the containing elements.
 	//

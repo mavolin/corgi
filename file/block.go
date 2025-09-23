@@ -11,59 +11,13 @@ type Block struct {
 	//
 	// BUILD SYMBOLS
 
+	// Component is the component this block belongs to.
+	Component *Component
+
 	// Name is the name of the block.
 	Name Identifier
 
 	Instances []*BlockInstance
-
-	//
-	// ANALYZER
-
-	Required Analysis[bool]
-
-	// Forwarded indicates at least one instance of this block is placed
-	// outside any element.
-	//
-	// The reason is that block instance.
-	Forwarded AnalysisWithReason[*BlockInstance]
-	// ContainingElements are all elements containing this block.
-	// If Forwarded is true, the list is not absolute: It would need to be
-	// extended with the containing elements of the call to the component
-	// containing this block.
-	//
-	// The pointer to the slice has no significance and is just there to
-	// satisfy the comparable constraint of Analysis.
-	// It is never nil.
-	ContainingElements Analysis[*[]ast.ContainingElement]
-	// ContainingElementSpecs are the unique specs of all containing
-	// elements, including those containing the block indirectly.
-	//
-	// The pointer to the slice has no significance and is just there to
-	// satisfy the comparable constraint of Analysis.
-	// It is never nil.
-	ContainingElementSpecs Analysis[*[]*ElementSpec]
-
-	// ElementType is the minimum element type of all containing elements.
-	//
-	// A type of Unknown indicates the block is fully forwarded and the
-	// element type as such depends on the element containing the component
-	// call.
-	ElementType Analysis[elemtype.Type]
-
-	// CannotForwardAttributes indicates that at least one instance of this
-	// block cannot forward attributes.
-	//
-	// The reason is the first instance that cannot forward attributes.
-	CannotForwardAttributes AnalysisWithReason[*BlockInstance]
-}
-
-func (b *Block) ForwardsAttributes() (a Analysis[bool]) {
-	if b.CannotForwardAttributes.Failed() {
-		a.SetFailed()
-	} else {
-		a.SetResult(b.CannotForwardAttributes.False())
-	}
-	return a
 }
 
 func (b *Block) InstanceByNode(n *ast.Block) *BlockInstance {
@@ -75,133 +29,182 @@ func (b *Block) InstanceByNode(n *ast.Block) *BlockInstance {
 	return nil
 }
 
-// ============================================================================
-// Block Instance
-// ======================================================================================
-
-type (
-	BlockInstance struct {
-		//
-		// BUILD SYMBOLS
-
-		Group *Block
-		AST   *ast.Block
-		// Parent is the instance of another block that contains this block.
-		Parent *BlockInstance
-
-		Default *BlockInstanceDefault // nil if no default
-
-		//
-		// ANALYZER
-
-		// Forwarded indicates that this block instance is forwarded somehow,
-		// i.e. it is at the top-level of its component.
-		Forwarded Analysis[bool]
-		// ContainingElements are all elements containing this block instance.
-		// If Forwarded is true, the list is not absolute: It would need to be
-		// extended with the containing elements of the call to the component
-		// containing this node.
-		//
-		// The pointer to the slice has no significance and is just there to
-		// satisfy the comparable constraint of Analysis.
-		// It is never nil.
-		ContainingElements Analysis[*[]ast.ContainingElement]
-		// ContainingElementSpecs are the unique specs of all containing
-		// elements, including those containing the block instance indirectly.
-		//
-		// The pointer to the slice has no significance and is just there to
-		// satisfy the comparable constraint of Analysis.
-		// It is never nil.
-		ContainingElementSpecs Analysis[*[]*ElementSpec]
-
-		// ElementType is the element type that this block assumes.
-		//
-		// If the block instance is fully forwarded, i.e. has no containing
-		// elements, ElementType is set to Normal.
-		//
-		// For all other element types it is the minimum of all containing
-		// elements.
-		//
-		// JS and CSS are not permitted.
-		//
-		// Void and Nothing are equivalent in this context, indicating the
-		// block only accepts attributes.
-		// For simplicity, Nothing is always used.
-		ElementType Analysis[elemtype.Type]
-
-		// CannotForwardAttributes indicates that this block instance can't
-		// forward attributes to the element containing it.
-		//
-		// Forwarded might be true, but CannotForwardAttributes is also true:
-		// Consider the following example:
-		// 	comp Woof() {
-		//	    br
-		//      block
-		//  }
-		//
-		// In the above example, the block is clearly forwarded, but it is
-		// placed after the br element, which means it cannot forward
-		// attributes.
-		//
-		// The reason is the first attribute inhibitor preventing the
-		// forwarding of attributes.
-		// If this block instance is at the top-level of a block setter that
-		// cannot forward attributes, the reason is a
-		// [ast.BlockSetterAttributeInhibitor] with the block setter field set
-		// to that block setter.
-		CannotForwardAttributes AnalysisWithReason[ast.AttributeInhibitor]
-	}
-
-	BlockInstanceDefault struct {
-		//
-		// BUILD SYMBOLS
-
-		AST ast.Body
-
-		//
-		// ANALYZER
-
-		// AcceptsAttributes indicates that this block instance default
-		// writes the &-placeholder.
-		//
-		// The reason is the first &-placeholder writer that writes the
-		// &-placeholder.
-		AcceptsAttributes AnalysisWithReason[ast.AndPlaceholderWriter]
-		// ForwardsReceivedAttributes indicates that this block instance default
-		// forwards the &-placeholder to the element containing the block
-		// instance.
-		//
-		// The reason is the first &-placeholder writer that forwards the
-		// &-placeholder.
-		//
-		// ForwardsReceivedAttributes implies AcceptsAttributes.
-		ForwardsReceivedAttributes AnalysisWithReason[ast.AndPlaceholderWriter]
-
-		ForwardsAttributes AnalysisWithReason[ast.AttributeWriter]
-		WritesContent      AnalysisWithReason[ast.ContentWriter]
-		WritesElements     AnalysisWithReason[ast.ElementWriter]
-	}
-)
-
-func (bi *BlockInstance) ForwardsAttributes() (a Analysis[bool]) {
-	if bi.CannotForwardAttributes.Failed() {
-		a.SetFailed()
-	} else {
-		a.SetResult(bi.CannotForwardAttributes.False())
+// Required indicates whether this block is required to be set by component
+// calls.
+func (b *Block) Required() (a Analysis[bool]) {
+	a.SetResult(b.Instances[0].AST.Default == nil)
+	for _, instance := range b.Instances[1:] {
+		if a.Equal(true) && instance.AST.Default != nil {
+			a.SetFailed()
+			return a
+		} else if a.Equal(false) && instance.AST.Default == nil {
+			a.SetFailed()
+			return a
+		}
 	}
 	return a
 }
 
-// DefaultOverwritten indicates whether the default of this block instance
-// is overwritten in the given component call.
-// This is the case if the component call sets this block or one of this
-// block's parent blocks.
-func (bi *BlockInstance) DefaultOverwritten(cc *ComponentCall) bool {
-	if cc.BlockSetterByName(bi.Group.Name) != nil {
-		return true
+// Forwarded indicates at least one instance of this block is placed
+// outside any element.
+//
+// The reason is that block instance.
+func (b *Block) Forwarded() (a AnalysisWithReason[*BlockInstance]) {
+	a.SetFalse()
+	for _, instance := range b.Instances {
+		if instance.Forwarded.Failed() {
+			a.SetFailed()
+			return a
+		} else if instance.Forwarded.Equal(true) {
+			a.SetReason(instance)
+			return a
+		}
 	}
-	if bi.Parent != nil {
-		return bi.Parent.DefaultOverwritten(cc)
+	return a
+}
+
+// ForwardsAttributes indicates that all instances of this block can forward
+// attributes.
+func (b *Block) ForwardsAttributes() (a Analysis[bool]) {
+	cannotForwardAttrs := b.CannotForwardAttributes()
+	if cannotForwardAttrs.Failed() {
+		a.SetFailed()
+	} else {
+		a.SetResult(cannotForwardAttrs.False())
 	}
-	return false
+	return a
+}
+
+// CannotForwardAttributes indicates that at least one instance of this
+// block cannot forward attributes.
+//
+// The reason is the first instance that cannot forward attributes.
+func (b *Block) CannotForwardAttributes() (a AnalysisWithReason[*BlockInstance]) {
+	a.SetFalse()
+	for _, instance := range b.Instances {
+		if instance.CannotForwardAttributes.Failed() {
+			a.SetFailed()
+			return a
+		} else if instance.CannotForwardAttributes.True() {
+			a.SetReason(instance)
+			return a
+		}
+	}
+	return a
+}
+
+// ElementType is the element type that this block assumes.
+//
+// If the block instance is fully forwarded, i.e. has no containing
+// elements, ElementType is set to Normal.
+//
+// For all other element types it is the minimum of all containing
+// elements.
+func (b *Block) ElementType() (a Analysis[elemtype.Type]) {
+	t := elemtype.Normal
+	for _, instance := range b.Instances {
+		if instance.ContainingElementSpecs.Failed() {
+			a.SetFailed()
+			return a
+		}
+
+		for _, spec := range instance.ContainingElementSpecs.Result().Get() {
+			if spec.Type.Failed() {
+				a.SetFailed()
+				return a
+			}
+
+			specType := spec.Type.Result()
+			switch specType {
+			case elemtype.Unknown:
+				a.SetFailed()
+				return a
+			case elemtype.JS, elemtype.CSS:
+				a.SetFailed()
+				return a
+			case elemtype.Void:
+				specType = elemtype.Nothing
+			case elemtype.Nothing, elemtype.Normal, elemtype.Text:
+			}
+			t = min(t, specType)
+		}
+	}
+	a.SetResult(t)
+	return a
+}
+
+// MostRestrictiveElement is one (of the possibly multiple) element with the
+// most restrictive (smallest) element type.
+//
+// It follows the same rules as [ElementType].
+func (b *Block) MostRestrictiveElement() (a AnalysisWithReason[ast.ContainingElement]) {
+	f := b.Component.File
+
+	var resultCEl ast.ContainingElement
+	var resultTyp elemtype.Type
+	for _, instance := range b.Instances {
+		if instance.ContainingElements.Failed() {
+			a.SetFailed()
+			return a
+		}
+
+		for _, cEl := range instance.ContainingElements.Result().Get() {
+			switch cEl := cEl.(type) {
+			case *ast.BlockSetterContainingElement:
+				cc := f.ComponentCallByNode(cEl.ComponentCall)
+				s := cc.BlockSetterByNode(cEl.BlockSetter)
+				if s == nil || s.Block == nil {
+					a.SetFailed()
+					return a
+				}
+
+				for _, instance := range s.Block.Instances {
+					if instance.ContainingElementSpecs.Failed() {
+						a.SetFailed()
+						return a
+					}
+					for _, spec := range instance.ContainingElementSpecs.Result().Get() {
+						if spec.Type.Failed() {
+							a.SetFailed()
+							return a
+						}
+
+						if resultCEl == nil || spec.Type.Result() < resultTyp {
+							resultCEl = cEl
+							resultTyp = spec.Type.Result()
+						}
+					}
+				}
+			case *ast.Element:
+				ref := f.ElementReferenceByNode(cEl.Header.Name)
+				if ref.Spec == nil {
+					a.SetFailed()
+					return a
+				}
+
+				// Always prefer elements to block setters, so use <=
+				if resultCEl == nil || ref.Spec.Type.Result() <= resultTyp {
+					resultCEl = cEl
+					resultTyp = ref.Spec.Type.Result()
+				}
+			default:
+				panic("unknown containing element type")
+			}
+
+			switch resultTyp {
+			case elemtype.Unknown:
+				a.SetFailed()
+				return a
+			case elemtype.JS, elemtype.CSS:
+				a.SetFailed()
+				return a
+			case elemtype.Void:
+				resultTyp = elemtype.Nothing
+			case elemtype.Nothing, elemtype.Normal, elemtype.Text:
+			}
+		}
+	}
+
+	a.SetReason(resultCEl)
+	return a
 }
