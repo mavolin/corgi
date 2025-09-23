@@ -41,13 +41,6 @@ type AttributeReference struct {
 
 	// HTMLName is the ascii-lowercased name of the attribute.
 	HTMLName Analysis[CanonicalAttributeName]
-
-	//
-	// ANALYZER
-
-	// Analyzed indicates whether the AttributeReference has been analyzed,
-	// albeit with errors.
-	Analyzed bool
 }
 
 func (ref *AttributeReference) Qualified() bool {

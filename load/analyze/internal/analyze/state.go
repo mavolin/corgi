@@ -22,7 +22,7 @@ func (z *analyzer) AnalyzeState() {
 	for _, s := range z.P.State {
 		logger := logger.With(
 			slog.String("file", string(s.File.Name)),
-			slog.String("name", s.Name().Name))
+			slog.String("name", string(s.Name())))
 
 		z.InferStateType(logger, s)
 
@@ -45,7 +45,7 @@ func (z *analyzer) InferStateType(logger *slog.Logger, s *file.State) {
 		return
 	}
 
-	t, _ := InferType(s.File, s.Value())
+	t, _ := InferType(s.File, s.ValueNode())
 	if t != "" {
 		s.InferredType.SetResult(t)
 		return
@@ -56,13 +56,13 @@ func (z *analyzer) InferStateType(logger *slog.Logger, s *file.State) {
 	z.Report(&diagnostic.Diagnostic{
 		Message: "state: unable to infer type",
 		Primary: []diagnostic.Annotation{
-			anno.Node(s.File, s.Name(), "this state variable has no explicit type,\n"+
+			anno.Node(s.File, s.NameNode(), "this state variable has no explicit type,\n"+
 				"and no type could be inferred from the default"),
 		},
 		Hints: []diagnostic.Hint{
 			{
 				Hint:    "Give this variable an explicit type.",
-				Example: "`" + s.Name().Name + " foo = ...`",
+				Example: "`" + string(s.Name()) + " foo = ...`",
 			},
 		},
 	})

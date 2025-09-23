@@ -17,7 +17,7 @@ func (ch *checker) CheckState() {
 	for _, s := range ch.P.State {
 		logger := logger.With(
 			slog.String("file", string(s.File.Name)),
-			slog.String("name", s.Name().Name))
+			slog.String("name", string(s.Name())))
 
 		ch.CheckStateUnexported(logger, s)
 	}
@@ -31,36 +31,36 @@ func (ch *checker) CheckStateDuplicates(logger *slog.Logger) {
 		return
 	}
 
-	reported := make(map[string]bool)
+	reported := make(map[file.Identifier]bool)
 	dupls := make([]*file.State, 0, len(ch.P.State)-1)
 
 	for ai, a := range ch.P.State[:len(ch.P.State)-1] {
 		logger := logger.With(
 			slog.String("file", string(a.File.Name)),
-			slog.String("name", a.Name().Name))
+			slog.String("name", string(a.Name())))
 
-		if reported[a.Name().Name] {
+		if reported[a.Name()] {
 			continue
 		}
 
 		dupls = dupls[:0]
 
 		for _, b := range ch.P.State[ai:] {
-			if a.Name().Name != b.Name().Name {
+			if a.NameNode().Name != b.NameNode().Name {
 				continue
 			}
 
 			dupls = append(dupls, b)
-			reported[b.Name().Name] = true
+			reported[b.Name()] = true
 		}
 
 		if len(dupls) > 0 {
 			logger.Error("Found duplicate state variables")
 
 			primaries := make([]diagnostic.Annotation, 1, len(dupls)+1)
-			primaries[0] = anno.Node(a.File, a.Name(), "first defined here")
+			primaries[0] = anno.Node(a.File, a.NameNode(), "first defined here")
 			for _, b := range dupls[1:] {
-				primaries = append(primaries, anno.Node(b.File, b.Name(), "duplicate"))
+				primaries = append(primaries, anno.Node(b.File, b.NameNode(), "duplicate"))
 			}
 
 			ch.Report(&diagnostic.Diagnostic{
@@ -74,12 +74,12 @@ func (ch *checker) CheckStateDuplicates(logger *slog.Logger) {
 func (ch *checker) CheckStateUnexported(logger *slog.Logger, s *file.State) {
 	logger = logger.WithGroup("unexported")
 
-	if file.IsExported(file.Identifier(s.Name().Name)) {
+	if s.Name().Exported() {
 		logger.Error("state variable is exported")
 		ch.Report(&diagnostic.Diagnostic{
 			Message: "exported state variable",
 			Primary: []diagnostic.Annotation{
-				anno.Node(s.File, s.Name(), "state variables must not be exported"),
+				anno.Node(s.File, s.NameNode(), "state variables must not be exported"),
 			},
 			Hints: []diagnostic.Hint{{Hint: "Start the name with a lowercase letter."}},
 		})

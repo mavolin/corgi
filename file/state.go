@@ -29,11 +29,19 @@ type State struct {
 	InferredType Analysis[Type]
 }
 
-func (s *State) Name() *ast.Identifier {
+func (s *State) Name() Identifier {
+	nn := s.NameNode()
+	if nn == nil {
+		return ""
+	}
+	return Identifier(nn.Name)
+}
+
+func (s *State) NameNode() *ast.Identifier {
 	return s.AST.Names[s.Index]
 }
 
-func (s *State) Value() *ast.Expression {
+func (s *State) ValueNode() *ast.Expression {
 	if s.Index >= len(s.AST.Values) {
 		return nil
 	}

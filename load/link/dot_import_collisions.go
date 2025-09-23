@@ -75,7 +75,7 @@ Components:
 		if comp.AST.Header == nil || comp.AST.Header.Name == nil {
 			continue
 		}
-		if !file.IsExported(comp.Name) {
+		if !comp.Name.Exported() {
 			continue
 		}
 

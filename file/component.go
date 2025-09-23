@@ -128,7 +128,7 @@ func (c *Component) BlockInstanceByNode(b *ast.Block) *BlockInstance {
 }
 
 func (c *Component) Exported() bool {
-	return IsExported(c.Name)
+	return c.Name.Exported()
 }
 
 // ============================================================================

@@ -334,8 +334,8 @@ func (s *PackageSymbols) RebuildLookupTables() {
 	var specStart int
 	var lastSpec *ast.StateSpec
 	for i, state := range s.State {
-		if name := state.Name(); name != nil {
-			s.stateByName[Identifier(name.Name)] = state
+		if name := state.Name(); name != "" {
+			s.stateByName[name] = state
 		}
 
 		// We require that states belonging to the same spec are grouped, so

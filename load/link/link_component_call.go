@@ -52,7 +52,7 @@ func (l *linker) linkUnqualifiedComponentCall(logger *slog.Logger, f *file.File,
 	}
 
 	// if this is unexported: check if this is a builtin component
-	if !file.IsExported(cc.Name) {
+	if !cc.Name.Exported() {
 		builtinImp := f.BuiltinImport()
 		if builtinImp != nil && builtinImp.Package != nil && builtinImp.Package.PackageSymbols != nil {
 			if c := builtinImp.Package.ComponentByName(cc.Name); c != nil {
@@ -107,7 +107,7 @@ func (l *linker) linkQualifiedComponentCall(logger *slog.Logger, f *file.File, c
 		return
 	case cc.Name == "":
 		return
-	case !file.IsExported(cc.Name):
+	case !cc.Name.Exported():
 		logger.Error("Qualified call to unexported component")
 		l.report(&diagnostic.Diagnostic{
 			Message: "component call: cannot call unexported component",
