@@ -132,7 +132,7 @@ func (ch *checker) CheckComponentAcceptsAttributes(logger *slog.Logger, cc *file
 		return
 	}
 
-	if !cc.AcceptsAttributes.False() {
+	if !cc.AcceptsAttributes().False() {
 		return
 	} else if !cc.ReceivesAttributes.True() && !cc.ReceivesAndPlaceholder.True() {
 		return

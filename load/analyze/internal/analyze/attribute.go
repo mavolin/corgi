@@ -227,7 +227,6 @@ func (z *analyzer) expressionFromAttributeValue(v ast.AttributeValue) *ast.Expre
 //   - Attributes.Forwarded
 //
 // Depends on Fields:
-//   - ComponentCalls.ForwardsReceivedAttributes
 //   - Components.Blocks.Forwarded
 //   - Components.Blocks.Instances.Forwarded
 func (z *analyzer) AnalyzeAttributeForwarded(f *file.File, parents []*walk.Context, attr *file.Attribute) {
@@ -241,11 +240,12 @@ func (z *analyzer) AnalyzeAttributeForwarded(f *file.File, parents []*walk.Conte
 			},
 			func(parent *ast.ComponentCall) {
 				cc := f.ComponentCallByNode(parent)
-				if cc.ForwardsReceivedAttributes.Failed() {
+				forwardsReceivedAttributes := cc.ForwardsAcceptedAttributes()
+				if forwardsReceivedAttributes.Failed() {
 					// Continue checking: if the attribute has another element as
 					// parent, we can still be sure it's not forwarded.
 					attr.Forwarded.SetFailed()
-				} else if cc.ForwardsReceivedAttributes.False() {
+				} else if forwardsReceivedAttributes.False() {
 					attr.Forwarded.SetResult(false)
 				}
 			},
@@ -289,7 +289,6 @@ func (z *analyzer) AnalyzeAttributeForwarded(f *file.File, parents []*walk.Conte
 //   - Attributes.ContainingElements
 //
 // Depends on Fields:
-//   - ComponentCalls.ForwardsReceivedAttributes
 //   - ComponentCalls.ElementsWithAndPlaceholder
 //   - Components.Blocks.ContainingElements
 //   - Components.Blocks.Forwarded
@@ -306,13 +305,16 @@ func (z *analyzer) AnalyzeAttributeContainingElements(f *file.File, parents []*w
 			},
 			func(parent *ast.ComponentCall) bool {
 				cc := f.ComponentCallByNode(parent)
-				if cc.ForwardsReceivedAttributes.Failed() || cc.ElementsWithAndPlaceholder.Failed() {
+				forwardsReceivedAttributes := cc.ForwardsAcceptedAttributes()
+				if forwardsReceivedAttributes.Failed() || cc.ElementsWithAndPlaceholder.Failed() {
 					attr.ContainingElements.SetFailed()
 					return true
 				}
 
-				containingElements = append(containingElements, (*ast.AndPlaceholderContainingElement)(parent))
-				return cc.ForwardsReceivedAttributes.False()
+				if cc.ElementsWithAndPlaceholder.NotZero() {
+					containingElements = append(containingElements, (*ast.AndPlaceholderContainingElement)(parent))
+				}
+				return forwardsReceivedAttributes.False()
 			},
 			func(parent ast.BlockSetter) bool {
 				ccI := walk.ClosestIndex[*ast.ComponentCall](parents[:i])

@@ -113,12 +113,13 @@ func (z *analyzer) cannotAttributes(
 					cc := f.ComponentCallByNode(parent)
 					z.AnalyzeComponentCall(ctx, cc)
 
+					acceptsAttributes := cc.AcceptsAttributes()
 					switch {
-					case cc.AcceptsAttributes.True():
+					case acceptsAttributes.True():
 						reason.SetFalse()
-					case cc.AcceptsAttributes.False():
+					case acceptsAttributes.False():
 						reason.SetReason(parent)
-					case cc.AcceptsAttributes.Failed():
+					case acceptsAttributes.Failed():
 						reason.SetFailed()
 					}
 				},
