@@ -63,6 +63,53 @@ func init() { //nolint:gochecknoinits
 }
 
 // ============================================================================
+// Attribute Receiver
+// ======================================================================================
+
+func SwitchAttributeReceiver(n ast.Node,
+	Element func(*ast.Element),
+	ComponentCall func(*ast.ComponentCall),
+	BlockSetter func(ast.BlockSetter),
+) {
+	switch n := n.(type) {
+	case *ast.Element:
+		Element(n)
+	case *ast.ComponentCall:
+		ComponentCall(n)
+	case ast.BlockSetter:
+		BlockSetter(n)
+	}
+}
+
+func SwitchAttributeReceiverR[T any](n ast.Node,
+	Element func(*ast.Element) T,
+	ComponentCall func(*ast.ComponentCall) T,
+	BlockSetter func(ast.BlockSetter) T,
+) T {
+	switch n := n.(type) {
+	case *ast.Element:
+		return Element(n)
+	case *ast.ComponentCall:
+		return ComponentCall(n)
+	case ast.BlockSetter:
+		return BlockSetter(n)
+	default:
+		var zero T
+		return zero
+	}
+}
+
+func init() { //nolint:gochecknoinits
+	if false {
+		// If a compilation error occurs here, change the functions above.
+		switches.AttributeReceiver(nil,
+			func(*ast.AndPlaceholderAttributeReceiver) {},
+			func(*ast.BlockSetterContainingElement) {},
+			func(*ast.Element) {})
+	}
+}
+
+// ============================================================================
 // Containing Element
 // ======================================================================================
 
@@ -103,7 +150,6 @@ func init() { //nolint:gochecknoinits
 	if false {
 		// If a compilation error occurs here, change the functions above.
 		switches.ContainingElement(nil,
-			func(*ast.AndPlaceholderContainingElement) {},
 			func(*ast.BlockSetterContainingElement) {},
 			func(*ast.Element) {})
 	}

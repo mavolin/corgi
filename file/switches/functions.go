@@ -199,6 +199,40 @@ func AttributeInhibitorR[T any](n ast.AttributeInhibitor,
 	}
 }
 
+func AttributeReceiver(n ast.AttributeReceiver,
+	AndPlaceholderAttributeReceiver func(*ast.AndPlaceholderAttributeReceiver),
+	BlockSetterContainingElement func(*ast.BlockSetterContainingElement),
+	Element func(*ast.Element),
+) {
+	switch n := n.(type) {
+	case *ast.AndPlaceholderAttributeReceiver:
+		AndPlaceholderAttributeReceiver(n)
+	case *ast.BlockSetterContainingElement:
+		BlockSetterContainingElement(n)
+	case *ast.Element:
+		Element(n)
+	default:
+		panic(fmt.Sprintf("AttributeReceiver: unknown variant %T: please rerun go generate", n))
+	}
+}
+
+func AttributeReceiverR[T any](n ast.AttributeReceiver,
+	AndPlaceholderAttributeReceiver func(*ast.AndPlaceholderAttributeReceiver) T,
+	BlockSetterContainingElement func(*ast.BlockSetterContainingElement) T,
+	Element func(*ast.Element) T,
+) T {
+	switch n := n.(type) {
+	case *ast.AndPlaceholderAttributeReceiver:
+		return AndPlaceholderAttributeReceiver(n)
+	case *ast.BlockSetterContainingElement:
+		return BlockSetterContainingElement(n)
+	case *ast.Element:
+		return Element(n)
+	default:
+		panic(fmt.Sprintf("AttributeReceiver: unknown variant %T: please rerun go generate", n))
+	}
+}
+
 func AttributeSelector(n ast.AttributeSelector,
 	BasicAttributeSelector func(*ast.BasicAttributeSelector),
 	RegexpAttributeSelector func(*ast.RegexpAttributeSelector),
@@ -466,13 +500,10 @@ func ComponentCallBodyR[T any](n ast.ComponentCallBody,
 }
 
 func ContainingElement(n ast.ContainingElement,
-	AndPlaceholderContainingElement func(*ast.AndPlaceholderContainingElement),
 	BlockSetterContainingElement func(*ast.BlockSetterContainingElement),
 	Element func(*ast.Element),
 ) {
 	switch n := n.(type) {
-	case *ast.AndPlaceholderContainingElement:
-		AndPlaceholderContainingElement(n)
 	case *ast.BlockSetterContainingElement:
 		BlockSetterContainingElement(n)
 	case *ast.Element:
@@ -483,13 +514,10 @@ func ContainingElement(n ast.ContainingElement,
 }
 
 func ContainingElementR[T any](n ast.ContainingElement,
-	AndPlaceholderContainingElement func(*ast.AndPlaceholderContainingElement) T,
 	BlockSetterContainingElement func(*ast.BlockSetterContainingElement) T,
 	Element func(*ast.Element) T,
 ) T {
 	switch n := n.(type) {
-	case *ast.AndPlaceholderContainingElement:
-		return AndPlaceholderContainingElement(n)
 	case *ast.BlockSetterContainingElement:
 		return BlockSetterContainingElement(n)
 	case *ast.Element:
@@ -777,7 +805,7 @@ func Node(n ast.Node,
 	AliasElementType func(*ast.AliasElementType),
 	And func(*ast.And),
 	AndPlaceholder func(*ast.AndPlaceholder),
-	AndPlaceholderContainingElement func(*ast.AndPlaceholderContainingElement),
+	AndPlaceholderAttributeReceiver func(*ast.AndPlaceholderAttributeReceiver),
 	Arguments func(*ast.Arguments),
 	ArrowBlock func(*ast.ArrowBlock),
 	Assignment func(*ast.Assignment),
@@ -903,8 +931,8 @@ func Node(n ast.Node,
 		And(n)
 	case *ast.AndPlaceholder:
 		AndPlaceholder(n)
-	case *ast.AndPlaceholderContainingElement:
-		AndPlaceholderContainingElement(n)
+	case *ast.AndPlaceholderAttributeReceiver:
+		AndPlaceholderAttributeReceiver(n)
 	case *ast.Arguments:
 		Arguments(n)
 	case *ast.ArrowBlock:
@@ -1148,7 +1176,7 @@ func NodeR[T any](n ast.Node,
 	AliasElementType func(*ast.AliasElementType) T,
 	And func(*ast.And) T,
 	AndPlaceholder func(*ast.AndPlaceholder) T,
-	AndPlaceholderContainingElement func(*ast.AndPlaceholderContainingElement) T,
+	AndPlaceholderAttributeReceiver func(*ast.AndPlaceholderAttributeReceiver) T,
 	Arguments func(*ast.Arguments) T,
 	ArrowBlock func(*ast.ArrowBlock) T,
 	Assignment func(*ast.Assignment) T,
@@ -1274,8 +1302,8 @@ func NodeR[T any](n ast.Node,
 		return And(n)
 	case *ast.AndPlaceholder:
 		return AndPlaceholder(n)
-	case *ast.AndPlaceholderContainingElement:
-		return AndPlaceholderContainingElement(n)
+	case *ast.AndPlaceholderAttributeReceiver:
+		return AndPlaceholderAttributeReceiver(n)
 	case *ast.Arguments:
 		return Arguments(n)
 	case *ast.ArrowBlock:

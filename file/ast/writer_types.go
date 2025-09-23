@@ -93,10 +93,10 @@ var (
 
 // ContainingElement describes an element or something producing an element
 // containing a node:
-// [Element], [BlockSetterContainingElement], or
-// [AndPlaceholderContainingElement].
+// [Element], or [BlockSetterContainingElement].
 type ContainingElement interface {
 	Node
+	AttributeReceiver
 	_containingElement()
 }
 
@@ -104,7 +104,6 @@ type ContainingElement interface {
 var (
 	_ ContainingElement = (*Element)(nil)
 	_ ContainingElement = (*BlockSetterContainingElement)(nil)
-	_ ContainingElement = (*AndPlaceholderContainingElement)(nil)
 )
 
 // ========================== Block Setter Containing Element ===========================
@@ -123,19 +122,36 @@ func (w *BlockSetterContainingElement) End() Position     { return w.BlockSetter
 func (w *BlockSetterContainingElement) Walk(f func(Node)) { w.BlockSetter.Walk(f) }
 func (*BlockSetterContainingElement) _node()              {}
 func (*BlockSetterContainingElement) _containingElement() {}
+func (*BlockSetterContainingElement) _attributeReceiver() {}
+
+// ============================================================================
+// Attribute Receiver
+// ======================================================================================
+
+// AttributeReceiver is a node that can receive attributes:
+// Any [ContainingElement], or a [AndPlaceholderAttributeReceiver].
+type AttributeReceiver interface {
+	Node
+	_attributeReceiver()
+}
+
+var (
+	_ AttributeReceiver = ContainingElement(nil)
+	_ AttributeReceiver = (*AndPlaceholderAttributeReceiver)(nil)
+)
 
 // ========================= And Placeholder Containing Element =========================
 
-// AndPlaceholderContainingElement is a component call that accepts attributes.
-type AndPlaceholderContainingElement ComponentCall
+// AndPlaceholderAttributeReceiver is a component call that accepts attributes.
+type AndPlaceholderAttributeReceiver ComponentCall
 
-var _ ContainingElement = (*AndPlaceholderContainingElement)(nil)
+var _ AttributeReceiver = (*AndPlaceholderAttributeReceiver)(nil)
 
-func (w *AndPlaceholderContainingElement) Start() Position   { return (*ComponentCall)(w).Start() }
-func (w *AndPlaceholderContainingElement) End() Position     { return (*ComponentCall)(w).End() }
-func (w *AndPlaceholderContainingElement) Walk(f func(Node)) { (*ComponentCall)(w).Walk(f) }
-func (*AndPlaceholderContainingElement) _node()              {}
-func (*AndPlaceholderContainingElement) _containingElement() {}
+func (w *AndPlaceholderAttributeReceiver) Start() Position   { return (*ComponentCall)(w).Start() }
+func (w *AndPlaceholderAttributeReceiver) End() Position     { return (*ComponentCall)(w).End() }
+func (w *AndPlaceholderAttributeReceiver) Walk(f func(Node)) { (*ComponentCall)(w).Walk(f) }
+func (*AndPlaceholderAttributeReceiver) _node()              {}
+func (*AndPlaceholderAttributeReceiver) _attributeReceiver() {}
 
 // ============================================================================
 // Attribute Writer

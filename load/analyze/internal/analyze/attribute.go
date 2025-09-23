@@ -46,8 +46,8 @@ func (z *analyzer) AnalyzeAttribute(logger *slog.Logger, f *file.File, parents [
 
 	z.AnalyzeAttributeValue(f, attr)
 	z.AnalyzeAttributeForwarded(f, parents, attr)
-	z.AnalyzeAttributeContainingElements(f, parents, attr)
-	z.AnalyzeAttributeContainingElementSpecs(f, attr)
+	z.AnalyzeAttributeReceivers(f, parents, attr)
+	z.AnalyzeAttributeReceivingElementSpecs(f, attr)
 	z.AnalyzeAttributeType(logger, f, attr)
 
 	attr.Analyzed = true
@@ -234,7 +234,7 @@ func (z *analyzer) AnalyzeAttributeForwarded(f *file.File, parents []*walk.Conte
 
 	i := len(parents) - 1
 	for i >= 0 {
-		candidate.SwitchContainingElement(parents[i].Node,
+		candidate.SwitchAttributeReceiver(parents[i].Node,
 			func(*ast.Element) {
 				attr.Forwarded.SetResult(false)
 			},
@@ -280,46 +280,46 @@ func (z *analyzer) AnalyzeAttributeForwarded(f *file.File, parents []*walk.Conte
 // Containing Elements
 // ======================================================================================
 
-// AnalyzeAttributeContainingElements calculates the containing elements
+// AnalyzeAttributeReceivers calculates the containing elements
 // of the given attribute.
 //
 // Depends on Checks: None
 //
 // Sets Fields:
-//   - Attributes.ContainingElements
+//   - Attributes.Receivers
 //
 // Depends on Fields:
 //   - ComponentCalls.ElementsWithAndPlaceholder
-//   - Components.Blocks.ContainingElements
+//   - Components.Blocks.Receivers
 //   - Components.Blocks.Forwarded
-func (z *analyzer) AnalyzeAttributeContainingElements(f *file.File, parents []*walk.Context, attr *file.Attribute) {
-	attr.ContainingElements.SetZero()
-	var containingElements []ast.ContainingElement
+func (z *analyzer) AnalyzeAttributeReceivers(f *file.File, parents []*walk.Context, attr *file.Attribute) {
+	attr.Receivers.SetZero()
+	var receivers []ast.AttributeReceiver
 
 	i := len(parents) - 1
 	for i >= 0 {
-		done := candidate.SwitchContainingElementR(parents[i].Node,
+		done := candidate.SwitchAttributeReceiverR(parents[i].Node,
 			func(parent *ast.Element) bool {
-				containingElements = append(containingElements, parent)
+				receivers = append(receivers, parent)
 				return true
 			},
 			func(parent *ast.ComponentCall) bool {
 				cc := f.ComponentCallByNode(parent)
 				forwardsReceivedAttributes := cc.ForwardsAcceptedAttributes()
 				if forwardsReceivedAttributes.Failed() || cc.ElementsWithAndPlaceholder.Failed() {
-					attr.ContainingElements.SetFailed()
+					attr.Receivers.SetFailed()
 					return true
 				}
 
 				if cc.ElementsWithAndPlaceholder.NotZero() {
-					containingElements = append(containingElements, (*ast.AndPlaceholderContainingElement)(parent))
+					receivers = append(receivers, (*ast.AndPlaceholderAttributeReceiver)(parent))
 				}
 				return forwardsReceivedAttributes.False()
 			},
 			func(parent ast.BlockSetter) bool {
 				ccI := walk.ClosestIndex[*ast.ComponentCall](parents[:i])
 				if ccI < 0 {
-					attr.ContainingElements.SetFailed()
+					attr.Receivers.SetFailed()
 					return true
 				}
 
@@ -328,11 +328,11 @@ func (z *analyzer) AnalyzeAttributeContainingElements(f *file.File, parents []*w
 
 				s := cc.BlockSetterByNode(parent)
 				if s == nil || s.Block == nil || s.Block.ContainingElements.Failed() {
-					attr.ContainingElements.SetFailed()
+					attr.Receivers.SetFailed()
 					return true
 				}
 
-				containingElements = append(containingElements, &ast.BlockSetterContainingElement{
+				receivers = append(receivers, &ast.BlockSetterContainingElement{
 					ComponentCall: ccAST,
 					BlockSetter:   parent,
 				})
@@ -349,9 +349,9 @@ func (z *analyzer) AnalyzeAttributeContainingElements(f *file.File, parents []*w
 		i--
 	}
 
-	if !attr.ContainingElements.Failed() {
-		containingElements = slices.Clip(containingElements)
-		attr.ContainingElements.SetResult(&containingElements)
+	if !attr.Receivers.Failed() {
+		receivers = slices.Clip(receivers)
+		attr.Receivers.SetResult(&receivers)
 	}
 }
 
@@ -359,40 +359,40 @@ func (z *analyzer) AnalyzeAttributeContainingElements(f *file.File, parents []*w
 // Containing Element Specs
 // ======================================================================================
 
-// AnalyzeAttributeContainingElementSpecs calculates the containing element
+// AnalyzeAttributeReceivingElementSpecs calculates the containing element
 // specs of the given attribute.
 //
 // Depends on Checks: None
 //
 // Sets Fields:
-//   - Attributes.ContainingElementSpecs
+//   - Attributes.ReceivingElementSpecs
 //
 // Depends on Fields:
-//   - Attributes.ContainingElements
+//   - Attributes.Receivers
 //   - ComponentCalls.ElementSpecsWithAndPlaceholder
-//   - Components.Blocks.ContainingElementSpecs
-func (z *analyzer) AnalyzeAttributeContainingElementSpecs(f *file.File, attr *file.Attribute) {
-	if attr.ContainingElements.Failed() {
-		attr.ContainingElementSpecs.SetFailed()
+//   - Components.Blocks.ReceivingElementSpecs
+func (z *analyzer) AnalyzeAttributeReceivingElementSpecs(f *file.File, attr *file.Attribute) {
+	if attr.Receivers.Failed() {
+		attr.ReceivingElementSpecs.SetFailed()
 		return
 	}
 
-	containingElements := *attr.ContainingElements.Result()
+	containingElements := *attr.Receivers.Result()
 	if len(containingElements) == 0 {
 		var specs []*file.ElementSpec
-		attr.ContainingElementSpecs.SetResult(&specs)
+		attr.ReceivingElementSpecs.SetResult(&specs)
 		return
 	}
 
-	attr.ContainingElementSpecs.SetZero()
+	attr.ReceivingElementSpecs.SetZero()
 
 	specsSet := make(map[*file.ElementSpec]struct{}, len(containingElements))
 	for _, e := range containingElements {
-		switches.ContainingElement(e,
-			func(e *ast.AndPlaceholderContainingElement) {
+		switches.AttributeReceiver(e,
+			func(e *ast.AndPlaceholderAttributeReceiver) {
 				cc := f.ComponentCallByNode((*ast.ComponentCall)(e))
 				if cc.ElementSpecsWithAndPlaceholder.Failed() {
-					attr.ContainingElementSpecs.SetFailed()
+					attr.ReceivingElementSpecs.SetFailed()
 					return
 				}
 
@@ -404,7 +404,7 @@ func (z *analyzer) AnalyzeAttributeContainingElementSpecs(f *file.File, attr *fi
 				cc := f.ComponentCallByNode(e.ComponentCall)
 				s := cc.BlockSetterByNode(e.BlockSetter)
 				if s == nil || s.Block == nil || s.Block.ContainingElementSpecs.Failed() {
-					attr.ContainingElementSpecs.SetFailed()
+					attr.ReceivingElementSpecs.SetFailed()
 					return
 				}
 
@@ -415,12 +415,12 @@ func (z *analyzer) AnalyzeAttributeContainingElementSpecs(f *file.File, attr *fi
 			func(e *ast.Element) {
 				ref := f.ElementReferenceByNode(e.Header.Name)
 				if ref.Spec == nil {
-					attr.ContainingElementSpecs.SetFailed()
+					attr.ReceivingElementSpecs.SetFailed()
 					return
 				}
 				specsSet[ref.Spec] = struct{}{}
 			})
-		if attr.ContainingElementSpecs.Failed() {
+		if attr.ReceivingElementSpecs.Failed() {
 			return
 		}
 	}
@@ -430,7 +430,7 @@ func (z *analyzer) AnalyzeAttributeContainingElementSpecs(f *file.File, attr *fi
 		specs = append(specs, spec)
 	}
 
-	attr.ContainingElementSpecs.SetResult(&specs)
+	attr.ReceivingElementSpecs.SetResult(&specs)
 }
 
 // ============================================================================
@@ -446,7 +446,7 @@ func (z *analyzer) AnalyzeAttributeContainingElementSpecs(f *file.File, attr *fi
 //
 // Depends on Fields:
 //   - Attributes.Forwarded
-//   - Attributes.ContainingElements
+//   - Attributes.Receivers
 func (z *analyzer) AnalyzeAttributeType(logger *slog.Logger, f *file.File, attr *file.Attribute) {
 	logger = logger.WithGroup("type")
 
@@ -494,7 +494,7 @@ func (z *analyzer) analyzeExplicitAttributeType(logger *slog.Logger, f *file.Fil
 
 func (z *analyzer) analyzeInferredAttributeType(logger *slog.Logger, f *file.File, attr *file.Attribute) {
 	if attr.Forwarded.Equal(true) {
-		partial := !attr.ContainingElements.Failed() && len(*attr.ContainingElements.Result()) > 0
+		partial := !attr.Receivers.Failed() && len(*attr.Receivers.Result()) > 0
 		if partial {
 			attr.Type.SetFailed()
 			logger.Error("Untyped attribute")
@@ -547,12 +547,12 @@ func (z *analyzer) analyzeInferredAttributeType(logger *slog.Logger, f *file.Fil
 		return
 	}
 
-	if attr.ContainingElementSpecs.Failed() || attr.Forwarded.Failed() {
+	if attr.ReceivingElementSpecs.Failed() || attr.Forwarded.Failed() {
 		attr.Type.SetFailed()
 		return
 	}
 
-	containingElementSpecs := *attr.ContainingElementSpecs.Result()
+	containingElementSpecs := *attr.ReceivingElementSpecs.Result()
 	if len(containingElementSpecs) == 0 {
 		attr.Type.SetFailed()
 		logger.Error("attribute not forwarded but not contained in any element")

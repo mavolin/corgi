@@ -101,7 +101,7 @@ func (z *analyzer) AnalyzeBlockInstanceForwarded(ctx context.Context, c *file.Co
 // Depends on Checks: None
 //
 // Sets Fields:
-//   - Components.Blocks.Instances.ContainingElements
+//   - Components.Blocks.Instances.Receivers
 //
 // Depends on Fields: None
 func (z *analyzer) AnalyzeBlockInstanceContainingElements(ctx context.Context, c *file.Component, parents []*walk.Context, bi *file.BlockInstance) {
@@ -169,12 +169,12 @@ func (z *analyzer) AnalyzeBlockInstanceContainingElements(ctx context.Context, c
 // Depends on Checks: None
 //
 // Sets Fields:
-//   - Components.Blocks.Instances.ContainingElementSpecs
+//   - Components.Blocks.Instances.ReceivingElementSpecs
 //
 // Depends on Fields:
-//   - Components.Blocks.Instances.ContainingElements
+//   - Components.Blocks.Instances.Receivers
 //   - ComponentCalls.ElementSpecsWithAndPlaceholder
-//   - Components.Blocks.ContainingElementSpecs
+//   - Components.Blocks.ReceivingElementSpecs
 func (z *analyzer) AnalyzeBlockInstanceContainingElementSpecs(f *file.File, bi *file.BlockInstance) {
 	if bi.ContainingElements.Failed() {
 		bi.ContainingElementSpecs.SetFailed()
@@ -193,25 +193,6 @@ func (z *analyzer) AnalyzeBlockInstanceContainingElementSpecs(f *file.File, bi *
 	specsSet := make(map[*file.ElementSpec]struct{}, len(containingElements))
 	for _, e := range containingElements {
 		switches.ContainingElement(e,
-			func(*ast.AndPlaceholderContainingElement) {
-				z.Logger.
-					WithGroup("components.blocks.containing_element_specs").
-					Error("Block instance in AndPlaceholderContainingElement",
-						slog.String("block", string(bi.Group.Name)),
-						slog.String("block_pos", bi.AST.Start().String()))
-				z.Report(&diagnostic.Diagnostic{
-					Type:    diagnostic.InternalError,
-					Message: "block instance in `AndPlaceholderContainingElement`",
-					Primary: []diagnostic.Annotation{
-						anno.Node(f, bi.AST, "recorded as being in a component call"),
-					},
-					Explanation: "The block instance was recorded as filling a component's &-placeholder, " +
-						"which is impossible.\n" +
-						"\n" +
-						"This is a bug, please open an issue.",
-				})
-				bi.ContainingElementSpecs.SetFailed()
-			},
 			func(e *ast.BlockSetterContainingElement) {
 				cc := f.ComponentCallByNode(e.ComponentCall)
 				s := cc.BlockSetterByNode(e.BlockSetter)
@@ -256,7 +237,7 @@ func (z *analyzer) AnalyzeBlockInstanceContainingElementSpecs(f *file.File, bi *
 //   - Components.Blocks.Instances.ElementType
 //
 // Depends on Fields:
-//   - Components.Blocks.Instances.ContainingElements
+//   - Components.Blocks.Instances.Receivers
 //
 // Depends on Checks: None
 func (z *analyzer) AnalyzeBlockInstanceElementType(logger *slog.Logger, f *file.File, bi *file.BlockInstance) {
@@ -309,7 +290,6 @@ func (z *analyzer) CheckBlockInstanceInAllowedElement(logger *slog.Logger, f *fi
 	elems := *bi.ContainingElements.Result()
 	for _, e := range elems {
 		switches.ContainingElement(e,
-			func(*ast.AndPlaceholderContainingElement) {}, // not applicable to block instances
 			// Handled when CheckBlockInstanceInAllowedElement is called on the
 			// component for that call.
 			func(*ast.BlockSetterContainingElement) {},

@@ -74,6 +74,7 @@ var (
 	_ ContentWriter      = (*Element)(nil)
 	_ ElementWriter      = (*Element)(nil)
 	_ ContainingElement  = (*Element)(nil)
+	_ AttributeReceiver  = (*Element)(nil)
 	_ AttributeInhibitor = (*Element)(nil)
 	_ Highlighter        = (*Element)(nil)
 )
@@ -130,6 +131,7 @@ func (*Element) _scopeNode()          {}
 func (*Element) _contentWriter()      {}
 func (*Element) _elementWriter()      {}
 func (*Element) _containingElement()  {}
+func (*Element) _attributeReceiver()  {}
 func (*Element) _attributeInhibitor() {}
 
 // ============================================================================

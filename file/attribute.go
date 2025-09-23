@@ -34,7 +34,7 @@ type Attribute struct {
 	// In the above example, the attribute reference bark is forwarded to the
 	// component calling woof.
 	Forwarded Analysis[bool]
-	// ContainingElements are all elements this attribute is placed on.
+	// Receivers are all elements this attribute is placed on.
 	// If the attribute is forwarded, this list is incomplete: It only contains
 	// the elements up to the component containing the attribute.
 	//
@@ -44,15 +44,15 @@ type Attribute struct {
 	// The pointer to the slice has no significance and is just there to
 	// satisfy the comparable constraint of Analysis.
 	// It is never nil.
-	ContainingElements Analysis[*[]ast.ContainingElement]
+	Receivers Analysis[*[]ast.AttributeReceiver]
 
-	// ContainingElementSpecs are the unique specs of all containing elements,
+	// ReceivingElementSpecs are the unique specs of all containing elements,
 	// including those containing the attribute indirectly.
 	//
 	// The pointer to the slice has no significance and is just there to
 	// satisfy the comparable constraint of Analysis.
 	// It is never nil.
-	ContainingElementSpecs Analysis[*[]*ElementSpec]
+	ReceivingElementSpecs Analysis[*[]*ElementSpec]
 
 	// Type is the type of the attribute, resolved from the containing elements.
 	//
@@ -74,14 +74,14 @@ type Attribute struct {
 	//       require attribute to be constant
 	//       return attrtype.Unknown
 	//   let t be attrtype.Unknown
-	//   for each element spec in attribute.ContainingElementSpecs:
+	//   for each element spec in attribute.ReceivingElementSpecs:
 	//       if attribute.Reference.Spec has definition for element spec:
 	//           set t to attribute type for that element spec
 	//           break
 	//   if t is attrtype.Unknown:
 	//       require attribute to be constant
 	//       return attrtype.Unknown
-	//   for each element spec in attribute.ContainingElementSpecs:
+	//   for each element spec in attribute.ReceivingElementSpecs:
 	//       let rule be attribute.Reference.Spec.RuleFor(element spec)
 	//       require rule to be non-nil and rule.Type to be t
 	//       otherwise fail
