@@ -244,3 +244,106 @@ func (z *analyzer) analyzeReceivedAttributesInArgs(cc *file.ComponentCall) {
 		}
 	}
 }
+
+// ============================================================================
+// Elements With &-Placeholder
+// ======================================================================================
+
+// AnalyzeElementWithAndPlaceholder sets the ElementWithAndPlaceholder field of the passed
+// component call.
+//
+// Depends on Checks: None
+//
+// Sets Fields:
+//   - ComponentCalls.ElementWithAndPlaceholder
+//
+// Depends on Fields: None
+func (z *analyzer) AnalyzeElementWithAndPlaceholder(cc *file.ComponentCall) {
+	if cc.Component == nil {
+		cc.ElementsWithAndPlaceholder.SetFailed()
+		return
+	} else if cc.Component.PermanentElementsWithAndPlaceholder.Failed() {
+		cc.ElementsWithAndPlaceholder.SetFailed()
+		return
+	}
+
+	var res []ast.AttributeReceiver
+
+	if cc.Component.PermanentElementsWithAndPlaceholder.Result().Len() > 0 {
+		res = append(res, cc.Component.PermanentElementsWithAndPlaceholder.Result().Get()...)
+	}
+
+	for _, block := range cc.Component.Blocks {
+		for _, instance := range block.Instances {
+			if instance.Default == nil || instance.DefaultOverwritten(cc) {
+				continue
+			} else if instance.Default.ElementsWithAndPlaceholder.Failed() {
+				cc.ElementsWithAndPlaceholder.SetFailed()
+				return
+			}
+
+			if instance.Default.ElementSpecsWithAndPlaceholder.Result().Len() > 0 {
+				res = append(res, instance.Default.ElementsWithAndPlaceholder.Result().Get()...)
+			}
+		}
+	}
+
+	cc.ElementsWithAndPlaceholder.SetResult(file.SliceRefFrom(slices.Clip(res)))
+}
+
+// ============================================================================
+// Element Specs With &-Placeholder
+// ======================================================================================
+
+// AnalyzeCallComponentElementSpecsWithAndPlaceholder sets the
+// ElementSpecsWithAndPlaceholder field of the passed component call.
+//
+// Depends on Checks: None
+//
+// Sets Fields:
+//   - ComponentCalls.ElementSpecsWithAndPlaceholder
+//
+// Depends on Fields: None
+func (z *analyzer) AnalyzeCallComponentElementSpecsWithAndPlaceholder(cc *file.ComponentCall) {
+	if cc.Component == nil {
+		cc.ElementSpecsWithAndPlaceholder.SetFailed()
+		return
+	}
+
+	// fast path
+	if cc.ElementsWithAndPlaceholder.Failed() {
+		cc.ElementSpecsWithAndPlaceholder.SetFailed()
+		return
+	} else if cc.ElementsWithAndPlaceholder.Result().Len() == 0 {
+		cc.ElementSpecsWithAndPlaceholder.SetResult(file.NilSliceRef[*file.ElementSpec]())
+		return
+	}
+
+	specSet := make(map[*file.ElementSpec]struct{})
+
+	for _, spec := range cc.Component.PermanentElementSpecsWithAndPlaceholder.Result().Get() {
+		specSet[spec] = struct{}{}
+	}
+
+	for _, block := range cc.Component.Blocks {
+		for _, instance := range block.Instances {
+			if instance.Default == nil || instance.DefaultOverwritten(cc) {
+				continue
+			} else if instance.Default.ElementSpecsWithAndPlaceholder.Failed() {
+				cc.ElementSpecsWithAndPlaceholder.SetFailed()
+				return
+			}
+
+			for _, spec := range instance.Default.ElementSpecsWithAndPlaceholder.Result().Get() {
+				specSet[spec] = struct{}{}
+			}
+		}
+	}
+
+	res := make([]*file.ElementSpec, 0, len(specSet))
+	for spec := range specSet {
+		res = append(res, spec)
+	}
+
+	cc.ElementSpecsWithAndPlaceholder.SetResult(file.SliceRefFrom(res))
+}

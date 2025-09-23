@@ -66,6 +66,14 @@ type Component struct {
 	//
 	// The reason is that element writer.
 	AlwaysWritesElements AnalysisWithReason[ast.ElementWriter]
+
+	// PermanentElementsWithAndPlaceholder are all elements outside any
+	// block defaults that contain an &-placeholder.
+	PermanentElementsWithAndPlaceholder Analysis[SliceRef[ast.AttributeReceiver]]
+	// PermanentElementSpecsWithAndPlaceholder are the unique specs of all
+	// elements outside any block defaults that contain an &-placeholder,
+	// including those containing the elements indirectly.
+	PermanentElementSpecsWithAndPlaceholder Analysis[SliceRef[*ElementSpec]]
 }
 
 func (c *Component) ParameterByName(name Identifier) *ComponentParameter {

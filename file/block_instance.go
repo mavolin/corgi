@@ -88,6 +88,14 @@ type (
 		// ForwardsReceivedAttributes implies AcceptsAttributes.
 		ForwardsReceivedAttributes AnalysisWithReason[ast.AndPlaceholderWriter]
 
+		// ElementsWithAndPlaceholder are all elements in the default's body
+		// that contain an &-placeholder.
+		ElementsWithAndPlaceholder Analysis[SliceRef[ast.AttributeReceiver]]
+		// ElementSpecsWithAndPlaceholder are the unique specs of all elements
+		// containing an &-placeholder, including those containing the elements
+		// indirectly.
+		ElementSpecsWithAndPlaceholder Analysis[SliceRef[*ElementSpec]]
+
 		ForwardsAttributes AnalysisWithReason[ast.AttributeWriter]
 		WritesContent      AnalysisWithReason[ast.ContentWriter]
 		WritesElements     AnalysisWithReason[ast.ElementWriter]
