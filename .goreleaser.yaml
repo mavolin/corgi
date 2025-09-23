@@ -39,3 +39,4 @@ changelog:
       - ^style
       - ^test
       - ^chore
+      - ^[a-z]+\(internal/
