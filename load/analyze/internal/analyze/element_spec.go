@@ -14,7 +14,7 @@ func (z *analyzer) AnalyzeElementSpecs() {
 	logger := z.Logger.WithGroup("element_specs")
 	logger.Debug("Analyzing element specs")
 
-	z.CheckElementSpecCycles(logger)
+	z.CheckElementSpecs_Cycles(logger)
 
 	for _, spec := range z.P.ElementSpecs {
 		logger := logger.With(
@@ -36,14 +36,14 @@ func (z *analyzer) AnalyzeElementSpecs() {
 //
 // Depends on Fields: None
 func (z *analyzer) AnalyzeElementSpec(logger *slog.Logger, spec *file.ElementSpec) {
-	z.AnalyzeElementSpecType(logger, spec)
+	z.AnalyzeElementSpec_Type(logger, spec)
 }
 
 // ============================================================================
 // Check Cycles
 // ======================================================================================
 
-// CheckElementSpecCycles checks for element spec cycles in the given element
+// CheckElementSpecs_Cycles checks for element spec cycles in the given element
 // spec.
 //
 // Depends on Checks: None
@@ -51,18 +51,18 @@ func (z *analyzer) AnalyzeElementSpec(logger *slog.Logger, spec *file.ElementSpe
 // Sets Fields: None
 //
 // Depends on Fields: None
-func (z *analyzer) CheckElementSpecCycles(logger *slog.Logger) {
+func (z *analyzer) CheckElementSpecs_Cycles(logger *slog.Logger) {
 	logger = logger.WithGroup("cycles")
 
 	chain := make([]*file.ElementSpec, 1, 24)
 	for _, spec := range z.P.ElementSpecs {
 		chain[0] = spec
 		chain = chain[:1] // reset the chain
-		z.checkElementSpecCycles(logger, chain)
+		z.checkElementSpecs_Cycles(logger, chain)
 	}
 }
 
-func (z *analyzer) checkElementSpecCycles(logger *slog.Logger, chain []*file.ElementSpec) {
+func (z *analyzer) checkElementSpecs_Cycles(logger *slog.Logger, chain []*file.ElementSpec) {
 	spec := chain[len(chain)-1]
 	if spec.Circular {
 		return
@@ -80,7 +80,7 @@ func (z *analyzer) checkElementSpecCycles(logger *slog.Logger, chain []*file.Ele
 
 	if len(chain) == 1 || chain[0] != ref.Spec {
 		chain = append(chain, ref.Spec)
-		z.checkElementSpecCycles(logger, chain)
+		z.checkElementSpecs_Cycles(logger, chain)
 		return
 	}
 
@@ -111,16 +111,16 @@ func (z *analyzer) checkElementSpecCycles(logger *slog.Logger, chain []*file.Ele
 // Type
 // ======================================================================================
 
-// AnalyzeElementSpecType analyzes the type of the given element spec.
+// AnalyzeElementSpec_Type analyzes the type of the given element spec.
 //
 // Depends on Checks:
-//   - CheckElementSpecCycles
+//   - CheckElementSpecs_Cycles
 //
 // Sets Fields:
 //   - ElementSpec.Type
 //
 // Depends on Fields: None
-func (z *analyzer) AnalyzeElementSpecType(logger *slog.Logger, spec *file.ElementSpec) {
+func (z *analyzer) AnalyzeElementSpec_Type(logger *slog.Logger, spec *file.ElementSpec) {
 	if spec.Circular {
 		spec.Type.SetFailed()
 		return
@@ -139,7 +139,7 @@ func (z *analyzer) AnalyzeElementSpecType(logger *slog.Logger, spec *file.Elemen
 				spec.Type.SetFailed()
 				return
 			}
-			z.AnalyzeElementSpecType(logger, ref.Spec)
+			z.AnalyzeElementSpec_Type(logger, ref.Spec)
 			spec.Type = ref.Spec.Type
 		},
 		func(typ *ast.BasicElementType) {

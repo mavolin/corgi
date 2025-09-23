@@ -44,11 +44,11 @@ func (z *analyzer) AnalyzeAttributes() {
 func (z *analyzer) AnalyzeAttribute(logger *slog.Logger, f *file.File, parents []*walk.Context, attr *file.Attribute) {
 	logger = logger.With(slog.String("attr_pos", attr.AST.Start().String()))
 
-	z.AnalyzeAttributeValue(f, attr)
-	z.AnalyzeAttributeForwarded(f, parents, attr)
-	z.AnalyzeAttributeReceivers(f, parents, attr)
-	z.AnalyzeAttributeReceivingElementSpecs(f, attr)
-	z.AnalyzeAttributeType(logger, f, attr)
+	z.AnalyzeAttribute_Value(f, attr)
+	z.AnalyzeAttribute_Forwarded(f, parents, attr)
+	z.AnalyzeAttribute_Receivers(f, parents, attr)
+	z.AnalyzeAttribute_ReceivingElementSpecs(f, attr)
+	z.AnalyzeAttribute_Type(logger, f, attr)
 
 	attr.Analyzed = true
 }
@@ -57,168 +57,26 @@ func (z *analyzer) AnalyzeAttribute(logger *slog.Logger, f *file.File, parents [
 // Value
 // ======================================================================================
 
-// AnalyzeAttributeValue sets the Value field on the given attribute.
+// AnalyzeAttribute_Value sets the Value field on the given attribute.
 //
 // Depends on Checks: None
 //
 // Sets Fields: None
 //
 // Depends on Fields: None
-func (z *analyzer) AnalyzeAttributeValue(f *file.File, attr *file.Attribute) {
+func (z *analyzer) AnalyzeAttribute_Value(f *file.File, attr *file.Attribute) {
 	switches.Attribute(attr.AST,
 		func(*ast.AndPlaceholder) {},
 		func(attrAST *ast.ClassShorthand) { attr.Value = z.classShorthandToAttributeValue(attrAST) },
-		func(attrAST *ast.IDShorthand) { attr.Value = z.shorthandToAttributeValue(nil, attrAST.ID) },
-		func(attrAST *ast.NamedAttribute) { attr.Value = z.namedAttributeToAttributeValue(f, attrAST) })
-}
-
-func (z *analyzer) classShorthandToAttributeValue(s *ast.ClassShorthand) file.Text {
-	var n int
-	for _, name := range s.Names {
-		n += len(name)
-	}
-
-	v := make(file.Text, 0, n)
-
-	for i, name := range s.Names {
-		if i > 0 {
-			last := v[len(v)-1]
-			if c, _ := last.(file.ConstantPart); c != "" {
-				v[len(v)-1] = c + " "
-			} else {
-				v = append(v, file.ConstantPart(" "))
-			}
-		}
-
-		v = z.shorthandToAttributeValue(v, name)
-	}
-
-	return slices.Clip(v)
-}
-
-func (z *analyzer) shorthandToAttributeValue(v file.Text, s ast.Shorthand) file.Text {
-	v = slices.Grow(v, len(s))
-	for i, n := range s {
-		switches.ShorthandNode(n,
-			func(n *ast.ShorthandInterpolation) {
-				v = append(v, (*file.ExpressionPart)(n.Expression))
-			},
-			func(n *ast.ShorthandText) {
-				if i == 0 && len(v) > 0 {
-					last := v[len(v)-1]
-					if c, _ := last.(file.ConstantPart); c != "" {
-						v[len(v)-1] = c + file.ConstantPart(n.Text)
-						return
-					}
-				}
-				v = append(v, file.ConstantPart(n.Text))
-			})
-	}
-	return v
-}
-
-func (z *analyzer) namedAttributeToAttributeValue(f *file.File, attrAST *ast.NamedAttribute) file.ResolvedValue {
-	if attrAST.Value == nil {
-		return file.ConstantBool(true)
-	}
-
-	expr := z.expressionFromAttributeValue(attrAST.Value)
-	return z.expressionToAttributeValue(f, expr)
-}
-
-func (z *analyzer) expressionToAttributeValue(f *file.File, expr *ast.Expression) file.ResolvedValue {
-	if len(expr.Nodes) == 1 {
-		n0 := expr.Nodes[0]
-		return switches.CodeNodeR(n0,
-			func(*ast.BlockFunction) file.ResolvedValue { return nil },
-			func(*ast.ComponentCall) file.ResolvedValue { return nil },
-			func(gc *ast.GoCode) file.ResolvedValue {
-				switch gc.Code {
-				case "true":
-					return file.ConstantBool(true)
-				case "false":
-					return file.ConstantBool(false)
-				default:
-					return nil
-				}
-			},
-			func(s *ast.String) file.ResolvedValue {
-				return z.stringToAttributeValue(s)
-			},
-			func(*ast.Ternary) file.ResolvedValue { return nil },
-			func(*ast.ZeroCoalescing) file.ResolvedValue { return nil },
-		)
-	}
-
-	typ, _ := InferType(f, expr)
-	switch typ {
-	case "bool":
-		return (*file.BoolExpression)(expr)
-	case "int", "int8", "int16", "int32", "int64",
-		"uint", "uint8", "uint16", "uint32", "uint64",
-		"float32", "float64", "string":
-		return file.Text{(*file.ExpressionPart)(expr)}
-	default:
-		return (*file.UndeterminedExpression)(expr)
-	}
-}
-
-func (z *analyzer) stringToAttributeValue(s *ast.String) file.Text {
-	v := make(file.Text, 0, len(s.Contents))
-
-	var last file.ConstantPart
-	for _, content := range s.Contents {
-		switches.StringNode(content,
-			func(content *ast.BadInterpolation) {
-				panic("analyzer called with file with parse errors: " + content.Start().String())
-			},
-			func(content *ast.CharacterEscape) { addConstant(&v, &last, string(content.Rune)) },
-			func(content *ast.CharacterReference) { addConstant(&v, &last, content.Chars) },
-			func(content *ast.ComponentCallInterpolation) {
-				last = ""
-				v = append(v, (*file.ComponentCallPart)(content.ComponentCall))
-			},
-			func(content *ast.ExpressionInterpolation) {
-				last = ""
-				v = append(v, (*file.ExpressionPart)(content.Expression))
-			},
-			func(content *ast.StringText) { addConstant(&v, &last, content.Text) })
-	}
-
-	return slices.Clip(v)
-}
-
-func addConstant(v *file.Text, last *file.ConstantPart, s string) {
-	if *last != "" {
-		*last += file.ConstantPart(s)
-		(*v)[len(*v)-1] = *last
-	} else {
-		*last = file.ConstantPart(s)
-		*v = append(*v, *last)
-	}
-}
-
-func (z *analyzer) expressionFromAttributeValue(v ast.AttributeValue) *ast.Expression {
-	for {
-		e := switches.AttributeValueR(v,
-			func(eav *ast.ExpressionAttributeValue) *ast.Expression {
-				return (*ast.Expression)(eav)
-			},
-			func(tav *ast.TypedAttributeValue) *ast.Expression {
-				v = tav.Value
-				return nil
-			})
-		if e != nil {
-			return e
-		}
-	}
+		func(attrAST *ast.IDShorthand) { attr.Value = z.shorthandToResolvedValue(nil, attrAST.ID) },
+		func(attrAST *ast.NamedAttribute) { attr.Value = z.namedAttributeToResolvedValue(f, attrAST) })
 }
 
 // ============================================================================
 // Forwarded
 // ======================================================================================
 
-// AnalyzeAttributeForwarded determines whether the given attribute
+// AnalyzeAttribute_Forwarded determines whether the given attribute
 // reference is forwarded out of the component or not.
 //
 // Depends on Checks: None
@@ -229,7 +87,7 @@ func (z *analyzer) expressionFromAttributeValue(v ast.AttributeValue) *ast.Expre
 // Depends on Fields:
 //   - Components.Blocks.Forwarded
 //   - Components.Blocks.Instances.Forwarded
-func (z *analyzer) AnalyzeAttributeForwarded(f *file.File, parents []*walk.Context, attr *file.Attribute) {
+func (z *analyzer) AnalyzeAttribute_Forwarded(f *file.File, parents []*walk.Context, attr *file.Attribute) {
 	attr.Forwarded.SetResult(true)
 
 	i := len(parents) - 1
@@ -277,10 +135,10 @@ func (z *analyzer) AnalyzeAttributeForwarded(f *file.File, parents []*walk.Conte
 }
 
 // ============================================================================
-// Containing Elements
+// Receivers
 // ======================================================================================
 
-// AnalyzeAttributeReceivers calculates the containing elements
+// AnalyzeAttribute_Receivers calculates the containing elements
 // of the given attribute.
 //
 // Depends on Checks: None
@@ -292,7 +150,7 @@ func (z *analyzer) AnalyzeAttributeForwarded(f *file.File, parents []*walk.Conte
 //   - ComponentCalls.ElementsWithAndPlaceholder
 //   - Components.Blocks.Receivers
 //   - Components.Blocks.Forwarded
-func (z *analyzer) AnalyzeAttributeReceivers(f *file.File, parents []*walk.Context, attr *file.Attribute) {
+func (z *analyzer) AnalyzeAttribute_Receivers(f *file.File, parents []*walk.Context, attr *file.Attribute) {
 	var receivers []ast.AttributeReceiver
 
 	i := len(parents) - 1
@@ -361,10 +219,10 @@ func (z *analyzer) AnalyzeAttributeReceivers(f *file.File, parents []*walk.Conte
 }
 
 // ============================================================================
-// Containing Element Specs
+// Receiving Element Specs
 // ======================================================================================
 
-// AnalyzeAttributeReceivingElementSpecs calculates the containing element
+// AnalyzeAttribute_ReceivingElementSpecs calculates the containing element
 // specs of the given attribute.
 //
 // Depends on Checks: None
@@ -376,7 +234,7 @@ func (z *analyzer) AnalyzeAttributeReceivers(f *file.File, parents []*walk.Conte
 //   - Attributes.Receivers
 //   - ComponentCalls.ElementSpecsWithAndPlaceholder
 //   - Components.Blocks.ReceivingElementSpecs
-func (z *analyzer) AnalyzeAttributeReceivingElementSpecs(f *file.File, attr *file.Attribute) {
+func (z *analyzer) AnalyzeAttribute_ReceivingElementSpecs(f *file.File, attr *file.Attribute) {
 	if attr.Receivers.Failed() {
 		attr.ReceivingElementSpecs.SetFailed()
 		return
@@ -445,7 +303,7 @@ func (z *analyzer) AnalyzeAttributeReceivingElementSpecs(f *file.File, attr *fil
 // Type
 // ======================================================================================
 
-// AnalyzeAttributeType determines the type of the given attribute.
+// AnalyzeAttribute_Type determines the type of the given attribute.
 //
 // Depends on Checks: None
 //
@@ -455,20 +313,20 @@ func (z *analyzer) AnalyzeAttributeReceivingElementSpecs(f *file.File, attr *fil
 // Depends on Fields:
 //   - Attributes.Forwarded
 //   - Attributes.Receivers
-func (z *analyzer) AnalyzeAttributeType(logger *slog.Logger, f *file.File, attr *file.Attribute) {
+func (z *analyzer) AnalyzeAttribute_Type(logger *slog.Logger, f *file.File, attr *file.Attribute) {
 	logger = logger.WithGroup("type")
 
 	attr.Type.SetResult(attrtype.Unknown)
 
-	z.analyzeExplicitAttributeType(logger, f, attr)
+	z.analyzeAttribute_Type_explicit(logger, f, attr)
 	if attr.Type.Failed() || attr.Type.Result() != attrtype.Unknown {
 		return
 	}
 
-	z.analyzeInferredAttributeType(logger, f, attr)
+	z.analyzeAttribute_Type_inferred(logger, f, attr)
 }
 
-func (z *analyzer) analyzeExplicitAttributeType(logger *slog.Logger, f *file.File, attr *file.Attribute) {
+func (z *analyzer) analyzeAttribute_Type_explicit(logger *slog.Logger, f *file.File, attr *file.Attribute) {
 	val := switches.AttributeR(attr.AST,
 		func(*ast.AndPlaceholder) ast.AttributeValue { return nil },
 		func(*ast.ClassShorthand) ast.AttributeValue { return nil },
@@ -500,7 +358,7 @@ func (z *analyzer) analyzeExplicitAttributeType(logger *slog.Logger, f *file.Fil
 	attr.Type.SetResult(tav.Type.Name.Type)
 }
 
-func (z *analyzer) analyzeInferredAttributeType(logger *slog.Logger, f *file.File, attr *file.Attribute) {
+func (z *analyzer) analyzeAttribute_Type_inferred(logger *slog.Logger, f *file.File, attr *file.Attribute) {
 	if attr.Forwarded.Equal(true) {
 		partial := !attr.Receivers.Failed() && attr.Receivers.Result().Len() > 0
 		if partial {

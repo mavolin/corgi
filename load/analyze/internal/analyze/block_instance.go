@@ -19,18 +19,23 @@ import (
 //
 // Depends on Fields: None
 func (z *analyzer) AnalyzeBlockInstance(
-	ctx context.Context, c *file.Component, parents []*walk.Context, bi *file.BlockInstance,
+	ctx context.Context, parents []*walk.Context, bi *file.BlockInstance,
+	cannotAttributes file.AnalysisWithReason[ast.AttributeInhibitor],
 ) {
-	z.AnalyzeBlockInstanceForwarded(ctx, c, parents, bi)
-	z.AnalyzeBlockInstanceContainingElements(ctx, c, parents, bi)
-	z.AnalyzeBlockInstanceContainingElementSpecs(c.File, bi)
+	z.AnalyzeBlockInstance_Forwarded(ctx, parents, bi)
+	z.AnalyzeBlockInstance_ContainingElements(ctx, parents, bi)
+	z.AnalyzeBlockInstance_ContainingElementSpecs(bi)
+
+	z.AnalyzeBlockInstance_CannotForwardAttributes(bi, cannotAttributes)
+
+	z.AnalyzeBlockInstanceDefault(ctx, parents, bi)
 }
 
 // ============================================================================
 // Forwarded
 // ======================================================================================
 
-// AnalyzeBlockInstanceForwarded determines whether the given block instance
+// AnalyzeBlockInstance_Forwarded determines whether the given block instance
 // is forwarded (i.e. placed outside any element).
 //
 // Depends on Checks: None
@@ -39,9 +44,7 @@ func (z *analyzer) AnalyzeBlockInstance(
 //   - Components.Blocks.Instances.Forwarded
 //
 // Depends on Fields: None
-func (z *analyzer) AnalyzeBlockInstanceForwarded(
-	ctx context.Context, c *file.Component, parents []*walk.Context, bi *file.BlockInstance,
-) {
+func (z *analyzer) AnalyzeBlockInstance_Forwarded(ctx context.Context, parents []*walk.Context, bi *file.BlockInstance) {
 	bi.Forwarded.SetResult(true)
 
 	i := len(parents) - 1
@@ -62,8 +65,10 @@ func (z *analyzer) AnalyzeBlockInstanceForwarded(
 					return
 				}
 
+				f := bi.Group.Component.File
+
 				ccAST := parents[ccI].Node.(*ast.ComponentCall) //nolint:errcheck
-				cc := c.File.ComponentCallByNode(ccAST)
+				cc := f.ComponentCallByNode(ccAST)
 				z.AnalyzeComponentCall(ctx, cc)
 
 				s := cc.BlockSetterByNode(parent)
@@ -88,7 +93,7 @@ func (z *analyzer) AnalyzeBlockInstanceForwarded(
 // Containing Elements
 // ======================================================================================
 
-// AnalyzeBlockInstanceContainingElements determines all elements containing
+// AnalyzeBlockInstance_ContainingElements determines all elements containing
 // the given block instance.
 //
 // Depends on Checks: None
@@ -97,9 +102,7 @@ func (z *analyzer) AnalyzeBlockInstanceForwarded(
 //   - Components.Blocks.Instances.ContainingElements
 //
 // Depends on Fields: None
-func (z *analyzer) AnalyzeBlockInstanceContainingElements(
-	ctx context.Context, c *file.Component, parents []*walk.Context, bi *file.BlockInstance,
-) {
+func (z *analyzer) AnalyzeBlockInstance_ContainingElements(ctx context.Context, parents []*walk.Context, bi *file.BlockInstance) {
 	bi.ContainingElements.SetResult(file.NilSliceRef[ast.ContainingElement]())
 	var containingElements []ast.ContainingElement
 
@@ -121,8 +124,10 @@ func (z *analyzer) AnalyzeBlockInstanceContainingElements(
 					return true
 				}
 
+				f := bi.Group.Component.File
+
 				ccAST := parents[ccI].Node.(*ast.ComponentCall) //nolint:errcheck
-				cc := c.File.ComponentCallByNode(ccAST)
+				cc := f.ComponentCallByNode(ccAST)
 				z.AnalyzeComponentCall(ctx, cc)
 
 				s := cc.BlockSetterByNode(parent)
@@ -163,7 +168,7 @@ func (z *analyzer) AnalyzeBlockInstanceContainingElements(
 // Containing Element Specs
 // ======================================================================================
 
-// AnalyzeBlockInstanceContainingElementSpecs calculates the containing element
+// AnalyzeBlockInstance_ContainingElementSpecs calculates the containing element
 // specs of the given attribute.
 //
 // Depends on Checks: None
@@ -173,7 +178,7 @@ func (z *analyzer) AnalyzeBlockInstanceContainingElements(
 //
 // Depends on Fields:
 //   - Components.Blocks.Instances.ContainingElements
-func (z *analyzer) AnalyzeBlockInstanceContainingElementSpecs(f *file.File, bi *file.BlockInstance) {
+func (z *analyzer) AnalyzeBlockInstance_ContainingElementSpecs(bi *file.BlockInstance) {
 	if bi.ContainingElements.Failed() {
 		bi.ContainingElementSpecs.SetFailed()
 		return
@@ -183,6 +188,8 @@ func (z *analyzer) AnalyzeBlockInstanceContainingElementSpecs(f *file.File, bi *
 		bi.ContainingElementSpecs.SetResult(file.NilSliceRef[*file.ElementSpec]())
 		return
 	}
+
+	f := bi.Group.Component.File
 
 	specSet := make(map[*file.ElementSpec]struct{}, bi.ContainingElements.Result().Len())
 	for _, e := range bi.ContainingElements.Result().Get() {
@@ -230,7 +237,7 @@ func (z *analyzer) AnalyzeBlockInstanceContainingElementSpecs(f *file.File, bi *
 // Cannot Forward Attributes
 // ======================================================================================
 
-// AnalyzeBlockInstanceCannotForwardAttributes determines whether the given
+// AnalyzeBlockInstance_CannotForwardAttributes determines whether the given
 // block instance could not forward attributes to the element containing it.
 //
 // Depends on Checks: None
@@ -239,7 +246,7 @@ func (z *analyzer) AnalyzeBlockInstanceContainingElementSpecs(f *file.File, bi *
 //   - Components.Blocks.Instances.CannotForwardAttributes
 //
 // Depends on Fields: None
-func (z *analyzer) AnalyzeBlockInstanceCannotForwardAttributes(
+func (z *analyzer) AnalyzeBlockInstance_CannotForwardAttributes(
 	bi *file.BlockInstance, cannotAttributes file.AnalysisWithReason[ast.AttributeInhibitor],
 ) {
 	bi.CannotForwardAttributes = cannotAttributes

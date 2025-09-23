@@ -11,41 +11,55 @@ import (
 	"github.com/mavolin/corgi/v2/internal/meta"
 )
 
-// AnalyzeComponentParameters analyzes the parameters of the given component.
+// AnalyzeComponent_Parameters analyzes the parameters of the given component.
 //
 // Depends on Checks: None
 //
 // Sets Fields: None
 //
 // Depends on Fields: None
-func (z *analyzer) AnalyzeComponentParameters(logger *slog.Logger, c *file.Component) {
+func (z *analyzer) AnalyzeComponent_Parameters(logger *slog.Logger, c *file.Component) {
 	logger = logger.WithGroup("parameters")
 
 	for _, param := range c.Parameters {
-		logger := logger.With(
-			slog.String("param", string(param.Name)),
-			slog.String("param_pos", param.AST.Name.Start().String()))
-
-		z.AnalyzeAttrTypeComponentParam(logger, c, param)
-		z.InferTypeFromComponentParamDefault(logger, c, param)
+		z.AnalyzeComponentParameter(logger, c, param)
 	}
 }
 
+// AnalyzeComponentParameter analyzes the given component parameter.
+//
+// Depends on Checks: None
+//
+// Sets Fields: None
+//
+// Depends on Fields: None
+func (z *analyzer) AnalyzeComponentParameter(logger *slog.Logger, c *file.Component, param *file.ComponentParameter) {
+	logger = logger.With(
+		slog.String("param", string(param.Name)),
+		slog.String("param_pos", param.AST.Name.Start().String()))
+
+	z.AnalyzeComponentParameter_AttributeType_AttributeName(logger, c, param)
+	z.AnalyzeComponentParameter_InferredType(logger, c, param)
+}
+
 // ============================================================================
-// Infer Type From Attribute Type Component Parameters
+// Infer Type From Attribute Type
 // ======================================================================================
 
-// AnalyzeAttrTypeComponentParam analyzes the given component parameter to
-// infer its type, if it uses an attribute type as its type.
+// AnalyzeComponentParameter_AttributeType_AttributeName analyzes the given
+// component parameter to infer its type, if it uses an attribute type as its
+// type.
 //
 // Depends on Checks: None
 //
 // Sets Fields:
 //   - Components.Parameters.AttributeType
-//   - Components.Parameters.CanonicalAttributeName
+//   - Components.Parameters.AttributeName
 //
 // Depends on Fields: None
-func (z *analyzer) AnalyzeAttrTypeComponentParam(logger *slog.Logger, c *file.Component, param *file.ComponentParameter) {
+func (z *analyzer) AnalyzeComponentParameter_AttributeType_AttributeName(
+	logger *slog.Logger, c *file.Component, param *file.ComponentParameter,
+) {
 	logger = logger.WithGroup("attr_type_param")
 
 	param.AttributeType.SetZero()
@@ -96,9 +110,48 @@ func (z *analyzer) AnalyzeAttrTypeComponentParam(logger *slog.Logger, c *file.Co
 	} else {
 		param.AttributeType.SetFailed()
 	}
+}
+
+// ============================================================================
+// Infer Type From Default
+// ======================================================================================
+
+// AnalyzeComponentParameter_InferredType analyzes the given component parameter
+// to infer its type.
+//
+// Depends on Checks: None
+//
+// Sets Fields: None
+//
+// Depends on Fields: None
+func (z *analyzer) AnalyzeComponentParameter_InferredType(logger *slog.Logger, c *file.Component, param *file.ComponentParameter) {
+	if param.AttributeType.Failed() || param.AttributeType.NotZero() {
+		z.AnalyzeComponentParameter_InferredType_fromAttributeType(logger, c, param)
+	} else {
+		z.AnalyzeComponentParameter_InferredType_fromDefault(logger, c, param)
+	}
+}
+
+// AnalyzeComponentParameter_InferredType_fromAttributeType infers the type of
+// the given component parameter from its attribute type, if it has one.
+//
+// Depends on Checks: None
+//
+// Sets Fields:
+//   - Components.Parameters.InferredType
+//
+// Depends on Fields:
+//   - Components.Parameters.AttributeType
+func (z *analyzer) AnalyzeComponentParameter_InferredType_fromAttributeType(
+	logger *slog.Logger, c *file.Component, param *file.ComponentParameter,
+) {
+	if param.AttributeType.Failed() {
+		param.InferredType.SetFailed()
+		return
+	}
 
 	inferredType := file.Type(z.SafeImport(c.File).Qualifier + ".")
-	switch t.Name.Type {
+	switch param.AttributeType.Result() {
 	case attrtype.Unsafe:
 		inferredType += "Unsafe"
 	case attrtype.UnsafeBool:
@@ -138,12 +191,22 @@ func (z *analyzer) AnalyzeAttrTypeComponentParam(logger *slog.Logger, c *file.Co
 				"\n" +
 				"In case of the latter: This is a bug, please open an issue."
 		}
+
+		var name *ast.AttributeTypeName
+		if t, _ := param.AST.Type.Parsed.(*ast.AttributeType); t != nil {
+			name = t.Name
+		}
+
+		var primary diagnostic.Annotation
+		if name != nil {
+			primary = anno.Node(c.File, name, "unknown attribute type")
+		} else {
+			primary = anno.Node(c.File, param.AST.Type, "unknown attribute type")
+		}
 		z.Report(&diagnostic.Diagnostic{
-			Type:    diagnostic.InternalError,
-			Message: "component parameter: use of unknown attribute type",
-			Primary: []diagnostic.Annotation{
-				anno.Node(c.File, t.Name, "unknown attribute type"),
-			},
+			Type:        diagnostic.InternalError,
+			Message:     "component parameter: use of unknown attribute type",
+			Primary:     []diagnostic.Annotation{primary},
 			Explanation: explanation,
 		})
 		return
@@ -151,12 +214,8 @@ func (z *analyzer) AnalyzeAttrTypeComponentParam(logger *slog.Logger, c *file.Co
 	param.InferredType.SetResult(inferredType)
 }
 
-// ============================================================================
-// Infer Type From Default
-// ======================================================================================
-
-// InferTypeFromComponentParamDefault infers the type of the given component
-// parameter from its default value, if it has one.
+// AnalyzeComponentParameter_InferredType_fromDefault infers the type of the
+// given component parameter from its default value, if it has one.
 //
 // Depends on Checks: None
 //
@@ -164,7 +223,9 @@ func (z *analyzer) AnalyzeAttrTypeComponentParam(logger *slog.Logger, c *file.Co
 //   - Components.Parameters.InferredType
 //
 // Depends on Fields: None
-func (z *analyzer) InferTypeFromComponentParamDefault(logger *slog.Logger, c *file.Component, param *file.ComponentParameter) {
+func (z *analyzer) AnalyzeComponentParameter_InferredType_fromDefault(
+	logger *slog.Logger, c *file.Component, param *file.ComponentParameter,
+) {
 	logger = logger.WithGroup("infer_type_from_default").
 		With(slog.String("param", string(param.Name)),
 			slog.String("param_pos", param.AST.Name.Start().String()))

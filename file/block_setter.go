@@ -29,11 +29,11 @@ type (
 		//
 		// ANALYZER
 
-		WritesAndPlaceholder   AnalysisWithReason[ast.AndPlaceholderWriter]
-		ForwardsAndPlaceholder AnalysisWithReason[ast.AndPlaceholderWriter]
-		ForwardsAttributes     AnalysisWithReason[ast.AttributeWriter]
-		WritesContent          AnalysisWithReason[ast.ContentWriter]
-		WritesElements         AnalysisWithReason[ast.ElementWriter]
+		AcceptsAttributes          AnalysisWithReason[ast.AndPlaceholderWriter]
+		ForwardsReceivedAttributes AnalysisWithReason[ast.AndPlaceholderWriter]
+		ForwardsAttributes         AnalysisWithReason[ast.AttributeWriter]
+		WritesContent              AnalysisWithReason[ast.ContentWriter]
+		WritesElements             AnalysisWithReason[ast.ElementWriter]
 	}
 )
 
@@ -53,10 +53,10 @@ func (s *BlockSetter) InstanceByNode(n ast.BlockSetter) *BlockSetterInstance {
 func (s *BlockSetter) WritesAndPlaceholder() (a AnalysisWithReason[*BlockSetterInstance]) {
 	a.SetFalse()
 	for _, instance := range s.Instances {
-		if instance.WritesAndPlaceholder.True() {
+		if instance.AcceptsAttributes.True() {
 			a.SetReason(instance)
 			return a
-		} else if instance.WritesAndPlaceholder.Failed() {
+		} else if instance.AcceptsAttributes.Failed() {
 			a.SetFailed()
 		}
 	}
@@ -70,10 +70,10 @@ func (s *BlockSetter) WritesAndPlaceholder() (a AnalysisWithReason[*BlockSetterI
 func (s *BlockSetter) ForwardsAndPlaceholder() (a AnalysisWithReason[*BlockSetterInstance]) {
 	a.SetFalse()
 	for _, instance := range s.Instances {
-		if instance.ForwardsAndPlaceholder.True() {
+		if instance.ForwardsReceivedAttributes.True() {
 			a.SetReason(instance)
 			return a
-		} else if instance.ForwardsAndPlaceholder.Failed() {
+		} else if instance.ForwardsReceivedAttributes.Failed() {
 			a.SetFailed()
 		}
 	}

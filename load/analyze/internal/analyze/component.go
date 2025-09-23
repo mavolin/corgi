@@ -42,19 +42,19 @@ func (z *analyzer) AnalyzeComponent(ctx context.Context, logger *slog.Logger, c 
 		slog.String("comp", c.AST.Header.Name.Name),
 		slog.String("comp_pos", c.AST.Start().String()))
 
-	z.CheckComponentCallCycles(c)
+	z.CheckComponent_CallCycles(c)
 
-	z.AnalyzeComponentParameters(logger, c)
+	z.AnalyzeComponent_Parameters(logger, c)
 
-	z.AnalyzeComponentAST(ctx, c)
+	z.AnalyzeComponent_AlwaysForwardsReceivedAttributes(c)
+	z.AnalyzeComponent_AlwaysAcceptsAttributes(c)
 
-	z.AnalyzeAlwaysForwardsAndPlaceholder(c)
-	z.AnalyzedAlwaysWritesAndPlaceholder(c)
+	z.AnalyzeComponent_AST(ctx, c)
 
 	c.Analyzed = true
 }
 
-// AnalyzeCallComponent analyzes the component of the passed component call.
+// AnalyzeComponentCall_Component analyzes the component of the passed component call.
 //
 // It does nothing if the component has already been analyzed or the component
 // call is part of a cycle.
@@ -64,7 +64,7 @@ func (z *analyzer) AnalyzeComponent(ctx context.Context, logger *slog.Logger, c 
 // Sets Fields: None
 //
 // Depends on Fields: None
-func (z *analyzer) AnalyzeCallComponent(ctx context.Context, cc *file.ComponentCall) {
+func (z *analyzer) AnalyzeComponentCall_Component(ctx context.Context, cc *file.ComponentCall) {
 	if cc.Component == nil || cc.Component.Analyzed || cc.Circular {
 		return
 	}
@@ -77,7 +77,7 @@ func (z *analyzer) AnalyzeCallComponent(ctx context.Context, cc *file.ComponentC
 // AST-related Analyses
 // ======================================================================================
 
-// AnalyzeComponentAST runs all analyses that require knowledge of their
+// AnalyzeComponent_AST runs all analyses that require knowledge of their
 // position in the AST.
 //
 // Depends on Checks: None
@@ -85,7 +85,7 @@ func (z *analyzer) AnalyzeCallComponent(ctx context.Context, cc *file.ComponentC
 // Sets Fields: None
 //
 // Depends on Fields: None
-func (z *analyzer) AnalyzeComponentAST(ctx context.Context, c *file.Component) {
+func (z *analyzer) AnalyzeComponent_AST(ctx context.Context, c *file.Component) {
 	var cannotAttributes file.AnalysisWithReason[ast.AttributeInhibitor]
 	cannotAttributes.SetFalse()
 
@@ -93,8 +93,7 @@ func (z *analyzer) AnalyzeComponentAST(ctx context.Context, c *file.Component) {
 		switch n := w.Node.(type) {
 		case *ast.Block:
 			bi := c.BlockInstanceByNode(n)
-			z.AnalyzeBlockInstanceCannotForwardAttributes(bi, cannotAttributes)
-			z.AnalyzeBlockInstance(ctx, c, w.Parents, bi)
+			z.AnalyzeBlockInstance(ctx, w.Parents, bi, cannotAttributes)
 		}
 		return walk.Continue
 	}, z.cannotAttributes(ctx, c.File, &cannotAttributes))
@@ -104,7 +103,7 @@ func (z *analyzer) AnalyzeComponentAST(ctx context.Context, c *file.Component) {
 // Component Call Cycles
 // ======================================================================================
 
-// CheckComponentCallCycles checks for component call cycles in the given
+// CheckComponent_CallCycles checks for component call cycles in the given
 // component.
 //
 // Depends on Checks: None
@@ -112,7 +111,7 @@ func (z *analyzer) AnalyzeComponentAST(ctx context.Context, c *file.Component) {
 // Sets Fields: None
 //
 // Depends on Fields: None
-func (z *analyzer) CheckComponentCallCycles(c *file.Component) {
+func (z *analyzer) CheckComponent_CallCycles(c *file.Component) {
 	z.checkComponentCallCycles(c, make([]*file.ComponentCall, 0, 24), c)
 }
 
@@ -159,10 +158,10 @@ func (z *analyzer) checkComponentCallCycles(root *file.Component, chain []*file.
 }
 
 // ============================================================================
-// First Permanent Top-Level &-Placeholder
+// Always Forwards Received Attributes
 // ======================================================================================
 
-// AnalyzeAlwaysForwardsAndPlaceholder attempts to find the first
+// AnalyzeComponent_AlwaysForwardsReceivedAttributes attempts to find the first
 // permanent top-level &-placeholder component in the given component.
 //
 // Depends on Checks: None
@@ -171,15 +170,15 @@ func (z *analyzer) checkComponentCallCycles(root *file.Component, chain []*file.
 //   - Components.AlwaysForwardsReceivedAttributes
 //
 // Depends on Fields: None
-func (z *analyzer) AnalyzeAlwaysForwardsAndPlaceholder(c *file.Component) {
+func (z *analyzer) AnalyzeComponent_AlwaysForwardsReceivedAttributes(c *file.Component) {
 	// todo
 }
 
 // ============================================================================
-// First Permanent &-Placeholder
+// Always Accepts Attributes
 // ======================================================================================
 
-// AnalyzedAlwaysWritesAndPlaceholder attempts to find the first permanent
+// AnalyzeComponent_AlwaysAcceptsAttributes attempts to find the first permanent
 // &-placeholder component in the given component.
 //
 // Depends on Checks: None
@@ -189,11 +188,61 @@ func (z *analyzer) AnalyzeAlwaysForwardsAndPlaceholder(c *file.Component) {
 //
 // Depends on Fields:
 //   - Components.AlwaysForwardsReceivedAttributes
-func (z *analyzer) AnalyzedAlwaysWritesAndPlaceholder(c *file.Component) {
+func (z *analyzer) AnalyzeComponent_AlwaysAcceptsAttributes(c *file.Component) {
 	if c.AlwaysForwardsReceivedAttributes.True() {
 		c.AlwaysAcceptsAttributes.SetReason(c.AlwaysForwardsReceivedAttributes.Reason())
 		return
 	}
 
+	// todo
+}
+
+// ============================================================================
+// Always Forwards Attributes
+// ======================================================================================
+
+// AnalyzeComponent_AlwaysForwardsAttributes attempts to find the first
+// attribute writer not part of a block default.
+func (z *analyzer) AnalyzeComponent_AlwaysForwardsAttributes(c *file.Component) {
+	// todo
+}
+
+// ============================================================================
+// Always Writes Content
+// ======================================================================================
+
+// AnalyzeComponent_AlwaysWritesContent attempts to find the first content
+// writer not part of a block default.
+func (z *analyzer) AnalyzeComponent_AlwaysWritesContent(c *file.Component) {
+	// todo
+}
+
+// ============================================================================
+// Always Writes Elements
+// ======================================================================================
+
+// AnalyzeComponent_AlwaysWritesElements attempts to find the first element
+// writer not part of a block default.
+func (z *analyzer) AnalyzeComponent_AlwaysWritesElements(c *file.Component) {
+	// todo
+}
+
+// ============================================================================
+// Permanent Elements With &-Placeholder
+// ======================================================================================
+
+// AnalyzeComponent_PermanentElementsWithAndPlaceholder finds all permanent
+// elements with an &-placeholder.
+func (z *analyzer) AnalyzeComponent_PermanentElementsWithAndPlaceholder(c *file.Component) {
+	// todo
+}
+
+// ============================================================================
+// Permanent Element Specs With &-Placeholder
+// ======================================================================================
+
+// AnalyzeComponent_PermanentElementSpecsWithAndPlaceholder finds all unique
+// permanent element specs with an &-placeholder.
+func (z *analyzer) AnalyzeComponent_PermanentElementSpecsWithAndPlaceholder(c *file.Component) {
 	// todo
 }

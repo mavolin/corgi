@@ -69,6 +69,9 @@ linters:
       - path: '^file/switches/functions\.go$'
         linters: [gocritic]
         text: '^captLocal:'
+      - path: '^load/analyze/internal/'
+        linters: [revive]
+        text: '^var-naming:'
       - path: '^load/analyze/internal/candidate/switches\.go$'
         linters: [gocritic]
         text: '^captLocal:'

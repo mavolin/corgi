@@ -61,10 +61,12 @@ func (z *analyzer) AnalyzeComponentCall(ctx context.Context, cc *file.ComponentC
 		ctx = context.WithValue(ctx, callerChainKey{}, callerChain)
 	}
 
-	z.AnalyzeCallComponent(ctx, cc)
-	z.AnalyzeReceivesAttributes(ctx, cc)
+	z.AnalyzeComponentCall_Component(ctx, cc)
+	z.AnalyzeComponentCall_ReceivesAttributes_ReceivesAndPlaceholder(ctx, cc)
+	z.AnalyzeComponetnCall_ElementsWithAndPlaceholder(cc)
+	z.AnalyzeComponentCall_ElementSpecsWithAndPlaceholder(cc)
 
-	z.AnalyzeComponentArguments(cc)
+	z.AnalyzeComponentCall_ComponentArguments(cc)
 
 	cc.Analyzed = true
 }
@@ -109,8 +111,9 @@ type callerChainKey struct{}
 // Receives Attributes
 // ======================================================================================
 
-// AnalyzeReceivesAttributes finds the first attribute writer and the first
-// &-placeholder writer that fills the &-placeholder of the called component.
+// AnalyzeComponentCall_ReceivesAttributes_ReceivesAndPlaceholder finds the
+// first attribute writer and the first &-placeholder writer that fills the
+// &-placeholder of the called component.
 //
 // Depends on Checks: None
 //
@@ -119,12 +122,12 @@ type callerChainKey struct{}
 //   - ComponentCalls.ReceivesAndPlaceholder
 //
 // Depends on Fields: None
-func (z *analyzer) AnalyzeReceivesAttributes(ctx context.Context, cc *file.ComponentCall) {
+func (z *analyzer) AnalyzeComponentCall_ReceivesAttributes_ReceivesAndPlaceholder(ctx context.Context, cc *file.ComponentCall) {
 	cc.ReceivesAttributes.SetFalse()
 	cc.ReceivesAndPlaceholder.SetFalse()
 
 	if cc.AST.Header.Arguments != nil {
-		z.analyzeReceivedAttributesInArgs(cc)
+		z.analyzeComponentCall_ReceivesAttributes_ReceivesAndPlaceholder_throughArgs(cc)
 		if cc.ReceivesAttributes.True() && cc.ReceivesAndPlaceholder.True() {
 			return // we found both, no need to walk the body
 		}
@@ -207,7 +210,7 @@ func (z *analyzer) AnalyzeReceivesAttributes(ctx context.Context, cc *file.Compo
 	}, walk.DontDive[*ast.ComponentCall](), walk.DontDive[ast.BlockSetter]())
 }
 
-func (z *analyzer) analyzeReceivedAttributesInArgs(cc *file.ComponentCall) {
+func (z *analyzer) analyzeComponentCall_ReceivesAttributes_ReceivesAndPlaceholder_throughArgs(cc *file.ComponentCall) {
 	for _, arg := range cc.AST.Header.Arguments.List {
 		if aw, _ := arg.(ast.AttributeWriter); aw != nil {
 			switches.AttributeWriter(aw,
@@ -249,7 +252,7 @@ func (z *analyzer) analyzeReceivedAttributesInArgs(cc *file.ComponentCall) {
 // Elements With &-Placeholder
 // ======================================================================================
 
-// AnalyzeElementWithAndPlaceholder sets the ElementWithAndPlaceholder field of the passed
+// AnalyzeComponetnCall_ElementsWithAndPlaceholder sets the ElementWithAndPlaceholder field of the passed
 // component call.
 //
 // Depends on Checks: None
@@ -258,7 +261,7 @@ func (z *analyzer) analyzeReceivedAttributesInArgs(cc *file.ComponentCall) {
 //   - ComponentCalls.ElementWithAndPlaceholder
 //
 // Depends on Fields: None
-func (z *analyzer) AnalyzeElementWithAndPlaceholder(cc *file.ComponentCall) {
+func (z *analyzer) AnalyzeComponetnCall_ElementsWithAndPlaceholder(cc *file.ComponentCall) {
 	if cc.Component == nil {
 		cc.ElementsWithAndPlaceholder.SetFailed()
 		return
@@ -295,7 +298,7 @@ func (z *analyzer) AnalyzeElementWithAndPlaceholder(cc *file.ComponentCall) {
 // Element Specs With &-Placeholder
 // ======================================================================================
 
-// AnalyzeCallComponentElementSpecsWithAndPlaceholder sets the
+// AnalyzeComponentCall_ElementSpecsWithAndPlaceholder sets the
 // ElementSpecsWithAndPlaceholder field of the passed component call.
 //
 // Depends on Checks: None
@@ -304,7 +307,7 @@ func (z *analyzer) AnalyzeElementWithAndPlaceholder(cc *file.ComponentCall) {
 //   - ComponentCalls.ElementSpecsWithAndPlaceholder
 //
 // Depends on Fields: None
-func (z *analyzer) AnalyzeCallComponentElementSpecsWithAndPlaceholder(cc *file.ComponentCall) {
+func (z *analyzer) AnalyzeComponentCall_ElementSpecsWithAndPlaceholder(cc *file.ComponentCall) {
 	if cc.Component == nil {
 		cc.ElementSpecsWithAndPlaceholder.SetFailed()
 		return

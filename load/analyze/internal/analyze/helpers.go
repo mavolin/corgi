@@ -6,6 +6,7 @@ import (
 
 	"github.com/mavolin/corgi/v2/file"
 	"github.com/mavolin/corgi/v2/file/ast"
+	"github.com/mavolin/corgi/v2/file/switches"
 	"github.com/mavolin/corgi/v2/file/walk"
 	"github.com/mavolin/corgi/v2/load/analyze/internal/candidate"
 )
@@ -229,5 +230,151 @@ func (z *analyzer) cannotAttributes(
 		}
 
 		return walk.Continue
+	}
+}
+
+// ============================================================================
+// Resolved Value
+// ======================================================================================
+
+func (z *analyzer) classShorthandToAttributeValue(s *ast.ClassShorthand) file.Text {
+	var n int
+	for _, name := range s.Names {
+		n += len(name)
+	}
+
+	v := make(file.Text, 0, n)
+
+	for i, name := range s.Names {
+		if i > 0 {
+			last := v[len(v)-1]
+			if c, _ := last.(file.ConstantPart); c != "" {
+				v[len(v)-1] = c + " "
+			} else {
+				v = append(v, file.ConstantPart(" "))
+			}
+		}
+
+		v = z.shorthandToResolvedValue(v, name)
+	}
+
+	return slices.Clip(v)
+}
+
+func (z *analyzer) shorthandToResolvedValue(v file.Text, s ast.Shorthand) file.Text {
+	v = slices.Grow(v, len(s))
+	for i, n := range s {
+		switches.ShorthandNode(n,
+			func(n *ast.ShorthandInterpolation) {
+				v = append(v, (*file.ExpressionPart)(n.Expression))
+			},
+			func(n *ast.ShorthandText) {
+				if i == 0 && len(v) > 0 {
+					last := v[len(v)-1]
+					if c, _ := last.(file.ConstantPart); c != "" {
+						v[len(v)-1] = c + file.ConstantPart(n.Text)
+						return
+					}
+				}
+				v = append(v, file.ConstantPart(n.Text))
+			})
+	}
+	return v
+}
+
+func (z *analyzer) namedAttributeToResolvedValue(f *file.File, attrAST *ast.NamedAttribute) file.ResolvedValue {
+	if attrAST.Value == nil {
+		return file.ConstantBool(true)
+	}
+
+	expr := z.expressionFromAttributeValue(attrAST.Value)
+	return z.expressionToResolvedValue(f, expr)
+}
+
+func (z *analyzer) expressionToResolvedValue(f *file.File, expr *ast.Expression) file.ResolvedValue {
+	if len(expr.Nodes) == 1 {
+		n0 := expr.Nodes[0]
+		return switches.CodeNodeR(n0,
+			func(*ast.BlockFunction) file.ResolvedValue { return nil },
+			func(*ast.ComponentCall) file.ResolvedValue { return nil },
+			func(gc *ast.GoCode) file.ResolvedValue {
+				switch gc.Code {
+				case "true":
+					return file.ConstantBool(true)
+				case "false":
+					return file.ConstantBool(false)
+				default:
+					return nil
+				}
+			},
+			func(s *ast.String) file.ResolvedValue {
+				return z.stringToResolvedValue(s)
+			},
+			func(*ast.Ternary) file.ResolvedValue { return nil },
+			func(*ast.ZeroCoalescing) file.ResolvedValue { return nil },
+		)
+	}
+
+	typ, _ := InferType(f, expr)
+	switch typ {
+	case "bool":
+		return (*file.BoolExpression)(expr)
+	case "int", "int8", "int16", "int32", "int64",
+		"uint", "uint8", "uint16", "uint32", "uint64",
+		"float32", "float64", "string":
+		return file.Text{(*file.ExpressionPart)(expr)}
+	default:
+		return (*file.UndeterminedExpression)(expr)
+	}
+}
+
+func (z *analyzer) stringToResolvedValue(s *ast.String) file.Text {
+	v := make(file.Text, 0, len(s.Contents))
+
+	var last file.ConstantPart
+	for _, content := range s.Contents {
+		switches.StringNode(content,
+			func(content *ast.BadInterpolation) {
+				panic("analyzer called with file with parse errors: " + content.Start().String())
+			},
+			func(content *ast.CharacterEscape) { addConstant(&v, &last, string(content.Rune)) },
+			func(content *ast.CharacterReference) { addConstant(&v, &last, content.Chars) },
+			func(content *ast.ComponentCallInterpolation) {
+				last = ""
+				v = append(v, (*file.ComponentCallPart)(content.ComponentCall))
+			},
+			func(content *ast.ExpressionInterpolation) {
+				last = ""
+				v = append(v, (*file.ExpressionPart)(content.Expression))
+			},
+			func(content *ast.StringText) { addConstant(&v, &last, content.Text) })
+	}
+
+	return slices.Clip(v)
+}
+
+func addConstant(v *file.Text, last *file.ConstantPart, s string) {
+	if *last != "" {
+		*last += file.ConstantPart(s)
+		(*v)[len(*v)-1] = *last
+	} else {
+		*last = file.ConstantPart(s)
+		*v = append(*v, *last)
+	}
+}
+
+func (z *analyzer) expressionFromAttributeValue(v ast.AttributeValue) *ast.Expression {
+	for {
+		e := switches.AttributeValueR(v,
+			func(eav *ast.ExpressionAttributeValue) *ast.Expression {
+				return (*ast.Expression)(eav)
+			},
+			func(tav *ast.TypedAttributeValue) *ast.Expression {
+				v = tav.Value
+				return nil
+			})
+		if e != nil {
+			return e
+		}
 	}
 }
