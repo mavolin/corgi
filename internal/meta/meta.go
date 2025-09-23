@@ -6,6 +6,8 @@ import (
 	"strings"
 )
 
+var CLI = false
+
 // develVersion is the version string used for development builds.
 const develVersion = "devel"
 

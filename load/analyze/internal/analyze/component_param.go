@@ -8,6 +8,7 @@ import (
 	"github.com/mavolin/corgi/v2/file/ast"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
 	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
+	"github.com/mavolin/corgi/v2/internal/meta"
 )
 
 // AnalyzeComponentParameters analyzes the parameters of the given component.
@@ -124,19 +125,26 @@ func (z *analyzer) AnalyzeAttrTypeComponentParam(logger *slog.Logger, c *file.Co
 		fallthrough
 	default:
 		logger.Error("Use of unknown attribute type as component parameter type")
+		explanation := "This error most likely occurred, because the parser was extended to support a new attribute type, " +
+			"but the analyzer was not updated to support it.\n" +
+			"\n" +
+			"This is a bug, please open an issue."
+		if !meta.CLI {
+			explanation = "This error can occur in one of two ways:\n" +
+				"Most likely, at some place in the program, " +
+				"the value for this attribute type was set to an illegal value.\n" +
+				"It could also be that the parser was extended to support a new attribute type, " +
+				"but the analyzer was not updated to support it.\n" +
+				"\n" +
+				"In case of the latter: This is a bug, please open an issue."
+		}
 		z.Report(&diagnostic.Diagnostic{
 			Type:    diagnostic.InternalError,
 			Message: "component parameter: use of unknown attribute type",
 			Primary: []diagnostic.Annotation{
 				anno.Node(c.File, t.Name, "unknown attribute type"),
 			},
-			Explanation: "This error can occur in one of two ways:\n" +
-				"If you are not running the corgi CLI, most likely, at some place in the program, " +
-				"the value for this attribute type was set to an illegal value.\n" +
-				"It could also be that the parser was extended to support a new attribute type, " +
-				"but the analyzer was not updated to support it.\n" +
-				"\n" +
-				"In any case: If you are running the corgi CLI, please open an issue, this is a bug.",
+			Explanation: explanation,
 		})
 		return
 	}
