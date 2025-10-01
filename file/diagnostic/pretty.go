@@ -3,7 +3,6 @@ package diagnostic
 import (
 	"fmt"
 	"net/url"
-	"path/filepath"
 	"slices"
 	"strings"
 	"unicode"
@@ -22,7 +21,8 @@ type PrettyOptions struct {
 	//
 	// Default: 80
 	Width int
-	// TypeColors is a map of error types to
+	// TypeColors is a map of error types to color codes, used when Color is
+	// true.
 	//
 	// Default:
 	//  Error:   color.FgRed
@@ -32,7 +32,7 @@ type PrettyOptions struct {
 
 	// FileNamePrinter is a function that returns the name of the file.
 	//
-	// Default: f.PackagePath
+	// Default: f.PathInModule()
 	FileNamePrinter func(f *file.File) string
 
 	// DocsBaseURL is the base URL to the documentation.
@@ -57,9 +57,7 @@ func (o *PrettyOptions) applyDefaults() {
 		o.TypeColors = defaultTypeColors
 	}
 	if o.FileNamePrinter == nil {
-		o.FileNamePrinter = func(f *file.File) string {
-			return filepath.FromSlash(string("./" + f.PathInModule()))
-		}
+		o.FileNamePrinter = func(f *file.File) string { return string(f.PathInModule()) }
 	}
 	if o.DocsBaseURL == "" {
 		o.DocsBaseURL = "https://corgi.mavolin.co"
