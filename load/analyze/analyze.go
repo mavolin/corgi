@@ -109,7 +109,9 @@ func (o *Options) applyDefaults() {
 // Analyze fills the fields in the package's and the package's file's symbols
 // that are marked as analyzer fields.
 //
-// The package must be linked.
+// The package must be linked, possibly with errors.
+//
+// The package must not have any parser errors.
 //
 // If it returns an error, it is always of type [fileerr.List].
 func Analyze(p *file.Package, o Options) diagnostic.List {
