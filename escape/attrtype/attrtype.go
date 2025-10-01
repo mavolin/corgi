@@ -19,7 +19,7 @@ const (
 	// Text is an attribute containing text consumed by humans.
 	// Effectively, its only difference from Innocuous is that Text attributes
 	// should be localized while Innocuous attributes should not.
-	Text        // todo: remove
+	Text
 	Innocuous   // text attribute containing text consumed by machines
 	CSS         // CSS code
 	JS          // JS code

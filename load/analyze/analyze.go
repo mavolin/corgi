@@ -26,6 +26,7 @@ import (
 	"github.com/mavolin/corgi/v2/load/analyze/internal/context"
 )
 
+// todo: lint: inherited comment directives not attached to a scoped node
 // todo: contextual escapes (e.g. url): don't allow strings with interpolation as part of a larger expression, to avoid confusion (?) (maybe only if not in parentheses?)
 // todo: set AttributeReference.Analyzed
 // todo: check attributes are placed where allowed
@@ -91,6 +92,9 @@ import (
 // todo: comp interpolation must only write text
 // todo: BlockInstanceDefault has top-level and, but it's BlockInstance can't write
 //       attributes (same for top-level and placeholder)
+// todo: disallow gotos
+// todo: add underscores to checker names
+// todo: remove unnecessary pointers to file/component etc if can be gotten through child.Parent
 
 type Options struct {
 	// Logger is the logger used by the analyzer.
