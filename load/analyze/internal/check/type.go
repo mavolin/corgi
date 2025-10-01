@@ -10,9 +10,19 @@ import (
 	"github.com/mavolin/corgi/v2/file/walk"
 )
 
-func (ch *checker) CheckAttributeTypeAliasOnlyOnComponentParams(logger *slog.Logger, f *file.File, parents []*walk.Context, t *ast.Type) {
-	logger = logger.WithGroup("attribute_type-alias_only_on_component_params").
+func (ch *checker) CheckType(logger *slog.Logger, f *file.File, parents []*walk.Context, t *ast.Type) {
+	logger = logger.WithGroup("type").
 		With(slog.String("type_pos", t.Start().String()))
+
+	ch.CheckType_AttributeTypeAliasOnlyOnComponentParams(logger, f, parents, t)
+}
+
+// ============================================================================
+// Attribute Type-Alias Only Used On Component Parameters
+// ======================================================================================
+
+func (ch *checker) CheckType_AttributeTypeAliasOnlyOnComponentParams(logger *slog.Logger, f *file.File, parents []*walk.Context, t *ast.Type) {
+	logger = logger.WithGroup("attribute_type-alias_only_on_component_params")
 
 	attributeType, _ := t.Parsed.(*ast.AttributeType)
 	if attributeType == nil {

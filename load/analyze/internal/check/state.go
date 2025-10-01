@@ -12,18 +12,22 @@ func (ch *checker) CheckState() {
 	logger := ch.Logger.WithGroup("state")
 	logger.Info("Checking state variables")
 
-	ch.CheckStateDuplicates(logger)
+	ch.CheckState_Duplicates(logger)
 
 	for _, s := range ch.P.State {
 		logger := logger.With(
 			slog.String("file", string(s.File.Name)),
 			slog.String("name", string(s.Name())))
 
-		ch.CheckStateUnexported(logger, s)
+		ch.CheckState_Unexported(logger, s)
 	}
 }
 
-func (ch *checker) CheckStateDuplicates(logger *slog.Logger) {
+// ============================================================================
+// Duplicate State Variable Names
+// ======================================================================================
+
+func (ch *checker) CheckState_Duplicates(logger *slog.Logger) {
 	logger = logger.WithGroup("duplicates")
 
 	if len(ch.P.State) <= 1 {
@@ -71,7 +75,11 @@ func (ch *checker) CheckStateDuplicates(logger *slog.Logger) {
 	}
 }
 
-func (ch *checker) CheckStateUnexported(logger *slog.Logger, s *file.State) {
+// ============================================================================
+// No Exported State Variables
+// ======================================================================================
+
+func (ch *checker) CheckState_Unexported(logger *slog.Logger, s *file.State) {
 	logger = logger.WithGroup("unexported")
 
 	if s.Name().Exported() {

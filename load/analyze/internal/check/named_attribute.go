@@ -11,22 +11,19 @@ import (
 	"github.com/mavolin/corgi/v2/file/switches"
 )
 
-func (ch *checker) CheckAttribute(logger *slog.Logger, f *file.File, attr *file.Attribute) {
-	switch attrAST := attr.AST.(type) {
-	case *ast.NamedAttribute:
-		ch.CheckClassAlwaysInnocuous(logger, f, attr, attrAST)
-		ch.CheckNoInterpolationInUnsafeAttribute(logger, f, attr, attrAST)
-		ch.CheckNonBoolAttributeSpecifiedAsBool(logger, f, attr, attrAST)
-		ch.CheckBoolAttributeSetToNonBoolExpression(logger, f, attr, attrAST)
-		ch.CheckSuperfluousAttributeNameOnAttributeType(logger, f, attrAST)
-	}
+func (ch *checker) CheckNamedAttribute(logger *slog.Logger, f *file.File, attr *file.Attribute, attrAST *ast.NamedAttribute) {
+	ch.CheckNamedAttribute_ClassAlwaysInnocuous(logger, f, attr, attrAST)
+	ch.CheckNamedAttribute_NoInterpolationInUnsafeAttribute(logger, f, attr, attrAST)
+	ch.CheckNamedAttribute_NonBoolAttributeSpecifiedAsBool(logger, f, attr, attrAST)
+	ch.CheckNamedAttribute_BoolAttributeSetToNonBoolExpression(logger, f, attr, attrAST)
+	ch.CheckNamedAttribute_SuperfluousAttributeNameOnAttributeType(logger, f, attrAST)
 }
 
 // ============================================================================
 // Class Attribute is Always Typed as Innocuous
 // ======================================================================================
 
-func (ch *checker) CheckClassAlwaysInnocuous(
+func (ch *checker) CheckNamedAttribute_ClassAlwaysInnocuous(
 	logger *slog.Logger, f *file.File, attr *file.Attribute, attrAST *ast.NamedAttribute,
 ) {
 	logger = logger.WithGroup("class_not_typed")
@@ -120,7 +117,7 @@ func (ch *checker) CheckClassAlwaysInnocuous(
 	// AST types were extended?
 	ch.Report(&diagnostic.Diagnostic{
 		Type:    diagnostic.InternalError,
-		Message: "analyze.CheckClassAlwaysInnocuous: attribute is neither explicitly typed nor attached to a definition",
+		Message: "analyze.CheckNamedAttribute_ClassAlwaysInnocuous: attribute is neither explicitly typed nor attached to a definition",
 		Primary: []diagnostic.Annotation{
 			anno.Node(f, attrAST.Name, "typed by analyzer as `"+typ.String()+"`"),
 		},
@@ -144,7 +141,9 @@ func (ch *checker) CheckClassAlwaysInnocuous(
 // No Interpolation in an Unsafe Attribute Value
 // ======================================================================================
 
-func (ch *checker) CheckNoInterpolationInUnsafeAttribute(logger *slog.Logger, f *file.File, attr *file.Attribute, attrAST *ast.NamedAttribute) {
+func (ch *checker) CheckNamedAttribute_NoInterpolationInUnsafeAttribute(
+	logger *slog.Logger, f *file.File, attr *file.Attribute, attrAST *ast.NamedAttribute,
+) {
 	logger = logger.WithGroup("no_interpolation_in_unsafe")
 
 	if !attr.Type.Equal(attrtype.Unsafe) {
@@ -207,7 +206,9 @@ func (ch *checker) CheckNoInterpolationInUnsafeAttribute(logger *slog.Logger, f 
 // Non-bool Attribute Set Using Bool Shorthand
 // ======================================================================================
 
-func (ch *checker) CheckNonBoolAttributeSpecifiedAsBool(logger *slog.Logger, f *file.File, attr *file.Attribute, attrAST *ast.NamedAttribute) {
+func (ch *checker) CheckNamedAttribute_NonBoolAttributeSpecifiedAsBool(
+	logger *slog.Logger, f *file.File, attr *file.Attribute, attrAST *ast.NamedAttribute,
+) {
 	logger = logger.WithGroup("non_bool_attribute_specified_as_bool")
 
 	if attr.Type.Failed() {
@@ -243,7 +244,7 @@ func (ch *checker) CheckNonBoolAttributeSpecifiedAsBool(logger *slog.Logger, f *
 	} else {
 		ch.Report(&diagnostic.Diagnostic{
 			Type:    diagnostic.InternalError,
-			Message: "analyze.CheckNonBoolAttributeSpecifiedAsBool: attribute not attached to definition",
+			Message: "analyze.CheckNamedAttribute_NonBoolAttributeSpecifiedAsBool: attribute not attached to definition",
 			Primary: []diagnostic.Annotation{
 				anno.Node(f, attrAST.Name, "typed by analyzer as `"+typ.String()+"`"),
 			},
@@ -271,7 +272,9 @@ func (ch *checker) CheckNonBoolAttributeSpecifiedAsBool(logger *slog.Logger, f *
 // Bool Attribute Set to Non-bool Expression
 // ======================================================================================
 
-func (ch *checker) CheckBoolAttributeSetToNonBoolExpression(logger *slog.Logger, f *file.File, attr *file.Attribute, attrAST *ast.NamedAttribute) {
+func (ch *checker) CheckNamedAttribute_BoolAttributeSetToNonBoolExpression(
+	logger *slog.Logger, f *file.File, attr *file.Attribute, attrAST *ast.NamedAttribute,
+) {
 	logger = logger.WithGroup("bool_attribute_set_to_non_bool_expression")
 
 	ok := switches.ResolvedValueR(attr.Value,
@@ -358,7 +361,9 @@ func (ch *checker) expressionFromAttributeValue(v ast.AttributeValue) *ast.Expre
 // Constantly False Boolean Attribute
 // ======================================================================================
 
-func (ch *checker) CheckConstantlyFalseBooleanAttribute(logger *slog.Logger, f *file.File, attr *file.Attribute, attrAST *ast.NamedAttribute) {
+func (ch *checker) CheckNamedAttribute_ConstantlyFalseBooleanAttribute(
+	logger *slog.Logger, f *file.File, attr *file.Attribute, attrAST *ast.NamedAttribute,
+) {
 	logger = logger.WithGroup("constantly_false_boolean_attribute")
 
 	c, ok := attr.Value.(file.ConstantBool)
@@ -381,7 +386,7 @@ func (ch *checker) CheckConstantlyFalseBooleanAttribute(logger *slog.Logger, f *
 // Superfluous Attribute Name Attached To Attribute Type
 // ======================================================================================
 
-func (ch *checker) CheckSuperfluousAttributeNameOnAttributeType(logger *slog.Logger, f *file.File, a *ast.NamedAttribute) {
+func (ch *checker) CheckNamedAttribute_SuperfluousAttributeNameOnAttributeType(logger *slog.Logger, f *file.File, a *ast.NamedAttribute) {
 	logger = logger.WithGroup("superfluous_attribute_name_on_attribute_type")
 
 	tv, _ := a.Value.(*ast.TypedAttributeValue)

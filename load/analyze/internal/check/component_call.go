@@ -24,16 +24,16 @@ func (ch *checker) CheckComponentCalls() {
 				slog.String("call_name", cc.AST.Header.Name.Full()),
 				slog.String("call_pos", cc.AST.Start().String()))
 
-			ch.CheckComponentCallBody(logger, cc)
-			ch.CheckUnreachableWiths(logger, cc)
-			ch.CheckWithNotLooped(logger, cc)
+			ch.CheckComponentCall_Body(logger, cc)
+			ch.CheckComponentCall_UnreachableWiths(logger, cc)
+			ch.CheckComponentCall_WithNotLooped(logger, cc)
 
-			ch.CheckRequiredBlocksAreSet(logger, cc)
+			ch.CheckComponentCall_RequiredBlocksAreSet(logger, cc)
 		}
 	}
 }
 
-func (ch *checker) CheckComponentCallBody(logger *slog.Logger, cc *file.ComponentCall) {
+func (ch *checker) CheckComponentCall_Body(logger *slog.Logger, cc *file.ComponentCall) {
 	logger = logger.WithGroup("body")
 
 	var scope *ast.Scope
@@ -72,7 +72,11 @@ func (ch *checker) CheckComponentCallBody(logger *slog.Logger, cc *file.Componen
 	})
 }
 
-func (ch *checker) CheckUnreachableWiths(logger *slog.Logger, cc *file.ComponentCall) {
+// ============================================================================
+// Unreachable Withs
+// ======================================================================================
+
+func (ch *checker) CheckComponentCall_UnreachableWiths(logger *slog.Logger, cc *file.ComponentCall) {
 	logger = logger.WithGroup("unreachable_withs")
 
 	if len(cc.BlockSetters) == 0 {
@@ -130,7 +134,11 @@ func (ch *checker) CheckUnreachableWiths(logger *slog.Logger, cc *file.Component
 	}
 }
 
-func (ch *checker) CheckWithNotLooped(logger *slog.Logger, cc *file.ComponentCall) {
+// ============================================================================
+// Withs Must Not Be Looped
+// ======================================================================================
+
+func (ch *checker) CheckComponentCall_WithNotLooped(logger *slog.Logger, cc *file.ComponentCall) {
 	logger = logger.WithGroup("with_not_looped")
 
 	if len(cc.BlockSetters) == 0 {
@@ -168,7 +176,11 @@ func (ch *checker) CheckWithNotLooped(logger *slog.Logger, cc *file.ComponentCal
 	}, walk.DontDive[*ast.ComponentCall]())
 }
 
-func (ch *checker) CheckRequiredBlocksAreSet(logger *slog.Logger, cc *file.ComponentCall) {
+// ============================================================================
+// Required Blocks Are Set
+// ======================================================================================
+
+func (ch *checker) CheckComponentCall_RequiredBlocksAreSet(logger *slog.Logger, cc *file.ComponentCall) {
 	logger = logger.WithGroup("required_blocks_set")
 
 	if cc.Component == nil {
@@ -176,7 +188,7 @@ func (ch *checker) CheckRequiredBlocksAreSet(logger *slog.Logger, cc *file.Compo
 	}
 
 	for _, block := range cc.Component.Blocks {
-		if block.Required.Equal(false) {
+		if block.Required().Equal(false) {
 			continue
 		} else if cc.BlockSetterByName(block.Name) != nil {
 			continue

@@ -13,14 +13,18 @@ import (
 func (ch *checker) CheckComponentCallArguments(logger *slog.Logger, cc *file.ComponentCall) {
 	logger = logger.WithGroup("arguments")
 
-	ch.CheckComponentArgsExist(logger, cc)
-	ch.CheckNoDuplicateComponentArgs(logger, cc)
-	ch.CheckRequiredComponentParamsSet(logger, cc)
-	ch.CheckComponentAcceptsAttributes(logger, cc)
-	ch.CheckNoInterpolationInUnsafeTypedArguments(logger, cc)
+	ch.CheckComponentCallArgument_Exist(logger, cc)
+	ch.CheckComponentCallArgument_NoDuplicates(logger, cc)
+	ch.CheckComponentCallArgument_RequiredSet(logger, cc)
+	ch.CheckComponentCallArgument_AcceptsAttributes(logger, cc)
+	ch.CheckComponentCallArgument_NoInterpolationInUnsafeTypedArguments(logger, cc)
 }
 
-func (ch *checker) CheckNoDuplicateComponentArgs(logger *slog.Logger, cc *file.ComponentCall) {
+// ============================================================================
+// No Duplicate Arguments
+// ======================================================================================
+
+func (ch *checker) CheckComponentCallArgument_NoDuplicates(logger *slog.Logger, cc *file.ComponentCall) {
 	logger = logger.WithGroup("no_duplicate_args")
 
 	if cc.Component == nil {
@@ -60,7 +64,11 @@ func (ch *checker) CheckNoDuplicateComponentArgs(logger *slog.Logger, cc *file.C
 	}
 }
 
-func (ch *checker) CheckComponentArgsExist(logger *slog.Logger, cc *file.ComponentCall) {
+// ============================================================================
+// All Arguments Exist
+// ======================================================================================
+
+func (ch *checker) CheckComponentCallArgument_Exist(logger *slog.Logger, cc *file.ComponentCall) {
 	logger = logger.WithGroup("args_exist")
 
 	if cc.Component == nil {
@@ -92,7 +100,11 @@ func (ch *checker) CheckComponentArgsExist(logger *slog.Logger, cc *file.Compone
 	}
 }
 
-func (ch *checker) CheckRequiredComponentParamsSet(logger *slog.Logger, cc *file.ComponentCall) {
+// ============================================================================
+// Required Arguments Are Set
+// ======================================================================================
+
+func (ch *checker) CheckComponentCallArgument_RequiredSet(logger *slog.Logger, cc *file.ComponentCall) {
 	logger = logger.WithGroup("required_params_set")
 
 	if cc.Component == nil {
@@ -125,7 +137,11 @@ func (ch *checker) CheckRequiredComponentParamsSet(logger *slog.Logger, cc *file
 	}
 }
 
-func (ch *checker) CheckComponentAcceptsAttributes(logger *slog.Logger, cc *file.ComponentCall) {
+// ============================================================================
+// Component Accepts Attributes, If Receives Any
+// ======================================================================================
+
+func (ch *checker) CheckComponentCallArgument_AcceptsAttributes(logger *slog.Logger, cc *file.ComponentCall) {
 	logger = logger.WithGroup("component_accepts_attributes")
 
 	if cc.Component == nil {
@@ -179,8 +195,12 @@ func (ch *checker) CheckComponentAcceptsAttributes(logger *slog.Logger, cc *file
 	ch.Report(diag)
 }
 
-func (ch *checker) CheckNoInterpolationInUnsafeTypedArguments(logger *slog.Logger, cc *file.ComponentCall) {
-	logger = logger.WithGroup("no_interpolation_in_unsafe_typed_args")
+// ============================================================================
+// No Interpolation In Unsafe-Typed Arguments
+// ======================================================================================
+
+func (ch *checker) CheckComponentCallArgument_NoInterpolationInUnsafeTypedArguments(logger *slog.Logger, cc *file.ComponentCall) {
+	logger = logger.WithGroup("no_interpolation_in_unsafe-typed_args")
 
 	if cc.Component == nil {
 		return

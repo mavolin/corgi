@@ -2,8 +2,6 @@ package check
 
 import (
 	"log/slog"
-	"unicode"
-	"unicode/utf8"
 
 	"github.com/mavolin/corgi/v2/file"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
@@ -20,20 +18,11 @@ func (ch *checker) CheckComponents() {
 			slog.String("comp", c.AST.Header.Name.Name),
 			slog.String("comp_pos", c.AST.Start().String()))
 
-		ch.CheckDuplicateComponentParams(logger, c)
-		ch.CheckReservedComponentNames(logger, c)
-		ch.CheckDataComponent(logger, c)
+		ch.CheckComponent_DuplicateParams(logger, c)
+		ch.CheckComponent_ReservedNames(logger, c)
+		ch.CheckComponent_NoDataComponent(logger, c)
 
-		for _, param := range c.Parameters {
-			logger := logger.With(
-				slog.String("param", string(param.Name)),
-				slog.String("param_pos", param.AST.Name.Start().String()))
-
-			ch.CheckReservedComponentParamName(logger, c, param)
-			ch.CheckUpperComponentParamName(logger, c, param)
-			ch.CheckUnderscoreComponentParamName(logger, c, param)
-		}
-
+		ch.CheckComponentParameters(logger, c)
 		ch.CheckBlocks(logger, c)
 	}
 }
@@ -42,7 +31,7 @@ func (ch *checker) CheckComponents() {
 // Duplicate Component Parameter Names
 // ======================================================================================
 
-func (ch *checker) CheckDuplicateComponentParams(logger *slog.Logger, c *file.Component) {
+func (ch *checker) CheckComponent_DuplicateParams(logger *slog.Logger, c *file.Component) {
 	logger = logger.WithGroup("duplicate_params")
 
 	if len(c.Parameters) < 2 {
@@ -77,7 +66,7 @@ func (ch *checker) CheckDuplicateComponentParams(logger *slog.Logger, c *file.Co
 // Reserved Component Names
 // ======================================================================================
 
-func (ch *checker) CheckReservedComponentNames(logger *slog.Logger, c *file.Component) {
+func (ch *checker) CheckComponent_ReservedNames(logger *slog.Logger, c *file.Component) {
 	logger = logger.WithGroup("reserved_names")
 
 	name := c.AST.Header.Name.Name
@@ -96,71 +85,10 @@ func (ch *checker) CheckReservedComponentNames(logger *slog.Logger, c *file.Comp
 }
 
 // ============================================================================
-// Uppercase Component Parameter Names
-// ======================================================================================
-
-func (ch *checker) CheckUpperComponentParamName(logger *slog.Logger, c *file.Component, param *file.ComponentParameter) {
-	logger = logger.WithGroup("no_upper_names")
-
-	r, _ := utf8.DecodeRuneInString(string(param.Name))
-	if unicode.IsUpper(r) {
-		logger.Error("Component parameter uses uppercase name")
-		ch.Report(&diagnostic.Diagnostic{
-			Message: "component parameter: use of uppercase name",
-			Primary: []diagnostic.Annotation{
-				anno.NRunes(c.File, c.AST.Header.Name.Start(), 1, "this letter must not be uppercase"),
-			},
-			Hints: []diagnostic.Hint{{Hint: "Rename this parameter."}},
-		})
-	}
-}
-
-// ============================================================================
-// Component Parameter Starts With Underscore
-// ======================================================================================
-
-func (ch *checker) CheckUnderscoreComponentParamName(logger *slog.Logger, c *file.Component, param *file.ComponentParameter) {
-	logger = logger.WithGroup("no_underscore_names")
-
-	if param.Name[0] == '_' {
-		logger.Error("Component parameter uses name starting with an underscore")
-		ch.Report(&diagnostic.Diagnostic{
-			Message: "component parameter: use of name with underscore-prefix",
-			Primary: []diagnostic.Annotation{
-				anno.NRunes(c.File, c.AST.Header.Name.Start(), 1, "cannot use an underscore as first letter"),
-			},
-			Hints: []diagnostic.Hint{{Hint: "Rename this parameter."}},
-		})
-	}
-}
-
-// ============================================================================
-// Component Parameter Uses Reserved Name
-// ======================================================================================
-
-func (ch *checker) CheckReservedComponentParamName(logger *slog.Logger, c *file.Component, param *file.ComponentParameter) {
-	logger = logger.WithGroup("reserved_param_name")
-
-	name := param.Name
-	if name != "ctx" {
-		return
-	}
-
-	logger.Error("Component parameter uses reserved name")
-	ch.Report(&diagnostic.Diagnostic{
-		Message: "component parameter uses reserved name",
-		Primary: []diagnostic.Annotation{
-			anno.Node(c.File, param.AST.Name, "`"+string(name)+"` is a reserved name"),
-		},
-		Hints: []diagnostic.Hint{{Hint: "Rename this parameter."}},
-	})
-}
-
-// ============================================================================
 // For Every Component Foo, No FooData Component Exists
 // ======================================================================================
 
-func (ch *checker) CheckDataComponent(logger *slog.Logger, c *file.Component) {
+func (ch *checker) CheckComponent_NoDataComponent(logger *slog.Logger, c *file.Component) {
 	logger = logger.WithGroup("no_data_component")
 
 	name := c.Name

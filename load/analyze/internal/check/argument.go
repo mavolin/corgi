@@ -19,8 +19,8 @@ func (ch *checker) CheckArguments(logger *slog.Logger, f *file.File, _ []*walk.C
 			slog.String("arg_type", fmt.Sprintf("%T", arg)))
 
 		switch arg := arg.(type) {
-		case ast.Attribute:
-			ch.CheckAttribute(logger, f, f.AttributeByNode(arg))
+		case *ast.NamedAttribute:
+			ch.CheckNamedAttribute(logger, f, f.AttributeByNode(arg), arg)
 		}
 	}
 }

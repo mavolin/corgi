@@ -92,9 +92,6 @@ import (
 // todo: comp interpolation must only write text
 // todo: BlockInstanceDefault has top-level and, but it's BlockInstance can't write
 //       attributes (same for top-level and placeholder)
-// todo: disallow gotos
-// todo: add underscores to checker names
-// todo: remove unnecessary pointers to file/component etc if can be gotten through child.Parent
 
 type Options struct {
 	// Logger is the logger used by the analyzer.

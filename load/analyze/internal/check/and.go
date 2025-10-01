@@ -10,33 +10,32 @@ import (
 	"github.com/mavolin/corgi/v2/file/walk"
 )
 
-func (ch *checker) CheckElement(logger *slog.Logger, f *file.File, _ []*walk.Context, e *ast.Element) {
-	logger = logger.WithGroup("element").With(
-		slog.String("element", e.Header.Name.Name.Name),
-		slog.String("element_pos", e.Header.Name.Start().String()))
+func (ch *checker) CheckAnd(logger *slog.Logger, f *file.File, _ []*walk.Context, a *ast.And) {
+	logger = logger.WithGroup("and").
+		With(slog.String("and_pos", a.Start().String()))
 
-	ch.CheckElement_NoEmptyAttributeList(logger, f, e)
-	ch.CheckElement_AttributeListContainsOnlyAttributes(logger, f, e)
+	ch.CheckAnd_NoEmptyAttributeList(logger, f, a)
+	ch.CheckAnd_ContainsOnlyAttributes(logger, f, a)
 }
 
 // ============================================================================
 // No Empty Attribute List, But Present Parentheses
 // ======================================================================================
 
-func (ch *checker) CheckElement_NoEmptyAttributeList(logger *slog.Logger, f *file.File, e *ast.Element) {
+func (ch *checker) CheckAnd_NoEmptyAttributeList(logger *slog.Logger, f *file.File, a *ast.And) {
 	logger = logger.WithGroup("no_empty_attribute_list")
 
-	if e.Header.Attributes == nil {
+	if a.Attributes == nil {
 		return
-	} else if len(e.Header.Attributes.List) > 0 {
+	} else if len(a.Attributes.List) > 0 {
 		return
 	}
 
 	logger.Error("Empty attribute list")
 	ch.Report(&diagnostic.Diagnostic{
-		Message: "element: empty attribute list",
+		Message: "and: empty attribute list",
 		Primary: []diagnostic.Annotation{
-			anno.Node(f, e.Header.Attributes, "remove this empty attribute list"),
+			anno.Node(f, a.Attributes, "remove this empty attribute list"),
 		},
 		Hints: []diagnostic.Hint{
 			{Hint: "The formatter (`corgi fmt`) can automatically fix this error."},
@@ -45,17 +44,17 @@ func (ch *checker) CheckElement_NoEmptyAttributeList(logger *slog.Logger, f *fil
 }
 
 // ============================================================================
-// Attribute List Contains Only Attributes, No Component Arguments
+// Contains Only Attributes, No Component Arguments
 // ======================================================================================
 
-func (ch *checker) CheckElement_AttributeListContainsOnlyAttributes(logger *slog.Logger, f *file.File, e *ast.Element) {
-	logger = logger.WithGroup("attribute_list_contains_only_attributes")
+func (ch *checker) CheckAnd_ContainsOnlyAttributes(logger *slog.Logger, f *file.File, a *ast.And) {
+	logger = logger.WithGroup("contains_only_attributes")
 
-	if e.Header.Attributes == nil {
+	if a.Attributes == nil {
 		return
 	}
 
-	for _, arg := range e.Header.Attributes.List {
+	for _, arg := range a.Attributes.List {
 		logger := logger.With(slog.String("pos", arg.Start().String()))
 
 		if _, ok := arg.(ast.Attribute); ok {
@@ -64,15 +63,12 @@ func (ch *checker) CheckElement_AttributeListContainsOnlyAttributes(logger *slog
 
 		logger.Error("Attribute list contains non-attribute")
 		ch.Report(&diagnostic.Diagnostic{
-			Message: "element: attribute list contains non-attribute",
+			Message: "and: attribute list contains non-attribute",
 			Primary: []diagnostic.Annotation{
 				anno.Node(f, arg, "this is not an attribute"),
 			},
 			Hints: []diagnostic.Hint{
-				{
-					Hint: "If this is supposed to be a component call, " +
-						"remember to add a colon (`:`) before the component name.",
-				},
+				{Hint: "The formatter (`corgi fmt`) can automatically fix this error."},
 			},
 		})
 	}

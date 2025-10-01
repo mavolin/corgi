@@ -59,7 +59,7 @@ func (ch *checker) CheckScope() {
 			case *ast.Statement:
 				ch.CheckStatement(logger, f, w.Parents, n)
 			case *ast.Type:
-				ch.CheckAttributeTypeAliasOnlyOnComponentParams(logger, f, w.Parents, n)
+				ch.CheckType_AttributeTypeAliasOnlyOnComponentParams(logger, f, w.Parents, n)
 			}
 			return walk.Continue
 		})

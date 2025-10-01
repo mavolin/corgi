@@ -15,11 +15,14 @@ func (ch *checker) CheckStatement(logger *slog.Logger, f *file.File, parents []*
 	logger = logger.WithGroup("statements").
 		With("statement_pos", s.Start().String())
 
-	ch.CheckNoGoto(logger, parents, f, s)
-	ch.CheckFallthroughOnlyInSwitch(logger, parents, f, s)
+	ch.CheckStatement_NoGoto(logger, parents, f, s)
 }
 
-func (ch *checker) CheckNoGoto(logger *slog.Logger, parents []*walk.Context, f *file.File, s *ast.Statement) {
+// ============================================================================
+// No Goto Statements
+// ======================================================================================
+
+func (ch *checker) CheckStatement_NoGoto(logger *slog.Logger, parents []*walk.Context, f *file.File, s *ast.Statement) {
 	logger = logger.WithGroup("no_goto")
 
 	if s.Parsed != nil {
@@ -50,30 +53,4 @@ func (ch *checker) CheckNoGoto(logger *slog.Logger, parents []*walk.Context, f *
 			Explanation: explanation,
 		})
 	}
-}
-
-func (ch *checker) CheckFallthroughOnlyInSwitch(logger *slog.Logger, parents []*walk.Context, f *file.File, s *ast.Statement) {
-	logger = logger.WithGroup("fallthrough_only_in_switch").
-		With("statement_pos", s.Start().String())
-
-	if s.Parsed == nil {
-		return
-	}
-	ft, _ := s.Parsed.(*ast.Fallthrough)
-	if ft == nil {
-		return
-	}
-
-	sw := walk.Closest[*ast.Case](parents)
-	if sw != nil {
-		return
-	}
-
-	logger.Error("Illegal use of fallthrough statement outside of switch case")
-	ch.Report(&diagnostic.Diagnostic{
-		Message: "fallthrough statement outside of switch case",
-		Primary: []diagnostic.Annotation{
-			anno.Node(f, ft, "`fallthrough`s can only be used inside a switch case"),
-		},
-	})
 }
