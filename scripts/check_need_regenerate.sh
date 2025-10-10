@@ -11,15 +11,15 @@ main() {
 
 check_file() {
   local file="$1"
-  local package; package="$(dirname "$file")" || return $?
-  package="$(cd "$package" && pwd)" || return $?
+  local package; package="$(dirname "$file")"
+  package="$(cd "$package" && pwd)"
 
-  local hash_file; hash_file="$(mktemp)" || return $?
+  local hash_file; hash_file="$(mktemp)"
   trap 'rm -f "'"$hash_file"'"' EXIT
 
   sha256sum "$file" > "$hash_file"
 
-  local backup_file; backup_file="$(mktemp)" || return $?
+  local backup_file; backup_file="$(mktemp)"
   trap 'rm -f "'"$backup_file"'"' EXIT
 
   cp "$file" "$backup_file"
