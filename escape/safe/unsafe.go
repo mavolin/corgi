@@ -1,5 +1,7 @@
 package safe
 
+import _ "unsafe" // for go:linkname
+
 type (
 	// Unsafe represents a value for an attribute that is marked as unsafe.
 	// When used, it must be the complete value of the attribute; it cannot be
@@ -9,11 +11,8 @@ type (
 	//
 	// Use this type with special care.
 	// Unsafe attributes are marked unsafe for a reason.
-	// If you don't understand why a value is marked as unsafe, simply wrapping
-	// it in this type to still include it in the template output is _not_ the
-	// solution.
 	// If you do need to use this type, place special care in ensuring that the
-	// value you are using is safe, e.g. through validation.
+	// value you are using is safe, e.g. through further validation.
 	Unsafe struct {
 		attr string // name of the attribute
 		val  string
@@ -24,35 +23,41 @@ type (
 	//
 	// Use this type with special care.
 	// Unsafe attributes are marked unsafe for a reason.
-	// If you don't understand why a value is marked as unsafe, simply wrapping
-	// it in this type to still include it in the template output is _not_ the
-	// solution.
-	// If you need to use this type, place special care in ensuring that the
-	// value you are using is safe and doesn't pose any security implications.
 	UnsafeBool struct {
 		attr string // name of the attribute
 		val  bool
 	}
 )
 
-// TrustedUnsafe creates a new Unsafe value from the given trusted string,
-// considered safe only for the passed attribute.
+// ConstantUnsafe creates a new Unsafe wrapper from the given string constant.
 //
-// Only use this function if you have read the package documentation and are
-// sure that the passed string satisfies the requirements for an Unsafe.
-func TrustedUnsafe(attr, val string) Unsafe { return Unsafe{attr: attr, val: val} }
-
-// TrustedUnsafeBool creates a new Unsafe boolean from the given value,
-// considered safe only for the passed attribute.
-//
-// Only use this function if you have read the package documentation and are
-// sure that the passed string satisfies the requirements for an Unsafe.
-func TrustedUnsafeBool(attr string, val bool) UnsafeBool {
-	return UnsafeBool{attr: attr, val: val}
+// Before using this function, read the documentation of [Unsafe].
+func ConstantUnsafe(attr, c constant) Unsafe {
+	return trustedUnsafe(string(attr), string(c))
 }
+
+// UnsafeTrue creates a new UnsafeBool wrapper with value true.
+//
+// Before using this function, read the documentation of [UnsafeBool].
+func UnsafeTrue(attr constant) UnsafeBool {
+	return trustedUnsafeBool(string(attr), true)
+}
+
+// UnsafeFalse creates a new UnsafeBool wrapper with value false.
+//
+// Before using this function, read the documentation of [UnsafeBool].
+func UnsafeFalse(attr constant) UnsafeBool {
+	return trustedUnsafeBool(string(attr), false)
+}
+
+//go:linkname trustedUnsafe
+func trustedUnsafe(attr, s string) Unsafe { return Unsafe{val: s, attr: attr} }
+
+//go:linkname trustedUnsafeBool
+func trustedUnsafeBool(attr string, val bool) UnsafeBool { return UnsafeBool{val: val, attr: attr} }
 
 func (a Unsafe) Get() string  { return a.val }
 func (a Unsafe) Attr() string { return a.attr }
 
-func (a UnsafeBool) Escaped() bool { return a.val }
-func (a UnsafeBool) Attr() string  { return a.attr }
+func (a UnsafeBool) Get() bool    { return a.val }
+func (a UnsafeBool) Attr() string { return a.attr }

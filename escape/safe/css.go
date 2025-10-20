@@ -1,59 +1,125 @@
 package safe
 
+import (
+	"fmt"
+	"image/color"
+	"strconv"
+	"strings"
+
+	_ "unsafe" // for go:linkname
+)
+
 type (
-	// CSSValue encapsulates known safe CSS3 value that can safely be embedded
-	// in a style element.
+	// CSSValue represents a known safe CSS3 value that can be used on the
+	// right-hand side of a CSS property.
 	//
-	// See https://www.w3.org/TR/css3-syntax/#parsing and
-	// https://web.archive.org/web/20090211114933/http://w3.org/TR/css3-syntax#style
+	// It never contains a literal '<'.
 	CSSValue struct{ val string }
 
 	// CSSDeclarations encapsulates a known safe terminated CSS3 declaration
 	// block.
 	// Unless empty, it must be terminated by a semicolon.
-	CSSDeclarations struct{ val string }
-
-	// A CSSRuleSet encapsulates a known safe CSS3 ruleset or other top-level,
-	// positionally independent CSS constructs, e.g. media queries or
-	// animations.
 	//
-	// Unlike [Stylesheet], multiple [CSSRuleSet] values must be safe to
-	// concatenate.
-	CSSRuleSet struct{ val string }
+	// It never contains a literal '<'.
+	CSSDeclarations struct{ val string }
 
 	// A Stylesheet is a known safe CSS3 stylesheet.
 	//
 	// Stylesheets cannot be concatenated, as they might contain positional
 	// at-rules, which are usually only allowed at the top of a stylesheet.
+	//
+	// A valid Stylesheet never contains a literal '<'.
 	Stylesheet struct{ val string }
 )
 
-// TrustedCSSValue creates a new CSSValue from the given trusted string.
+// ConstantCSSValue creates a new CSSValue wrapper from the given string
+// constant.
 //
-// Only use this function if you have read the package documentation and are
-// sure that the passed string satisfies the requirements for a CSSValue.
-func TrustedCSSValue(s string) CSSValue { return CSSValue{val: s} }
+// Before using this function, read the documentation of [CSSValue].
+func ConstantCSSValue(c constant) CSSValue {
+	s := string(c)
+	if strings.ContainsRune(s, '<') {
+		panic("CSSValue must not contain literal '<'")
+	}
+	return trustedCSSValue(s)
+}
 
-// TrustedCSSDeclarations creates a new CSSDeclarations from the given trusted
-// string.
+// CSSInt returns a CSSValue representing the given integer number.
+func CSSInt(n int) CSSValue {
+	return trustedCSSValue(strconv.Itoa(n))
+}
+
+// CSSFloat returns a CSSValue representing the given floating point number.
+func CSSFloat(f float64) CSSValue {
+	return trustedCSSValue(strconv.FormatFloat(f, 'f', -1, 64))
+}
+
+// CSSColor returns a CSSValue representing the given color in CSS syntax.
 //
-// Only use this function if you have read the package documentation and are
-// sure that the passed string satisfies the requirements for CSSDeclarations.
-func TrustedCSSDeclarations(s string) CSSDeclarations { return CSSDeclarations{val: s} }
+// Before using this function, read the documentation of [CSSValue].
+func CSSColor(c color.Color) CSSValue {
+	nrgba := color.NRGBAModel.Convert(c).(color.NRGBA) //nolint:errcheck
+	if nrgba.A == 255 {
+		// Opaque color
+		return trustedCSSValue(fmt.Sprintf("#%02x%02x%02x", nrgba.R, nrgba.G, nrgba.B))
+	}
+	return trustedCSSValue(fmt.Sprintf("#%02x%02x%02x%02x", nrgba.R, nrgba.G, nrgba.B, nrgba.A))
+}
 
-// TrustedCSSRuleSet creates a new CSSRuleSet from the given trusted string.
+// ConstantCSSDeclarations creates a new CSSDeclarations wrapper from the given
+// string constant.
 //
-// Only use this function if you have read the package documentation and are
-// sure that the passed string satisfies the requirements for a CSSRuleSet.
-func TrustedCSSRuleSet(s string) CSSRuleSet { return CSSRuleSet{val: s} }
+// Before using this function, read the documentation of [CSSDeclarations].
+func ConstantCSSDeclarations(c constant) CSSDeclarations {
+	s := string(c)
+	if s != "" && s[len(s)-1] != ';' {
+		panic("CSSDeclarations must be terminated by a semicolon")
+	} else if strings.ContainsRune(s, '<') {
+		panic("CSSDeclarations must not contain literal '<'")
+	}
+	return trustedCSSDeclarations(s)
+}
 
-// TrustedStylesheet creates a new Stylesheet from the given trusted string.
+// FormatCSSDeclaration formats the CSS property with the given constant name
+// and the given CSSValue into a CSSDeclarations.
+func FormatCSSDeclaration(name constant, value CSSValue) CSSDeclarations {
+	return trustedCSSDeclarations(fmt.Sprintf("%s: %s;", string(name), value.Get()))
+}
+
+// ConcatCSSDeclarations concatenates multiple CSSDeclarations into one.
+func ConcatCSSDeclarations(decls ...CSSDeclarations) CSSDeclarations {
+	var n int
+	for _, d := range decls {
+		n += len(d.val)
+	}
+	var sb strings.Builder
+	sb.Grow(n)
+	for _, d := range decls {
+		sb.WriteString(d.val)
+	}
+	return trustedCSSDeclarations(sb.String())
+}
+
+// ConstantStylesheet creates a new Stylesheet wrapper from the given string
+// constant.
 //
-// Only use this function if you have read the package documentation and are
-// sure that the passed string satisfies the requirements for a Stylesheet.
-func TrustedStylesheet(s string) Stylesheet { return Stylesheet{val: s} }
+// Before using this function, read the documentation of [Stylesheet].
+func ConstantStylesheet(c constant) Stylesheet {
+	if strings.ContainsRune(string(c), '<') {
+		panic("Stylesheet must not contain literal '<'")
+	}
+	return trustedStylesheet(string(c))
+}
 
-func (css CSSValue) Get() string        { return css.val }
+//go:linkname trustedCSSValue
+func trustedCSSValue(s string) CSSValue { return CSSValue{val: s} }
+
+//go:linkname trustedCSSDeclarations
+func trustedCSSDeclarations(s string) CSSDeclarations { return CSSDeclarations{val: s} }
+
+//go:linkname trustedStylesheet
+func trustedStylesheet(s string) Stylesheet { return Stylesheet{val: s} }
+
+func (cv CSSValue) Get() string         { return cv.val }
 func (css CSSDeclarations) Get() string { return css.val }
-func (css CSSRuleSet) Get() string      { return css.val }
 func (css Stylesheet) Get() string      { return css.val }
