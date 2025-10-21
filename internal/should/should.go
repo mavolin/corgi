@@ -7,12 +7,16 @@ import (
 	"runtime"
 	"slices"
 	"strings"
-	"testing"
 
 	"github.com/google/go-cmp/cmp"
 )
 
-func Equal[T any](t testing.TB, got, want T, opts ...cmp.Option) bool {
+type TInterface interface {
+	Error(args ...any)
+	Helper()
+}
+
+func Equal[T any](t TInterface, got, want T, opts ...cmp.Option) bool {
 	t.Helper()
 
 	if diff := cmp.Diff(want, got, opts...); diff != "" {
@@ -22,7 +26,7 @@ func Equal[T any](t testing.TB, got, want T, opts ...cmp.Option) bool {
 	return true
 }
 
-func NotEqual[T any](t testing.TB, got, want T, opts ...cmp.Option) bool {
+func NotEqual[T any](t TInterface, got, want T, opts ...cmp.Option) bool {
 	t.Helper()
 
 	if cmp.Equal(want, got, opts...) {
@@ -32,7 +36,7 @@ func NotEqual[T any](t testing.TB, got, want T, opts ...cmp.Option) bool {
 	return true
 }
 
-func Panic(t testing.TB, f func(), wantMessage string) bool {
+func Panic(t TInterface, f func(), wantMessage string) bool {
 	t.Helper()
 
 	path, targetLine := callerInfo(1)
@@ -55,7 +59,7 @@ func Panic(t testing.TB, f func(), wantMessage string) bool {
 	return true
 }
 
-func Error(t testing.TB, err error, wantMessage string) bool {
+func Error(t TInterface, err error, wantMessage string) bool {
 	t.Helper()
 
 	if err == nil {
@@ -69,7 +73,7 @@ func Error(t testing.TB, err error, wantMessage string) bool {
 	return true
 }
 
-func NoError(t testing.TB, err error) bool {
+func NoError(t TInterface, err error) bool {
 	t.Helper()
 
 	if err != nil {
@@ -80,7 +84,7 @@ func NoError(t testing.TB, err error) bool {
 	return true
 }
 
-func True(t testing.TB, got bool) bool {
+func True(t TInterface, got bool) bool {
 	t.Helper()
 
 	if !got {
@@ -91,7 +95,7 @@ func True(t testing.TB, got bool) bool {
 	return true
 }
 
-func False(t testing.TB, got bool) bool {
+func False(t TInterface, got bool) bool {
 	t.Helper()
 
 	if got {
@@ -102,7 +106,7 @@ func False(t testing.TB, got bool) bool {
 	return true
 }
 
-func prettyComparison(t testing.TB, name, message, extra string) {
+func prettyComparison(t TInterface, name, message, extra string) {
 	t.Helper()
 
 	path, targetLine := callerInfo(2)
@@ -130,7 +134,7 @@ func prettyComparison(t testing.TB, name, message, extra string) {
 	prettyMessage(t, path, targetLine, name, fmtMessage.String(), extra)
 }
 
-func prettyMessage(t testing.TB, path string, targetLine int, name, message, extra string) {
+func prettyMessage(t TInterface, path string, targetLine int, name, message, extra string) {
 	t.Helper()
 
 	if path == "" {
@@ -160,7 +164,7 @@ func prettyMessage(t testing.TB, path string, targetLine int, name, message, ext
 	t.Error(s.String())
 }
 
-func prettyCondition(t testing.TB, name string, want bool, extra string) {
+func prettyCondition(t TInterface, name string, want bool, extra string) {
 	t.Helper()
 
 	path, targetLine := callerInfo(2)
