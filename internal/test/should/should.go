@@ -55,24 +55,6 @@ func Panic(t testing.TB, f func(), wantMessage string) bool {
 	return true
 }
 
-func NotPanic(t testing.TB, f func()) (didntPanic bool) {
-	t.Helper()
-
-	path, targetLine := callerInfo(1)
-
-	didntPanic = true
-	defer func() {
-		t.Helper()
-		if r := recover(); r != nil {
-			didntPanic = false
-			prettyMessage(t, path, targetLine, "NotPanic", "function panicked", fmt.Sprint(r))
-		}
-	}()
-	f()
-
-	return didntPanic
-}
-
 func Error(t testing.TB, err error, wantMessage string) bool {
 	t.Helper()
 

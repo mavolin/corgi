@@ -29,7 +29,7 @@ func checkErrors(t *testing.T, p *parser.Parser, o options) {
 		return // fast path
 	}
 
-	should.NotPanic(t, func() { p.Errors().Pretty(diagnostic.PrettyOptions{}) }) // invalid diagnostic
+	shouldValidDiagnostics(t, p.Errors())
 
 	seen := make(map[string]bool, len(o.errors))
 
@@ -49,6 +49,15 @@ func checkErrors(t *testing.T, p *parser.Parser, o options) {
 			t.Errorf("error not seen: %q", msg)
 		}
 	}
+}
+
+func shouldValidDiagnostics(t *testing.T, ds diagnostic.List) {
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("panic: diagnostic.List.Pretty: %v", r)
+		}
+	}()
+	ds.Pretty(diagnostic.PrettyOptions{})
 }
 
 func shouldBeAtEnd(t *testing.T, p *parser.Parser, in string) {

@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/mavolin/corgi/v2/file/diagnostic"
-	"github.com/mavolin/corgi/v2/internal/test/must"
 	"github.com/mavolin/corgi/v2/internal/test/should"
 	"github.com/mavolin/corgi/v2/load"
 )
@@ -34,13 +33,14 @@ func TestExamples(t *testing.T) {
 			p, d, err := load.Directory(t.Context(), filepath.Join(".", entry.Name()), load.Options{
 				Logger: logger,
 			})
-			must.NoError(t, err) // failed to load example
-			if len(d) > 0 {
-				t.Error(logs.String())
-				t.Error(d.Pretty(diagnostic.PrettyOptions{}))
+			if should.NoError(t, err) { // failed to load example
+				if len(d) > 0 {
+					t.Error(logs.String())
+					t.Error(d.Pretty(diagnostic.PrettyOptions{}))
+				}
+				should.NotEqual(t, p, nil) // got nil package
+				should.True(t, len(p.Files) == 1)
 			}
-			should.NotEqual(t, p, nil) // got nil package
-			should.True(t, len(p.Files) == 1)
 		})
 	}
 }

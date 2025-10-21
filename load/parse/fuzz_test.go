@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/mavolin/corgi/v2/file/diagnostic"
-	"github.com/mavolin/corgi/v2/internal/test/should"
 )
 
 func Foo() {}
@@ -102,10 +101,18 @@ func FuzzParse(f *testing.F) {
 	f.Fuzz(func(t *testing.T, data string) {
 		_, d := Parse(data, Options{})
 		if len(d) > 0 {
-			// invalid diagnostics
-			should.NotPanic(t, func() { d.Pretty(diagnostic.PrettyOptions{}) })
+			shouldValidDiagnostics(t, d)
 		}
 	})
+}
+
+func shouldValidDiagnostics(t *testing.T, ds diagnostic.List) {
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("panic: diagnostic.List.Pretty: %v", r)
+		}
+	}()
+	ds.Pretty(diagnostic.PrettyOptions{})
 }
 
 func recursivelyReadAll(dir string, pattern string) ([]string, error) {

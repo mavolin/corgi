@@ -63,7 +63,7 @@ func FuzzLink(f *testing.F) {
 				once.Do(func() {
 					d := Link(ctx, p, opts)
 					if len(d) > 0 {
-						should.NotPanic(t, func() { d.Pretty(diagnostic.PrettyOptions{}) })
+						shouldValidDiagnostics(t, d)
 					}
 				})
 			}
@@ -73,16 +73,25 @@ func FuzzLink(f *testing.F) {
 
 		d := Link(ctx, g.Root, opts)
 		if len(d) > 0 {
-			should.NotPanic(t, func() { d.Pretty(diagnostic.PrettyOptions{}) })
+			shouldValidDiagnostics(t, d)
 		}
 
 		d = Link(ctx, g.Root, opts)
 		if len(d) > 0 {
-			should.NotPanic(t, func() { d.Pretty(diagnostic.PrettyOptions{}) })
+			shouldValidDiagnostics(t, d)
 		}
 
 		should.NoError(t, ctx.Err()) // timeout
 	})
+}
+
+func shouldValidDiagnostics(t *testing.T, ds diagnostic.List) {
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("panic: diagnostic.List.Pretty: %v", r)
+		}
+	}()
+	ds.Pretty(diagnostic.PrettyOptions{})
 }
 
 // generator
