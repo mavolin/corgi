@@ -17,9 +17,19 @@ func NotEqual[T any](t testing.TB, got, want T, opts ...cmp.Option) bool {
 	return must(t, should.NotEqual(t, got, want, opts...))
 }
 
+func Panic(t testing.TB, f func(), wantMessage string) bool {
+	t.Helper()
+	return must(t, should.Panic(t, f, wantMessage))
+}
+
 func NotPanic(t testing.TB, f func()) (didPanic bool) {
 	t.Helper()
 	return must(t, should.NotPanic(t, f))
+}
+
+func Error(t testing.TB, err error, wantMessage string) bool {
+	t.Helper()
+	return must(t, should.Error(t, err, wantMessage))
 }
 
 func NoError(t testing.TB, err error) bool {

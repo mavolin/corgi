@@ -32,6 +32,29 @@ func NotEqual[T any](t testing.TB, got, want T, opts ...cmp.Option) bool {
 	return true
 }
 
+func Panic(t testing.TB, f func(), wantMessage string) bool {
+	t.Helper()
+
+	path, targetLine := callerInfo(1)
+
+	var got any
+	func() {
+		defer func() {
+			got = recover()
+		}()
+		f()
+	}()
+
+	if got == nil {
+		prettyMessage(t, path, targetLine, "Panic", "function did not panic", "")
+		return false
+	} else if diff := cmp.Diff(wantMessage, fmt.Sprint(got)); diff != "" {
+		prettyComparison(t, "Panic", "recover() != {{Arg2}}", diff)
+		return false
+	}
+	return true
+}
+
 func NotPanic(t testing.TB, f func()) (didntPanic bool) {
 	t.Helper()
 
@@ -48,6 +71,20 @@ func NotPanic(t testing.TB, f func()) (didntPanic bool) {
 	f()
 
 	return didntPanic
+}
+
+func Error(t testing.TB, err error, wantMessage string) bool {
+	t.Helper()
+
+	if err == nil {
+		prettyComparison(t, "Error", "{{Arg1}} == nil", "")
+		return false
+	} else if err.Error() != wantMessage {
+		prettyComparison(t, "Error", "{{Arg1}}.Error() != {{Arg2}}", "")
+		return false
+	}
+
+	return true
 }
 
 func NoError(t testing.TB, err error) bool {
@@ -94,19 +131,19 @@ func prettyComparison(t testing.TB, name, message, extra string) {
 	var fmtMessage strings.Builder
 	fmtMessage.Grow(len(message))
 
-	i := strings.Index(message, "{{Arg1}}")
-	fmtMessage.WriteString(message[:i])
-	fmtMessage.WriteString(arg1)
-	message = message[i+len("{{Arg1}}"):]
+	if i := strings.Index(message, "{{Arg1}}"); i >= 0 {
+		fmtMessage.WriteString(message[:i])
+		fmtMessage.WriteString(arg1)
+		message = message[i+len("{{Arg1}}"):]
+	}
 
-	if strings.Contains(message, "{{Arg2}}") {
-		i = strings.Index(message, "{{Arg2}}")
+	if i := strings.Index(message, "{{Arg2}}"); i >= 0 {
 		fmtMessage.WriteString(message[:i])
 		fmtMessage.WriteString(arg2)
-		fmtMessage.WriteString(message[i+len("{{Arg2}}"):])
-	} else {
-		fmtMessage.WriteString(message)
+		message = message[i+len("{{Arg2}}"):]
 	}
+
+	fmtMessage.WriteString(message)
 
 	prettyMessage(t, path, targetLine, name, fmtMessage.String(), extra)
 }
