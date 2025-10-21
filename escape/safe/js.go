@@ -1,11 +1,12 @@
 package safe
 
 import (
-	"encoding/json"
 	"fmt"
 	"regexp"
 
 	_ "unsafe" // for go:linkname
+
+	"github.com/mavolin/corgi/v2/internal/escapelite"
 )
 
 type (
@@ -45,11 +46,11 @@ type (
 //
 // Before using this function, read the documentation of [JSLiteral].
 func JSLiteralFromData(data any) (JSLiteral, error) {
-	enc, err := json.Marshal(data)
+	enc, err := escapelite.JSLiteral(data)
 	if err != nil {
 		return JSLiteral{}, err
 	}
-	return trustedJSLiteral(string(enc)), nil
+	return trustedJSLiteral(enc), nil
 }
 
 // ConstantScript creates a new Script wrapper from the given string
@@ -87,11 +88,11 @@ func ConstantScriptWithData(name constant, data any, script constant) (Script, e
 		return Script{}, fmt.Errorf("name %q is not a valid JavaScript identifier", string(name))
 	}
 
-	enc, err := json.Marshal(data)
+	enc, err := escapelite.JSLiteral(data)
 	if err != nil {
 		return Script{}, err
 	}
-	s := "var " + string(name) + "=" + string(enc) + ";" + string(script)
+	s := "var " + string(name) + "=" + enc + ";" + string(script)
 	return trustedScript(s), nil
 }
 

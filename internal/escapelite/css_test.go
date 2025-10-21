@@ -1,78 +1,67 @@
-// filepath: /home/mavolin/Code/github.com/mavolin/corgi/internal/escapelite/css test.go
 package escapelite
 
 import (
+	"image/color"
 	"testing"
 
 	"github.com/mavolin/corgi/v2/internal/should"
 )
 
-func TestCSSValue(t *testing.T) {
+func TestCSSInt(t *testing.T) {
 	t.Parallel()
 
-	tests := []struct {
-		name string
-		in   string
-		want string
-	}{
-		{"simple text", "woof bark", "woof bark"},
-		{"empty string", "", ""},
-		{"special chars", `& < > " '`, `\26  \3c  \3e  \22  \27 `},
-		{"semicolon", "a;b", `a\3b b`},
-		{"backlash", `a\b`, `a\\b`},
-		{"braces", "a{b}c", `a\7b b\7d c`},
-		{"colon", "a:b", `a\3a b`},
-		{"forward slash", "a/b", `a\2f b`},
-		{"plus", "a+b", `a\2b b`},
-		{"parentheses", "a(b)c", `a\28 b\29 c`},
-		{"color", "#abc", `#abc`},
-		{"non-ascii", "café", "café"},
-	}
-
-	for _, c := range tests {
-		t.Run(c.name, func(t *testing.T) {
-			t.Parallel()
-
-			got := CSSValue(c.in)
-			should.Equal(t, got, c.want)
-		})
-	}
+	want := "42"
+	got := CSSInt(42)
+	should.Equal(t, want, got)
 }
 
-func TestFilterCSSValue(t *testing.T) {
+func TestCSSFloat(t *testing.T) {
+	t.Parallel()
+
+	want := "3.14"
+	got := CSSFloat(3.14)
+	should.Equal(t, want, got)
+}
+
+func TestCSSColor(t *testing.T) {
+	t.Parallel()
+
+	t.Run("opaque", func(t *testing.T) {
+		t.Parallel()
+
+		c := color.NRGBA{R: 0x0c, G: 0x22, B: 0x38, A: 255}
+		got := CSSColor(c)
+		should.Equal(t, got, "#0c2238")
+	})
+
+	t.Run("alpha", func(t *testing.T) {
+		t.Parallel()
+
+		c := color.NRGBA{R: 0x0c, G: 0x22, B: 0x38, A: 0x7f}
+		got := CSSColor(c)
+		should.Equal(t, got, "#0c22387f")
+	})
+}
+
+func TestCSSString(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name string
 		in   string
 		want string
 	}{
-		{"simple identifier", "simple", "simple"},
-		{"empty string", "", ""},
-		{"color keyword", "blue", "blue"},
-		{"pixel dimension", "10px", "10px"},
-		{"percentage value", "25%", "25%"},
-		{"hex color", "#abc", "#abc"},
-		{"rgba with parentheses", "rgba(0,0,0,0.5)", Replacement}, // Contains parentheses, should be replaced
-		{"javascript url", `url("javascript:alert(1)")`, Replacement},
-		{"css expression", "expression(alert(1))", Replacement},
-		{"moz binding", "mozbinding:url(alert)", Replacement},
-		{"prefixed moz binding", "-moz-binding:url(alert)", Replacement},
-		{"script injection", "</style><script>alert(1)</script>", Replacement},
-		{"html comment", "<!-- comment -->", Replacement},
-		{"hex escape sequence", `\61\62\63`, "abc"},      // \61 = 'a', \62 = 'b', \63 = 'c'
-		{"escaped quotes", `\22 quoted\22`, Replacement}, // Contains quotes, should be replaced
-		{"unmatched brace", `{unmatched`, Replacement},
-		{"unmatched quote", `"unmatched`, Replacement},
-		{"unmatched parenthesis", `(unmatched`, Replacement},
-		{"unmatched bracket", `[unmatched`, Replacement},
+		{`hello world`, `"hello world"`},
+		{`he said "hi"`, `"he said \"hi\""`},
+		{"line1\nline2", `"line1\00000Aline2"`},
+		{`back\slash`, `"back\\slash"`},
+		{`control` + string(rune(0x01)) + `char`, `"control\000001char"`},
 	}
 
 	for _, c := range tests {
-		t.Run(c.name, func(t *testing.T) {
+		t.Run(c.in, func(t *testing.T) {
 			t.Parallel()
 
-			got := FilterCSSValue(c.in)
+			got := CSSString(c.in)
 			should.Equal(t, got, c.want)
 		})
 	}

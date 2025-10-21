@@ -6,6 +6,30 @@ import (
 	"github.com/mavolin/corgi/v2/internal/should"
 )
 
+func TestHTMLInt(t *testing.T) {
+	t.Parallel()
+
+	want := "-42"
+	got := HTMLInt(-42)
+	should.Equal(t, want, got)
+}
+
+func TestHTMLUint(t *testing.T) {
+	t.Parallel()
+
+	want := "42"
+	got := HTMLUint(42)
+	should.Equal(t, want, got)
+}
+
+func TestHTMLFloat(t *testing.T) {
+	t.Parallel()
+
+	want := "3.14"
+	got := HTMLFloat(3.14)
+	should.Equal(t, want, got)
+}
+
 func TestContent(t *testing.T) {
 	t.Parallel()
 

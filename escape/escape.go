@@ -36,12 +36,9 @@ import (
 	"strings"
 
 	"github.com/mavolin/corgi/v2/escape/safe"
+	"github.com/mavolin/corgi/v2/escape/safe/unsafeconstructor"
 	"github.com/mavolin/corgi/v2/internal/escapelite"
 )
-
-// Replacement is the replacement value used by filters to replace unsafe
-// content or parts.
-const Replacement = escapelite.Replacement
 
 var (
 	// URLSchemes is a list of trusted URL schemes.
@@ -49,14 +46,6 @@ var (
 	// ResourceURLSchemes is a list of trusted schemes for resource URLs.
 	// It must be a subset of URLSchemes.
 	ResourceURLSchemes = []string{"https", "wss"}
-	// DevelopmentResourceURLSchemes is a list of trusted schemes for resource URLs
-	// that is more permissive than ResourceURLSchemes and allows http.
-	// It is intended for use in development environments only and can be used
-	// by calling [github.com/mavolin/corgi.DevelopmentMode()].
-	//
-	// Using this list instead does not affect static resource URLs, which are
-	// never allowed to use http.
-	DevelopmentResourceURLSchemes = []string{"http", "https", "ws", "wss"}
 )
 
 // IsSafeURLScheme returns whether the given scheme is a known safe URL scheme
@@ -83,31 +72,6 @@ func isSafeURLScheme(probe string, safeSchemes []string) bool {
 type unescaped = string
 
 // HTML replaces [&<] with escape sequences.
-//
-// It should only be used to escape the content of an element's body.
 func HTML(val unescaped) safe.HTML {
-	return safe.TrustedHTML(escapelite.Content(val))
-}
-
-// CSSValue escapes CSS special characters using \<hex>+ escapes.
-func CSSValue(s unescaped) safe.CSSValue {
-	return safe.TrustedCSSValue(escapelite.CSSValue(s))
-}
-
-// FilterCSSValue allows innocuous CSS values in the output including CSS
-// quantities (10px or 25%), ID or class literals (#foo, .bar), keyword values
-// (inherit, blue), and colors (#888).
-// It filters out unsafe values, such as those that affect token boundaries,
-// and anything that might execute scripts.
-func FilterCSSValue(s unescaped) safe.CSSValue {
-	return safe.TrustedCSSValue(escapelite.FilterCSSValue(s))
-}
-
-// JSLiteral converts the passed value to a JavaScript literal.
-func JSLiteral(val any) (safe.JSLiteral, error) {
-	esc, err := escapelite.JS(val)
-	if err != nil {
-		return safe.JSLiteral{}, err
-	}
-	return safe.TrustedJSLiteral(esc), err
+	return unsafeconstructor.TrustedHTML(escapelite.Content(val))
 }

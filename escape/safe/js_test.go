@@ -16,17 +16,6 @@ func TestJSLiteralFromData(t *testing.T) {
 			should.Equal(t, got.Get(), "[1,2,3]")
 		}
 	})
-
-	t.Run("failure", func(t *testing.T) {
-		t.Parallel()
-
-		t.Run("marshal error", func(t *testing.T) {
-			t.Parallel()
-			// json.Marshal cannot encode channels
-			_, err := JSLiteralFromData(make(chan int))
-			should.False(t, err == nil)
-		})
-	})
 }
 
 func TestConstantScript(t *testing.T) {

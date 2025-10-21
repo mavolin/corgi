@@ -1,6 +1,33 @@
 package escapelite
 
-import "strings"
+import (
+	"strconv"
+	"strings"
+)
+
+// HTMLInt formats i as a string conforming to the HTML [signed integer]
+// microsyntax.
+//
+// [signed integer]: https://html.spec.whatwg.org/multipage/common-microsyntaxes.html#signed-integers
+func HTMLInt(i int64) string {
+	return strconv.FormatInt(i, 10)
+}
+
+// HTMLUint formats u as a string conforming to the HTML [non-negative integer]
+// microsyntax.
+//
+// [non-negative integer]: https://html.spec.whatwg.org/multipage/common-microsyntaxes.html#non-negative-integers
+func HTMLUint(u uint64) string {
+	return strconv.FormatUint(u, 10)
+}
+
+// HTMLFloat formats f as a string conforming to the HTML
+// [floating-point numbers] microsyntax.
+//
+// [floating-point numbers]: https://html.spec.whatwg.org/multipage/common-microsyntaxes.html#floating-point-numbers
+func HTMLFloat(f float64) string {
+	return strconv.FormatFloat(f, 'g', -1, 64)
+}
 
 var contentEscaper = strings.NewReplacer(
 	"&", "&amp;",

@@ -3,10 +3,11 @@ package safe
 import (
 	"fmt"
 	"image/color"
-	"strconv"
 	"strings"
 
 	_ "unsafe" // for go:linkname
+
+	"github.com/mavolin/corgi/v2/internal/escapelite"
 )
 
 type (
@@ -46,24 +47,19 @@ func ConstantCSSValue(c constant) CSSValue {
 
 // CSSInt returns a CSSValue representing the given integer number.
 func CSSInt(n int) CSSValue {
-	return trustedCSSValue(strconv.Itoa(n))
+	return trustedCSSValue(escapelite.CSSInt(int64(n)))
 }
 
 // CSSFloat returns a CSSValue representing the given floating point number.
 func CSSFloat(f float64) CSSValue {
-	return trustedCSSValue(strconv.FormatFloat(f, 'f', -1, 64))
+	return trustedCSSValue(escapelite.CSSFloat(f))
 }
 
 // CSSColor returns a CSSValue representing the given color in CSS syntax.
 //
 // Before using this function, read the documentation of [CSSValue].
 func CSSColor(c color.Color) CSSValue {
-	nrgba := color.NRGBAModel.Convert(c).(color.NRGBA) //nolint:errcheck
-	if nrgba.A == 255 {
-		// Opaque color
-		return trustedCSSValue(fmt.Sprintf("#%02x%02x%02x", nrgba.R, nrgba.G, nrgba.B))
-	}
-	return trustedCSSValue(fmt.Sprintf("#%02x%02x%02x%02x", nrgba.R, nrgba.G, nrgba.B, nrgba.A))
+	return trustedCSSValue(escapelite.CSSColor(c))
 }
 
 // ConstantCSSDeclarations creates a new CSSDeclarations wrapper from the given

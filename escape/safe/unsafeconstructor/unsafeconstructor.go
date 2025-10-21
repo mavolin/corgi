@@ -13,12 +13,10 @@
 package unsafeconstructor
 
 import (
-	"fmt"
-	"strings"
-	"unicode/utf8"
 	_ "unsafe" // for go:linkname
 
 	"github.com/mavolin/corgi/v2/escape/safe"
+	"github.com/mavolin/corgi/v2/internal/escapelite"
 )
 
 // TrustedCSSValue creates a new CSSValue wrapper from the given trusted string.
@@ -41,50 +39,7 @@ func TrustedCSSValue(string) safe.CSSValue
 // Only use this function if you have read the package documentation and are
 // sure that the passed string satisfies the requirements for a CSSValue.
 func TrustedCSSString(s string) safe.CSSValue {
-	var b strings.Builder
-	b.Grow(len(`"`) + len(s) + len(`"`))
-	b.WriteByte('"')
-
-	for _, r := range s {
-		switch r {
-		case '"':
-			b.WriteString(`\"`)
-		case '\\':
-			b.WriteString(`\\`)
-		case '<':
-			writeHexEscape(&b, '<') // \00003C
-		case '\n':
-			writeHexEscape(&b, '\n') // \00000A
-		case '\r':
-			writeHexEscape(&b, '\r') // \00000D
-		case '\f':
-			writeHexEscape(&b, '\f') // \00000C
-		case 0: // NUL -> U+FFFD
-			writeHexEscape(&b, '\uFFFD')
-		default:
-			// Escape other C0 controls and DEL
-			if r < 0x20 || r == 0x7F {
-				writeHexEscape(&b, r)
-			} else {
-				// Write as-is (UTF-8)
-				b.WriteRune(r)
-			}
-		}
-	}
-
-	b.WriteByte('"')
-	return TrustedCSSValue(b.String())
-}
-
-// writeHexEscape writes a 6-digit CSS hex escape for rune r: \XXXXXX
-// Using 6 digits avoids needing a terminating space even if the next
-// character is a hex digit.
-func writeHexEscape(b *strings.Builder, r rune) {
-	// Ensure r is a valid Unicode scalar value
-	if !utf8.ValidRune(r) {
-		r = '\uFFFD'
-	}
-	fmt.Fprintf(b, `\%06X`, r)
+	return TrustedCSSValue(escapelite.CSSString(s))
 }
 
 // TrustedCSSDeclarations creates a new CSSDeclarations wrapper from the given
