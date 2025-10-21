@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/mavolin/corgi/v2/file"
 	"github.com/mavolin/corgi/v2/internal/cache"
 	"github.com/mavolin/corgi/v2/internal/gocmd"
 	"github.com/mavolin/corgi/v2/internal/gomod"
@@ -82,8 +83,8 @@ func NewModuleReader(moduleDir string, o ModuleReaderOptions) (*ModuleReader, er
 		slog.String("path", r.modFileAbs))
 
 	if o.GoExecPath != "" {
-		r.goCmd = gocmd.New(o.GoExecPath)
-		r.modDownloads = cache.Preload(r.goCmd.DownloadModules)
+		// r.goCmd = gocmd.New(o.GoExecPath)
+		// r.modDownloads = cache.Preload(r.goCmd.DownloadModules)
 	}
 
 	return &r, nil
@@ -93,7 +94,7 @@ func NewModuleReader(moduleDir string, o ModuleReaderOptions) (*ModuleReader, er
 // be part of the module.
 //
 // dir must use the filesystem's separator.
-func (r *ModuleReader) LocalImportPath(dir filesystemPath) (importPath, error) {
+func (r *ModuleReader) LocalImportPath(dir filesystemPath) (file.CorgiImportPath, error) {
 	abs, err := filepath.Abs(dir)
 	if err != nil {
 		return "", fmt.Errorf("getting absolute path of %q: %w", dir, err)
@@ -108,12 +109,11 @@ func (r *ModuleReader) LocalImportPath(dir filesystemPath) (importPath, error) {
 		return "", fmt.Errorf("computing path in module: %w", err)
 	}
 
-	return path.Join(r.modFile.Module.Mod.Path, filepath.ToSlash(rel)), nil
+	return file.CorgiImportPath(path.Join(r.modFile.Module.Mod.Path, filepath.ToSlash(rel))), nil
 }
 
-func (r *ModuleReader) ReadImport(ctx context.Context, p importPath) (*Package, error) {
-	p = path.Clean(p)
-	if strings.HasPrefix(p, r.modFile.Module.Mod.Path) {
+func (r *ModuleReader) ReadImport(ctx context.Context, p file.CorgiImportPath) (*Package, error) {
+	if strings.HasPrefix(string(p), r.modFile.Module.Mod.Path) {
 		return r.readLocalImport(ctx, p)
 	}
 	return r.readExternalImport(ctx, p)
@@ -122,15 +122,17 @@ func (r *ModuleReader) ReadImport(ctx context.Context, p importPath) (*Package, 
 // todo: ignore files prefixed with _
 // todo: respect replace directives
 
-func (r *ModuleReader) readLocalImport(ctx context.Context, p importPath) (*Package, error) {
-
+func (r *ModuleReader) readLocalImport(ctx context.Context, p file.CorgiImportPath) (*Package, error) {
+	panic("implement me")
 }
 
-func (r *ModuleReader) readExternalImport(ctx context.Context, p importPath) (*Package, error) {
-	pkg := &Package{}
-	if strings.HasPrefix(p, "corgi/") {
-		resolved := path.Join(r.stdLibPath, p[len("corgi/"):])
-		r.logger.Info("Adjusted stdlib import", slog.String("old", p), slog.String("adjusted", resolved))
+func (r *ModuleReader) readExternalImport(ctx context.Context, p file.CorgiImportPath) (*Package, error) {
+	if strings.HasPrefix(string(p), "corgi/") {
+		resolved := file.CorgiImportPath(path.Join(r.stdLibPath, string(p[len("corgi/"):])))
+		r.logger.Info("Adjusted stdlib import",
+			slog.String("old", string(p)),
+			slog.String("adjusted", string(resolved)))
 		p = resolved
 	}
+	panic("implement me")
 }

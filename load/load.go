@@ -20,9 +20,6 @@ import (
 const Ext = ".corgi"
 
 type (
-	// An importPath is the import path of a package, like
-	// "github.com/mavolin/corgi/v2/load".
-	importPath = string
 	// A filesystemPath is a path to a directory on the filesystem, using the
 	// operating system's native path separator.
 	filesystemPath = string
@@ -31,7 +28,7 @@ type (
 		// ReadImport reads the package located at the passed import path.
 		//
 		// It must be concurrency-safe.
-		ReadImport(ctx context.Context, path importPath) (*Package, error)
+		ReadImport(ctx context.Context, path file.CorgiImportPath) (*Package, error)
 	}
 
 	Package struct {
@@ -45,7 +42,7 @@ type (
 		// The most common case of that is the corgi stdlib, which is
 		// imported as "corgi/*", but is actually provided by the
 		// "github.com/mavolin/corgi/v2" Go module.
-		Module string
+		Module file.Module
 		// PathInModule is the path to the package in the Go module,
 		// relative to the module root.
 		//
@@ -56,13 +53,13 @@ type (
 		// In that case, PathInModule should be the actual path to the
 		// directory providing the package, such as "std/fmt" instead of
 		// "corgi/fmt".
-		PathInModule string
+		PathInModule file.PackagePath
 
 		Files []File
 	}
 
 	File struct {
-		Name string
+		Name file.Name
 		Raw  string
 	}
 
@@ -104,7 +101,7 @@ type (
 		//
 		// If the import isn't cached, it invokes compute and returns its
 		// result instead, optionally caching it.
-		Import(ctx context.Context, path importPath, compute ComputeFunc) (*file.Package, diagnostic.List, error)
+		Import(ctx context.Context, path file.CorgiImportPath, compute ComputeFunc) (*file.Package, diagnostic.List, error)
 	}
 )
 
@@ -129,7 +126,7 @@ type Options struct {
 	// Set to the NoBuiltin constant to disable the builtin package.
 	//
 	// Default: "corgi/builtin"
-	BuiltinPath string
+	BuiltinPath file.CorgiImportPath
 }
 
 const NoBuiltin = "no builtin"
@@ -138,7 +135,7 @@ type nopCache struct{}
 
 var _ Cache = nopCache{}
 
-func (nopCache) Import(ctx context.Context, _ importPath, compute ComputeFunc) (*file.Package, diagnostic.List, error) {
+func (nopCache) Import(ctx context.Context, _ file.CorgiImportPath, compute ComputeFunc) (*file.Package, diagnostic.List, error) {
 	return compute(ctx)
 }
 
@@ -160,7 +157,7 @@ type loader struct {
 	logger      *slog.Logger
 	reader      Reader
 	cache       Cache
-	builtinPath importPath
+	builtinPath file.CorgiImportPath
 }
 
 // Load loads the passed package.
@@ -182,7 +179,7 @@ type loader struct {
 // Before returning, Load calls [diagnostic.List.Tidy] on the diagnostic.List.
 //
 // To see an example of how to use Load, see the [Directory] function.
-func Load(ctx context.Context, impPath importPath, r Reader, o Options) (*file.Package, diagnostic.List, error) {
+func Load(ctx context.Context, impPath file.CorgiImportPath, r Reader, o Options) (*file.Package, diagnostic.List, error) {
 	o.applyDefaults()
 
 	l := &loader{
@@ -193,7 +190,7 @@ func Load(ctx context.Context, impPath importPath, r Reader, o Options) (*file.P
 	}
 
 	logger := o.Logger
-	logger.Info("Loading package tree", slog.String("root", impPath))
+	logger.Info("Loading package tree", slog.String("root", string(impPath)))
 	defer func(start time.Time) {
 		logger.Info("Loaded entire tree", slog.Duration("took", time.Since(start)))
 	}(time.Now())
@@ -201,8 +198,8 @@ func Load(ctx context.Context, impPath importPath, r Reader, o Options) (*file.P
 	return l.loadCachedImport(ctx, logger, impPath)
 }
 
-func (l *loader) loadCachedImport(ctx context.Context, logger *slog.Logger, impPath importPath) (*file.Package, diagnostic.List, error) {
-	logger = l.logger.With(slog.String("import", impPath))
+func (l *loader) loadCachedImport(ctx context.Context, logger *slog.Logger, impPath file.CorgiImportPath) (*file.Package, diagnostic.List, error) {
+	logger = l.logger.With(slog.String("import", string(impPath)))
 
 	var noCacheHit bool
 	p, d, err := l.cache.Import(ctx, impPath, func(ctx context.Context) (*file.Package, diagnostic.List, error) {
@@ -216,7 +213,7 @@ func (l *loader) loadCachedImport(ctx context.Context, logger *slog.Logger, impP
 	return p, d, err
 }
 
-func (l *loader) loadUncachedImport(ctx context.Context, logger *slog.Logger, imp importPath) (*file.Package, diagnostic.List, error) {
+func (l *loader) loadUncachedImport(ctx context.Context, logger *slog.Logger, imp file.CorgiImportPath) (*file.Package, diagnostic.List, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, nil, err
 	}
@@ -242,8 +239,8 @@ func (l *loader) loadUncachedImport(ctx context.Context, logger *slog.Logger, im
 	}
 
 	logger = logger.With(
-		slog.String("module", p.Module),
-		slog.String("path_in_module", p.PathInModule))
+		slog.String("module", string(p.Module)),
+		slog.String("path_in_module", string(p.PathInModule)))
 
 	parseErrs := l.parse(logger, p, data.Files)
 
@@ -275,7 +272,7 @@ func (l *loader) parse(logger *slog.Logger, p *file.Package, files []File) diagn
 
 	for i, fileData := range files {
 		go func() {
-			logger := logger.With(slog.String("name", fileData.Name))
+			logger := logger.With(slog.String("name", string(fileData.Name)))
 
 			logger.Info("Parsing file")
 			f, err := parse.Parse(fileData.Raw, o)
@@ -342,12 +339,12 @@ func (l *loader) analyze(logger *slog.Logger, p *file.Package) diagnostic.List {
 	return errs
 }
 
-func (l *loader) importHook(ctx context.Context, impPath importPath) (*file.Package, diagnostic.List, error) {
+func (l *loader) importHook(ctx context.Context, impPath file.CorgiImportPath) (*file.Package, diagnostic.List, error) {
 	logger := l.logger.WithGroup("import_hook")
 
-	if isstdlib.IsStdlib(impPath) {
+	if isstdlib.IsStdlib(string(impPath)) {
 		logger.Debug("Immediately returning nil package for Go stdlib import without loading",
-			slog.String("import", impPath))
+			slog.String("import", string(impPath)))
 		return nil, nil, nil
 	}
 

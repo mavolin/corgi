@@ -17,7 +17,7 @@ type (
 	Qualifier string
 	// Module is the path/name of a Go module.
 	Module string
-	// PackagePath is a path relative to the root of a Go module, with no
+	// PackagePath is a path to a package relative to the root of a Go module, with no
 	// leading './' or '/'.
 	PackagePath string
 	// Path is a path relative to the root of a Go module, with no

@@ -10,7 +10,7 @@ import (
 
 type (
 	Memoizer struct {
-		c *cache.Map[importPath, *computeResult]
+		c *cache.Map[file.CorgiImportPath, *computeResult]
 	}
 
 	computeResult struct {
@@ -35,11 +35,11 @@ var _ Cache = (*Memoizer)(nil)
 // originate from the same module.
 func NewMemoizer() *Memoizer {
 	return &Memoizer{
-		c: cache.NewMap[importPath, *computeResult](),
+		c: cache.NewMap[file.CorgiImportPath, *computeResult](),
 	}
 }
 
-func (l *Memoizer) Import(ctx context.Context, path importPath, compute ComputeFunc) (*file.Package, diagnostic.List, error) {
+func (l *Memoizer) Import(ctx context.Context, path file.CorgiImportPath, compute ComputeFunc) (*file.Package, diagnostic.List, error) {
 	result := l.c.Get(path, func() *computeResult {
 		p, d, err := compute(ctx)
 		return &computeResult{p, d, err}
