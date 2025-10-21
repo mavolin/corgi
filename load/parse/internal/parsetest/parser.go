@@ -7,7 +7,7 @@ import (
 
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
-	"github.com/mavolin/corgi/v2/internal/test/should"
+	"github.com/mavolin/corgi/v2/internal/should"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 )
 

@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/mavolin/corgi/v2/file/ast"
-	"github.com/mavolin/corgi/v2/internal/test/should"
+	"github.com/mavolin/corgi/v2/internal/should"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/mavolin/corgi/v2/load/parse/internal/parsetest"
 	"github.com/mavolin/corgi/v2/load/parse/internal/whitespace"

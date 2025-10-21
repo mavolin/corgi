@@ -4,7 +4,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/mavolin/corgi/v2/internal/test/should"
+	"github.com/mavolin/corgi/v2/internal/should"
 )
 
 func TestConstantSrcset(t *testing.T) {

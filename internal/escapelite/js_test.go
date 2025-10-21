@@ -3,7 +3,7 @@ package escapelite
 import (
 	"testing"
 
-	"github.com/mavolin/corgi/v2/internal/test/should"
+	"github.com/mavolin/corgi/v2/internal/should"
 )
 
 func TestJSContent(t *testing.T) {
@@ -60,7 +60,10 @@ func TestJS(t *testing.T) {
 		{"unicode escape", string([]rune{0x2028}), `"\u2028"`},
 		{"unicode escape line separator", string([]rune{0x2029}), `"\u2029"`},
 		{"mixed unicode escapes", "test" + string([]rune{0x2028, 0x2029}) + "end", `"test\u2028\u2029end"`},
-		{"html special chars", `<script>alert("xss")</script>`, `"\u003cscript\u003ealert(\"xss\")\u003c/script\u003e"`},
+		{
+			"html special chars", `<script>alert("xss")</script>`,
+			`"\u003cscript\u003ealert(\"xss\")\u003c/script\u003e"`,
+		},
 		{"emoji", "😀", `"😀"`},
 	}
 
