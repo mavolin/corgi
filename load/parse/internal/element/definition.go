@@ -214,6 +214,14 @@ func AliasType() parser.Func[*ast.AliasElementType] {
 	}
 }
 
+var typeMap = func() map[string]elemtype.Type {
+	m := make(map[string]elemtype.Type)
+	for _, t := range elemtype.All {
+		m[t.String()] = t
+	}
+	return m
+}()
+
 func TypeName() parser.Func[*ast.ElementTypeName] {
 	return func(p *parser.Parser) *ast.ElementTypeName {
 		pos := p.Pos()
@@ -225,29 +233,12 @@ func TypeName() parser.Func[*ast.ElementTypeName] {
 
 		var n ast.ElementTypeName
 		n.Position = &pos
-
-		n.Name = name.Name
-		switch name.Name {
-		case "void":
-			n.Type = elemtype.Void
-		case "nothing":
-			n.Type = elemtype.Nothing
-		case "normal":
-			n.Type = elemtype.Normal
-		case "text":
-			n.Type = elemtype.Text
-		case "css":
-			n.Type = elemtype.CSS
-		case "js":
-			n.Type = elemtype.JS
-		default:
+		n.Type = typeMap[name.Name]
+		if n.Type == elemtype.Unknown {
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "invalid type name",
 				Primary: []diagnostic.Annotation{
 					anno.Range(p.File, name.Start(), name.End(), "not a valid type name"),
-				},
-				Hints: []diagnostic.Hint{
-					{Hint: "Valid type names are: `void`, `nothing`, `normal`, `text`, `css`, `js`"},
 				},
 			})
 		}
