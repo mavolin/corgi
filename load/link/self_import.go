@@ -9,10 +9,10 @@ import (
 )
 
 func (l *linker) CheckSelfImport() {
-	logger := l.logger.WithGroup("checks.self_import")
+	logger := l.Logger.WithGroup("checks.self_import")
 	logger.Debug("Checking if package imports itself")
 
-	for _, f := range l.p.Files {
+	for _, f := range l.Pkg.Files {
 		logger := logger.With(slog.String("file", string(f.Name)))
 
 		var reported bool
@@ -20,7 +20,7 @@ func (l *linker) CheckSelfImport() {
 		for _, imp := range f.Imports {
 			if !imp.Explicit() || imp.CorgiPath == "" {
 				continue
-			} else if imp.CorgiPath != l.p.CorgiImportPath && imp.CorgiPath != file.CorgiImportPath(l.p.GoImportPath()) {
+			} else if imp.CorgiPath != l.Pkg.CorgiImportPath && imp.CorgiPath != file.CorgiImportPath(l.Pkg.GoImportPath()) {
 				continue
 			}
 
@@ -32,7 +32,7 @@ func (l *linker) CheckSelfImport() {
 			logger.Error("Import to current package detected",
 				slog.String("import", string(imp.CorgiPath)),
 				slog.String("pos", imp.AST.Start().String()))
-			l.report(&diagnostic.Diagnostic{
+			l.Report(&diagnostic.Diagnostic{
 				Message:     "package imports itself",
 				Primary:     []diagnostic.Annotation{anno.Node(f, imp.AST.Path, "import to this package")},
 				Explanation: "You cannot import the package you are currently in.",

@@ -9,10 +9,10 @@ import (
 )
 
 func (l *linker) CheckImportNamespaceCollisions() {
-	logger := l.logger.WithGroup("checks.import_namespace_collisions")
+	logger := l.Logger.WithGroup("checks.import_namespace_collisions")
 	logger.Debug("Checking for import qualifier collisions")
 
-	for _, f := range l.p.Files {
+	for _, f := range l.Pkg.Files {
 		logger := logger.With(slog.String("file", string(f.Name)))
 
 		if len(f.Imports) <= 1 {
@@ -40,7 +40,7 @@ func (l *linker) CheckImportNamespaceCollisions() {
 			for i, imp := range imports {
 				primaries[i] = anno.Node(f, imp.AST, "has qualifier `"+string(imp.Qualifier)+"`")
 			}
-			l.report(&diagnostic.Diagnostic{
+			l.Report(&diagnostic.Diagnostic{
 				Message:     "import collision",
 				Primary:     primaries,
 				Explanation: "There can only be one import per qualifier.",

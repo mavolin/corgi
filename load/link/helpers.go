@@ -45,7 +45,7 @@ func (l *linker) implicitImportCheck(logger *slog.Logger, f *file.File, imp *fil
 	}
 
 	logger.Error("Reference to implicitly loaded package")
-	l.report(&diagnostic.Diagnostic{
+	l.Report(&diagnostic.Diagnostic{
 		Message: "attempting to load " + name + " from internal package",
 		Primary: []diagnostic.Annotation{
 			anno.Node(f, node, "refusing to load from this package"),

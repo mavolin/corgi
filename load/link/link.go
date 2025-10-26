@@ -5,10 +5,10 @@ package link
 import (
 	"context"
 	"log/slog"
-	"slices"
 
 	"github.com/mavolin/corgi/v2/file"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
+	"github.com/mavolin/corgi/v2/load/internal"
 )
 
 // BuiltinAlias is the alias used for the builtin package, if it is loaded by
@@ -16,10 +16,8 @@ import (
 const BuiltinAlias file.Qualifier = "__corgi_builtin"
 
 type linker struct {
-	p           *file.Package
-	logger      *slog.Logger
+	*internal.Base
 	importer    Importer
-	diagnostics diagnostic.List
 	builtinPath file.CorgiImportPath
 
 	reportedMissingImports map[*file.File]map[file.Qualifier]bool
@@ -120,10 +118,8 @@ func Link(ctx context.Context, p *file.Package, o Options) diagnostic.List {
 	}
 
 	l := &linker{
-		p:                      p,
-		logger:                 logger,
+		Base:                   internal.NewBase(p, logger),
 		importer:               o.Importer,
-		diagnostics:            make(diagnostic.List, 0, 128),
 		builtinPath:            o.BuiltinPath,
 		reportedMissingImports: make(map[*file.File]map[file.Qualifier]bool, len(p.Files)),
 		dotImports:             make(map[*file.File][]*file.Import, len(p.Files)),
@@ -161,23 +157,16 @@ func Link(ctx context.Context, p *file.Package, o Options) diagnostic.List {
 		f.Linked = true
 	}
 
-	if len(l.diagnostics) > 0 {
-		return slices.Clip(l.diagnostics)
-	}
-	return nil
+	return l.Diagnostics()
 }
 
-func (l *linker) report(d ...*diagnostic.Diagnostic) {
-	l.diagnostics = append(l.diagnostics, d...)
-}
-
-func (l *linker) reportMissingImport(f *file.File, qualifier file.Qualifier, d *diagnostic.Diagnostic) {
+func (l *linker) ReportMissingImport(f *file.File, qualifier file.Qualifier, d *diagnostic.Diagnostic) {
 	if l.reportedMissingImports[f][qualifier] {
 		return
 	}
 
 	l.reportedMissingImports[f][qualifier] = true
-	l.report(d)
+	l.Report(d)
 }
 
 func filterDotImports(f *file.File) []*file.Import {

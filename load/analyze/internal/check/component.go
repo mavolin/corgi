@@ -12,7 +12,7 @@ func (ch *checker) CheckComponents() {
 	logger := ch.Logger.WithGroup("components")
 	logger.Debug("Checking components")
 
-	for _, c := range ch.P.Components {
+	for _, c := range ch.Pkg.Components {
 		logger := logger.With(
 			slog.String("file", string(c.File.Name)),
 			slog.String("comp", c.AST.Header.Name.Name),

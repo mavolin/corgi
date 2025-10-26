@@ -7,11 +7,11 @@ import (
 
 	"github.com/mavolin/corgi/v2/file/ast"
 	"github.com/mavolin/corgi/v2/file/walk"
-	"github.com/mavolin/corgi/v2/load/analyze/internal/context"
+	"github.com/mavolin/corgi/v2/load/internal"
 )
 
 type checker struct {
-	*context.Context
+	*internal.Base
 	Logger      *slog.Logger
 	BuiltinPath string
 }
@@ -20,10 +20,10 @@ type (
 	identifier = string
 )
 
-func Check(ctx *context.Context) {
+func Check(b *internal.Base) {
 	c := &checker{
-		Context: ctx,
-		Logger:  ctx.Logger.WithGroup("check"),
+		Base:   b,
+		Logger: b.Logger.WithGroup("check"),
 	}
 	c.Logger.Debug("Running checks")
 
@@ -37,7 +37,7 @@ func (ch *checker) CheckScope() {
 	logger := ch.Logger.WithGroup("scope")
 	logger.Debug("Checking scope")
 
-	for _, f := range ch.P.Files {
+	for _, f := range ch.Pkg.Files {
 		logger := logger.With(slog.String("file", string(f.Name)))
 
 		walk.Walk(f.AST, func(w *walk.Context) walk.Action {

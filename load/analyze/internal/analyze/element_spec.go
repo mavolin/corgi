@@ -16,7 +16,7 @@ func (z *analyzer) AnalyzeElementSpecs() {
 
 	z.CheckElementSpecs_Cycles(logger)
 
-	for _, spec := range z.P.ElementSpecs {
+	for _, spec := range z.Pkg.ElementSpecs {
 		logger := logger.With(
 			slog.String("file", string(spec.File.Name)),
 			slog.String("name", spec.StylizedHTMLName),
@@ -55,7 +55,7 @@ func (z *analyzer) CheckElementSpecs_Cycles(logger *slog.Logger) {
 	logger = logger.WithGroup("cycles")
 
 	chain := make([]*file.ElementSpec, 1, 24)
-	for _, spec := range z.P.ElementSpecs {
+	for _, spec := range z.Pkg.ElementSpecs {
 		chain[0] = spec
 		chain = chain[:1] // reset the chain
 		z.checkElementSpecs_Cycles(logger, chain)

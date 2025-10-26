@@ -24,7 +24,7 @@ func (z *analyzer) AnalyzeComponents() {
 	logger.Debug("Analyzing components")
 
 	ctx := context.Background()
-	for _, c := range z.P.Components {
+	for _, c := range z.Pkg.Components {
 		z.AnalyzeComponent(ctx, logger, c)
 	}
 }

@@ -26,7 +26,7 @@ func (z *analyzer) AnalyzeComponentCalls() {
 	logger.Debug("Analyzing remaining component calls")
 
 	ctx := context.Background()
-	for _, f := range z.P.Files {
+	for _, f := range z.Pkg.Files {
 		for _, cc := range f.ComponentCalls {
 			z.AnalyzeComponentCall(ctx, cc)
 		}

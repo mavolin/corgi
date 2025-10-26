@@ -13,10 +13,10 @@ import (
 // ======================================================================================
 
 func (l *linker) CheckDotImportComponentCollisions() {
-	logger := l.logger.WithGroup("checks.dot_import_collisions.components")
+	logger := l.Logger.WithGroup("checks.dot_import_collisions.components")
 	logger.Debug("Checking for component collisions through dot imports")
 
-	for _, f := range l.p.Files {
+	for _, f := range l.Pkg.Files {
 		dotImports := l.dotImports[f]
 		if len(dotImports) == 0 {
 			continue
@@ -53,7 +53,7 @@ func (l *linker) CheckDotImportComponentCollisions() {
 				}
 			}
 
-			l.report(&diagnostic.Diagnostic{
+			l.Report(&diagnostic.Diagnostic{
 				Message:   "dot import collision: multiple definitions for component of the same name",
 				Primary:   primaries,
 				Secondary: secondaries,
@@ -96,10 +96,10 @@ Components:
 // ======================================================================================
 
 func (l *linker) CheckDotImportElementSpecCollisions() {
-	logger := l.logger.WithGroup("checks.dot_import_collisions.element_specs")
+	logger := l.Logger.WithGroup("checks.dot_import_collisions.element_specs")
 	logger.Debug("Checking for element spec collisions through dot imports")
 
-	for _, f := range l.p.Files {
+	for _, f := range l.Pkg.Files {
 		dotImports := l.dotImports[f]
 		if len(dotImports) == 0 {
 			continue
@@ -133,7 +133,7 @@ func (l *linker) CheckDotImportElementSpecCollisions() {
 				}
 			}
 
-			l.report(&diagnostic.Diagnostic{
+			l.Report(&diagnostic.Diagnostic{
 				Message:   "dot import collision: multiple definitions for element of the same name",
 				Primary:   primaries,
 				Secondary: secondaries,
@@ -174,10 +174,10 @@ Specs:
 // ======================================================================================
 
 func (l *linker) CheckDotImportAttributeSpecCollisions() {
-	logger := l.logger.WithGroup("check.dot_import_collisions.attribute_specs")
+	logger := l.Logger.WithGroup("check.dot_import_collisions.attribute_specs")
 	logger.Debug("Checking for attribute spec collisions through dot imports")
 
-	for _, f := range l.p.Files {
+	for _, f := range l.Pkg.Files {
 		dotImports := l.dotImports[f]
 		if len(dotImports) == 0 {
 			continue
@@ -211,7 +211,7 @@ func (l *linker) CheckDotImportAttributeSpecCollisions() {
 				}
 			}
 
-			l.report(&diagnostic.Diagnostic{
+			l.Report(&diagnostic.Diagnostic{
 				Message:   "dot import collision: multiple definitions for attribute of the same name",
 				Primary:   primaries,
 				Secondary: secondaries,

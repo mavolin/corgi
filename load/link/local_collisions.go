@@ -15,17 +15,17 @@ import (
 // ======================================================================================
 
 func (l *linker) CheckComponentCollisions() {
-	logger := l.logger.WithGroup("checks.collisions.components")
+	logger := l.Logger.WithGroup("checks.collisions.components")
 	logger.Debug("Checking for component collisions")
 
-	if len(l.p.Components) <= 1 {
+	if len(l.Pkg.Components) <= 1 {
 		logger.Info("One or no components, skipping")
 		return
 	}
 
 	dupls := make(map[file.Identifier][]*file.Component)
 
-	for _, comp := range l.p.Components {
+	for _, comp := range l.Pkg.Components {
 		if comp.Name != "" {
 			dupls[comp.Name] = append(dupls[comp.Name], comp)
 		}
@@ -45,7 +45,7 @@ func (l *linker) CheckComponentCollisions() {
 			primaries[i] = anno.Node(comp.File, comp.AST, "defined here")
 		}
 
-		l.report(&diagnostic.Diagnostic{
+		l.Report(&diagnostic.Diagnostic{
 			Message: "component defined multiple times",
 			Primary: primaries,
 		})
@@ -57,10 +57,10 @@ func (l *linker) CheckComponentCollisions() {
 // ======================================================================================
 
 func (l *linker) CheckElementSpecCollisions() {
-	logger := l.logger.WithGroup("checks.collisions.element_specs")
+	logger := l.Logger.WithGroup("checks.collisions.element_specs")
 	logger.Debug("Checking for element spec collisions")
 
-	if len(l.p.ElementSpecs) <= 1 {
+	if len(l.Pkg.ElementSpecs) <= 1 {
 		return
 	}
 
@@ -68,7 +68,7 @@ func (l *linker) CheckElementSpecCollisions() {
 	htmlNameDupls := make(map[file.CanonicalElementName][]*file.ElementSpec)
 
 	// Collect all element specs
-	for _, elem := range l.p.ElementSpecs {
+	for _, elem := range l.Pkg.ElementSpecs {
 		if elem.Definition == nil || elem.AST.Name == nil {
 			continue
 		}
@@ -98,7 +98,7 @@ func (l *linker) CheckElementSpecCollisions() {
 			primaries[i] = anno.Node(elem.File, elem.AST.Name, "defined here")
 		}
 
-		l.report(&diagnostic.Diagnostic{
+		l.Report(&diagnostic.Diagnostic{
 			Message: "multiple elements with same qualified name",
 			Primary: primaries,
 		})
@@ -126,7 +126,7 @@ func (l *linker) CheckElementSpecCollisions() {
 			primaries = appendElementSpecLocationAnnotations(primaries, reportedPrefixes, elem, "defined here")
 		}
 
-		l.report(&diagnostic.Diagnostic{
+		l.Report(&diagnostic.Diagnostic{
 			Message: "multiple elements with same html name",
 			Primary: primaries,
 		})
@@ -154,17 +154,17 @@ func appendElementSpecLocationAnnotations(
 // ======================================================================================
 
 func (l *linker) CheckAttributeSpecCollisions() {
-	logger := l.logger.WithGroup("checks.collisions.attribute_specs")
+	logger := l.Logger.WithGroup("checks.collisions.attribute_specs")
 	logger.Debug("Checking for attribute spec collisions")
 
-	if len(l.p.AttributeSpecs) <= 1 {
+	if len(l.Pkg.AttributeSpecs) <= 1 {
 		return
 	}
 
 	qualifiedDupls := make(map[file.CanonicalQualifiableAttributeName][]*file.AttributeSpec)
 	htmlNameDupls := make(map[file.CanonicalAttributeName][]*file.AttributeSpec)
 
-	for _, spec := range l.p.AttributeSpecs {
+	for _, spec := range l.Pkg.AttributeSpecs {
 		qualifiableSel := qualifiableAttrSelector(spec)
 		htmlName := htmlAttrName(spec)
 		if qualifiableSel == "" || htmlName == "" {
@@ -192,7 +192,7 @@ func (l *linker) CheckAttributeSpecCollisions() {
 			primaries[i] = anno.Node(attr.File, attr.AST.Selector, "defined here")
 		}
 
-		l.report(&diagnostic.Diagnostic{
+		l.Report(&diagnostic.Diagnostic{
 			Message: "multiple attributes with same qualified selector",
 			Primary: primaries,
 			Hints: []diagnostic.Hint{
@@ -223,7 +223,7 @@ func (l *linker) CheckAttributeSpecCollisions() {
 			primaries = appendAttrSpecLocationAnnotations(primaries, reportedPrefixes, attr, "defined here")
 		}
 
-		l.report(&diagnostic.Diagnostic{
+		l.Report(&diagnostic.Diagnostic{
 			Message: "multiple attributes with same html name selector",
 			Primary: primaries,
 			Hints: []diagnostic.Hint{

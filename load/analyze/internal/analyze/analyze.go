@@ -10,24 +10,24 @@ import (
 	"log/slog"
 
 	"github.com/mavolin/corgi/v2/file"
-	"github.com/mavolin/corgi/v2/load/analyze/internal/context"
+	"github.com/mavolin/corgi/v2/load/internal"
 )
 
 type analyzer struct {
-	*context.Context
+	*internal.Base
 	Logger                 *slog.Logger
 	analyzedComponentCalls map[*file.ComponentCall]bool
 }
 
-func Analyze(ctx *context.Context) {
+func Analyze(b *internal.Base) {
 	var numCCs int
-	for _, f := range ctx.P.Files {
+	for _, f := range b.Pkg.Files {
 		numCCs += len(f.ComponentCalls)
 	}
 
 	z := &analyzer{
-		Context:                ctx,
-		Logger:                 ctx.Logger.WithGroup("analysis"),
+		Base:                   b,
+		Logger:                 b.Logger.WithGroup("analysis"),
 		analyzedComponentCalls: make(map[*file.ComponentCall]bool, numCCs),
 	}
 	z.Logger.Info("Running analysis")
@@ -43,8 +43,26 @@ func Analyze(ctx *context.Context) {
 	z.AnalyzeComponentCalls()
 	z.AnalyzeAttributes()
 
-	ctx.P.Analyzed = true
-	for _, f := range ctx.P.Files {
+	z.Pkg.Analyzed = true
+	for _, f := range z.Pkg.Files {
 		f.Analyzed = true
 	}
+}
+
+// SafeImport returns the import for the safe package for the given file, or
+// adds it if it does not exist yet.
+func (z *analyzer) SafeImport(f *file.File) *file.Import {
+	if imp := f.ImportByGoPath(file.SafeImport); imp != nil {
+		return imp
+	}
+
+	imp := &file.Import{
+		Alias:     "__corgi_safe",
+		GoPath:    file.SafeImport,
+		Qualifier: "__corgi_safe",
+		Forward:   true,
+	}
+	imp.EnsureUniqueQualifier(f)
+	f.AddImport(imp)
+	return imp
 }

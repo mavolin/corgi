@@ -25,7 +25,7 @@ func (z *analyzer) AnalyzeAttributes() {
 	logger := z.Logger.WithGroup("attribute_references")
 	logger.Debug("Analyzing attribute references")
 
-	for _, f := range z.P.Files {
+	for _, f := range z.Pkg.Files {
 		logger := logger.With(slog.String("file", string(f.Name)))
 		walk.WalkT(f.AST, func(w *walk.ContextT[ast.Attribute]) walk.Action {
 			z.AnalyzeAttribute(logger, f, w.Parents, f.AttributeByNode(w.Node))

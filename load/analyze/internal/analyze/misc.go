@@ -21,14 +21,14 @@ import (
 func (z *analyzer) CheckPackageNamesMatch() (ok bool) {
 	logger := z.Logger.WithGroup("checks.package_names_match")
 
-	if len(z.P.Files) <= 1 {
+	if len(z.Pkg.Files) <= 1 {
 		return true
 	}
 
-	expect := file.Qualifier(z.P.Files[0].AST.Package.Name.Name)
-	primaries := make([]diagnostic.Annotation, 1, len(z.P.Files))
-	primaries[0] = anno.Node(z.P.Files[0], z.P.Files[0].AST.Package.Name, "found this name here")
-	for _, f := range z.P.Files[1:] {
+	expect := file.Qualifier(z.Pkg.Files[0].AST.Package.Name.Name)
+	primaries := make([]diagnostic.Annotation, 1, len(z.Pkg.Files))
+	primaries[0] = anno.Node(z.Pkg.Files[0], z.Pkg.Files[0].AST.Package.Name, "found this name here")
+	for _, f := range z.Pkg.Files[1:] {
 		if file.Qualifier(f.AST.Package.Name.Name) != expect {
 			primaries = append(primaries, anno.Node(f, f.AST.Package.Name, "but found other name here"))
 		}
@@ -58,11 +58,11 @@ func (z *analyzer) CheckPackageNamesMatch() (ok bool) {
 func (z *analyzer) SetPackageName() {
 	logger := z.Logger.WithGroup("set_package_name")
 
-	if len(z.P.Files) == 0 {
+	if len(z.Pkg.Files) == 0 {
 		logger.Warn("No files in package")
 		return
 	}
 
-	z.P.Name = file.Qualifier(z.P.Files[0].AST.Package.Name.Name)
-	logger.Debug("Set package name", "name", z.P.Name)
+	z.Pkg.Name = file.Qualifier(z.Pkg.Files[0].AST.Package.Name.Name)
+	logger.Debug("Set package name", "name", z.Pkg.Name)
 }

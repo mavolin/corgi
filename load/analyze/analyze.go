@@ -23,7 +23,7 @@ import (
 	"github.com/mavolin/corgi/v2/file/diagnostic"
 	"github.com/mavolin/corgi/v2/load/analyze/internal/analyze"
 	"github.com/mavolin/corgi/v2/load/analyze/internal/check"
-	"github.com/mavolin/corgi/v2/load/analyze/internal/context"
+	"github.com/mavolin/corgi/v2/load/internal"
 )
 
 // todo: lint: inherited comment directives not attached to a scoped node
@@ -127,8 +127,8 @@ func Analyze(p *file.Package, o Options) diagnostic.List {
 	)
 
 	p.Analyzed = true
-	ctx := context.New(p, logger)
-	analyze.Analyze(ctx)
-	check.Check(ctx)
-	return ctx.Diagnostics()
+	b := internal.NewBase(p, logger)
+	analyze.Analyze(b)
+	check.Check(b)
+	return b.Diagnostics()
 }

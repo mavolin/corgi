@@ -15,10 +15,10 @@ const ambiguousAttributeReferenceExplanation = "There are multiple regular expre
 	"Refine your regular expressions so that only one matches to resolve this ambiguity."
 
 func (l *linker) LinkAttributeReferences() {
-	logger := l.logger.WithGroup("links.attribute_references")
+	logger := l.Logger.WithGroup("links.attribute_references")
 	logger.Debug("Linking attribute references")
 
-	for _, f := range l.p.Files {
+	for _, f := range l.Pkg.Files {
 		logger := logger.With(slog.String("file", string(f.Name)))
 
 		for _, ref := range f.AttributeReferences {
@@ -105,7 +105,7 @@ func (l *linker) linkUnqualifiedAttributeReference(logger *slog.Logger, f *file.
 			slog.Int("count", len(equalSpecificityMatches)),
 			slog.Int("specificity", equalSpecificityMatches[0].Specificity))
 
-		l.report(&diagnostic.Diagnostic{
+		l.Report(&diagnostic.Diagnostic{
 			Message: "attribute: ambiguous reference",
 			Primary: []diagnostic.Annotation{
 				anno.Node(f, ref.AST, "there are multiple attribute selectors with the same specificity that match this attribute"),
@@ -133,7 +133,7 @@ func (l *linker) linkUnqualifiedAttributeReference(logger *slog.Logger, f *file.
 	} else if len(packageMatches) > 1 {
 		ref.Spec.SetFailed()
 		logger.Error("Found multiple attribute definitions with same specificity in builtin package")
-		l.report(&diagnostic.Diagnostic{
+		l.Report(&diagnostic.Diagnostic{
 			Type:    diagnostic.InternalError,
 			Message: "builtin: attribute: ambiguous reference",
 			Primary: []diagnostic.Annotation{
@@ -164,7 +164,7 @@ func (l *linker) linkQualifiedAttributeReference(logger *slog.Logger, f *file.Fi
 	if imp == nil {
 		ref.Spec.SetFailed()
 		logger.Error("Could not find import for package")
-		l.reportMissingImport(f, ref.Qualifier, &diagnostic.Diagnostic{
+		l.ReportMissingImport(f, ref.Qualifier, &diagnostic.Diagnostic{
 			Message: "attribute: unresolved reference to package",
 			Primary: []diagnostic.Annotation{
 				anno.Node(f, ref.AST.Package, "missing import for this package"),
@@ -197,7 +197,7 @@ func (l *linker) linkQualifiedAttributeReference(logger *slog.Logger, f *file.Fi
 
 	if len(matches) == 0 {
 		logger.Error("Could not resolve reference")
-		l.report(&diagnostic.Diagnostic{
+		l.Report(&diagnostic.Diagnostic{
 			Message: "attribute: unresolved reference",
 			Primary: []diagnostic.Annotation{
 				anno.Node(f, ref.AST, "could not resolve reference"),
@@ -211,7 +211,7 @@ func (l *linker) linkQualifiedAttributeReference(logger *slog.Logger, f *file.Fi
 	logger.Error("Found multiple attribute definitions with same specificity",
 		slog.Int("count", len(matches)),
 		slog.Int("specificity", matches[0].Specificity))
-	l.report(&diagnostic.Diagnostic{
+	l.Report(&diagnostic.Diagnostic{
 		Message: "attribute: ambiguous reference",
 		Primary: []diagnostic.Annotation{
 			anno.Node(f, ref.AST,

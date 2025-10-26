@@ -10,10 +10,10 @@ import (
 )
 
 func (l *linker) LinkComponentCalls() {
-	logger := l.logger.WithGroup("link.component_calls")
+	logger := l.Logger.WithGroup("link.component_calls")
 	logger.Debug("Linking component calls")
 
-	for _, f := range l.p.Files {
+	for _, f := range l.Pkg.Files {
 		logger := logger.With(slog.String("file", string(f.Name)))
 
 		for _, cc := range f.ComponentCalls {
@@ -46,7 +46,7 @@ func (l *linker) linkUnqualifiedComponentCall(logger *slog.Logger, f *file.File,
 	}
 
 	// search in current package
-	if c := l.p.ComponentByName(cc.Name); c != nil {
+	if c := l.Pkg.ComponentByName(cc.Name); c != nil {
 		cc.Component = c
 		return
 	}
@@ -93,7 +93,7 @@ func (l *linker) linkUnqualifiedComponentCall(logger *slog.Logger, f *file.File,
 	}
 
 	logger.Error("Could not resolve reference")
-	l.report(&diagnostic.Diagnostic{
+	l.Report(&diagnostic.Diagnostic{
 		Message: "component call: unresolved reference",
 		Primary: []diagnostic.Annotation{
 			anno.Node(f, cc.AST.Header.Name, "neither defined in the current package nor dot imports"),
@@ -109,7 +109,7 @@ func (l *linker) linkQualifiedComponentCall(logger *slog.Logger, f *file.File, c
 		return
 	case !cc.Name.Exported():
 		logger.Error("Qualified call to unexported component")
-		l.report(&diagnostic.Diagnostic{
+		l.Report(&diagnostic.Diagnostic{
 			Message: "component call: cannot call unexported component",
 			Primary: []diagnostic.Annotation{
 				anno.Node(f, cc.AST.Header.Name, "the component you are trying to call is unexported"),
@@ -125,7 +125,7 @@ func (l *linker) linkQualifiedComponentCall(logger *slog.Logger, f *file.File, c
 	imp := f.ImportByQualifier(cc.Qualifier)
 	if imp == nil {
 		logger.Error("Could not find import for package")
-		l.reportMissingImport(f, cc.Qualifier, &diagnostic.Diagnostic{
+		l.ReportMissingImport(f, cc.Qualifier, &diagnostic.Diagnostic{
 			Message: "component call: unresolved reference to package",
 			Primary: []diagnostic.Annotation{
 				anno.Node(f, cc.AST.Header.Name, "missing import for package"),
@@ -152,7 +152,7 @@ func (l *linker) linkQualifiedComponentCall(logger *slog.Logger, f *file.File, c
 	}
 
 	logger.Error("Could not resolve reference")
-	l.report(&diagnostic.Diagnostic{
+	l.Report(&diagnostic.Diagnostic{
 		Message: "component call: unresolved reference",
 		Primary: []diagnostic.Annotation{
 			anno.Node(f, ident.Name, "could not resolve reference"),
@@ -191,7 +191,7 @@ func (l *linker) linkBlockSetterBlocks(logger *slog.Logger, cc *file.ComponentCa
 			primaries[i] = anno.Node(cc.File, instance.AST, annotation)
 		}
 
-		l.report(&diagnostic.Diagnostic{
+		l.Report(&diagnostic.Diagnostic{
 			Message: "component call: block setter references unknown block",
 			Primary: primaries,
 			Secondary: []diagnostic.Annotation{
@@ -213,7 +213,7 @@ func (l *linker) linkComponentArguments(logger *slog.Logger, cc *file.ComponentC
 		}
 
 		logger.Error("Could not find parameter for argument")
-		l.report(&diagnostic.Diagnostic{
+		l.Report(&diagnostic.Diagnostic{
 			Message: "component call: argument: unresolved reference",
 			Primary: []diagnostic.Annotation{
 				anno.Node(cc.File, arg.AST, "`"+string(cc.Name)+"` defines no parameter `"+string(arg.Name)+"`"),

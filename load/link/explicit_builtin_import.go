@@ -8,10 +8,10 @@ import (
 )
 
 func (l *linker) CheckExplicitBuiltinImport() {
-	logger := l.logger.WithGroup("check.explicit_builtin_import")
+	logger := l.Logger.WithGroup("check.explicit_builtin_import")
 	logger.Info("Checking for an illegal explicit import of the builtin package")
 
-	for _, f := range l.p.Files {
+	for _, f := range l.Pkg.Files {
 		logger := logger.With(slog.String("file", string(f.Name)))
 
 		builtin := f.BuiltinImport()
@@ -29,7 +29,7 @@ func (l *linker) CheckExplicitBuiltinImport() {
 				slog.String("import", string(imp.CorgiPath)))
 
 			logger.Error("Explicit import of builtin package")
-			l.report(&diagnostic.Diagnostic{
+			l.Report(&diagnostic.Diagnostic{
 				Message: "explicit import of builtin package",
 				Primary: []diagnostic.Annotation{
 					anno.Node(f, imp.AST, "explicit import of builtin package"),

@@ -14,7 +14,7 @@ func (ch *checker) CheckState() {
 
 	ch.CheckState_Duplicates(logger)
 
-	for _, s := range ch.P.State {
+	for _, s := range ch.Pkg.State {
 		logger := logger.With(
 			slog.String("file", string(s.File.Name)),
 			slog.String("name", string(s.Name())))
@@ -30,15 +30,15 @@ func (ch *checker) CheckState() {
 func (ch *checker) CheckState_Duplicates(logger *slog.Logger) {
 	logger = logger.WithGroup("duplicates")
 
-	if len(ch.P.State) <= 1 {
+	if len(ch.Pkg.State) <= 1 {
 		logger.Debug("One or no state variables, skipping")
 		return
 	}
 
 	reported := make(map[file.Identifier]bool)
-	dupls := make([]*file.State, 0, len(ch.P.State)-1)
+	dupls := make([]*file.State, 0, len(ch.Pkg.State)-1)
 
-	for ai, a := range ch.P.State[:len(ch.P.State)-1] {
+	for ai, a := range ch.Pkg.State[:len(ch.Pkg.State)-1] {
 		logger := logger.With(
 			slog.String("file", string(a.File.Name)),
 			slog.String("name", string(a.Name())))
@@ -49,7 +49,7 @@ func (ch *checker) CheckState_Duplicates(logger *slog.Logger) {
 
 		dupls = dupls[:0]
 
-		for _, b := range ch.P.State[ai:] {
+		for _, b := range ch.Pkg.State[ai:] {
 			if a.NameNode().Name != b.NameNode().Name {
 				continue
 			}

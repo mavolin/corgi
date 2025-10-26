@@ -9,10 +9,10 @@ import (
 )
 
 func (l *linker) CheckDuplicateDotImports() {
-	logger := l.logger.WithGroup("checks.duplicate_dot_imports")
+	logger := l.Logger.WithGroup("checks.duplicate_dot_imports")
 	logger.Debug("Checking for duplicate dot imports")
 
-	for _, f := range l.p.Files {
+	for _, f := range l.Pkg.Files {
 		logger := logger.With(slog.String("file", string(f.Name)))
 
 		if len(f.Imports) <= 1 {
@@ -50,7 +50,7 @@ func (l *linker) CheckDuplicateDotImports() {
 				primaries = append(primaries, anno.Node(f, imp.AST, msg))
 			}
 
-			l.report(&diagnostic.Diagnostic{
+			l.Report(&diagnostic.Diagnostic{
 				Message:     "duplicated dot imports",
 				Primary:     primaries,
 				Explanation: "You can only dot-import a package once per file.",

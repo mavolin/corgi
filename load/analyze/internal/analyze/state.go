@@ -19,7 +19,7 @@ func (z *analyzer) AnalyzeStates() {
 	logger := z.Logger.WithGroup("state")
 	logger.Debug("Analyzing state variables")
 
-	for _, s := range z.P.State {
+	for _, s := range z.Pkg.State {
 		z.AnalyzeState(logger, s)
 	}
 }

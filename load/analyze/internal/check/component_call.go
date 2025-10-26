@@ -16,7 +16,7 @@ func (ch *checker) CheckComponentCalls() {
 	logger := ch.Logger.WithGroup("component_calls")
 	logger.Debug("Checking component calls")
 
-	for _, f := range ch.P.Files {
+	for _, f := range ch.Pkg.Files {
 		logger := logger.With(slog.String("file", string(f.Name)))
 
 		for _, cc := range f.ComponentCalls {

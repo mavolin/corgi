@@ -15,10 +15,10 @@ type duplicateAttributeRule struct {
 }
 
 func (l *linker) CheckAttributeRuleCollisions() {
-	logger := l.logger.WithGroup("checks.attribute_rule_collisions")
+	logger := l.Logger.WithGroup("checks.attribute_rule_collisions")
 	logger.Debug("Checking for duplicate elements within the same attribute spec")
 
-	for _, spec := range l.p.AttributeSpecs {
+	for _, spec := range l.Pkg.AttributeSpecs {
 		if spec.AST == nil || spec.AST.Ruleset == nil {
 			continue
 		}
@@ -106,7 +106,7 @@ func reportDuplicateElements(l *linker, logger *slog.Logger, f *file.File, name 
 		})
 	}
 
-	l.report(&diagnostic.Diagnostic{
+	l.Report(&diagnostic.Diagnostic{
 		Message: "attribute definition: element selector used multiple times",
 		Primary: primaries,
 	})

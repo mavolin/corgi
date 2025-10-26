@@ -9,10 +9,10 @@ import (
 )
 
 func (l *linker) LinkElementReferences() {
-	logger := l.logger.WithGroup("links.element_references")
+	logger := l.Logger.WithGroup("links.element_references")
 	logger.Debug("Linking element references")
 
-	for _, f := range l.p.Files {
+	for _, f := range l.Pkg.Files {
 		logger := logger.With(slog.String("file", string(f.Name)))
 
 		for _, ref := range f.ElementReferences {
@@ -87,7 +87,7 @@ func (l *linker) linkUnqualifiedElementReference(logger *slog.Logger, f *file.Fi
 	}
 
 	logger.Error("Could not resolve reference")
-	l.report(&diagnostic.Diagnostic{
+	l.Report(&diagnostic.Diagnostic{
 		Message: "element: unresolved reference",
 		Primary: []diagnostic.Annotation{
 			anno.Node(f, ref.AST, "neither defined in the current package nor dot imports"),
@@ -108,7 +108,7 @@ func (l *linker) linkQualifiedElementReference(logger *slog.Logger, f *file.File
 	imp := f.ImportByQualifier(ref.Qualifier)
 	if imp == nil || !imp.Explicit() {
 		logger.Error("Could not find import for package")
-		l.reportMissingImport(f, ref.Qualifier, &diagnostic.Diagnostic{
+		l.ReportMissingImport(f, ref.Qualifier, &diagnostic.Diagnostic{
 			Message: "element: unresolved reference to package",
 			Primary: []diagnostic.Annotation{
 				anno.Node(f, ref.AST.Package, "missing import for this package"),
@@ -135,7 +135,7 @@ func (l *linker) linkQualifiedElementReference(logger *slog.Logger, f *file.File
 	}
 
 	logger.Error("Could not resolve reference")
-	l.report(&diagnostic.Diagnostic{
+	l.Report(&diagnostic.Diagnostic{
 		Message: "element: unresolved reference",
 		Primary: []diagnostic.Annotation{
 			anno.Node(f, ref.AST, "could not resolve reference"),
