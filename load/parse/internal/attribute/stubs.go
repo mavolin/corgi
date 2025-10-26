@@ -1,8 +1,8 @@
-//go:build test_stubs
-
 package attribute
 
 import (
+	"testing"
+
 	"github.com/mavolin/corgi/v2/file/ast"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/mavolin/corgi/v2/load/parse/internal/html"
@@ -10,7 +10,9 @@ import (
 
 //nolint:gochecknoinits
 func init() {
-	SetElementReference(elementReferenceStub)
+	if testing.Testing() {
+		SetElementReference(elementReferenceStub)
+	}
 }
 
 func elementReferenceStub(p *parser.Parser) *ast.ElementReference {
@@ -22,5 +24,11 @@ func elementReferenceStub(p *parser.Parser) *ast.ElementReference {
 		return nil
 	}
 
-	return &ast.ElementReference{Name: &ast.ElementName{Name: name, Position: &pos}}
+	return &ast.ElementReference{
+		Name: &ast.ElementName{
+			Name:          name,
+			CanonicalName: canonicalize(name),
+			Position:      &pos,
+		},
+	}
 }

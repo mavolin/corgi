@@ -152,7 +152,7 @@ func Spec() parser.Func[*ast.AttributeSpec] {
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message:  "attribute spec: missing ruleset",
 				Primary:  quickanno.Expected(p, p.Pos(), "an attribute ruleset"),
-				Examples: []diagnostic.Example{{Example: "`{ * innocuous }`"}},
+				Examples: []diagnostic.Example{{Example: "`{ * string }`"}},
 			})
 		}
 		return &spec
@@ -208,7 +208,7 @@ func Rule() parser.Func[*ast.AttributeRule] {
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message:  "attribute rule: missing type",
 				Primary:  quickanno.Expected(p, p.Pos(), "a type name"),
-				Examples: []diagnostic.Example{{Example: "`div innocuous`"}},
+				Examples: []diagnostic.Example{{Example: "`div string`"}},
 			})
 		}
 		return &r
@@ -264,14 +264,15 @@ func canonicalize(name string) string {
 
 		b.Grow(len(name))
 		b.WriteString(name[:i])
-		b.WriteRune((r - 'A') + 'a')
+		b.WriteRune('a' + (r - 'A'))
 		for _, r := range name[i+1:] {
 			if r >= 'A' && r <= 'Z' {
-				b.WriteRune((r - 'A') + 'a')
+				b.WriteRune('a' + (r - 'A'))
 			} else {
 				b.WriteRune(r)
 			}
 		}
+		break
 	}
 
 	if b.Len() == 0 {
@@ -342,7 +343,7 @@ func RegexpSelector() parser.Func[*ast.RegexpAttributeSelector] {
 					},
 				})
 			} else {
-				expr = expr + "$"
+				expr += "$"
 			}
 
 			var err error

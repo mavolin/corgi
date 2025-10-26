@@ -25,7 +25,11 @@ func TestDefinition(t *testing.T) {
 				Elem: &ast.Position{Line: 1, Col: 1},
 				Specs: []*ast.ElementSpec{
 					{
-						Name: &ast.ElementName{Name: "foo", Position: &ast.Position{Line: 1, Col: 6}},
+						Name: &ast.ElementName{
+							Name:          "foo",
+							CanonicalName: "foo",
+							Position:      &ast.Position{Line: 1, Col: 6},
+						},
 						Type: &ast.BasicElementType{
 							Type: &ast.ElementTypeName{
 								Name:     "normal",
@@ -40,11 +44,19 @@ func TestDefinition(t *testing.T) {
 			name: "single with prefix",
 			in:   "elem x foo normal",
 			want: &ast.ElementDefinition{
-				Elem:   &ast.Position{Line: 1, Col: 1},
-				Prefix: &ast.ElementName{Name: "x", Position: &ast.Position{Line: 1, Col: 6}},
+				Elem: &ast.Position{Line: 1, Col: 1},
+				Prefix: &ast.ElementName{
+					Name:          "x",
+					CanonicalName: "x",
+					Position:      &ast.Position{Line: 1, Col: 6},
+				},
 				Specs: []*ast.ElementSpec{
 					{
-						Name: &ast.ElementName{Name: "foo", Position: &ast.Position{Line: 1, Col: 8}},
+						Name: &ast.ElementName{
+							Name:          "foo",
+							CanonicalName: "foo",
+							Position:      &ast.Position{Line: 1, Col: 8},
+						},
 						Type: &ast.BasicElementType{
 							Type: &ast.ElementTypeName{
 								Name:     "normal",
@@ -66,7 +78,11 @@ func TestDefinition(t *testing.T) {
 				LParen: &ast.Position{Line: 1, Col: 6},
 				Specs: []*ast.ElementSpec{
 					{
-						Name: &ast.ElementName{Name: "foo", Position: &ast.Position{Line: 2, Col: 2}},
+						Name: &ast.ElementName{
+							Name:          "foo",
+							CanonicalName: "foo",
+							Position:      &ast.Position{Line: 2, Col: 2},
+						},
 						Type: &ast.BasicElementType{
 							Type: &ast.ElementTypeName{
 								Name:     "normal",
@@ -75,11 +91,19 @@ func TestDefinition(t *testing.T) {
 							},
 						},
 					}, {
-						Name: &ast.ElementName{Name: "bar", Position: &ast.Position{Line: 3, Col: 2}},
+						Name: &ast.ElementName{
+							Name:          "bar",
+							CanonicalName: "bar",
+							Position:      &ast.Position{Line: 3, Col: 2},
+						},
 						Type: &ast.AliasElementType{
 							EqualSign: &ast.Position{Line: 3, Col: 6},
 							Name: &ast.ElementReference{
-								Name: &ast.ElementName{Name: "div", Position: &ast.Position{Line: 3, Col: 8}},
+								Name: &ast.ElementName{
+									Name:          "div",
+									CanonicalName: "div",
+									Position:      &ast.Position{Line: 3, Col: 8},
+								},
 							},
 						},
 					},
@@ -93,12 +117,20 @@ func TestDefinition(t *testing.T) {
 				"\tbar = div\n" +
 				")",
 			want: &ast.ElementDefinition{
-				Elem:   &ast.Position{Line: 1, Col: 1},
-				Prefix: &ast.ElementName{Name: "x", Position: &ast.Position{Line: 1, Col: 6}},
+				Elem: &ast.Position{Line: 1, Col: 1},
+				Prefix: &ast.ElementName{
+					Name:          "x",
+					CanonicalName: "x",
+					Position:      &ast.Position{Line: 1, Col: 6},
+				},
 				LParen: &ast.Position{Line: 1, Col: 8},
 				Specs: []*ast.ElementSpec{
 					{
-						Name: &ast.ElementName{Name: "foo", Position: &ast.Position{Line: 2, Col: 2}},
+						Name: &ast.ElementName{
+							Name:          "foo",
+							CanonicalName: "foo",
+							Position:      &ast.Position{Line: 2, Col: 2},
+						},
 						Type: &ast.BasicElementType{
 							Type: &ast.ElementTypeName{
 								Name:     "normal",
@@ -107,11 +139,19 @@ func TestDefinition(t *testing.T) {
 							},
 						},
 					}, {
-						Name: &ast.ElementName{Name: "bar", Position: &ast.Position{Line: 3, Col: 2}},
+						Name: &ast.ElementName{
+							Name:          "bar",
+							CanonicalName: "bar",
+							Position:      &ast.Position{Line: 3, Col: 2},
+						},
 						Type: &ast.AliasElementType{
 							EqualSign: &ast.Position{Line: 3, Col: 6},
 							Name: &ast.ElementReference{
-								Name: &ast.ElementName{Name: "div", Position: &ast.Position{Line: 3, Col: 8}},
+								Name: &ast.ElementName{
+									Name:          "div",
+									CanonicalName: "div",
+									Position:      &ast.Position{Line: 3, Col: 8},
+								},
 							},
 						},
 					},
@@ -142,7 +182,11 @@ func TestSpec(t *testing.T) {
 			name: "basic",
 			in:   "foo normal",
 			want: &ast.ElementSpec{
-				Name: &ast.ElementName{Name: "foo", Position: &ast.Position{Line: 1, Col: 1}},
+				Name: &ast.ElementName{
+					Name:          "foo",
+					CanonicalName: "foo",
+					Position:      &ast.Position{Line: 1, Col: 1},
+				},
 				Type: &ast.BasicElementType{
 					Type: &ast.ElementTypeName{
 						Name:     "normal",
@@ -155,11 +199,19 @@ func TestSpec(t *testing.T) {
 			name: "alias",
 			in:   "foo = div",
 			want: &ast.ElementSpec{
-				Name: &ast.ElementName{Name: "foo", Position: &ast.Position{Line: 1, Col: 1}},
+				Name: &ast.ElementName{
+					Name:          "foo",
+					CanonicalName: "foo",
+					Position:      &ast.Position{Line: 1, Col: 1},
+				},
 				Type: &ast.AliasElementType{
 					EqualSign: &ast.Position{Line: 1, Col: 5},
 					Name: &ast.ElementReference{
-						Name: &ast.ElementName{Name: "div", Position: &ast.Position{Line: 1, Col: 7}},
+						Name: &ast.ElementName{
+							Name:          "div",
+							CanonicalName: "div",
+							Position:      &ast.Position{Line: 1, Col: 7},
+						},
 					},
 				},
 			},
@@ -211,7 +263,11 @@ func testAliasType(t *testing.T, f parser.Func[*ast.AliasElementType]) {
 	want := &ast.AliasElementType{
 		EqualSign: &ast.Position{Line: 1, Col: 1},
 		Name: &ast.ElementReference{
-			Name: &ast.ElementName{Name: "div", Position: &ast.Position{Line: 1, Col: 3}},
+			Name: &ast.ElementName{
+				Name:          "div",
+				CanonicalName: "div",
+				Position:      &ast.Position{Line: 1, Col: 3},
+			},
 		},
 	}
 
@@ -222,42 +278,17 @@ func testAliasType(t *testing.T, f parser.Func[*ast.AliasElementType]) {
 func TestTypeName(t *testing.T) {
 	t.Parallel()
 
-	tests := []struct {
-		name string
-		typ  elemtype.Type
-	}{
-		{
-			name: "void",
-			typ:  elemtype.Void,
-		}, {
-			name: "nothing",
-			typ:  elemtype.Nothing,
-		}, {
-			name: "normal",
-			typ:  elemtype.Normal,
-		}, {
-			name: "text",
-			typ:  elemtype.Text,
-		}, {
-			name: "css",
-			typ:  elemtype.CSS,
-		}, {
-			name: "js",
-			typ:  elemtype.JS,
-		},
-	}
-
-	for _, c := range tests {
-		t.Run(c.name, func(t *testing.T) {
+	for _, et := range elemtype.All {
+		t.Run(et.String(), func(t *testing.T) {
 			t.Parallel()
 
 			want := &ast.ElementTypeName{
-				Name:     c.name,
-				Type:     c.typ,
+				Name:     et.String(),
+				Type:     et,
 				Position: &ast.Position{Line: 1, Col: 1},
 			}
 
-			got := parsetest.ParsesExact(t, c.name, TypeName())
+			got := parsetest.ParsesExact(t, et.String(), TypeName())
 			should.Equal(t, got, want)
 		})
 	}

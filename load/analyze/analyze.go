@@ -52,7 +52,7 @@ import (
 // todo: only block setters that can contain attrs contain any
 // todo: cc as attr must only write text
 // todo: cc as attr must not write attrs
-// todo: cc as attr must only write to innocuous or text attributes
+// todo: cc as attr must only write to string or text attributes
 // todo: cc WritesContent
 // todo: duplicate and placeholder (as in attrs would be written twice)
 // todo: ccs in cc must not write text

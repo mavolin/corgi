@@ -233,7 +233,8 @@ func TypeName() parser.Func[*ast.ElementTypeName] {
 
 		var n ast.ElementTypeName
 		n.Position = &pos
-		n.Type = typeMap[name.Name]
+		n.Name = name.Name
+		n.Type = typeMap[n.Name]
 		if n.Type == elemtype.Unknown {
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "invalid type name",

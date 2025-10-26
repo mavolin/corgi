@@ -114,7 +114,7 @@ func GeneratePackageTree(r *rand.Rand) *PackageTree {
 	g.pkgs[g.Root.CorgiImportPath] = g.Root
 
 	// optional builtin, never imports
-	if g.r.IntN(4) == 0 {
+	if chance(g.r, 0.25) {
 		g.genBuiltin()
 	}
 
@@ -294,7 +294,7 @@ func (t *PackageTree) pickAttr() string {
 
 var allAttrTypes = func() []attrtype.Type {
 	ts := make([]attrtype.Type, 1, len(attrtype.All)+1)
-	ts[0] = attrtype.Unknown
+	ts[0] = nil
 	ts = append(ts, attrtype.All[:]...)
 	return ts
 }()

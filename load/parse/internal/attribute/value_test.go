@@ -59,31 +59,28 @@ func TestTypedAttributeValue(t *testing.T) {
 
 func testTypedAttributeValue(t *testing.T, f parser.Func[*ast.TypedAttributeValue]) {
 	for _, c := range attrTypes {
-		t.Run(c.name, func(t *testing.T) {
-			in := "'" + c.name + "(woof)"
+		name := c.typ.String()
+		t.Run(name, func(t *testing.T) {
+			in := "'" + name + "(woof)"
 			want := &ast.TypedAttributeValue{
 				Type: &ast.AttributeType{
 					Quote: &ast.Position{Line: 1, Col: 1},
-					Name: &ast.AttributeTypeName{
-						Name:     c.name,
-						Type:     c.typ,
-						Position: &ast.Position{Line: 1, Col: 2},
-					},
+					Name:  wantTypeName(c.typ, ast.Position{Line: 1, Col: 1 + len("'")}),
 				},
-				LParen: &ast.Position{Line: 1, Col: 1 + len("'") + len(c.name)},
+				LParen: &ast.Position{Line: 1, Col: 1 + len("'") + len(name)},
 				Value: &ast.ExpressionAttributeValue{
 					Nodes: ast.Code{
 						&ast.GoCode{
 							Code:     "woof",
-							Position: &ast.Position{Line: 1, Col: 1 + len("'") + len(c.name) + len("(")},
+							Position: &ast.Position{Line: 1, Col: 1 + len("'") + len(name) + len("(")},
 						},
 					},
 				},
-				RParen: &ast.Position{Line: 1, Col: 1 + len("'") + len(c.name) + len("(woof")},
+				RParen: &ast.Position{Line: 1, Col: 1 + len("'") + len(name) + len("(woof")},
 			}
 
 			got := parsetest.ParsesUntilComma(t, in, f)
-			should.Equal(t, got, want)
+			should.Equal(t, got, want, parsetest.CmpOpts...)
 		})
 	}
 }

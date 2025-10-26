@@ -5,7 +5,9 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/mavolin/corgi/v2/escape/attrtype"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
 	"github.com/mavolin/corgi/v2/internal/should"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
@@ -34,6 +36,16 @@ func applyOptions(opts ...Option) options {
 	return o
 }
 
+var CmpOpts = []cmp.Option{
+	cmpopts.IgnoreTypes((*regexp.Regexp)(nil)),
+	cmp.Transformer("attrtype", func(t attrtype.Type) string {
+		if t == nil {
+			return "<unknown>"
+		}
+		return t.String()
+	}),
+}
+
 // ParsesExact asserts that f matches the entire in string, but would not
 // consume any extra space separated in.
 func ParsesExact[T any](t *testing.T, in string, f parser.Func[T], opts ...Option) T {
@@ -48,11 +60,11 @@ func ParsesExact[T any](t *testing.T, in string, f parser.Func[T], opts ...Optio
 
 	t.Run("followed by number", func(t *testing.T) {
 		v2 := ParsesUntilExtra(t, in, " 1other stuff", f, opts...)
-		should.Equal(t, v2, v, cmpopts.IgnoreTypes((*regexp.Regexp)(nil))) // EOF and number results differ
+		should.Equal(t, v2, v, CmpOpts...) // EOF and number results differ
 	})
 	t.Run("followed by identifier", func(t *testing.T) {
 		v2 := ParsesUntilExtra(t, in, " otherStuff", f, opts...)
-		should.Equal(t, v2, v, cmpopts.IgnoreTypes((*regexp.Regexp)(nil))) // EOF and identifier results differ
+		should.Equal(t, v2, v, CmpOpts...) // EOF and identifier results differ
 	})
 	return v
 }
@@ -71,19 +83,19 @@ func ParsesUntilEOS[T any](t *testing.T, in string, f parser.Func[T], opts ...Op
 
 	t.Run("followed by semicolon", func(t *testing.T) {
 		v2 := ParsesUntilExtra(t, in, "; 1other stuff", f, opts...)
-		should.Equal(t, v2, v, cmpopts.IgnoreTypes((*regexp.Regexp)(nil))) // EOF and semicolon results differ
+		should.Equal(t, v2, v, CmpOpts...) // EOF and semicolon results differ
 	})
 	t.Run("followed by newline", func(t *testing.T) {
 		v2 := ParsesUntilExtra(t, in, "\n1other stuff", f, opts...)
-		should.Equal(t, v2, v, cmpopts.IgnoreTypes((*regexp.Regexp)(nil))) // EOF and newline results differ
+		should.Equal(t, v2, v, CmpOpts...) // EOF and newline results differ
 	})
 	t.Run("followed by line comment", func(t *testing.T) {
 		v2 := ParsesUntilExtra(t, in, "// comment", f, opts...)
-		should.Equal(t, v2, v, cmpopts.IgnoreTypes((*regexp.Regexp)(nil))) // EOF and line comment results differ
+		should.Equal(t, v2, v, CmpOpts...) // EOF and line comment results differ
 	})
 	t.Run("followed by block comment", func(t *testing.T) {
 		v2 := ParsesUntilExtra(t, in, "/* comment */; 1other stuff", f, opts...)
-		should.Equal(t, v2, v, cmpopts.IgnoreTypes((*regexp.Regexp)(nil))) // EOF and block comment results differ
+		should.Equal(t, v2, v, CmpOpts...) // EOF and block comment results differ
 	})
 	return v
 }
@@ -102,11 +114,11 @@ func ParsesUntilComma[T any](t *testing.T, in string, f parser.Func[T], opts ...
 
 	t.Run("followed by comma", func(t *testing.T) {
 		v2 := ParsesUntilExtra(t, in, ", 1other stuff", f, opts...)
-		should.Equal(t, v2, v, cmpopts.IgnoreTypes((*regexp.Regexp)(nil))) // EOF and semicolon results differ
+		should.Equal(t, v2, v, CmpOpts...) // EOF and semicolon results differ
 	})
 	t.Run("followed by block comment", func(t *testing.T) {
 		v2 := ParsesUntilExtra(t, in, "/* comment */, 1other stuff", f, opts...)
-		should.Equal(t, v2, v, cmpopts.IgnoreTypes((*regexp.Regexp)(nil))) // EOF and block comment results differ
+		should.Equal(t, v2, v, CmpOpts...) // EOF and block comment results differ
 	})
 	return v
 }
@@ -125,20 +137,20 @@ func ParsesUntilBody[T any](t *testing.T, in string, f parser.Func[T], opts ...O
 
 	t.Run("followed by scope", func(t *testing.T) {
 		v2 := ParsesUntilExtra(t, in, " {\n\tdiv\n}", f, opts...)
-		should.Equal(t, v2, v, cmpopts.IgnoreTypes((*regexp.Regexp)(nil))) // EOF and scope results differ
+		should.Equal(t, v2, v, CmpOpts...) // EOF and scope results differ
 
 		t.Run("followed by block comment", func(t *testing.T) {
 			v2 := ParsesUntilExtra(t, in, " /* comment */{\n\tdiv\n}", f, opts...)
-			should.Equal(t, v2, v, cmpopts.IgnoreTypes((*regexp.Regexp)(nil))) // EOF and scope results differ
+			should.Equal(t, v2, v, CmpOpts...) // EOF and scope results differ
 		})
 	})
 	t.Run("followed by bracket text", func(t *testing.T) {
 		v2 := ParsesUntilExtra(t, in, " [\n\twoof\n]", f, opts...)
-		should.Equal(t, v2, v, cmpopts.IgnoreTypes((*regexp.Regexp)(nil))) // EOF and bracket text results differ
+		should.Equal(t, v2, v, CmpOpts...) // EOF and bracket text results differ
 
 		t.Run("followed by block comment", func(t *testing.T) {
 			v2 := ParsesUntilExtra(t, in, " /* comment */[\n\twoof\n]", f, opts...)
-			should.Equal(t, v2, v, cmpopts.IgnoreTypes((*regexp.Regexp)(nil))) // EOF and bracket text results differ
+			should.Equal(t, v2, v, CmpOpts...) // EOF and bracket text results differ
 		})
 	})
 	return v

@@ -53,9 +53,9 @@ func testLinker_LinkAttributeReferences_success(t *testing.T) { //nolint:revive
 						builtinPkg := createPackage("builtin")
 						builtinF := createFile(builtinPkg, "builtin.corgi")
 						if regexp {
-							createRegexpAttributeSpec(builtinF, &start, prefix, "tes.+", nil, attrtype.Innocuous)
+							createRegexpAttributeSpec(builtinF, &start, prefix, "tes.+", nil, attrtype.String)
 						} else {
-							createBasicAttributeSpec(builtinF, &start, prefix, "test", nil, attrtype.Innocuous)
+							createBasicAttributeSpec(builtinF, &start, prefix, "test", nil, attrtype.String)
 						}
 
 						p := createPackage("test")
@@ -63,9 +63,9 @@ func testLinker_LinkAttributeReferences_success(t *testing.T) { //nolint:revive
 
 						var spec *file.AttributeSpec
 						if regexp {
-							spec = createRegexpAttributeSpec(f, &start, prefix, "tes.+", nil, attrtype.Innocuous)
+							spec = createRegexpAttributeSpec(f, &start, prefix, "tes.+", nil, attrtype.String)
 						} else {
-							spec = createBasicAttributeSpec(f, &start, prefix, "test", nil, attrtype.Innocuous)
+							spec = createBasicAttributeSpec(f, &start, prefix, "test", nil, attrtype.String)
 						}
 
 						htmlName := "test"
@@ -94,9 +94,9 @@ func testLinker_LinkAttributeReferences_success(t *testing.T) { //nolint:revive
 						builtinF := createFile(builtinPkg, "builtin.corgi")
 						var spec *file.AttributeSpec
 						if regexp {
-							spec = createRegexpAttributeSpec(builtinF, &start, prefix, "tes.+", nil, attrtype.Innocuous)
+							spec = createRegexpAttributeSpec(builtinF, &start, prefix, "tes.+", nil, attrtype.String)
 						} else {
-							spec = createBasicAttributeSpec(builtinF, &start, prefix, "test", nil, attrtype.Innocuous)
+							spec = createBasicAttributeSpec(builtinF, &start, prefix, "test", nil, attrtype.String)
 						}
 
 						p := createPackage("test")
@@ -152,9 +152,9 @@ func testLinker_LinkAttributeReferences_success(t *testing.T) { //nolint:revive
 							importedF := createFile(importedPkg, "imported.corgi")
 							var importedSpec *file.AttributeSpec
 							if regexp {
-								importedSpec = createRegexpAttributeSpec(importedF, &start, prefix, "tes.+", nil, attrtype.Innocuous)
+								importedSpec = createRegexpAttributeSpec(importedF, &start, prefix, "tes.+", nil, attrtype.String)
 							} else {
-								importedSpec = createBasicAttributeSpec(importedF, &start, prefix, "test", nil, attrtype.Innocuous)
+								importedSpec = createBasicAttributeSpec(importedF, &start, prefix, "test", nil, attrtype.String)
 							}
 
 							htmlName := "test"
@@ -205,8 +205,8 @@ func testLinker_LinkAttributeReferences_failure(t *testing.T) { //nolint:revive
 				var start ast.Position
 				p = createPackage("test")
 				f := createFile(p, "test.corgi")
-				createRegexpAttributeSpec(f, &start, "", "tes.+", nil, attrtype.Innocuous)
-				createRegexpAttributeSpec(f, &start, "", "tes.+", nil, attrtype.Innocuous)
+				createRegexpAttributeSpec(f, &start, "", "tes.+", nil, attrtype.String)
+				createRegexpAttributeSpec(f, &start, "", "tes.+", nil, attrtype.String)
 				createAttributeReference(f, &start, "", "test")
 
 				return p, nil, nil
@@ -219,8 +219,8 @@ func testLinker_LinkAttributeReferences_failure(t *testing.T) { //nolint:revive
 				builtinPkg := createPackage("builtin")
 				builtinPkg.CorgiImportPath = builtinPath
 				createFile(builtinPkg, "builtin.corgi")
-				createRegexpAttributeSpec(builtinPkg.Files[0], &start, "", "tes.+", nil, attrtype.Innocuous)
-				createRegexpAttributeSpec(builtinPkg.Files[0], &start, "", "tes.+", nil, attrtype.Innocuous)
+				createRegexpAttributeSpec(builtinPkg.Files[0], &start, "", "tes.+", nil, attrtype.String)
+				createRegexpAttributeSpec(builtinPkg.Files[0], &start, "", "tes.+", nil, attrtype.String)
 
 				p = createPackage("test")
 				f := createFile(p, "test.corgi")
@@ -235,8 +235,8 @@ func testLinker_LinkAttributeReferences_failure(t *testing.T) { //nolint:revive
 				var start ast.Position
 				importedPkg := createPackage("imported")
 				createFile(importedPkg, "imported.corgi")
-				createRegexpAttributeSpec(importedPkg.Files[0], &start, "", "tes.+", nil, attrtype.Innocuous)
-				createRegexpAttributeSpec(importedPkg.Files[0], &start, "", "tes.+", nil, attrtype.Innocuous)
+				createRegexpAttributeSpec(importedPkg.Files[0], &start, "", "tes.+", nil, attrtype.String)
+				createRegexpAttributeSpec(importedPkg.Files[0], &start, "", "tes.+", nil, attrtype.String)
 
 				p = createPackage("test")
 				f := createFile(p, "test.corgi")

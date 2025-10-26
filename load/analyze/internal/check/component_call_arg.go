@@ -154,22 +154,22 @@ func (ch *checker) CheckComponentCallArgument_AcceptsAttributes(logger *slog.Log
 		return
 	}
 
-	var primaries []diagnostic.Annotation
-	if cc.ReceivesAttributes.True() {
-		chain := cc.ReceivedAttributeChain()
-		primaries = make([]diagnostic.Annotation, len(chain))
-		for i, n := range chain[:len(chain)-1] {
-			primaries[i] = anno.Node(cc.File, n, "through this component call")
-		}
-		primaries[len(chain)-1] = anno.Node(cc.File, chain[len(chain)-1], "you hand it attributes here")
-	} else {
-		chain := cc.ReceivedAndPlaceholderChain()
-		primaries = make([]diagnostic.Annotation, len(chain))
-		for i, n := range chain[:len(chain)-1] {
-			primaries[i] = anno.Node(cc.File, n, "through this component call")
-		}
-		primaries[len(chain)-1] = anno.Node(cc.File, chain[len(chain)-1], "you hand it attributes here")
-	}
+	// var primaries []diagnostic.Annotation
+	// if cc.ReceivesAttributes.True() {
+	// 	chain := cc.ReceivedAttributeChain()
+	// 	primaries = make([]diagnostic.Annotation, len(chain))
+	// 	for i, n := range chain[:len(chain)-1] {
+	// 		primaries[i] = anno.Node(cc.File, n, "through this component call")
+	// 	}
+	// 	primaries[len(chain)-1] = anno.Node(cc.File, chain[len(chain)-1], "you hand it attributes here")
+	// } else {
+	// 	chain := cc.ReceivedAndPlaceholderChain()
+	// 	primaries = make([]diagnostic.Annotation, len(chain))
+	// 	for i, n := range chain[:len(chain)-1] {
+	// 		primaries[i] = anno.Node(cc.File, n, "through this component call")
+	// 	}
+	// 	primaries[len(chain)-1] = anno.Node(cc.File, chain[len(chain)-1], "you hand it attributes here")
+	// }
 
 	logger.Error("Component does not accept attributes")
 	diag := &diagnostic.Diagnostic{

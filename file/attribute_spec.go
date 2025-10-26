@@ -124,7 +124,7 @@ func (spec *AttributeSpec) RuleFor(elemSpec *ElementSpec) *ast.AttributeRule {
 func (spec *AttributeSpec) TypeFor(elemSpec *ElementSpec) attrtype.Type {
 	r := spec.RuleFor(elemSpec)
 	if r == nil || r.Type == nil {
-		return attrtype.Unknown
+		return nil
 	}
 	return r.Type.Type
 }

@@ -25,7 +25,7 @@ func TestLinker_CheckAttributeRuleCollisions(t *testing.T) {
 		elem1 := createElementSpec(mainF, &start, "", "div", elemtype.Normal)
 		elem2 := createElementSpec(mainF, &start, "", "span", elemtype.Text)
 
-		attrSpec := createBasicAttributeSpec(mainF, &start, "", "foo", nil, attrtype.Innocuous)
+		attrSpec := createBasicAttributeSpec(mainF, &start, "", "foo", nil, attrtype.String)
 		attrSpec.AST.Ruleset.List = nil
 
 		rule1 := &ast.AttributeRule{
@@ -36,8 +36,8 @@ func TestLinker_CheckAttributeRuleCollisions(t *testing.T) {
 			},
 		}
 		rule1.Type = &ast.AttributeTypeName{
-			Name:     attrtype.Innocuous.String(),
-			Type:     attrtype.Innocuous,
+			Name:     attrtype.String.String(),
+			Type:     attrtype.String,
 			Position: spaceAfter(attrSpec.AST),
 		}
 		attrSpec.AST.Ruleset.List = append(attrSpec.AST.Ruleset.List, rule1)
@@ -50,8 +50,8 @@ func TestLinker_CheckAttributeRuleCollisions(t *testing.T) {
 			},
 		}
 		rule2.Type = &ast.AttributeTypeName{
-			Name:     attrtype.Innocuous.String(),
-			Type:     attrtype.Innocuous,
+			Name:     attrtype.String.String(),
+			Type:     attrtype.String,
 			Position: spaceAfter(attrSpec.AST),
 		}
 		attrSpec.AST.Ruleset.List = append(attrSpec.AST.Ruleset.List, rule2)
@@ -76,7 +76,7 @@ func TestLinker_CheckAttributeRuleCollisions(t *testing.T) {
 				mainF := createFile(mainPkg, "main.corgi")
 
 				var start ast.Position
-				attrSpec := createBasicAttributeSpec(mainF, &start, "", "foo", nil, attrtype.Innocuous)
+				attrSpec := createBasicAttributeSpec(mainF, &start, "", "foo", nil, attrtype.String)
 				attrSpec.AST.Ruleset.List = nil
 
 				rule1 := &ast.AttributeRule{
@@ -85,8 +85,8 @@ func TestLinker_CheckAttributeRuleCollisions(t *testing.T) {
 					},
 				}
 				rule1.Type = &ast.AttributeTypeName{
-					Name:     attrtype.Innocuous.String(),
-					Type:     attrtype.Innocuous,
+					Name:     attrtype.String.String(),
+					Type:     attrtype.String,
 					Position: spaceAfter(rule1),
 				}
 				attrSpec.AST.Ruleset.List = append(attrSpec.AST.Ruleset.List, rule1)
@@ -97,8 +97,8 @@ func TestLinker_CheckAttributeRuleCollisions(t *testing.T) {
 					},
 				}
 				rule2.Type = &ast.AttributeTypeName{
-					Name:     attrtype.Innocuous.String(),
-					Type:     attrtype.Innocuous,
+					Name:     attrtype.String.String(),
+					Type:     attrtype.String,
 					Position: spaceAfter(rule2),
 				}
 				attrSpec.AST.Ruleset.List = append(attrSpec.AST.Ruleset.List, rule2)
@@ -115,7 +115,7 @@ func TestLinker_CheckAttributeRuleCollisions(t *testing.T) {
 
 				elem := createElementSpec(mainF, &start, "", "div", elemtype.Normal)
 
-				attrSpec := createBasicAttributeSpec(mainF, &start, "", "foo", elem, attrtype.Innocuous)
+				attrSpec := createBasicAttributeSpec(mainF, &start, "", "foo", elem, attrtype.String)
 
 				rule2 := &ast.AttributeRule{
 					Selector: &ast.ListElementSelector{
@@ -125,8 +125,8 @@ func TestLinker_CheckAttributeRuleCollisions(t *testing.T) {
 					},
 				}
 				rule2.Type = &ast.AttributeTypeName{
-					Name:     attrtype.Innocuous.String(),
-					Type:     attrtype.Innocuous,
+					Name:     attrtype.String.String(),
+					Type:     attrtype.String,
 					Position: spaceAfter(rule2.Selector),
 				}
 				attrSpec.AST.Ruleset.List = append(attrSpec.AST.Ruleset.List, rule2)
@@ -143,7 +143,7 @@ func TestLinker_CheckAttributeRuleCollisions(t *testing.T) {
 
 				elem := createElementSpec(mainF, &start, "", "div", elemtype.Normal)
 
-				attrSpec := createBasicAttributeSpec(mainF, &start, "", "foo", nil, attrtype.Innocuous)
+				attrSpec := createBasicAttributeSpec(mainF, &start, "", "foo", nil, attrtype.String)
 				attrSpec.AST.Ruleset.List = nil
 
 				selector := &ast.ListElementSelector{
@@ -154,8 +154,8 @@ func TestLinker_CheckAttributeRuleCollisions(t *testing.T) {
 				selector.List = append(selector.List, createElementReference(mainF, spaceAfter(selector), "", elem.StylizedHTMLName).AST)
 				rule := &ast.AttributeRule{Selector: selector}
 				rule.Type = &ast.AttributeTypeName{
-					Name:     attrtype.Innocuous.String(),
-					Type:     attrtype.Innocuous,
+					Name:     attrtype.String.String(),
+					Type:     attrtype.String,
 					Position: spaceAfter(rule.Selector),
 				}
 				attrSpec.AST.Ruleset.List = append(attrSpec.AST.Ruleset.List, rule)

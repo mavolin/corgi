@@ -22,29 +22,30 @@ func TestDefinition(t *testing.T) {
 	}{
 		{
 			name: "single",
-			in:   `attr foo { * innocuous }`,
+			in:   `attr foo { * string }`,
 			want: &ast.AttributeDefinition{
 				Specs: []*ast.AttributeSpec{
 					{
 						Selector: &ast.BasicAttributeSelector{
-							Name:     "foo",
-							Position: &ast.Position{Line: 1, Col: 6},
+							Name:          "foo",
+							CanonicalName: "foo",
+							Position:      &ast.Position{Line: 1, Col: 1 + len("attr ")},
 						},
 						Ruleset: &ast.AttributeRuleset{
-							LBrace: &ast.Position{Line: 1, Col: 10},
+							LBrace: &ast.Position{Line: 1, Col: 1 + len("attr foo ")},
 							List: []*ast.AttributeRule{
 								{
 									Selector: &ast.WildcardElementSelector{
-										Asterisk: &ast.Position{Line: 1, Col: 12},
+										Asterisk: &ast.Position{Line: 1, Col: 1 + len("attr foo { ")},
 									},
 									Type: &ast.AttributeTypeName{
-										Name:     "innocuous",
-										Type:     attrtype.Innocuous,
-										Position: &ast.Position{Line: 1, Col: 14},
+										Name:     "string",
+										Type:     attrtype.String,
+										Position: &ast.Position{Line: 1, Col: 1 + len("attr foo { * ")},
 									},
 								},
 							},
-							RBrace: &ast.Position{Line: 1, Col: 24},
+							RBrace: &ast.Position{Line: 1, Col: 1 + len("attr foo { * string ")},
 						},
 					},
 				},
@@ -52,33 +53,35 @@ func TestDefinition(t *testing.T) {
 			},
 		}, {
 			name: "single with prefix",
-			in:   `attr hx- foo { * innocuous }`,
+			in:   `attr hx- foo { * string }`,
 			want: &ast.AttributeDefinition{
 				Prefix: &ast.AttributeName{
-					Name:     "hx-",
-					Position: &ast.Position{Line: 1, Col: 6},
+					Name:          "hx-",
+					CanonicalName: "hx-",
+					Position:      &ast.Position{Line: 1, Col: 1 + len("attr ")},
 				},
 				Specs: []*ast.AttributeSpec{
 					{
 						Selector: &ast.BasicAttributeSelector{
-							Name:     "foo",
-							Position: &ast.Position{Line: 1, Col: 10},
+							Name:          "foo",
+							CanonicalName: "foo",
+							Position:      &ast.Position{Line: 1, Col: 1 + len("attr hx- ")},
 						},
 						Ruleset: &ast.AttributeRuleset{
-							LBrace: &ast.Position{Line: 1, Col: 14},
+							LBrace: &ast.Position{Line: 1, Col: 1 + len("attr hx- foo ")},
 							List: []*ast.AttributeRule{
 								{
 									Selector: &ast.WildcardElementSelector{
-										Asterisk: &ast.Position{Line: 1, Col: 16},
+										Asterisk: &ast.Position{Line: 1, Col: 1 + len("attr hx- foo { ")},
 									},
 									Type: &ast.AttributeTypeName{
-										Name:     "innocuous",
-										Type:     attrtype.Innocuous,
-										Position: &ast.Position{Line: 1, Col: 18},
+										Name:     "string",
+										Type:     attrtype.String,
+										Position: &ast.Position{Line: 1, Col: 1 + len("attr hx- foo { * ")},
 									},
 								},
 							},
-							RBrace: &ast.Position{Line: 1, Col: 28},
+							RBrace: &ast.Position{Line: 1, Col: 1 + len("attr hx- foo { * string ")},
 						},
 					},
 				},
@@ -87,53 +90,55 @@ func TestDefinition(t *testing.T) {
 		}, {
 			name: "multiple",
 			in: "attr (\n" +
-				"\tfoo { * innocuous }\n" +
+				"\tfoo { * string }\n" +
 				"\tbar { * text }\n" +
 				")",
 			want: &ast.AttributeDefinition{
-				LParen: &ast.Position{Line: 1, Col: 6},
+				LParen: &ast.Position{Line: 1, Col: 1 + len("attr ")},
 				Specs: []*ast.AttributeSpec{
 					{
 						Selector: &ast.BasicAttributeSelector{
-							Name:     "foo",
-							Position: &ast.Position{Line: 2, Col: 2},
+							Name:          "foo",
+							CanonicalName: "foo",
+							Position:      &ast.Position{Line: 2, Col: 1 + len("\t")},
 						},
 						Ruleset: &ast.AttributeRuleset{
-							LBrace: &ast.Position{Line: 2, Col: 6},
+							LBrace: &ast.Position{Line: 2, Col: 1 + len("\tfoo ")},
 							List: []*ast.AttributeRule{
 								{
 									Selector: &ast.WildcardElementSelector{
-										Asterisk: &ast.Position{Line: 2, Col: 8},
+										Asterisk: &ast.Position{Line: 2, Col: 1 + len("\tfoo { ")},
 									},
 									Type: &ast.AttributeTypeName{
-										Name:     "innocuous",
-										Type:     attrtype.Innocuous,
-										Position: &ast.Position{Line: 2, Col: 10},
+										Name:     "string",
+										Type:     attrtype.String,
+										Position: &ast.Position{Line: 2, Col: 1 + len("\tfoo { * ")},
 									},
 								},
 							},
-							RBrace: &ast.Position{Line: 2, Col: 20},
+							RBrace: &ast.Position{Line: 2, Col: 1 + len("\tfoo { * string ")},
 						},
 					}, {
 						Selector: &ast.BasicAttributeSelector{
-							Name:     "bar",
-							Position: &ast.Position{Line: 3, Col: 2},
+							Name:          "bar",
+							CanonicalName: "bar",
+							Position:      &ast.Position{Line: 3, Col: 1 + len("\t")},
 						},
 						Ruleset: &ast.AttributeRuleset{
-							LBrace: &ast.Position{Line: 3, Col: 6},
+							LBrace: &ast.Position{Line: 3, Col: 1 + len("\tbar ")},
 							List: []*ast.AttributeRule{
 								{
 									Selector: &ast.WildcardElementSelector{
-										Asterisk: &ast.Position{Line: 3, Col: 8},
+										Asterisk: &ast.Position{Line: 3, Col: 1 + len("\tbar { ")},
 									},
 									Type: &ast.AttributeTypeName{
 										Name:     "text",
 										Type:     attrtype.Text,
-										Position: &ast.Position{Line: 3, Col: 10},
+										Position: &ast.Position{Line: 3, Col: 1 + len("\tbar { * ")},
 									},
 								},
 							},
-							RBrace: &ast.Position{Line: 3, Col: 15},
+							RBrace: &ast.Position{Line: 3, Col: 1 + len("\tbar { * text ")},
 						},
 					},
 				},
@@ -143,57 +148,60 @@ func TestDefinition(t *testing.T) {
 		}, {
 			name: "multiple with prefix",
 			in: "attr hx- (\n" +
-				"\tfoo { * innocuous }\n" +
+				"\tfoo { * string }\n" +
 				"\tbar { * text }\n" +
 				")",
 			want: &ast.AttributeDefinition{
 				Prefix: &ast.AttributeName{
-					Name:     "hx-",
-					Position: &ast.Position{Line: 1, Col: 6},
+					Name:          "hx-",
+					CanonicalName: "hx-",
+					Position:      &ast.Position{Line: 1, Col: 1 + len("attr ")},
 				},
-				LParen: &ast.Position{Line: 1, Col: 10},
+				LParen: &ast.Position{Line: 1, Col: 1 + len("attr hx- ")},
 				Specs: []*ast.AttributeSpec{
 					{
 						Selector: &ast.BasicAttributeSelector{
-							Name:     "foo",
-							Position: &ast.Position{Line: 2, Col: 2},
+							Name:          "foo",
+							CanonicalName: "foo",
+							Position:      &ast.Position{Line: 2, Col: 1 + len("\t")},
 						},
 						Ruleset: &ast.AttributeRuleset{
-							LBrace: &ast.Position{Line: 2, Col: 6},
+							LBrace: &ast.Position{Line: 2, Col: 1 + len("\tfoo ")},
 							List: []*ast.AttributeRule{
 								{
 									Selector: &ast.WildcardElementSelector{
-										Asterisk: &ast.Position{Line: 2, Col: 8},
+										Asterisk: &ast.Position{Line: 2, Col: 1 + len("\tfoo { ")},
 									},
 									Type: &ast.AttributeTypeName{
-										Name:     "innocuous",
-										Type:     attrtype.Innocuous,
-										Position: &ast.Position{Line: 2, Col: 10},
+										Name:     "string",
+										Type:     attrtype.String,
+										Position: &ast.Position{Line: 2, Col: 1 + len("\tfoo { * ")},
 									},
 								},
 							},
-							RBrace: &ast.Position{Line: 2, Col: 20},
+							RBrace: &ast.Position{Line: 2, Col: 1 + len("\tfoo { * string ")},
 						},
 					}, {
 						Selector: &ast.BasicAttributeSelector{
-							Name:     "bar",
-							Position: &ast.Position{Line: 3, Col: 2},
+							Name:          "bar",
+							CanonicalName: "bar",
+							Position:      &ast.Position{Line: 3, Col: 1 + len("\t")},
 						},
 						Ruleset: &ast.AttributeRuleset{
-							LBrace: &ast.Position{Line: 3, Col: 6},
+							LBrace: &ast.Position{Line: 3, Col: 1 + len("\tbar ")},
 							List: []*ast.AttributeRule{
 								{
 									Selector: &ast.WildcardElementSelector{
-										Asterisk: &ast.Position{Line: 3, Col: 8},
+										Asterisk: &ast.Position{Line: 3, Col: 1 + len("\tbar { ")},
 									},
 									Type: &ast.AttributeTypeName{
 										Name:     "text",
 										Type:     attrtype.Text,
-										Position: &ast.Position{Line: 3, Col: 10},
+										Position: &ast.Position{Line: 3, Col: 1 + len("\tbar { * ")},
 									},
 								},
 							},
-							RBrace: &ast.Position{Line: 3, Col: 15},
+							RBrace: &ast.Position{Line: 3, Col: 1 + len("\tbar { * text ")},
 						},
 					},
 				},
@@ -208,7 +216,7 @@ func TestDefinition(t *testing.T) {
 			t.Parallel()
 
 			got := parsetest.ParsesExact(t, c.in, Definition())
-			should.Equal(t, got, c.want)
+			should.Equal(t, got, c.want, parsetest.CmpOpts...)
 		})
 	}
 }
@@ -216,32 +224,33 @@ func TestDefinition(t *testing.T) {
 func TestSpec(t *testing.T) {
 	t.Parallel()
 
-	in := `foo { * innocuous }`
+	in := `foo { * string }`
 	want := &ast.AttributeSpec{
 		Selector: &ast.BasicAttributeSelector{
-			Name:     "foo",
-			Position: &ast.Position{Line: 1, Col: 1},
+			Name:          "foo",
+			CanonicalName: "foo",
+			Position:      &ast.Position{Line: 1, Col: 1},
 		},
 		Ruleset: &ast.AttributeRuleset{
-			LBrace: &ast.Position{Line: 1, Col: 5},
+			LBrace: &ast.Position{Line: 1, Col: 1 + len("foo ")},
 			List: []*ast.AttributeRule{
 				{
 					Selector: &ast.WildcardElementSelector{
-						Asterisk: &ast.Position{Line: 1, Col: 7},
+						Asterisk: &ast.Position{Line: 1, Col: 1 + len("foo { ")},
 					},
 					Type: &ast.AttributeTypeName{
-						Name:     "innocuous",
-						Type:     attrtype.Innocuous,
-						Position: &ast.Position{Line: 1, Col: 9},
+						Name:     "string",
+						Type:     attrtype.String,
+						Position: &ast.Position{Line: 1, Col: 1 + len("foo { * ")},
 					},
 				},
 			},
-			RBrace: &ast.Position{Line: 1, Col: 19},
+			RBrace: &ast.Position{Line: 1, Col: 1 + len("foo { * string ")},
 		},
 	}
 
 	got := parsetest.ParsesExact(t, in, Spec())
-	should.Equal(t, got, want)
+	should.Equal(t, got, want, parsetest.CmpOpts...)
 }
 
 func TestRuleset(t *testing.T) {
@@ -254,45 +263,46 @@ func TestRuleset(t *testing.T) {
 	}{
 		{
 			name: "single rule on single line",
-			in:   "{ * innocuous }",
+			in:   "{ * string }",
 			want: &ast.AttributeRuleset{
 				LBrace: &ast.Position{Line: 1, Col: 1},
 				List: []*ast.AttributeRule{
 					{
 						Selector: &ast.WildcardElementSelector{
-							Asterisk: &ast.Position{Line: 1, Col: 3},
+							Asterisk: &ast.Position{Line: 1, Col: 1 + len("{ ")},
 						},
 						Type: &ast.AttributeTypeName{
-							Name:     "innocuous",
-							Type:     attrtype.Innocuous,
-							Position: &ast.Position{Line: 1, Col: 5},
+							Name:     "string",
+							Type:     attrtype.String,
+							Position: &ast.Position{Line: 1, Col: 1 + len("{ * ")},
 						},
 					},
 				},
-				RBrace: &ast.Position{Line: 1, Col: 15},
+				RBrace: &ast.Position{Line: 1, Col: 1 + len("{ * string ")},
 			},
 		}, {
 			name: "multiple rules on single line",
-			in:   "{ * innocuous; foo text }",
+			in:   "{ * string; foo text }",
 			want: &ast.AttributeRuleset{
 				LBrace: &ast.Position{Line: 1, Col: 1},
 				List: []*ast.AttributeRule{
 					{
 						Selector: &ast.WildcardElementSelector{
-							Asterisk: &ast.Position{Line: 1, Col: 3},
+							Asterisk: &ast.Position{Line: 1, Col: 1 + len("{ ")},
 						},
 						Type: &ast.AttributeTypeName{
-							Name:     "innocuous",
-							Type:     attrtype.Innocuous,
-							Position: &ast.Position{Line: 1, Col: 5},
+							Name:     "string",
+							Type:     attrtype.String,
+							Position: &ast.Position{Line: 1, Col: 1 + len("{ * ")},
 						},
 					}, {
 						Selector: &ast.ListElementSelector{
 							List: []*ast.ElementReference{
 								{
 									Name: &ast.ElementName{
-										Name:     "foo",
-										Position: &ast.Position{Line: 1, Col: 16},
+										Name:          "foo",
+										CanonicalName: "foo",
+										Position:      &ast.Position{Line: 1, Col: 1 + len("{ * string; ")},
 									},
 								},
 							},
@@ -300,28 +310,28 @@ func TestRuleset(t *testing.T) {
 						Type: &ast.AttributeTypeName{
 							Name:     "text",
 							Type:     attrtype.Text,
-							Position: &ast.Position{Line: 1, Col: 20},
+							Position: &ast.Position{Line: 1, Col: 1 + len("{ * string; foo ")},
 						},
 					},
 				},
-				RBrace: &ast.Position{Line: 1, Col: 25},
+				RBrace: &ast.Position{Line: 1, Col: 1 + len("{ * string; foo text ")},
 			},
 		}, {
 			name: "single rule on multiple lines",
 			in: "{\n" +
-				"\t* innocuous\n" +
+				"\t* string\n" +
 				"}",
 			want: &ast.AttributeRuleset{
 				LBrace: &ast.Position{Line: 1, Col: 1},
 				List: []*ast.AttributeRule{
 					{
 						Selector: &ast.WildcardElementSelector{
-							Asterisk: &ast.Position{Line: 2, Col: 2},
+							Asterisk: &ast.Position{Line: 2, Col: 1 + len("\t")},
 						},
 						Type: &ast.AttributeTypeName{
-							Name:     "innocuous",
-							Type:     attrtype.Innocuous,
-							Position: &ast.Position{Line: 2, Col: 4},
+							Name:     "string",
+							Type:     attrtype.String,
+							Position: &ast.Position{Line: 2, Col: 1 + len("\t* ")},
 						},
 					},
 				},
@@ -330,7 +340,7 @@ func TestRuleset(t *testing.T) {
 		}, {
 			name: "multiple rules on multiple lines",
 			in: "{\n" +
-				"\t* innocuous\n" +
+				"\t* string\n" +
 				"\tfoo text\n" +
 				"}",
 			want: &ast.AttributeRuleset{
@@ -338,20 +348,21 @@ func TestRuleset(t *testing.T) {
 				List: []*ast.AttributeRule{
 					{
 						Selector: &ast.WildcardElementSelector{
-							Asterisk: &ast.Position{Line: 2, Col: 2},
+							Asterisk: &ast.Position{Line: 2, Col: 1 + len("\t")},
 						},
 						Type: &ast.AttributeTypeName{
-							Name:     "innocuous",
-							Type:     attrtype.Innocuous,
-							Position: &ast.Position{Line: 2, Col: 4},
+							Name:     "string",
+							Type:     attrtype.String,
+							Position: &ast.Position{Line: 2, Col: 1 + len("\t* ")},
 						},
 					}, {
 						Selector: &ast.ListElementSelector{
 							List: []*ast.ElementReference{
 								{
 									Name: &ast.ElementName{
-										Name:     "foo",
-										Position: &ast.Position{Line: 3, Col: 2},
+										Name:          "foo",
+										CanonicalName: "foo",
+										Position:      &ast.Position{Line: 3, Col: 1 + len("\t")},
 									},
 								},
 							},
@@ -359,7 +370,7 @@ func TestRuleset(t *testing.T) {
 						Type: &ast.AttributeTypeName{
 							Name:     "text",
 							Type:     attrtype.Text,
-							Position: &ast.Position{Line: 3, Col: 6},
+							Position: &ast.Position{Line: 3, Col: 1 + len("\tfoo ")},
 						},
 					},
 				},
@@ -373,7 +384,7 @@ func TestRuleset(t *testing.T) {
 			t.Parallel()
 
 			got := parsetest.ParsesExact(t, c.in, Ruleset())
-			should.Equal(t, got, c.want)
+			should.Equal(t, got, c.want, parsetest.CmpOpts...)
 		})
 	}
 }
@@ -381,20 +392,20 @@ func TestRuleset(t *testing.T) {
 func TestRule(t *testing.T) {
 	t.Parallel()
 
-	in := "* innocuous"
+	in := "* string"
 	want := &ast.AttributeRule{
 		Selector: &ast.WildcardElementSelector{
 			Asterisk: &ast.Position{Line: 1, Col: 1},
 		},
 		Type: &ast.AttributeTypeName{
-			Name:     "innocuous",
-			Type:     attrtype.Innocuous,
-			Position: &ast.Position{Line: 1, Col: 3},
+			Name:     "string",
+			Type:     attrtype.String,
+			Position: &ast.Position{Line: 1, Col: 1 + len("* ")},
 		},
 	}
 
 	got := parsetest.ParsesExact(t, in, Rule())
-	should.Equal(t, got, want)
+	should.Equal(t, got, want, parsetest.CmpOpts...)
 }
 
 func TestSelector(t *testing.T) {
@@ -415,14 +426,27 @@ func testBasicSelector(t *testing.T, f parser.Func[*ast.BasicAttributeSelector])
 		want *ast.BasicAttributeSelector
 	}{
 		{
-			in:   "foo",
-			want: &ast.BasicAttributeSelector{Name: "foo", Position: &ast.Position{Line: 1, Col: 1}},
+			in: "foo",
+			want: &ast.BasicAttributeSelector{
+				Name:          "foo",
+				CanonicalName: "foo",
+				Position:      &ast.Position{Line: 1, Col: 1},
+			},
 		}, {
-			in:   "foo*",
-			want: &ast.BasicAttributeSelector{Name: "foo", Wildcard: true, Position: &ast.Position{Line: 1, Col: 1}},
+			in: "foo*",
+			want: &ast.BasicAttributeSelector{
+				Name:          "foo",
+				CanonicalName: "foo",
+				Wildcard:      true,
+				Position:      &ast.Position{Line: 1, Col: 1},
+			},
 		}, {
-			in:   "foo*bar",
-			want: &ast.BasicAttributeSelector{Name: "foo*bar", Position: &ast.Position{Line: 1, Col: 1}},
+			in: "foo*bar",
+			want: &ast.BasicAttributeSelector{
+				Name:          "foo*bar",
+				CanonicalName: "foo*bar",
+				Position:      &ast.Position{Line: 1, Col: 1},
+			},
 		},
 	}
 
@@ -497,7 +521,11 @@ func testListElementSelector(t *testing.T, f parser.Func[*ast.ListElementSelecto
 			want: &ast.ListElementSelector{
 				List: []*ast.ElementReference{
 					{
-						Name: &ast.ElementName{Name: "foo", Position: &ast.Position{Line: 1, Col: 1}},
+						Name: &ast.ElementName{
+							Name:          "foo",
+							CanonicalName: "foo",
+							Position:      &ast.Position{Line: 1, Col: 1},
+						},
 					},
 				},
 			},
@@ -508,11 +536,23 @@ func testListElementSelector(t *testing.T, f parser.Func[*ast.ListElementSelecto
 			want: &ast.ListElementSelector{
 				List: []*ast.ElementReference{
 					{
-						Name: &ast.ElementName{Name: "foo", Position: &ast.Position{Line: 1, Col: 1}},
+						Name: &ast.ElementName{
+							Name:          "foo",
+							CanonicalName: "foo",
+							Position:      &ast.Position{Line: 1, Col: 1},
+						},
 					}, {
-						Name: &ast.ElementName{Name: "bar", Position: &ast.Position{Line: 2, Col: 1 + len("\t")}},
+						Name: &ast.ElementName{
+							Name:          "bar",
+							CanonicalName: "bar",
+							Position:      &ast.Position{Line: 2, Col: 1 + len("\t")},
+						},
 					}, {
-						Name: &ast.ElementName{Name: "baz", Position: &ast.Position{Line: 2, Col: 1 + len("\tbar, ")}},
+						Name: &ast.ElementName{
+							Name:          "baz",
+							CanonicalName: "baz",
+							Position:      &ast.Position{Line: 2, Col: 1 + len("\tbar, ")},
+						},
 					},
 				},
 			},
@@ -524,7 +564,7 @@ func testListElementSelector(t *testing.T, f parser.Func[*ast.ListElementSelecto
 			t.Parallel()
 
 			got := parsetest.ParsesExact(t, c.in, f)
-			should.Equal(t, got, c.want)
+			should.Equal(t, got, c.want, parsetest.CmpOpts...)
 		})
 	}
 }
@@ -535,8 +575,9 @@ func TestListElementSelectorItem(t *testing.T) {
 	in := "foo"
 	want := &ast.ElementReference{
 		Name: &ast.ElementName{
-			Name:     "foo",
-			Position: &ast.Position{Line: 1, Col: 1},
+			Name:          "foo",
+			CanonicalName: "foo",
+			Position:      &ast.Position{Line: 1, Col: 1},
 		},
 	}
 

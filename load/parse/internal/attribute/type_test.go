@@ -1,6 +1,7 @@
 package attribute
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/mavolin/corgi/v2/escape/attrtype"
@@ -10,23 +11,33 @@ import (
 )
 
 var attrTypes = []struct {
-	name string
 	typ  attrtype.Type
 	attr string
 }{
-	{name: "unsafeBool", typ: attrtype.UnsafeBool},
-	{name: "unsafe", typ: attrtype.Unsafe},
-	{name: "unsafeBool", typ: attrtype.UnsafeBool, attr: "woof"},
-	{name: "unsafe", typ: attrtype.Unsafe, attr: "woof"},
-	{name: "bool", typ: attrtype.Bool},
-	{name: "text", typ: attrtype.Text},
-	{name: "innocuous", typ: attrtype.Innocuous},
-	{name: "css", typ: attrtype.CSS},
-	{name: "js", typ: attrtype.JS},
-	{name: "url", typ: attrtype.URL},
-	{name: "urlList", typ: attrtype.URLList},
-	{name: "resourceURL", typ: attrtype.ResourceURL},
-	{name: "srcset", typ: attrtype.Srcset},
+	{typ: attrtype.UnsafeBool},
+	{typ: attrtype.Unsafe},
+	{typ: attrtype.UnsafeBool, attr: "woof"},
+	{typ: attrtype.Unsafe, attr: "woof"},
+	{typ: attrtype.Bool},
+	{typ: attrtype.Int},
+	{typ: attrtype.Float},
+	{typ: attrtype.String},
+	{typ: attrtype.Text},
+	{typ: attrtype.CSS},
+	{typ: attrtype.JS},
+	{typ: attrtype.URL},
+	{typ: attrtype.ResourceURL},
+	{typ: attrtype.Srcset},
+	{typ: attrtype.SpaceList{Element: attrtype.Int}},
+	{typ: attrtype.SpaceList{Element: attrtype.Float}},
+	{typ: attrtype.SpaceList{Element: attrtype.String}},
+	{typ: attrtype.SpaceList{Element: attrtype.URL}},
+	{typ: attrtype.SpaceList{Element: attrtype.ResourceURL}},
+	{typ: attrtype.CommaList{Element: attrtype.Int}},
+	{typ: attrtype.CommaList{Element: attrtype.Float}},
+	{typ: attrtype.CommaList{Element: attrtype.String}},
+	{typ: attrtype.CommaList{Element: attrtype.URL}},
+	{typ: attrtype.CommaList{Element: attrtype.ResourceURL}},
 }
 
 func TestType(t *testing.T) {
@@ -35,35 +46,33 @@ func TestType(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		for _, at := range attrTypes {
-			s := at.name
-			if at.attr != "" {
-				s += "[" + at.attr + "]"
+		for _, c := range attrTypes {
+			name := c.typ.String()
+			s := name
+			if c.attr != "" {
+				s += "[" + c.attr + "]"
 			}
 			t.Run(s, func(t *testing.T) {
 				t.Parallel()
 
 				want := &ast.AttributeType{
 					Quote: &ast.Position{Line: 1, Col: 1},
-					Name: &ast.AttributeTypeName{
-						Name:     at.name,
-						Type:     at.typ,
-						Position: &ast.Position{Line: 1, Col: 1 + len("'")},
-					},
+					Name:  wantTypeName(c.typ, ast.Position{Line: 1, Col: 1 + len("'")}),
 				}
-				if at.attr != "" {
-					want.LBracket = &ast.Position{Line: 1, Col: 1 + len("'") + len(at.name)}
+				if c.attr != "" {
+					want.LBracket = &ast.Position{Line: 1, Col: 1 + len("'") + len(name)}
 					want.Attribute = &ast.AttributeName{
-						Name:     at.attr,
-						Position: &ast.Position{Line: 1, Col: 1 + len("'") + len(at.name) + len("[")},
+						Name:          c.attr,
+						CanonicalName: c.attr,
+						Position:      &ast.Position{Line: 1, Col: 1 + len("'") + len(name) + len("[")},
 					}
 					want.RBracket = &ast.Position{
 						Line: 1,
-						Col:  1 + len("'") + len(at.name) + len("[") + len(at.attr),
+						Col:  1 + len("'") + len(name) + len("[") + len(c.attr),
 					}
 				}
 				got := parsetest.ParsesExact(t, "'"+s, Type())
-				should.Equal(t, got, want)
+				should.Equal(t, got, want, parsetest.CmpOpts...)
 			})
 		}
 	})
@@ -77,14 +86,14 @@ func TestType(t *testing.T) {
 				Quote: &ast.Position{Line: 1, Col: 1},
 				Name: &ast.AttributeTypeName{
 					Name:     "foo",
-					Type:     attrtype.Unknown,
+					Type:     nil,
 					Position: &ast.Position{Line: 1, Col: 2},
 				},
 			}
 			wantError := "unknown attribute type"
 
 			got := parsetest.ParsesExact(t, "'"+want.Name.Name, Type(), parsetest.WantErrors(wantError))
-			should.Equal(t, got, want)
+			should.Equal(t, got, want, parsetest.CmpOpts...)
 		})
 	})
 }
@@ -96,16 +105,12 @@ func TestTypeName(t *testing.T) {
 		t.Parallel()
 
 		for _, c := range attrTypes {
-			t.Run(c.name, func(t *testing.T) {
+			t.Run(c.typ.String(), func(t *testing.T) {
 				t.Parallel()
 
-				want := &ast.AttributeTypeName{
-					Name:     c.name,
-					Type:     c.typ,
-					Position: &ast.Position{Line: 1, Col: 1},
-				}
-				got := parsetest.ParsesExact(t, c.name, TypeName())
-				should.Equal(t, got, want)
+				want := wantTypeName(c.typ, ast.Position{Line: 1, Col: 1})
+				got := parsetest.ParsesExact(t, c.typ.String(), TypeName())
+				should.Equal(t, got, want, parsetest.CmpOpts...)
 			})
 		}
 	})
@@ -117,13 +122,31 @@ func TestTypeName(t *testing.T) {
 
 			want := &ast.AttributeTypeName{
 				Name:     "foo",
-				Type:     attrtype.Unknown,
+				Type:     nil,
 				Position: &ast.Position{Line: 1, Col: 1},
 			}
 			wantError := "unknown attribute type"
 
 			got := parsetest.ParsesExact(t, want.Name, TypeName(), parsetest.WantErrors(wantError))
-			should.Equal(t, got, want)
+			should.Equal(t, got, want, parsetest.CmpOpts...)
 		})
 	})
+}
+
+func wantTypeName(t attrtype.Type, start ast.Position) *ast.AttributeTypeName {
+	name := t.String()
+	listName, elemName, _ := strings.Cut(name, "[")
+	elemName = strings.TrimSuffix(elemName, "]")
+
+	atn := &ast.AttributeTypeName{
+		Name:     listName,
+		Type:     t,
+		Position: &start,
+	}
+	if elemName != "" {
+		atn.LBracket = &ast.Position{Line: start.Line, Col: start.Col + len(listName)}
+		atn.Element = elemName
+		atn.RBracket = &ast.Position{Line: start.Line, Col: start.Col + len(listName) + len("["+elemName)}
+	}
+	return atn
 }

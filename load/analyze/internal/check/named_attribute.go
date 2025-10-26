@@ -12,7 +12,7 @@ import (
 )
 
 func (ch *checker) CheckNamedAttribute(logger *slog.Logger, f *file.File, attr *file.Attribute, attrAST *ast.NamedAttribute) {
-	ch.CheckNamedAttribute_ClassAlwaysInnocuous(logger, f, attr, attrAST)
+	ch.CheckNamedAttribute_ClassAlwaysString(logger, f, attr, attrAST)
 	ch.CheckNamedAttribute_NoInterpolationInUnsafeAttribute(logger, f, attr, attrAST)
 	ch.CheckNamedAttribute_NonBoolAttributeSpecifiedAsBool(logger, f, attr, attrAST)
 	ch.CheckNamedAttribute_BoolAttributeSetToNonBoolExpression(logger, f, attr, attrAST)
@@ -20,10 +20,10 @@ func (ch *checker) CheckNamedAttribute(logger *slog.Logger, f *file.File, attr *
 }
 
 // ============================================================================
-// Class Attribute is Always Typed as Innocuous
+// Class Attribute is Always Typed as String
 // ======================================================================================
 
-func (ch *checker) CheckNamedAttribute_ClassAlwaysInnocuous(
+func (ch *checker) CheckNamedAttribute_ClassAlwaysString(
 	logger *slog.Logger, f *file.File, attr *file.Attribute, attrAST *ast.NamedAttribute,
 ) {
 	logger = logger.WithGroup("class_not_typed")
@@ -42,9 +42,9 @@ func (ch *checker) CheckNamedAttribute_ClassAlwaysInnocuous(
 		ch.Report(&diagnostic.Diagnostic{
 			Message: "attribute: `class` incorrectly typed",
 			Primary: []diagnostic.Annotation{
-				anno.Node(f, attrAST, "should be `innocuous`, but set to a bool value"),
+				anno.Node(f, attrAST, "should be `string`, but set to a bool value"),
 			},
-			Explanation: "The `class` attribute must always be typed as `innocuous`, so that class shorthands " +
+			Explanation: "The `class` attribute must always be typed as `string`, so that class shorthands " +
 				"work as expected.",
 		})
 		return
@@ -54,9 +54,9 @@ func (ch *checker) CheckNamedAttribute_ClassAlwaysInnocuous(
 		return
 	}
 	typ := attr.Type.Result()
-	if typ == attrtype.Innocuous {
+	if typ == attrtype.String {
 		return
-	} else if typ == attrtype.Unknown {
+	} else if typ == nil {
 		ok := switches.ResolvedValueR(attr.Value,
 			func(*file.BoolExpression) bool { return false },
 			func(file.ConstantBool) bool { return false },
@@ -80,9 +80,9 @@ func (ch *checker) CheckNamedAttribute_ClassAlwaysInnocuous(
 			ch.Report(&diagnostic.Diagnostic{
 				Message: "attribute: `class` incorrectly typed",
 				Primary: []diagnostic.Annotation{
-					anno.Node(f, tval.Type, "should be `innocuous`, but is `"+typ.String()+"`"),
+					anno.Node(f, tval.Type, "should be `string`, but is `"+typ.String()+"`"),
 				},
-				Explanation: "The `class` attribute must always be typed as `innocuous`, so that class shorthands " +
+				Explanation: "The `class` attribute must always be typed as `string`, so that class shorthands " +
 					"work as expected.",
 			})
 			return
@@ -105,10 +105,10 @@ func (ch *checker) CheckNamedAttribute_ClassAlwaysInnocuous(
 		ch.Report(&diagnostic.Diagnostic{
 			Message: "attribute: `class` incorrectly typed",
 			Primary: []diagnostic.Annotation{
-				anno.Node(f, attrAST.Name, "should be `innocuous`"),
+				anno.Node(f, attrAST.Name, "should be `string`"),
 			},
 			Secondary: secondaries,
-			Explanation: "The `class` attribute must always be typed as `innocuous`, so that class shorthands " +
+			Explanation: "The `class` attribute must always be typed as `string`, so that class shorthands " +
 				"work as expected.",
 		})
 		return
@@ -117,7 +117,7 @@ func (ch *checker) CheckNamedAttribute_ClassAlwaysInnocuous(
 	// AST types were extended?
 	ch.Report(&diagnostic.Diagnostic{
 		Type:    diagnostic.InternalError,
-		Message: "analyze.CheckNamedAttribute_ClassAlwaysInnocuous: attribute is neither explicitly typed nor attached to a definition",
+		Message: "analyze.CheckNamedAttribute_ClassAlwaysString: attribute is neither explicitly typed nor attached to a definition",
 		Primary: []diagnostic.Annotation{
 			anno.Node(f, attrAST.Name, "typed by analyzer as `"+typ.String()+"`"),
 		},
@@ -130,9 +130,9 @@ func (ch *checker) CheckNamedAttribute_ClassAlwaysInnocuous(
 	ch.Report(&diagnostic.Diagnostic{
 		Message: "attribute: `class` incorrectly typed",
 		Primary: []diagnostic.Annotation{
-			anno.Node(f, attrAST.Value, "should be `innocuous`"),
+			anno.Node(f, attrAST.Value, "should be `string`"),
 		},
-		Explanation: "The `class` attribute must always be typed as `innocuous`, so that class shorthands " +
+		Explanation: "The `class` attribute must always be typed as `string`, so that class shorthands " +
 			"work as expected.",
 	})
 }
@@ -216,7 +216,7 @@ func (ch *checker) CheckNamedAttribute_NonBoolAttributeSpecifiedAsBool(
 	}
 
 	typ := attr.Type.Result()
-	if typ == attrtype.Bool || typ == attrtype.UnsafeBool || typ == attrtype.Unknown {
+	if typ == attrtype.Bool || typ == attrtype.UnsafeBool || typ == nil {
 		return
 	}
 

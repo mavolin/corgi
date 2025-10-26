@@ -70,6 +70,19 @@ func Type() parser.Func[*ast.AttributeType] {
 	}
 }
 
+var basicTypes = func() map[string]attrtype.Type {
+	m := make(map[string]attrtype.Type)
+	for _, t := range attrtype.All {
+		switch t.(type) {
+		case attrtype.SpaceList:
+		case attrtype.CommaList:
+		default:
+			m[t.String()] = t
+		}
+	}
+	return m
+}()
+
 func TypeName() parser.Func[*ast.AttributeTypeName] {
 	return func(p *parser.Parser) *ast.AttributeTypeName {
 		pos := p.Pos()
@@ -83,29 +96,18 @@ func TypeName() parser.Func[*ast.AttributeTypeName] {
 		n.Position = &pos
 		n.Name = ident.Name
 
+		if t := basicTypes[n.Name]; t != nil {
+			n.Type = t
+			return &n
+		}
+
 		switch n.Name {
-		case "unsafe":
-			n.Type = attrtype.Unsafe
-		case "unsafeBool":
-			n.Type = attrtype.UnsafeBool
-		case "bool":
-			n.Type = attrtype.Bool
-		case "text":
-			n.Type = attrtype.Text
-		case "innocuous":
-			n.Type = attrtype.Innocuous
-		case "css":
-			n.Type = attrtype.CSS
-		case "js":
-			n.Type = attrtype.JS
-		case "url":
-			n.Type = attrtype.URL
-		case "urlList":
-			n.Type = attrtype.URLList
-		case "resourceURL":
-			n.Type = attrtype.ResourceURL
-		case "srcset":
-			n.Type = attrtype.Srcset
+		case "spaceList":
+			elem := parser.Try(p, listTypeBrackets[attrtype.SpaceListElement](&n, "space list"))
+			n.Type = attrtype.SpaceList{Element: elem}
+		case "commaList":
+			elem := parser.Try(p, listTypeBrackets[attrtype.CommaListElement](&n, "comma list"))
+			n.Type = attrtype.CommaList{Element: elem}
 		default:
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "unknown attribute type",
@@ -115,12 +117,69 @@ func TypeName() parser.Func[*ast.AttributeTypeName] {
 				Hints: []diagnostic.Hint{
 					{
 						Hint: "Valid attribute types are: " +
-							"`unsafe`, `unsafeBool`, `bool`, `text`, `innocuous`," +
+							"`unsafe`, `unsafeBool`, `bool`, `text`, `string`," +
 							" `css`, `js`, `url`, `urlList`, `resourceURL`, `srcset`",
 					},
 				},
 			})
 		}
 		return &n
+	}
+}
+
+func listTypeBrackets[E comparable](n *ast.AttributeTypeName, name string) parser.Func[E] {
+	return func(p *parser.Parser) E {
+		var zero E
+		parser.TrySkip(p, comment.OrHorizontalWhitespace())
+		n.LBracket = parser.TryRuneAt(p, '[')
+		if n.LBracket == nil {
+			p.CaptureError(&diagnostic.Diagnostic{
+				Message:  "attribute type: " + name + ": missing opening bracket",
+				Primary:  quickanno.Expected(p, p.Pos(), "an opening bracket for the element type"),
+				Examples: []diagnostic.Example{{Example: "`" + name + "[string]`"}},
+			})
+			return zero
+		}
+
+		var e E
+		parser.TrySkip(p, comment.OrAnyWhitespace())
+		elemName := parser.Try(p, golang.Identifier())
+		if elemName == nil {
+			p.CaptureError(&diagnostic.Diagnostic{
+				Message: "attribute type: " + name + ": missing element type",
+				Primary: quickanno.Expected(p, p.Pos(), "an element type"),
+			})
+		} else {
+			n.Element = elemName.Name
+			t := basicTypes[n.Element]
+			if t == nil {
+				p.CaptureError(&diagnostic.Diagnostic{
+					Message: "attribute type: " + name + ": unknown element type",
+					Primary: []diagnostic.Annotation{
+						anno.Range(p.File, elemName.Start(), elemName.End(), "not a known attribute type"),
+					},
+					Examples: []diagnostic.Example{{Example: "`spaceList[string]`"}},
+				})
+			} else if e, _ = t.(E); e == zero {
+				p.CaptureError(&diagnostic.Diagnostic{
+					Message: "attribute type: spaceList: invalid element type",
+					Primary: []diagnostic.Annotation{
+						anno.Range(p.File, elemName.Start(), elemName.End(), "not a valid "+name+" element type"),
+					},
+					Explanation: "Not all attribute types can be used as elements in a " + name + ".",
+				})
+			}
+		}
+
+		parser.TrySkip(p, comment.OrHorizontalWhitespace())
+		n.RBracket = parser.TryRuneAt(p, ']')
+		if n.RBracket == nil {
+			p.CaptureError(&diagnostic.Diagnostic{
+				Message: "attribute type: " + name + ": missing closing bracket",
+				Primary: quickanno.Expected(p, p.Pos(), "a closing bracket for the element type"),
+			})
+		}
+
+		return e
 	}
 }

@@ -88,8 +88,9 @@ func TestArguments(t *testing.T) {
 					&ast.NamedAttribute{
 						Name: &ast.AttributeReference{
 							Name: &ast.AttributeName{
-								Name:     "disabled",
-								Position: &ast.Position{Line: 1, Col: 2},
+								Name:          "disabled",
+								CanonicalName: "disabled",
+								Position:      &ast.Position{Line: 1, Col: 2},
 							},
 						},
 					},
@@ -105,8 +106,9 @@ func TestArguments(t *testing.T) {
 					&ast.NamedAttribute{
 						Name: &ast.AttributeReference{
 							Name: &ast.AttributeName{
-								Name:     "class",
-								Position: &ast.Position{Line: 1, Col: 2},
+								Name:          "class",
+								CanonicalName: "class",
+								Position:      &ast.Position{Line: 1, Col: 2},
 							},
 						},
 						EqualSign: &ast.Position{Line: 1, Col: 7},
@@ -213,16 +215,18 @@ func TestArguments(t *testing.T) {
 					&ast.NamedAttribute{
 						Name: &ast.AttributeReference{
 							Name: &ast.AttributeName{
-								Name:     "booleanAttr",
-								Position: &ast.Position{Line: 1, Col: 60},
+								Name:          "booleanAttr",
+								CanonicalName: "booleanattr",
+								Position:      &ast.Position{Line: 1, Col: 60},
 							},
 						},
 					},
 					&ast.NamedAttribute{
 						Name: &ast.AttributeReference{
 							Name: &ast.AttributeName{
-								Name:     "valueAttr",
-								Position: &ast.Position{Line: 1, Col: 73},
+								Name:          "valueAttr",
+								CanonicalName: "valueattr",
+								Position:      &ast.Position{Line: 1, Col: 73},
 							},
 						},
 						EqualSign: &ast.Position{Line: 1, Col: 82},

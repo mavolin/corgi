@@ -38,8 +38,9 @@ func TestElement(t *testing.T) {
 				Header: &ast.ElementHeader{
 					Name: &ast.ElementReference{
 						Name: &ast.ElementName{
-							Name:     "br",
-							Position: &ast.Position{Line: 1, Col: 1},
+							Name:          "br",
+							CanonicalName: "br",
+							Position:      &ast.Position{Line: 1, Col: 1},
 						},
 					},
 				},
@@ -51,8 +52,9 @@ func TestElement(t *testing.T) {
 				Header: &ast.ElementHeader{
 					Name: &ast.ElementReference{
 						Name: &ast.ElementName{
-							Name:     "br",
-							Position: &ast.Position{Line: 1, Col: 1},
+							Name:          "br",
+							CanonicalName: "br",
+							Position:      &ast.Position{Line: 1, Col: 1},
 						},
 					},
 					Attributes: &ast.Arguments{
@@ -61,8 +63,9 @@ func TestElement(t *testing.T) {
 							&ast.NamedAttribute{
 								Name: &ast.AttributeReference{
 									Name: &ast.AttributeName{
-										Name:     "foo",
-										Position: &ast.Position{Line: 1, Col: 4},
+										Name:          "foo",
+										CanonicalName: "foo",
+										Position:      &ast.Position{Line: 1, Col: 4},
 									},
 								},
 								EqualSign: &ast.Position{Line: 1, Col: 7},
@@ -87,8 +90,9 @@ func TestElement(t *testing.T) {
 				Header: &ast.ElementHeader{
 					Name: &ast.ElementReference{
 						Name: &ast.ElementName{
-							Name:     "div",
-							Position: &ast.Position{Line: 1, Col: 1},
+							Name:          "div",
+							CanonicalName: "div",
+							Position:      &ast.Position{Line: 1, Col: 1},
 						},
 					},
 				},
@@ -132,8 +136,9 @@ func TestHeader(t *testing.T) {
 			want: &ast.ElementHeader{
 				Name: &ast.ElementReference{
 					Name: &ast.ElementName{
-						Name:     "br",
-						Position: &ast.Position{Line: 1, Col: 1},
+						Name:          "br",
+						CanonicalName: "br",
+						Position:      &ast.Position{Line: 1, Col: 1},
 					},
 				},
 			},
@@ -143,8 +148,9 @@ func TestHeader(t *testing.T) {
 			want: &ast.ElementHeader{
 				Name: &ast.ElementReference{
 					Name: &ast.ElementName{
-						Name:     "br",
-						Position: &ast.Position{Line: 1, Col: 1},
+						Name:          "br",
+						CanonicalName: "br",
+						Position:      &ast.Position{Line: 1, Col: 1},
 					},
 				},
 				Attributes: &ast.Arguments{
@@ -153,8 +159,9 @@ func TestHeader(t *testing.T) {
 						&ast.NamedAttribute{
 							Name: &ast.AttributeReference{
 								Name: &ast.AttributeName{
-									Name:     "foo",
-									Position: &ast.Position{Line: 1, Col: 4},
+									Name:          "foo",
+									CanonicalName: "foo",
+									Position:      &ast.Position{Line: 1, Col: 4},
 								},
 							},
 							EqualSign: &ast.Position{Line: 1, Col: 7},
@@ -196,8 +203,9 @@ func TestReference(t *testing.T) {
 			in:   "name",
 			want: &ast.ElementReference{
 				Name: &ast.ElementName{
-					Name:     "name",
-					Position: &ast.Position{Line: 1, Col: 1},
+					Name:          "name",
+					CanonicalName: "name",
+					Position:      &ast.Position{Line: 1, Col: 1},
 				},
 			},
 		}, {
@@ -210,8 +218,9 @@ func TestReference(t *testing.T) {
 				},
 				Dot: &ast.Position{Line: 1, Col: 9},
 				Name: &ast.ElementName{
-					Name:     "Name",
-					Position: &ast.Position{Line: 1, Col: 10},
+					Name:          "Name",
+					CanonicalName: "name",
+					Position:      &ast.Position{Line: 1, Col: 10},
 				},
 			},
 		},
@@ -230,14 +239,30 @@ func TestReference(t *testing.T) {
 func TestName(t *testing.T) {
 	t.Parallel()
 
-	in := "br"
-	want := &ast.ElementName{
-		Name:     "br",
-		Position: &ast.Position{Line: 1, Col: 1},
+	tests := []struct {
+		in            string
+		canonicalName string
+	}{
+		{"br", "br"},
+		{"Div", "div"},
+		{"INPUT", "input"},
+		{"cüstom", "cüstom"},
+		{"cÜstom", "cÜstom"},
 	}
+	for _, c := range tests {
+		t.Run(c.in, func(t *testing.T) {
+			t.Parallel()
 
-	got := parsetest.ParsesExact(t, in, Name())
-	should.Equal(t, got, want)
+			want := &ast.ElementName{
+				Name:          c.in,
+				CanonicalName: c.canonicalName,
+				Position:      &ast.Position{Line: 1, Col: 1},
+			}
+
+			got := parsetest.ParsesExact(t, c.in, Name())
+			should.Equal(t, got, want)
+		})
+	}
 }
 
 func TestRaw(t *testing.T) {
@@ -276,8 +301,9 @@ func TestAnd(t *testing.T) {
 				&ast.NamedAttribute{
 					Name: &ast.AttributeReference{
 						Name: &ast.AttributeName{
-							Name:     "foo",
-							Position: &ast.Position{Line: 1, Col: 3},
+							Name:          "foo",
+							CanonicalName: "foo",
+							Position:      &ast.Position{Line: 1, Col: 3},
 						},
 					},
 				},

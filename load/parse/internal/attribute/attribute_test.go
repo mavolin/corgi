@@ -48,8 +48,9 @@ func testNamedAttribute(t *testing.T, f parser.Func[*ast.NamedAttribute]) {
 			want: &ast.NamedAttribute{
 				Name: &ast.AttributeReference{
 					Name: &ast.AttributeName{
-						Name:     "async",
-						Position: &ast.Position{Line: 1, Col: 1},
+						Name:          "async",
+						CanonicalName: "async",
+						Position:      &ast.Position{Line: 1, Col: 1},
 					},
 				},
 			},
@@ -59,8 +60,9 @@ func testNamedAttribute(t *testing.T, f parser.Func[*ast.NamedAttribute]) {
 			want: &ast.NamedAttribute{
 				Name: &ast.AttributeReference{
 					Name: &ast.AttributeName{
-						Name:     "value",
-						Position: &ast.Position{Line: 1, Col: 1},
+						Name:          "value",
+						CanonicalName: "value",
+						Position:      &ast.Position{Line: 1, Col: 1},
 					},
 				},
 				EqualSign: &ast.Position{Line: 1, Col: 6},
@@ -99,8 +101,9 @@ func TestReference(t *testing.T) {
 			in:   "name",
 			want: &ast.AttributeReference{
 				Name: &ast.AttributeName{
-					Name:     "name",
-					Position: &ast.Position{Line: 1, Col: 1},
+					Name:          "name",
+					CanonicalName: "name",
+					Position:      &ast.Position{Line: 1, Col: 1},
 				},
 			},
 		}, {
@@ -113,8 +116,9 @@ func TestReference(t *testing.T) {
 				},
 				Dot: &ast.Position{Line: 1, Col: 9},
 				Name: &ast.AttributeName{
-					Name:     "Name",
-					Position: &ast.Position{Line: 1, Col: 10},
+					Name:          "Name",
+					CanonicalName: "name",
+					Position:      &ast.Position{Line: 1, Col: 10},
 				},
 			},
 		},
@@ -126,6 +130,35 @@ func TestReference(t *testing.T) {
 
 			got := parsetest.ParsesExact(t, c.in, Reference())
 			should.Equal(t, got, c.want)
+		})
+	}
+}
+
+func TestName(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		in            string
+		canonicalName string
+	}{
+		{"br", "br"},
+		{"Div", "div"},
+		{"INPUT", "input"},
+		{"cüstom", "cüstom"},
+		{"cÜstom", "cÜstom"},
+	}
+	for _, c := range tests {
+		t.Run(c.in, func(t *testing.T) {
+			t.Parallel()
+
+			want := &ast.AttributeName{
+				Name:          c.in,
+				CanonicalName: c.canonicalName,
+				Position:      &ast.Position{Line: 1, Col: 1},
+			}
+
+			got := parsetest.ParsesExact(t, c.in, Name())
+			should.Equal(t, got, want)
 		})
 	}
 }

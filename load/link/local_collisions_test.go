@@ -93,8 +93,8 @@ func TestLinker_CheckAttributeSpecCollisions(t *testing.T) {
 		pkg := createPackage("test")
 		f := createFile(pkg, "test.corgi")
 
-		createBasicAttributeSpec(f, &start, "foo", "Same", nil, attrtype.Innocuous)
-		createBasicAttributeSpec(f, &start, "bar", "Same", nil, attrtype.Innocuous)
+		createBasicAttributeSpec(f, &start, "foo", "Same", nil, attrtype.String)
+		createBasicAttributeSpec(f, &start, "bar", "Same", nil, attrtype.String)
 		d := Link(context.Background(), pkg, Options{})
 
 		t.Log(d.Pretty(diagnostic.PrettyOptions{}))
@@ -110,8 +110,8 @@ func TestLinker_CheckAttributeSpecCollisions(t *testing.T) {
 		pkg := createPackage("test")
 		f := createFile(pkg, "test.corgi")
 
-		createBasicAttributeSpec(f, &start, "foo", "same", nil, attrtype.Innocuous)
-		createBasicAttributeSpec(f, &start, "foos", "ame", nil, attrtype.Innocuous)
+		createBasicAttributeSpec(f, &start, "foo", "same", nil, attrtype.String)
+		createBasicAttributeSpec(f, &start, "foos", "ame", nil, attrtype.String)
 		d := Link(context.Background(), pkg, Options{})
 
 		t.Log(d.Pretty(diagnostic.PrettyOptions{}))
@@ -127,8 +127,8 @@ func TestLinker_CheckAttributeSpecCollisions(t *testing.T) {
 		pkg := createPackage("test")
 		f := createFile(pkg, "test.corgi")
 
-		createBasicAttributeSpec(f, &start, "foo", "same", nil, attrtype.Innocuous)
-		createBasicAttributeSpec(f, &start, "foo", "same", nil, attrtype.Innocuous)
+		createBasicAttributeSpec(f, &start, "foo", "same", nil, attrtype.String)
+		createBasicAttributeSpec(f, &start, "foo", "same", nil, attrtype.String)
 		d := Link(context.Background(), pkg, Options{})
 
 		t.Log(d.Pretty(diagnostic.PrettyOptions{}))

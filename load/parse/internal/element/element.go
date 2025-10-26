@@ -218,14 +218,15 @@ func canonicalize(name string) string {
 
 		b.Grow(len(name))
 		b.WriteString(name[:i])
-		b.WriteRune((r - 'A') + 'a')
+		b.WriteRune('a' + (r - 'A'))
 		for _, r := range name[i+1:] {
 			if r >= 'A' && r <= 'Z' {
-				b.WriteRune((r - 'A') + 'a')
+				b.WriteRune('a' + (r - 'A'))
 			} else {
 				b.WriteRune(r)
 			}
 		}
+		break
 	}
 
 	if b.Len() == 0 {

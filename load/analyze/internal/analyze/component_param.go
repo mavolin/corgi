@@ -74,12 +74,12 @@ func (z *analyzer) AnalyzeComponentParameter_AttributeType_AttributeName(
 		return
 	}
 
-	if t.Name.Type == attrtype.Innocuous {
-		logger.Error("Use of innocuous attribute type as component parameter type")
+	if t.Name.Type == attrtype.String {
+		logger.Error("Use of string attribute type as component parameter type")
 		z.Report(&diagnostic.Diagnostic{
-			Message: "component parameter: use of innocuous attribute type",
+			Message: "component parameter: use of string attribute type",
 			Primary: []diagnostic.Annotation{
-				anno.Node(c.File, param.AST.Type, "`'innocuous` is equivalent to `string` in every way"),
+				anno.Node(c.File, param.AST.Type, "`'string` is equivalent to `string` in every way"),
 			},
 			Hints: []diagnostic.Hint{{Hint: "If you want to accept any printable value, use `escape.Printable`."}},
 		})
@@ -105,7 +105,7 @@ func (z *analyzer) AnalyzeComponentParameter_AttributeType_AttributeName(
 		}
 	}
 
-	if t.Name.Type.IsValid() {
+	if t.Name.Type != nil {
 		param.AttributeType.SetResult(t.Name.Type)
 	} else {
 		param.AttributeType.SetFailed()
@@ -158,7 +158,7 @@ func (z *analyzer) AnalyzeComponentParameter_InferredType_fromAttributeType(
 		inferredType += "UnsafeBool"
 	case attrtype.Bool:
 		inferredType += "Bool"
-	case attrtype.Innocuous:
+	case attrtype.String:
 		// already handled above
 	case attrtype.Text:
 		inferredType = "string"
@@ -168,13 +168,13 @@ func (z *analyzer) AnalyzeComponentParameter_InferredType_fromAttributeType(
 		inferredType += "JS"
 	case attrtype.URL:
 		inferredType += "URL"
-	case attrtype.URLList:
-		inferredType += "URLList"
+	// case attrtype.URLList:
+	// 	inferredType += "URLList"
 	case attrtype.ResourceURL:
 		inferredType += "ResourceURL"
 	case attrtype.Srcset:
 		inferredType += "Srcset"
-	case attrtype.Unknown:
+	case nil:
 		fallthrough
 	default:
 		logger.Error("Use of unknown attribute type as component parameter type")

@@ -217,12 +217,12 @@ func TestLinker_CheckDotImportAttributeSpecCollisions(t *testing.T) {
 		var start ast.Position
 		importedPkg := createPackage("imported")
 		importedF := createFile(importedPkg, "imported.corgi")
-		createBasicAttributeSpec(importedF, &start, "prefix", "test", nil, attrtype.Innocuous)
+		createBasicAttributeSpec(importedF, &start, "prefix", "test", nil, attrtype.String)
 
 		mainPkg := createPackage("main")
 		mainF := createFile(mainPkg, "main.corgi")
 		createImport(mainF, &start, ".", importedPkg.CorgiImportPath)
-		createBasicAttributeSpec(mainF, &start, "", "prefixTest", nil, attrtype.Innocuous)
+		createBasicAttributeSpec(mainF, &start, "", "prefixTest", nil, attrtype.String)
 
 		d := Link(context.Background(), mainPkg, Options{
 			Importer: ImporterFor(importedPkg),
@@ -240,11 +240,11 @@ func TestLinker_CheckDotImportAttributeSpecCollisions(t *testing.T) {
 		var start ast.Position
 		importedPkg := createPackage("imported")
 		importedF := createFile(importedPkg, "imported.corgi")
-		createBasicAttributeSpec(importedF, &start, "", "prefixTest", nil, attrtype.Innocuous)
+		createBasicAttributeSpec(importedF, &start, "", "prefixTest", nil, attrtype.String)
 
 		imported2Pkg := createPackage("imported2")
 		importedF2 := createFile(imported2Pkg, "imported2.corgi")
-		createBasicAttributeSpec(importedF2, &start, "prefix", "test", nil, attrtype.Innocuous)
+		createBasicAttributeSpec(importedF2, &start, "prefix", "test", nil, attrtype.String)
 
 		mainPkg := createPackage("main")
 		mainF := createFile(mainPkg, "main.corgi")
@@ -267,7 +267,7 @@ func TestLinker_CheckDotImportAttributeSpecCollisions(t *testing.T) {
 		var start ast.Position
 		importedPkg := createPackage("imported")
 		importedF := createFile(importedPkg, "imported.corgi")
-		createBasicAttributeSpec(importedF, &start, "", "test", nil, attrtype.Innocuous)
+		createBasicAttributeSpec(importedF, &start, "", "test", nil, attrtype.String)
 
 		mainPkg := createPackage("main")
 		mainF := createFile(mainPkg, "main.corgi")
@@ -290,8 +290,8 @@ func TestLinker_CheckDotImportAttributeSpecCollisions(t *testing.T) {
 		var start ast.Position
 		importedPkg := createPackage("imported")
 		importedF := createFile(importedPkg, "imported.corgi")
-		createBasicAttributeSpec(importedF, &start, "", "test*", nil, attrtype.Innocuous)
-		createBasicAttributeSpec(importedF, &start, "", "test*", nil, attrtype.Innocuous)
+		createBasicAttributeSpec(importedF, &start, "", "test*", nil, attrtype.String)
+		createBasicAttributeSpec(importedF, &start, "", "test*", nil, attrtype.String)
 
 		mainPkg := createPackage("main")
 		mainF := createFile(mainPkg, "main.corgi")

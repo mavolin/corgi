@@ -316,10 +316,10 @@ func (z *analyzer) AnalyzeAttribute_ReceivingElementSpecs(f *file.File, attr *fi
 func (z *analyzer) AnalyzeAttribute_Type(logger *slog.Logger, f *file.File, attr *file.Attribute) {
 	logger = logger.WithGroup("type")
 
-	attr.Type.SetResult(attrtype.Unknown)
+	attr.Type.SetResult(nil)
 
 	z.analyzeAttribute_Type_explicit(logger, f, attr)
-	if attr.Type.Failed() || attr.Type.Result() != attrtype.Unknown {
+	if attr.Type.Failed() || attr.Type.Result() != nil {
 		return
 	}
 
@@ -384,7 +384,7 @@ func (z *analyzer) analyzeAttribute_Type_inferred(logger *slog.Logger, f *file.F
 			return
 		}
 
-		attr.Type.SetResult(attrtype.Unknown)
+		attr.Type.SetResult(nil)
 		if attr.Value.Constant() {
 			return
 		}
@@ -437,7 +437,7 @@ func (z *analyzer) analyzeAttribute_Type_inferred(logger *slog.Logger, f *file.F
 		attr.Type.SetFailed()
 		return
 	} else if attr.Reference.Spec.Result() == nil {
-		attr.Type.SetResult(attrtype.Unknown)
+		attr.Type.SetResult(nil)
 		if attr.Value.Constant() {
 			return
 		}
@@ -486,7 +486,7 @@ func (z *analyzer) analyzeAttribute_Type_inferred(logger *slog.Logger, f *file.F
 	var secondaries []diagnostic.Annotation
 	for _, spec := range containingElementSpecs[1:] {
 		rule := attrSpec.RuleFor(spec)
-		if rule == nil && refTyp == attrtype.Unknown {
+		if rule == nil && refTyp == nil {
 			continue
 		} else if rule != nil && refTyp == rule.Type.Type {
 			continue
@@ -538,7 +538,7 @@ func (z *analyzer) analyzeAttribute_Type_inferred(logger *slog.Logger, f *file.F
 	}
 
 	attr.Type.SetResult(refTyp)
-	if refTyp.IsValid() || attr.Value.Constant() {
+	if refTyp != nil || attr.Value.Constant() {
 		return
 	}
 

@@ -446,6 +446,9 @@ func (l *ListElementSelector) _elementSelector() {}
 
 type AttributeTypeName struct {
 	Name     string
+	LBracket *Position // nil if not a list
+	Element  string
+	RBracket *Position // nil if not a list
 	Type     attrtype.Type
 	Position *Position
 }

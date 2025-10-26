@@ -10,6 +10,6 @@
 package safe
 
 // Replacement is the string to be used as replacement for an unsafe value.
-const Replacement = "ZcorgiZ"
+const Replacement = "ZreplacementZ"
 
 type constant string

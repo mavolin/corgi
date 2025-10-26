@@ -163,7 +163,7 @@ func (loader *importLoader) processImport(f *file.File, imp *file.Import) {
 	imp.GoPath = imp.Package.GoImportPath()
 
 	if imp.Package.CorgiImportPath != imp.CorgiPath {
-		logger.Error("Import using non-corgi path",
+		logger.Error("Import using non-symbolic path",
 			slog.String("go_import_path", string(imp.GoPath)))
 		loader.l.report(&diagnostic.Diagnostic{
 			Message: "import: use of Go import path when symbolic path exists",
@@ -225,16 +225,16 @@ func (loader *importLoader) loadBuiltin(ctx context.Context) {
 			Primary: []diagnostic.Annotation{
 				anno.Position(f, ast.Position{Line: 1, Col: 1}, "file's builtin import already set"),
 			},
-			Explanation: "This file already has a builtin import set, but the linker was given a non-empty builtin path " +
+			Explanation: "This file already has a builtin package set, but the linker was given a non-empty builtin path " +
 				"to load.",
 		})
 	}
 	if !needBuiltin {
-		logger.Debug("All files already have a builtin import, no need to load it again")
-		return // no builtin import needed, nothing to load
+		logger.Debug("All files already have a builtin package, no need to load it again")
+		return // no builtin package needed, nothing to load
 	}
 
-	logger.Debug("Loading builtin import")
+	logger.Debug("Loading builtin package")
 
 	cycle := loader.graph.AddImport(loader.l.p, loader.l.builtinPath, func() (*file.Package, diagnostic.List, error) {
 		return loader.l.importer(ctx, loader.l.builtinPath)
@@ -247,11 +247,11 @@ func (loader *importLoader) loadBuiltin(ctx context.Context) {
 	p, d, err := loader.graph.AwaitImport(loader.l.builtinPath)
 	switch {
 	case err != nil:
-		logger.Error("Failed to load builtin import", slog.String("err", err.Error()))
+		logger.Error("Failed to load builtin package", slog.String("err", err.Error()))
 	case len(d) > 0:
-		logger.Error("Builtin import contains errors", slog.String("err", d.Short()))
+		logger.Error("Builtin package contains errors", slog.String("err", d.Short()))
 	default:
-		logger.Debug("Successfully loaded builtin import")
+		logger.Debug("Successfully loaded builtin package")
 	}
 
 	if len(d) > 0 {
@@ -291,7 +291,7 @@ func (loader *importLoader) reportImportCycle(logger *slog.Logger, f *file.File,
 	}
 
 	var primary []diagnostic.Annotation
-	if imp.AST != nil {
+	if imp != nil && imp.AST != nil {
 		primary = []diagnostic.Annotation{anno.Node(f, imp.AST.Path, msg.String())}
 	} else {
 		primary = []diagnostic.Annotation{anno.Position(f, ast.Position{Line: 1, Col: 1}, msg.String())}

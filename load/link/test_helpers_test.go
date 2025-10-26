@@ -248,9 +248,11 @@ func createBasicAttributeSpec(
 	specAST.Ruleset.List = []*ast.AttributeRule{ruleAST}
 
 	ruleAST.Type = &ast.AttributeTypeName{
-		Name:     typ.String(),
 		Type:     typ,
 		Position: spaceAfter(definitionAST),
+	}
+	if typ != nil {
+		ruleAST.Type.Name = typ.String()
 	}
 	specAST.Ruleset.RBrace = spaceAfter(definitionAST)
 

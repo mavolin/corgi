@@ -1,8 +1,8 @@
-//go:build test_stubs
-
 package body
 
 import (
+	"testing"
+
 	"github.com/mavolin/corgi/v2/file/ast"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/mavolin/corgi/v2/load/parse/internal/whitespace"
@@ -10,10 +10,12 @@ import (
 
 //nolint:gochecknoinits
 func init() {
-	SetTextLine(textLineStub)
-	// doesn't make the VerbatimBracketText very effective, but whatever
-	SetVerbatimTextLine(textLineStub)
-	SetScopeNode(scopeNodeStub)
+	if testing.Testing() {
+		SetTextLine(textLineStub)
+		// doesn't make the VerbatimBracketText very effective, but whatever
+		SetVerbatimTextLine(textLineStub)
+		SetScopeNode(scopeNodeStub)
+	}
 }
 
 func textLineStub(term rune) parser.Func[ast.TextLine] {
@@ -37,11 +39,7 @@ func textLineStub(term rune) parser.Func[ast.TextLine] {
 func textLineEnd(term rune) parser.Func[bool] {
 	return func(p *parser.Parser) bool {
 		parser.TrySkip(p, whitespace.Horizontal())
-		if parser.MatchesAnyRune(p, term, '\n') {
-			return true
-		}
-
-		return false
+		return parser.MatchesAnyRune(p, term, '\n')
 	}
 }
 

@@ -1,8 +1,8 @@
-//go:build test_stubs
-
 package interpolation
 
 import (
+	"testing"
+
 	"github.com/mavolin/corgi/v2/file/ast"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/mavolin/corgi/v2/load/parse/internal/body"
@@ -11,8 +11,10 @@ import (
 )
 
 func init() { //nolint:gochecknoinits
-	SetComponentCall(componentCallStub)
-	SetExpression(expressionStub)
+	if testing.Testing() {
+		SetComponentCall(componentCallStub)
+		SetExpression(expressionStub)
+	}
 }
 
 func componentCallStub(p *parser.Parser) *ast.ComponentCall {

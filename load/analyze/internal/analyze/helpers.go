@@ -295,8 +295,8 @@ func (z *analyzer) expressionToResolvedValue(f *file.File, expr *ast.Expression)
 	if len(expr.Nodes) == 1 {
 		n0 := expr.Nodes[0]
 		return switches.CodeNodeR(n0,
-			func(*ast.BlockFunction) file.ResolvedValue { return nil },
-			func(*ast.ComponentCall) file.ResolvedValue { return nil },
+			func(*ast.BlockFunction) file.ResolvedValue { return (*file.BoolExpression)(expr) },
+			func(*ast.ComponentCall) file.ResolvedValue { return file.Text{(*file.ExpressionPart)(expr)} },
 			func(gc *ast.GoCode) file.ResolvedValue {
 				switch gc.Code {
 				case "true":
@@ -304,14 +304,14 @@ func (z *analyzer) expressionToResolvedValue(f *file.File, expr *ast.Expression)
 				case "false":
 					return file.ConstantBool(false)
 				default:
-					return nil
+					return (*file.UndeterminedExpression)(expr)
 				}
 			},
 			func(s *ast.String) file.ResolvedValue {
 				return z.stringToResolvedValue(s)
 			},
-			func(*ast.Ternary) file.ResolvedValue { return nil },
-			func(*ast.ZeroCoalescing) file.ResolvedValue { return nil },
+			func(*ast.Ternary) file.ResolvedValue { return (*file.UndeterminedExpression)(expr) },
+			func(*ast.ZeroCoalescing) file.ResolvedValue { return (*file.UndeterminedExpression)(expr) },
 		)
 	}
 
@@ -322,7 +322,7 @@ func (z *analyzer) expressionToResolvedValue(f *file.File, expr *ast.Expression)
 	case "int", "int8", "int16", "int32", "int64",
 		"uint", "uint8", "uint16", "uint32", "uint64",
 		"float32", "float64", "string":
-		return file.Text{(*file.ExpressionPart)(expr)}
+		return file.Text{(*file.ExpressionPart)(expr)} // todo
 	default:
 		return (*file.UndeterminedExpression)(expr)
 	}
