@@ -28,7 +28,7 @@ func TestDiagnostic_Pretty(t *testing.T) {
 
 	f := &file.File{
 		Package: &file.Package{
-			PathInModule: "",
+			PathInModule: "bar",
 		},
 		Name: "foo.corgi",
 		AST: &ast.File{
@@ -111,9 +111,9 @@ func TestDiagnostic_Pretty(t *testing.T) {
 				Message: "foo",
 				Primary: []Annotation{packageAnno},
 			},
-			expectShort: "error: foo.corgi:1:1: foo",
+			expectShort: "error: bar/foo.corgi:1:1: foo",
 			expectPretty: "error: foo\n" +
-				"  ╭─ ./foo.corgi:1:1\n" +
+				"  ╭─ bar/foo.corgi:1:1\n" +
 				"1 │ package foo\n" +
 				"  │ ^^^^^^^^^^^ package",
 		}, {
@@ -125,9 +125,9 @@ func TestDiagnostic_Pretty(t *testing.T) {
 					packageNameAnno,
 				},
 			},
-			expectShort: "error: foo.corgi:1:1: foo",
+			expectShort: "error: bar/foo.corgi:1:1: foo",
 			expectPretty: "error: foo\n" +
-				"  ╭─ ./foo.corgi:1:1\n" +
+				"  ╭─ bar/foo.corgi:1:1\n" +
 				"1 │ package foo\n" +
 				"  │ ^^^^^^^ ^^^ package name\n" +
 				"  │ ╰ package word",
@@ -146,9 +146,9 @@ func TestDiagnostic_Pretty(t *testing.T) {
 					},
 				},
 			},
-			expectShort: "error: foo.corgi:1:1: foo",
+			expectShort: "error: bar/foo.corgi:1:1: foo",
 			expectPretty: "error: foo\n" +
-				"  ╭─ ./foo.corgi:1:1\n" +
+				"  ╭─ bar/foo.corgi:1:1\n" +
 				"1 │ package foo\n" +
 				"  │ ^^^^^^^^^^^\n" +
 				"  │ ╰ bar\n" +
@@ -168,9 +168,9 @@ func TestDiagnostic_Pretty(t *testing.T) {
 					},
 				},
 			},
-			expectShort: "error: foo.corgi:1:1: foo",
+			expectShort: "error: bar/foo.corgi:1:1: foo",
 			expectPretty: "error: foo\n" +
-				"  ╭─ ./foo.corgi:1:1\n" +
+				"  ╭─ bar/foo.corgi:1:1\n" +
 				"1 │ package foo\n" +
 				"  │ ^^^^^^^^^^^ package\n" +
 				"2 │ \n" +
@@ -182,9 +182,9 @@ func TestDiagnostic_Pretty(t *testing.T) {
 				Primary:   []Annotation{packageAnno},
 				Secondary: []Annotation{importAnno},
 			},
-			expectShort: "error: foo.corgi:1:1: foo",
+			expectShort: "error: bar/foo.corgi:1:1: foo",
 			expectPretty: "error: foo\n" +
-				"  ╭─ ./foo.corgi:1:1\n" +
+				"  ╭─ bar/foo.corgi:1:1\n" +
 				"1 │ package foo\n" +
 				"  │ ^^^^^^^^^^^ package\n" +
 				"2 │ \n" +
@@ -342,9 +342,9 @@ func TestDiagnostic_Pretty(t *testing.T) {
 				},
 				Docs: "corgi",
 			},
-			expectShort: "error: foo.corgi:1:1: foo: bar",
+			expectShort: "error: bar/foo.corgi:1:1: foo: bar",
 			expectPretty: "error: foo\n" +
-				"  ╭─ ./foo.corgi:1:1\n" +
+				"  ╭─ bar/foo.corgi:1:1\n" +
 				"1 │ package foo\n" +
 				"  │ ^^^^^^^^^^^ package\n" +
 				"2 │ \n" +
