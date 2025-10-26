@@ -14,7 +14,15 @@ const ambiguousAttributeReferenceExplanation = "There are multiple regular expre
 	"therefore it is unclear which one to use. " +
 	"Refine your regular expressions so that only one matches to resolve this ambiguity."
 
+type attributeReferenceLinked struct{}
+
 func (l *linker) LinkAttributeReferences() {
+	defer l.Ran(l.Pkg, attributeReferenceLinked{})
+	l.Require(l.Pkg, importsLoaded{})
+	l.Require(l.Pkg, dotImportAttributeSpecCollisionCheck{})
+	l.Require(l.Pkg, attributeSpecCollisionCheck{})
+	l.Require(l.Pkg, attributeRuleCollisionCheck{})
+
 	logger := l.Logger.WithGroup("links.attribute_references")
 	logger.Debug("Linking attribute references")
 

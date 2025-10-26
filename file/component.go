@@ -16,9 +16,6 @@ type Component struct {
 
 	Name Identifier
 
-	// ComponentCalls are the component calls this component calls.
-	ComponentCalls []*ComponentCall
-
 	// Parameters are the parameters of the Component.
 	//
 	// Parameters that are nil in the AST's parameters list are omitted.
@@ -38,6 +35,10 @@ type Component struct {
 	// Analyzed indicates whether the Component has been analyzed,
 	// albeit with errors.
 	Analyzed bool
+
+	// Circular indicates whether the Component is part of a cycle of
+	// component calls.
+	Circular bool
 
 	// AlwaysAcceptsAttributes indicates whether the component has a
 	// permanent &-placeholder writer, i.e. an &-placeholder writer that is not
@@ -144,6 +145,9 @@ func (c *Component) CouldAcceptAttributes() (a AnalysisWithReason[ast.AndPlaceho
 
 	for _, block := range c.Blocks {
 		for _, instance := range block.Instances {
+			if instance.Default == nil {
+				continue
+			}
 			if instance.Default.AcceptsAttributes.True() {
 				a.SetReason(instance.Default.AcceptsAttributes.Reason())
 				return a
@@ -174,6 +178,9 @@ func (c *Component) CouldForwardReceivedAttributes() (a AnalysisWithReason[ast.A
 
 	for _, block := range c.Blocks {
 		for _, instance := range block.Instances {
+			if instance.Default == nil {
+				continue
+			}
 			forwardsAndPlaceholder := ConditionalAnalysis(instance.Forwarded, instance.Default.ForwardsReceivedAttributes)
 			if forwardsAndPlaceholder.True() {
 				a.SetReason(forwardsAndPlaceholder.Reason())
@@ -195,8 +202,9 @@ type ComponentParameter struct {
 	//
 	// BUILD SYMBOLS
 
-	AST  *ast.ComponentParameter
-	Name Identifier
+	AST       *ast.ComponentParameter
+	Name      Identifier
+	Component *Component
 
 	//
 	// ANALYZER

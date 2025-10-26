@@ -8,7 +8,14 @@ import (
 	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
 )
 
+type elementReferenceLinked struct{}
+
 func (l *linker) LinkElementReferences() {
+	defer l.Ran(l.Pkg, elementReferenceLinked{})
+	l.Require(l.Pkg, importsLoaded{})
+	l.Require(l.Pkg, dotImportElementSpecCollisionCheck{})
+	l.Require(l.Pkg, elementSpecCollisionCheck{})
+
 	logger := l.Logger.WithGroup("links.element_references")
 	logger.Debug("Linking element references")
 

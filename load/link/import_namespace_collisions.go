@@ -8,7 +8,12 @@ import (
 	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
 )
 
+type importNamespaceCollisionCheck struct{}
+
 func (l *linker) CheckImportNamespaceCollisions() {
+	defer l.Ran(l.Pkg, importNamespaceCollisionCheck{})
+	l.Require(l.Pkg, importsLoaded{})
+
 	logger := l.Logger.WithGroup("checks.import_namespace_collisions")
 	logger.Debug("Checking for import qualifier collisions")
 

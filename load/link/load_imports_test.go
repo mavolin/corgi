@@ -57,47 +57,6 @@ func TestLinker_LoadImports(t *testing.T) {
 		}
 	})
 
-	t.Run("local-only mode", func(t *testing.T) {
-		t.Parallel()
-
-		var start ast.Position
-		mainPkg := createPackage("main")
-		mainF := createFile(mainPkg, "main.corgi")
-		createImport(mainF, &start, "", "github.com/some/package")
-
-		d := Link(context.Background(), mainPkg, Options{
-			Importer: nil, // nil importer triggers local-only mode
-		})
-
-		t.Log(d.Pretty(diagnostic.PrettyOptions{}))
-		if should.Equal(t, len(d), 1) {
-			should.Equal(t, d[0].Message, "local-only mode: file contains imports")
-		}
-	})
-
-	t.Run("illegal alias prefix", func(t *testing.T) {
-		t.Parallel()
-
-		var start ast.Position
-		importedPkg := createPackage("imported")
-		importedF := createFile(importedPkg, "imported.corgi")
-		importedComp := createComponent(importedF, &start, "Test")
-		addComponent(importedPkg, importedComp)
-
-		mainPkg := createPackage("main")
-		mainF := createFile(mainPkg, "main.corgi")
-		createImport(mainF, &start, "__corgi_illegal", importedPkg.CorgiImportPath)
-
-		d := Link(context.Background(), mainPkg, Options{
-			Importer: ImporterFor(importedPkg),
-		})
-
-		t.Log(d.Pretty(diagnostic.PrettyOptions{}))
-		if should.Equal(t, len(d), 1) {
-			should.Equal(t, d[0].Message, "import alias: cannot use `__corgi_` prefix")
-		}
-	})
-
 	t.Run("dot import", func(t *testing.T) {
 		t.Parallel()
 

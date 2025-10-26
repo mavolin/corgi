@@ -14,7 +14,11 @@ import (
 // Component
 // ======================================================================================
 
+type componentCollisionCheck struct{}
+
 func (l *linker) CheckComponentCollisions() {
+	defer l.Ran(l.Pkg, componentCollisionCheck{})
+
 	logger := l.Logger.WithGroup("checks.collisions.components")
 	logger.Debug("Checking for component collisions")
 
@@ -56,7 +60,11 @@ func (l *linker) CheckComponentCollisions() {
 // Element Spec
 // ======================================================================================
 
+type elementSpecCollisionCheck struct{}
+
 func (l *linker) CheckElementSpecCollisions() {
+	defer l.Ran(l.Pkg, elementSpecCollisionCheck{})
+
 	logger := l.Logger.WithGroup("checks.collisions.element_specs")
 	logger.Debug("Checking for element spec collisions")
 
@@ -153,7 +161,11 @@ func appendElementSpecLocationAnnotations(
 // Attribute Spec
 // ======================================================================================
 
+type attributeSpecCollisionCheck struct{}
+
 func (l *linker) CheckAttributeSpecCollisions() {
+	defer l.Ran(l.Pkg, attributeSpecCollisionCheck{})
+
 	logger := l.Logger.WithGroup("checks.collisions.attribute_specs")
 	logger.Debug("Checking for attribute spec collisions")
 

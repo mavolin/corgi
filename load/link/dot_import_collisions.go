@@ -12,7 +12,12 @@ import (
 // Component
 // ======================================================================================
 
+type dotImportComponentCollisionCheck struct{}
+
 func (l *linker) CheckDotImportComponentCollisions() {
+	defer l.Ran(l.Pkg, dotImportComponentCollisionCheck{})
+	l.Require(l.Pkg, importsLoaded{})
+
 	logger := l.Logger.WithGroup("checks.dot_import_collisions.components")
 	logger.Debug("Checking for component collisions through dot imports")
 
@@ -95,7 +100,12 @@ Components:
 // Element Spec
 // ======================================================================================
 
+type dotImportElementSpecCollisionCheck struct{}
+
 func (l *linker) CheckDotImportElementSpecCollisions() {
+	defer l.Ran(l.Pkg, dotImportElementSpecCollisionCheck{})
+	l.Require(l.Pkg, importsLoaded{})
+
 	logger := l.Logger.WithGroup("checks.dot_import_collisions.element_specs")
 	logger.Debug("Checking for element spec collisions through dot imports")
 
@@ -173,8 +183,13 @@ Specs:
 // Attribute Spec
 // ======================================================================================
 
+type dotImportAttributeSpecCollisionCheck struct{}
+
 func (l *linker) CheckDotImportAttributeSpecCollisions() {
-	logger := l.Logger.WithGroup("check.dot_import_collisions.attribute_specs")
+	defer l.Ran(l.Pkg, dotImportAttributeSpecCollisionCheck{})
+	l.Require(l.Pkg, importsLoaded{})
+
+	logger := l.Logger.WithGroup("checks.dot_import_collisions.attribute_specs")
 	logger.Debug("Checking for attribute spec collisions through dot imports")
 
 	for _, f := range l.Pkg.Files {

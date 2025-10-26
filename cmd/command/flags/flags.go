@@ -9,6 +9,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/lmittmann/tint"
+	"github.com/mavolin/corgi/v2/internal/assert"
 )
 
 type ParseFlags struct {
@@ -25,13 +26,14 @@ func (f *ParseFlags) Bind(s *flag.FlagSet) {
 			"Enabled by default, if stdout is a terminal, $NO_COLOR == \"\", and $TERM != \"dumb\".")
 	s.BoolFunc("verbose",
 		"Print verbose output explaining what is currently being done. "+
-			"Set to 2, to enable debug logging.",
+			"Set to 2, to enable debug logging. In debug mode, debug assertions are enabled.",
 		func(s string) error {
 			switch s {
 			case "1":
 				f.Verbose = 1
 			case "2":
 				f.Verbose = 2
+				assert.DebugEnabled = true
 			default:
 				v, err := strconv.ParseBool(s)
 				if err != nil {

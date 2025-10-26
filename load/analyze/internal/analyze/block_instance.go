@@ -11,13 +11,6 @@ import (
 	"github.com/mavolin/corgi/v2/load/analyze/internal/candidate"
 )
 
-// AnalyzeBlockInstance analyzes the given block.
-//
-// Depends on Checks: None
-//
-// Sets Fields: None
-//
-// Depends on Fields: None
 func (z *analyzer) AnalyzeBlockInstance(
 	ctx context.Context, parents []*walk.Context, bi *file.BlockInstance,
 	cannotAttributes file.AnalysisWithReason[ast.AttributeInhibitor],
@@ -35,16 +28,11 @@ func (z *analyzer) AnalyzeBlockInstance(
 // Forwarded
 // ======================================================================================
 
-// AnalyzeBlockInstance_Forwarded determines whether the given block instance
-// is forwarded (i.e. placed outside any element).
-//
-// Depends on Checks: None
-//
-// Sets Fields:
-//   - Components.Blocks.Instances.Forwarded
-//
-// Depends on Fields: None
+type blockInstance_Forwarded struct{}
+
 func (z *analyzer) AnalyzeBlockInstance_Forwarded(ctx context.Context, parents []*walk.Context, bi *file.BlockInstance) {
+	defer z.Ran(bi, blockInstance_Forwarded{})
+
 	bi.Forwarded.SetResult(true)
 
 	i := len(parents) - 1
@@ -76,7 +64,7 @@ func (z *analyzer) AnalyzeBlockInstance_Forwarded(ctx context.Context, parents [
 					// Continue checking: if the instance has another element as
 					// parent, we can still be sure it's not forwarded.
 					bi.Forwarded.SetFailed()
-				} else if s.Block.Forwarded().False() {
+				} else if z.block_Forwarded(s.Block).False() {
 					bi.Forwarded.SetResult(false)
 					return
 				}
@@ -93,16 +81,11 @@ func (z *analyzer) AnalyzeBlockInstance_Forwarded(ctx context.Context, parents [
 // Containing Elements
 // ======================================================================================
 
-// AnalyzeBlockInstance_ContainingElements determines all elements containing
-// the given block instance.
-//
-// Depends on Checks: None
-//
-// Sets Fields:
-//   - Components.Blocks.Instances.ContainingElements
-//
-// Depends on Fields: None
+type blockInstance_ContainingElements struct{}
+
 func (z *analyzer) AnalyzeBlockInstance_ContainingElements(ctx context.Context, parents []*walk.Context, bi *file.BlockInstance) {
+	defer z.Ran(bi, blockInstance_ContainingElements{})
+
 	bi.ContainingElements.SetResult(file.NilSliceRef[ast.ContainingElement]())
 	var containingElements []ast.ContainingElement
 
@@ -135,8 +118,8 @@ func (z *analyzer) AnalyzeBlockInstance_ContainingElements(ctx context.Context, 
 					bi.ContainingElements.SetFailed()
 					return true
 				}
-				for _, instance := range s.Block.Instances {
-					if instance.ContainingElements.Failed() {
+				for _, bi2 := range s.Block.Instances {
+					if z.blockInstance_ContainingElements(bi2).Failed() {
 						bi.ContainingElements.SetFailed()
 						return true
 					}
@@ -146,7 +129,7 @@ func (z *analyzer) AnalyzeBlockInstance_ContainingElements(ctx context.Context, 
 					ComponentCall: ccAST,
 					BlockSetter:   parent,
 				})
-				if s.Block.Forwarded().False() {
+				if z.block_Forwarded(s.Block).False() {
 					return true
 				}
 				i = ccI // continue with the parent of the component call
@@ -168,31 +151,26 @@ func (z *analyzer) AnalyzeBlockInstance_ContainingElements(ctx context.Context, 
 // Containing Element Specs
 // ======================================================================================
 
-// AnalyzeBlockInstance_ContainingElementSpecs calculates the containing element
-// specs of the given attribute.
-//
-// Depends on Checks: None
-//
-// Sets Fields:
-//   - Components.Blocks.Instances.ContainingElementSpecs
-//
-// Depends on Fields:
-//   - Components.Blocks.Instances.ContainingElements
+type blockInstance_ContainingElementSpecs struct{}
+
 func (z *analyzer) AnalyzeBlockInstance_ContainingElementSpecs(bi *file.BlockInstance) {
-	if bi.ContainingElements.Failed() {
+	defer z.Ran(bi, blockInstance_ContainingElementSpecs{})
+
+	containingElements := z.blockInstance_ContainingElements(bi)
+	if containingElements.Failed() {
 		bi.ContainingElementSpecs.SetFailed()
 		return
 	}
 
-	if bi.ContainingElements.Result().Len() == 0 {
+	if containingElements.Result().Len() == 0 {
 		bi.ContainingElementSpecs.SetResult(file.NilSliceRef[*file.ElementSpec]())
 		return
 	}
 
 	f := bi.Group.Component.File
 
-	specSet := make(map[*file.ElementSpec]struct{}, bi.ContainingElements.Result().Len())
-	for _, e := range bi.ContainingElements.Result().Get() {
+	specSet := make(map[*file.ElementSpec]struct{}, containingElements.Result().Len())
+	for _, e := range containingElements.Result().Get() {
 		switches.ContainingElement(e,
 			func(e *ast.BlockSetterContainingElement) {
 				cc := f.ComponentCallByNode(e.ComponentCall)
@@ -202,13 +180,14 @@ func (z *analyzer) AnalyzeBlockInstance_ContainingElementSpecs(bi *file.BlockIns
 					return
 				}
 
-				for _, instance := range s.Block.Instances {
-					if instance.ContainingElementSpecs.Failed() {
+				for _, bi2 := range s.Block.Instances {
+					containingElementSpecs := z.blockInstance_ContainingElementSpecs(bi2)
+					if containingElementSpecs.Failed() {
 						bi.ContainingElementSpecs.SetFailed()
 						return
 					}
 
-					for _, spec := range instance.ContainingElementSpecs.Result().Get() {
+					for _, spec := range containingElementSpecs.Result().Get() {
 						specSet[spec] = struct{}{}
 					}
 				}
@@ -237,17 +216,11 @@ func (z *analyzer) AnalyzeBlockInstance_ContainingElementSpecs(bi *file.BlockIns
 // Cannot Forward Attributes
 // ======================================================================================
 
-// AnalyzeBlockInstance_CannotForwardAttributes determines whether the given
-// block instance could not forward attributes to the element containing it.
-//
-// Depends on Checks: None
-//
-// Sets Fields:
-//   - Components.Blocks.Instances.CannotForwardAttributes
-//
-// Depends on Fields: None
+type blockInstance_CannotForwardAttributes struct{}
+
 func (z *analyzer) AnalyzeBlockInstance_CannotForwardAttributes(
 	bi *file.BlockInstance, cannotAttributes file.AnalysisWithReason[ast.AttributeInhibitor],
 ) {
+	defer z.Ran(bi, blockInstance_CannotForwardAttributes{})
 	bi.CannotForwardAttributes = cannotAttributes
 }

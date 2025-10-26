@@ -9,7 +9,14 @@ import (
 	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
 )
 
+type componentCallsLinked struct{}
+
 func (l *linker) LinkComponentCalls() {
+	defer l.Ran(l.Pkg, componentCallsLinked{})
+	l.Require(l.Pkg, importsLoaded{})
+	l.Require(l.Pkg, dotImportComponentCollisionCheck{})
+	l.Require(l.Pkg, componentCollisionCheck{})
+
 	logger := l.Logger.WithGroup("link.component_calls")
 	logger.Debug("Linking component calls")
 

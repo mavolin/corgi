@@ -100,7 +100,7 @@ func (z *analyzer) cannotAttributes(
 						return
 					}
 
-					blockCannotForwardAttrs := s.Block.CannotForwardAttributes()
+					blockCannotForwardAttrs := z.block_CannotForwardAttributes(s.Block)
 					switch {
 					case blockCannotForwardAttrs.Failed():
 						reason.SetFailed()
@@ -120,7 +120,7 @@ func (z *analyzer) cannotAttributes(
 					cc := f.ComponentCallByNode(parent)
 					z.AnalyzeComponentCall(ctx, cc)
 
-					acceptsAttributes := cc.AcceptsAttributes()
+					acceptsAttributes := z.componentCall_AcceptsAttributes(cc)
 					switch {
 					case acceptsAttributes.True():
 						reason.SetFalse()
@@ -212,7 +212,7 @@ func (z *analyzer) cannotAttributes(
 				cc := f.ComponentCallByNode(ccAST)
 				z.AnalyzeComponentCall(ctx, cc)
 
-				wc := cc.WritesContent()
+				wc := z.componentCall_WritesContent(cc)
 				if wc.Equal(true) {
 					next.SetReason(ccAST)
 				} else if wc.Failed() {

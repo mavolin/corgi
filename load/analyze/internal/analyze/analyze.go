@@ -10,6 +10,7 @@ import (
 	"log/slog"
 
 	"github.com/mavolin/corgi/v2/file"
+	"github.com/mavolin/corgi/v2/internal/meta"
 	"github.com/mavolin/corgi/v2/load/internal"
 )
 
@@ -38,7 +39,6 @@ func Analyze(b *internal.Base) {
 
 	z.AnalyzeStates()
 	z.AnalyzeElementSpecs()
-
 	z.AnalyzeComponents()
 	z.AnalyzeComponentCalls()
 	z.AnalyzeAttributes()
@@ -60,6 +60,26 @@ func (z *analyzer) SafeImport(f *file.File) *file.Import {
 		Alias:     "__corgi_safe",
 		GoPath:    file.SafeImport,
 		Qualifier: "__corgi_safe",
+		Forward:   true,
+	}
+	imp.EnsureUniqueQualifier(f)
+	f.AddImport(imp)
+	return imp
+}
+
+const htmlImportPath file.GoImportPath = meta.Module + "/std/html"
+
+// HTMLImport returns the import for the std/html package for the given file,
+// or adds it if it does not exist yet.
+func (z *analyzer) HTMLImport(f *file.File) *file.Import {
+	if imp := f.ImportByGoPath(htmlImportPath); imp != nil {
+		return imp
+	}
+
+	imp := &file.Import{
+		Alias:     "__corgi_html",
+		GoPath:    htmlImportPath,
+		Qualifier: "__corgi_html",
 		Forward:   true,
 	}
 	imp.EnsureUniqueQualifier(f)

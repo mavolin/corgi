@@ -8,13 +8,6 @@ import (
 	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
 )
 
-// AnalyzeStates analyzes the state variables of the package.
-//
-// Depends on Checks: None
-//
-// Sets Fields: None
-//
-// Depends on Fields: None
 func (z *analyzer) AnalyzeStates() {
 	logger := z.Logger.WithGroup("state")
 	logger.Debug("Analyzing state variables")
@@ -24,14 +17,11 @@ func (z *analyzer) AnalyzeStates() {
 	}
 }
 
-// AnalyzeState analyzes the given state variable.
-//
-// Depends on Checks: None
-//
-// Sets Fields: None
-//
-// Depends on Fields: None
 func (z *analyzer) AnalyzeState(logger *slog.Logger, s *file.State) {
+	if s.Analyzed {
+		return
+	}
+
 	logger = logger.With(
 		slog.String("file", string(s.File.Name)),
 		slog.String("name", string(s.Name())),
@@ -46,16 +36,11 @@ func (z *analyzer) AnalyzeState(logger *slog.Logger, s *file.State) {
 // Inferred Type
 // ======================================================================================
 
-// AnalyzeState_InferredType infers the type of the given state variable if it is not
-// explicitly typed.
-//
-// Depends on Checks: None
-//
-// Sets Fields:
-//   - State.InferredType
-//
-// Depends on Fields: None
+type state_InferredType struct{}
+
 func (z *analyzer) AnalyzeState_InferredType(logger *slog.Logger, s *file.State) {
+	defer z.Ran(s, state_InferredType{})
+
 	if s.AST.Type != nil {
 		s.InferredType.SetZero()
 		return

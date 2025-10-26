@@ -542,7 +542,8 @@ func createParameter(comp *file.Component, start *ast.Position, name file.Identi
 		*start = ast.Position{Line: 1, Col: 1}
 	}
 	param := &file.ComponentParameter{
-		Name: name,
+		Name:      name,
+		Component: comp,
 		AST: &ast.ComponentParameter{
 			Name: &ast.Identifier{
 				Name:     string(name),
@@ -562,7 +563,8 @@ func createArgument(call *file.ComponentCall, start *ast.Position, name file.Ide
 		*start = ast.Position{Line: 1, Col: 1}
 	}
 	arg := &file.ComponentArgument{
-		Name: name,
+		Name:          name,
+		ComponentCall: call,
 		AST: &ast.ComponentArgument{
 			Name: &ast.Identifier{
 				Name:     string(name),

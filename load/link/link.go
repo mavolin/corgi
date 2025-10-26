@@ -134,6 +134,8 @@ func Link(ctx context.Context, p *file.Package, o Options) diagnostic.List {
 	ctx, g := importGraphFromContext(ctx)
 
 	l.CheckSelfImport()
+	l.CheckReservedAliases()
+	l.CheckLocalOnlyMode()
 	l.CheckDuplicateDotImports()
 	l.LoadImports(ctx, g)
 	l.CheckExplicitBuiltinImport()

@@ -8,9 +8,12 @@ import (
 	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
 )
 
+type duplicateDotImportsCheck struct{}
+
 func (l *linker) CheckDuplicateDotImports() {
 	logger := l.Logger.WithGroup("checks.duplicate_dot_imports")
 	logger.Debug("Checking for duplicate dot imports")
+	defer l.Ran(l.Pkg, duplicateDotImportsCheck{})
 
 	for _, f := range l.Pkg.Files {
 		logger := logger.With(slog.String("file", string(f.Name)))

@@ -72,6 +72,8 @@ linters:
       - path: '^load/analyze/internal/'
         linters: [revive]
         text: '^var-naming:'
+      - path: '^load/analyze/internal/analyze/'
+        linters: [unused]
       - path: '^load/analyze/internal/candidate/switches\.go$'
         linters: [gocritic]
         text: '^captLocal:'

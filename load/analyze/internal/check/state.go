@@ -10,7 +10,7 @@ import (
 
 func (ch *checker) CheckState() {
 	logger := ch.Logger.WithGroup("state")
-	logger.Info("Checking state variables")
+	logger.Debug("Checking state variables")
 
 	ch.CheckState_Duplicates(logger)
 

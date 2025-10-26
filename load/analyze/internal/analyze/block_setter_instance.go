@@ -14,9 +14,10 @@ func (z *analyzer) AnalyzeBlockSetter(ctx context.Context, parents []*context.Co
 // Accepts Attributes
 // ======================================================================================
 
-// BlockSetterInstance_AcceptsAttributes checks if the given block setter
-// instance accepts attributes.
+type blockSetterInstance_AcceptsAttributes struct{}
+
 func (z *analyzer) BlockSetterInstance_AcceptsAttributes(bsi *file.BlockSetterInstance) {
+	defer z.Ran(bsi, blockSetterInstance_AcceptsAttributes{})
 	// todo
 }
 
@@ -24,9 +25,10 @@ func (z *analyzer) BlockSetterInstance_AcceptsAttributes(bsi *file.BlockSetterIn
 // Forwards Received Attributes
 // ======================================================================================
 
-// BlockSetterInstance_ForwardsReceivedAttributes checks if the given block
-// setter instance forwards received attributes.
+type blockSetterInstance_ForwardsReceivedAttributes struct{}
+
 func (z *analyzer) BlockSetterInstance_ForwardsReceivedAttributes(bsi *file.BlockSetterInstance) {
+	defer z.Ran(bsi, blockSetterInstance_ForwardsReceivedAttributes{})
 	// todo
 }
 
@@ -34,9 +36,10 @@ func (z *analyzer) BlockSetterInstance_ForwardsReceivedAttributes(bsi *file.Bloc
 // Forwards Attributes
 // ======================================================================================
 
-// BlockSetterInstance_ForwardsAttributes determines if the given block setter
-// instance forwards attributes.
+type blockSetterInstance_ForwardsAttributes struct{}
+
 func (z *analyzer) BlockSetterInstance_ForwardsAttributes(bsi *file.BlockSetterInstance) {
+	defer z.Ran(bsi, blockSetterInstance_ForwardsAttributes{})
 	// todo
 }
 
@@ -44,9 +47,10 @@ func (z *analyzer) BlockSetterInstance_ForwardsAttributes(bsi *file.BlockSetterI
 // Writes Content
 // ======================================================================================
 
-// BlockSetterInstance_WritesContent checks if the given block setter instance
-// writes content.
+type blockSetterInstance_WritesContent struct{}
+
 func (z *analyzer) BlockSetterInstance_WritesContent(bsi *file.BlockSetterInstance) {
+	defer z.Ran(bsi, blockSetterInstance_WritesContent{})
 	// todo
 }
 
@@ -54,8 +58,9 @@ func (z *analyzer) BlockSetterInstance_WritesContent(bsi *file.BlockSetterInstan
 // Writes Elements
 // ======================================================================================
 
-// BlockSetterInstance_WritesElements checks if the given block setter instance
-// writes elements.
+type blockSetterInstance_WritesElements struct{}
+
 func (z *analyzer) BlockSetterInstance_WritesElements(bsi *file.BlockSetterInstance) {
+	defer z.Ran(bsi, blockSetterInstance_WritesElements{})
 	// todo
 }

@@ -47,10 +47,6 @@ type (
 		// albeit with errors.
 		Analyzed bool
 
-		// Circular indicates this call's component calls itself.
-		// In other words, this component call is part of a recursion.
-		Circular bool
-
 		// ReceivesAttributes indicates that the component's &-placeholder gets
 		// filled.
 		//
@@ -80,8 +76,9 @@ type (
 		//
 		// BUILD SYMBOLS
 
-		AST  *ast.ComponentArgument
-		Name Identifier
+		AST           *ast.ComponentArgument
+		ComponentCall *ComponentCall
+		Name          Identifier
 
 		//
 		// LINKER

@@ -93,7 +93,7 @@ func (g *importGraph) AddImport(
 	}
 
 	if parentNode == childNode {
-		// This should've been caught by the self-import check.
+		// This should've been caught by the self-import checks.
 		panic("importGraph: tried to add self-loop")
 	}
 

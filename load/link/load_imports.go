@@ -26,70 +26,21 @@ type importLoader struct {
 	graph  *importGraph
 }
 
+type importsLoaded struct{}
+
 func (loader *importLoader) load(ctx context.Context) {
+	defer loader.l.Ran(loader.l.Pkg, importsLoaded{})
+	loader.l.Require(loader.l.Pkg, selfImportCheck{})
+	loader.l.Require(loader.l.Pkg, reservedAliasCheck{})
+	loader.l.Require(loader.l.Pkg, localOnlyModeCheck{})
+
 	loader.logger.Debug("Loading imports")
 
-	if loader.l.importer == nil {
-		loader.localOnlyModeCheck()
+	if loader.l.isLocalOnlyMode() {
+		loader.logger.Info("Running in local-only mode, not allowed to use imports")
 		return
 	}
 
-	loader.checkIllegalAliases()
-	loader.loadImports(ctx)
-}
-
-func (loader *importLoader) localOnlyModeCheck() {
-	loader.logger.Info("Running in local-only mode, not allowed to use imports")
-
-	for _, f := range loader.l.Pkg.Files {
-		logger := loader.logger.With(slog.String("file", string(f.Name)))
-
-		if len(f.Imports) == 0 {
-			continue
-		}
-
-		primaries := make([]diagnostic.Annotation, 0, len(f.Imports))
-		for _, imp := range f.Imports {
-			if imp.Explicit() && imp.AST != nil {
-				primaries = append(primaries, anno.Node(f, imp.AST, "illegal import"))
-			}
-		}
-		if len(primaries) > 0 {
-			logger.Error("Local-only mode: File contains imports")
-			loader.l.Report(&diagnostic.Diagnostic{
-				Message:     "local-only mode: file contains imports",
-				Primary:     primaries,
-				Explanation: "In local-only mode, files are not allowed to make any imports.",
-			})
-		}
-	}
-}
-
-func (loader *importLoader) checkIllegalAliases() {
-	loader.logger.Debug("Checking for import aliases using the reserved `__corgi_` prefix")
-
-	for _, f := range loader.l.Pkg.Files {
-		logger := loader.logger.With(slog.String("file", string(f.Name)))
-		for _, imp := range f.Imports {
-			if !imp.Explicit() || imp.Alias == "" || !strings.HasPrefix(string(imp.Alias), "__corgi_") {
-				continue
-			}
-
-			logger.Error("Import alias with reserved prefix",
-				slog.String("alias", string(imp.Alias)),
-				slog.String("import_path", string(imp.CorgiPath)))
-			loader.l.Report(&diagnostic.Diagnostic{
-				Message: "import alias: cannot use `__corgi_` prefix",
-				Primary: []diagnostic.Annotation{
-					anno.Node(f, imp.AST.Alias, "illegal import alias"),
-				},
-				Explanation: "All import aliases starting with `__corgi_` are reserved for internal use.",
-			})
-		}
-	}
-}
-
-func (loader *importLoader) loadImports(ctx context.Context) {
 	loader.logger.Info("Concurrently loading imports")
 
 	for _, f := range loader.l.Pkg.Files {

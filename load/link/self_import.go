@@ -8,9 +8,12 @@ import (
 	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
 )
 
+type selfImportCheck struct{}
+
 func (l *linker) CheckSelfImport() {
 	logger := l.Logger.WithGroup("checks.self_import")
 	logger.Debug("Checking if package imports itself")
+	defer l.Ran(l.Pkg, selfImportCheck{})
 
 	for _, f := range l.Pkg.Files {
 		logger := logger.With(slog.String("file", string(f.Name)))

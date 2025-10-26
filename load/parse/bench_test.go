@@ -6,9 +6,12 @@ import (
 	"testing"
 
 	"github.com/mavolin/corgi/v2/file/diagnostic"
+	"github.com/mavolin/corgi/v2/internal/assert"
 )
 
 func BenchmarkParse(b *testing.B) {
+	assert.DebugEnabled = false
+
 	data, err := os.ReadFile("../../examples/readme/readme.corgi")
 	if err != nil {
 		b.Fatalf("failed to read input file: %v", err)

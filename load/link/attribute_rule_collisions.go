@@ -9,12 +9,16 @@ import (
 	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
 )
 
+type attributeRuleCollisionCheck struct{}
+
 type duplicateAttributeRule struct {
 	rule      *ast.AttributeRule
 	highlight ast.Node
 }
 
 func (l *linker) CheckAttributeRuleCollisions() {
+	defer l.Ran(l.Pkg, attributeRuleCollisionCheck{})
+
 	logger := l.Logger.WithGroup("checks.attribute_rule_collisions")
 	logger.Debug("Checking for duplicate elements within the same attribute spec")
 

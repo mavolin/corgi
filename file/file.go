@@ -142,7 +142,7 @@ func buildSymbols(f *File) {
 					for _, argAST := range n.Header.Arguments.List {
 						argAST, _ := argAST.(*ast.ComponentArgument)
 						if argAST != nil {
-							arg := ComponentArgument{AST: argAST}
+							arg := ComponentArgument{AST: argAST, ComponentCall: ccw}
 							if arg.AST.Name != nil {
 								arg.Name = Identifier(arg.AST.Name.Name)
 							}
@@ -265,12 +265,7 @@ func buildSymbols(f *File) {
 		comp = f.Package.ComponentByNode(astC)
 		comp.Blocks = make([]*Block, 0, 24)
 
-		ccsStart := len(f.ComponentCalls)
 		n.Walk(walk)
-		ccEnd := len(f.ComponentCalls)
-		if ccEnd > ccsStart {
-			comp.ComponentCalls = f.ComponentCalls[ccsStart:ccEnd:ccEnd]
-		}
 
 		comp.Blocks = slices.Clip(comp.Blocks)
 		for _, block := range comp.Blocks {

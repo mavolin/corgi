@@ -14,13 +14,6 @@ import (
 	"github.com/mavolin/corgi/v2/file/walk"
 )
 
-// AnalyzeComponentCalls analyzes the remaining component calls in the package.
-//
-// Depends on Checks: None
-//
-// Sets Fields: None
-//
-// Depends on Fields: None
 func (z *analyzer) AnalyzeComponentCalls() {
 	logger := z.Logger.WithGroup("component_calls")
 	logger.Debug("Analyzing remaining component calls")
@@ -33,13 +26,6 @@ func (z *analyzer) AnalyzeComponentCalls() {
 	}
 }
 
-// AnalyzeComponentCall analyzes the passed component call.
-//
-// Depends on Checks: None
-//
-// Sets Fields: None
-//
-// Depends on Fields: None
 func (z *analyzer) AnalyzeComponentCall(ctx context.Context, cc *file.ComponentCall) {
 	if cc.Analyzed {
 		return
@@ -63,7 +49,7 @@ func (z *analyzer) AnalyzeComponentCall(ctx context.Context, cc *file.ComponentC
 
 	z.AnalyzeComponentCall_Component(ctx, cc)
 	z.AnalyzeComponentCall_ReceivesAttributes_ReceivesAndPlaceholder(ctx, cc)
-	z.AnalyzeComponetnCall_ElementsWithAndPlaceholder(cc)
+	z.AnalyzeComponentCall_ElementsWithAndPlaceholder(cc)
 	z.AnalyzeComponentCall_ElementSpecsWithAndPlaceholder(cc)
 
 	z.AnalyzeComponentCall_ComponentArguments(cc)
@@ -72,11 +58,13 @@ func (z *analyzer) AnalyzeComponentCall(ctx context.Context, cc *file.ComponentC
 }
 
 func (z *analyzer) checkNoInfiniteRecursion(logger *slog.Logger, cc *file.ComponentCall, callerChain []*file.Component) {
-	if len(callerChain) < 2048 {
+	if cc.Component.Circular {
+		return
+	} else if len(callerChain) < 2048 {
 		return
 	}
 
-	cc.Circular = true
+	cc.Component.Circular = true
 
 	var sb strings.Builder
 	sb.Grow(48 * len("github.com/mavolin/corgi/v2/mycomponents/foo/bar.Baz\n"))
@@ -111,18 +99,15 @@ type callerChainKey struct{}
 // Receives Attributes
 // ======================================================================================
 
-// AnalyzeComponentCall_ReceivesAttributes_ReceivesAndPlaceholder finds the
-// first attribute writer and the first &-placeholder writer that fills the
-// &-placeholder of the called component.
-//
-// Depends on Checks: None
-//
-// Sets Fields:
-//   - ComponentCalls.ReceivesAttributes
-//   - ComponentCalls.ReceivesAndPlaceholder
-//
-// Depends on Fields: None
+type (
+	componentCall_ReceivesAndPlaceholder struct{}
+	componentCall_ReceivesAttributes     struct{}
+)
+
 func (z *analyzer) AnalyzeComponentCall_ReceivesAttributes_ReceivesAndPlaceholder(ctx context.Context, cc *file.ComponentCall) {
+	defer z.Ran(cc, componentCall_ReceivesAndPlaceholder{})
+	defer z.Ran(cc, componentCall_ReceivesAttributes{})
+
 	cc.ReceivesAttributes.SetFalse()
 	cc.ReceivesAndPlaceholder.SetFalse()
 
@@ -161,7 +146,7 @@ func (z *analyzer) AnalyzeComponentCall_ReceivesAttributes_ReceivesAndPlaceholde
 						return
 					}
 
-					fa := subCC.ForwardsAttributes()
+					fa := z.componentCall_ForwardsAttributes(subCC)
 					if fa.Equal(true) {
 						cc.ReceivesAttributes.SetReason(subCC.AST)
 					} else if fa.Failed() {
@@ -194,7 +179,7 @@ func (z *analyzer) AnalyzeComponentCall_ReceivesAttributes_ReceivesAndPlaceholde
 						return
 					}
 
-					fap := subCC.ForwardsAndPlaceholder()
+					fap := z.componentCall_ForwardsAndPlaceholder(subCC)
 					if fap.Equal(true) {
 						cc.ReceivesAndPlaceholder.SetReason(subCC.AST)
 					} else if fap.Failed() {
@@ -252,41 +237,39 @@ func (z *analyzer) analyzeComponentCall_ReceivesAttributes_ReceivesAndPlaceholde
 // Elements With &-Placeholder
 // ======================================================================================
 
-// AnalyzeComponetnCall_ElementsWithAndPlaceholder sets the ElementWithAndPlaceholder field of the passed
-// component call.
-//
-// Depends on Checks: None
-//
-// Sets Fields:
-//   - ComponentCalls.ElementWithAndPlaceholder
-//
-// Depends on Fields: None
-func (z *analyzer) AnalyzeComponetnCall_ElementsWithAndPlaceholder(cc *file.ComponentCall) {
+type componentCall_ElementsWithAndPlaceholder struct{}
+
+func (z *analyzer) AnalyzeComponentCall_ElementsWithAndPlaceholder(cc *file.ComponentCall) {
+	defer z.Ran(cc, componentCall_ElementsWithAndPlaceholder{})
+
+	permanentElementsWithAndPlaceholder := z.component_PermanentElementsWithAndPlaceholder(cc.Component)
 	if cc.Component == nil {
 		cc.ElementsWithAndPlaceholder.SetFailed()
 		return
-	} else if cc.Component.PermanentElementsWithAndPlaceholder.Failed() {
+	} else if permanentElementsWithAndPlaceholder.Failed() {
 		cc.ElementsWithAndPlaceholder.SetFailed()
 		return
 	}
 
 	var res []ast.AttributeReceiver
 
-	if cc.Component.PermanentElementsWithAndPlaceholder.Result().Len() > 0 {
-		res = append(res, cc.Component.PermanentElementsWithAndPlaceholder.Result().Get()...)
+	if permanentElementsWithAndPlaceholder.Result().Len() > 0 {
+		res = append(res, permanentElementsWithAndPlaceholder.Result().Get()...)
 	}
 
-	for _, block := range cc.Component.Blocks {
-		for _, instance := range block.Instances {
-			if instance.Default == nil || instance.DefaultOverwritten(cc) {
+	for _, b := range cc.Component.Blocks {
+		for _, bi := range b.Instances {
+			if bi.Default == nil || z.blockInstance_DefaultOverwritten(bi, cc) {
 				continue
-			} else if instance.Default.ElementsWithAndPlaceholder.Failed() {
+			}
+			elementsWithAndPlaceholder := z.blockInstanceDefault_ElementsWithAndPlaceholder(bi)
+			if elementsWithAndPlaceholder.Failed() {
 				cc.ElementsWithAndPlaceholder.SetFailed()
 				return
 			}
 
-			if instance.Default.ElementSpecsWithAndPlaceholder.Result().Len() > 0 {
-				res = append(res, instance.Default.ElementsWithAndPlaceholder.Result().Get()...)
+			if bi.Default.ElementSpecsWithAndPlaceholder.Result().Len() > 0 {
+				res = append(res, elementsWithAndPlaceholder.Result().Get()...)
 			}
 		}
 	}
@@ -298,46 +281,45 @@ func (z *analyzer) AnalyzeComponetnCall_ElementsWithAndPlaceholder(cc *file.Comp
 // Element Specs With &-Placeholder
 // ======================================================================================
 
-// AnalyzeComponentCall_ElementSpecsWithAndPlaceholder sets the
-// ElementSpecsWithAndPlaceholder field of the passed component call.
-//
-// Depends on Checks: None
-//
-// Sets Fields:
-//   - ComponentCalls.ElementSpecsWithAndPlaceholder
-//
-// Depends on Fields: None
+type componentCall_ElementSpecsWithAndPlaceholder struct{}
+
 func (z *analyzer) AnalyzeComponentCall_ElementSpecsWithAndPlaceholder(cc *file.ComponentCall) {
+	z.Ran(cc, componentCall_ElementSpecsWithAndPlaceholder{})
+
 	if cc.Component == nil {
 		cc.ElementSpecsWithAndPlaceholder.SetFailed()
 		return
 	}
 
 	// fast path
-	if cc.ElementsWithAndPlaceholder.Failed() {
+	elementsWithAndPlaceholder := z.componentCall_ElementsWithAndPlaceholder(cc)
+	if elementsWithAndPlaceholder.Failed() {
 		cc.ElementSpecsWithAndPlaceholder.SetFailed()
 		return
-	} else if cc.ElementsWithAndPlaceholder.Result().Len() == 0 {
+	} else if elementsWithAndPlaceholder.Result().Len() == 0 {
 		cc.ElementSpecsWithAndPlaceholder.SetResult(file.NilSliceRef[*file.ElementSpec]())
 		return
 	}
 
 	specSet := make(map[*file.ElementSpec]struct{})
 
-	for _, spec := range cc.Component.PermanentElementSpecsWithAndPlaceholder.Result().Get() {
+	permanentElementSpecsWithAndPlaceholder := z.component_PermanentElementSpecsWithAndPlaceholder(cc.Component)
+	for _, spec := range permanentElementSpecsWithAndPlaceholder.Result().Get() {
 		specSet[spec] = struct{}{}
 	}
 
-	for _, block := range cc.Component.Blocks {
-		for _, instance := range block.Instances {
-			if instance.Default == nil || instance.DefaultOverwritten(cc) {
+	for _, b := range cc.Component.Blocks {
+		for _, bi := range b.Instances {
+			if bi.Default == nil || z.blockInstance_DefaultOverwritten(bi, cc) {
 				continue
-			} else if instance.Default.ElementSpecsWithAndPlaceholder.Failed() {
+			}
+			elementSpecsWithAndPlaceholder := z.blockInstanceDefault_ElementSpecsWithAndPlaceholder(bi)
+			if elementSpecsWithAndPlaceholder.Failed() {
 				cc.ElementSpecsWithAndPlaceholder.SetFailed()
 				return
 			}
 
-			for _, spec := range instance.Default.ElementSpecsWithAndPlaceholder.Result().Get() {
+			for _, spec := range elementSpecsWithAndPlaceholder.Result().Get() {
 				specSet[spec] = struct{}{}
 			}
 		}

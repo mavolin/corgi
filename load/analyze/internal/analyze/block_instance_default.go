@@ -8,24 +8,25 @@ import (
 )
 
 func (z *analyzer) AnalyzeBlockInstanceDefault(ctx context.Context, parents []*walk.Context, bi *file.BlockInstance) {
-	z.AnalyzeBlockInstance_AcceptsAttributes()
-	z.AnalyzeBlockInstance_ForwardsReceivedAttributes()
+	z.AnalyzeBlockInstanceDefault_AcceptsAttributes()
+	z.AnalyzeBlockInstanceDefault_ForwardsReceivedAttributes()
 
-	z.AnalyzeBlockInstance_ElementsWithAndPlaceholder()
-	z.AnalyzeBlockInstance_ElementSpecsWithAndPlaceholder()
+	z.AnalyzeBlockInstanceDefault_ElementsWithAndPlaceholder()
+	z.AnalyzeBlockInstanceDefault_ElementSpecsWithAndPlaceholder()
 
-	z.AnalyzeBlockInstance_ForwardsAttributes()
-	z.AnalyzeBlockInstance_WritesContent()
-	z.AnalyzeBlockInstance_WritesElements()
+	z.AnalyzeBlockInstanceDefault_ForwardsAttributes()
+	z.AnalyzeBlockInstanceDefault_WritesContent()
+	z.AnalyzeBlockInstanceDefault_WritesElements()
 }
 
 // ============================================================================
 // Accepts Attributes
 // ======================================================================================
 
-// AnalyzeBlockInstance_AcceptsAttributes determines whether the given block
-// instance accepts attributes.
-func (z *analyzer) AnalyzeBlockInstance_AcceptsAttributes() {
+type blockInstanceDefault_AcceptsAttributes struct{}
+
+func (z *analyzer) AnalyzeBlockInstanceDefault_AcceptsAttributes() {
+	defer z.Ran(nil, blockInstanceDefault_AcceptsAttributes{})
 	// todo
 }
 
@@ -33,9 +34,10 @@ func (z *analyzer) AnalyzeBlockInstance_AcceptsAttributes() {
 // Forwards Received Attributes
 // ======================================================================================
 
-// AnalyzeBlockInstance_ForwardsReceivedAttributes determines whether the given
-// block instance forwards received attributes.
-func (z *analyzer) AnalyzeBlockInstance_ForwardsReceivedAttributes() {
+type blockInstanceDefault_ForwardsReceivedAttributes struct{}
+
+func (z *analyzer) AnalyzeBlockInstanceDefault_ForwardsReceivedAttributes() {
+	defer z.Ran(nil, blockInstanceDefault_ForwardsReceivedAttributes{})
 	// todo
 }
 
@@ -43,9 +45,10 @@ func (z *analyzer) AnalyzeBlockInstance_ForwardsReceivedAttributes() {
 // Elements With &-Placeholder
 // ======================================================================================
 
-// AnalyzeBlockInstance_ElementsWithAndPlaceholder collects all elements in the
-// given block instance that have a &-placeholder.
-func (z *analyzer) AnalyzeBlockInstance_ElementsWithAndPlaceholder() {
+type blockInstanceDefault_ElementsWithAndPlaceholder struct{}
+
+func (z *analyzer) AnalyzeBlockInstanceDefault_ElementsWithAndPlaceholder() {
+	defer z.Ran(nil, blockInstanceDefault_ElementsWithAndPlaceholder{})
 	// todo
 }
 
@@ -53,10 +56,10 @@ func (z *analyzer) AnalyzeBlockInstance_ElementsWithAndPlaceholder() {
 // Element Specs With &-Placeholder
 // ======================================================================================
 
-// AnalyzeBlockInstance_ElementSpecsWithAndPlaceholder collects all element
-// specs in the given block instance that have a &-placeholder, either directly
-// or indirectly through a component call.
-func (z *analyzer) AnalyzeBlockInstance_ElementSpecsWithAndPlaceholder() {
+type blockInstanceDefault_ElementSpecsWithAndPlaceholder struct{}
+
+func (z *analyzer) AnalyzeBlockInstanceDefault_ElementSpecsWithAndPlaceholder() {
+	defer z.Ran(nil, blockInstanceDefault_ElementSpecsWithAndPlaceholder{})
 	// todo
 }
 
@@ -64,9 +67,10 @@ func (z *analyzer) AnalyzeBlockInstance_ElementSpecsWithAndPlaceholder() {
 // Forwards Attributes
 // ======================================================================================
 
-// AnalyzeBlockInstance_ForwardsAttributes determines whether the given block
-// instance forwards attributes.
-func (z *analyzer) AnalyzeBlockInstance_ForwardsAttributes() {
+type blockInstanceDefault_ForwardsAttributes struct{}
+
+func (z *analyzer) AnalyzeBlockInstanceDefault_ForwardsAttributes() {
+	defer z.Ran(nil, blockInstanceDefault_ForwardsAttributes{})
 	// todo
 }
 
@@ -74,9 +78,10 @@ func (z *analyzer) AnalyzeBlockInstance_ForwardsAttributes() {
 // Writes Content
 // ======================================================================================
 
-// AnalyzeBlockInstance_WritesContent determines whether the given block
-// instance writes content.
-func (z *analyzer) AnalyzeBlockInstance_WritesContent() {
+type blockInstanceDefault_WritesContent struct{}
+
+func (z *analyzer) AnalyzeBlockInstanceDefault_WritesContent() {
+	defer z.Ran(nil, blockInstanceDefault_WritesContent{})
 	// todo
 }
 
@@ -84,8 +89,9 @@ func (z *analyzer) AnalyzeBlockInstance_WritesContent() {
 // Writes Elements
 // ======================================================================================
 
-// AnalyzeBlockInstance_WritesElements determines whether the given block
-// instance writes elements.
-func (z *analyzer) AnalyzeBlockInstance_WritesElements() {
+type blockInstanceDefault_WritesElements struct{}
+
+func (z *analyzer) AnalyzeBlockInstanceDefault_WritesElements() {
+	defer z.Ran(nil, blockInstanceDefault_WritesElements{})
 	// todo
 }

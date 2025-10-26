@@ -7,8 +7,13 @@ import (
 	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
 )
 
+type explicitBuiltinImportCheck struct{}
+
 func (l *linker) CheckExplicitBuiltinImport() {
-	logger := l.Logger.WithGroup("check.explicit_builtin_import")
+	defer l.Ran(l.Pkg, explicitBuiltinImportCheck{})
+	l.Require(l.Pkg, importsLoaded{})
+
+	logger := l.Logger.WithGroup("checks.explicit_builtin_import")
 	logger.Info("Checking for an illegal explicit import of the builtin package")
 
 	for _, f := range l.Pkg.Files {

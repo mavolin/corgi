@@ -11,13 +11,6 @@ import (
 	"github.com/mavolin/corgi/v2/internal/meta"
 )
 
-// AnalyzeComponent_Parameters analyzes the parameters of the given component.
-//
-// Depends on Checks: None
-//
-// Sets Fields: None
-//
-// Depends on Fields: None
 func (z *analyzer) AnalyzeComponent_Parameters(logger *slog.Logger, c *file.Component) {
 	logger = logger.WithGroup("parameters")
 
@@ -26,13 +19,6 @@ func (z *analyzer) AnalyzeComponent_Parameters(logger *slog.Logger, c *file.Comp
 	}
 }
 
-// AnalyzeComponentParameter analyzes the given component parameter.
-//
-// Depends on Checks: None
-//
-// Sets Fields: None
-//
-// Depends on Fields: None
 func (z *analyzer) AnalyzeComponentParameter(logger *slog.Logger, c *file.Component, param *file.ComponentParameter) {
 	logger = logger.With(
 		slog.String("param", string(param.Name)),
@@ -46,20 +32,16 @@ func (z *analyzer) AnalyzeComponentParameter(logger *slog.Logger, c *file.Compon
 // Infer Type From Attribute Type
 // ======================================================================================
 
-// AnalyzeComponentParameter_AttributeType_AttributeName analyzes the given
-// component parameter to infer its type, if it uses an attribute type as its
-// type.
-//
-// Depends on Checks: None
-//
-// Sets Fields:
-//   - Components.Parameters.AttributeType
-//   - Components.Parameters.AttributeName
-//
-// Depends on Fields: None
+type (
+	componentParameter_AttributeType struct{}
+	componentParameter_AttributeName struct{}
+)
+
 func (z *analyzer) AnalyzeComponentParameter_AttributeType_AttributeName(
 	logger *slog.Logger, c *file.Component, param *file.ComponentParameter,
 ) {
+	defer z.Ran(c, componentParameter_AttributeType{})
+	defer z.Ran(c, componentParameter_AttributeName{})
 	logger = logger.WithGroup("attr_type_param")
 
 	param.AttributeType.SetZero()
@@ -116,113 +98,117 @@ func (z *analyzer) AnalyzeComponentParameter_AttributeType_AttributeName(
 // Infer Type From Default
 // ======================================================================================
 
-// AnalyzeComponentParameter_InferredType analyzes the given component parameter
-// to infer its type.
-//
-// Depends on Checks: None
-//
-// Sets Fields: None
-//
-// Depends on Fields: None
+type componentParameter_InferredType struct{}
+
 func (z *analyzer) AnalyzeComponentParameter_InferredType(logger *slog.Logger, c *file.Component, param *file.ComponentParameter) {
-	if param.AttributeType.Failed() || param.AttributeType.NotZero() {
+	defer z.Ran(c, componentParameter_InferredType{})
+
+	param.InferredType.SetZero()
+
+	attributeType := z.componentParameter_AttributeType(param)
+	if attributeType.Failed() || attributeType.NotZero() {
 		z.AnalyzeComponentParameter_InferredType_fromAttributeType(logger, c, param)
 	} else {
 		z.AnalyzeComponentParameter_InferredType_fromDefault(logger, c, param)
 	}
 }
 
-// AnalyzeComponentParameter_InferredType_fromAttributeType infers the type of
-// the given component parameter from its attribute type, if it has one.
-//
-// Depends on Checks: None
-//
-// Sets Fields:
-//   - Components.Parameters.InferredType
-//
-// Depends on Fields:
-//   - Components.Parameters.AttributeType
 func (z *analyzer) AnalyzeComponentParameter_InferredType_fromAttributeType(
 	logger *slog.Logger, c *file.Component, param *file.ComponentParameter,
 ) {
-	if param.AttributeType.Failed() {
+	attributeType := z.componentParameter_AttributeType(param)
+	if attributeType.Failed() {
 		param.InferredType.SetFailed()
 		return
 	}
 
-	inferredType := file.Type(z.SafeImport(c.File).Qualifier + ".")
-	switch param.AttributeType.Result() {
-	case attrtype.Unsafe:
-		inferredType += "Unsafe"
-	case attrtype.UnsafeBool:
-		inferredType += "UnsafeBool"
-	case attrtype.Bool:
-		inferredType += "Bool"
-	case attrtype.String:
-		// already handled above
-	case attrtype.Text:
-		inferredType = "string"
-	case attrtype.CSS:
-		inferredType += "CSS"
-	case attrtype.JS:
-		inferredType += "JS"
-	case attrtype.URL:
-		inferredType += "URL"
-	// case attrtype.URLList:
-	// 	inferredType += "URLList"
-	case attrtype.ResourceURL:
-		inferredType += "ResourceURL"
-	case attrtype.Srcset:
-		inferredType += "Srcset"
-	case nil:
-		fallthrough
-	default:
-		logger.Error("Use of unknown attribute type as component parameter type")
-		explanation := "This error most likely occurred, because the parser was extended to support a new attribute type, " +
-			"but the analyzer was not updated to support it.\n" +
-			"\n" +
-			"This is a bug, please open an issue."
-		if !meta.CLI {
-			explanation = "This error can occur in one of two ways:\n" +
-				"Most likely, at some place in the program, " +
-				"the value for this attribute type was set to an illegal value.\n" +
-				"It could also be that the parser was extended to support a new attribute type, " +
-				"but the analyzer was not updated to support it.\n" +
-				"\n" +
-				"In case of the latter: This is a bug, please open an issue."
-		}
-
-		var name *ast.AttributeTypeName
-		if t, _ := param.AST.Type.Parsed.(*ast.AttributeType); t != nil {
-			name = t.Name
-		}
-
-		var primary diagnostic.Annotation
-		if name != nil {
-			primary = anno.Node(c.File, name, "unknown attribute type")
-		} else {
-			primary = anno.Node(c.File, param.AST.Type, "unknown attribute type")
-		}
-		z.Report(&diagnostic.Diagnostic{
-			Type:        diagnostic.InternalError,
-			Message:     "component parameter: use of unknown attribute type",
-			Primary:     []diagnostic.Annotation{primary},
-			Explanation: explanation,
-		})
+	inferredType := z.attrtypeToSafeType(c.File, attributeType.Result())
+	if inferredType != "" {
+		param.InferredType.SetResult(inferredType)
 		return
 	}
-	param.InferredType.SetResult(inferredType)
+
+	logger.Error("Use of unknown attribute type as component parameter type")
+	explanation := "This error most likely occurred, because the parser was extended to support a new attribute type, " +
+		"but the analyzer was not updated to support it.\n" +
+		"\n" +
+		"This is a bug, please open an issue."
+	if !meta.CLI {
+		explanation = "This error can occur in one of two ways:\n" +
+			"Most likely, at some place in the program, " +
+			"the value for this attribute type was set to an illegal value.\n" +
+			"It could also be that the parser was extended to support a new attribute type, " +
+			"but the analyzer was not updated to support it.\n" +
+			"\n" +
+			"In case of the latter: This is a bug, please open an issue."
+	}
+
+	var name *ast.AttributeTypeName
+	if t, _ := param.AST.Type.Parsed.(*ast.AttributeType); t != nil {
+		name = t.Name
+	}
+
+	var primary diagnostic.Annotation
+	if name != nil {
+		primary = anno.Node(c.File, name, "unknown attribute type")
+	} else {
+		primary = anno.Node(c.File, param.AST.Type, "unknown attribute type")
+	}
+	logger.Error("component parameter: use of unknown attribute type")
+	z.Report(&diagnostic.Diagnostic{
+		Type:        diagnostic.InternalError,
+		Message:     "component parameter: use of unknown attribute type",
+		Primary:     []diagnostic.Annotation{primary},
+		Explanation: explanation,
+	})
 }
 
-// AnalyzeComponentParameter_InferredType_fromDefault infers the type of the
-// given component parameter from its default value, if it has one.
-//
-// Depends on Checks: None
-//
-// Sets Fields:
-//   - Components.Parameters.InferredType
-//
-// Depends on Fields: None
+func (z *analyzer) attrtypeToSafeType(f *file.File, t attrtype.Type) file.Type {
+	switch t {
+	case attrtype.Bool:
+		return "bool"
+	case attrtype.Int:
+		return "int"
+	case attrtype.Float:
+		return "float64"
+	case attrtype.String:
+		return "string"
+	case attrtype.Identifier:
+		return z.SafeImport(f).Qualifier.QualifiedType("Identifier")
+	case attrtype.Datetime:
+		return z.HTMLImport(f).Qualifier.QualifiedType("Datetime")
+	case attrtype.URL:
+		return z.SafeImport(f).Qualifier.QualifiedType("URL")
+	case attrtype.ResourceURL:
+		return z.SafeImport(f).Qualifier.QualifiedType("ResourceURL")
+	case attrtype.Srcset:
+		return z.SafeImport(f).Qualifier.QualifiedType("Srcset")
+	case attrtype.Text:
+		return "string"
+	case attrtype.CSS:
+		return z.SafeImport(f).Qualifier.QualifiedType("CSSDeclarations")
+	case attrtype.JS:
+		return z.SafeImport(f).Qualifier.QualifiedType("Script")
+	}
+
+	switch t := t.(type) {
+	case attrtype.SpaceList:
+		et := z.attrtypeToSafeType(f, t.Element)
+		if et == "" {
+			return ""
+		}
+		return "[]" + et
+	case attrtype.CommaList:
+		et := z.attrtypeToSafeType(f, t.Element)
+		if et == "" {
+			return ""
+		}
+		return "[]" + et
+	}
+
+	return ""
+}
+
 func (z *analyzer) AnalyzeComponentParameter_InferredType_fromDefault(
 	logger *slog.Logger, c *file.Component, param *file.ComponentParameter,
 ) {
