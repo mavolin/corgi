@@ -24,7 +24,7 @@ type ModuleReader struct {
 	stdLibPath string
 
 	modFile      *modfile.File
-	modFileAbs   filesystemPath
+	modAbsPath   string
 	modDownloads *cache.Value[[]gocmd.DownloadModule]
 }
 
@@ -73,14 +73,16 @@ func NewModuleReader(moduleDir string, o ModuleReaderOptions) (*ModuleReader, er
 	}
 	r.stdLibPath = o.StdLibPath
 
-	r.modFile, r.modFileAbs, err = gomod.Find(moduleDir)
+	var modFileAbs string
+	r.modFile, modFileAbs, err = gomod.Find(moduleDir)
 	if err != nil {
 		o.Logger.Error("Failed to locate go.mod", slog.String("err", err.Error()))
 		return nil, fmt.Errorf("locating go.mod: %w", err)
 	}
 	o.Logger.Info("Found go.mod",
 		slog.String("module", r.modFile.Module.Mod.Path),
-		slog.String("path", r.modFileAbs))
+		slog.String("path", modFileAbs))
+	r.modAbsPath = filepath.Dir(modFileAbs)
 
 	if o.GoExecPath != "" {
 		// r.goCmd = gocmd.New(o.GoExecPath)
@@ -100,11 +102,12 @@ func (r *ModuleReader) LocalImportPath(dir filesystemPath) (file.CorgiImportPath
 		return "", fmt.Errorf("getting absolute path of %q: %w", dir, err)
 	}
 
-	if !strings.HasPrefix(abs, r.modFileAbs) {
-		return "", fmt.Errorf("%q is not part of the module (located in %q)", dir, r.modFileAbs)
+	if !strings.HasPrefix(abs, r.modAbsPath) {
+		return "", fmt.Errorf("%q (located in %q) is not part of module %q (located in %q)",
+			dir, abs, r.modFile.Module.Mod.String(), r.modAbsPath)
 	}
 
-	rel, err := filepath.Rel(r.modFileAbs, abs)
+	rel, err := filepath.Rel(r.modAbsPath, abs)
 	if err != nil {
 		return "", fmt.Errorf("computing path in module: %w", err)
 	}
