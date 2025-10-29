@@ -16,6 +16,13 @@ func Always(cond bool, msg string) {
 	}
 }
 
+// NoError panics with the given message if the given error is not nil.
+func NoError(err error, msg string) {
+	if err != nil {
+		panic("assertion failed: " + msg + ": " + err.Error())
+	}
+}
+
 // Debug panics with the given message if debug mode is enabled and the given
 // condition function returns false.
 // The function is only evaluated if debug mode is enabled, preventing

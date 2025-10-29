@@ -305,8 +305,10 @@ func (s *Symbols) AddBuiltinImport(alias Qualifier, builtin *Package) {
 // Always use this method if adding implicit imports.
 //
 // AddImport panics if any of the following conditions are violated:
+//   - The Go or corgi import paths must be syntactically valid.
 //   - If the import is implicit, it must have a Go import path.
-//   - If the import is explicit, it must have a corgi import path.
+//   - If the import is explicit, it must have a corgi import path and no Go
+//     import path.
 //   - If the import is a builtin import, the file must not already have a
 //     builtin import, i.e. BuiltinImport() == nil.
 //   - If the import is a builtin import, it must have a package.
@@ -319,21 +321,34 @@ func (s *Symbols) AddBuiltinImport(alias Qualifier, builtin *Package) {
 func (s *Symbols) AddImport(imp *Import) {
 	switch {
 	case imp.Implicit() && imp.GoPath == "":
-		panic("cannot add implicit import with no Go import path")
+		panic("implicit import with no Go import path")
 	case imp.Explicit() && imp.CorgiPath == "":
-		panic("cannot add explicit import with no corgi import path")
+		panic("explicit import with no corgi import path")
+	case imp.Explicit() && imp.GoPath != "":
+		panic("explicit import with Go import path")
 	case imp.Builtin && s.BuiltinImport() != nil:
 		panic(fmt.Sprintf("symbols already contain builtin import for %q", s.BuiltinImport().GoPath))
 	case imp.Builtin && imp.Package == nil:
-		panic("cannot add builtin import with no package")
+		panic("builtin import with no package")
 	case imp.Implicit() && imp.Alias == ".":
-		panic("cannot add implicit dot import")
+		panic("implicit dot import")
 	case !imp.Builtin && imp.Alias != "" && imp.Alias != imp.Qualifier:
 		panic(fmt.Sprintf("import alias %s does not match qualifier %s", imp.Alias, imp.Qualifier))
 	case s.ImportByQualifier(imp.Qualifier) != nil:
 		panic(fmt.Sprintf("symbols already contain import with qualifier %s: you need to chose a (different) alias", imp.Qualifier))
 	case imp.Implicit() && !imp.Builtin && !imp.Forward:
-		panic("cannot add implicit import that is not forwarded")
+		panic("implicit import that is not forwarded")
+	}
+
+	if imp.CorgiPath != "" {
+		if err := imp.CorgiPath.CheckValid(); err != nil {
+			panic(fmt.Sprintf("invalid corgi import path %q: %v", imp.CorgiPath, err))
+		}
+	}
+	if imp.GoPath != "" {
+		if err := imp.GoPath.CheckValid(); err != nil {
+			panic(fmt.Sprintf("invalid Go import path %q: %v", imp.GoPath, err))
+		}
 	}
 
 	s.Imports = append(s.Imports, imp)

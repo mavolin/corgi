@@ -3,7 +3,9 @@ package file
 import (
 	"strings"
 
+	"github.com/mavolin/corgi/v2/internal/assert"
 	"github.com/mavolin/corgi/v2/internal/meta"
+	"golang.org/x/mod/module"
 )
 
 const (
@@ -11,6 +13,12 @@ const (
 	SafeImport    GoImportPath = EscapeImport + "/safe"
 	RuntimeImport GoImportPath = meta.Module + "/runtime"
 )
+
+func init() { //nolint:gochecknoinits
+	assert.NoError(SafeImport.CheckValid(), "SafeImport invalid")
+	assert.NoError(RuntimeImport.CheckValid(), "RuntimeImport invalid")
+	assert.NoError(EscapeImport.CheckValid(), "EscapeImport invalid")
+}
 
 type (
 	// Qualifier is the qualifier for an import.
@@ -102,4 +110,14 @@ func (m ModulePath) ImportPathFor(p PackagePath) GoImportPath {
 
 func (pp PackagePath) FilePath(n Name) Path {
 	return Path(string(pp) + "/" + string(n))
+}
+
+// CheckValid reports whether the import path is syntactically valid.
+func (p CorgiImportPath) CheckValid() error {
+	return module.CheckImportPath(string(p))
+}
+
+// CheckValid reports whether the import path is syntactically valid.
+func (p GoImportPath) CheckValid() error {
+	return module.CheckImportPath(string(p))
 }
