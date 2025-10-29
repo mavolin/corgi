@@ -296,7 +296,7 @@ func (l *loader) parse(logger *slog.Logger, p *file.Package, files []File) diagn
 		}()
 	}
 
-	errs := make(diagnostic.List, 128)
+	errs := make(diagnostic.List, 0, 128)
 	for range len(files) {
 		fileErrs := <-errsChan
 		if len(fileErrs) > 0 {
