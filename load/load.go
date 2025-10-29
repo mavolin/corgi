@@ -42,18 +42,18 @@ type (
 		// The most common case of that is the corgi stdlib, which is
 		// imported as "corgi/*", but is actually provided by the
 		// "github.com/mavolin/corgi/v2" Go module.
-		Module file.Module
-		// PathInModule is the path to the package in the Go module,
+		Module file.ModulePath
+		// PackagePath is the path to the package in the Go module,
 		// relative to the module root.
 		//
 		// It is always specified as a forward slash separated path.
 		//
 		// Like Module, this might differ from the import path, if the
 		// import path is symbolic.
-		// In that case, PathInModule should be the actual path to the
+		// In that case, PackagePath should be the actual path to the
 		// directory providing the package, such as "std/fmt" instead of
 		// "corgi/fmt".
-		PathInModule file.PackagePath
+		PackagePath file.PackagePath
 
 		Files []File
 	}
@@ -179,7 +179,7 @@ type loader struct {
 // Before returning, Load calls [diagnostic.List.Tidy] on the diagnostic.List.
 //
 // To see an example of how to use Load, see the [Directory] function.
-func Load(ctx context.Context, impPath file.CorgiImportPath, r Reader, o Options) (*file.Package, diagnostic.List, error) {
+func Load(ctx context.Context, r Reader, impPath file.CorgiImportPath, o Options) (*file.Package, diagnostic.List, error) {
 	o.applyDefaults()
 
 	l := &loader{
@@ -195,7 +195,9 @@ func Load(ctx context.Context, impPath file.CorgiImportPath, r Reader, o Options
 		logger.Info("Loaded entire tree", slog.Duration("took", time.Since(start)))
 	}(time.Now())
 
-	return l.loadCachedImport(ctx, logger, impPath)
+	p, d, err := l.loadCachedImport(ctx, logger, impPath)
+	d.Tidy()
+	return p, d, err
 }
 
 func (l *loader) loadCachedImport(ctx context.Context, logger *slog.Logger, impPath file.CorgiImportPath) (*file.Package, diagnostic.List, error) {
@@ -230,7 +232,7 @@ func (l *loader) loadUncachedImport(ctx context.Context, logger *slog.Logger, im
 
 	p := &file.Package{
 		Module:          data.Module,
-		PathInModule:    data.PathInModule,
+		PathInModule:    data.PackagePath,
 		CorgiImportPath: imp,
 		Files:           make([]*file.File, len(data.Files)),
 	}

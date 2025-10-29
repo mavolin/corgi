@@ -30,5 +30,5 @@ func Directory(ctx context.Context, dir filesystemPath, o Options) (*file.Packag
 		return nil, nil, err
 	}
 
-	return Load(ctx, imp, r, o)
+	return Load(ctx, r, imp, o)
 }
