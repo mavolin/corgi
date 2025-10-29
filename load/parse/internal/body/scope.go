@@ -97,8 +97,8 @@ func BadNode() parser.Func[*ast.BadNode] {
 				}
 			} else if parser.Matches(p, comment.AndEOS()) {
 				break
-			} else if parser.TryAnyOptionalRune(p, nil, ']', '(', ')') != 0 { //nolint:revive
-				// condition is the action
+			} else {
+				parser.TryAnyOptionalRune(p, nil, ']', '(', ')')
 			}
 		}
 

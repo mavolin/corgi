@@ -54,9 +54,10 @@ func (ch *checker) CheckNamedAttribute_ClassAlwaysString(
 		return
 	}
 	typ := attr.Type.Result()
-	if typ == attrtype.String {
+	switch typ {
+	case attrtype.String:
 		return
-	} else if typ == nil {
+	case nil:
 		ok := switches.ResolvedValueR(attr.Value,
 			func(*file.BoolExpression) bool { return false },
 			func(file.ConstantBool) bool { return false },

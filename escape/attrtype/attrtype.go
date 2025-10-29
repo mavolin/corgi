@@ -18,10 +18,16 @@ var All = [...]Type{
 	Text,
 	CSS, JS,
 	Unsafe, UnsafeBool,
-	SpaceList{Int}, SpaceList{Float}, SpaceList{String},
-	SpaceList{URL}, SpaceList{ResourceURL},
-	CommaList{Int}, CommaList{Float}, CommaList{String},
-	CommaList{URL}, CommaList{ResourceURL},
+	SpaceList{Int},
+	SpaceList{Float},
+	SpaceList{String},
+	SpaceList{URL},
+	SpaceList{ResourceURL},
+	CommaList{Int},
+	CommaList{Float},
+	CommaList{String},
+	CommaList{URL},
+	CommaList{ResourceURL},
 }
 
 var (

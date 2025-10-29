@@ -101,7 +101,7 @@ func TestLocalDateTime(t *testing.T) {
 func TestGlobalDateTime(t *testing.T) {
 	t.Parallel()
 
-	date := time.Date(2025, 10, 01, 0, 0, 0, 0, time.UTC)
+	date := time.Date(2025, 10, 1, 0, 0, 0, 0, time.UTC)
 	wantDate := "2025-10-01"
 
 	times := []struct {

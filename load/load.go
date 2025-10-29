@@ -146,9 +146,10 @@ func (o *Options) applyDefaults() {
 	if o.Cache == nil {
 		o.Cache = nopCache{}
 	}
-	if o.BuiltinPath == "" {
+	switch o.BuiltinPath {
+	case "":
 		o.BuiltinPath = "corgi/builtin"
-	} else if o.BuiltinPath == NoBuiltin {
+	case NoBuiltin:
 		o.BuiltinPath = ""
 	}
 }
@@ -297,7 +298,7 @@ func (l *loader) parse(logger *slog.Logger, p *file.Package, files []File) diagn
 	}
 
 	errs := make(diagnostic.List, 0, 128)
-	for range len(files) {
+	for range files {
 		fileErrs := <-errsChan
 		if len(fileErrs) > 0 {
 			errs = append(errs, fileErrs...)

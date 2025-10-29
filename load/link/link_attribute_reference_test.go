@@ -21,7 +21,7 @@ func TestLinker_LinkAttributeReferences(t *testing.T) {
 	t.Run("failure", testLinker_LinkAttributeReferences_failure)
 }
 
-func testLinker_LinkAttributeReferences_success(t *testing.T) { //nolint:revive
+func testLinker_LinkAttributeReferences_success(t *testing.T) {
 	t.Parallel()
 
 	for _, regexp := range []bool{false, true} {
@@ -188,7 +188,7 @@ func testLinker_LinkAttributeReferences_success(t *testing.T) { //nolint:revive
 	}
 }
 
-func testLinker_LinkAttributeReferences_failure(t *testing.T) { //nolint:revive
+func testLinker_LinkAttributeReferences_failure(t *testing.T) {
 	t.Parallel()
 
 	const builtinPath = "builtin"

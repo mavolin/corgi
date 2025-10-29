@@ -25,5 +25,4 @@ func TestLinker_CheckLocalOnlyMode(t *testing.T) {
 	if should.Equal(t, len(d), 1) {
 		should.Equal(t, d[0].Message, "local-only mode: file contains imports")
 	}
-
 }

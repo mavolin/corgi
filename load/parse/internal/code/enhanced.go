@@ -194,13 +194,14 @@ func inEnhancedParen(p *enhancedParser) {
 }
 
 func unenhancedRune(p *enhancedParser) {
-	if parser.TryOptional(p.Parser, golang.RuneLit(), nil) {
+	switch {
+	case parser.TryOptional(p.Parser, golang.RuneLit(), nil):
 		p.skipWS(comment.OrHorizontalWhitespace())
-	} else if parser.TryAnyOptionalToken(p.Parser, nil, "==", "!=", ">=", ">", "<=", "<") != "" {
+	case parser.TryAnyOptionalToken(p.Parser, nil, "==", "!=", ">=", ">", "<=", "<") != "":
 		p.skipWS(comment.OrAnyWhitespace())
-	} else if parser.TryAnyOptionalRune(p.Parser, nil, '.', ':', '=', '+', '-', '*', '/', '%', '&', '|', '^') > 0 {
+	case parser.TryAnyOptionalRune(p.Parser, nil, '.', ':', '=', '+', '-', '*', '/', '%', '&', '|', '^') > 0:
 		p.skipWS(comment.OrAnyWhitespace())
-	} else {
+	default:
 		parser.NextRune(p.Parser)
 		p.skipWS(comment.OrHorizontalWhitespace())
 	}
