@@ -48,30 +48,6 @@ func testLinker_LinkComponentCalls_success(t *testing.T) {
 		}
 	})
 
-	t.Run("builtin", func(t *testing.T) {
-		t.Parallel()
-
-		var start ast.Position
-		builtinPkg := createPackage("builtin")
-		builtinF := createFile(builtinPkg, "builtin.corgi")
-		comp := createComponent(builtinF, &start, "test")
-
-		p := createPackage("test")
-		f := createFile(p, "test.corgi")
-		call := createComponentCall(f, &start, "", comp.Name)
-
-		d := Link(context.Background(), p, Options{
-			Importer:    ImporterFor(builtinPkg),
-			BuiltinPath: builtinPkg.CorgiImportPath,
-		})
-
-		t.Log(d.Pretty(diagnostic.PrettyOptions{}))
-		should.Equal(t, len(d), 0)
-		if !should.True(t, comp == call.Component) {
-			t.Log(cmp.Diff(comp, call.Component))
-		}
-	})
-
 	importTests := []struct {
 		name                      string
 		packageNameDiffersFromDir bool
@@ -147,19 +123,6 @@ func testLinker_LinkComponentCalls_failure(t *testing.T) {
 				createComponentCall(f, &start, "", "Test")
 
 				return p, nil, nil
-			},
-		}, {
-			name:    "builtin not loaded",
-			message: "failed to load builtin package",
-			setup: func() (p *file.Package, packages []*file.Package, packageErrors map[file.CorgiImportPath]error) {
-				var start ast.Position
-				p = createPackage("test")
-				f := createFile(p, "test.corgi")
-				createComponentCall(f, &start, "", "test")
-
-				return p, nil, map[file.CorgiImportPath]error{
-					builtinPath: errors.New("stub error"),
-				}
 			},
 		}, {
 			name:    "import not loaded",

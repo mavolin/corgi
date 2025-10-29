@@ -6,7 +6,9 @@ import (
 	"slices"
 
 	"github.com/mavolin/corgi/v2/file"
+	"github.com/mavolin/corgi/v2/file/ast"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
+	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
 	"github.com/mavolin/corgi/v2/internal/assert"
 )
 
@@ -49,15 +51,15 @@ func (b *Base) Diagnostics() diagnostic.List {
 //
 // Try to use the most broad type possible for target, best case the package
 // itself.
-func (b *Base) Ran(for_ any, dep any) {
+func (b *Base) Ran(target any, dep any) {
 	if assert.DebugEnabled {
-		ranDeps := b.ranDependencies[for_]
+		ranDeps := b.ranDependencies[target]
 		if ranDeps == nil {
 			ranDeps = make(map[any]bool)
-			b.ranDependencies[for_] = ranDeps
+			b.ranDependencies[target] = ranDeps
 		}
 		if ranDeps[dep] {
-			panic(fmt.Sprintf("%T ran multiple times for %#v", dep, for_))
+			panic(fmt.Sprintf("%T ran multiple times for %#v", dep, target))
 		}
 		ranDeps[dep] = true
 	}
@@ -65,11 +67,34 @@ func (b *Base) Ran(for_ any, dep any) {
 
 // Require requires that the given dependency has been run for the given
 // target.
-func (b *Base) Require(for_ any, dep any) {
+func (b *Base) Require(target any, dep any) {
 	if assert.DebugEnabled {
-		ranDeps := b.ranDependencies[for_]
+		ranDeps := b.ranDependencies[target]
 		if ranDeps == nil || !ranDeps[dep] {
-			panic(fmt.Sprintf("%T didn't run for %#v", dep, for_))
+			panic(fmt.Sprintf("%T didn't run for %#v", dep, target))
 		}
 	}
+}
+
+func (b *Base) AssertNoError(err error, msg string, f *file.File, n ast.Node, annotation string) bool {
+	if err == nil || !assert.DebugEnabled {
+		return true
+	}
+
+	var primaries []diagnostic.Annotation
+	if f != nil {
+		if n != nil {
+			primaries = []diagnostic.Annotation{anno.Node(f, n, annotation)}
+		} else {
+			primaries = []diagnostic.Annotation{anno.Position(f, ast.Position{Line: 1, Col: 1}, annotation)}
+		}
+	}
+
+	b.Report(&diagnostic.Diagnostic{
+		Type:    diagnostic.InternalError,
+		Message: msg,
+		Primary: primaries,
+		Cause:   err,
+	})
+	return false
 }

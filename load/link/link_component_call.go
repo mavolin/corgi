@@ -58,22 +58,7 @@ func (l *linker) linkUnqualifiedComponentCall(logger *slog.Logger, f *file.File,
 		return
 	}
 
-	// if this is unexported: check if this is a builtin component
-	if !cc.Name.Exported() {
-		builtinImp := f.BuiltinImport()
-		if builtinImp != nil && builtinImp.Package != nil && builtinImp.Package.PackageSymbols != nil {
-			if c := builtinImp.Package.ComponentByName(cc.Name); c != nil {
-				builtinImp.Forward = true
-				cc.Component = c
-				return
-			}
-		} else if l.builtinPath != "" {
-			// The builtin import was not loaded, but should've been.
-			logger.Debug("Couldn't resolve reference, but builtin import was loaded with errors: not reporting error")
-			return
-		}
-	} else {
-		// exported: check dot imports
+	if cc.Name.Exported() { // check dot imports
 		var ignoreError bool
 		for _, imp := range f.Imports {
 			if imp.Package == nil || imp.Package.PackageSymbols == nil {

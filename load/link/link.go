@@ -4,6 +4,7 @@ package link
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 
 	"github.com/mavolin/corgi/v2/file"
@@ -64,8 +65,10 @@ type (
 
 		// BuiltinPath is the import path of the builtin package, if any.
 		//
-		// The package must not contain any explicit imports and must not
-		// contain any exported components.
+		// If set, the path must be valid.
+		//
+		// It must not contain any explicit imports and must not contain any
+		// components.
 		//
 		// If set, the linker will import the specified package as any other
 		// explicit import, linking its symbols last in priority.
@@ -88,8 +91,10 @@ func (o *Options) applyDefaults() {
 		o.Logger = slog.New(slog.DiscardHandler)
 	}
 
-	if o.BuiltinPath != "" && o.Importer == nil {
-		panic("link.Options: BuiltinPath set, but Importer is nil")
+	if o.BuiltinPath != "" {
+		if o.Importer == nil {
+			panic("link: BuiltinPath set, but Importer is nil")
+		}
 	}
 }
 
@@ -129,6 +134,11 @@ func Link(ctx context.Context, p *file.Package, o Options) diagnostic.List {
 		if imps := filterDotImports(f); len(imps) > 0 {
 			l.dotImports[f] = imps
 		}
+	}
+
+	if o.BuiltinPath != "" {
+		l.AssertNoError(o.BuiltinPath.CheckValid(), "invalid built in import", p.Files[0], p.Files[0].AST.Package,
+			fmt.Sprintf("trying to load %q", o.BuiltinPath))
 	}
 
 	ctx, g := importGraphFromContext(ctx)
