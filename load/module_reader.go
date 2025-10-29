@@ -1,141 +1,276 @@
 package load
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"log/slog"
+	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/mavolin/corgi/v2/file"
-	"github.com/mavolin/corgi/v2/internal/cache"
+	"github.com/mavolin/corgi/v2/internal/assert"
 	"github.com/mavolin/corgi/v2/internal/gocmd"
-	"github.com/mavolin/corgi/v2/internal/gomod"
-	"golang.org/x/mod/modfile"
+	"github.com/mavolin/corgi/v2/internal/meta"
 )
 
-// ModuleReader is a [Reader] that works in a specific Go module and downloads
-// dependencies using a Go executable.
-type ModuleReader struct {
-	goCmd      *gocmd.Cmd
-	logger     *slog.Logger
-	stdLibPath string
+// Stdlib is the path to the corgi standard library.
+const Stdlib file.GoImportPath = meta.Module + "/std"
 
-	modFile      *modfile.File
-	modAbsPath   string
-	modDownloads *cache.Value[[]gocmd.DownloadModule]
-}
+type (
+	// ModuleReader is a [Reader] that works in a specific Go module and downloads
+	// dependencies using a Go executable.
+	ModuleReader struct {
+		logger *slog.Logger
+		// sorted by GoPath descending, so that longer prefixes are matched
+		// first
+		symbolicImportsByGoPath    []SymbolicImportMapping
+		symbolicImportsByCorgiPath []SymbolicImportMapping
+
+		mainModule gocmd.ListModuleResult
+		// sorted by Path descending, so that longer prefixes are matched first
+		modules []gocmd.ListModuleResult
+	}
+	SymbolicImportMapping struct {
+		CorgiPath file.CorgiImportPath
+		GoPath    file.GoImportPath
+	}
+)
 
 var _ Reader = (*ModuleReader)(nil)
 
 type ModuleReaderOptions struct {
 	// GoExecPath is a path to a go binary.
 	//
-	// Default: $GOROOT/bin/go
+	// Default: `go` from $PATH
 	GoExecPath string
 
 	// StdLibPath is the path to the corgi stdlib.
 	//
 	// Default: github.com/mavolin/corgi/v2/std
-	StdLibPath string
+	StdLibPath file.GoImportPath
 
-	// Logger is used to log the individual steps of the logging process.
+	// SymbolicImports is a mapping of symbolic paths to their real import
+	// paths.
+	// The stdlib import is always mapped to "corgi".
+	// ModuleReader takes ownership of the slice and the caller must not modify
+	// it after calling NewModuleReader.
+	//
+	// Default: nil
+	SymbolicImports []SymbolicImportMapping
+
+	// Logger produces logs for reading operations.
 	//
 	// Default: no logging
 	Logger *slog.Logger
 }
 
-// NewModuleReader creates a new ModuleReader with the passed options.
-// ModuleDir is the directory or a child directory of the module, whose go.mod
-// file should be used.
-func NewModuleReader(moduleDir string, o ModuleReaderOptions) (*ModuleReader, error) {
-	var r ModuleReader
-
-	r.logger = o.Logger
+func (o *ModuleReaderOptions) applyDefaults() error {
 	if o.Logger == nil {
-		r.logger = slog.New(slog.DiscardHandler)
+		o.Logger = slog.New(slog.DiscardHandler)
 	}
 
 	var err error
 	if o.GoExecPath == "" {
 		o.GoExecPath, err = exec.LookPath("go")
-		if err == /* IS */ nil {
-			o.Logger.Info("No GoExecPath set, using `go` from $PATH", slog.String("resolved_path", o.GoExecPath))
-		} else {
-			o.Logger.Warn("GoExecPath not set and no `go` in $PATH, running in local mode; won't be able to download external dependencies.")
+		if err != nil {
+			return fmt.Errorf("ModuleReader: GoExecPath: looking up `go` in $PATH: %w", err)
 		}
+		o.Logger.Info("No GoExecPath set, using `go` from $PATH", slog.String("resolved_path", o.GoExecPath))
 	}
 
 	if o.StdLibPath == "" {
-		o.StdLibPath = "github.com/mavolin/corgi/v2/std"
+		o.StdLibPath = Stdlib
 	}
-	r.stdLibPath = o.StdLibPath
 
-	var modFileAbs string
-	r.modFile, modFileAbs, err = gomod.Find(moduleDir)
+	if o.SymbolicImports == nil {
+		o.SymbolicImports = make([]SymbolicImportMapping, 0, 1)
+	}
+	for _, m := range o.SymbolicImports {
+		if err = m.CorgiPath.CheckValid(); err != nil {
+			return fmt.Errorf("ModuleReader: SymbolicImports: invalid corgi import path %q: %w", m.CorgiPath, err)
+		} else if err = m.GoPath.CheckValid(); err != nil {
+			return fmt.Errorf("ModuleReader: SymbolicImports: invalid go import path %q: %w", m.GoPath, err)
+		}
+	}
+	o.SymbolicImports = append(o.SymbolicImports, SymbolicImportMapping{
+		CorgiPath: "corgi",
+		GoPath:    o.StdLibPath,
+	})
+
+	return nil
+}
+
+// NewModuleReader creates a new [Reader] that loads packages and dependencies
+// of dir, where dir is part of a Go module.
+//
+// The modules dependencies are loaded once and must not change during the
+// lifetime of the returned ModuleReader.
+func NewModuleReader(ctx context.Context, dir filesystemPath, o ModuleReaderOptions) (*ModuleReader, error) {
+	if err := o.applyDefaults(); err != nil {
+		return nil, err
+	}
+
+	r := ModuleReader{
+		logger:                     o.Logger,
+		symbolicImportsByGoPath:    o.SymbolicImports,
+		symbolicImportsByCorgiPath: make([]SymbolicImportMapping, len(o.SymbolicImports)),
+	}
+	copy(r.symbolicImportsByCorgiPath, o.SymbolicImports)
+	slices.SortFunc(r.symbolicImportsByGoPath, func(a, b SymbolicImportMapping) int {
+		return -cmp.Compare(a.GoPath, b.GoPath)
+	})
+	slices.SortFunc(r.symbolicImportsByCorgiPath, func(a, b SymbolicImportMapping) int {
+		return -cmp.Compare(a.CorgiPath, b.CorgiPath)
+	})
+
+	cmd := gocmd.New(o.GoExecPath)
+	result, err := cmd.ListAllModules(ctx, dir)
 	if err != nil {
-		o.Logger.Error("Failed to locate go.mod", slog.String("err", err.Error()))
-		return nil, fmt.Errorf("locating go.mod: %w", err)
+		return nil, fmt.Errorf("NewModuleReader: %w", err)
 	}
-	o.Logger.Info("Found go.mod",
-		slog.String("module", r.modFile.Module.Mod.Path),
-		slog.String("path", modFileAbs))
-	r.modAbsPath = filepath.Dir(modFileAbs)
 
-	if o.GoExecPath != "" {
-		// r.goCmd = gocmd.New(o.GoExecPath)
-		// r.modDownloads = cache.Preload(r.goCmd.DownloadModules)
-	}
+	r.mainModule = result.MainModule
+	r.modules = append(result.Dependencies, result.MainModule) //nolint:gocritic
+	slices.SortFunc(r.modules, func(a, b gocmd.ListModuleResult) int {
+		return -cmp.Compare(a.Path, b.Path)
+	})
 
 	return &r, nil
 }
 
 // LocalImportPath returns the import path of the passed directory, which must
-// be part of the module.
-//
-// dir must use the filesystem's separator.
+// be part of the module represented by r.
 func (r *ModuleReader) LocalImportPath(dir filesystemPath) (file.CorgiImportPath, error) {
 	abs, err := filepath.Abs(dir)
 	if err != nil {
-		return "", fmt.Errorf("getting absolute path of %q: %w", dir, err)
+		return "", fmt.Errorf("absolute path of %q: %w", dir, err)
 	}
 
-	if !strings.HasPrefix(abs, r.modAbsPath) {
-		return "", fmt.Errorf("%q (located in %q) is not part of module %q (located in %q)",
-			dir, abs, r.modFile.Module.Mod.String(), r.modAbsPath)
+	if !strings.HasPrefix(abs, r.mainModule.Dir) {
+		return "", fmt.Errorf("%q is not part of module %q (located in %q)",
+			dir, r.mainModule.Path, r.mainModule.Dir)
 	}
 
-	rel, err := filepath.Rel(r.modAbsPath, abs)
+	rel, err := filepath.Rel(r.mainModule.Dir, abs)
 	if err != nil {
-		return "", fmt.Errorf("computing path in module: %w", err)
+		return "", fmt.Errorf("path in module: %w", err)
 	}
 
-	return file.CorgiImportPath(path.Join(r.modFile.Module.Mod.Path, filepath.ToSlash(rel))), nil
-}
+	imp := file.GoImportPath(path.Join(r.mainModule.Path, filepath.ToSlash(rel)))
+	assert.NoError(imp.CheckValid(), "constructed invalid import path: "+string(imp))
 
-func (r *ModuleReader) ReadImport(ctx context.Context, p file.CorgiImportPath) (*Package, error) {
-	if strings.HasPrefix(string(p), r.modFile.Module.Mod.Path) {
-		return r.readLocalImport(ctx, p)
+	symbolicPath := r.symbolicImport(imp)
+	if symbolicPath != "" {
+		return symbolicPath, nil
 	}
-	return r.readExternalImport(ctx, p)
+
+	return file.CorgiImportPath(imp), nil
 }
 
-// todo: ignore files prefixed with _
-// todo: respect replace directives
+func (r *ModuleReader) ReadImport(_ context.Context, p file.CorgiImportPath) (*Package, error) {
+	if err := p.CheckValid(); err != nil {
+		return nil, fmt.Errorf("invalid import path %q: %w", p, err)
+	}
 
-func (r *ModuleReader) readLocalImport(ctx context.Context, p file.CorgiImportPath) (*Package, error) {
-	panic("implement me")
-}
-
-func (r *ModuleReader) readExternalImport(ctx context.Context, p file.CorgiImportPath) (*Package, error) {
-	if strings.HasPrefix(string(p), "corgi/") {
-		resolved := file.CorgiImportPath(path.Join(r.stdLibPath, string(p[len("corgi/"):])))
-		r.logger.Info("Adjusted stdlib import",
+	resolved := r.resolveGoPath(p)
+	if resolved != file.GoImportPath(p) {
+		r.logger.Debug("Adjusted symbolic import",
 			slog.String("old", string(p)),
 			slog.String("adjusted", string(resolved)))
-		p = resolved
 	}
-	panic("implement me")
+
+	mod := r.findModule(resolved)
+	if mod == nil {
+		return nil, fmt.Errorf("no required module provides package %s", p)
+	}
+
+	packagePath := file.PackagePath(strings.TrimPrefix(string(resolved[len(mod.Path):]), "/"))
+	assert.NoError(file.GoImportPath(packagePath).CheckValid(), "constructed invalid package path: "+string(packagePath))
+	return r.readImport(*mod, packagePath)
+}
+
+func (r *ModuleReader) readImport(mod gocmd.ListModuleResult, pkgPath file.PackagePath) (*Package, error) {
+	fullPath := path.Join(mod.Dir, filepath.FromSlash(string(pkgPath)))
+
+	logger := r.logger.With(
+		slog.String("module", mod.Path),
+		slog.String("module_dir", mod.Dir),
+		slog.String("package_path", string(pkgPath)))
+	logger.Debug("Reading package")
+
+	dir, err := os.ReadDir(fullPath)
+	if err != nil {
+		return nil, fmt.Errorf("reading directory %q: %w", fullPath, err)
+	}
+
+	pkg := &Package{
+		Module:       file.ModulePath(mod.Path),
+		PathInModule: pkgPath,
+		Files:        make([]File, 0, len(dir)),
+	}
+
+	for _, entry := range dir {
+		switch {
+		case strings.HasPrefix(entry.Name(), ".") || strings.HasPrefix(entry.Name(), "_"):
+			continue
+		case !strings.HasSuffix(entry.Name(), Ext):
+			continue
+		case entry.Type() != 0:
+			if !entry.IsDir() {
+				r.logger.Debug("Skipping non-regular file",
+					slog.String("file", entry.Name()),
+					slog.String("file_type", entry.Type().String()))
+			}
+			continue
+		}
+
+		filePath := path.Join(fullPath, entry.Name())
+		raw, err := os.ReadFile(filePath)
+		if err != nil {
+			return nil, fmt.Errorf("reading file %q: %w", filePath, err)
+		}
+		pkg.Files = append(pkg.Files, File{
+			Name: file.Name(entry.Name()),
+			Raw:  string(raw),
+		})
+	}
+
+	return pkg, nil
+}
+
+func (r *ModuleReader) resolveGoPath(p file.CorgiImportPath) file.GoImportPath {
+	for _, mapping := range r.symbolicImportsByCorgiPath {
+		if !strings.HasPrefix(string(p), string(mapping.CorgiPath)) {
+			continue
+		}
+		gp := mapping.GoPath + file.GoImportPath(p[len(mapping.CorgiPath):])
+		assert.NoError(gp.CheckValid(), "constructed invalid go import path: "+string(gp))
+		return gp
+	}
+	return file.GoImportPath(p)
+}
+
+func (r *ModuleReader) findModule(p file.GoImportPath) *gocmd.ListModuleResult {
+	for _, mod := range r.modules {
+		if strings.HasPrefix(string(p), mod.Path) {
+			return &mod
+		}
+	}
+	return nil
+}
+
+func (r *ModuleReader) symbolicImport(imp file.GoImportPath) file.CorgiImportPath {
+	for _, mapping := range r.symbolicImportsByGoPath {
+		if strings.HasPrefix(string(imp), string(mapping.GoPath)) {
+			ip := mapping.CorgiPath + file.CorgiImportPath(imp[len(mapping.GoPath):])
+			assert.NoError(ip.CheckValid(), "constructed invalid corgi import path: "+string(ip))
+			return ip
+		}
+	}
+	return ""
 }

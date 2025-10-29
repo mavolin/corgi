@@ -1,23 +1,33 @@
 package gocmd
 
 import (
+	"context"
+	"errors"
+	"fmt"
 	"os/exec"
-	"sync"
 )
 
 type Cmd struct {
 	path string
-
-	goModCacheOnce sync.Once
-	goModCache     string
 }
 
-// NewCmd creates a new go command using the passed path as the path to the Go
+// New creates a new go command using the passed path as the path to the Go
 // executable.
-func NewCmd(goExecPath string) *Cmd {
+func New(goExecPath string) *Cmd {
 	return &Cmd{path: goExecPath}
 }
 
-func (c *Cmd) command(subcmd string, args ...string) ([]byte, error) {
-	return (&exec.Cmd{Path: c.path, Args: append([]string{c.path, subcmd}, args...)}).Output()
+func (cmd *Cmd) cmd(ctx context.Context, subcmd string, args ...string) *exec.Cmd {
+	args2 := make([]string, len(args)+1)
+	args2[0] = subcmd
+	copy(args2[1:], args)
+	return exec.CommandContext(ctx, cmd.path, args2...) // #nosec G204
+}
+
+func formatError(cmd string, err error, stderr []byte) error {
+	var ee *exec.ExitError
+	if errors.As(err, &ee) {
+		return fmt.Errorf("%s: %w: %s", cmd, err, string(stderr[:min(len(stderr), 256)]))
+	}
+	return fmt.Errorf("%s: %w", cmd, err)
 }

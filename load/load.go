@@ -43,17 +43,17 @@ type (
 		// imported as "corgi/*", but is actually provided by the
 		// "github.com/mavolin/corgi/v2" Go module.
 		Module file.ModulePath
-		// PackagePath is the path to the package in the Go module,
+		// PathInModule is the path to the package in the Go module,
 		// relative to the module root.
 		//
 		// It is always specified as a forward slash separated path.
 		//
 		// Like Module, this might differ from the import path, if the
 		// import path is symbolic.
-		// In that case, PackagePath should be the actual path to the
+		// In that case, PathInModule should be the actual path to the
 		// directory providing the package, such as "std/fmt" instead of
 		// "corgi/fmt".
-		PackagePath file.PackagePath
+		PathInModule file.PackagePath
 
 		Files []File
 	}
@@ -232,7 +232,7 @@ func (l *loader) loadUncachedImport(ctx context.Context, logger *slog.Logger, im
 
 	p := &file.Package{
 		Module:          data.Module,
-		PathInModule:    data.PackagePath,
+		PathInModule:    data.PathInModule,
 		CorgiImportPath: imp,
 		Files:           make([]*file.File, len(data.Files)),
 	}

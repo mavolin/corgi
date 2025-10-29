@@ -18,7 +18,7 @@ import (
 func Directory(ctx context.Context, dir filesystemPath, o Options) (*file.Package, diagnostic.List, error) {
 	o.applyDefaults()
 
-	r, err := NewModuleReader(dir, ModuleReaderOptions{
+	r, err := NewModuleReader(ctx, dir, ModuleReaderOptions{
 		Logger: o.Logger.WithGroup("reader"),
 	})
 	if err != nil {
