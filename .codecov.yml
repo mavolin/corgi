@@ -1,0 +1,4 @@
+ignore:
+  - "escape/charref/chars.go" # generated
+  - "files/switches/functions.go" # generated
+  - "internal/isstdlib/detector.go" # generated

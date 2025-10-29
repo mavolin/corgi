@@ -15,7 +15,9 @@ jobs:
           go-version-file: go.mod
       - name: Set GOROOT
         run: echo "GOROOT=$(go env GOROOT)" >> $GITHUB_ENV
-      - name: Generate Coverage Report
-        run: go test -coverprofile coverage.txt -covermode atomic -tags test_stubs ./...
+      - name: Generate General Coverage Report
+        run: go test -coverprofile coverage.txt -covermode atomic ./...
+      - name: Generate General Coverage Report
+        run: go test -coverprofile coverage2.txt -coverpkg github.com/mavolin/corgi/v2/load/... -covermode atomic github.com/mavolin/corgi/v2/examples
       - name: Upload Unit Test Coverage to Codecov
         uses: codecov/codecov-action@v5
