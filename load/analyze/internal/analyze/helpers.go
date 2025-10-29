@@ -202,31 +202,33 @@ func (z *analyzer) cannotAttributes(
 		// node this or a deeper level.
 		var next file.AnalysisWithReason[ast.AttributeInhibitor]
 
-		candidate.SwitchAttributeInhibitor(w.Parents[len(w.Parents)-1].Node,
-			func(n *ast.Block) { next.SetReason(n) },
-			func(ast.BlockSetter) {},
-			func(n *ast.CharacterEscape) { next.SetReason(n) },
-			func(n *ast.CharacterReference) { next.SetReason(n) },
-			func(ccAST *ast.ComponentCall) {
-				stack[len(stack)-1].before = &clone
-				cc := f.ComponentCallByNode(ccAST)
-				z.AnalyzeComponentCall(ctx, cc)
+		if len(w.Parents) >= 2 {
+			candidate.SwitchAttributeInhibitor(w.Parents[len(w.Parents)-1].Node,
+				func(n *ast.Block) { next.SetReason(n) },
+				func(ast.BlockSetter) {},
+				func(n *ast.CharacterEscape) { next.SetReason(n) },
+				func(n *ast.CharacterReference) { next.SetReason(n) },
+				func(ccAST *ast.ComponentCall) {
+					stack[len(stack)-1].before = &clone
+					cc := f.ComponentCallByNode(ccAST)
+					z.AnalyzeComponentCall(ctx, cc)
 
-				wc := z.componentCall_WritesContent(cc)
-				if wc.Equal(true) {
-					next.SetReason(ccAST)
-				} else if wc.Failed() {
-					next.SetFailed()
-					stack[len(stack)-1].reason = &next
-				}
-			},
-			func(n *ast.Doctype) { next.SetReason(n) },
-			func(n *ast.Element) { next.SetReason(n) },
-			func(n *ast.ExpressionInterpolation) { next.SetReason(n) },
-			func(n *ast.RawElement) { next.SetReason(n) },
-			func(n *ast.Text) { next.SetReason(n) })
-		if !next.Failed() {
-			stack[len(stack)-1].reason = &next
+					wc := z.componentCall_WritesContent(cc)
+					if wc.Equal(true) {
+						next.SetReason(ccAST)
+					} else if wc.Failed() {
+						next.SetFailed()
+						stack[len(stack)-1].reason = &next
+					}
+				},
+				func(n *ast.Doctype) { next.SetReason(n) },
+				func(n *ast.Element) { next.SetReason(n) },
+				func(n *ast.ExpressionInterpolation) { next.SetReason(n) },
+				func(n *ast.RawElement) { next.SetReason(n) },
+				func(n *ast.Text) { next.SetReason(n) })
+			if !next.Failed() {
+				stack[len(stack)-1].reason = &next
+			}
 		}
 
 		return walk.Continue

@@ -40,8 +40,8 @@ type (
 func (z *analyzer) AnalyzeComponentParameter_AttributeType_AttributeName(
 	logger *slog.Logger, c *file.Component, param *file.ComponentParameter,
 ) {
-	defer z.Ran(c, componentParameter_AttributeType{})
-	defer z.Ran(c, componentParameter_AttributeName{})
+	defer z.Ran(param, componentParameter_AttributeType{})
+	defer z.Ran(param, componentParameter_AttributeName{})
 	logger = logger.WithGroup("attr_type_param")
 
 	param.AttributeType.SetZero()
@@ -101,7 +101,7 @@ func (z *analyzer) AnalyzeComponentParameter_AttributeType_AttributeName(
 type componentParameter_InferredType struct{}
 
 func (z *analyzer) AnalyzeComponentParameter_InferredType(logger *slog.Logger, c *file.Component, param *file.ComponentParameter) {
-	defer z.Ran(c, componentParameter_InferredType{})
+	defer z.Ran(param, componentParameter_InferredType{})
 
 	param.InferredType.SetZero()
 

@@ -26,7 +26,7 @@ func (z *analyzer) AnalyzeBlockInstanceDefault(ctx context.Context, parents []*w
 type blockInstanceDefault_AcceptsAttributes struct{}
 
 func (z *analyzer) AnalyzeBlockInstanceDefault_AcceptsAttributes() {
-	defer z.Ran(nil, blockInstanceDefault_AcceptsAttributes{})
+	// defer z.Ran(nil, blockInstanceDefault_AcceptsAttributes{})
 	// todo
 }
 
@@ -37,7 +37,7 @@ func (z *analyzer) AnalyzeBlockInstanceDefault_AcceptsAttributes() {
 type blockInstanceDefault_ForwardsReceivedAttributes struct{}
 
 func (z *analyzer) AnalyzeBlockInstanceDefault_ForwardsReceivedAttributes() {
-	defer z.Ran(nil, blockInstanceDefault_ForwardsReceivedAttributes{})
+	// defer z.Ran(nil, blockInstanceDefault_ForwardsReceivedAttributes{})
 	// todo
 }
 
@@ -48,7 +48,7 @@ func (z *analyzer) AnalyzeBlockInstanceDefault_ForwardsReceivedAttributes() {
 type blockInstanceDefault_ElementsWithAndPlaceholder struct{}
 
 func (z *analyzer) AnalyzeBlockInstanceDefault_ElementsWithAndPlaceholder() {
-	defer z.Ran(nil, blockInstanceDefault_ElementsWithAndPlaceholder{})
+	// defer z.Ran(nil, blockInstanceDefault_ElementsWithAndPlaceholder{})
 	// todo
 }
 
@@ -59,7 +59,7 @@ func (z *analyzer) AnalyzeBlockInstanceDefault_ElementsWithAndPlaceholder() {
 type blockInstanceDefault_ElementSpecsWithAndPlaceholder struct{}
 
 func (z *analyzer) AnalyzeBlockInstanceDefault_ElementSpecsWithAndPlaceholder() {
-	defer z.Ran(nil, blockInstanceDefault_ElementSpecsWithAndPlaceholder{})
+	// defer z.Ran(nil, blockInstanceDefault_ElementSpecsWithAndPlaceholder{})
 	// todo
 }
 
@@ -70,7 +70,7 @@ func (z *analyzer) AnalyzeBlockInstanceDefault_ElementSpecsWithAndPlaceholder() 
 type blockInstanceDefault_ForwardsAttributes struct{}
 
 func (z *analyzer) AnalyzeBlockInstanceDefault_ForwardsAttributes() {
-	defer z.Ran(nil, blockInstanceDefault_ForwardsAttributes{})
+	// defer z.Ran(nil, blockInstanceDefault_ForwardsAttributes{})
 	// todo
 }
 
@@ -81,7 +81,7 @@ func (z *analyzer) AnalyzeBlockInstanceDefault_ForwardsAttributes() {
 type blockInstanceDefault_WritesContent struct{}
 
 func (z *analyzer) AnalyzeBlockInstanceDefault_WritesContent() {
-	defer z.Ran(nil, blockInstanceDefault_WritesContent{})
+	// defer z.Ran(nil, blockInstanceDefault_WritesContent{})
 	// todo
 }
 
@@ -92,6 +92,6 @@ func (z *analyzer) AnalyzeBlockInstanceDefault_WritesContent() {
 type blockInstanceDefault_WritesElements struct{}
 
 func (z *analyzer) AnalyzeBlockInstanceDefault_WritesElements() {
-	defer z.Ran(nil, blockInstanceDefault_WritesElements{})
+	// defer z.Ran(nil, blockInstanceDefault_WritesElements{})
 	// todo
 }

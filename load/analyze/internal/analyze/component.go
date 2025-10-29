@@ -69,6 +69,7 @@ func (z *analyzer) AnalyzeComponent_Circular(logger *slog.Logger) {
 		if !c.Analyzed {
 			chain = chain[:1]
 			z.analyzeComponent_Circular(logger, c, chain, c)
+			z.Ran(c, component_Circular{})
 		}
 	}
 }
@@ -76,8 +77,7 @@ func (z *analyzer) AnalyzeComponent_Circular(logger *slog.Logger) {
 type component_Circular struct{}
 
 func (z *analyzer) analyzeComponent_Circular(logger *slog.Logger, root *file.Component, chain []*file.ComponentCall, last *file.Component) {
-	defer z.Ran(root, component_Circular{})
-	if z.component_Circular(last) {
+	if last.Circular {
 		return
 	}
 

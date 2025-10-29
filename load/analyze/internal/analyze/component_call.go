@@ -242,11 +242,13 @@ type componentCall_ElementsWithAndPlaceholder struct{}
 func (z *analyzer) AnalyzeComponentCall_ElementsWithAndPlaceholder(cc *file.ComponentCall) {
 	defer z.Ran(cc, componentCall_ElementsWithAndPlaceholder{})
 
-	permanentElementsWithAndPlaceholder := z.component_PermanentElementsWithAndPlaceholder(cc.Component)
 	if cc.Component == nil {
 		cc.ElementsWithAndPlaceholder.SetFailed()
 		return
-	} else if permanentElementsWithAndPlaceholder.Failed() {
+	}
+
+	permanentElementsWithAndPlaceholder := z.component_PermanentElementsWithAndPlaceholder(cc.Component)
+	if permanentElementsWithAndPlaceholder.Failed() {
 		cc.ElementsWithAndPlaceholder.SetFailed()
 		return
 	}
