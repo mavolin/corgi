@@ -10,7 +10,7 @@ type Package struct {
 	// Module is the path/name of the Go module providing this directory.
 	//
 	// Empty for Corgi stdlib.
-	Module Module // load
+	Module ModulePath // load
 	// PathInModule is the path to the directory in the Go module, relative
 	// to the module root.
 	//

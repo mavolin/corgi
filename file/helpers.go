@@ -15,8 +15,8 @@ const (
 type (
 	// Qualifier is the qualifier for an import.
 	Qualifier string
-	// Module is the path/name of a Go module.
-	Module string
+	// ModulePath is the path/name of a Go module.
+	ModulePath string
 	// PackagePath is a path to a package relative to the root of a Go module, with no
 	// leading './' or '/'.
 	PackagePath string
@@ -96,7 +96,7 @@ func (id Identifier) Exported() bool {
 	return len(id) > 0 && 'A' <= id[0] && id[0] <= 'Z'
 }
 
-func (m Module) ImportPathFor(p PackagePath) GoImportPath {
+func (m ModulePath) ImportPathFor(p PackagePath) GoImportPath {
 	return GoImportPath(string(m) + "/" + string(p))
 }
 
