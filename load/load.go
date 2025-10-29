@@ -223,11 +223,12 @@ func (l *loader) loadUncachedImport(ctx context.Context, logger *slog.Logger, im
 
 	data, err := l.reader.ReadImport(ctx, imp)
 	if err != nil {
-		logger.Error("Reading import", slog.String("err", err.Error()))
+		logger.Error("Error reading import", slog.String("err", err.Error()))
 		return nil, nil, err
 	}
 
 	if len(data.Files) == 0 {
+		logger.Info("Package has no corgi files, returning nil package")
 		return nil, nil, nil
 	}
 
@@ -252,12 +253,13 @@ func (l *loader) loadUncachedImport(ctx context.Context, logger *slog.Logger, im
 
 	// the analyzer can recover from linker errors, but not from parser errors
 	if len(parseErrs) > 0 {
-		l.logger.Info("Returning with parse/link errors")
+		l.logger.Info("Returning with parser/linker errors")
 		return p, append(parseErrs, linkErrs...), nil
 	}
 
 	analyzeErrs := l.analyze(logger, p)
 	if len(linkErrs) > 0 || len(analyzeErrs) > 0 {
+		l.logger.Info("Returning with analyzer errors")
 		return p, append(linkErrs, analyzeErrs...), nil
 	}
 
