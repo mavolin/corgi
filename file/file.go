@@ -120,7 +120,6 @@ func buildSymbols(f *File) {
 				BlockSetters: make([]*BlockSetter, 0, 24),
 			}
 			f.ComponentCalls = append(f.ComponentCalls, ccw)
-			f.componentCallsByNode[n] = ccw
 
 			if n.Header != nil {
 				switch name := n.Header.Name.(type) {
@@ -254,6 +253,8 @@ func buildSymbols(f *File) {
 				attr = nil
 			}
 			f.AttributeReferences = append(f.AttributeReferences, ref)
+			n.Walk(walk)
+		default:
 			n.Walk(walk)
 		}
 	}
