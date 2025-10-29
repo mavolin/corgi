@@ -5,11 +5,13 @@ import (
 
 	"github.com/mavolin/corgi/v2/file/ast"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
+	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/mavolin/corgi/v2/load/parse/internal/comment"
 	"github.com/mavolin/corgi/v2/load/parse/internal/golang"
 	"github.com/mavolin/corgi/v2/load/parse/internal/quickanno"
 	"github.com/mavolin/corgi/v2/load/parse/internal/unexpected"
+	"golang.org/x/mod/module"
 )
 
 func PackageDirective() parser.Func[*ast.PackageDirective] {
@@ -115,6 +117,13 @@ func ImportSpec() parser.Func[*ast.ImportSpec] {
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "import spec: missing path",
 				Primary: quickanno.Expected(p, p.Pos(), "an import path"),
+			})
+		} else if err := module.CheckImportPath(path.Unquote()); err != nil {
+			p.CaptureError(&diagnostic.Diagnostic{
+				Message: "import spec: invalid import path",
+				Primary: []diagnostic.Annotation{
+					anno.Node(p.File, path, err.Error()),
+				},
 			})
 		}
 
