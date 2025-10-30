@@ -18,6 +18,9 @@ jobs:
         run: |
           direnv allow .
           direnv export gha > "$GITHUB_ENV"
+          
+      - name: Cache Go modules
+        uses: actions/setup-go@v6
 
       - name: Run Unit Tests
         run: go test -race ./...
