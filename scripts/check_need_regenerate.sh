@@ -1,13 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-main() {
-  local failed=0
-  check_file "escape/charref/chars.go" || failed=1
-  check_file "internal/isstdlib/detector.go" || failed=1
-  check_file "file/ast/switches/functions.go" || failed=1
-  return $failed
-}
+files=(
+  "escape/charref/chars.go"
+  "internal/isstdlib/detector.go"
+  "file/switches/functions.go"
+)
 
 check_file() {
   local file="$1"
@@ -38,4 +36,8 @@ check_file() {
   return 0
 }
 
-main
+failed=0
+for file in "${files[@]}"; do
+  check_file "$file" || failed=1
+done
+return $failed
