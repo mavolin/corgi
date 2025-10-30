@@ -1,5 +1,5 @@
 name: Test
-on: [push, pull_request]
+on: [ push, pull_request ]
 
 jobs:
   test:
@@ -8,9 +8,16 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v5
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
+      - name: Install Nix
+        uses: nixbuild/nix-quick-install-action@v34
+      - name: Install direnv
+        run: |
+          curl -sfL https://direnv.net/install.sh | bash
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+      - name: Load direnv
+        run: |
+          direnv allow .
+          direnv export gha > "$GITHUB_ENV"
+
       - name: Run Unit Tests
         run: go test -race ./...

@@ -1,6 +1,5 @@
 name: Code Coverage
-
-on: [push, pull_request]
+on: [ push, pull_request ]
 
 jobs:
   codecov:
@@ -9,15 +8,18 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v5
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
-      - name: Set GOROOT
-        run: echo "GOROOT=$(go env GOROOT)" >> $GITHUB_ENV
-      - name: Generate General Coverage Report
-        run: go test -coverprofile coverage.txt -covermode atomic ./...
-      - name: Generate General Coverage Report
-        run: go test -coverprofile coverage2.txt -coverpkg github.com/mavolin/corgi/v2/load/... -covermode atomic github.com/mavolin/corgi/v2/examples
+      - name: Install Nix
+        uses: nixbuild/nix-quick-install-action@v34
+      - name: Install direnv
+        run: |
+          curl -sfL https://direnv.net/install.sh | bash
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+      - name: Load direnv
+        run: |
+          direnv allow .
+          direnv export gha > "$GITHUB_ENV"
+
+      - name: Generate Coverage Report
+        run: ./scripts/generate_coverage_report.sh coverage.out
       - name: Upload Unit Test Coverage to Codecov
         uses: codecov/codecov-action@v5

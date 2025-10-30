@@ -1,10 +1,8 @@
 name: GoReleaser
-
 on:
   push:
     # run only against tags
-    tags:
-      - '*'
+    tags: [ '*' ]
 
 permissions:
   contents: write
@@ -19,13 +17,16 @@ jobs:
           fetch-depth: 0
       - name: Fetch All Tags
         run: git fetch --force --tags
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
+      - name: Install direnv
+        run: |
+          curl -sfL https://direnv.net/install.sh | bash
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+      - name: Load direnv
+        run: |
+          direnv allow .
+          direnv export gha > "$GITHUB_ENV"
+
       - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v6
-        with:
-          args: release
+        run: nix develop -c goreleaser release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

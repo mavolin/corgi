@@ -1,5 +1,5 @@
 name: Check Generated Files
-on: [push]
+on: [ push ]
 
 jobs:
   test:
@@ -8,9 +8,16 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v5
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: 'stable'
+      - name: Install Nix
+        uses: nixbuild/nix-quick-install-action@v34
+      - name: Install direnv
+        run: |
+          curl -sfL https://direnv.net/install.sh | bash
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+      - name: Load direnv
+        run: |
+          direnv allow .
+          direnv export gha > "$GITHUB_ENV"
+
       - name: Check If Generated Files Need To Be Regenerated
         run: ./scripts/check_need_regenerate.sh
