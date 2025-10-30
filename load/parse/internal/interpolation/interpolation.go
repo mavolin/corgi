@@ -285,7 +285,7 @@ func ModeSwitch() parser.Func[*ast.ModeSwitch] {
 				Primary: []diagnostic.Annotation{
 					anno.Node(p.File, node, "no point in switching to an arrow block here"),
 				},
-				Explanation: "You are already in tex mode, there is no point in using an arrow block here.",
+				Explanation: "You are already in text mode, there is no point in using an arrow block here.",
 			})
 		}
 
