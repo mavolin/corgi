@@ -40,4 +40,4 @@ failed=0
 for file in "${files[@]}"; do
   check_file "$file" || failed=1
 done
-return $failed
+exit $failed
