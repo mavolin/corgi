@@ -17,6 +17,21 @@ jobs:
           fetch-depth: 0
       - name: Fetch All Tags
         run: git fetch --force --tags
+      - name: Install Nix
+        uses: nixbuild/nix-quick-install-action@v34
+      - name: Restore and Save Nix Store
+        uses: nix-community/cache-nix-action@v6
+        with:
+          primary-key: nix-${{ runner.os }}-${{ hashFiles('flake.lock') }}-${{ hashFiles('flake.nix') }}
+          restore-prefixes-first-match: nix-${{ runner.os }}-${{ hashFiles('flake.lock') }}-
+          purge: true
+          purge-prefixes: nix-${{ runner.os }}-
+          # created more than this number of seconds ago
+          purge-created: 0
+          # or, last accessed more than this number of seconds ago
+          # relative to the start of the `Post Restore and save Nix store` phase
+          purge-last-accessed: 0
+          purge-primary-key: never
       - name: Install direnv
         run: |
           curl -sfL https://direnv.net/install.sh | bash
@@ -25,6 +40,8 @@ jobs:
         run: |
           direnv allow .
           direnv export gha > "$GITHUB_ENV"
+      - name: Cache Go Modules
+        uses: actions/setup-go@v6
 
       - name: Run GoReleaser
         run: nix develop -c goreleaser release

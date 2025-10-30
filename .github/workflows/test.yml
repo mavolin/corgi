@@ -31,7 +31,6 @@ jobs:
         run: |
           direnv allow .
           direnv export gha > "$GITHUB_ENV"
-          
       - name: Cache Go Modules
         uses: actions/setup-go@v6
 
