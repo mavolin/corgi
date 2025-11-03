@@ -16,7 +16,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Enter direnv
-        uses: .github/actions/enter-direnv
+        uses: ./.github/actions/enter-direnv
       - name: Cache Go Modules
         uses: actions/setup-go@v6
 
