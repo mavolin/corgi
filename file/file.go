@@ -441,7 +441,7 @@ func (s *Symbols) AttributeReferenceByNode(node *ast.AttributeReference) *Attrib
 // RebuildLookupTables rebuilds the lookup tables used by the methods of this
 // type.
 //
-// Every you modify the slices of this struct directly, you must call this
+// Every time you modify the slices of this struct directly, you must call this
 // method to ensure that the lookup tables are up-to-date.
 func (s *Symbols) RebuildLookupTables() {
 	s.componentCallsByNode = make(map[*ast.ComponentCall]*ComponentCall, len(s.ComponentCalls))
