@@ -29,7 +29,7 @@ func InferType(f *file.File, expr *ast.Expression) (typ file.Type, sure bool) {
 	switches.CodeNode(expr.Nodes[0],
 		func(*ast.BlockFunction) { typ, sure = "bool", true },
 		func(*ast.ComponentCall) { typ, sure = "string", true },
-		func(gc *ast.GoCode) { typ, sure = inferGoCodeType(f, gc) },
+		func(gc *ast.GoCode) { typ, sure = inferGoCodeType(gc) },
 		func(*ast.String) { typ, sure = "string", false },
 		func(n *ast.Ternary) {
 			if len(expr.Nodes) == 1 {
@@ -110,14 +110,12 @@ func inferZeroCoalescingType(f *file.File, expr *ast.ZeroCoalescing) (typ file.T
 	return "", false
 }
 
-func inferGoCodeType(f *file.File, expr *ast.GoCode) (typ file.Type, sure bool) {
+func inferGoCodeType(expr *ast.GoCode) (typ file.Type, sure bool) {
 	if expr == nil {
 		return "", false
 	}
 
 	if t := inferBooleanType(expr); t != "" {
-		return t, true
-	} else if t = inferStateVariableType(f, expr); t != "" {
 		return t, true
 	} else if t = inferLit(expr); t != "" {
 		return t, false
@@ -166,24 +164,6 @@ func inferBooleanType(expr *ast.GoCode) file.Type {
 	}
 
 	return ""
-}
-
-var stateRegexp = regexp.MustCompile(`^state[ \t]*\.\s*([a-zA-Z_][a-zA-Z0-9_]*)`)
-
-func inferStateVariableType(f *file.File, expr *ast.GoCode) file.Type {
-	c := expr.Code
-	t := stateRegexp.FindStringSubmatch(c)
-	if len(t) != 2 {
-		return ""
-	}
-
-	name := file.Identifier(t[1])
-	state := f.Package.StateByName(name)
-	if state == nil {
-		return ""
-	}
-
-	return state.ResolvedType().ResultOr("")
 }
 
 func inferLit(expr *ast.GoCode) file.Type {

@@ -29,7 +29,6 @@ func Check(b *internal.Base) {
 
 	c.CheckComponents()
 	c.CheckComponentCalls()
-	c.CheckState()
 	c.CheckScope()
 }
 

@@ -1014,18 +1014,3 @@ func (z *analyzer) requireElementSpec_Type(es *file.ElementSpec) {
 		z.Require(es, elementSpec_Type{})
 	}
 }
-
-// ============================================================================
-// State
-// ======================================================================================
-
-func (z *analyzer) state_InferredType(s *file.State) file.Analysis[file.Type] {
-	z.requireState_InferredType(s)
-	return s.InferredType
-}
-
-func (z *analyzer) requireState_InferredType(s *file.State) {
-	if !s.Analyzed {
-		z.Require(s, state_InferredType{})
-	}
-}

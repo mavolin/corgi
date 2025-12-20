@@ -67,13 +67,8 @@ type PackageSymbols struct {
 	Components       []*Component
 	componentsByName map[Identifier]*Component
 	componentByNode  map[*ast.Component]*Component
-	// State are individual state variables in the package.
-	// States belonging to the same spec must be grouped together.
-	State          []*State
-	stateByName    map[Identifier]*State
-	stateByNode    map[*ast.StateSpec][]*State
-	ElementSpecs   []*ElementSpec
-	AttributeSpecs []*AttributeSpec // ordered by specificity, descending
+	ElementSpecs     []*ElementSpec
+	AttributeSpecs   []*AttributeSpec // ordered by specificity, descending
 
 	//
 	// LINKER
@@ -101,13 +96,11 @@ type PackageSymbols struct {
 func BuildSymbols(p *Package) {
 	p.PackageSymbols = &PackageSymbols{
 		Components:     make([]*Component, 0, 64),
-		State:          make([]*State, 0, 64),
 		ElementSpecs:   make([]*ElementSpec, 0, 64),
 		AttributeSpecs: make([]*AttributeSpec, 0, 256),
 	}
 	defer func() {
 		p.Components = slices.Clip(p.Components)
-		p.State = slices.Clip(p.State)
 		p.ElementSpecs = slices.Clip(p.ElementSpecs)
 		p.AttributeSpecs = slices.Clip(p.AttributeSpecs)
 	}()
@@ -138,17 +131,6 @@ func BuildSymbols(p *Package) {
 					}
 				}
 				p.Components = append(p.Components, c)
-			case *ast.StateDeclaration:
-				for _, spec := range n.Specs {
-					if spec == nil {
-						continue
-					}
-					for i, name := range spec.Names {
-						if name != nil {
-							p.State = append(p.State, &State{AST: spec, File: f, Index: i})
-						}
-					}
-				}
 			case *ast.ElementDefinition:
 				var stylizedPrefix, canonicalPrefix string
 				if n.Prefix != nil {
@@ -220,21 +202,6 @@ func (s *PackageSymbols) ComponentByNode(c *ast.Component) *Component {
 
 func (s *PackageSymbols) ComponentByName(name Identifier) *Component {
 	return s.componentsByName[name]
-}
-
-// StateByNode returns the state symbol for the given state spec node
-// and index in the names list.
-// An index might not exist if there were parse errors and the name is nil.
-// Excess values generally are not part of the package's symbols.
-func (s *PackageSymbols) StateByNode(spec *ast.StateSpec, index int) *State {
-	if states := s.stateByNode[spec]; states != nil && index < len(states) {
-		return states[index]
-	}
-	return nil
-}
-
-func (s *PackageSymbols) StateByName(name Identifier) *State {
-	return s.stateByName[name]
 }
 
 func (s *PackageSymbols) ElementSpecByNode(spec *ast.ElementSpec) *ElementSpec {
@@ -326,31 +293,6 @@ func (s *PackageSymbols) RebuildLookupTables() {
 		if c.AST.Header != nil && c.AST.Header.Name != nil {
 			s.componentsByName[Identifier(c.AST.Header.Name.Name)] = c
 		}
-	}
-
-	s.stateByNode = make(map[*ast.StateSpec][]*State, len(s.State))
-	s.stateByName = make(map[Identifier]*State, len(s.State))
-
-	var specStart int
-	var lastSpec *ast.StateSpec
-	for i, state := range s.State {
-		if name := state.Name(); name != "" {
-			s.stateByName[name] = state
-		}
-
-		// We require that states belonging to the same spec are grouped, so
-		// we can save memory by creating only views into the State slice,
-		// instead of allocating a new slice for every spec.
-		if state.AST != lastSpec {
-			if lastSpec != nil {
-				s.stateByNode[lastSpec] = s.State[specStart:i]
-			}
-			lastSpec = state.AST
-			specStart = i
-		}
-	}
-	if lastSpec != nil { // last group
-		s.stateByNode[lastSpec] = s.State[specStart:]
 	}
 
 	for _, spec := range s.AttributeSpecs {

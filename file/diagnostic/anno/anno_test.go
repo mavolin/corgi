@@ -183,31 +183,6 @@ func TestNode(t *testing.T) {
 				},
 				Close: &ast.Position{Line: start.Line, Col: start.Col + len(`"foo`)},
 			},
-		}, {
-			node: &ast.StateDeclaration{
-				LParen: &ast.Position{Line: start.Line, Col: start.Col + len("state ")},
-				Specs: []*ast.StateSpec{
-					{
-						Names: []*ast.Identifier{
-							{
-								Name: "foo", Position: &ast.Position{Line: start.Line + 1, Col: 3},
-							},
-						},
-						EqualSign: &ast.Position{Line: start.Line + 1, Col: 3 + len("foo ")},
-						Values: []*ast.Expression{
-							{
-								Nodes: ast.Code{
-									&ast.GoCode{
-										Code:     "bar",
-										Position: &ast.Position{Line: start.Line + 1, Col: 3 + len("foo = ")},
-									},
-								},
-							},
-						},
-					},
-				},
-				RParen: &ast.Position{Line: start.Line + 2, Col: 3},
-			},
 		},
 	}
 

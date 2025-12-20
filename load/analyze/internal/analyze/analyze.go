@@ -37,7 +37,6 @@ func Analyze(b *internal.Base) {
 		z.SetPackageName()
 	}
 
-	z.AnalyzeStates()
 	z.AnalyzeElementSpecs()
 	z.AnalyzeComponents()
 	z.AnalyzeComponentCalls()

@@ -46,7 +46,7 @@ func (TopLevel) _node() {}
 // Top Level Node
 // ======================================================================================
 
-// TopLevelNode is a [Component], [StateDeclaration], [AttributeDefinition],
+// TopLevelNode is a [Component], [AttributeDefinition],
 // [ElementDefinition], or [Statement].
 type TopLevelNode interface {
 	Node

@@ -17,7 +17,6 @@ import (
 	"github.com/mavolin/corgi/v2/load/parse/internal/element"
 	"github.com/mavolin/corgi/v2/load/parse/internal/interpolation"
 	"github.com/mavolin/corgi/v2/load/parse/internal/quickanno"
-	"github.com/mavolin/corgi/v2/load/parse/internal/state"
 	"github.com/mavolin/corgi/v2/load/parse/internal/text"
 )
 
@@ -223,9 +222,7 @@ func TopLevel() parser.Func[ast.TopLevel] {
 
 func TopLevelNode() parser.Func[ast.TopLevelNode] {
 	return func(p *parser.Parser) ast.TopLevelNode {
-		if sd := parser.TryOptional(p, state.Declaration(), nil); sd != nil {
-			return sd
-		} else if c := parser.TryOptional(p, component.Component(), nil); c != nil {
+		if c := parser.TryOptional(p, component.Component(), nil); c != nil {
 			return c
 		} else if ad := parser.TryOptional(p, attribute.Definition(), nil); ad != nil {
 			return ad

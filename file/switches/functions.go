@@ -894,8 +894,6 @@ func Node(n ast.Node,
 	ShorthandInterpolation func(*ast.ShorthandInterpolation),
 	ShorthandText func(*ast.ShorthandText),
 	SimpleStatement func(*ast.SimpleStatement),
-	StateDeclaration func(*ast.StateDeclaration),
-	StateSpec func(*ast.StateSpec),
 	Statement func(*ast.Statement),
 	StaticString func(*ast.StaticString),
 	String func(*ast.String),
@@ -1109,10 +1107,6 @@ func Node(n ast.Node,
 		ShorthandText(n)
 	case *ast.SimpleStatement:
 		SimpleStatement(n)
-	case *ast.StateDeclaration:
-		StateDeclaration(n)
-	case *ast.StateSpec:
-		StateSpec(n)
 	case *ast.Statement:
 		Statement(n)
 	case *ast.StaticString:
@@ -1265,8 +1259,6 @@ func NodeR[T any](n ast.Node,
 	ShorthandInterpolation func(*ast.ShorthandInterpolation) T,
 	ShorthandText func(*ast.ShorthandText) T,
 	SimpleStatement func(*ast.SimpleStatement) T,
-	StateDeclaration func(*ast.StateDeclaration) T,
-	StateSpec func(*ast.StateSpec) T,
 	Statement func(*ast.Statement) T,
 	StaticString func(*ast.StaticString) T,
 	String func(*ast.String) T,
@@ -1480,10 +1472,6 @@ func NodeR[T any](n ast.Node,
 		return ShorthandText(n)
 	case *ast.SimpleStatement:
 		return SimpleStatement(n)
-	case *ast.StateDeclaration:
-		return StateDeclaration(n)
-	case *ast.StateSpec:
-		return StateSpec(n)
 	case *ast.Statement:
 		return Statement(n)
 	case *ast.StaticString:
@@ -2103,7 +2091,6 @@ func TopLevelNode(n ast.TopLevelNode,
 	Component func(*ast.Component),
 	ElementDefinition func(*ast.ElementDefinition),
 	ImplicitCodeLine func(*ast.ImplicitCodeLine),
-	StateDeclaration func(*ast.StateDeclaration),
 ) {
 	switch n := n.(type) {
 	case *ast.AttributeDefinition:
@@ -2116,8 +2103,6 @@ func TopLevelNode(n ast.TopLevelNode,
 		ElementDefinition(n)
 	case *ast.ImplicitCodeLine:
 		ImplicitCodeLine(n)
-	case *ast.StateDeclaration:
-		StateDeclaration(n)
 	default:
 		panic(fmt.Sprintf("TopLevelNode: unknown variant %T: please rerun go generate", n))
 	}
@@ -2129,7 +2114,6 @@ func TopLevelNodeR[T any](n ast.TopLevelNode,
 	Component func(*ast.Component) T,
 	ElementDefinition func(*ast.ElementDefinition) T,
 	ImplicitCodeLine func(*ast.ImplicitCodeLine) T,
-	StateDeclaration func(*ast.StateDeclaration) T,
 ) T {
 	switch n := n.(type) {
 	case *ast.AttributeDefinition:
@@ -2142,8 +2126,6 @@ func TopLevelNodeR[T any](n ast.TopLevelNode,
 		return ElementDefinition(n)
 	case *ast.ImplicitCodeLine:
 		return ImplicitCodeLine(n)
-	case *ast.StateDeclaration:
-		return StateDeclaration(n)
 	default:
 		panic(fmt.Sprintf("TopLevelNode: unknown variant %T: please rerun go generate", n))
 	}
