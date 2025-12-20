@@ -45,7 +45,7 @@ func (z *analyzer) AnalyzeComponent(ctx context.Context, logger *slog.Logger, c 
 }
 
 func (z *analyzer) AnalyzeComponentCall_Component(ctx context.Context, cc *file.ComponentCall) {
-	if cc.Component == nil || cc.Component.Analyzed || z.component_Circular(cc.Component) {
+	if cc.Component == nil || cc.Component.Analyzed || get.Component.Circular(z, cc.Component) {
 		return
 	}
 
@@ -57,7 +57,7 @@ func (z *analyzer) AnalyzeComponentCall_Component(ctx context.Context, cc *file.
 // Circular
 // ======================================================================================
 
-func (z *analyzer) AnalyzeComponent_Circular(logger *slog.Logger) {
+func (z *analyzer) AnalyzeComponent_Circular(logger *slog.Logger) { // todo: check that this works
 	for _, c := range z.Pkg.Components {
 		if !c.Analyzed {
 			c.Circular = false // reset
@@ -69,12 +69,10 @@ func (z *analyzer) AnalyzeComponent_Circular(logger *slog.Logger) {
 		if !c.Analyzed {
 			chain = chain[:1]
 			z.analyzeComponent_Circular(logger, c, chain, c)
-			z.Ran(c, component_Circular{})
+			analyzed.Component.Circular(z, c)
 		}
 	}
 }
-
-type component_Circular struct{}
 
 func (z *analyzer) analyzeComponent_Circular(logger *slog.Logger, root *file.Component, chain []*file.ComponentCall, last *file.Component) {
 	if last.Circular {
@@ -147,10 +145,8 @@ func (z *analyzer) AnalyzeComponent_AST(ctx context.Context, c *file.Component) 
 // Always Forwards Received Attributes
 // ======================================================================================
 
-type component_AlwaysForwardsReceivedAttributes struct{}
-
 func (z *analyzer) AnalyzeComponent_AlwaysForwardsReceivedAttributes(c *file.Component) {
-	defer z.Ran(c, component_AlwaysForwardsReceivedAttributes{})
+	defer analyzed.Component.AlwaysForwardsReceivedAttributes(z, c)
 	// todo
 }
 
@@ -158,12 +154,10 @@ func (z *analyzer) AnalyzeComponent_AlwaysForwardsReceivedAttributes(c *file.Com
 // Always Accepts Attributes
 // ======================================================================================
 
-type component_AlwaysAcceptsAttributes struct{}
-
 func (z *analyzer) AnalyzeComponent_AlwaysAcceptsAttributes(c *file.Component) {
-	defer z.Ran(c, component_AlwaysAcceptsAttributes{})
+	defer analyzed.Component.AlwaysAcceptsAttributes(z, c)
 
-	alwaysForwardsReceivedAttributes := z.component_AlwaysForwardsReceivedAttributes(c)
+	alwaysForwardsReceivedAttributes := get.Component.AlwaysForwardsReceivedAttributes(z, c)
 	if alwaysForwardsReceivedAttributes.True() {
 		c.AlwaysAcceptsAttributes.SetReason(alwaysForwardsReceivedAttributes.Reason())
 		return
@@ -176,10 +170,8 @@ func (z *analyzer) AnalyzeComponent_AlwaysAcceptsAttributes(c *file.Component) {
 // Always Forwards Attributes
 // ======================================================================================
 
-type component_AlwaysForwardsAttributes struct{}
-
 func (z *analyzer) AnalyzeComponent_AlwaysForwardsAttributes(c *file.Component) {
-	defer z.Ran(c, component_AlwaysForwardsAttributes{})
+	defer analyzed.Component.AlwaysForwardsAttributes(z, c)
 	// todo
 }
 
@@ -187,10 +179,8 @@ func (z *analyzer) AnalyzeComponent_AlwaysForwardsAttributes(c *file.Component) 
 // Always Writes Content
 // ======================================================================================
 
-type component_AlwaysWritesContent struct{}
-
 func (z *analyzer) AnalyzeComponent_AlwaysWritesContent(c *file.Component) {
-	defer z.Ran(c, component_AlwaysWritesContent{})
+	defer analyzed.Component.AlwaysWritesContent(z, c)
 	// todo
 }
 
@@ -198,10 +188,8 @@ func (z *analyzer) AnalyzeComponent_AlwaysWritesContent(c *file.Component) {
 // Always Writes Elements
 // ======================================================================================
 
-type component_AlwaysWritesElements struct{}
-
 func (z *analyzer) AnalyzeComponent_AlwaysWritesElements(c *file.Component) {
-	defer z.Ran(c, component_AlwaysWritesElements{})
+	defer analyzed.Component.AlwaysWritesElements(z, c)
 	// todo
 }
 
@@ -209,10 +197,8 @@ func (z *analyzer) AnalyzeComponent_AlwaysWritesElements(c *file.Component) {
 // Permanent Elements With &-Placeholder
 // ======================================================================================
 
-type component_PermanentElementsWithAndPlaceholder struct{}
-
 func (z *analyzer) AnalyzeComponent_PermanentElementsWithAndPlaceholder(c *file.Component) {
-	defer z.Ran(c, component_PermanentElementsWithAndPlaceholder{})
+	defer analyzed.Component.PermanentElementsWithAndPlaceholder(z, c)
 	// todo
 }
 
@@ -220,9 +206,7 @@ func (z *analyzer) AnalyzeComponent_PermanentElementsWithAndPlaceholder(c *file.
 // Permanent Element Specs With &-Placeholder
 // ======================================================================================
 
-type component_PermanentElementSpecsWithAndPlaceholder struct{}
-
 func (z *analyzer) AnalyzeComponent_PermanentElementSpecsWithAndPlaceholder(c *file.Component) {
-	defer z.Ran(c, component_PermanentElementSpecsWithAndPlaceholder{})
+	defer analyzed.Component.PermanentElementSpecsWithAndPlaceholder(z, c)
 	// todo
 }

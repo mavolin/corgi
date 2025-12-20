@@ -58,7 +58,7 @@ func (z *analyzer) AnalyzeComponentCall(ctx context.Context, cc *file.ComponentC
 }
 
 func (z *analyzer) checkNoInfiniteRecursion(logger *slog.Logger, cc *file.ComponentCall, callerChain []*file.Component) {
-	if cc.Component.Circular {
+	if get.Component.Circular(z, cc.Component) {
 		return
 	} else if len(callerChain) < 2048 {
 		return
@@ -99,14 +99,9 @@ type callerChainKey struct{}
 // Receives Attributes
 // ======================================================================================
 
-type (
-	componentCall_ReceivesAndPlaceholder struct{}
-	componentCall_ReceivesAttributes     struct{}
-)
-
 func (z *analyzer) AnalyzeComponentCall_ReceivesAttributes_ReceivesAndPlaceholder(ctx context.Context, cc *file.ComponentCall) {
-	defer z.Ran(cc, componentCall_ReceivesAndPlaceholder{})
-	defer z.Ran(cc, componentCall_ReceivesAttributes{})
+	defer analyzed.ComponentCall.ReceivesAndPlaceholder(z, cc)
+	defer analyzed.ComponentCall.ReceivesAttributes(z, cc)
 
 	cc.ReceivesAttributes.SetFalse()
 	cc.ReceivesAndPlaceholder.SetFalse()
@@ -146,7 +141,7 @@ func (z *analyzer) AnalyzeComponentCall_ReceivesAttributes_ReceivesAndPlaceholde
 						return
 					}
 
-					fa := z.componentCall_ForwardsAttributes(subCC)
+					fa := get.ComponentCall.ForwardsAttributes(z, subCC)
 					if fa.Equal(true) {
 						cc.ReceivesAttributes.SetReason(subCC.AST)
 					} else if fa.Failed() {
@@ -179,7 +174,7 @@ func (z *analyzer) AnalyzeComponentCall_ReceivesAttributes_ReceivesAndPlaceholde
 						return
 					}
 
-					fap := z.componentCall_ForwardsAndPlaceholder(subCC)
+					fap := get.ComponentCall.ForwardsAndPlaceholder(z, subCC)
 					if fap.Equal(true) {
 						cc.ReceivesAndPlaceholder.SetReason(subCC.AST)
 					} else if fap.Failed() {
@@ -237,17 +232,15 @@ func (z *analyzer) analyzeComponentCall_ReceivesAttributes_ReceivesAndPlaceholde
 // Elements With &-Placeholder
 // ======================================================================================
 
-type componentCall_ElementsWithAndPlaceholder struct{}
-
 func (z *analyzer) AnalyzeComponentCall_ElementsWithAndPlaceholder(cc *file.ComponentCall) {
-	defer z.Ran(cc, componentCall_ElementsWithAndPlaceholder{})
+	defer analyzed.ComponentCall.ElementsWithAndPlaceholder(z, cc)
 
 	if cc.Component == nil {
 		cc.ElementsWithAndPlaceholder.SetFailed()
 		return
 	}
 
-	permanentElementsWithAndPlaceholder := z.component_PermanentElementsWithAndPlaceholder(cc.Component)
+	permanentElementsWithAndPlaceholder := get.Component.PermanentElementsWithAndPlaceholder(z, cc.Component)
 	if permanentElementsWithAndPlaceholder.Failed() {
 		cc.ElementsWithAndPlaceholder.SetFailed()
 		return
@@ -261,16 +254,16 @@ func (z *analyzer) AnalyzeComponentCall_ElementsWithAndPlaceholder(cc *file.Comp
 
 	for _, b := range cc.Component.Blocks {
 		for _, bi := range b.Instances {
-			if bi.Default == nil || z.blockInstance_DefaultOverwritten(bi, cc) {
+			if bi.Default == nil || get.BlockInstance.DefaultOverwritten(z, bi, cc) {
 				continue
 			}
-			elementsWithAndPlaceholder := z.blockInstanceDefault_ElementsWithAndPlaceholder(bi)
+			elementsWithAndPlaceholder := get.BlockInstance.Default.ElementsWithAndPlaceholder(z, bi)
 			if elementsWithAndPlaceholder.Failed() {
 				cc.ElementsWithAndPlaceholder.SetFailed()
 				return
 			}
 
-			if bi.Default.ElementSpecsWithAndPlaceholder.Result().Len() > 0 {
+			if get.BlockInstance.Default.ElementSpecsWithAndPlaceholder(z, bi).Result().Len() > 0 {
 				res = append(res, elementsWithAndPlaceholder.Result().Get()...)
 			}
 		}
@@ -283,10 +276,8 @@ func (z *analyzer) AnalyzeComponentCall_ElementsWithAndPlaceholder(cc *file.Comp
 // Element Specs With &-Placeholder
 // ======================================================================================
 
-type componentCall_ElementSpecsWithAndPlaceholder struct{}
-
 func (z *analyzer) AnalyzeComponentCall_ElementSpecsWithAndPlaceholder(cc *file.ComponentCall) {
-	z.Ran(cc, componentCall_ElementSpecsWithAndPlaceholder{})
+	defer analyzed.ComponentCall.ElementSpecsWithAndPlaceholder(z, cc)
 
 	if cc.Component == nil {
 		cc.ElementSpecsWithAndPlaceholder.SetFailed()
@@ -294,7 +285,7 @@ func (z *analyzer) AnalyzeComponentCall_ElementSpecsWithAndPlaceholder(cc *file.
 	}
 
 	// fast path
-	elementsWithAndPlaceholder := z.componentCall_ElementsWithAndPlaceholder(cc)
+	elementsWithAndPlaceholder := get.ComponentCall.ElementsWithAndPlaceholder(z, cc)
 	if elementsWithAndPlaceholder.Failed() {
 		cc.ElementSpecsWithAndPlaceholder.SetFailed()
 		return
@@ -305,17 +296,17 @@ func (z *analyzer) AnalyzeComponentCall_ElementSpecsWithAndPlaceholder(cc *file.
 
 	specSet := make(map[*file.ElementSpec]struct{})
 
-	permanentElementSpecsWithAndPlaceholder := z.component_PermanentElementSpecsWithAndPlaceholder(cc.Component)
+	permanentElementSpecsWithAndPlaceholder := get.Component.PermanentElementSpecsWithAndPlaceholder(z, cc.Component)
 	for _, spec := range permanentElementSpecsWithAndPlaceholder.Result().Get() {
 		specSet[spec] = struct{}{}
 	}
 
 	for _, b := range cc.Component.Blocks {
 		for _, bi := range b.Instances {
-			if bi.Default == nil || z.blockInstance_DefaultOverwritten(bi, cc) {
+			if bi.Default == nil || get.BlockInstance.DefaultOverwritten(z, bi, cc) {
 				continue
 			}
-			elementSpecsWithAndPlaceholder := z.blockInstanceDefault_ElementSpecsWithAndPlaceholder(bi)
+			elementSpecsWithAndPlaceholder := get.BlockInstance.Default.ElementSpecsWithAndPlaceholder(z, bi)
 			if elementSpecsWithAndPlaceholder.Failed() {
 				cc.ElementSpecsWithAndPlaceholder.SetFailed()
 				return

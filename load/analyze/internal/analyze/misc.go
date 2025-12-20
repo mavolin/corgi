@@ -12,12 +12,6 @@ import (
 
 // CheckPackageNamesMatch checks if all files in the package have the same
 // package name.
-//
-// Depends on Checks: None
-//
-// Sets Fields: None
-//
-// Depends on Fields: None
 func (z *analyzer) CheckPackageNamesMatch() (ok bool) {
 	logger := z.Logger.WithGroup("checks.package_names_match")
 
@@ -47,14 +41,6 @@ func (z *analyzer) CheckPackageNamesMatch() (ok bool) {
 
 // SetPackageName sets the package name to the name of the first file in the
 // package.
-//
-// Depends on Checks:
-//   - CheckPackageNamesMatch - So that we don't assign an incorrect package
-//     name.
-//
-// Sets Fields: None
-//
-// Depends on Fields: None
 func (z *analyzer) SetPackageName() {
 	logger := z.Logger.WithGroup("set_package_name")
 

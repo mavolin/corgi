@@ -32,16 +32,12 @@ func (z *analyzer) AnalyzeComponentParameter(logger *slog.Logger, c *file.Compon
 // Infer Type From Attribute Type
 // ======================================================================================
 
-type (
-	componentParameter_AttributeType struct{}
-	componentParameter_AttributeName struct{}
-)
-
 func (z *analyzer) AnalyzeComponentParameter_AttributeType_AttributeName(
 	logger *slog.Logger, c *file.Component, param *file.ComponentParameter,
 ) {
-	defer z.Ran(param, componentParameter_AttributeType{})
-	defer z.Ran(param, componentParameter_AttributeName{})
+	defer analyzed.ComponentParameter.AttributeType(z, param)
+	defer analyzed.ComponentParameter.AttributeName(z, param)
+
 	logger = logger.WithGroup("attr_type_param")
 
 	param.AttributeType.SetZero()
@@ -98,14 +94,12 @@ func (z *analyzer) AnalyzeComponentParameter_AttributeType_AttributeName(
 // Infer Type From Default
 // ======================================================================================
 
-type componentParameter_InferredType struct{}
-
 func (z *analyzer) AnalyzeComponentParameter_InferredType(logger *slog.Logger, c *file.Component, param *file.ComponentParameter) {
-	defer z.Ran(param, componentParameter_InferredType{})
+	defer analyzed.ComponentParameter.InferredType(z, param)
 
 	param.InferredType.SetZero()
 
-	attributeType := z.componentParameter_AttributeType(param)
+	attributeType := get.ComponentParameter.AttributeType(z, param)
 	if attributeType.Failed() || attributeType.NotZero() {
 		z.AnalyzeComponentParameter_InferredType_fromAttributeType(logger, c, param)
 	} else {
@@ -116,7 +110,7 @@ func (z *analyzer) AnalyzeComponentParameter_InferredType(logger *slog.Logger, c
 func (z *analyzer) AnalyzeComponentParameter_InferredType_fromAttributeType(
 	logger *slog.Logger, c *file.Component, param *file.ComponentParameter,
 ) {
-	attributeType := z.componentParameter_AttributeType(param)
+	attributeType := get.ComponentParameter.AttributeType(z, param)
 	if attributeType.Failed() {
 		param.InferredType.SetFailed()
 		return

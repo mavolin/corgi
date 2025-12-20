@@ -28,10 +28,8 @@ func (z *analyzer) AnalyzeBlockInstance(
 // Forwarded
 // ======================================================================================
 
-type blockInstance_Forwarded struct{}
-
 func (z *analyzer) AnalyzeBlockInstance_Forwarded(ctx context.Context, parents []*walk.Context, bi *file.BlockInstance) {
-	defer z.Ran(bi, blockInstance_Forwarded{})
+	defer analyzed.BlockInstance.Forwarded(z, bi)
 
 	bi.Forwarded.SetResult(true)
 
@@ -64,7 +62,7 @@ func (z *analyzer) AnalyzeBlockInstance_Forwarded(ctx context.Context, parents [
 					// Continue checking: if the instance has another element as
 					// parent, we can still be sure it's not forwarded.
 					bi.Forwarded.SetFailed()
-				} else if z.block_Forwarded(s.Block).False() {
+				} else if get.Block.Forwarded(z, s.Block).False() {
 					bi.Forwarded.SetResult(false)
 					return
 				}
@@ -81,10 +79,8 @@ func (z *analyzer) AnalyzeBlockInstance_Forwarded(ctx context.Context, parents [
 // Containing Elements
 // ======================================================================================
 
-type blockInstance_ContainingElements struct{}
-
 func (z *analyzer) AnalyzeBlockInstance_ContainingElements(ctx context.Context, parents []*walk.Context, bi *file.BlockInstance) {
-	defer z.Ran(bi, blockInstance_ContainingElements{})
+	defer analyzed.BlockInstance.ContainingElements(z, bi)
 
 	bi.ContainingElements.SetResult(file.NilSliceRef[ast.ContainingElement]())
 	var containingElements []ast.ContainingElement
@@ -119,7 +115,7 @@ func (z *analyzer) AnalyzeBlockInstance_ContainingElements(ctx context.Context, 
 					return true
 				}
 				for _, bi2 := range s.Block.Instances {
-					if z.blockInstance_ContainingElements(bi2).Failed() {
+					if get.BlockInstance.ContainingElements(z, bi2).Failed() {
 						bi.ContainingElements.SetFailed()
 						return true
 					}
@@ -129,7 +125,7 @@ func (z *analyzer) AnalyzeBlockInstance_ContainingElements(ctx context.Context, 
 					ComponentCall: ccAST,
 					BlockSetter:   parent,
 				})
-				if z.block_Forwarded(s.Block).False() {
+				if get.Block.Forwarded(z, s.Block).False() {
 					return true
 				}
 				i = ccI // continue with the parent of the component call
@@ -151,12 +147,10 @@ func (z *analyzer) AnalyzeBlockInstance_ContainingElements(ctx context.Context, 
 // Containing Element Specs
 // ======================================================================================
 
-type blockInstance_ContainingElementSpecs struct{}
-
 func (z *analyzer) AnalyzeBlockInstance_ContainingElementSpecs(bi *file.BlockInstance) {
-	defer z.Ran(bi, blockInstance_ContainingElementSpecs{})
+	defer analyzed.BlockInstance.ContainingElementSpecs(z, bi)
 
-	containingElements := z.blockInstance_ContainingElements(bi)
+	containingElements := get.BlockInstance.ContainingElements(z, bi)
 	if containingElements.Failed() {
 		bi.ContainingElementSpecs.SetFailed()
 		return
@@ -181,7 +175,7 @@ func (z *analyzer) AnalyzeBlockInstance_ContainingElementSpecs(bi *file.BlockIns
 				}
 
 				for _, bi2 := range s.Block.Instances {
-					containingElementSpecs := z.blockInstance_ContainingElementSpecs(bi2)
+					containingElementSpecs := get.BlockInstance.ContainingElementSpecs(z, bi2)
 					if containingElementSpecs.Failed() {
 						bi.ContainingElementSpecs.SetFailed()
 						return
@@ -216,11 +210,9 @@ func (z *analyzer) AnalyzeBlockInstance_ContainingElementSpecs(bi *file.BlockIns
 // Cannot Forward Attributes
 // ======================================================================================
 
-type blockInstance_CannotForwardAttributes struct{}
-
 func (z *analyzer) AnalyzeBlockInstance_CannotForwardAttributes(
 	bi *file.BlockInstance, cannotAttributes file.AnalysisWithReason[ast.AttributeInhibitor],
 ) {
-	defer z.Ran(bi, blockInstance_CannotForwardAttributes{})
+	defer analyzed.BlockInstance.CannotForwardAttributes(z, bi)
 	bi.CannotForwardAttributes = cannotAttributes
 }

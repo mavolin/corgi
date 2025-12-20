@@ -43,10 +43,8 @@ func (z *analyzer) AnalyzeAttribute(logger *slog.Logger, f *file.File, parents [
 // Value
 // ======================================================================================
 
-type attribute_Value struct{}
-
 func (z *analyzer) AnalyzeAttribute_Value(f *file.File, attr *file.Attribute) {
-	defer z.Ran(attr, attribute_Value{})
+	defer analyzed.Attribute.Value(z, attr)
 
 	switches.Attribute(attr.AST,
 		func(*ast.AndPlaceholder) {},
@@ -59,10 +57,8 @@ func (z *analyzer) AnalyzeAttribute_Value(f *file.File, attr *file.Attribute) {
 // Forwarded
 // ======================================================================================
 
-type attribute_Forwarded struct{}
-
 func (z *analyzer) AnalyzeAttribute_Forwarded(f *file.File, parents []*walk.Context, attr *file.Attribute) {
-	defer z.Ran(attr, attribute_Forwarded{})
+	defer analyzed.Attribute.Forwarded(z, attr)
 
 	attr.Forwarded.SetResult(true)
 
@@ -74,7 +70,7 @@ func (z *analyzer) AnalyzeAttribute_Forwarded(f *file.File, parents []*walk.Cont
 			},
 			func(parent *ast.ComponentCall) {
 				cc := f.ComponentCallByNode(parent)
-				forwardsReceivedAttributes := z.componentCall_ForwardsAcceptedAttributes(cc)
+				forwardsReceivedAttributes := get.ComponentCall.ForwardsAcceptedAttributes(z, cc)
 				if forwardsReceivedAttributes.Failed() {
 					// Continue checking: if the attribute has another element as
 					// parent, we can still be sure it's not forwarded.
@@ -98,7 +94,7 @@ func (z *analyzer) AnalyzeAttribute_Forwarded(f *file.File, parents []*walk.Cont
 					// Continue checking: if the attribute has another element as
 					// parent, we can still be sure it's not forwarded.
 					attr.Forwarded.SetFailed()
-				} else if z.block_Forwarded(s.Block).False() {
+				} else if get.Block.Forwarded(z, s.Block).False() {
 					attr.Forwarded.SetResult(false)
 				}
 				i = ccI // continue with the parent of the component call
@@ -114,10 +110,8 @@ func (z *analyzer) AnalyzeAttribute_Forwarded(f *file.File, parents []*walk.Cont
 // Receivers
 // ======================================================================================
 
-type attribute_Receivers struct{}
-
 func (z *analyzer) AnalyzeAttribute_Receivers(f *file.File, parents []*walk.Context, attr *file.Attribute) {
-	defer z.Ran(attr, attribute_Receivers{})
+	defer analyzed.Attribute.Receivers(z, attr)
 
 	var receivers []ast.AttributeReceiver
 
@@ -130,8 +124,8 @@ func (z *analyzer) AnalyzeAttribute_Receivers(f *file.File, parents []*walk.Cont
 			},
 			func(parent *ast.ComponentCall) bool {
 				cc := f.ComponentCallByNode(parent)
-				forwardsReceivedAttributes := z.componentCall_ForwardsAcceptedAttributes(cc)
-				elementsWithAndPlaceholder := z.componentCall_ElementsWithAndPlaceholder(cc)
+				forwardsReceivedAttributes := get.ComponentCall.ForwardsAcceptedAttributes(z, cc)
+				elementsWithAndPlaceholder := get.ComponentCall.ElementsWithAndPlaceholder(z, cc)
 				if forwardsReceivedAttributes.Failed() || elementsWithAndPlaceholder.Failed() {
 					attr.Receivers.SetFailed()
 					return true
@@ -158,7 +152,7 @@ func (z *analyzer) AnalyzeAttribute_Receivers(f *file.File, parents []*walk.Cont
 					return true
 				}
 				for _, instance := range s.Block.Instances {
-					if z.blockInstance_ContainingElements(instance).Failed() {
+					if get.BlockInstance.ContainingElements(z, instance).Failed() {
 						attr.Receivers.SetFailed()
 						return true
 					}
@@ -168,7 +162,7 @@ func (z *analyzer) AnalyzeAttribute_Receivers(f *file.File, parents []*walk.Cont
 					ComponentCall: ccAST,
 					BlockSetter:   parent,
 				})
-				if z.block_Forwarded(s.Block).False() {
+				if get.Block.Forwarded(z, s.Block).False() {
 					return true
 				}
 				i = ccI // continue with the parent of the component call
@@ -191,12 +185,10 @@ func (z *analyzer) AnalyzeAttribute_Receivers(f *file.File, parents []*walk.Cont
 // Receiving Element Specs
 // ======================================================================================
 
-type attribute_ReceivingElementSpecs struct{}
-
 func (z *analyzer) AnalyzeAttribute_ReceivingElementSpecs(f *file.File, attr *file.Attribute) {
-	z.Ran(attr, attribute_ReceivingElementSpecs{})
+	defer analyzed.Attribute.ReceivingElementSpecs(z, attr)
 
-	receivers := z.attribute_Receivers(attr)
+	receivers := get.Attribute.Receivers(z, attr)
 	if receivers.Failed() {
 		attr.ReceivingElementSpecs.SetFailed()
 		return
@@ -212,7 +204,7 @@ func (z *analyzer) AnalyzeAttribute_ReceivingElementSpecs(f *file.File, attr *fi
 		switches.AttributeReceiver(e,
 			func(e *ast.AndPlaceholderAttributeReceiver) {
 				cc := f.ComponentCallByNode((*ast.ComponentCall)(e))
-				elementSpecsWithAndPlaceholder := z.componentCall_ElementSpecsWithAndPlaceholder(cc)
+				elementSpecsWithAndPlaceholder := get.ComponentCall.ElementSpecsWithAndPlaceholder(z, cc)
 				if elementSpecsWithAndPlaceholder.Failed() {
 					attr.ReceivingElementSpecs.SetFailed()
 					return
@@ -231,7 +223,7 @@ func (z *analyzer) AnalyzeAttribute_ReceivingElementSpecs(f *file.File, attr *fi
 				}
 
 				for _, bi := range s.Block.Instances {
-					containingElementSpecs := z.blockInstance_ContainingElementSpecs(bi)
+					containingElementSpecs := get.BlockInstance.ContainingElementSpecs(z, bi)
 					if containingElementSpecs.Failed() {
 						attr.ReceivingElementSpecs.SetFailed()
 						return
@@ -266,10 +258,8 @@ func (z *analyzer) AnalyzeAttribute_ReceivingElementSpecs(f *file.File, attr *fi
 // Type
 // ======================================================================================
 
-type attribute_Type struct{}
-
 func (z *analyzer) AnalyzeAttribute_Type(logger *slog.Logger, f *file.File, attr *file.Attribute) {
-	defer z.Ran(attr, attribute_Type{})
+	defer analyzed.Attribute.Type(z, attr)
 
 	logger = logger.WithGroup("type")
 
@@ -316,9 +306,9 @@ func (z *analyzer) analyzeAttribute_Type_explicit(logger *slog.Logger, f *file.F
 }
 
 func (z *analyzer) analyzeAttribute_Type_inferred(logger *slog.Logger, f *file.File, attr *file.Attribute) {
-	forwarded := z.attribute_Forwarded(attr)
+	forwarded := get.Attribute.Forwarded(z, attr)
 	if forwarded.Equal(true) {
-		receivers := z.attribute_Receivers(attr)
+		receivers := get.Attribute.Receivers(z, attr)
 		partial := !receivers.Failed() && receivers.Result().Len() > 0
 		if partial {
 			attr.Type.SetFailed()
@@ -344,7 +334,7 @@ func (z *analyzer) analyzeAttribute_Type_inferred(logger *slog.Logger, f *file.F
 		}
 
 		attr.Type.SetResult(nil)
-		if z.attribute_Value(attr).Constant() {
+		if get.Attribute.Value(z, attr).Constant() {
 			return
 		}
 
@@ -372,7 +362,7 @@ func (z *analyzer) analyzeAttribute_Type_inferred(logger *slog.Logger, f *file.F
 		return
 	}
 
-	receivingElementSpecs := z.attribute_ReceivingElementSpecs(attr)
+	receivingElementSpecs := get.Attribute.ReceivingElementSpecs(z, attr)
 	if receivingElementSpecs.Failed() || forwarded.Failed() {
 		attr.Type.SetFailed()
 		return
@@ -393,7 +383,7 @@ func (z *analyzer) analyzeAttribute_Type_inferred(logger *slog.Logger, f *file.F
 		return
 	}
 
-	value := z.attribute_Value(attr)
+	value := get.Attribute.Value(z, attr)
 	if attr.Reference.Spec.Failed() {
 		attr.Type.SetFailed()
 		return

@@ -14,10 +14,8 @@ func (z *analyzer) AnalyzeBlockSetter(ctx context.Context, parents []*context.Co
 // Accepts Attributes
 // ======================================================================================
 
-type blockSetterInstance_AcceptsAttributes struct{}
-
 func (z *analyzer) BlockSetterInstance_AcceptsAttributes(bsi *file.BlockSetterInstance) {
-	defer z.Ran(bsi, blockSetterInstance_AcceptsAttributes{})
+	defer analyzed.BlockSetterInstance.AcceptsAttributes(z, bsi)
 	// todo
 }
 
@@ -25,10 +23,8 @@ func (z *analyzer) BlockSetterInstance_AcceptsAttributes(bsi *file.BlockSetterIn
 // Forwards Received Attributes
 // ======================================================================================
 
-type blockSetterInstance_ForwardsReceivedAttributes struct{}
-
 func (z *analyzer) BlockSetterInstance_ForwardsReceivedAttributes(bsi *file.BlockSetterInstance) {
-	defer z.Ran(bsi, blockSetterInstance_ForwardsReceivedAttributes{})
+	defer analyzed.BlockSetterInstance.ForwardsReceivedAttributes(z, bsi)
 	// todo
 }
 
@@ -36,10 +32,8 @@ func (z *analyzer) BlockSetterInstance_ForwardsReceivedAttributes(bsi *file.Bloc
 // Forwards Attributes
 // ======================================================================================
 
-type blockSetterInstance_ForwardsAttributes struct{}
-
 func (z *analyzer) BlockSetterInstance_ForwardsAttributes(bsi *file.BlockSetterInstance) {
-	defer z.Ran(bsi, blockSetterInstance_ForwardsAttributes{})
+	defer analyzed.BlockSetterInstance.ForwardsAttributes(z, bsi)
 	// todo
 }
 
@@ -47,10 +41,8 @@ func (z *analyzer) BlockSetterInstance_ForwardsAttributes(bsi *file.BlockSetterI
 // Writes Content
 // ======================================================================================
 
-type blockSetterInstance_WritesContent struct{}
-
 func (z *analyzer) BlockSetterInstance_WritesContent(bsi *file.BlockSetterInstance) {
-	defer z.Ran(bsi, blockSetterInstance_WritesContent{})
+	defer analyzed.BlockSetterInstance.WritesContent(z, bsi)
 	// todo
 }
 
@@ -58,9 +50,7 @@ func (z *analyzer) BlockSetterInstance_WritesContent(bsi *file.BlockSetterInstan
 // Writes Elements
 // ======================================================================================
 
-type blockSetterInstance_WritesElements struct{}
-
 func (z *analyzer) BlockSetterInstance_WritesElements(bsi *file.BlockSetterInstance) {
-	defer z.Ran(bsi, blockSetterInstance_WritesElements{})
+	defer analyzed.BlockSetterInstance.WritesElements(z, bsi)
 	// todo
 }

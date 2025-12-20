@@ -18,9 +18,7 @@ func (z *analyzer) AnalyzeComponentArgument(cc *file.ComponentCall, arg *file.Co
 // Value
 // ======================================================================================
 
-type componentArgument_Value struct{}
-
 func (z *analyzer) AnalyzeComponentArgument_Value(cc *file.ComponentCall, arg *file.ComponentArgument) {
-	defer z.Ran(arg, componentArgument_Value{})
+	defer analyzed.ComponentArgument.Value(z, arg)
 	arg.Value = z.expressionToResolvedValue(cc.File, arg.AST.Value)
 }

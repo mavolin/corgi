@@ -40,8 +40,6 @@ func (z *analyzer) AnalyzeElementSpec(logger *slog.Logger, spec *file.ElementSpe
 // Check Cycles
 // ======================================================================================
 
-type elementSpec_Circular struct{}
-
 func (z *analyzer) AnalyzeElementSpecs_Circular(logger *slog.Logger) {
 	logger = logger.WithGroup("cycles")
 
@@ -60,7 +58,7 @@ func (z *analyzer) AnalyzeElementSpecs_Circular(logger *slog.Logger) {
 		chain[0] = spec
 		chain = chain[:1] // reset the chain
 		z.analyzeElementSpec_Circular(logger, chain)
-		z.Ran(spec, elementSpec_Circular{})
+		analyzed.ElementSpec.Circular(z, spec)
 	}
 }
 
@@ -113,12 +111,10 @@ func (z *analyzer) analyzeElementSpec_Circular(logger *slog.Logger, chain []*fil
 // Type
 // ======================================================================================
 
-type elementSpec_Type struct{}
-
 func (z *analyzer) AnalyzeElementSpec_Type(logger *slog.Logger, spec *file.ElementSpec) {
-	z.Ran(spec, elementSpec_Type{})
+	defer analyzed.ElementSpec.Type(z, spec)
 
-	if z.elementSpec_Circular(spec) {
+	if get.ElementSpec.Circular(z, spec) {
 		return
 	}
 
@@ -129,7 +125,7 @@ func (z *analyzer) AnalyzeElementSpec_Type(logger *slog.Logger, spec *file.Eleme
 				spec.Type.SetFailed()
 				return
 			}
-			if z.elementSpec_Circular(spec) {
+			if get.ElementSpec.Circular(z, spec) {
 				spec.Type.SetFailed()
 				return
 			}
