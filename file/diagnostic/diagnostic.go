@@ -127,8 +127,18 @@ type (
 		// the place to link the documentation about components.
 		// We can expect common sense.
 		//
+		// Comments that start with "https://" are treated as absolute and will
+		// be rendered as-is.
+		// Otherwise, they are treated as a bang-path relative to the base URL
+		// of the documentation.
+		//
+		// Defaults to "internal-error" for InternalErrors.
+		// Set to " " to prevent this behavior.
+		//
 		// Rendered as:
-		//  See: #{baseURL}/!#{diagnostic.Docs}
+		//  See: #{baseURL}/!#{diagnostic.Docs} (for relative URLs)
+		//
+		//  See: #{diagnostic.Docs} (for absolute URLs)
 		Docs string
 	}
 
@@ -170,6 +180,8 @@ type (
 type Type string
 
 const (
+	// An InternalError is an error with tooling instead of user code.
+	// If present and Docs is unset, Docs defaults to "internal-error".
 	InternalError Type = "internal error"
 	Error         Type = "error"
 	Warning       Type = "warning"

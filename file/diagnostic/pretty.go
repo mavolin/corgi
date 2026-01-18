@@ -620,7 +620,7 @@ type lineRange struct {
 	lines      []string
 }
 
-// Reports the ranges of lines that are to be printed in the error.
+// Returns the ranges of lines that are to be printed in the error.
 func lineRanges(f *fileAnnos) []lineRange {
 	lines := make([]lineRange, len(f.annos))
 	for i, a := range f.annos {
