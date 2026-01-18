@@ -2,7 +2,6 @@ package diagnostic
 
 import (
 	"fmt"
-	"net/url"
 	"slices"
 	"strings"
 	"unicode"
@@ -36,7 +35,6 @@ type PrettyOptions struct {
 	FileNamePrinter func(f *file.File) string
 
 	// DocsBaseURL is the base URL to the documentation.
-	// No documentation link is added if this is empty.
 	//
 	// Default: https://corgi.mavolin.co
 	DocsBaseURL string
@@ -464,7 +462,9 @@ func (p *prettyPrinter) printHints() {
 
 func (p *prettyPrinter) printDocs() {
 	docs := p.diagnostic.Docs
-	if docs == "" {
+	if docs == " " {
+		return
+	} else if docs == "" {
 		if p.diagnostic.Type != InternalError {
 			return
 		}
@@ -475,11 +475,7 @@ func (p *prettyPrinter) printDocs() {
 	if strings.HasPrefix(docs, "https://") {
 		p.uncolored(docs)
 	} else {
-		link, err := url.JoinPath(p.o.DocsBaseURL, "!"+docs)
-		if err != nil {
-			link = p.o.DocsBaseURL + "/!" + docs
-		}
-		p.uncolored(link)
+		p.uncolored(p.o.DocsBaseURL + "/!" + docs)
 	}
 }
 
