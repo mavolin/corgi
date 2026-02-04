@@ -22,34 +22,15 @@
       {
         formatter = pkgs.nixfmt-rfc-style;
         devShells.default = pkgs.mkShell {
-          packages =
-            with pkgs;
-            with self.packages.${system};
-            [
-              go
-              gocovmerge
-              golangci-lint
-              goreleaser
-              gotools
-              util-linux
-            ];
+          packages = with pkgs; [
+            go
+            golangci-lint
+            goreleaser
+            gotools
+            mage
+          ];
 
           hardeningDisable = [ "fortify" ];
-        };
-
-        packages = {
-          gocovmerge = pkgs.buildGoModule rec {
-            pname = "gocovmerge";
-            version = "2023.05.07+${commit}";
-            commit = "fa4f82c";
-            src = pkgs.fetchFromSourcehut {
-              owner = "~shabbyrobe";
-              repo = pname;
-              rev = commit;
-              hash = "sha256-Q2RcwVAzNe8rgwVRY5gAOZEEBkeUoaYctUvCUkM0eWk=";
-            };
-            vendorHash = "sha256-E+LaOf3Ewl5oBvJjSoLTHDj1yFgDOVR5v520Ca5UbNc=";
-          };
         };
       }
     );

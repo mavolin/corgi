@@ -14,4 +14,4 @@ jobs:
         uses: actions/setup-go@v6
 
       - name: Check If Generated Files Need To Be Regenerated
-        run: ./scripts/check_need_regenerate.sh
+        run: mage checkRegenerate

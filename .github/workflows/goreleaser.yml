@@ -21,6 +21,6 @@ jobs:
         uses: actions/setup-go@v6
 
       - name: Run GoReleaser
-        run: nix develop -c goreleaser release
+        run: goreleaser release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

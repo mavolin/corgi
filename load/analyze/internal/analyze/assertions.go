@@ -13,107 +13,107 @@ import (
 
 var get = struct {
 	Attribute struct {
-		Value                 func(z *analyzer, __r *file.Attribute) file.ResolvedValue
-		Forwarded             func(z *analyzer, __r *file.Attribute) file.Analysis[bool]
-		Receivers             func(z *analyzer, __r *file.Attribute) file.Analysis[file.SliceRef[ast.AttributeReceiver]]
+		Value func(z *analyzer, __r *file.Attribute) file.ResolvedValue
+		Forwarded func(z *analyzer, __r *file.Attribute) file.Analysis[bool]
+		Receivers func(z *analyzer, __r *file.Attribute) file.Analysis[file.SliceRef[ast.AttributeReceiver]]
 		ReceivingElementSpecs func(z *analyzer, __r *file.Attribute) file.Analysis[file.SliceRef[*file.ElementSpec]]
-		Type                  func(z *analyzer, __r *file.Attribute) file.Analysis[attrtype.Type]
+		Type func(z *analyzer, __r *file.Attribute) file.Analysis[attrtype.Type]
 	}
 	Block struct {
-		Required                func(z *analyzer, __r *file.Block) (a file.Analysis[bool])
-		Forwarded               func(z *analyzer, __r *file.Block) (a file.AnalysisWithReason[*file.BlockInstance])
-		ForwardsAttributes      func(z *analyzer, __r *file.Block) (a file.Analysis[bool])
+		Required func(z *analyzer, __r *file.Block) (a file.Analysis[bool])
+		Forwarded func(z *analyzer, __r *file.Block) (a file.AnalysisWithReason[*file.BlockInstance])
+		ForwardsAttributes func(z *analyzer, __r *file.Block) (a file.Analysis[bool])
 		CannotForwardAttributes func(z *analyzer, __r *file.Block) (a file.AnalysisWithReason[*file.BlockInstance])
-		ElementType             func(z *analyzer, __r *file.Block) (a file.Analysis[elemtype.Type])
-		MostRestrictiveElement  func(z *analyzer, __r *file.Block) (a file.AnalysisWithReason[ast.ContainingElement])
+		ElementType func(z *analyzer, __r *file.Block) (a file.Analysis[elemtype.Type])
+		MostRestrictiveElement func(z *analyzer, __r *file.Block) (a file.AnalysisWithReason[ast.ContainingElement])
 	}
 	BlockInstance struct {
-		Forwarded               func(z *analyzer, __r *file.BlockInstance) file.Analysis[bool]
-		ContainingElements      func(z *analyzer, __r *file.BlockInstance) file.Analysis[file.SliceRef[ast.ContainingElement]]
-		ContainingElementSpecs  func(z *analyzer, __r *file.BlockInstance) file.Analysis[file.SliceRef[*file.ElementSpec]]
+		Forwarded func(z *analyzer, __r *file.BlockInstance) file.Analysis[bool]
+		ContainingElements func(z *analyzer, __r *file.BlockInstance) file.Analysis[file.SliceRef[ast.ContainingElement]]
+		ContainingElementSpecs func(z *analyzer, __r *file.BlockInstance) file.Analysis[file.SliceRef[*file.ElementSpec]]
 		CannotForwardAttributes func(z *analyzer, __r *file.BlockInstance) file.AnalysisWithReason[ast.AttributeInhibitor]
-		ElementType             func(z *analyzer, __r *file.BlockInstance) (a file.Analysis[elemtype.Type])
-		MostRestrictiveElement  func(z *analyzer, __r *file.BlockInstance) (a file.AnalysisWithReason[ast.ContainingElement])
-		ForwardsAttributes      func(z *analyzer, __r *file.BlockInstance) (a file.Analysis[bool])
-		DefaultOverwritten      func(z *analyzer, __r *file.BlockInstance, cc *file.ComponentCall) bool
-		Default                 struct {
-			AcceptsAttributes              func(z *analyzer, __r *file.BlockInstance) file.AnalysisWithReason[ast.AndPlaceholderWriter]
-			ForwardsReceivedAttributes     func(z *analyzer, __r *file.BlockInstance) file.AnalysisWithReason[ast.AndPlaceholderWriter]
-			ElementsWithAndPlaceholder     func(z *analyzer, __r *file.BlockInstance) file.Analysis[file.SliceRef[ast.AttributeReceiver]]
+		ElementType func(z *analyzer, __r *file.BlockInstance) (a file.Analysis[elemtype.Type])
+		MostRestrictiveElement func(z *analyzer, __r *file.BlockInstance) (a file.AnalysisWithReason[ast.ContainingElement])
+		ForwardsAttributes func(z *analyzer, __r *file.BlockInstance) (a file.Analysis[bool])
+		DefaultOverwritten func(z *analyzer, __r *file.BlockInstance, cc *file.ComponentCall) (bool)
+		Default struct {
+			AcceptsAttributes func(z *analyzer, __r *file.BlockInstance) file.AnalysisWithReason[ast.AndPlaceholderWriter]
+			ForwardsReceivedAttributes func(z *analyzer, __r *file.BlockInstance) file.AnalysisWithReason[ast.AndPlaceholderWriter]
+			ElementsWithAndPlaceholder func(z *analyzer, __r *file.BlockInstance) file.Analysis[file.SliceRef[ast.AttributeReceiver]]
 			ElementSpecsWithAndPlaceholder func(z *analyzer, __r *file.BlockInstance) file.Analysis[file.SliceRef[*file.ElementSpec]]
-			ForwardsAttributes             func(z *analyzer, __r *file.BlockInstance) file.AnalysisWithReason[ast.AttributeWriter]
-			WritesContent                  func(z *analyzer, __r *file.BlockInstance) file.AnalysisWithReason[ast.ContentWriter]
-			WritesElements                 func(z *analyzer, __r *file.BlockInstance) file.AnalysisWithReason[ast.ElementWriter]
+			ForwardsAttributes func(z *analyzer, __r *file.BlockInstance) file.AnalysisWithReason[ast.AttributeWriter]
+			WritesContent func(z *analyzer, __r *file.BlockInstance) file.AnalysisWithReason[ast.ContentWriter]
+			WritesElements func(z *analyzer, __r *file.BlockInstance) file.AnalysisWithReason[ast.ElementWriter]
 		}
 	}
 	BlockSetter struct {
-		WritesAndPlaceholder   func(z *analyzer, __r *file.BlockSetter) (a file.AnalysisWithReason[*file.BlockSetterInstance])
+		WritesAndPlaceholder func(z *analyzer, __r *file.BlockSetter) (a file.AnalysisWithReason[*file.BlockSetterInstance])
 		ForwardsAndPlaceholder func(z *analyzer, __r *file.BlockSetter) (a file.AnalysisWithReason[*file.BlockSetterInstance])
-		ForwardsAttributes     func(z *analyzer, __r *file.BlockSetter) (a file.AnalysisWithReason[*file.BlockSetterInstance])
-		WritesContent          func(z *analyzer, __r *file.BlockSetter) (a file.AnalysisWithReason[*file.BlockSetterInstance])
-		WritesElements         func(z *analyzer, __r *file.BlockSetter) (a file.AnalysisWithReason[*file.BlockSetterInstance])
+		ForwardsAttributes func(z *analyzer, __r *file.BlockSetter) (a file.AnalysisWithReason[*file.BlockSetterInstance])
+		WritesContent func(z *analyzer, __r *file.BlockSetter) (a file.AnalysisWithReason[*file.BlockSetterInstance])
+		WritesElements func(z *analyzer, __r *file.BlockSetter) (a file.AnalysisWithReason[*file.BlockSetterInstance])
 	}
 	BlockSetterInstance struct {
-		AcceptsAttributes          func(z *analyzer, __r *file.BlockSetterInstance) file.AnalysisWithReason[ast.AndPlaceholderWriter]
+		AcceptsAttributes func(z *analyzer, __r *file.BlockSetterInstance) file.AnalysisWithReason[ast.AndPlaceholderWriter]
 		ForwardsReceivedAttributes func(z *analyzer, __r *file.BlockSetterInstance) file.AnalysisWithReason[ast.AndPlaceholderWriter]
-		ForwardsAttributes         func(z *analyzer, __r *file.BlockSetterInstance) file.AnalysisWithReason[ast.AttributeWriter]
-		WritesContent              func(z *analyzer, __r *file.BlockSetterInstance) file.AnalysisWithReason[ast.ContentWriter]
-		WritesElements             func(z *analyzer, __r *file.BlockSetterInstance) file.AnalysisWithReason[ast.ElementWriter]
+		ForwardsAttributes func(z *analyzer, __r *file.BlockSetterInstance) file.AnalysisWithReason[ast.AttributeWriter]
+		WritesContent func(z *analyzer, __r *file.BlockSetterInstance) file.AnalysisWithReason[ast.ContentWriter]
+		WritesElements func(z *analyzer, __r *file.BlockSetterInstance) file.AnalysisWithReason[ast.ElementWriter]
 	}
 	Component struct {
-		Circular                                func(z *analyzer, __r *file.Component) bool
-		AlwaysAcceptsAttributes                 func(z *analyzer, __r *file.Component) file.AnalysisWithReason[ast.AndPlaceholderWriter]
-		AlwaysForwardsReceivedAttributes        func(z *analyzer, __r *file.Component) file.AnalysisWithReason[ast.AndPlaceholderWriter]
-		AlwaysForwardsAttributes                func(z *analyzer, __r *file.Component) file.AnalysisWithReason[ast.AttributeWriter]
-		AlwaysWritesContent                     func(z *analyzer, __r *file.Component) file.AnalysisWithReason[ast.ContentWriter]
-		AlwaysWritesElements                    func(z *analyzer, __r *file.Component) file.AnalysisWithReason[ast.ElementWriter]
-		PermanentElementsWithAndPlaceholder     func(z *analyzer, __r *file.Component) file.Analysis[file.SliceRef[ast.AttributeReceiver]]
+		Circular func(z *analyzer, __r *file.Component) bool
+		AlwaysAcceptsAttributes func(z *analyzer, __r *file.Component) file.AnalysisWithReason[ast.AndPlaceholderWriter]
+		AlwaysForwardsReceivedAttributes func(z *analyzer, __r *file.Component) file.AnalysisWithReason[ast.AndPlaceholderWriter]
+		AlwaysForwardsAttributes func(z *analyzer, __r *file.Component) file.AnalysisWithReason[ast.AttributeWriter]
+		AlwaysWritesContent func(z *analyzer, __r *file.Component) file.AnalysisWithReason[ast.ContentWriter]
+		AlwaysWritesElements func(z *analyzer, __r *file.Component) file.AnalysisWithReason[ast.ElementWriter]
+		PermanentElementsWithAndPlaceholder func(z *analyzer, __r *file.Component) file.Analysis[file.SliceRef[ast.AttributeReceiver]]
 		PermanentElementSpecsWithAndPlaceholder func(z *analyzer, __r *file.Component) file.Analysis[file.SliceRef[*file.ElementSpec]]
-		CouldAcceptAttributes                   func(z *analyzer, __r *file.Component) (a file.AnalysisWithReason[ast.AndPlaceholderWriter])
-		CouldForwardReceivedAttributes          func(z *analyzer, __r *file.Component) (a file.AnalysisWithReason[ast.AndPlaceholderWriter])
+		CouldAcceptAttributes func(z *analyzer, __r *file.Component) (a file.AnalysisWithReason[ast.AndPlaceholderWriter])
+		CouldForwardReceivedAttributes func(z *analyzer, __r *file.Component) (a file.AnalysisWithReason[ast.AndPlaceholderWriter])
 	}
 	ComponentArgument struct {
 		Value func(z *analyzer, __r *file.ComponentArgument) file.ResolvedValue
 	}
 	ComponentParameter struct {
-		InferredType  func(z *analyzer, __r *file.ComponentParameter) file.Analysis[file.Type]
+		InferredType func(z *analyzer, __r *file.ComponentParameter) file.Analysis[file.Type]
 		AttributeType func(z *analyzer, __r *file.ComponentParameter) file.Analysis[attrtype.Type]
 		AttributeName func(z *analyzer, __r *file.ComponentParameter) file.Analysis[string]
-		ResolvedType  func(z *analyzer, __r *file.ComponentParameter) file.Analysis[file.Type]
-		Required      func(z *analyzer, __r *file.ComponentParameter) bool
+		ResolvedType func(z *analyzer, __r *file.ComponentParameter) (file.Analysis[file.Type])
+		Required func(z *analyzer, __r *file.ComponentParameter) (bool)
 	}
 	ComponentCall struct {
-		ReceivesAttributes                func(z *analyzer, __r *file.ComponentCall) file.AnalysisWithReason[ast.AttributeWriter]
-		ReceivesAndPlaceholder            func(z *analyzer, __r *file.ComponentCall) file.AnalysisWithReason[ast.AndPlaceholderWriter]
-		ElementsWithAndPlaceholder        func(z *analyzer, __r *file.ComponentCall) file.Analysis[file.SliceRef[ast.AttributeReceiver]]
-		ElementSpecsWithAndPlaceholder    func(z *analyzer, __r *file.ComponentCall) file.Analysis[file.SliceRef[*file.ElementSpec]]
-		AcceptsAttributes                 func(z *analyzer, __r *file.ComponentCall) (a file.AnalysisWithReason[ast.AndPlaceholderWriter])
-		ForwardsAcceptedAttributes        func(z *analyzer, __r *file.ComponentCall) (a file.AnalysisWithReason[ast.AndPlaceholderWriter])
-		ForwardsAndPlaceholder            func(z *analyzer, __r *file.ComponentCall) (a file.Analysis[bool])
-		ForwardsReceivedAndPlaceholder    func(z *analyzer, __r *file.ComponentCall) file.AnalysisWithReason[ast.AndPlaceholderWriter]
+		ReceivesAttributes func(z *analyzer, __r *file.ComponentCall) file.AnalysisWithReason[ast.AttributeWriter]
+		ReceivesAndPlaceholder func(z *analyzer, __r *file.ComponentCall) file.AnalysisWithReason[ast.AndPlaceholderWriter]
+		ElementsWithAndPlaceholder func(z *analyzer, __r *file.ComponentCall) file.Analysis[file.SliceRef[ast.AttributeReceiver]]
+		ElementSpecsWithAndPlaceholder func(z *analyzer, __r *file.ComponentCall) file.Analysis[file.SliceRef[*file.ElementSpec]]
+		AcceptsAttributes func(z *analyzer, __r *file.ComponentCall) (a file.AnalysisWithReason[ast.AndPlaceholderWriter])
+		ForwardsAcceptedAttributes func(z *analyzer, __r *file.ComponentCall) (a file.AnalysisWithReason[ast.AndPlaceholderWriter])
+		ForwardsAndPlaceholder func(z *analyzer, __r *file.ComponentCall) (a file.Analysis[bool])
+		ForwardsReceivedAndPlaceholder func(z *analyzer, __r *file.ComponentCall) (file.AnalysisWithReason[ast.AndPlaceholderWriter])
 		BlockSetterForwardsAndPlaceholder func(z *analyzer, __r *file.ComponentCall) (a file.AnalysisWithReason[*file.BlockSetter])
-		ForwardsAttributes                func(z *analyzer, __r *file.ComponentCall) (a file.Analysis[bool])
-		ComponentForwardsAttributes       func(z *analyzer, __r *file.ComponentCall) (a file.AnalysisWithReason[ast.AttributeWriter])
-		ForwardsReceivedAttributes        func(z *analyzer, __r *file.ComponentCall) (a file.AnalysisWithReason[ast.AttributeWriter])
-		BlockSetterForwardsAttributes     func(z *analyzer, __r *file.ComponentCall) (a file.AnalysisWithReason[*file.BlockSetter])
-		WritesContent                     func(z *analyzer, __r *file.ComponentCall) (a file.Analysis[bool])
-		ComponentWritesContent            func(z *analyzer, __r *file.ComponentCall) (a file.AnalysisWithReason[ast.ContentWriter])
-		BlockSetterWritesContent          func(z *analyzer, __r *file.ComponentCall) (a file.AnalysisWithReason[*file.BlockSetter])
-		WritesElements                    func(z *analyzer, __r *file.ComponentCall) (a file.Analysis[bool])
-		ComponentWritesElements           func(z *analyzer, __r *file.ComponentCall) (a file.AnalysisWithReason[ast.ElementWriter])
-		BlockSetterWritesElements         func(z *analyzer, __r *file.ComponentCall) (a file.AnalysisWithReason[*file.BlockSetter])
+		ForwardsAttributes func(z *analyzer, __r *file.ComponentCall) (a file.Analysis[bool])
+		ComponentForwardsAttributes func(z *analyzer, __r *file.ComponentCall) (a file.AnalysisWithReason[ast.AttributeWriter])
+		ForwardsReceivedAttributes func(z *analyzer, __r *file.ComponentCall) (a file.AnalysisWithReason[ast.AttributeWriter])
+		BlockSetterForwardsAttributes func(z *analyzer, __r *file.ComponentCall) (a file.AnalysisWithReason[*file.BlockSetter])
+		WritesContent func(z *analyzer, __r *file.ComponentCall) (a file.Analysis[bool])
+		ComponentWritesContent func(z *analyzer, __r *file.ComponentCall) (a file.AnalysisWithReason[ast.ContentWriter])
+		BlockSetterWritesContent func(z *analyzer, __r *file.ComponentCall) (a file.AnalysisWithReason[*file.BlockSetter])
+		WritesElements func(z *analyzer, __r *file.ComponentCall) (a file.Analysis[bool])
+		ComponentWritesElements func(z *analyzer, __r *file.ComponentCall) (a file.AnalysisWithReason[ast.ElementWriter])
+		BlockSetterWritesElements func(z *analyzer, __r *file.ComponentCall) (a file.AnalysisWithReason[*file.BlockSetter])
 	}
 	ElementSpec struct {
 		Circular func(z *analyzer, __r *file.ElementSpec) bool
-		Type     func(z *analyzer, __r *file.ElementSpec) file.Analysis[elemtype.Type]
+		Type func(z *analyzer, __r *file.ElementSpec) file.Analysis[elemtype.Type]
 	}
 }{
 	Attribute: struct {
-		Value                 func(z *analyzer, __r *file.Attribute) file.ResolvedValue
-		Forwarded             func(z *analyzer, __r *file.Attribute) file.Analysis[bool]
-		Receivers             func(z *analyzer, __r *file.Attribute) file.Analysis[file.SliceRef[ast.AttributeReceiver]]
+		Value func(z *analyzer, __r *file.Attribute) file.ResolvedValue
+		Forwarded func(z *analyzer, __r *file.Attribute) file.Analysis[bool]
+		Receivers func(z *analyzer, __r *file.Attribute) file.Analysis[file.SliceRef[ast.AttributeReceiver]]
 		ReceivingElementSpecs func(z *analyzer, __r *file.Attribute) file.Analysis[file.SliceRef[*file.ElementSpec]]
-		Type                  func(z *analyzer, __r *file.Attribute) file.Analysis[attrtype.Type]
+		Type func(z *analyzer, __r *file.Attribute) file.Analysis[attrtype.Type]
 	}{
 		Value: func(z *analyzer, __r *file.Attribute) file.ResolvedValue {
 			require.Attribute.Value(z, __r)
@@ -137,12 +137,12 @@ var get = struct {
 		},
 	},
 	Block: struct {
-		Required                func(z *analyzer, __r *file.Block) (a file.Analysis[bool])
-		Forwarded               func(z *analyzer, __r *file.Block) (a file.AnalysisWithReason[*file.BlockInstance])
-		ForwardsAttributes      func(z *analyzer, __r *file.Block) (a file.Analysis[bool])
+		Required func(z *analyzer, __r *file.Block) (a file.Analysis[bool])
+		Forwarded func(z *analyzer, __r *file.Block) (a file.AnalysisWithReason[*file.BlockInstance])
+		ForwardsAttributes func(z *analyzer, __r *file.Block) (a file.Analysis[bool])
 		CannotForwardAttributes func(z *analyzer, __r *file.Block) (a file.AnalysisWithReason[*file.BlockInstance])
-		ElementType             func(z *analyzer, __r *file.Block) (a file.Analysis[elemtype.Type])
-		MostRestrictiveElement  func(z *analyzer, __r *file.Block) (a file.AnalysisWithReason[ast.ContainingElement])
+		ElementType func(z *analyzer, __r *file.Block) (a file.Analysis[elemtype.Type])
+		MostRestrictiveElement func(z *analyzer, __r *file.Block) (a file.AnalysisWithReason[ast.ContainingElement])
 	}{
 		Required: func(z *analyzer, __r *file.Block) (a file.Analysis[bool]) {
 			require.Block.Required(z, __r)
@@ -170,22 +170,22 @@ var get = struct {
 		},
 	},
 	BlockInstance: struct {
-		Forwarded               func(z *analyzer, __r *file.BlockInstance) file.Analysis[bool]
-		ContainingElements      func(z *analyzer, __r *file.BlockInstance) file.Analysis[file.SliceRef[ast.ContainingElement]]
-		ContainingElementSpecs  func(z *analyzer, __r *file.BlockInstance) file.Analysis[file.SliceRef[*file.ElementSpec]]
+		Forwarded func(z *analyzer, __r *file.BlockInstance) file.Analysis[bool]
+		ContainingElements func(z *analyzer, __r *file.BlockInstance) file.Analysis[file.SliceRef[ast.ContainingElement]]
+		ContainingElementSpecs func(z *analyzer, __r *file.BlockInstance) file.Analysis[file.SliceRef[*file.ElementSpec]]
 		CannotForwardAttributes func(z *analyzer, __r *file.BlockInstance) file.AnalysisWithReason[ast.AttributeInhibitor]
-		ElementType             func(z *analyzer, __r *file.BlockInstance) (a file.Analysis[elemtype.Type])
-		MostRestrictiveElement  func(z *analyzer, __r *file.BlockInstance) (a file.AnalysisWithReason[ast.ContainingElement])
-		ForwardsAttributes      func(z *analyzer, __r *file.BlockInstance) (a file.Analysis[bool])
-		DefaultOverwritten      func(z *analyzer, __r *file.BlockInstance, cc *file.ComponentCall) bool
-		Default                 struct {
-			AcceptsAttributes              func(z *analyzer, __r *file.BlockInstance) file.AnalysisWithReason[ast.AndPlaceholderWriter]
-			ForwardsReceivedAttributes     func(z *analyzer, __r *file.BlockInstance) file.AnalysisWithReason[ast.AndPlaceholderWriter]
-			ElementsWithAndPlaceholder     func(z *analyzer, __r *file.BlockInstance) file.Analysis[file.SliceRef[ast.AttributeReceiver]]
+		ElementType func(z *analyzer, __r *file.BlockInstance) (a file.Analysis[elemtype.Type])
+		MostRestrictiveElement func(z *analyzer, __r *file.BlockInstance) (a file.AnalysisWithReason[ast.ContainingElement])
+		ForwardsAttributes func(z *analyzer, __r *file.BlockInstance) (a file.Analysis[bool])
+		DefaultOverwritten func(z *analyzer, __r *file.BlockInstance, cc *file.ComponentCall) (bool)
+		Default struct {
+			AcceptsAttributes func(z *analyzer, __r *file.BlockInstance) file.AnalysisWithReason[ast.AndPlaceholderWriter]
+			ForwardsReceivedAttributes func(z *analyzer, __r *file.BlockInstance) file.AnalysisWithReason[ast.AndPlaceholderWriter]
+			ElementsWithAndPlaceholder func(z *analyzer, __r *file.BlockInstance) file.Analysis[file.SliceRef[ast.AttributeReceiver]]
 			ElementSpecsWithAndPlaceholder func(z *analyzer, __r *file.BlockInstance) file.Analysis[file.SliceRef[*file.ElementSpec]]
-			ForwardsAttributes             func(z *analyzer, __r *file.BlockInstance) file.AnalysisWithReason[ast.AttributeWriter]
-			WritesContent                  func(z *analyzer, __r *file.BlockInstance) file.AnalysisWithReason[ast.ContentWriter]
-			WritesElements                 func(z *analyzer, __r *file.BlockInstance) file.AnalysisWithReason[ast.ElementWriter]
+			ForwardsAttributes func(z *analyzer, __r *file.BlockInstance) file.AnalysisWithReason[ast.AttributeWriter]
+			WritesContent func(z *analyzer, __r *file.BlockInstance) file.AnalysisWithReason[ast.ContentWriter]
+			WritesElements func(z *analyzer, __r *file.BlockInstance) file.AnalysisWithReason[ast.ElementWriter]
 		}
 	}{
 		Forwarded: func(z *analyzer, __r *file.BlockInstance) file.Analysis[bool] {
@@ -216,18 +216,18 @@ var get = struct {
 			require.BlockInstance.ForwardsAttributes(z, __r)
 			return __r.ForwardsAttributes()
 		},
-		DefaultOverwritten: func(z *analyzer, __r *file.BlockInstance, cc *file.ComponentCall) bool {
+		DefaultOverwritten: func(z *analyzer, __r *file.BlockInstance, cc *file.ComponentCall) (bool) {
 			require.BlockInstance.DefaultOverwritten(z, __r)
 			return __r.DefaultOverwritten(cc)
 		},
 		Default: struct {
-			AcceptsAttributes              func(z *analyzer, __r *file.BlockInstance) file.AnalysisWithReason[ast.AndPlaceholderWriter]
-			ForwardsReceivedAttributes     func(z *analyzer, __r *file.BlockInstance) file.AnalysisWithReason[ast.AndPlaceholderWriter]
-			ElementsWithAndPlaceholder     func(z *analyzer, __r *file.BlockInstance) file.Analysis[file.SliceRef[ast.AttributeReceiver]]
+			AcceptsAttributes func(z *analyzer, __r *file.BlockInstance) file.AnalysisWithReason[ast.AndPlaceholderWriter]
+			ForwardsReceivedAttributes func(z *analyzer, __r *file.BlockInstance) file.AnalysisWithReason[ast.AndPlaceholderWriter]
+			ElementsWithAndPlaceholder func(z *analyzer, __r *file.BlockInstance) file.Analysis[file.SliceRef[ast.AttributeReceiver]]
 			ElementSpecsWithAndPlaceholder func(z *analyzer, __r *file.BlockInstance) file.Analysis[file.SliceRef[*file.ElementSpec]]
-			ForwardsAttributes             func(z *analyzer, __r *file.BlockInstance) file.AnalysisWithReason[ast.AttributeWriter]
-			WritesContent                  func(z *analyzer, __r *file.BlockInstance) file.AnalysisWithReason[ast.ContentWriter]
-			WritesElements                 func(z *analyzer, __r *file.BlockInstance) file.AnalysisWithReason[ast.ElementWriter]
+			ForwardsAttributes func(z *analyzer, __r *file.BlockInstance) file.AnalysisWithReason[ast.AttributeWriter]
+			WritesContent func(z *analyzer, __r *file.BlockInstance) file.AnalysisWithReason[ast.ContentWriter]
+			WritesElements func(z *analyzer, __r *file.BlockInstance) file.AnalysisWithReason[ast.ElementWriter]
 		}{
 			AcceptsAttributes: func(z *analyzer, __r *file.BlockInstance) file.AnalysisWithReason[ast.AndPlaceholderWriter] {
 				require.BlockInstance.Default.AcceptsAttributes(z, __r)
@@ -260,11 +260,11 @@ var get = struct {
 		},
 	},
 	BlockSetter: struct {
-		WritesAndPlaceholder   func(z *analyzer, __r *file.BlockSetter) (a file.AnalysisWithReason[*file.BlockSetterInstance])
+		WritesAndPlaceholder func(z *analyzer, __r *file.BlockSetter) (a file.AnalysisWithReason[*file.BlockSetterInstance])
 		ForwardsAndPlaceholder func(z *analyzer, __r *file.BlockSetter) (a file.AnalysisWithReason[*file.BlockSetterInstance])
-		ForwardsAttributes     func(z *analyzer, __r *file.BlockSetter) (a file.AnalysisWithReason[*file.BlockSetterInstance])
-		WritesContent          func(z *analyzer, __r *file.BlockSetter) (a file.AnalysisWithReason[*file.BlockSetterInstance])
-		WritesElements         func(z *analyzer, __r *file.BlockSetter) (a file.AnalysisWithReason[*file.BlockSetterInstance])
+		ForwardsAttributes func(z *analyzer, __r *file.BlockSetter) (a file.AnalysisWithReason[*file.BlockSetterInstance])
+		WritesContent func(z *analyzer, __r *file.BlockSetter) (a file.AnalysisWithReason[*file.BlockSetterInstance])
+		WritesElements func(z *analyzer, __r *file.BlockSetter) (a file.AnalysisWithReason[*file.BlockSetterInstance])
 	}{
 		WritesAndPlaceholder: func(z *analyzer, __r *file.BlockSetter) (a file.AnalysisWithReason[*file.BlockSetterInstance]) {
 			require.BlockSetter.WritesAndPlaceholder(z, __r)
@@ -288,11 +288,11 @@ var get = struct {
 		},
 	},
 	BlockSetterInstance: struct {
-		AcceptsAttributes          func(z *analyzer, __r *file.BlockSetterInstance) file.AnalysisWithReason[ast.AndPlaceholderWriter]
+		AcceptsAttributes func(z *analyzer, __r *file.BlockSetterInstance) file.AnalysisWithReason[ast.AndPlaceholderWriter]
 		ForwardsReceivedAttributes func(z *analyzer, __r *file.BlockSetterInstance) file.AnalysisWithReason[ast.AndPlaceholderWriter]
-		ForwardsAttributes         func(z *analyzer, __r *file.BlockSetterInstance) file.AnalysisWithReason[ast.AttributeWriter]
-		WritesContent              func(z *analyzer, __r *file.BlockSetterInstance) file.AnalysisWithReason[ast.ContentWriter]
-		WritesElements             func(z *analyzer, __r *file.BlockSetterInstance) file.AnalysisWithReason[ast.ElementWriter]
+		ForwardsAttributes func(z *analyzer, __r *file.BlockSetterInstance) file.AnalysisWithReason[ast.AttributeWriter]
+		WritesContent func(z *analyzer, __r *file.BlockSetterInstance) file.AnalysisWithReason[ast.ContentWriter]
+		WritesElements func(z *analyzer, __r *file.BlockSetterInstance) file.AnalysisWithReason[ast.ElementWriter]
 	}{
 		AcceptsAttributes: func(z *analyzer, __r *file.BlockSetterInstance) file.AnalysisWithReason[ast.AndPlaceholderWriter] {
 			require.BlockSetterInstance.AcceptsAttributes(z, __r)
@@ -316,16 +316,16 @@ var get = struct {
 		},
 	},
 	Component: struct {
-		Circular                                func(z *analyzer, __r *file.Component) bool
-		AlwaysAcceptsAttributes                 func(z *analyzer, __r *file.Component) file.AnalysisWithReason[ast.AndPlaceholderWriter]
-		AlwaysForwardsReceivedAttributes        func(z *analyzer, __r *file.Component) file.AnalysisWithReason[ast.AndPlaceholderWriter]
-		AlwaysForwardsAttributes                func(z *analyzer, __r *file.Component) file.AnalysisWithReason[ast.AttributeWriter]
-		AlwaysWritesContent                     func(z *analyzer, __r *file.Component) file.AnalysisWithReason[ast.ContentWriter]
-		AlwaysWritesElements                    func(z *analyzer, __r *file.Component) file.AnalysisWithReason[ast.ElementWriter]
-		PermanentElementsWithAndPlaceholder     func(z *analyzer, __r *file.Component) file.Analysis[file.SliceRef[ast.AttributeReceiver]]
+		Circular func(z *analyzer, __r *file.Component) bool
+		AlwaysAcceptsAttributes func(z *analyzer, __r *file.Component) file.AnalysisWithReason[ast.AndPlaceholderWriter]
+		AlwaysForwardsReceivedAttributes func(z *analyzer, __r *file.Component) file.AnalysisWithReason[ast.AndPlaceholderWriter]
+		AlwaysForwardsAttributes func(z *analyzer, __r *file.Component) file.AnalysisWithReason[ast.AttributeWriter]
+		AlwaysWritesContent func(z *analyzer, __r *file.Component) file.AnalysisWithReason[ast.ContentWriter]
+		AlwaysWritesElements func(z *analyzer, __r *file.Component) file.AnalysisWithReason[ast.ElementWriter]
+		PermanentElementsWithAndPlaceholder func(z *analyzer, __r *file.Component) file.Analysis[file.SliceRef[ast.AttributeReceiver]]
 		PermanentElementSpecsWithAndPlaceholder func(z *analyzer, __r *file.Component) file.Analysis[file.SliceRef[*file.ElementSpec]]
-		CouldAcceptAttributes                   func(z *analyzer, __r *file.Component) (a file.AnalysisWithReason[ast.AndPlaceholderWriter])
-		CouldForwardReceivedAttributes          func(z *analyzer, __r *file.Component) (a file.AnalysisWithReason[ast.AndPlaceholderWriter])
+		CouldAcceptAttributes func(z *analyzer, __r *file.Component) (a file.AnalysisWithReason[ast.AndPlaceholderWriter])
+		CouldForwardReceivedAttributes func(z *analyzer, __r *file.Component) (a file.AnalysisWithReason[ast.AndPlaceholderWriter])
 	}{
 		Circular: func(z *analyzer, __r *file.Component) bool {
 			require.Component.Circular(z, __r)
@@ -377,11 +377,11 @@ var get = struct {
 		},
 	},
 	ComponentParameter: struct {
-		InferredType  func(z *analyzer, __r *file.ComponentParameter) file.Analysis[file.Type]
+		InferredType func(z *analyzer, __r *file.ComponentParameter) file.Analysis[file.Type]
 		AttributeType func(z *analyzer, __r *file.ComponentParameter) file.Analysis[attrtype.Type]
 		AttributeName func(z *analyzer, __r *file.ComponentParameter) file.Analysis[string]
-		ResolvedType  func(z *analyzer, __r *file.ComponentParameter) file.Analysis[file.Type]
-		Required      func(z *analyzer, __r *file.ComponentParameter) bool
+		ResolvedType func(z *analyzer, __r *file.ComponentParameter) (file.Analysis[file.Type])
+		Required func(z *analyzer, __r *file.ComponentParameter) (bool)
 	}{
 		InferredType: func(z *analyzer, __r *file.ComponentParameter) file.Analysis[file.Type] {
 			require.ComponentParameter.InferredType(z, __r)
@@ -395,35 +395,35 @@ var get = struct {
 			require.ComponentParameter.AttributeName(z, __r)
 			return __r.AttributeName
 		},
-		ResolvedType: func(z *analyzer, __r *file.ComponentParameter) file.Analysis[file.Type] {
+		ResolvedType: func(z *analyzer, __r *file.ComponentParameter) (file.Analysis[file.Type]) {
 			require.ComponentParameter.ResolvedType(z, __r)
 			return __r.ResolvedType()
 		},
-		Required: func(z *analyzer, __r *file.ComponentParameter) bool {
+		Required: func(z *analyzer, __r *file.ComponentParameter) (bool) {
 			require.ComponentParameter.Required(z, __r)
 			return __r.Required()
 		},
 	},
 	ComponentCall: struct {
-		ReceivesAttributes                func(z *analyzer, __r *file.ComponentCall) file.AnalysisWithReason[ast.AttributeWriter]
-		ReceivesAndPlaceholder            func(z *analyzer, __r *file.ComponentCall) file.AnalysisWithReason[ast.AndPlaceholderWriter]
-		ElementsWithAndPlaceholder        func(z *analyzer, __r *file.ComponentCall) file.Analysis[file.SliceRef[ast.AttributeReceiver]]
-		ElementSpecsWithAndPlaceholder    func(z *analyzer, __r *file.ComponentCall) file.Analysis[file.SliceRef[*file.ElementSpec]]
-		AcceptsAttributes                 func(z *analyzer, __r *file.ComponentCall) (a file.AnalysisWithReason[ast.AndPlaceholderWriter])
-		ForwardsAcceptedAttributes        func(z *analyzer, __r *file.ComponentCall) (a file.AnalysisWithReason[ast.AndPlaceholderWriter])
-		ForwardsAndPlaceholder            func(z *analyzer, __r *file.ComponentCall) (a file.Analysis[bool])
-		ForwardsReceivedAndPlaceholder    func(z *analyzer, __r *file.ComponentCall) file.AnalysisWithReason[ast.AndPlaceholderWriter]
+		ReceivesAttributes func(z *analyzer, __r *file.ComponentCall) file.AnalysisWithReason[ast.AttributeWriter]
+		ReceivesAndPlaceholder func(z *analyzer, __r *file.ComponentCall) file.AnalysisWithReason[ast.AndPlaceholderWriter]
+		ElementsWithAndPlaceholder func(z *analyzer, __r *file.ComponentCall) file.Analysis[file.SliceRef[ast.AttributeReceiver]]
+		ElementSpecsWithAndPlaceholder func(z *analyzer, __r *file.ComponentCall) file.Analysis[file.SliceRef[*file.ElementSpec]]
+		AcceptsAttributes func(z *analyzer, __r *file.ComponentCall) (a file.AnalysisWithReason[ast.AndPlaceholderWriter])
+		ForwardsAcceptedAttributes func(z *analyzer, __r *file.ComponentCall) (a file.AnalysisWithReason[ast.AndPlaceholderWriter])
+		ForwardsAndPlaceholder func(z *analyzer, __r *file.ComponentCall) (a file.Analysis[bool])
+		ForwardsReceivedAndPlaceholder func(z *analyzer, __r *file.ComponentCall) (file.AnalysisWithReason[ast.AndPlaceholderWriter])
 		BlockSetterForwardsAndPlaceholder func(z *analyzer, __r *file.ComponentCall) (a file.AnalysisWithReason[*file.BlockSetter])
-		ForwardsAttributes                func(z *analyzer, __r *file.ComponentCall) (a file.Analysis[bool])
-		ComponentForwardsAttributes       func(z *analyzer, __r *file.ComponentCall) (a file.AnalysisWithReason[ast.AttributeWriter])
-		ForwardsReceivedAttributes        func(z *analyzer, __r *file.ComponentCall) (a file.AnalysisWithReason[ast.AttributeWriter])
-		BlockSetterForwardsAttributes     func(z *analyzer, __r *file.ComponentCall) (a file.AnalysisWithReason[*file.BlockSetter])
-		WritesContent                     func(z *analyzer, __r *file.ComponentCall) (a file.Analysis[bool])
-		ComponentWritesContent            func(z *analyzer, __r *file.ComponentCall) (a file.AnalysisWithReason[ast.ContentWriter])
-		BlockSetterWritesContent          func(z *analyzer, __r *file.ComponentCall) (a file.AnalysisWithReason[*file.BlockSetter])
-		WritesElements                    func(z *analyzer, __r *file.ComponentCall) (a file.Analysis[bool])
-		ComponentWritesElements           func(z *analyzer, __r *file.ComponentCall) (a file.AnalysisWithReason[ast.ElementWriter])
-		BlockSetterWritesElements         func(z *analyzer, __r *file.ComponentCall) (a file.AnalysisWithReason[*file.BlockSetter])
+		ForwardsAttributes func(z *analyzer, __r *file.ComponentCall) (a file.Analysis[bool])
+		ComponentForwardsAttributes func(z *analyzer, __r *file.ComponentCall) (a file.AnalysisWithReason[ast.AttributeWriter])
+		ForwardsReceivedAttributes func(z *analyzer, __r *file.ComponentCall) (a file.AnalysisWithReason[ast.AttributeWriter])
+		BlockSetterForwardsAttributes func(z *analyzer, __r *file.ComponentCall) (a file.AnalysisWithReason[*file.BlockSetter])
+		WritesContent func(z *analyzer, __r *file.ComponentCall) (a file.Analysis[bool])
+		ComponentWritesContent func(z *analyzer, __r *file.ComponentCall) (a file.AnalysisWithReason[ast.ContentWriter])
+		BlockSetterWritesContent func(z *analyzer, __r *file.ComponentCall) (a file.AnalysisWithReason[*file.BlockSetter])
+		WritesElements func(z *analyzer, __r *file.ComponentCall) (a file.Analysis[bool])
+		ComponentWritesElements func(z *analyzer, __r *file.ComponentCall) (a file.AnalysisWithReason[ast.ElementWriter])
+		BlockSetterWritesElements func(z *analyzer, __r *file.ComponentCall) (a file.AnalysisWithReason[*file.BlockSetter])
 	}{
 		ReceivesAttributes: func(z *analyzer, __r *file.ComponentCall) file.AnalysisWithReason[ast.AttributeWriter] {
 			require.ComponentCall.ReceivesAttributes(z, __r)
@@ -453,7 +453,7 @@ var get = struct {
 			require.ComponentCall.ForwardsAndPlaceholder(z, __r)
 			return __r.ForwardsAndPlaceholder()
 		},
-		ForwardsReceivedAndPlaceholder: func(z *analyzer, __r *file.ComponentCall) file.AnalysisWithReason[ast.AndPlaceholderWriter] {
+		ForwardsReceivedAndPlaceholder: func(z *analyzer, __r *file.ComponentCall) (file.AnalysisWithReason[ast.AndPlaceholderWriter]) {
 			require.ComponentCall.ForwardsReceivedAndPlaceholder(z, __r)
 			return __r.ForwardsReceivedAndPlaceholder()
 		},
@@ -504,7 +504,7 @@ var get = struct {
 	},
 	ElementSpec: struct {
 		Circular func(z *analyzer, __r *file.ElementSpec) bool
-		Type     func(z *analyzer, __r *file.ElementSpec) file.Analysis[elemtype.Type]
+		Type func(z *analyzer, __r *file.ElementSpec) file.Analysis[elemtype.Type]
 	}{
 		Circular: func(z *analyzer, __r *file.ElementSpec) bool {
 			require.ElementSpec.Circular(z, __r)
@@ -519,321 +519,320 @@ var get = struct {
 
 var require struct {
 	Attribute struct {
-		Value                 func(*analyzer, *file.Attribute)
-		Forwarded             func(*analyzer, *file.Attribute)
-		Receivers             func(*analyzer, *file.Attribute)
+		Value func(*analyzer, *file.Attribute)
+		Forwarded func(*analyzer, *file.Attribute)
+		Receivers func(*analyzer, *file.Attribute)
 		ReceivingElementSpecs func(*analyzer, *file.Attribute)
-		Type                  func(*analyzer, *file.Attribute)
+		Type func(*analyzer, *file.Attribute)
 	}
 	Block struct {
-		Required                func(*analyzer, *file.Block)
-		Forwarded               func(*analyzer, *file.Block)
-		ForwardsAttributes      func(*analyzer, *file.Block)
+		Required func(*analyzer, *file.Block)
+		Forwarded func(*analyzer, *file.Block)
+		ForwardsAttributes func(*analyzer, *file.Block)
 		CannotForwardAttributes func(*analyzer, *file.Block)
-		ElementType             func(*analyzer, *file.Block)
-		MostRestrictiveElement  func(*analyzer, *file.Block)
+		ElementType func(*analyzer, *file.Block)
+		MostRestrictiveElement func(*analyzer, *file.Block)
 	}
 	BlockInstance struct {
-		Forwarded               func(*analyzer, *file.BlockInstance)
-		ContainingElements      func(*analyzer, *file.BlockInstance)
-		ContainingElementSpecs  func(*analyzer, *file.BlockInstance)
+		Forwarded func(*analyzer, *file.BlockInstance)
+		ContainingElements func(*analyzer, *file.BlockInstance)
+		ContainingElementSpecs func(*analyzer, *file.BlockInstance)
 		CannotForwardAttributes func(*analyzer, *file.BlockInstance)
-		ElementType             func(*analyzer, *file.BlockInstance)
-		MostRestrictiveElement  func(*analyzer, *file.BlockInstance)
-		ForwardsAttributes      func(*analyzer, *file.BlockInstance)
-		DefaultOverwritten      func(*analyzer, *file.BlockInstance)
-		Default                 struct {
-			AcceptsAttributes              func(*analyzer, *file.BlockInstance)
-			ForwardsReceivedAttributes     func(*analyzer, *file.BlockInstance)
-			ElementsWithAndPlaceholder     func(*analyzer, *file.BlockInstance)
+		ElementType func(*analyzer, *file.BlockInstance)
+		MostRestrictiveElement func(*analyzer, *file.BlockInstance)
+		ForwardsAttributes func(*analyzer, *file.BlockInstance)
+		DefaultOverwritten func(*analyzer, *file.BlockInstance)
+		Default struct {
+			AcceptsAttributes func(*analyzer, *file.BlockInstance)
+			ForwardsReceivedAttributes func(*analyzer, *file.BlockInstance)
+			ElementsWithAndPlaceholder func(*analyzer, *file.BlockInstance)
 			ElementSpecsWithAndPlaceholder func(*analyzer, *file.BlockInstance)
-			ForwardsAttributes             func(*analyzer, *file.BlockInstance)
-			WritesContent                  func(*analyzer, *file.BlockInstance)
-			WritesElements                 func(*analyzer, *file.BlockInstance)
+			ForwardsAttributes func(*analyzer, *file.BlockInstance)
+			WritesContent func(*analyzer, *file.BlockInstance)
+			WritesElements func(*analyzer, *file.BlockInstance)
 		}
 	}
 	BlockSetter struct {
-		WritesAndPlaceholder   func(*analyzer, *file.BlockSetter)
+		WritesAndPlaceholder func(*analyzer, *file.BlockSetter)
 		ForwardsAndPlaceholder func(*analyzer, *file.BlockSetter)
-		ForwardsAttributes     func(*analyzer, *file.BlockSetter)
-		WritesContent          func(*analyzer, *file.BlockSetter)
-		WritesElements         func(*analyzer, *file.BlockSetter)
+		ForwardsAttributes func(*analyzer, *file.BlockSetter)
+		WritesContent func(*analyzer, *file.BlockSetter)
+		WritesElements func(*analyzer, *file.BlockSetter)
 	}
 	BlockSetterInstance struct {
-		AcceptsAttributes          func(*analyzer, *file.BlockSetterInstance)
+		AcceptsAttributes func(*analyzer, *file.BlockSetterInstance)
 		ForwardsReceivedAttributes func(*analyzer, *file.BlockSetterInstance)
-		ForwardsAttributes         func(*analyzer, *file.BlockSetterInstance)
-		WritesContent              func(*analyzer, *file.BlockSetterInstance)
-		WritesElements             func(*analyzer, *file.BlockSetterInstance)
+		ForwardsAttributes func(*analyzer, *file.BlockSetterInstance)
+		WritesContent func(*analyzer, *file.BlockSetterInstance)
+		WritesElements func(*analyzer, *file.BlockSetterInstance)
 	}
 	Component struct {
-		Circular                                func(*analyzer, *file.Component)
-		AlwaysAcceptsAttributes                 func(*analyzer, *file.Component)
-		AlwaysForwardsReceivedAttributes        func(*analyzer, *file.Component)
-		AlwaysForwardsAttributes                func(*analyzer, *file.Component)
-		AlwaysWritesContent                     func(*analyzer, *file.Component)
-		AlwaysWritesElements                    func(*analyzer, *file.Component)
-		PermanentElementsWithAndPlaceholder     func(*analyzer, *file.Component)
+		Circular func(*analyzer, *file.Component)
+		AlwaysAcceptsAttributes func(*analyzer, *file.Component)
+		AlwaysForwardsReceivedAttributes func(*analyzer, *file.Component)
+		AlwaysForwardsAttributes func(*analyzer, *file.Component)
+		AlwaysWritesContent func(*analyzer, *file.Component)
+		AlwaysWritesElements func(*analyzer, *file.Component)
+		PermanentElementsWithAndPlaceholder func(*analyzer, *file.Component)
 		PermanentElementSpecsWithAndPlaceholder func(*analyzer, *file.Component)
-		CouldAcceptAttributes                   func(*analyzer, *file.Component)
-		CouldForwardReceivedAttributes          func(*analyzer, *file.Component)
+		CouldAcceptAttributes func(*analyzer, *file.Component)
+		CouldForwardReceivedAttributes func(*analyzer, *file.Component)
 	}
 	ComponentArgument struct {
 		Value func(*analyzer, *file.ComponentArgument)
 	}
 	ComponentParameter struct {
-		InferredType  func(*analyzer, *file.ComponentParameter)
+		InferredType func(*analyzer, *file.ComponentParameter)
 		AttributeType func(*analyzer, *file.ComponentParameter)
 		AttributeName func(*analyzer, *file.ComponentParameter)
-		ResolvedType  func(*analyzer, *file.ComponentParameter)
-		Required      func(*analyzer, *file.ComponentParameter)
+		ResolvedType func(*analyzer, *file.ComponentParameter)
+		Required func(*analyzer, *file.ComponentParameter)
 	}
 	ComponentCall struct {
-		ReceivesAttributes                func(*analyzer, *file.ComponentCall)
-		ReceivesAndPlaceholder            func(*analyzer, *file.ComponentCall)
-		ElementsWithAndPlaceholder        func(*analyzer, *file.ComponentCall)
-		ElementSpecsWithAndPlaceholder    func(*analyzer, *file.ComponentCall)
-		AcceptsAttributes                 func(*analyzer, *file.ComponentCall)
-		ForwardsAcceptedAttributes        func(*analyzer, *file.ComponentCall)
-		ForwardsAndPlaceholder            func(*analyzer, *file.ComponentCall)
-		ForwardsReceivedAndPlaceholder    func(*analyzer, *file.ComponentCall)
+		ReceivesAttributes func(*analyzer, *file.ComponentCall)
+		ReceivesAndPlaceholder func(*analyzer, *file.ComponentCall)
+		ElementsWithAndPlaceholder func(*analyzer, *file.ComponentCall)
+		ElementSpecsWithAndPlaceholder func(*analyzer, *file.ComponentCall)
+		AcceptsAttributes func(*analyzer, *file.ComponentCall)
+		ForwardsAcceptedAttributes func(*analyzer, *file.ComponentCall)
+		ForwardsAndPlaceholder func(*analyzer, *file.ComponentCall)
+		ForwardsReceivedAndPlaceholder func(*analyzer, *file.ComponentCall)
 		BlockSetterForwardsAndPlaceholder func(*analyzer, *file.ComponentCall)
-		ForwardsAttributes                func(*analyzer, *file.ComponentCall)
-		ComponentForwardsAttributes       func(*analyzer, *file.ComponentCall)
-		ForwardsReceivedAttributes        func(*analyzer, *file.ComponentCall)
-		BlockSetterForwardsAttributes     func(*analyzer, *file.ComponentCall)
-		WritesContent                     func(*analyzer, *file.ComponentCall)
-		ComponentWritesContent            func(*analyzer, *file.ComponentCall)
-		BlockSetterWritesContent          func(*analyzer, *file.ComponentCall)
-		WritesElements                    func(*analyzer, *file.ComponentCall)
-		ComponentWritesElements           func(*analyzer, *file.ComponentCall)
-		BlockSetterWritesElements         func(*analyzer, *file.ComponentCall)
+		ForwardsAttributes func(*analyzer, *file.ComponentCall)
+		ComponentForwardsAttributes func(*analyzer, *file.ComponentCall)
+		ForwardsReceivedAttributes func(*analyzer, *file.ComponentCall)
+		BlockSetterForwardsAttributes func(*analyzer, *file.ComponentCall)
+		WritesContent func(*analyzer, *file.ComponentCall)
+		ComponentWritesContent func(*analyzer, *file.ComponentCall)
+		BlockSetterWritesContent func(*analyzer, *file.ComponentCall)
+		WritesElements func(*analyzer, *file.ComponentCall)
+		ComponentWritesElements func(*analyzer, *file.ComponentCall)
+		BlockSetterWritesElements func(*analyzer, *file.ComponentCall)
 	}
 	ElementSpec struct {
 		Circular func(*analyzer, *file.ElementSpec)
-		Type     func(*analyzer, *file.ElementSpec)
+		Type func(*analyzer, *file.ElementSpec)
 	}
 }
-
 func init() {
 	require = struct {
 		Attribute struct {
-			Value                 func(*analyzer, *file.Attribute)
-			Forwarded             func(*analyzer, *file.Attribute)
-			Receivers             func(*analyzer, *file.Attribute)
+			Value func(*analyzer, *file.Attribute)
+			Forwarded func(*analyzer, *file.Attribute)
+			Receivers func(*analyzer, *file.Attribute)
 			ReceivingElementSpecs func(*analyzer, *file.Attribute)
-			Type                  func(*analyzer, *file.Attribute)
+			Type func(*analyzer, *file.Attribute)
 		}
 		Block struct {
-			Required                func(*analyzer, *file.Block)
-			Forwarded               func(*analyzer, *file.Block)
-			ForwardsAttributes      func(*analyzer, *file.Block)
+			Required func(*analyzer, *file.Block)
+			Forwarded func(*analyzer, *file.Block)
+			ForwardsAttributes func(*analyzer, *file.Block)
 			CannotForwardAttributes func(*analyzer, *file.Block)
-			ElementType             func(*analyzer, *file.Block)
-			MostRestrictiveElement  func(*analyzer, *file.Block)
+			ElementType func(*analyzer, *file.Block)
+			MostRestrictiveElement func(*analyzer, *file.Block)
 		}
 		BlockInstance struct {
-			Forwarded               func(*analyzer, *file.BlockInstance)
-			ContainingElements      func(*analyzer, *file.BlockInstance)
-			ContainingElementSpecs  func(*analyzer, *file.BlockInstance)
+			Forwarded func(*analyzer, *file.BlockInstance)
+			ContainingElements func(*analyzer, *file.BlockInstance)
+			ContainingElementSpecs func(*analyzer, *file.BlockInstance)
 			CannotForwardAttributes func(*analyzer, *file.BlockInstance)
-			ElementType             func(*analyzer, *file.BlockInstance)
-			MostRestrictiveElement  func(*analyzer, *file.BlockInstance)
-			ForwardsAttributes      func(*analyzer, *file.BlockInstance)
-			DefaultOverwritten      func(*analyzer, *file.BlockInstance)
-			Default                 struct {
-				AcceptsAttributes              func(*analyzer, *file.BlockInstance)
-				ForwardsReceivedAttributes     func(*analyzer, *file.BlockInstance)
-				ElementsWithAndPlaceholder     func(*analyzer, *file.BlockInstance)
+			ElementType func(*analyzer, *file.BlockInstance)
+			MostRestrictiveElement func(*analyzer, *file.BlockInstance)
+			ForwardsAttributes func(*analyzer, *file.BlockInstance)
+			DefaultOverwritten func(*analyzer, *file.BlockInstance)
+			Default struct {
+				AcceptsAttributes func(*analyzer, *file.BlockInstance)
+				ForwardsReceivedAttributes func(*analyzer, *file.BlockInstance)
+				ElementsWithAndPlaceholder func(*analyzer, *file.BlockInstance)
 				ElementSpecsWithAndPlaceholder func(*analyzer, *file.BlockInstance)
-				ForwardsAttributes             func(*analyzer, *file.BlockInstance)
-				WritesContent                  func(*analyzer, *file.BlockInstance)
-				WritesElements                 func(*analyzer, *file.BlockInstance)
+				ForwardsAttributes func(*analyzer, *file.BlockInstance)
+				WritesContent func(*analyzer, *file.BlockInstance)
+				WritesElements func(*analyzer, *file.BlockInstance)
 			}
 		}
 		BlockSetter struct {
-			WritesAndPlaceholder   func(*analyzer, *file.BlockSetter)
+			WritesAndPlaceholder func(*analyzer, *file.BlockSetter)
 			ForwardsAndPlaceholder func(*analyzer, *file.BlockSetter)
-			ForwardsAttributes     func(*analyzer, *file.BlockSetter)
-			WritesContent          func(*analyzer, *file.BlockSetter)
-			WritesElements         func(*analyzer, *file.BlockSetter)
+			ForwardsAttributes func(*analyzer, *file.BlockSetter)
+			WritesContent func(*analyzer, *file.BlockSetter)
+			WritesElements func(*analyzer, *file.BlockSetter)
 		}
 		BlockSetterInstance struct {
-			AcceptsAttributes          func(*analyzer, *file.BlockSetterInstance)
+			AcceptsAttributes func(*analyzer, *file.BlockSetterInstance)
 			ForwardsReceivedAttributes func(*analyzer, *file.BlockSetterInstance)
-			ForwardsAttributes         func(*analyzer, *file.BlockSetterInstance)
-			WritesContent              func(*analyzer, *file.BlockSetterInstance)
-			WritesElements             func(*analyzer, *file.BlockSetterInstance)
+			ForwardsAttributes func(*analyzer, *file.BlockSetterInstance)
+			WritesContent func(*analyzer, *file.BlockSetterInstance)
+			WritesElements func(*analyzer, *file.BlockSetterInstance)
 		}
 		Component struct {
-			Circular                                func(*analyzer, *file.Component)
-			AlwaysAcceptsAttributes                 func(*analyzer, *file.Component)
-			AlwaysForwardsReceivedAttributes        func(*analyzer, *file.Component)
-			AlwaysForwardsAttributes                func(*analyzer, *file.Component)
-			AlwaysWritesContent                     func(*analyzer, *file.Component)
-			AlwaysWritesElements                    func(*analyzer, *file.Component)
-			PermanentElementsWithAndPlaceholder     func(*analyzer, *file.Component)
+			Circular func(*analyzer, *file.Component)
+			AlwaysAcceptsAttributes func(*analyzer, *file.Component)
+			AlwaysForwardsReceivedAttributes func(*analyzer, *file.Component)
+			AlwaysForwardsAttributes func(*analyzer, *file.Component)
+			AlwaysWritesContent func(*analyzer, *file.Component)
+			AlwaysWritesElements func(*analyzer, *file.Component)
+			PermanentElementsWithAndPlaceholder func(*analyzer, *file.Component)
 			PermanentElementSpecsWithAndPlaceholder func(*analyzer, *file.Component)
-			CouldAcceptAttributes                   func(*analyzer, *file.Component)
-			CouldForwardReceivedAttributes          func(*analyzer, *file.Component)
+			CouldAcceptAttributes func(*analyzer, *file.Component)
+			CouldForwardReceivedAttributes func(*analyzer, *file.Component)
 		}
 		ComponentArgument struct {
 			Value func(*analyzer, *file.ComponentArgument)
 		}
 		ComponentParameter struct {
-			InferredType  func(*analyzer, *file.ComponentParameter)
+			InferredType func(*analyzer, *file.ComponentParameter)
 			AttributeType func(*analyzer, *file.ComponentParameter)
 			AttributeName func(*analyzer, *file.ComponentParameter)
-			ResolvedType  func(*analyzer, *file.ComponentParameter)
-			Required      func(*analyzer, *file.ComponentParameter)
+			ResolvedType func(*analyzer, *file.ComponentParameter)
+			Required func(*analyzer, *file.ComponentParameter)
 		}
 		ComponentCall struct {
-			ReceivesAttributes                func(*analyzer, *file.ComponentCall)
-			ReceivesAndPlaceholder            func(*analyzer, *file.ComponentCall)
-			ElementsWithAndPlaceholder        func(*analyzer, *file.ComponentCall)
-			ElementSpecsWithAndPlaceholder    func(*analyzer, *file.ComponentCall)
-			AcceptsAttributes                 func(*analyzer, *file.ComponentCall)
-			ForwardsAcceptedAttributes        func(*analyzer, *file.ComponentCall)
-			ForwardsAndPlaceholder            func(*analyzer, *file.ComponentCall)
-			ForwardsReceivedAndPlaceholder    func(*analyzer, *file.ComponentCall)
+			ReceivesAttributes func(*analyzer, *file.ComponentCall)
+			ReceivesAndPlaceholder func(*analyzer, *file.ComponentCall)
+			ElementsWithAndPlaceholder func(*analyzer, *file.ComponentCall)
+			ElementSpecsWithAndPlaceholder func(*analyzer, *file.ComponentCall)
+			AcceptsAttributes func(*analyzer, *file.ComponentCall)
+			ForwardsAcceptedAttributes func(*analyzer, *file.ComponentCall)
+			ForwardsAndPlaceholder func(*analyzer, *file.ComponentCall)
+			ForwardsReceivedAndPlaceholder func(*analyzer, *file.ComponentCall)
 			BlockSetterForwardsAndPlaceholder func(*analyzer, *file.ComponentCall)
-			ForwardsAttributes                func(*analyzer, *file.ComponentCall)
-			ComponentForwardsAttributes       func(*analyzer, *file.ComponentCall)
-			ForwardsReceivedAttributes        func(*analyzer, *file.ComponentCall)
-			BlockSetterForwardsAttributes     func(*analyzer, *file.ComponentCall)
-			WritesContent                     func(*analyzer, *file.ComponentCall)
-			ComponentWritesContent            func(*analyzer, *file.ComponentCall)
-			BlockSetterWritesContent          func(*analyzer, *file.ComponentCall)
-			WritesElements                    func(*analyzer, *file.ComponentCall)
-			ComponentWritesElements           func(*analyzer, *file.ComponentCall)
-			BlockSetterWritesElements         func(*analyzer, *file.ComponentCall)
+			ForwardsAttributes func(*analyzer, *file.ComponentCall)
+			ComponentForwardsAttributes func(*analyzer, *file.ComponentCall)
+			ForwardsReceivedAttributes func(*analyzer, *file.ComponentCall)
+			BlockSetterForwardsAttributes func(*analyzer, *file.ComponentCall)
+			WritesContent func(*analyzer, *file.ComponentCall)
+			ComponentWritesContent func(*analyzer, *file.ComponentCall)
+			BlockSetterWritesContent func(*analyzer, *file.ComponentCall)
+			WritesElements func(*analyzer, *file.ComponentCall)
+			ComponentWritesElements func(*analyzer, *file.ComponentCall)
+			BlockSetterWritesElements func(*analyzer, *file.ComponentCall)
 		}
 		ElementSpec struct {
 			Circular func(*analyzer, *file.ElementSpec)
-			Type     func(*analyzer, *file.ElementSpec)
+			Type func(*analyzer, *file.ElementSpec)
 		}
 	}{
 		Attribute: struct {
-			Value                 func(*analyzer, *file.Attribute)
-			Forwarded             func(*analyzer, *file.Attribute)
-			Receivers             func(*analyzer, *file.Attribute)
+			Value func(*analyzer, *file.Attribute)
+			Forwarded func(*analyzer, *file.Attribute)
+			Receivers func(*analyzer, *file.Attribute)
 			ReceivingElementSpecs func(*analyzer, *file.Attribute)
-			Type                  func(*analyzer, *file.Attribute)
+			Type func(*analyzer, *file.Attribute)
 		}{
-			Value:                 requirer{}.Attribute_Value,
-			Forwarded:             requirer{}.Attribute_Forwarded,
-			Receivers:             requirer{}.Attribute_Receivers,
+			Value: requirer{}.Attribute_Value,
+			Forwarded: requirer{}.Attribute_Forwarded,
+			Receivers: requirer{}.Attribute_Receivers,
 			ReceivingElementSpecs: requirer{}.Attribute_ReceivingElementSpecs,
-			Type:                  requirer{}.Attribute_Type,
+			Type: requirer{}.Attribute_Type,
 		},
 		Block: struct {
-			Required                func(*analyzer, *file.Block)
-			Forwarded               func(*analyzer, *file.Block)
-			ForwardsAttributes      func(*analyzer, *file.Block)
+			Required func(*analyzer, *file.Block)
+			Forwarded func(*analyzer, *file.Block)
+			ForwardsAttributes func(*analyzer, *file.Block)
 			CannotForwardAttributes func(*analyzer, *file.Block)
-			ElementType             func(*analyzer, *file.Block)
-			MostRestrictiveElement  func(*analyzer, *file.Block)
+			ElementType func(*analyzer, *file.Block)
+			MostRestrictiveElement func(*analyzer, *file.Block)
 		}{
-			Required:                requirer{}.Block_Required,
-			Forwarded:               requirer{}.Block_Forwarded,
-			ForwardsAttributes:      requirer{}.Block_ForwardsAttributes,
+			Required: requirer{}.Block_Required,
+			Forwarded: requirer{}.Block_Forwarded,
+			ForwardsAttributes: requirer{}.Block_ForwardsAttributes,
 			CannotForwardAttributes: requirer{}.Block_CannotForwardAttributes,
-			ElementType:             requirer{}.Block_ElementType,
-			MostRestrictiveElement:  requirer{}.Block_MostRestrictiveElement,
+			ElementType: requirer{}.Block_ElementType,
+			MostRestrictiveElement: requirer{}.Block_MostRestrictiveElement,
 		},
 		BlockInstance: struct {
-			Forwarded               func(*analyzer, *file.BlockInstance)
-			ContainingElements      func(*analyzer, *file.BlockInstance)
-			ContainingElementSpecs  func(*analyzer, *file.BlockInstance)
+			Forwarded func(*analyzer, *file.BlockInstance)
+			ContainingElements func(*analyzer, *file.BlockInstance)
+			ContainingElementSpecs func(*analyzer, *file.BlockInstance)
 			CannotForwardAttributes func(*analyzer, *file.BlockInstance)
-			ElementType             func(*analyzer, *file.BlockInstance)
-			MostRestrictiveElement  func(*analyzer, *file.BlockInstance)
-			ForwardsAttributes      func(*analyzer, *file.BlockInstance)
-			DefaultOverwritten      func(*analyzer, *file.BlockInstance)
-			Default                 struct {
-				AcceptsAttributes              func(*analyzer, *file.BlockInstance)
-				ForwardsReceivedAttributes     func(*analyzer, *file.BlockInstance)
-				ElementsWithAndPlaceholder     func(*analyzer, *file.BlockInstance)
+			ElementType func(*analyzer, *file.BlockInstance)
+			MostRestrictiveElement func(*analyzer, *file.BlockInstance)
+			ForwardsAttributes func(*analyzer, *file.BlockInstance)
+			DefaultOverwritten func(*analyzer, *file.BlockInstance)
+			Default struct {
+				AcceptsAttributes func(*analyzer, *file.BlockInstance)
+				ForwardsReceivedAttributes func(*analyzer, *file.BlockInstance)
+				ElementsWithAndPlaceholder func(*analyzer, *file.BlockInstance)
 				ElementSpecsWithAndPlaceholder func(*analyzer, *file.BlockInstance)
-				ForwardsAttributes             func(*analyzer, *file.BlockInstance)
-				WritesContent                  func(*analyzer, *file.BlockInstance)
-				WritesElements                 func(*analyzer, *file.BlockInstance)
+				ForwardsAttributes func(*analyzer, *file.BlockInstance)
+				WritesContent func(*analyzer, *file.BlockInstance)
+				WritesElements func(*analyzer, *file.BlockInstance)
 			}
 		}{
-			Forwarded:               requirer{}.BlockInstance_Forwarded,
-			ContainingElements:      requirer{}.BlockInstance_ContainingElements,
-			ContainingElementSpecs:  requirer{}.BlockInstance_ContainingElementSpecs,
+			Forwarded: requirer{}.BlockInstance_Forwarded,
+			ContainingElements: requirer{}.BlockInstance_ContainingElements,
+			ContainingElementSpecs: requirer{}.BlockInstance_ContainingElementSpecs,
 			CannotForwardAttributes: requirer{}.BlockInstance_CannotForwardAttributes,
-			ElementType:             requirer{}.BlockInstance_ElementType,
-			MostRestrictiveElement:  requirer{}.BlockInstance_MostRestrictiveElement,
-			ForwardsAttributes:      requirer{}.BlockInstance_ForwardsAttributes,
-			DefaultOverwritten:      requirer{}.BlockInstance_DefaultOverwritten,
+			ElementType: requirer{}.BlockInstance_ElementType,
+			MostRestrictiveElement: requirer{}.BlockInstance_MostRestrictiveElement,
+			ForwardsAttributes: requirer{}.BlockInstance_ForwardsAttributes,
+			DefaultOverwritten: requirer{}.BlockInstance_DefaultOverwritten,
 			Default: struct {
-				AcceptsAttributes              func(*analyzer, *file.BlockInstance)
-				ForwardsReceivedAttributes     func(*analyzer, *file.BlockInstance)
-				ElementsWithAndPlaceholder     func(*analyzer, *file.BlockInstance)
+				AcceptsAttributes func(*analyzer, *file.BlockInstance)
+				ForwardsReceivedAttributes func(*analyzer, *file.BlockInstance)
+				ElementsWithAndPlaceholder func(*analyzer, *file.BlockInstance)
 				ElementSpecsWithAndPlaceholder func(*analyzer, *file.BlockInstance)
-				ForwardsAttributes             func(*analyzer, *file.BlockInstance)
-				WritesContent                  func(*analyzer, *file.BlockInstance)
-				WritesElements                 func(*analyzer, *file.BlockInstance)
+				ForwardsAttributes func(*analyzer, *file.BlockInstance)
+				WritesContent func(*analyzer, *file.BlockInstance)
+				WritesElements func(*analyzer, *file.BlockInstance)
 			}{
-				AcceptsAttributes:              requirer{}.BlockInstance_Default_AcceptsAttributes,
-				ForwardsReceivedAttributes:     requirer{}.BlockInstance_Default_ForwardsReceivedAttributes,
-				ElementsWithAndPlaceholder:     requirer{}.BlockInstance_Default_ElementsWithAndPlaceholder,
+				AcceptsAttributes: requirer{}.BlockInstance_Default_AcceptsAttributes,
+				ForwardsReceivedAttributes: requirer{}.BlockInstance_Default_ForwardsReceivedAttributes,
+				ElementsWithAndPlaceholder: requirer{}.BlockInstance_Default_ElementsWithAndPlaceholder,
 				ElementSpecsWithAndPlaceholder: requirer{}.BlockInstance_Default_ElementSpecsWithAndPlaceholder,
-				ForwardsAttributes:             requirer{}.BlockInstance_Default_ForwardsAttributes,
-				WritesContent:                  requirer{}.BlockInstance_Default_WritesContent,
-				WritesElements:                 requirer{}.BlockInstance_Default_WritesElements,
+				ForwardsAttributes: requirer{}.BlockInstance_Default_ForwardsAttributes,
+				WritesContent: requirer{}.BlockInstance_Default_WritesContent,
+				WritesElements: requirer{}.BlockInstance_Default_WritesElements,
 			},
 		},
 		BlockSetter: struct {
-			WritesAndPlaceholder   func(*analyzer, *file.BlockSetter)
+			WritesAndPlaceholder func(*analyzer, *file.BlockSetter)
 			ForwardsAndPlaceholder func(*analyzer, *file.BlockSetter)
-			ForwardsAttributes     func(*analyzer, *file.BlockSetter)
-			WritesContent          func(*analyzer, *file.BlockSetter)
-			WritesElements         func(*analyzer, *file.BlockSetter)
+			ForwardsAttributes func(*analyzer, *file.BlockSetter)
+			WritesContent func(*analyzer, *file.BlockSetter)
+			WritesElements func(*analyzer, *file.BlockSetter)
 		}{
-			WritesAndPlaceholder:   requirer{}.BlockSetter_WritesAndPlaceholder,
+			WritesAndPlaceholder: requirer{}.BlockSetter_WritesAndPlaceholder,
 			ForwardsAndPlaceholder: requirer{}.BlockSetter_ForwardsAndPlaceholder,
-			ForwardsAttributes:     requirer{}.BlockSetter_ForwardsAttributes,
-			WritesContent:          requirer{}.BlockSetter_WritesContent,
-			WritesElements:         requirer{}.BlockSetter_WritesElements,
+			ForwardsAttributes: requirer{}.BlockSetter_ForwardsAttributes,
+			WritesContent: requirer{}.BlockSetter_WritesContent,
+			WritesElements: requirer{}.BlockSetter_WritesElements,
 		},
 		BlockSetterInstance: struct {
-			AcceptsAttributes          func(*analyzer, *file.BlockSetterInstance)
+			AcceptsAttributes func(*analyzer, *file.BlockSetterInstance)
 			ForwardsReceivedAttributes func(*analyzer, *file.BlockSetterInstance)
-			ForwardsAttributes         func(*analyzer, *file.BlockSetterInstance)
-			WritesContent              func(*analyzer, *file.BlockSetterInstance)
-			WritesElements             func(*analyzer, *file.BlockSetterInstance)
+			ForwardsAttributes func(*analyzer, *file.BlockSetterInstance)
+			WritesContent func(*analyzer, *file.BlockSetterInstance)
+			WritesElements func(*analyzer, *file.BlockSetterInstance)
 		}{
-			AcceptsAttributes:          requirer{}.BlockSetterInstance_AcceptsAttributes,
+			AcceptsAttributes: requirer{}.BlockSetterInstance_AcceptsAttributes,
 			ForwardsReceivedAttributes: requirer{}.BlockSetterInstance_ForwardsReceivedAttributes,
-			ForwardsAttributes:         requirer{}.BlockSetterInstance_ForwardsAttributes,
-			WritesContent:              requirer{}.BlockSetterInstance_WritesContent,
-			WritesElements:             requirer{}.BlockSetterInstance_WritesElements,
+			ForwardsAttributes: requirer{}.BlockSetterInstance_ForwardsAttributes,
+			WritesContent: requirer{}.BlockSetterInstance_WritesContent,
+			WritesElements: requirer{}.BlockSetterInstance_WritesElements,
 		},
 		Component: struct {
-			Circular                                func(*analyzer, *file.Component)
-			AlwaysAcceptsAttributes                 func(*analyzer, *file.Component)
-			AlwaysForwardsReceivedAttributes        func(*analyzer, *file.Component)
-			AlwaysForwardsAttributes                func(*analyzer, *file.Component)
-			AlwaysWritesContent                     func(*analyzer, *file.Component)
-			AlwaysWritesElements                    func(*analyzer, *file.Component)
-			PermanentElementsWithAndPlaceholder     func(*analyzer, *file.Component)
+			Circular func(*analyzer, *file.Component)
+			AlwaysAcceptsAttributes func(*analyzer, *file.Component)
+			AlwaysForwardsReceivedAttributes func(*analyzer, *file.Component)
+			AlwaysForwardsAttributes func(*analyzer, *file.Component)
+			AlwaysWritesContent func(*analyzer, *file.Component)
+			AlwaysWritesElements func(*analyzer, *file.Component)
+			PermanentElementsWithAndPlaceholder func(*analyzer, *file.Component)
 			PermanentElementSpecsWithAndPlaceholder func(*analyzer, *file.Component)
-			CouldAcceptAttributes                   func(*analyzer, *file.Component)
-			CouldForwardReceivedAttributes          func(*analyzer, *file.Component)
+			CouldAcceptAttributes func(*analyzer, *file.Component)
+			CouldForwardReceivedAttributes func(*analyzer, *file.Component)
 		}{
-			Circular:                                requirer{}.Component_Circular,
-			AlwaysAcceptsAttributes:                 requirer{}.Component_AlwaysAcceptsAttributes,
-			AlwaysForwardsReceivedAttributes:        requirer{}.Component_AlwaysForwardsReceivedAttributes,
-			AlwaysForwardsAttributes:                requirer{}.Component_AlwaysForwardsAttributes,
-			AlwaysWritesContent:                     requirer{}.Component_AlwaysWritesContent,
-			AlwaysWritesElements:                    requirer{}.Component_AlwaysWritesElements,
-			PermanentElementsWithAndPlaceholder:     requirer{}.Component_PermanentElementsWithAndPlaceholder,
+			Circular: requirer{}.Component_Circular,
+			AlwaysAcceptsAttributes: requirer{}.Component_AlwaysAcceptsAttributes,
+			AlwaysForwardsReceivedAttributes: requirer{}.Component_AlwaysForwardsReceivedAttributes,
+			AlwaysForwardsAttributes: requirer{}.Component_AlwaysForwardsAttributes,
+			AlwaysWritesContent: requirer{}.Component_AlwaysWritesContent,
+			AlwaysWritesElements: requirer{}.Component_AlwaysWritesElements,
+			PermanentElementsWithAndPlaceholder: requirer{}.Component_PermanentElementsWithAndPlaceholder,
 			PermanentElementSpecsWithAndPlaceholder: requirer{}.Component_PermanentElementSpecsWithAndPlaceholder,
-			CouldAcceptAttributes:                   requirer{}.Component_CouldAcceptAttributes,
-			CouldForwardReceivedAttributes:          requirer{}.Component_CouldForwardReceivedAttributes,
+			CouldAcceptAttributes: requirer{}.Component_CouldAcceptAttributes,
+			CouldForwardReceivedAttributes: requirer{}.Component_CouldForwardReceivedAttributes,
 		},
 		ComponentArgument: struct {
 			Value func(*analyzer, *file.ComponentArgument)
@@ -841,65 +840,65 @@ func init() {
 			Value: requirer{}.ComponentArgument_Value,
 		},
 		ComponentParameter: struct {
-			InferredType  func(*analyzer, *file.ComponentParameter)
+			InferredType func(*analyzer, *file.ComponentParameter)
 			AttributeType func(*analyzer, *file.ComponentParameter)
 			AttributeName func(*analyzer, *file.ComponentParameter)
-			ResolvedType  func(*analyzer, *file.ComponentParameter)
-			Required      func(*analyzer, *file.ComponentParameter)
+			ResolvedType func(*analyzer, *file.ComponentParameter)
+			Required func(*analyzer, *file.ComponentParameter)
 		}{
-			InferredType:  requirer{}.ComponentParameter_InferredType,
+			InferredType: requirer{}.ComponentParameter_InferredType,
 			AttributeType: requirer{}.ComponentParameter_AttributeType,
 			AttributeName: requirer{}.ComponentParameter_AttributeName,
-			ResolvedType:  requirer{}.ComponentParameter_ResolvedType,
-			Required:      requirer{}.ComponentParameter_Required,
+			ResolvedType: requirer{}.ComponentParameter_ResolvedType,
+			Required: requirer{}.ComponentParameter_Required,
 		},
 		ComponentCall: struct {
-			ReceivesAttributes                func(*analyzer, *file.ComponentCall)
-			ReceivesAndPlaceholder            func(*analyzer, *file.ComponentCall)
-			ElementsWithAndPlaceholder        func(*analyzer, *file.ComponentCall)
-			ElementSpecsWithAndPlaceholder    func(*analyzer, *file.ComponentCall)
-			AcceptsAttributes                 func(*analyzer, *file.ComponentCall)
-			ForwardsAcceptedAttributes        func(*analyzer, *file.ComponentCall)
-			ForwardsAndPlaceholder            func(*analyzer, *file.ComponentCall)
-			ForwardsReceivedAndPlaceholder    func(*analyzer, *file.ComponentCall)
+			ReceivesAttributes func(*analyzer, *file.ComponentCall)
+			ReceivesAndPlaceholder func(*analyzer, *file.ComponentCall)
+			ElementsWithAndPlaceholder func(*analyzer, *file.ComponentCall)
+			ElementSpecsWithAndPlaceholder func(*analyzer, *file.ComponentCall)
+			AcceptsAttributes func(*analyzer, *file.ComponentCall)
+			ForwardsAcceptedAttributes func(*analyzer, *file.ComponentCall)
+			ForwardsAndPlaceholder func(*analyzer, *file.ComponentCall)
+			ForwardsReceivedAndPlaceholder func(*analyzer, *file.ComponentCall)
 			BlockSetterForwardsAndPlaceholder func(*analyzer, *file.ComponentCall)
-			ForwardsAttributes                func(*analyzer, *file.ComponentCall)
-			ComponentForwardsAttributes       func(*analyzer, *file.ComponentCall)
-			ForwardsReceivedAttributes        func(*analyzer, *file.ComponentCall)
-			BlockSetterForwardsAttributes     func(*analyzer, *file.ComponentCall)
-			WritesContent                     func(*analyzer, *file.ComponentCall)
-			ComponentWritesContent            func(*analyzer, *file.ComponentCall)
-			BlockSetterWritesContent          func(*analyzer, *file.ComponentCall)
-			WritesElements                    func(*analyzer, *file.ComponentCall)
-			ComponentWritesElements           func(*analyzer, *file.ComponentCall)
-			BlockSetterWritesElements         func(*analyzer, *file.ComponentCall)
+			ForwardsAttributes func(*analyzer, *file.ComponentCall)
+			ComponentForwardsAttributes func(*analyzer, *file.ComponentCall)
+			ForwardsReceivedAttributes func(*analyzer, *file.ComponentCall)
+			BlockSetterForwardsAttributes func(*analyzer, *file.ComponentCall)
+			WritesContent func(*analyzer, *file.ComponentCall)
+			ComponentWritesContent func(*analyzer, *file.ComponentCall)
+			BlockSetterWritesContent func(*analyzer, *file.ComponentCall)
+			WritesElements func(*analyzer, *file.ComponentCall)
+			ComponentWritesElements func(*analyzer, *file.ComponentCall)
+			BlockSetterWritesElements func(*analyzer, *file.ComponentCall)
 		}{
-			ReceivesAttributes:                requirer{}.ComponentCall_ReceivesAttributes,
-			ReceivesAndPlaceholder:            requirer{}.ComponentCall_ReceivesAndPlaceholder,
-			ElementsWithAndPlaceholder:        requirer{}.ComponentCall_ElementsWithAndPlaceholder,
-			ElementSpecsWithAndPlaceholder:    requirer{}.ComponentCall_ElementSpecsWithAndPlaceholder,
-			AcceptsAttributes:                 requirer{}.ComponentCall_AcceptsAttributes,
-			ForwardsAcceptedAttributes:        requirer{}.ComponentCall_ForwardsAcceptedAttributes,
-			ForwardsAndPlaceholder:            requirer{}.ComponentCall_ForwardsAndPlaceholder,
-			ForwardsReceivedAndPlaceholder:    requirer{}.ComponentCall_ForwardsReceivedAndPlaceholder,
+			ReceivesAttributes: requirer{}.ComponentCall_ReceivesAttributes,
+			ReceivesAndPlaceholder: requirer{}.ComponentCall_ReceivesAndPlaceholder,
+			ElementsWithAndPlaceholder: requirer{}.ComponentCall_ElementsWithAndPlaceholder,
+			ElementSpecsWithAndPlaceholder: requirer{}.ComponentCall_ElementSpecsWithAndPlaceholder,
+			AcceptsAttributes: requirer{}.ComponentCall_AcceptsAttributes,
+			ForwardsAcceptedAttributes: requirer{}.ComponentCall_ForwardsAcceptedAttributes,
+			ForwardsAndPlaceholder: requirer{}.ComponentCall_ForwardsAndPlaceholder,
+			ForwardsReceivedAndPlaceholder: requirer{}.ComponentCall_ForwardsReceivedAndPlaceholder,
 			BlockSetterForwardsAndPlaceholder: requirer{}.ComponentCall_BlockSetterForwardsAndPlaceholder,
-			ForwardsAttributes:                requirer{}.ComponentCall_ForwardsAttributes,
-			ComponentForwardsAttributes:       requirer{}.ComponentCall_ComponentForwardsAttributes,
-			ForwardsReceivedAttributes:        requirer{}.ComponentCall_ForwardsReceivedAttributes,
-			BlockSetterForwardsAttributes:     requirer{}.ComponentCall_BlockSetterForwardsAttributes,
-			WritesContent:                     requirer{}.ComponentCall_WritesContent,
-			ComponentWritesContent:            requirer{}.ComponentCall_ComponentWritesContent,
-			BlockSetterWritesContent:          requirer{}.ComponentCall_BlockSetterWritesContent,
-			WritesElements:                    requirer{}.ComponentCall_WritesElements,
-			ComponentWritesElements:           requirer{}.ComponentCall_ComponentWritesElements,
-			BlockSetterWritesElements:         requirer{}.ComponentCall_BlockSetterWritesElements,
+			ForwardsAttributes: requirer{}.ComponentCall_ForwardsAttributes,
+			ComponentForwardsAttributes: requirer{}.ComponentCall_ComponentForwardsAttributes,
+			ForwardsReceivedAttributes: requirer{}.ComponentCall_ForwardsReceivedAttributes,
+			BlockSetterForwardsAttributes: requirer{}.ComponentCall_BlockSetterForwardsAttributes,
+			WritesContent: requirer{}.ComponentCall_WritesContent,
+			ComponentWritesContent: requirer{}.ComponentCall_ComponentWritesContent,
+			BlockSetterWritesContent: requirer{}.ComponentCall_BlockSetterWritesContent,
+			WritesElements: requirer{}.ComponentCall_WritesElements,
+			ComponentWritesElements: requirer{}.ComponentCall_ComponentWritesElements,
+			BlockSetterWritesElements: requirer{}.ComponentCall_BlockSetterWritesElements,
 		},
 		ElementSpec: struct {
 			Circular func(*analyzer, *file.ElementSpec)
-			Type     func(*analyzer, *file.ElementSpec)
+			Type func(*analyzer, *file.ElementSpec)
 		}{
 			Circular: requirer{}.ElementSpec_Circular,
-			Type:     requirer{}.ElementSpec_Type,
+			Type: requirer{}.ElementSpec_Type,
 		},
 	}
 }
@@ -908,73 +907,73 @@ type analyzedFileSymbol string
 
 var analyzed = struct {
 	Attribute struct {
-		Value                 func(z *analyzer, __r *file.Attribute)
-		Forwarded             func(z *analyzer, __r *file.Attribute)
-		Receivers             func(z *analyzer, __r *file.Attribute)
+		Value func(z *analyzer, __r *file.Attribute)
+		Forwarded func(z *analyzer, __r *file.Attribute)
+		Receivers func(z *analyzer, __r *file.Attribute)
 		ReceivingElementSpecs func(z *analyzer, __r *file.Attribute)
-		Type                  func(z *analyzer, __r *file.Attribute)
+		Type func(z *analyzer, __r *file.Attribute)
 	}
 	Block struct {
 	}
 	BlockInstance struct {
-		Forwarded               func(z *analyzer, __r *file.BlockInstance)
-		ContainingElements      func(z *analyzer, __r *file.BlockInstance)
-		ContainingElementSpecs  func(z *analyzer, __r *file.BlockInstance)
+		Forwarded func(z *analyzer, __r *file.BlockInstance)
+		ContainingElements func(z *analyzer, __r *file.BlockInstance)
+		ContainingElementSpecs func(z *analyzer, __r *file.BlockInstance)
 		CannotForwardAttributes func(z *analyzer, __r *file.BlockInstance)
-		Default                 struct {
-			AcceptsAttributes              func(z *analyzer, __r *file.BlockInstance)
-			ForwardsReceivedAttributes     func(z *analyzer, __r *file.BlockInstance)
-			ElementsWithAndPlaceholder     func(z *analyzer, __r *file.BlockInstance)
+		Default struct {
+			AcceptsAttributes func(z *analyzer, __r *file.BlockInstance)
+			ForwardsReceivedAttributes func(z *analyzer, __r *file.BlockInstance)
+			ElementsWithAndPlaceholder func(z *analyzer, __r *file.BlockInstance)
 			ElementSpecsWithAndPlaceholder func(z *analyzer, __r *file.BlockInstance)
-			ForwardsAttributes             func(z *analyzer, __r *file.BlockInstance)
-			WritesContent                  func(z *analyzer, __r *file.BlockInstance)
-			WritesElements                 func(z *analyzer, __r *file.BlockInstance)
+			ForwardsAttributes func(z *analyzer, __r *file.BlockInstance)
+			WritesContent func(z *analyzer, __r *file.BlockInstance)
+			WritesElements func(z *analyzer, __r *file.BlockInstance)
 		}
 	}
 	BlockSetter struct {
 	}
 	BlockSetterInstance struct {
-		AcceptsAttributes          func(z *analyzer, __r *file.BlockSetterInstance)
+		AcceptsAttributes func(z *analyzer, __r *file.BlockSetterInstance)
 		ForwardsReceivedAttributes func(z *analyzer, __r *file.BlockSetterInstance)
-		ForwardsAttributes         func(z *analyzer, __r *file.BlockSetterInstance)
-		WritesContent              func(z *analyzer, __r *file.BlockSetterInstance)
-		WritesElements             func(z *analyzer, __r *file.BlockSetterInstance)
+		ForwardsAttributes func(z *analyzer, __r *file.BlockSetterInstance)
+		WritesContent func(z *analyzer, __r *file.BlockSetterInstance)
+		WritesElements func(z *analyzer, __r *file.BlockSetterInstance)
 	}
 	Component struct {
-		Circular                                func(z *analyzer, __r *file.Component)
-		AlwaysAcceptsAttributes                 func(z *analyzer, __r *file.Component)
-		AlwaysForwardsReceivedAttributes        func(z *analyzer, __r *file.Component)
-		AlwaysForwardsAttributes                func(z *analyzer, __r *file.Component)
-		AlwaysWritesContent                     func(z *analyzer, __r *file.Component)
-		AlwaysWritesElements                    func(z *analyzer, __r *file.Component)
-		PermanentElementsWithAndPlaceholder     func(z *analyzer, __r *file.Component)
+		Circular func(z *analyzer, __r *file.Component)
+		AlwaysAcceptsAttributes func(z *analyzer, __r *file.Component)
+		AlwaysForwardsReceivedAttributes func(z *analyzer, __r *file.Component)
+		AlwaysForwardsAttributes func(z *analyzer, __r *file.Component)
+		AlwaysWritesContent func(z *analyzer, __r *file.Component)
+		AlwaysWritesElements func(z *analyzer, __r *file.Component)
+		PermanentElementsWithAndPlaceholder func(z *analyzer, __r *file.Component)
 		PermanentElementSpecsWithAndPlaceholder func(z *analyzer, __r *file.Component)
 	}
 	ComponentArgument struct {
 		Value func(z *analyzer, __r *file.ComponentArgument)
 	}
 	ComponentParameter struct {
-		InferredType  func(z *analyzer, __r *file.ComponentParameter)
+		InferredType func(z *analyzer, __r *file.ComponentParameter)
 		AttributeType func(z *analyzer, __r *file.ComponentParameter)
 		AttributeName func(z *analyzer, __r *file.ComponentParameter)
 	}
 	ComponentCall struct {
-		ReceivesAttributes             func(z *analyzer, __r *file.ComponentCall)
-		ReceivesAndPlaceholder         func(z *analyzer, __r *file.ComponentCall)
-		ElementsWithAndPlaceholder     func(z *analyzer, __r *file.ComponentCall)
+		ReceivesAttributes func(z *analyzer, __r *file.ComponentCall)
+		ReceivesAndPlaceholder func(z *analyzer, __r *file.ComponentCall)
+		ElementsWithAndPlaceholder func(z *analyzer, __r *file.ComponentCall)
 		ElementSpecsWithAndPlaceholder func(z *analyzer, __r *file.ComponentCall)
 	}
 	ElementSpec struct {
 		Circular func(z *analyzer, __r *file.ElementSpec)
-		Type     func(z *analyzer, __r *file.ElementSpec)
+		Type func(z *analyzer, __r *file.ElementSpec)
 	}
 }{
 	Attribute: struct {
-		Value                 func(z *analyzer, __r *file.Attribute)
-		Forwarded             func(z *analyzer, __r *file.Attribute)
-		Receivers             func(z *analyzer, __r *file.Attribute)
+		Value func(z *analyzer, __r *file.Attribute)
+		Forwarded func(z *analyzer, __r *file.Attribute)
+		Receivers func(z *analyzer, __r *file.Attribute)
 		ReceivingElementSpecs func(z *analyzer, __r *file.Attribute)
-		Type                  func(z *analyzer, __r *file.Attribute)
+		Type func(z *analyzer, __r *file.Attribute)
 	}{
 		Value: func(z *analyzer, __r *file.Attribute) {
 			z.Ran(__r, analyzedFileSymbol("Attribute.Value"))
@@ -993,20 +992,21 @@ var analyzed = struct {
 		},
 	},
 	Block: struct {
-	}{},
+	}{
+	},
 	BlockInstance: struct {
-		Forwarded               func(z *analyzer, __r *file.BlockInstance)
-		ContainingElements      func(z *analyzer, __r *file.BlockInstance)
-		ContainingElementSpecs  func(z *analyzer, __r *file.BlockInstance)
+		Forwarded func(z *analyzer, __r *file.BlockInstance)
+		ContainingElements func(z *analyzer, __r *file.BlockInstance)
+		ContainingElementSpecs func(z *analyzer, __r *file.BlockInstance)
 		CannotForwardAttributes func(z *analyzer, __r *file.BlockInstance)
-		Default                 struct {
-			AcceptsAttributes              func(z *analyzer, __r *file.BlockInstance)
-			ForwardsReceivedAttributes     func(z *analyzer, __r *file.BlockInstance)
-			ElementsWithAndPlaceholder     func(z *analyzer, __r *file.BlockInstance)
+		Default struct {
+			AcceptsAttributes func(z *analyzer, __r *file.BlockInstance)
+			ForwardsReceivedAttributes func(z *analyzer, __r *file.BlockInstance)
+			ElementsWithAndPlaceholder func(z *analyzer, __r *file.BlockInstance)
 			ElementSpecsWithAndPlaceholder func(z *analyzer, __r *file.BlockInstance)
-			ForwardsAttributes             func(z *analyzer, __r *file.BlockInstance)
-			WritesContent                  func(z *analyzer, __r *file.BlockInstance)
-			WritesElements                 func(z *analyzer, __r *file.BlockInstance)
+			ForwardsAttributes func(z *analyzer, __r *file.BlockInstance)
+			WritesContent func(z *analyzer, __r *file.BlockInstance)
+			WritesElements func(z *analyzer, __r *file.BlockInstance)
 		}
 	}{
 		Forwarded: func(z *analyzer, __r *file.BlockInstance) {
@@ -1022,13 +1022,13 @@ var analyzed = struct {
 			z.Ran(__r, analyzedFileSymbol("BlockInstance.CannotForwardAttributes"))
 		},
 		Default: struct {
-			AcceptsAttributes              func(z *analyzer, __r *file.BlockInstance)
-			ForwardsReceivedAttributes     func(z *analyzer, __r *file.BlockInstance)
-			ElementsWithAndPlaceholder     func(z *analyzer, __r *file.BlockInstance)
+			AcceptsAttributes func(z *analyzer, __r *file.BlockInstance)
+			ForwardsReceivedAttributes func(z *analyzer, __r *file.BlockInstance)
+			ElementsWithAndPlaceholder func(z *analyzer, __r *file.BlockInstance)
 			ElementSpecsWithAndPlaceholder func(z *analyzer, __r *file.BlockInstance)
-			ForwardsAttributes             func(z *analyzer, __r *file.BlockInstance)
-			WritesContent                  func(z *analyzer, __r *file.BlockInstance)
-			WritesElements                 func(z *analyzer, __r *file.BlockInstance)
+			ForwardsAttributes func(z *analyzer, __r *file.BlockInstance)
+			WritesContent func(z *analyzer, __r *file.BlockInstance)
+			WritesElements func(z *analyzer, __r *file.BlockInstance)
 		}{
 			AcceptsAttributes: func(z *analyzer, __r *file.BlockInstance) {
 				z.Ran(__r, analyzedFileSymbol("BlockInstance.Default.AcceptsAttributes"))
@@ -1054,13 +1054,14 @@ var analyzed = struct {
 		},
 	},
 	BlockSetter: struct {
-	}{},
+	}{
+	},
 	BlockSetterInstance: struct {
-		AcceptsAttributes          func(z *analyzer, __r *file.BlockSetterInstance)
+		AcceptsAttributes func(z *analyzer, __r *file.BlockSetterInstance)
 		ForwardsReceivedAttributes func(z *analyzer, __r *file.BlockSetterInstance)
-		ForwardsAttributes         func(z *analyzer, __r *file.BlockSetterInstance)
-		WritesContent              func(z *analyzer, __r *file.BlockSetterInstance)
-		WritesElements             func(z *analyzer, __r *file.BlockSetterInstance)
+		ForwardsAttributes func(z *analyzer, __r *file.BlockSetterInstance)
+		WritesContent func(z *analyzer, __r *file.BlockSetterInstance)
+		WritesElements func(z *analyzer, __r *file.BlockSetterInstance)
 	}{
 		AcceptsAttributes: func(z *analyzer, __r *file.BlockSetterInstance) {
 			z.Ran(__r, analyzedFileSymbol("BlockSetterInstance.AcceptsAttributes"))
@@ -1079,13 +1080,13 @@ var analyzed = struct {
 		},
 	},
 	Component: struct {
-		Circular                                func(z *analyzer, __r *file.Component)
-		AlwaysAcceptsAttributes                 func(z *analyzer, __r *file.Component)
-		AlwaysForwardsReceivedAttributes        func(z *analyzer, __r *file.Component)
-		AlwaysForwardsAttributes                func(z *analyzer, __r *file.Component)
-		AlwaysWritesContent                     func(z *analyzer, __r *file.Component)
-		AlwaysWritesElements                    func(z *analyzer, __r *file.Component)
-		PermanentElementsWithAndPlaceholder     func(z *analyzer, __r *file.Component)
+		Circular func(z *analyzer, __r *file.Component)
+		AlwaysAcceptsAttributes func(z *analyzer, __r *file.Component)
+		AlwaysForwardsReceivedAttributes func(z *analyzer, __r *file.Component)
+		AlwaysForwardsAttributes func(z *analyzer, __r *file.Component)
+		AlwaysWritesContent func(z *analyzer, __r *file.Component)
+		AlwaysWritesElements func(z *analyzer, __r *file.Component)
+		PermanentElementsWithAndPlaceholder func(z *analyzer, __r *file.Component)
 		PermanentElementSpecsWithAndPlaceholder func(z *analyzer, __r *file.Component)
 	}{
 		Circular: func(z *analyzer, __r *file.Component) {
@@ -1121,7 +1122,7 @@ var analyzed = struct {
 		},
 	},
 	ComponentParameter: struct {
-		InferredType  func(z *analyzer, __r *file.ComponentParameter)
+		InferredType func(z *analyzer, __r *file.ComponentParameter)
 		AttributeType func(z *analyzer, __r *file.ComponentParameter)
 		AttributeName func(z *analyzer, __r *file.ComponentParameter)
 	}{
@@ -1136,9 +1137,9 @@ var analyzed = struct {
 		},
 	},
 	ComponentCall: struct {
-		ReceivesAttributes             func(z *analyzer, __r *file.ComponentCall)
-		ReceivesAndPlaceholder         func(z *analyzer, __r *file.ComponentCall)
-		ElementsWithAndPlaceholder     func(z *analyzer, __r *file.ComponentCall)
+		ReceivesAttributes func(z *analyzer, __r *file.ComponentCall)
+		ReceivesAndPlaceholder func(z *analyzer, __r *file.ComponentCall)
+		ElementsWithAndPlaceholder func(z *analyzer, __r *file.ComponentCall)
 		ElementSpecsWithAndPlaceholder func(z *analyzer, __r *file.ComponentCall)
 	}{
 		ReceivesAttributes: func(z *analyzer, __r *file.ComponentCall) {
@@ -1156,7 +1157,7 @@ var analyzed = struct {
 	},
 	ElementSpec: struct {
 		Circular func(z *analyzer, __r *file.ElementSpec)
-		Type     func(z *analyzer, __r *file.ElementSpec)
+		Type func(z *analyzer, __r *file.ElementSpec)
 	}{
 		Circular: func(z *analyzer, __r *file.ElementSpec) {
 			z.Ran(__r, analyzedFileSymbol("ElementSpec.Circular"))
@@ -1169,73 +1170,73 @@ var analyzed = struct {
 
 var requireField = struct {
 	Attribute struct {
-		Value                 func(z *analyzer, __r *file.Attribute)
-		Forwarded             func(z *analyzer, __r *file.Attribute)
-		Receivers             func(z *analyzer, __r *file.Attribute)
+		Value func(z *analyzer, __r *file.Attribute)
+		Forwarded func(z *analyzer, __r *file.Attribute)
+		Receivers func(z *analyzer, __r *file.Attribute)
 		ReceivingElementSpecs func(z *analyzer, __r *file.Attribute)
-		Type                  func(z *analyzer, __r *file.Attribute)
+		Type func(z *analyzer, __r *file.Attribute)
 	}
 	Block struct {
 	}
 	BlockInstance struct {
-		Forwarded               func(z *analyzer, __r *file.BlockInstance)
-		ContainingElements      func(z *analyzer, __r *file.BlockInstance)
-		ContainingElementSpecs  func(z *analyzer, __r *file.BlockInstance)
+		Forwarded func(z *analyzer, __r *file.BlockInstance)
+		ContainingElements func(z *analyzer, __r *file.BlockInstance)
+		ContainingElementSpecs func(z *analyzer, __r *file.BlockInstance)
 		CannotForwardAttributes func(z *analyzer, __r *file.BlockInstance)
-		Default                 struct {
-			AcceptsAttributes              func(z *analyzer, __r *file.BlockInstance)
-			ForwardsReceivedAttributes     func(z *analyzer, __r *file.BlockInstance)
-			ElementsWithAndPlaceholder     func(z *analyzer, __r *file.BlockInstance)
+		Default struct {
+			AcceptsAttributes func(z *analyzer, __r *file.BlockInstance)
+			ForwardsReceivedAttributes func(z *analyzer, __r *file.BlockInstance)
+			ElementsWithAndPlaceholder func(z *analyzer, __r *file.BlockInstance)
 			ElementSpecsWithAndPlaceholder func(z *analyzer, __r *file.BlockInstance)
-			ForwardsAttributes             func(z *analyzer, __r *file.BlockInstance)
-			WritesContent                  func(z *analyzer, __r *file.BlockInstance)
-			WritesElements                 func(z *analyzer, __r *file.BlockInstance)
+			ForwardsAttributes func(z *analyzer, __r *file.BlockInstance)
+			WritesContent func(z *analyzer, __r *file.BlockInstance)
+			WritesElements func(z *analyzer, __r *file.BlockInstance)
 		}
 	}
 	BlockSetter struct {
 	}
 	BlockSetterInstance struct {
-		AcceptsAttributes          func(z *analyzer, __r *file.BlockSetterInstance)
+		AcceptsAttributes func(z *analyzer, __r *file.BlockSetterInstance)
 		ForwardsReceivedAttributes func(z *analyzer, __r *file.BlockSetterInstance)
-		ForwardsAttributes         func(z *analyzer, __r *file.BlockSetterInstance)
-		WritesContent              func(z *analyzer, __r *file.BlockSetterInstance)
-		WritesElements             func(z *analyzer, __r *file.BlockSetterInstance)
+		ForwardsAttributes func(z *analyzer, __r *file.BlockSetterInstance)
+		WritesContent func(z *analyzer, __r *file.BlockSetterInstance)
+		WritesElements func(z *analyzer, __r *file.BlockSetterInstance)
 	}
 	Component struct {
-		Circular                                func(z *analyzer, __r *file.Component)
-		AlwaysAcceptsAttributes                 func(z *analyzer, __r *file.Component)
-		AlwaysForwardsReceivedAttributes        func(z *analyzer, __r *file.Component)
-		AlwaysForwardsAttributes                func(z *analyzer, __r *file.Component)
-		AlwaysWritesContent                     func(z *analyzer, __r *file.Component)
-		AlwaysWritesElements                    func(z *analyzer, __r *file.Component)
-		PermanentElementsWithAndPlaceholder     func(z *analyzer, __r *file.Component)
+		Circular func(z *analyzer, __r *file.Component)
+		AlwaysAcceptsAttributes func(z *analyzer, __r *file.Component)
+		AlwaysForwardsReceivedAttributes func(z *analyzer, __r *file.Component)
+		AlwaysForwardsAttributes func(z *analyzer, __r *file.Component)
+		AlwaysWritesContent func(z *analyzer, __r *file.Component)
+		AlwaysWritesElements func(z *analyzer, __r *file.Component)
+		PermanentElementsWithAndPlaceholder func(z *analyzer, __r *file.Component)
 		PermanentElementSpecsWithAndPlaceholder func(z *analyzer, __r *file.Component)
 	}
 	ComponentArgument struct {
 		Value func(z *analyzer, __r *file.ComponentArgument)
 	}
 	ComponentParameter struct {
-		InferredType  func(z *analyzer, __r *file.ComponentParameter)
+		InferredType func(z *analyzer, __r *file.ComponentParameter)
 		AttributeType func(z *analyzer, __r *file.ComponentParameter)
 		AttributeName func(z *analyzer, __r *file.ComponentParameter)
 	}
 	ComponentCall struct {
-		ReceivesAttributes             func(z *analyzer, __r *file.ComponentCall)
-		ReceivesAndPlaceholder         func(z *analyzer, __r *file.ComponentCall)
-		ElementsWithAndPlaceholder     func(z *analyzer, __r *file.ComponentCall)
+		ReceivesAttributes func(z *analyzer, __r *file.ComponentCall)
+		ReceivesAndPlaceholder func(z *analyzer, __r *file.ComponentCall)
+		ElementsWithAndPlaceholder func(z *analyzer, __r *file.ComponentCall)
 		ElementSpecsWithAndPlaceholder func(z *analyzer, __r *file.ComponentCall)
 	}
 	ElementSpec struct {
 		Circular func(z *analyzer, __r *file.ElementSpec)
-		Type     func(z *analyzer, __r *file.ElementSpec)
+		Type func(z *analyzer, __r *file.ElementSpec)
 	}
 }{
 	Attribute: struct {
-		Value                 func(z *analyzer, __r *file.Attribute)
-		Forwarded             func(z *analyzer, __r *file.Attribute)
-		Receivers             func(z *analyzer, __r *file.Attribute)
+		Value func(z *analyzer, __r *file.Attribute)
+		Forwarded func(z *analyzer, __r *file.Attribute)
+		Receivers func(z *analyzer, __r *file.Attribute)
 		ReceivingElementSpecs func(z *analyzer, __r *file.Attribute)
-		Type                  func(z *analyzer, __r *file.Attribute)
+		Type func(z *analyzer, __r *file.Attribute)
 	}{
 		Value: func(z *analyzer, __r *file.Attribute) {
 			z.Require(__r, analyzedFileSymbol("Attribute.Value"))
@@ -1254,20 +1255,21 @@ var requireField = struct {
 		},
 	},
 	Block: struct {
-	}{},
+	}{
+	},
 	BlockInstance: struct {
-		Forwarded               func(z *analyzer, __r *file.BlockInstance)
-		ContainingElements      func(z *analyzer, __r *file.BlockInstance)
-		ContainingElementSpecs  func(z *analyzer, __r *file.BlockInstance)
+		Forwarded func(z *analyzer, __r *file.BlockInstance)
+		ContainingElements func(z *analyzer, __r *file.BlockInstance)
+		ContainingElementSpecs func(z *analyzer, __r *file.BlockInstance)
 		CannotForwardAttributes func(z *analyzer, __r *file.BlockInstance)
-		Default                 struct {
-			AcceptsAttributes              func(z *analyzer, __r *file.BlockInstance)
-			ForwardsReceivedAttributes     func(z *analyzer, __r *file.BlockInstance)
-			ElementsWithAndPlaceholder     func(z *analyzer, __r *file.BlockInstance)
+		Default struct {
+			AcceptsAttributes func(z *analyzer, __r *file.BlockInstance)
+			ForwardsReceivedAttributes func(z *analyzer, __r *file.BlockInstance)
+			ElementsWithAndPlaceholder func(z *analyzer, __r *file.BlockInstance)
 			ElementSpecsWithAndPlaceholder func(z *analyzer, __r *file.BlockInstance)
-			ForwardsAttributes             func(z *analyzer, __r *file.BlockInstance)
-			WritesContent                  func(z *analyzer, __r *file.BlockInstance)
-			WritesElements                 func(z *analyzer, __r *file.BlockInstance)
+			ForwardsAttributes func(z *analyzer, __r *file.BlockInstance)
+			WritesContent func(z *analyzer, __r *file.BlockInstance)
+			WritesElements func(z *analyzer, __r *file.BlockInstance)
 		}
 	}{
 		Forwarded: func(z *analyzer, __r *file.BlockInstance) {
@@ -1283,13 +1285,13 @@ var requireField = struct {
 			z.Require(__r, analyzedFileSymbol("BlockInstance.CannotForwardAttributes"))
 		},
 		Default: struct {
-			AcceptsAttributes              func(z *analyzer, __r *file.BlockInstance)
-			ForwardsReceivedAttributes     func(z *analyzer, __r *file.BlockInstance)
-			ElementsWithAndPlaceholder     func(z *analyzer, __r *file.BlockInstance)
+			AcceptsAttributes func(z *analyzer, __r *file.BlockInstance)
+			ForwardsReceivedAttributes func(z *analyzer, __r *file.BlockInstance)
+			ElementsWithAndPlaceholder func(z *analyzer, __r *file.BlockInstance)
 			ElementSpecsWithAndPlaceholder func(z *analyzer, __r *file.BlockInstance)
-			ForwardsAttributes             func(z *analyzer, __r *file.BlockInstance)
-			WritesContent                  func(z *analyzer, __r *file.BlockInstance)
-			WritesElements                 func(z *analyzer, __r *file.BlockInstance)
+			ForwardsAttributes func(z *analyzer, __r *file.BlockInstance)
+			WritesContent func(z *analyzer, __r *file.BlockInstance)
+			WritesElements func(z *analyzer, __r *file.BlockInstance)
 		}{
 			AcceptsAttributes: func(z *analyzer, __r *file.BlockInstance) {
 				z.Require(__r, analyzedFileSymbol("BlockInstance.Default.AcceptsAttributes"))
@@ -1315,13 +1317,14 @@ var requireField = struct {
 		},
 	},
 	BlockSetter: struct {
-	}{},
+	}{
+	},
 	BlockSetterInstance: struct {
-		AcceptsAttributes          func(z *analyzer, __r *file.BlockSetterInstance)
+		AcceptsAttributes func(z *analyzer, __r *file.BlockSetterInstance)
 		ForwardsReceivedAttributes func(z *analyzer, __r *file.BlockSetterInstance)
-		ForwardsAttributes         func(z *analyzer, __r *file.BlockSetterInstance)
-		WritesContent              func(z *analyzer, __r *file.BlockSetterInstance)
-		WritesElements             func(z *analyzer, __r *file.BlockSetterInstance)
+		ForwardsAttributes func(z *analyzer, __r *file.BlockSetterInstance)
+		WritesContent func(z *analyzer, __r *file.BlockSetterInstance)
+		WritesElements func(z *analyzer, __r *file.BlockSetterInstance)
 	}{
 		AcceptsAttributes: func(z *analyzer, __r *file.BlockSetterInstance) {
 			z.Require(__r, analyzedFileSymbol("BlockSetterInstance.AcceptsAttributes"))
@@ -1340,13 +1343,13 @@ var requireField = struct {
 		},
 	},
 	Component: struct {
-		Circular                                func(z *analyzer, __r *file.Component)
-		AlwaysAcceptsAttributes                 func(z *analyzer, __r *file.Component)
-		AlwaysForwardsReceivedAttributes        func(z *analyzer, __r *file.Component)
-		AlwaysForwardsAttributes                func(z *analyzer, __r *file.Component)
-		AlwaysWritesContent                     func(z *analyzer, __r *file.Component)
-		AlwaysWritesElements                    func(z *analyzer, __r *file.Component)
-		PermanentElementsWithAndPlaceholder     func(z *analyzer, __r *file.Component)
+		Circular func(z *analyzer, __r *file.Component)
+		AlwaysAcceptsAttributes func(z *analyzer, __r *file.Component)
+		AlwaysForwardsReceivedAttributes func(z *analyzer, __r *file.Component)
+		AlwaysForwardsAttributes func(z *analyzer, __r *file.Component)
+		AlwaysWritesContent func(z *analyzer, __r *file.Component)
+		AlwaysWritesElements func(z *analyzer, __r *file.Component)
+		PermanentElementsWithAndPlaceholder func(z *analyzer, __r *file.Component)
 		PermanentElementSpecsWithAndPlaceholder func(z *analyzer, __r *file.Component)
 	}{
 		Circular: func(z *analyzer, __r *file.Component) {
@@ -1382,7 +1385,7 @@ var requireField = struct {
 		},
 	},
 	ComponentParameter: struct {
-		InferredType  func(z *analyzer, __r *file.ComponentParameter)
+		InferredType func(z *analyzer, __r *file.ComponentParameter)
 		AttributeType func(z *analyzer, __r *file.ComponentParameter)
 		AttributeName func(z *analyzer, __r *file.ComponentParameter)
 	}{
@@ -1397,9 +1400,9 @@ var requireField = struct {
 		},
 	},
 	ComponentCall: struct {
-		ReceivesAttributes             func(z *analyzer, __r *file.ComponentCall)
-		ReceivesAndPlaceholder         func(z *analyzer, __r *file.ComponentCall)
-		ElementsWithAndPlaceholder     func(z *analyzer, __r *file.ComponentCall)
+		ReceivesAttributes func(z *analyzer, __r *file.ComponentCall)
+		ReceivesAndPlaceholder func(z *analyzer, __r *file.ComponentCall)
+		ElementsWithAndPlaceholder func(z *analyzer, __r *file.ComponentCall)
 		ElementSpecsWithAndPlaceholder func(z *analyzer, __r *file.ComponentCall)
 	}{
 		ReceivesAttributes: func(z *analyzer, __r *file.ComponentCall) {
@@ -1417,7 +1420,7 @@ var requireField = struct {
 	},
 	ElementSpec: struct {
 		Circular func(z *analyzer, __r *file.ElementSpec)
-		Type     func(z *analyzer, __r *file.ElementSpec)
+		Type func(z *analyzer, __r *file.ElementSpec)
 	}{
 		Circular: func(z *analyzer, __r *file.ElementSpec) {
 			z.Require(__r, analyzedFileSymbol("ElementSpec.Circular"))
