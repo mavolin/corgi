@@ -127,7 +127,7 @@ type (
 		// the place to link the documentation about components.
 		// We can expect common sense.
 		//
-		// Comments that start with "https://" are treated as absolute and will
+		// Values that start with "https://" are treated as absolute and will
 		// be rendered as-is.
 		// Otherwise, they are treated as a bang-path relative to the base URL
 		// of the documentation.
