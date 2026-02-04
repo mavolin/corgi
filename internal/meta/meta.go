@@ -27,13 +27,12 @@ import (
 // ascertain whether the bug lies with them or with this module.
 var CLI = false
 
-// develVersion is the version string used for development builds.
-const develVersion = "devel"
-
 const Module = "github.com/mavolin/corgi/v2"
 
 // Version is the version of the binary.
 var Version = func() string {
+	const develVersion = "devel"
+
 	if buildInfo == nil {
 		return develVersion
 	}
