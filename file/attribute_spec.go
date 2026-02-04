@@ -27,15 +27,15 @@ type AttributeSpec struct {
 	// Prefix is the prefix of the attribute definition, if it has one.
 	Prefix CanonicalAttributeName
 
-	// Specificity is the specificity of the attribute definition.
+	// Specificity is the specificity of the attribute selector.
 	//
 	// For basic attribute selectors the specificity is calculated as the length of
-	// the name of the attribute, excluding the wildcard asterisk.
+	// the prefix and name of the attribute, excluding the wildcard asterisk.
 	// For example `foo` and `foo*` both have a specificity of 3.
 	//
 	// For regular expression selectors, the specificity is always 0.
 	//
-	// In a valid package, there are never two attribute definitions with the same
+	// In a valid package, there are never two attribute specs with the same
 	// specificity that match the same name.
 	Specificity int
 }
