@@ -84,7 +84,8 @@ func (a *Analysis[T]) SetZero()      { a.result, a.ok = a.zero(), true }
 // NotZero indicates whether the analysis was successful and the result is not
 // the zero value.
 //
-// Do not negate, the negation is probably not what you expect!
+// The negation of NotZero might not be what you expect:
+// It is _not_ Equal(zero), but rather Failed() || Equal(zero).
 func (a Analysis[T]) NotZero() bool { return a.true() }
 
 func (a Analysis[T]) Equal(v T) bool { return a.Successful() && a.result == v }
