@@ -371,7 +371,7 @@ func (z *analyzer) analyzeAttribute_Type_inferred(logger *slog.Logger, f *file.F
 	containingElementSpecs := receivingElementSpecs.Result().Get()
 	if len(containingElementSpecs) == 0 {
 		attr.Type.SetFailed()
-		logger.Error("attribute not forwarded but not contained in any element")
+		logger.Error("Attribute not forwarded but neither contained in any element")
 		z.Report(&diagnostic.Diagnostic{
 			Type:    diagnostic.InternalError,
 			Message: "attribute: not forwarded but neither contained in any element",
@@ -411,7 +411,7 @@ func (z *analyzer) analyzeAttribute_Type_inferred(logger *slog.Logger, f *file.F
 					Example: "`data-woof='url(myVar)`",
 				}, {
 					Hint:    "Define the attribute for the elements it is attached to.",
-					Example: "`attr woof { div url }`",
+					Example: "`attr data-woof { div url }`",
 				}, {
 					Hint:    "Set this attribute to a constant value.",
 					Example: "`data-woof=\"bark\"`",
@@ -500,15 +500,15 @@ func (z *analyzer) analyzeAttribute_Type_inferred(logger *slog.Logger, f *file.F
 			anno.Node(f, attr.AST, "neither explicitly typed nor defined for the element"),
 		},
 		Explanation: "As part of the security model, non-constant attributes must be typed. " +
-			"For example, the `href` attribute placed on an `<a>` element is defined as `url`.\n" +
-			"This attribute is attached to an element that does not define it.",
+			"For example, the `href` attribute placed on an `<a>` element is typed as `url` by default.\n" +
+			"This attribute is attached to an element that does not define a type for it.",
 		Hints: []diagnostic.Hint{
 			{
 				Hint:    "Explicitly type the attribute.",
 				Example: "`data-woof='url(myVar)`",
 			}, {
 				Hint:    "Define the attribute for the elements it is attached to.",
-				Example: "`attr woof { div url }`",
+				Example: "`attr data-woof { div url }`",
 			},
 		},
 		Docs: "attribute-type",
