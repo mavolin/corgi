@@ -24,15 +24,14 @@ type Attribute struct {
 	// Nil for &-placeholders.
 	Value ResolvedValue
 
-	// Forwarded indicates whether the attribute reference is forwarded to the
+	// Forwarded indicates whether the attribute is forwarded to the
 	// component calling the component containing it.
 	//
 	//    comp woof() {
 	//      &(bark=...)
 	//    }
 	//
-	// In the above example, the attribute reference bark is forwarded to the
-	// component calling woof.
+	// In the above example, bark is forwarded to the component calling woof.
 	Forwarded Analysis[bool]
 	// Receivers are all elements this attribute is placed on.
 	// If the attribute is forwarded, this list is incomplete: It only contains
