@@ -5,13 +5,10 @@ import (
 	"github.com/mavolin/corgi/v2/cmd/debug/ast"
 )
 
-var (
-	meta = command.Meta{
-		Name:             "debug",
-		ShortDescription: "Commands to help in the development of corgi.",
-		LongDescription: "The debug commands are meant to help in the development of corgi itself.\n" +
-			"\n" +
-			"They provide commands to inspect the AST, the tokens, and the scopes of corgi files.",
-	}
-	Group = command.Group(meta, ast.Command)
-)
+var Group = command.Group(command.Meta{
+	Name:             "debug",
+	ShortDescription: "Commands to help in the development of corgi.",
+	LongDescription: "The debug commands are meant to help in the development of corgi itself.\n" +
+		"\n" +
+		"They provide commands to inspect the AST, the tokens, and the scopes of corgi files.",
+}, ast.Command)

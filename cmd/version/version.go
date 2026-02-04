@@ -19,7 +19,7 @@ var (
 		},
 	}
 
-	Command = command.Command[*command.NoFlags](meta, nil, run)
+	Command = command.Command(meta, nil, run)
 )
 
 func run(_ *command.Cmd, _ *command.NoFlags, args []string) {
