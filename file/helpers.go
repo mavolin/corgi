@@ -3,22 +3,15 @@ package file
 import (
 	"strings"
 
-	"github.com/mavolin/corgi/v2/internal/assert"
 	"github.com/mavolin/corgi/v2/internal/meta"
 	"golang.org/x/mod/module"
 )
 
 const (
 	EscapeImport  GoImportPath = meta.Module + "/escape"
-	SafeImport    GoImportPath = EscapeImport + "/safe"
+	SafeImport                 = EscapeImport + "/safe"
 	RuntimeImport GoImportPath = meta.Module + "/runtime"
 )
-
-func init() { //nolint:gochecknoinits
-	assert.NoError(SafeImport.CheckValid(), "SafeImport invalid")
-	assert.NoError(RuntimeImport.CheckValid(), "RuntimeImport invalid")
-	assert.NoError(EscapeImport.CheckValid(), "EscapeImport invalid")
-}
 
 type (
 	// Qualifier is the qualifier for an import.
