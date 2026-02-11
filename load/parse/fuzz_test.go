@@ -8,8 +8,6 @@ import (
 	"github.com/mavolin/corgi/v2/file/diagnostic"
 )
 
-func Foo() {}
-
 // FuzzParse tests that the parser doesn't crash or hang on arbitrary input.
 func FuzzParse(f *testing.F) {
 	f.Add("")
