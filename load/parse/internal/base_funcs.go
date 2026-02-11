@@ -78,7 +78,7 @@ func TryKeywordAt(p *Parser, k string) *ast.Position {
 	if matchesIdent {
 		return nil
 	}
-	return &ast.Position{Line: int(ln), Col: int(col)}
+	return &ast.Position{Line: ln, Col: col}
 }
 
 func TryTokenAt(p *Parser, s string) *ast.Position {
@@ -86,7 +86,7 @@ func TryTokenAt(p *Parser, s string) *ast.Position {
 	if !TryToken(p, s) {
 		return nil
 	}
-	return &ast.Position{Line: int(ln), Col: int(col)}
+	return &ast.Position{Line: ln, Col: col}
 }
 
 func TryRune(p *Parser, r rune) (ok bool) {
@@ -105,7 +105,7 @@ func TryRuneAt(p *Parser, r rune) *ast.Position {
 	if !TryRune(p, r) {
 		return nil
 	}
-	return &ast.Position{Line: int(ln), Col: int(col)}
+	return &ast.Position{Line: ln, Col: col}
 }
 
 func TryOptionalRune(p *Parser, r rune, ws WhitespaceFunc) (ok bool) {
@@ -126,7 +126,7 @@ func TryOptionalRuneAt(p *Parser, r rune, ws WhitespaceFunc) *ast.Position {
 	if !TryOptionalRune(p, r, ws) {
 		return nil
 	}
-	return &ast.Position{Line: int(ln), Col: int(col)}
+	return &ast.Position{Line: ln, Col: col}
 }
 
 // TryAnyRune attempts to match the next rune against any of the passed runes.
