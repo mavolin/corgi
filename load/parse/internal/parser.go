@@ -124,7 +124,6 @@ func (p *Parser) Pos() ast.Position { return p.state.Pos() }
 func (p *Parser) Index() int        { return int(p.state.index) }
 func (p *Parser) Inline() bool      { return p.inline }
 
-func (p *Parser) NumErrors() uint8              { return p.state.numErrs }
 func (p *Parser) Errors() diagnostic.List       { return slices.Clip(p.errs) }
 func (p *Parser) Comments() []*ast.CommentGroup { return p.comments }
 
