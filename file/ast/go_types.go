@@ -275,7 +275,7 @@ func (*UnderlyingParam) _node()     {}
 func (*UnderlyingParam) _typeTerm() {}
 
 // ============================================================================
-// Type Args
+// Type Arguments
 // ======================================================================================
 
 type TypeArguments struct {
@@ -387,7 +387,7 @@ func (p *TypeParameters) Walk(w func(Node)) {
 func (*TypeParameters) _node() {}
 
 // ============================================================================
-// Type Param
+// Type Parameter
 // ======================================================================================
 
 type TypeParameter struct {
