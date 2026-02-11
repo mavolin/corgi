@@ -32,8 +32,6 @@ func TestFile(t *testing.T) {
 		}
 	}
 	want := &ast.File{
-		Raw:   in,
-		Lines: lines,
 		Package: &ast.PackageDirective{
 			Package: &ast.Position{Line: 1, Col: 1},
 			Name:    &ast.Identifier{Name: "foo", Position: &ast.Position{Line: 1, Col: 9}},
@@ -104,6 +102,6 @@ func TestFile(t *testing.T) {
 	}
 
 	p := parsetest.NewParser(t, in)
-	parser.Try(p, File())
-	should.Equal(t, p.AST, want)
+	got := parser.Try(p, File())
+	should.Equal(t, got, want)
 }

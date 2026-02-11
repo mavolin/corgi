@@ -27,12 +27,10 @@ func NewParser(t *testing.T, in string) *parser.Parser {
 	}
 
 	return parser.New(&file.File{
-		Name: file.Name(t.Name()),
-		AST: &ast.File{
-			Raw:   in,
-			Lines: lines,
-		},
-	})
+		Name:  file.Name(t.Name()),
+		Raw:   in,
+		Lines: lines,
+	}, in, ast.Position{Line: 1, Col: 1})
 }
 
 func isZero[T any](t T) bool {

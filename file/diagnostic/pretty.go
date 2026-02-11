@@ -462,9 +462,10 @@ func (p *prettyPrinter) printHints() {
 
 func (p *prettyPrinter) printDocs() {
 	docs := p.diagnostic.Docs
-	if docs == " " {
+	switch docs {
+	case " ":
 		return
-	} else if docs == "" {
+	case "":
 		if p.diagnostic.Type != InternalError {
 			return
 		}
@@ -625,7 +626,7 @@ func lineRanges(f *fileAnnos) []lineRange {
 			panic(fmt.Sprintf("invalid context start: %d", a.ContextStart))
 		case a.ContextEnd < a.ContextStart:
 			panic(fmt.Sprintf("context end before start: %d < %d", a.ContextEnd, a.ContextStart))
-		case a.ContextEnd > len(f.file.AST.Lines)+1: // +1 because lines are 1-indexed
+		case a.ContextEnd > len(f.file.Lines)+1: // +1 because lines are 1-indexed
 			panic("context end out of bounds")
 		}
 
@@ -655,7 +656,7 @@ func lineRanges(f *fileAnnos) []lineRange {
 	}
 
 	for i, l := range merged {
-		merged[i].lines = f.file.AST.Lines[l.start-1 : l.end-1]
+		merged[i].lines = f.file.Lines[l.start-1 : l.end-1]
 	}
 
 	return merged

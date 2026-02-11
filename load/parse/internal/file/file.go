@@ -103,12 +103,14 @@ func scopeNode(p *parser.Parser) ast.ScopeNode {
 	return nil
 }
 
-func File() parser.Func[bool] {
-	return func(p *parser.Parser) bool {
+func File() parser.Func[*ast.File] {
+	return func(p *parser.Parser) *ast.File {
+		var f ast.File
+
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 
-		p.AST.Package = parser.TryOptional(p, PackageDirective(), nil)
-		if p.AST.Package == nil {
+		f.Package = parser.TryOptional(p, PackageDirective(), nil)
+		if f.Package == nil {
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message:  "missing package directive",
 				Primary:  quickanno.Expected(p, p.Pos(), "a package directive"),
@@ -124,13 +126,13 @@ func File() parser.Func[bool] {
 			if imp == nil {
 				break
 			}
-			p.AST.Imports = append(p.AST.Imports, imp)
+			f.Imports = append(f.Imports, imp)
 			parser.Try(p, comment.AndForceEOS())
 			parser.TrySkip(p, comment.OrAnyWhitespace())
 		}
-		p.AST.Imports = slices.Clip(p.AST.Imports)
+		f.Imports = slices.Clip(f.Imports)
 
-		p.AST.TopLevel = parser.Try(p, TopLevel())
+		f.TopLevel = parser.Try(p, TopLevel())
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 
 		if !parser.MatchesAnyRune(p, parser.EOF) {
@@ -140,8 +142,8 @@ func File() parser.Func[bool] {
 			})
 		}
 
-		p.AST.Comments = p.Comments()
-		return true
+		f.Comments = p.Comments()
+		return &f
 	}
 }
 

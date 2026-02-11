@@ -34,14 +34,12 @@ func Parse(input string, _ Options) (*file.File, diagnostic.List) {
 
 	f := &file.File{
 		Name: "<string input>",
-		AST: &ast.File{
-			Raw:   input,
-			Lines: lines,
-		},
+		Raw:   input,
+		Lines: lines,
 	}
 
-	p := parser.New(f)
+	p := parser.New(f, input, ast.Position{Line: 1, Col: 1})
 
-	parser.Try(p, fileparser.File())
+	f.AST = parser.Try(p, fileparser.File())
 	return f, p.Errors()
 }

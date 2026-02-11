@@ -101,12 +101,10 @@ func TestToEOL(t *testing.T) {
 	t.Parallel()
 
 	wantFile := &file.File{
-		AST: &ast.File{
-			Lines: []string{
-				"foo",
-				"foobar",
-				"bar",
-			},
+		Lines: []string{
+			"foo",
+			"foobar",
+			"bar",
 		},
 	}
 	want := diagnostic.Annotation{
@@ -114,7 +112,7 @@ func TestToEOL(t *testing.T) {
 		ContextStart: 2,
 		ContextEnd:   3,
 		Start:        ast.Position{Line: 2, Col: 3},
-		End:          ast.Position{Line: 2, Col: len(wantFile.AST.Lines[1]) + 1},
+		End:          ast.Position{Line: 2, Col: len(wantFile.Lines[1]) + 1},
 		Annotation:   "anno",
 	}
 

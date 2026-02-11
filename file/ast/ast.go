@@ -17,15 +17,13 @@
 // to be broken between versions.
 package ast
 
-import "fmt"
+import (
+	"fmt"
+	"slices"
+)
 
 // A File holds the abstract syntax tree for a corgi file.
 type File struct {
-	// Raw contains the raw input file, as it was parsed.
-	Raw string
-	// Lines are the lines of Raw, stripped of their CRLF/LF line endings.
-	Lines []string
-
 	Package *PackageDirective
 	Imports []*Import
 
@@ -36,11 +34,42 @@ type File struct {
 var _ Node = (*File)(nil)
 
 func (f *File) Start() Position {
-	return Position{Line: 1, Col: 1}
+	if f.Package != nil {
+		return f.Package.Start()
+	}
+	for _, imp := range f.Imports {
+		if imp != nil {
+			return imp.Start()
+		}
+	}
+	return NoPosition
 }
 
 func (f *File) End() Position {
-	return Position{Line: len(f.Lines), Col: len([]rune(f.Lines[len(f.Lines)-1])) + 1}
+	var cEnd Position
+	if len(f.Comments) > 0 {
+		cEnd = f.Comments[len(f.Comments)-1].End()
+	}
+
+	var end Position
+	if f.TopLevel != nil {
+		end = f.TopLevel.End()
+	} else {
+		for _, imp := range slices.Backward(f.Imports) {
+			if imp != nil {
+				end = imp.End()
+				break
+			}
+		}
+		if end.Line == 0 {
+			end = f.Package.End()
+		}
+	}
+
+	if cEnd.Line > end.Line || (cEnd.Line == end.Line && cEnd.Col > end.Col) {
+		return cEnd
+	}
+	return end
 }
 
 func (f *File) Walk(w func(Node)) {

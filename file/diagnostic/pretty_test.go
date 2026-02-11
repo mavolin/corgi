@@ -31,15 +31,15 @@ func TestDiagnostic_Pretty(t *testing.T) {
 			PathInModule: "bar",
 		},
 		Name: "foo.corgi",
+		Raw: "package foo\n" +
+			"\n" +
+			"import \"bar\"",
+		Lines: []string{
+			"package foo",
+			"",
+			"import \"bar\"",
+		},
 		AST: &ast.File{
-			Raw: "package foo\n" +
-				"\n" +
-				"import \"bar\"",
-			Lines: []string{
-				"package foo",
-				"",
-				"import \"bar\"",
-			},
 			Package: &ast.PackageDirective{
 				Package: &ast.Position{Line: 1, Col: 1},
 				Name: &ast.Identifier{

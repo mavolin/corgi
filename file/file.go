@@ -21,6 +21,11 @@ type File struct {
 	// Name is the name of the file.
 	Name Name
 
+	// Raw contains the raw input file, as it was parsed.
+	Raw string
+	// Lines are the lines of Raw, stripped of their CRLF/LF line endings.
+	Lines []string
+
 	AST *ast.File
 
 	*Symbols

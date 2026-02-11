@@ -86,7 +86,7 @@ func createFile(p *file.Package, name file.Name) *file.File {
 	f := &file.File{
 		Package: p,
 		Name:    name,
-		AST:     &ast.File{Lines: lines},
+		Lines:   lines,
 		Symbols: &file.Symbols{},
 	}
 	p.Files = append(p.Files, f)
