@@ -9,18 +9,14 @@ type State struct {
 
 	index     uint32
 	runeIndex uint32
-	line, col uint16
+	line, col uint32
 
 	numComments uint16
 	numErrs     uint8
 }
 
 func newState() *State {
-	return &State{
-		line:  1,
-		col:   1,
-		index: 0,
-	}
+	return &State{line: 1, col: 1}
 }
 
 func (s *State) Pos() ast.Position {
