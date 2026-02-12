@@ -10,7 +10,8 @@ type (
 
 		byteIndex ByteIndex
 		runeIndex RuneIndex
-		line, col uint32
+		line      ast.Line
+		col       ast.Col
 
 		numComments uint16
 		numErrs     uint8
@@ -20,12 +21,12 @@ type (
 	RuneIndex uint32
 )
 
-func newState(startLine, startCol uint32) *State {
+func newState(startLine ast.Line, startCol ast.Col) *State {
 	return &State{line: startLine, col: startCol}
 }
 
 func (s *State) Pos() ast.Position {
-	return ast.Position{Line: int(s.line), Col: int(s.col)}
+	return ast.Position{Line: s.line, Col: s.col}
 }
 
 func (s *State) advance(size ByteIndex, isNL bool) {

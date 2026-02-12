@@ -112,7 +112,7 @@ func TestToEOL(t *testing.T) {
 		ContextStart: 2,
 		ContextEnd:   3,
 		Start:        ast.Position{Line: 2, Col: 3},
-		End:          ast.Position{Line: 2, Col: len(wantFile.Lines[1]) + 1},
+		End:          ast.Position{Line: 2, Col: ast.Col(len(wantFile.Lines[1]) + 1)}, //nolint:gosec
 		Annotation:   "anno",
 	}
 
@@ -147,7 +147,7 @@ func TestNChars(t *testing.T) {
 		ContextStart: 2,
 		ContextEnd:   3,
 		Start:        ast.Position{Line: 2, Col: 3},
-		End:          ast.Position{Line: 2, Col: 3 + n},
+		End:          ast.Position{Line: 2, Col: ast.Col(3 + n)}, //nolint:gosec
 		Annotation:   "anno",
 	}
 
@@ -176,10 +176,10 @@ func TestNode(t *testing.T) {
 				Contents: []ast.StringNode{
 					&ast.StringText{
 						Text:     "foo",
-						Position: &ast.Position{Line: start.Line, Col: start.Col + len(`"`)},
+						Position: &ast.Position{Line: start.Line, Col: start.Col + ast.Col(len(`"`))},
 					},
 				},
-				Close: &ast.Position{Line: start.Line, Col: start.Col + len(`"foo`)},
+				Close: &ast.Position{Line: start.Line, Col: start.Col + ast.Col(len(`"foo`))},
 			},
 		},
 	}

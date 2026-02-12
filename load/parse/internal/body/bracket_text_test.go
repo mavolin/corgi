@@ -102,11 +102,11 @@ func TestVerbatimBracketText(t *testing.T) {
 					ast.TextLine{
 						&ast.Text{
 							Text:     "foo #bar",
-							Position: &ast.Position{Line: 1, Col: len("[ ") + 1},
+							Position: &ast.Position{Line: 1, Col: ast.Col(len("[ ") + 1)},
 						},
 					},
 				},
-				RBracket: &ast.Position{Line: 1, Col: len("[ foo #bar ") + 1},
+				RBracket: &ast.Position{Line: 1, Col: ast.Col(len("[ foo #bar ") + 1)},
 			},
 		}, {
 			name: "multi line",

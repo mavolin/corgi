@@ -3,6 +3,7 @@ package ast
 import (
 	"strconv"
 	"strings"
+	"unicode/utf8"
 )
 
 // Types representing their Go counterparts.
@@ -182,8 +183,8 @@ func (s *StaticString) End() Position {
 
 		lines := strings.Count(s.Contents[:i], "\n") + 1
 		return Position{
-			Line: s.Open.Line + lines,
-			Col:  len([]rune(s.Contents[i:])) + 1,
+			Line: s.Open.Line + Line(lines),                       //nolint:gosec
+			Col:  Col(utf8.RuneCountInString(s.Contents[i:]) + 1), //nolint:gosec
 		}
 	}
 

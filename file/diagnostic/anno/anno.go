@@ -96,7 +96,7 @@ type (
 	// included in the annotation for context.
 	// It must at least span the annotated line.
 	Context struct {
-		Start, End int
+		Start, End ast.Line
 	}
 	ContextFunc func(*file.File, Context, Highlight) Context
 )
@@ -104,7 +104,7 @@ type (
 var InvalidContext = Context{0, 0}
 
 // StaticContext returns a ContextFunc that always returns the given interval.
-func StaticContext(start, end int) ContextFunc {
+func StaticContext(start, end ast.Line) ContextFunc {
 	return func(*file.File, Context, Highlight) Context { return Context{start, max(end, start+1)} }
 }
 
@@ -127,9 +127,12 @@ func ContextRange(start, end ast.Position) ContextFunc {
 // HighlightFunc.
 func ContextDelta(dStart, dEnd int) ContextFunc {
 	return func(f *file.File, c Context, _ Highlight) Context {
-		s := max(1, c.Start+dStart)
-		e := c.End + dEnd
-		return Context{min(s, len(f.Lines)), min(max(e, s), len(f.Lines)+1)}
+		s := max(1, ast.Line(int(c.Start)+dStart)) //nolint:gosec
+		e := ast.Line(int(c.End) + dEnd)           //nolint:gosec
+		return Context{
+			Start: min(s, ast.Line(len(f.Lines))),           //nolint:gosec
+			End:   min(max(e, s), ast.Line(len(f.Lines)+1)), //nolint:gosec
+		}
 	}
 }
 
@@ -172,11 +175,11 @@ func HighlightToEOL(start ast.Position) HighlightFunc {
 }
 
 func toEOL(f *file.File, p ast.Position) Highlight {
-	if p.Line < 1 || p.Line > len(f.Lines) {
+	if p.Line < 1 || p.Line > ast.Line(len(f.Lines)) { //nolint:gosec
 		return InvalidHighlight
 	}
 
-	e := max(len(f.Lines[p.Line-1])+1, p.Col+1)
+	e := max(ast.Col(len(f.Lines[p.Line-1])+1), p.Col+1) //nolint:gosec
 	return Highlight{p, ast.Position{Line: p.Line, Col: e}}
 }
 
@@ -185,16 +188,14 @@ func toEOL(f *file.File, p ast.Position) Highlight {
 // If s is the empty string, a single char is highlighted.
 // If s contains only a single word, it is highlighted in its entirety.
 func HighlightFirstWord(start ast.Position, s string) HighlightFunc {
-	length := len(s)
-	if length == 0 {
-		return HighlightPosition(start)
-	}
-	for i, b := range []byte(s[1:]) {
+	var n int
+	for _, b := range s {
 		if b == ' ' || b == '\t' || b == '\r' || b == '\n' {
-			length = i
+			break
 		}
+		n++
 	}
-	return HighlightNRunes(start, length)
+	return HighlightNRunes(start, min(1, n))
 }
 
 // HighlightPosition is a shorthand for HighlightNRunes(start, 1).
@@ -204,13 +205,18 @@ func HighlightPosition(start ast.Position) HighlightFunc {
 
 // HighlightNRunes highlights the area from start to start+n.
 // n must be at least 1.
-// n must be specified in bytes.
 func HighlightNRunes(start ast.Position, n int) HighlightFunc {
 	if n <= 0 {
 		panic("anno: HighlightNRunes: n must be at least 1")
 	}
 	return func(*file.File) (Context, Highlight) {
-		return singleLine(start), Highlight{start, ast.Position{Line: start.Line, Col: start.Col + n}}
+		return singleLine(start), Highlight{
+			Start: start,
+			End: ast.Position{
+				Line: start.Line,
+				Col:  start.Col + ast.Col(n), //nolint:gosec
+			},
+		}
 	}
 }
 
@@ -219,6 +225,6 @@ func normalizePos(f *file.File, pos ast.Position) ast.Position {
 		return pos
 	}
 	pos.Line--
-	pos.Col = len(f.Lines[pos.Line-1]) + 1
+	pos.Col = ast.Col(len(f.Lines[pos.Line-1]) + 1)
 	return pos
 }

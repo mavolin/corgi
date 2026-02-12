@@ -1,4 +1,5 @@
-// Package diagnostic produces preformatted errors/warnings/etc
+// Package diagnostic provides an abstraction for diagnostics such as errors
+// or lints, as well as a formatter to render them in a human-friendly way.
 package diagnostic
 
 import (
@@ -10,9 +11,6 @@ import (
 )
 
 type (
-	line = int
-	col  = int
-
 	// Diagnostic is an optionally annotated error.
 	//
 	// It must have a message.
@@ -153,7 +151,7 @@ type (
 		// the component was called.
 		//
 		// ContextStart is inclusive and ContextEnd is exclusive.
-		ContextStart, ContextEnd line
+		ContextStart, ContextEnd ast.Line
 		// Start and End specify the col range to be highlighted.
 		//
 		// Note that Start and End may exceed the actual line length.
@@ -203,9 +201,9 @@ func (d *Diagnostic) Error() string {
 		p := d.Primary[0]
 		sb.WriteString(string(p.File.PathInModule()))
 		sb.WriteString(":")
-		sb.WriteString(strconv.Itoa(p.Start.Line))
+		sb.WriteString(strconv.Itoa(int(p.Start.Line)))
 		sb.WriteString(":")
-		sb.WriteString(strconv.Itoa(p.Start.Col))
+		sb.WriteString(strconv.Itoa(int(p.Start.Col)))
 		sb.WriteString(": ")
 	}
 	sb.WriteString(d.Message)

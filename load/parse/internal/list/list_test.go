@@ -69,13 +69,13 @@ func testList(t *testing.T, opening, closing rune, f func(belongsTo, singular, p
 				want := &List[string]{
 					Open: &ast.Position{Line: 1, Col: 1},
 					Close: &ast.Position{
-						Line: strings.Count(in, "\n") + 1,
-						Col:  len(string(opening)) + len(c.elems) + 1,
+						Line: ast.Line(strings.Count(in, "\n") + 1),
+						Col:  ast.Col(len(string(opening)) + len(c.elems) + 1),
 					},
 					Elems: c.want,
 				}
 				if want.Close.Line > 1 {
-					want.Close.Col = len(in[strings.LastIndex(in, "\n")+1:])
+					want.Close.Col = ast.Col(len(in[strings.LastIndex(in, "\n")+1:]))
 				}
 
 				got := parsetest.ParsesExact(t, in, f("belongsTo", "singular", "plural", elemFunc))
@@ -133,7 +133,7 @@ func testList(t *testing.T, opening, closing rune, f func(belongsTo, singular, p
 				in := fmt.Sprintf("%c%s%c", opening, c.elems, closing)
 				want := &List[string]{
 					Open:  &ast.Position{Line: 1, Col: 1},
-					Close: &ast.Position{Line: 1, Col: len(string(opening)) + len(c.elems) + 1},
+					Close: &ast.Position{Line: 1, Col: ast.Col(len(string(opening)) + len(c.elems) + 1)}, //nolint:gosec
 					Elems: c.want,
 				}
 				if c.noClose {

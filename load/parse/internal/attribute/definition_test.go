@@ -29,23 +29,23 @@ func TestDefinition(t *testing.T) {
 						Selector: &ast.BasicAttributeSelector{
 							Name:          "foo",
 							CanonicalName: "foo",
-							Position:      &ast.Position{Line: 1, Col: 1 + len("attr ")},
+							Position:      &ast.Position{Line: 1, Col: ast.Col(1 + len("attr "))},
 						},
 						Ruleset: &ast.AttributeRuleset{
-							LBrace: &ast.Position{Line: 1, Col: 1 + len("attr foo ")},
+							LBrace: &ast.Position{Line: 1, Col: ast.Col(1 + len("attr foo "))},
 							List: []*ast.AttributeRule{
 								{
 									Selector: &ast.WildcardElementSelector{
-										Asterisk: &ast.Position{Line: 1, Col: 1 + len("attr foo { ")},
+										Asterisk: &ast.Position{Line: 1, Col: ast.Col(1 + len("attr foo { "))},
 									},
 									Type: &ast.AttributeTypeName{
 										Name:     "string",
 										Type:     attrtype.String,
-										Position: &ast.Position{Line: 1, Col: 1 + len("attr foo { * ")},
+										Position: &ast.Position{Line: 1, Col: ast.Col(1 + len("attr foo { * "))},
 									},
 								},
 							},
-							RBrace: &ast.Position{Line: 1, Col: 1 + len("attr foo { * string ")},
+							RBrace: &ast.Position{Line: 1, Col: ast.Col(1 + len("attr foo { * string "))},
 						},
 					},
 				},
@@ -58,30 +58,30 @@ func TestDefinition(t *testing.T) {
 				Prefix: &ast.AttributeName{
 					Name:          "hx-",
 					CanonicalName: "hx-",
-					Position:      &ast.Position{Line: 1, Col: 1 + len("attr ")},
+					Position:      &ast.Position{Line: 1, Col: ast.Col(1 + len("attr "))},
 				},
 				Specs: []*ast.AttributeSpec{
 					{
 						Selector: &ast.BasicAttributeSelector{
 							Name:          "foo",
 							CanonicalName: "foo",
-							Position:      &ast.Position{Line: 1, Col: 1 + len("attr hx- ")},
+							Position:      &ast.Position{Line: 1, Col: ast.Col(1 + len("attr hx- "))},
 						},
 						Ruleset: &ast.AttributeRuleset{
-							LBrace: &ast.Position{Line: 1, Col: 1 + len("attr hx- foo ")},
+							LBrace: &ast.Position{Line: 1, Col: ast.Col(1 + len("attr hx- foo "))},
 							List: []*ast.AttributeRule{
 								{
 									Selector: &ast.WildcardElementSelector{
-										Asterisk: &ast.Position{Line: 1, Col: 1 + len("attr hx- foo { ")},
+										Asterisk: &ast.Position{Line: 1, Col: ast.Col(1 + len("attr hx- foo { "))},
 									},
 									Type: &ast.AttributeTypeName{
 										Name:     "string",
 										Type:     attrtype.String,
-										Position: &ast.Position{Line: 1, Col: 1 + len("attr hx- foo { * ")},
+										Position: &ast.Position{Line: 1, Col: ast.Col(1 + len("attr hx- foo { * "))},
 									},
 								},
 							},
-							RBrace: &ast.Position{Line: 1, Col: 1 + len("attr hx- foo { * string ")},
+							RBrace: &ast.Position{Line: 1, Col: ast.Col(1 + len("attr hx- foo { * string "))},
 						},
 					},
 				},
@@ -94,51 +94,51 @@ func TestDefinition(t *testing.T) {
 				"\tbar { * text }\n" +
 				")",
 			want: &ast.AttributeDefinition{
-				LParen: &ast.Position{Line: 1, Col: 1 + len("attr ")},
+				LParen: &ast.Position{Line: 1, Col: ast.Col(1 + len("attr "))},
 				Specs: []*ast.AttributeSpec{
 					{
 						Selector: &ast.BasicAttributeSelector{
 							Name:          "foo",
 							CanonicalName: "foo",
-							Position:      &ast.Position{Line: 2, Col: 1 + len("\t")},
+							Position:      &ast.Position{Line: 2, Col: ast.Col(1 + len("\t"))},
 						},
 						Ruleset: &ast.AttributeRuleset{
-							LBrace: &ast.Position{Line: 2, Col: 1 + len("\tfoo ")},
+							LBrace: &ast.Position{Line: 2, Col: ast.Col(1 + len("\tfoo "))},
 							List: []*ast.AttributeRule{
 								{
 									Selector: &ast.WildcardElementSelector{
-										Asterisk: &ast.Position{Line: 2, Col: 1 + len("\tfoo { ")},
+										Asterisk: &ast.Position{Line: 2, Col: ast.Col(1 + len("\tfoo { "))},
 									},
 									Type: &ast.AttributeTypeName{
 										Name:     "string",
 										Type:     attrtype.String,
-										Position: &ast.Position{Line: 2, Col: 1 + len("\tfoo { * ")},
+										Position: &ast.Position{Line: 2, Col: ast.Col(1 + len("\tfoo { * "))},
 									},
 								},
 							},
-							RBrace: &ast.Position{Line: 2, Col: 1 + len("\tfoo { * string ")},
+							RBrace: &ast.Position{Line: 2, Col: ast.Col(1 + len("\tfoo { * string "))},
 						},
 					}, {
 						Selector: &ast.BasicAttributeSelector{
 							Name:          "bar",
 							CanonicalName: "bar",
-							Position:      &ast.Position{Line: 3, Col: 1 + len("\t")},
+							Position:      &ast.Position{Line: 3, Col: ast.Col(1 + len("\t"))},
 						},
 						Ruleset: &ast.AttributeRuleset{
-							LBrace: &ast.Position{Line: 3, Col: 1 + len("\tbar ")},
+							LBrace: &ast.Position{Line: 3, Col: ast.Col(1 + len("\tbar "))},
 							List: []*ast.AttributeRule{
 								{
 									Selector: &ast.WildcardElementSelector{
-										Asterisk: &ast.Position{Line: 3, Col: 1 + len("\tbar { ")},
+										Asterisk: &ast.Position{Line: 3, Col: ast.Col(1 + len("\tbar { "))},
 									},
 									Type: &ast.AttributeTypeName{
 										Name:     "text",
 										Type:     attrtype.Text,
-										Position: &ast.Position{Line: 3, Col: 1 + len("\tbar { * ")},
+										Position: &ast.Position{Line: 3, Col: ast.Col(1 + len("\tbar { * "))},
 									},
 								},
 							},
-							RBrace: &ast.Position{Line: 3, Col: 1 + len("\tbar { * text ")},
+							RBrace: &ast.Position{Line: 3, Col: ast.Col(1 + len("\tbar { * text "))},
 						},
 					},
 				},
@@ -155,53 +155,53 @@ func TestDefinition(t *testing.T) {
 				Prefix: &ast.AttributeName{
 					Name:          "hx-",
 					CanonicalName: "hx-",
-					Position:      &ast.Position{Line: 1, Col: 1 + len("attr ")},
+					Position:      &ast.Position{Line: 1, Col: ast.Col(1 + len("attr "))},
 				},
-				LParen: &ast.Position{Line: 1, Col: 1 + len("attr hx- ")},
+				LParen: &ast.Position{Line: 1, Col: ast.Col(1 + len("attr hx- "))},
 				Specs: []*ast.AttributeSpec{
 					{
 						Selector: &ast.BasicAttributeSelector{
 							Name:          "foo",
 							CanonicalName: "foo",
-							Position:      &ast.Position{Line: 2, Col: 1 + len("\t")},
+							Position:      &ast.Position{Line: 2, Col: ast.Col(1 + len("\t"))},
 						},
 						Ruleset: &ast.AttributeRuleset{
-							LBrace: &ast.Position{Line: 2, Col: 1 + len("\tfoo ")},
+							LBrace: &ast.Position{Line: 2, Col: ast.Col(1 + len("\tfoo "))},
 							List: []*ast.AttributeRule{
 								{
 									Selector: &ast.WildcardElementSelector{
-										Asterisk: &ast.Position{Line: 2, Col: 1 + len("\tfoo { ")},
+										Asterisk: &ast.Position{Line: 2, Col: ast.Col(1 + len("\tfoo { "))},
 									},
 									Type: &ast.AttributeTypeName{
 										Name:     "string",
 										Type:     attrtype.String,
-										Position: &ast.Position{Line: 2, Col: 1 + len("\tfoo { * ")},
+										Position: &ast.Position{Line: 2, Col: ast.Col(1 + len("\tfoo { * "))},
 									},
 								},
 							},
-							RBrace: &ast.Position{Line: 2, Col: 1 + len("\tfoo { * string ")},
+							RBrace: &ast.Position{Line: 2, Col: ast.Col(1 + len("\tfoo { * string "))},
 						},
 					}, {
 						Selector: &ast.BasicAttributeSelector{
 							Name:          "bar",
 							CanonicalName: "bar",
-							Position:      &ast.Position{Line: 3, Col: 1 + len("\t")},
+							Position:      &ast.Position{Line: 3, Col: ast.Col(1 + len("\t"))},
 						},
 						Ruleset: &ast.AttributeRuleset{
-							LBrace: &ast.Position{Line: 3, Col: 1 + len("\tbar ")},
+							LBrace: &ast.Position{Line: 3, Col: ast.Col(1 + len("\tbar "))},
 							List: []*ast.AttributeRule{
 								{
 									Selector: &ast.WildcardElementSelector{
-										Asterisk: &ast.Position{Line: 3, Col: 1 + len("\tbar { ")},
+										Asterisk: &ast.Position{Line: 3, Col: ast.Col(1 + len("\tbar { "))},
 									},
 									Type: &ast.AttributeTypeName{
 										Name:     "text",
 										Type:     attrtype.Text,
-										Position: &ast.Position{Line: 3, Col: 1 + len("\tbar { * ")},
+										Position: &ast.Position{Line: 3, Col: ast.Col(1 + len("\tbar { * "))},
 									},
 								},
 							},
-							RBrace: &ast.Position{Line: 3, Col: 1 + len("\tbar { * text ")},
+							RBrace: &ast.Position{Line: 3, Col: ast.Col(1 + len("\tbar { * text "))},
 						},
 					},
 				},
@@ -232,20 +232,20 @@ func TestSpec(t *testing.T) {
 			Position:      &ast.Position{Line: 1, Col: 1},
 		},
 		Ruleset: &ast.AttributeRuleset{
-			LBrace: &ast.Position{Line: 1, Col: 1 + len("foo ")},
+			LBrace: &ast.Position{Line: 1, Col: ast.Col(1 + len("foo "))},
 			List: []*ast.AttributeRule{
 				{
 					Selector: &ast.WildcardElementSelector{
-						Asterisk: &ast.Position{Line: 1, Col: 1 + len("foo { ")},
+						Asterisk: &ast.Position{Line: 1, Col: ast.Col(1 + len("foo { "))},
 					},
 					Type: &ast.AttributeTypeName{
 						Name:     "string",
 						Type:     attrtype.String,
-						Position: &ast.Position{Line: 1, Col: 1 + len("foo { * ")},
+						Position: &ast.Position{Line: 1, Col: ast.Col(1 + len("foo { * "))},
 					},
 				},
 			},
-			RBrace: &ast.Position{Line: 1, Col: 1 + len("foo { * string ")},
+			RBrace: &ast.Position{Line: 1, Col: ast.Col(1 + len("foo { * string "))},
 		},
 	}
 
@@ -269,16 +269,16 @@ func TestRuleset(t *testing.T) {
 				List: []*ast.AttributeRule{
 					{
 						Selector: &ast.WildcardElementSelector{
-							Asterisk: &ast.Position{Line: 1, Col: 1 + len("{ ")},
+							Asterisk: &ast.Position{Line: 1, Col: ast.Col(1 + len("{ "))},
 						},
 						Type: &ast.AttributeTypeName{
 							Name:     "string",
 							Type:     attrtype.String,
-							Position: &ast.Position{Line: 1, Col: 1 + len("{ * ")},
+							Position: &ast.Position{Line: 1, Col: ast.Col(1 + len("{ * "))},
 						},
 					},
 				},
-				RBrace: &ast.Position{Line: 1, Col: 1 + len("{ * string ")},
+				RBrace: &ast.Position{Line: 1, Col: ast.Col(1 + len("{ * string "))},
 			},
 		}, {
 			name: "multiple rules on single line",
@@ -288,12 +288,12 @@ func TestRuleset(t *testing.T) {
 				List: []*ast.AttributeRule{
 					{
 						Selector: &ast.WildcardElementSelector{
-							Asterisk: &ast.Position{Line: 1, Col: 1 + len("{ ")},
+							Asterisk: &ast.Position{Line: 1, Col: ast.Col(1 + len("{ "))},
 						},
 						Type: &ast.AttributeTypeName{
 							Name:     "string",
 							Type:     attrtype.String,
-							Position: &ast.Position{Line: 1, Col: 1 + len("{ * ")},
+							Position: &ast.Position{Line: 1, Col: ast.Col(1 + len("{ * "))},
 						},
 					}, {
 						Selector: &ast.ListElementSelector{
@@ -302,7 +302,7 @@ func TestRuleset(t *testing.T) {
 									Name: &ast.ElementName{
 										Name:          "foo",
 										CanonicalName: "foo",
-										Position:      &ast.Position{Line: 1, Col: 1 + len("{ * string; ")},
+										Position:      &ast.Position{Line: 1, Col: ast.Col(1 + len("{ * string; "))},
 									},
 								},
 							},
@@ -310,11 +310,11 @@ func TestRuleset(t *testing.T) {
 						Type: &ast.AttributeTypeName{
 							Name:     "text",
 							Type:     attrtype.Text,
-							Position: &ast.Position{Line: 1, Col: 1 + len("{ * string; foo ")},
+							Position: &ast.Position{Line: 1, Col: ast.Col(1 + len("{ * string; foo "))},
 						},
 					},
 				},
-				RBrace: &ast.Position{Line: 1, Col: 1 + len("{ * string; foo text ")},
+				RBrace: &ast.Position{Line: 1, Col: ast.Col(1 + len("{ * string; foo text "))},
 			},
 		}, {
 			name: "single rule on multiple lines",
@@ -326,12 +326,12 @@ func TestRuleset(t *testing.T) {
 				List: []*ast.AttributeRule{
 					{
 						Selector: &ast.WildcardElementSelector{
-							Asterisk: &ast.Position{Line: 2, Col: 1 + len("\t")},
+							Asterisk: &ast.Position{Line: 2, Col: ast.Col(1 + len("\t"))},
 						},
 						Type: &ast.AttributeTypeName{
 							Name:     "string",
 							Type:     attrtype.String,
-							Position: &ast.Position{Line: 2, Col: 1 + len("\t* ")},
+							Position: &ast.Position{Line: 2, Col: ast.Col(1 + len("\t* "))},
 						},
 					},
 				},
@@ -348,12 +348,12 @@ func TestRuleset(t *testing.T) {
 				List: []*ast.AttributeRule{
 					{
 						Selector: &ast.WildcardElementSelector{
-							Asterisk: &ast.Position{Line: 2, Col: 1 + len("\t")},
+							Asterisk: &ast.Position{Line: 2, Col: ast.Col(1 + len("\t"))},
 						},
 						Type: &ast.AttributeTypeName{
 							Name:     "string",
 							Type:     attrtype.String,
-							Position: &ast.Position{Line: 2, Col: 1 + len("\t* ")},
+							Position: &ast.Position{Line: 2, Col: ast.Col(1 + len("\t* "))},
 						},
 					}, {
 						Selector: &ast.ListElementSelector{
@@ -362,7 +362,7 @@ func TestRuleset(t *testing.T) {
 									Name: &ast.ElementName{
 										Name:          "foo",
 										CanonicalName: "foo",
-										Position:      &ast.Position{Line: 3, Col: 1 + len("\t")},
+										Position:      &ast.Position{Line: 3, Col: ast.Col(1 + len("\t"))},
 									},
 								},
 							},
@@ -370,7 +370,7 @@ func TestRuleset(t *testing.T) {
 						Type: &ast.AttributeTypeName{
 							Name:     "text",
 							Type:     attrtype.Text,
-							Position: &ast.Position{Line: 3, Col: 1 + len("\tfoo ")},
+							Position: &ast.Position{Line: 3, Col: ast.Col(1 + len("\tfoo "))},
 						},
 					},
 				},
@@ -400,7 +400,7 @@ func TestRule(t *testing.T) {
 		Type: &ast.AttributeTypeName{
 			Name:     "string",
 			Type:     attrtype.String,
-			Position: &ast.Position{Line: 1, Col: 1 + len("* ")},
+			Position: &ast.Position{Line: 1, Col: ast.Col(1 + len("* "))},
 		},
 	}
 
@@ -545,13 +545,13 @@ func testListElementSelector(t *testing.T, f parser.Func[*ast.ListElementSelecto
 						Name: &ast.ElementName{
 							Name:          "bar",
 							CanonicalName: "bar",
-							Position:      &ast.Position{Line: 2, Col: 1 + len("\t")},
+							Position:      &ast.Position{Line: 2, Col: ast.Col(1 + len("\t"))},
 						},
 					}, {
 						Name: &ast.ElementName{
 							Name:          "baz",
 							CanonicalName: "baz",
-							Position:      &ast.Position{Line: 2, Col: 1 + len("\tbar, ")},
+							Position:      &ast.Position{Line: 2, Col: ast.Col(1 + len("\tbar, "))},
 						},
 					},
 				},

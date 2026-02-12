@@ -3,6 +3,7 @@ package text
 import (
 	"slices"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/mavolin/corgi/v2/file/ast"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
@@ -85,7 +86,7 @@ func Text(term rune) parser.Func[*ast.Text] {
 		var t ast.Text
 		t.Text = trimmedText
 		t.Position = p.PosPtr()
-		t.Position.Col -= len([]rune(text)) // save allocations, only works bc t is horizontal
+		t.Position.Col -= ast.Col(utf8.RuneCountInString(text)) //nolint:gosec // save allocations, only works bc t is horizontal
 
 		return &t
 	}

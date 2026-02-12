@@ -29,19 +29,19 @@ func testBlockFunction() func(t *testing.T, f parser.Func[*ast.BlockFunction]) {
 					in:   "block()",
 					want: &ast.BlockFunction{
 						Block:  &ast.Position{Line: 1, Col: 1},
-						LParen: &ast.Position{Line: 1, Col: 1 + len("block")},
-						RParen: &ast.Position{Line: 1, Col: 1 + len("block(")},
+						LParen: &ast.Position{Line: 1, Col: ast.Col(1 + len("block"))},
+						RParen: &ast.Position{Line: 1, Col: ast.Col(1 + len("block("))},
 					},
 				}, {
 					name: "named block",
 					in:   "block(foo)",
 					want: &ast.BlockFunction{
 						Block:  &ast.Position{Line: 1, Col: 1},
-						LParen: &ast.Position{Line: 1, Col: 1 + len("block")},
+						LParen: &ast.Position{Line: 1, Col: ast.Col(1 + len("block"))},
 						BlockName: &ast.Identifier{
-							Name: "foo", Position: &ast.Position{Line: 1, Col: 1 + len("block(")},
+							Name: "foo", Position: &ast.Position{Line: 1, Col: ast.Col(1 + len("block("))},
 						},
-						RParen: &ast.Position{Line: 1, Col: 1 + len("block(foo")},
+						RParen: &ast.Position{Line: 1, Col: ast.Col(1 + len("block(foo"))},
 					},
 				},
 			}

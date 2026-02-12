@@ -32,7 +32,7 @@ func componentCallStub(p *parser.Parser) *ast.ComponentCall {
 	}
 
 	cc.Header.Arguments = &ast.Arguments{
-		LParen: &ast.Position{Line: 1, Col: int(p.Col())},
+		LParen: &ast.Position{Line: 1, Col: p.Col()},
 	}
 	if !parser.TryRune(p, '(') {
 		return nil

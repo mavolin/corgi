@@ -57,8 +57,8 @@ func coerceFunc[I, O any](t *testing.T, in parser.Func[I]) parser.Func[O] {
 	}
 }
 
-func calcEnd(in string) (int, int, parser.ByteIndex) {
-	line, col, index := 1, 1, 0
+func calcEnd(in string) (ast.Line, ast.Col, parser.ByteIndex) {
+	line, col, index := ast.Line(1), ast.Col(1), parser.ByteIndex(0)
 	for _, r := range in {
 		if r == '\n' {
 			line++
@@ -66,7 +66,7 @@ func calcEnd(in string) (int, int, parser.ByteIndex) {
 		} else {
 			col++
 		}
-		index += len(string(r))
+		index += parser.ByteIndex(len(string(r))) //nolint:gosec
 	}
-	return line, col, parser.ByteIndex(index) //nolint:gosec
+	return line, col, index
 }

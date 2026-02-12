@@ -266,15 +266,15 @@ func testComponentCallInterpolation(t *testing.T, f parser.Func[*ast.ComponentCa
 			in:   "#:component()",
 			want: &ast.ComponentCallInterpolation{
 				ComponentCall: &ast.ComponentCall{
-					Colon: &ast.Position{Line: 1, Col: 1 + len("#")},
+					Colon: &ast.Position{Line: 1, Col: ast.Col(1 + len("#"))},
 					Header: &ast.ComponentCallHeader{
 						Name: &ast.Identifier{
 							Name:     "component",
-							Position: &ast.Position{Line: 1, Col: 1 + len("#:")},
+							Position: &ast.Position{Line: 1, Col: ast.Col(1 + len("#:"))},
 						},
 						Arguments: &ast.Arguments{
-							LParen: &ast.Position{Line: 1, Col: 1 + len("#:component")},
-							RParen: &ast.Position{Line: 1, Col: 1 + len("#:component(")},
+							LParen: &ast.Position{Line: 1, Col: ast.Col(1 + len("#:component"))},
+							RParen: &ast.Position{Line: 1, Col: ast.Col(1 + len("#:component("))},
 						},
 					},
 				},
@@ -285,20 +285,20 @@ func testComponentCallInterpolation(t *testing.T, f parser.Func[*ast.ComponentCa
 			in:   "#:component() {}",
 			want: &ast.ComponentCallInterpolation{
 				ComponentCall: &ast.ComponentCall{
-					Colon: &ast.Position{Line: 1, Col: 1 + len("#")},
+					Colon: &ast.Position{Line: 1, Col: ast.Col(1 + len("#"))},
 					Header: &ast.ComponentCallHeader{
 						Name: &ast.Identifier{
 							Name:     "component",
-							Position: &ast.Position{Line: 1, Col: 1 + len("#:")},
+							Position: &ast.Position{Line: 1, Col: ast.Col(1 + len("#:"))},
 						},
 						Arguments: &ast.Arguments{
-							LParen: &ast.Position{Line: 1, Col: 1 + len("#:component")},
-							RParen: &ast.Position{Line: 1, Col: 1 + len("#:component(")},
+							LParen: &ast.Position{Line: 1, Col: ast.Col(1 + len("#:component"))},
+							RParen: &ast.Position{Line: 1, Col: ast.Col(1 + len("#:component("))},
 						},
 					},
 					Body: &ast.Scope{
-						LBrace: &ast.Position{Line: 1, Col: 1 + len("#:component() ")},
-						RBrace: &ast.Position{Line: 1, Col: 1 + len("#:component() {")},
+						LBrace: &ast.Position{Line: 1, Col: ast.Col(1 + len("#:component() "))},
+						RBrace: &ast.Position{Line: 1, Col: ast.Col(1 + len("#:component() {"))},
 					},
 				},
 				Hash: &ast.Position{Line: 1, Col: 1},

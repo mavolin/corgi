@@ -21,7 +21,7 @@ func ZeroCoalescing() parser.Func[*ast.ZeroCoalescing] {
 		}))
 		if derefCount > 0 {
 			derefPosition = p.PosPtr()
-			derefPosition.Col -= derefCount
+			derefPosition.Col -= ast.Col(derefCount)
 			parser.TrySkip(p, comment.OrAnyWhitespace())
 		} else {
 			derefPosition = nil

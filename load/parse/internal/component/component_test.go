@@ -60,31 +60,31 @@ func TestComponent(t *testing.T) {
 				Header: &ast.ComponentHeader{
 					Name: &ast.Identifier{
 						Name:     "foo",
-						Position: &ast.Position{Line: 1, Col: 1 + len("comp ")},
+						Position: &ast.Position{Line: 1, Col: ast.Col(1 + len("comp "))},
 					},
 					Parameters: &ast.ComponentParameters{
-						LParen: &ast.Position{Line: 1, Col: 1 + len("comp foo")},
-						RParen: &ast.Position{Line: 1, Col: 1 + len("comp foo(")},
+						LParen: &ast.Position{Line: 1, Col: ast.Col(1 + len("comp foo"))},
+						RParen: &ast.Position{Line: 1, Col: ast.Col(1 + len("comp foo("))},
 					},
 				},
 				Body: &ast.Extend{
 					ComponentCall: &ast.ComponentCall{
-						Colon: &ast.Position{Line: 1, Col: 1 + len("comp foo() ")},
+						Colon: &ast.Position{Line: 1, Col: ast.Col(1 + len("comp foo() "))},
 						Header: &ast.ComponentCallHeader{
 							Name: &ast.Identifier{
 								Name:     "bar",
-								Position: &ast.Position{Line: 1, Col: 1 + len("comp foo() :")},
+								Position: &ast.Position{Line: 1, Col: ast.Col(1 + len("comp foo() :"))},
 							},
 						},
 						Body: &ast.Scope{
-							LBrace: &ast.Position{Line: 1, Col: 1 + len("comp foo() :bar ")},
+							LBrace: &ast.Position{Line: 1, Col: ast.Col(1 + len("comp foo() :bar "))},
 							Nodes: []ast.ScopeNode{
 								&ast.Element{
 									Header: &ast.ElementHeader{
 										Name: &ast.ElementReference{
 											Name: &ast.ElementName{
 												Name:     "br",
-												Position: &ast.Position{Line: 2, Col: 1 + len("\t")},
+												Position: &ast.Position{Line: 2, Col: ast.Col(1 + len("\t"))},
 											},
 										},
 									},
@@ -414,14 +414,14 @@ func TestBlock(t *testing.T) {
 			want: &ast.Block{
 				Block: &ast.Position{Line: 1, Col: 1},
 				Default: &ast.Scope{
-					LBrace: &ast.Position{Line: 1, Col: len("block ") + 1},
+					LBrace: &ast.Position{Line: 1, Col: ast.Col(len("block ") + 1)},
 					Nodes: []ast.ScopeNode{
 						&ast.Element{
 							Header: &ast.ElementHeader{
 								Name: &ast.ElementReference{
 									Name: &ast.ElementName{
 										Name:     "br",
-										Position: &ast.Position{Line: 2, Col: len("\t") + 1},
+										Position: &ast.Position{Line: 2, Col: ast.Col(len("\t") + 1)},
 									},
 								},
 							},
@@ -439,17 +439,17 @@ func TestBlock(t *testing.T) {
 				Block: &ast.Position{Line: 1, Col: 1},
 				Identifier: &ast.Identifier{
 					Name:     "foo",
-					Position: &ast.Position{Line: 1, Col: len("block ") + 1},
+					Position: &ast.Position{Line: 1, Col: ast.Col(len("block ") + 1)},
 				},
 				Default: &ast.Scope{
-					LBrace: &ast.Position{Line: 1, Col: len("block foo ") + 1},
+					LBrace: &ast.Position{Line: 1, Col: ast.Col(len("block foo ") + 1)},
 					Nodes: []ast.ScopeNode{
 						&ast.Element{
 							Header: &ast.ElementHeader{
 								Name: &ast.ElementReference{
 									Name: &ast.ElementName{
 										Name:     "br",
-										Position: &ast.Position{Line: 2, Col: len("\t") + 1},
+										Position: &ast.Position{Line: 2, Col: ast.Col(len("\t") + 1)},
 									},
 								},
 							},
@@ -465,7 +465,7 @@ func TestBlock(t *testing.T) {
 				Block: &ast.Position{Line: 1, Col: 1},
 				Identifier: &ast.Identifier{
 					Name:     "foo",
-					Position: &ast.Position{Line: 1, Col: len("block ") + 1},
+					Position: &ast.Position{Line: 1, Col: ast.Col(len("block ") + 1)},
 				},
 			},
 		},

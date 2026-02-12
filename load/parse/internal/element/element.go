@@ -3,6 +3,7 @@ package element
 import (
 	"fmt"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/mavolin/corgi/v2/file/ast"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
@@ -199,7 +200,7 @@ func Name() parser.Func[*ast.ElementName] {
 		}
 
 		pos := p.Pos()
-		pos.Col -= len([]rune(name))
+		pos.Col -= ast.Col(utf8.RuneCountInString(name)) //nolint:gosec
 
 		return &ast.ElementName{
 			Name:          name,

@@ -57,18 +57,18 @@ func TestType(t *testing.T) {
 
 				want := &ast.AttributeType{
 					Quote: &ast.Position{Line: 1, Col: 1},
-					Name:  wantTypeName(c.typ, ast.Position{Line: 1, Col: 1 + len("'")}),
+					Name:  wantTypeName(c.typ, ast.Position{Line: 1, Col: ast.Col(1 + len("'"))}),
 				}
 				if c.attr != "" {
-					want.LBracket = &ast.Position{Line: 1, Col: 1 + len("'") + len(name)}
+					want.LBracket = &ast.Position{Line: 1, Col: ast.Col(1 + len("'") + len(name))}
 					want.Attribute = &ast.AttributeName{
 						Name:          c.attr,
 						CanonicalName: c.attr,
-						Position:      &ast.Position{Line: 1, Col: 1 + len("'") + len(name) + len("[")},
+						Position:      &ast.Position{Line: 1, Col: ast.Col(1 + len("'") + len(name) + len("["))},
 					}
 					want.RBracket = &ast.Position{
 						Line: 1,
-						Col:  1 + len("'") + len(name) + len("[") + len(c.attr),
+						Col:  ast.Col(1 + len("'") + len(name) + len("[") + len(c.attr)),
 					}
 				}
 				got := parsetest.ParsesExact(t, "'"+s, Type())
@@ -144,9 +144,9 @@ func wantTypeName(t attrtype.Type, start ast.Position) *ast.AttributeTypeName {
 		Position: &start,
 	}
 	if elemName != "" {
-		atn.LBracket = &ast.Position{Line: start.Line, Col: start.Col + len(listName)}
+		atn.LBracket = &ast.Position{Line: start.Line, Col: start.Col + ast.Col(len(listName))}
 		atn.Element = elemName
-		atn.RBracket = &ast.Position{Line: start.Line, Col: start.Col + len(listName) + len("["+elemName)}
+		atn.RBracket = &ast.Position{Line: start.Line, Col: start.Col + ast.Col(len(listName)+len("["+elemName))}
 	}
 	return atn
 }

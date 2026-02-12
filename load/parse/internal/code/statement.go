@@ -446,11 +446,11 @@ func incDec(expr *ast.Expression) parser.Func[*ast.IncDec] {
 		switch {
 		case parser.TryOptionalToken(p, "++", nil):
 			pos := p.Pos()
-			pos.Col -= len("++")
+			pos.Col -= ast.Col(len("++"))
 			return &ast.IncDec{Expression: expr, IncrPos: &pos}
 		case parser.TryOptionalToken(p, "--", nil):
 			pos := p.Pos()
-			pos.Col -= len("--")
+			pos.Col -= ast.Col(len("--"))
 			return &ast.IncDec{Expression: expr, DecrPos: &pos}
 		default:
 			return nil
@@ -1134,7 +1134,7 @@ func assignment(e *ast.Expression) parser.Func[*ast.Assignment] {
 		a.LHS = lhs
 		a.Operator = op
 		a.OperatorPosition = p.PosPtr()
-		a.OperatorPosition.Col -= len(op)
+		a.OperatorPosition.Col -= ast.Col(len(op))
 
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 		rhsStart := p.Pos()

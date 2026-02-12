@@ -99,7 +99,7 @@ func TestBadNode(t *testing.T) {
 
 			want := &ast.BadNode{
 				From:  ast.Position{Line: 1, Col: 1},
-				Until: ast.Position{Line: 1, Col: 1 + len(c.in)},
+				Until: ast.Position{Line: 1, Col: ast.Col(1 + len(c.in))}, //nolint:gosec
 			}
 
 			got := parsetest.ParsesUntilEOS(t, c.in, BadNode())

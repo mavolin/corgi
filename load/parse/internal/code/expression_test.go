@@ -39,16 +39,16 @@ func TestExpression(t *testing.T) {
 					Code:     "func(){ return",
 					Position: &ast.Position{Line: 1, Col: 1},
 				}, &ast.BlockFunction{
-					Block:  &ast.Position{Line: 1, Col: 1 + len("func(){ return ")},
-					LParen: &ast.Position{Line: 1, Col: 1 + len("func(){ return block")},
+					Block:  &ast.Position{Line: 1, Col: ast.Col(1 + len("func(){ return "))},
+					LParen: &ast.Position{Line: 1, Col: ast.Col(1 + len("func(){ return block"))},
 					BlockName: &ast.Identifier{
 						Name:     "foo",
-						Position: &ast.Position{Line: 1, Col: 1 + len("func(){ return block(")},
+						Position: &ast.Position{Line: 1, Col: ast.Col(1 + len("func(){ return block("))},
 					},
-					RParen: &ast.Position{Line: 1, Col: 1 + len("func(){ return block(foo")},
+					RParen: &ast.Position{Line: 1, Col: ast.Col(1 + len("func(){ return block(foo"))},
 				}, &ast.GoCode{
 					Code:     "}()",
-					Position: &ast.Position{Line: 1, Col: 1 + len("func(){ return block(foo) ")},
+					Position: &ast.Position{Line: 1, Col: ast.Col(1 + len("func(){ return block(foo) "))},
 				},
 			},
 		}

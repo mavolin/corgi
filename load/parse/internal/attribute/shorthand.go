@@ -2,6 +2,7 @@ package attribute
 
 import (
 	"slices"
+	"unicode/utf8"
 
 	"github.com/mavolin/corgi/v2/file/ast"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
@@ -98,7 +99,7 @@ func ShorthandText() parser.Func[*ast.ShorthandText] {
 
 		var txt ast.ShorthandText
 		txt.Position = p.PosPtr()
-		txt.Position.Col -= len([]rune(text)) // save allocations, only works bc txt is horizontal
+		txt.Position.Col -= ast.Col(utf8.RuneCountInString(text)) // save allocations, only works bc txt is horizontal
 		txt.Text = text
 		return &txt
 	}

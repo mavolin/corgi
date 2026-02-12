@@ -56,7 +56,7 @@ func TestDiagnostic_Pretty(t *testing.T) {
 		ContextStart: 1,
 		ContextEnd:   2,
 		Start:        ast.Position{Line: 1, Col: 1},
-		End:          ast.Position{Line: 1, Col: 1 + len("package foo")},
+		End:          ast.Position{Line: 1, Col: ast.Col(1 + len("package foo"))},
 		Annotation:   "package",
 	}
 	packageWordAnno := Annotation{
@@ -64,15 +64,15 @@ func TestDiagnostic_Pretty(t *testing.T) {
 		ContextStart: 1,
 		ContextEnd:   2,
 		Start:        ast.Position{Line: 1, Col: 1},
-		End:          ast.Position{Line: 1, Col: 1 + len("package")},
+		End:          ast.Position{Line: 1, Col: ast.Col(1 + len("package"))},
 		Annotation:   "package word",
 	}
 	packageNameAnno := Annotation{
 		File:         f,
 		ContextStart: 1,
 		ContextEnd:   2,
-		Start:        ast.Position{Line: 1, Col: 1 + len("package ")},
-		End:          ast.Position{Line: 1, Col: 1 + len("package foo")},
+		Start:        ast.Position{Line: 1, Col: ast.Col(1 + len("package "))},
+		End:          ast.Position{Line: 1, Col: ast.Col(1 + len("package foo"))},
 		Annotation:   "package name",
 	}
 	importAnno := Annotation{
@@ -80,7 +80,7 @@ func TestDiagnostic_Pretty(t *testing.T) {
 		ContextStart: 3,
 		ContextEnd:   4,
 		Start:        ast.Position{Line: 3, Col: 1},
-		End:          ast.Position{Line: 3, Col: 1 + len("import \"bar\"")},
+		End:          ast.Position{Line: 3, Col: ast.Col(1 + len("import \"bar\""))},
 		Annotation:   "import",
 	}
 
@@ -141,7 +141,7 @@ func TestDiagnostic_Pretty(t *testing.T) {
 						ContextStart: 1,
 						ContextEnd:   2,
 						Start:        ast.Position{Line: 1, Col: 1},
-						End:          ast.Position{Line: 1, Col: 1 + len("package foo")},
+						End:          ast.Position{Line: 1, Col: ast.Col(1 + len("package foo"))},
 						Annotation:   "bar\nbaz",
 					},
 				},
@@ -163,7 +163,7 @@ func TestDiagnostic_Pretty(t *testing.T) {
 						ContextStart: 1,
 						ContextEnd:   4,
 						Start:        ast.Position{Line: 1, Col: 1},
-						End:          ast.Position{Line: 1, Col: 1 + len("package foo")},
+						End:          ast.Position{Line: 1, Col: ast.Col(1 + len("package foo"))},
 						Annotation:   "package",
 					},
 				},

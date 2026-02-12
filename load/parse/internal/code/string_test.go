@@ -61,25 +61,25 @@ func testString() func(t *testing.T, f parser.Func[*ast.String]) {
 						Contents: []ast.StringNode{
 							&ast.StringText{
 								Text:     "foo ",
-								Position: &ast.Position{Line: 1, Col: 1 + len(`"`)},
+								Position: &ast.Position{Line: 1, Col: ast.Col(1 + len(`"`))},
 							}, &ast.ExpressionInterpolation{
-								Hash:   &ast.Position{Line: 1, Col: 1 + len(`"foo `)},
-								LBrace: &ast.Position{Line: 1, Col: 1 + len(`"foo #`)},
+								Hash:   &ast.Position{Line: 1, Col: ast.Col(1 + len(`"foo `))},
+								LBrace: &ast.Position{Line: 1, Col: ast.Col(1 + len(`"foo #`))},
 								Expression: &ast.Expression{
 									Nodes: ast.Code{
 										&ast.GoCode{
 											Code:     "bar",
-											Position: &ast.Position{Line: 1, Col: 1 + len(`"foo #{`)},
+											Position: &ast.Position{Line: 1, Col: ast.Col(1 + len(`"foo #{`))},
 										},
 									},
 								},
-								RBrace: &ast.Position{Line: 1, Col: 1 + len(`"foo #{bar`)},
+								RBrace: &ast.Position{Line: 1, Col: ast.Col(1 + len(`"foo #{bar`))},
 							}, &ast.StringText{
 								Text:     " baz",
-								Position: &ast.Position{Line: 1, Col: 1 + len(`"foo #{bar}`)},
+								Position: &ast.Position{Line: 1, Col: ast.Col(1 + len(`"foo #{bar}`))},
 							},
 						},
-						Close: &ast.Position{Line: 1, Col: 1 + len(`"foo #{bar} baz`)},
+						Close: &ast.Position{Line: 1, Col: ast.Col(1 + len(`"foo #{bar} baz`))},
 					},
 				},
 			}

@@ -1,6 +1,7 @@
 package diagnostic
 
 import (
+	"cmp"
 	"fmt"
 	"slices"
 	"strings"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/mavolin/corgi/v2/file"
+	"github.com/mavolin/corgi/v2/file/ast"
 )
 
 type PrettyOptions struct {
@@ -19,7 +21,7 @@ type PrettyOptions struct {
 	// Width is the maximum width of the output.
 	//
 	// Default: 80
-	Width int
+	Width ast.Col
 	// TypeColors is a map of error types to color codes, used when Color is
 	// true.
 	//
@@ -85,7 +87,7 @@ type (
 		// are sorted by line number.
 		files []*fileAnnos
 
-		nDigits int
+		nDigits ast.Col
 	}
 	annotation struct {
 		Annotation
@@ -130,7 +132,7 @@ func (d *Diagnostic) pretty(sb *strings.Builder, o PrettyOptions) {
 	p.print()
 }
 
-func numDigits(n int) int { // essentially log10
+func numDigits(n ast.Line) ast.Col { // essentially log10
 	switch {
 	case n < 10:
 		return 1
@@ -178,7 +180,7 @@ func (p *prettyPrinter) printMessage() {
 	}
 	p.colored(string(typ)+":", color.Bold, p.o.typeColor(typ))
 	p.uncolored(" ")
-	p.printText(p.diagnostic.Message, len(typ)+len(": "), false, color.Bold)
+	p.printText(p.diagnostic.Message, ast.Col(len(typ)+len(": ")), false, color.Bold) //nolint:gosec
 }
 
 func (p *prettyPrinter) printFiles() {
@@ -235,13 +237,13 @@ func (p *prettyPrinter) printLineRange(f *fileAnnos, lr lineRange) {
 		}
 		slices.SortFunc(lineAnnotations, func(a, b annotation) int {
 			if a.Start.Line == b.Start.Line {
-				return a.Start.Col - b.End.Col
+				return cmp.Compare(a.Start.Col, b.Start.Col)
 			}
-			return a.Start.Line - b.End.Line
+			return cmp.Compare(a.Start.Line, b.Start.Line)
 		})
 
 		p.uncolored("\n")
-		p.printLineStart(-1)
+		p.printLineStart(0)
 
 		p.printAnnotationMarkers(lnNo, ln, lineAnnotations)
 
@@ -261,16 +263,16 @@ func (p *prettyPrinter) printLineRange(f *fileAnnos, lr lineRange) {
 	}
 }
 
-func (p *prettyPrinter) printAnnotationMarkers(lnNo line, ln string, lineAnnotations []annotation) {
-	var offset int
+func (p *prettyPrinter) printAnnotationMarkers(lnNo ast.Line, ln string, lineAnnotations []annotation) {
+	var offset ast.Col
 	for _, la := range lineAnnotations {
-		var numSpaces int
+		var numSpaces ast.Col
 		startOfAnnotation := lnNo == la.Start.Line
 		if startOfAnnotation {
-			numSpaces = la.Start.Col - 1 - offset
-			if numSpaces < 0 {
+			if offset+1 > la.Start.Col {
 				panic("overlapping annotations")
 			}
+			numSpaces = la.Start.Col - 1 - offset
 		} else {
 			numSpaces = 0
 			if offset != 0 {
@@ -283,8 +285,8 @@ func (p *prettyPrinter) printAnnotationMarkers(lnNo line, ln string, lineAnnotat
 	}
 }
 
-func (p *prettyPrinter) printAnnotationMarker(lnNo line, ln string, a annotation) int {
-	var start, end col
+func (p *prettyPrinter) printAnnotationMarker(lnNo ast.Line, ln string, a annotation) ast.Col {
+	var start, end ast.Col
 	if a.Start.Line == lnNo {
 		start = a.Start.Col
 	} else {
@@ -293,9 +295,9 @@ func (p *prettyPrinter) printAnnotationMarker(lnNo line, ln string, a annotation
 	if a.End.Line == lnNo {
 		end = a.End.Col
 	} else {
-		end = len(ln) + 1
+		end = ast.Col(len(ln) + 1) //nolint:gosec
 	}
-	repeatCount := end - start
+	repeatCount := int(end - start)
 	if repeatCount < 0 {
 		panic("annotation ends before it starts")
 	}
@@ -304,7 +306,7 @@ func (p *prettyPrinter) printAnnotationMarker(lnNo line, ln string, a annotation
 	} else {
 		p.colored(strings.Repeat("~", repeatCount), p.annoColor(a))
 	}
-	return repeatCount
+	return ast.Col(repeatCount) //nolint:gosec
 }
 
 func (p *prettyPrinter) printAnnotations(as []annotation) {
@@ -312,9 +314,9 @@ func (p *prettyPrinter) printAnnotations(as []annotation) {
 	for currentI, current := range slices.Backward(as) {
 		p.uncolored("\n")
 
-		offset := 0
+		offset := ast.Col(0)
 		for _, preceding := range as[:currentI] {
-			var start col
+			var start ast.Col
 			if preceding.Start.Line == preceding.End.Line {
 				start = preceding.Start.Col
 			} else {
@@ -323,30 +325,30 @@ func (p *prettyPrinter) printAnnotations(as []annotation) {
 
 			p.skip(start - 1 - offset)
 			p.colored("│", p.annoColor(preceding))
-			offset += start - 1 - offset + len("|")
+			offset += start - 1 - offset + ast.Col(len("|"))
 		}
 
-		var start col
+		var start ast.Col
 		if current.Start.Line == current.End.Line {
 			start = current.Start.Col
 		} else {
 			start = 1 // multi-line annotation
 		}
 
-		p.printLineStart(-1)
+		p.printLineStart(0)
 		p.skip(start - 1 - offset)
 		p.colored("╰ ", p.annoColor(current))
-		p.printText(current.Annotation.Annotation, (start-1-offset)+len("| "), true, color.Bold, p.annoColor(current))
+		p.printText(current.Annotation.Annotation, (start-1-offset)+ast.Col(len("| ")), true, color.Bold, p.annoColor(current))
 	}
 }
 
-func (p *prettyPrinter) shouldInline(lnNo line, a annotation) bool {
+func (p *prettyPrinter) shouldInline(lnNo ast.Line, a annotation) bool {
 	if strings.Contains(a.Annotation.Annotation, "\n") || lnNo != a.End.Line {
 		return false
 	}
 
-	markerEnd := p.nDigits + len(" | ") + a.End.Col
-	return markerEnd+len(" ")+p.renderedTextLength(a.Annotation.Annotation) <= p.o.Width
+	markerEnd := p.nDigits + ast.Col(len(" | ")) + a.End.Col
+	return markerEnd+ast.Col(len(" "))+p.renderedTextLength(a.Annotation.Annotation) <= p.o.Width
 }
 
 func (p *prettyPrinter) printCause() {
@@ -367,19 +369,19 @@ func (p *prettyPrinter) printExplanation() {
 }
 
 func (p *prettyPrinter) printExamples() {
-	var indent int
+	var indent ast.Col
 	switch len(p.diagnostic.Examples) {
 	case 0:
 		return
 	case 1:
-		indent = len("Example: ")
+		indent = ast.Col(len("Example: "))
 		p.colored("\n\nExample: ", color.Bold)
 	default:
-		indent = len("Examples: ")
+		indent = ast.Col(len("Examples: "))
 		p.colored("\n\nExamples: ", color.Bold)
 	}
 
-	var titleIndent int
+	var titleIndent ast.Col
 	var hasTitle, needHeadline bool
 	for _, example := range p.diagnostic.Examples {
 		if example.Title == "" {
@@ -389,15 +391,15 @@ func (p *prettyPrinter) printExamples() {
 		if strings.Contains(example.Example, "\n") {
 			needHeadline = true
 		} else {
-			titleIndent = max(titleIndent, indent+p.renderedTextLength(example.Example)+len(" "))
+			titleIndent = max(titleIndent, indent+p.renderedTextLength(example.Example)+ast.Col(len(" ")))
 		}
 	}
-	if titleIndent+len("(")+len(")") > p.o.Width {
+	if titleIndent+ast.Col(len("()")) > p.o.Width {
 		needHeadline = true
 	}
 	if !needHeadline && hasTitle {
 		for _, example := range p.diagnostic.Examples {
-			if titleIndent+len("(")+len(example.Title)+len(")") > p.o.Width {
+			if titleIndent+ast.Col(len("(")+len(example.Title)+len(")")) > p.o.Width { //nolint:gosec
 				needHeadline = true
 				break
 			}
@@ -433,15 +435,15 @@ func (p *prettyPrinter) printExamples() {
 }
 
 func (p *prettyPrinter) printHints() {
-	var indent int
+	var indent ast.Col
 	switch len(p.diagnostic.Hints) {
 	case 0:
 		return
 	case 1:
-		indent = len("Hint: ")
+		indent = ast.Col(len("Hint: "))
 		p.colored("\n\nHint: ", color.Bold)
 	case 2:
-		indent = len("Hints: ")
+		indent = ast.Col(len("Hints: "))
 		p.colored("\n\nHints: ", color.Bold)
 	}
 
@@ -455,7 +457,7 @@ func (p *prettyPrinter) printHints() {
 		if hint.Example != "" {
 			p.uncolored("\n")
 			p.skip(indent)
-			p.printText("|> "+hint.Example, indent+len("|> "), false)
+			p.printText("|> "+hint.Example, indent+ast.Col(len("|> ")), false)
 		}
 	}
 }
@@ -503,7 +505,7 @@ func (p *prettyPrinter) box(b string) {
 	p.colored(b, color.FgWhite, color.Faint)
 }
 
-func (p *prettyPrinter) printLineStart(ln line) {
+func (p *prettyPrinter) printLineStart(ln ast.Line) {
 	if ln <= 0 {
 		p.skip(p.nDigits + 1)
 		p.box("│ ")
@@ -516,8 +518,8 @@ func (p *prettyPrinter) printLineStart(ln line) {
 	p.box(" │ ")
 }
 
-func (p *prettyPrinter) skip(n int) {
-	p.uncolored(strings.Repeat(" ", n))
+func (p *prettyPrinter) skip(n ast.Col) {
+	p.uncolored(strings.Repeat(" ", int(n)))
 }
 
 func (p *prettyPrinter) annoColor(a annotation) color.Attribute {
@@ -531,7 +533,7 @@ func (p *prettyPrinter) annoColor(a annotation) color.Attribute {
 	return color.FgCyan
 }
 
-func (p *prettyPrinter) printText(text string, indent int, needLineStart bool, style ...color.Attribute) {
+func (p *prettyPrinter) printText(text string, indent ast.Col, needLineStart bool, style ...color.Attribute) {
 	width := p.o.Width
 	if width-indent < 35 {
 		width = indent + 35
@@ -556,14 +558,15 @@ func (p *prettyPrinter) printText(text string, indent int, needLineStart bool, s
 	var forceWrite bool
 	baseCol := indent + 1
 	if needLineStart {
-		baseCol += p.nDigits + len(" | ")
+		baseCol += p.nDigits + ast.Col(len(" | "))
 	}
 	col := baseCol
 	for i, r := range text {
-		wordEnd := strings.IndexAny(text[i:], " \n")
-		if wordEnd < 0 {
-			wordEnd = len(text) - i
+		wordEndIndex := strings.IndexAny(text[i:], " \n")
+		if wordEndIndex < 0 {
+			wordEndIndex = len(text) - i
 		}
+		wordEnd := ast.Col(utf8.RuneCountInString(text[i : i+wordEndIndex])) //nolint:gosec
 		if col+wordEnd > width && !forceWrite || r == '\n' {
 			if inCode {
 				code.UnsetWriter(p.sb)
@@ -572,7 +575,7 @@ func (p *prettyPrinter) printText(text string, indent int, needLineStart bool, s
 			}
 			p.uncolored("\n")
 			if needLineStart {
-				p.printLineStart(-1)
+				p.printLineStart(0)
 			}
 			p.skip(indent)
 			if inCode {
@@ -605,15 +608,15 @@ func (p *prettyPrinter) printText(text string, indent int, needLineStart bool, s
 	}
 }
 
-func (p *prettyPrinter) renderedTextLength(text string) int {
+func (p *prettyPrinter) renderedTextLength(text string) ast.Col {
 	if !p.o.Color {
-		return len(text)
+		return ast.Col(len(text)) //nolint:gosec
 	}
-	return len(text) - strings.Count(text, "`") // backticks are not printed
+	return ast.Col(len(text) - strings.Count(text, "`")) //nolint:gosec // backticks are not printed
 }
 
 type lineRange struct {
-	start, end line
+	start, end ast.Line
 	lines      []string
 }
 
@@ -626,7 +629,7 @@ func lineRanges(f *fileAnnos) []lineRange {
 			panic(fmt.Sprintf("invalid context start: %d", a.ContextStart))
 		case a.ContextEnd < a.ContextStart:
 			panic(fmt.Sprintf("context end before start: %d < %d", a.ContextEnd, a.ContextStart))
-		case a.ContextEnd > len(f.file.Lines)+1: // +1 because lines are 1-indexed
+		case a.ContextEnd > ast.Line(len(f.file.Lines)+1): //nolint:gosec // +1 because lines are 1-indexed
 			panic("context end out of bounds")
 		}
 
@@ -634,7 +637,7 @@ func lineRanges(f *fileAnnos) []lineRange {
 	}
 
 	slices.SortFunc(lines, func(a, b lineRange) int {
-		return a.start - b.start
+		return cmp.Compare(a.start, b.start)
 	})
 
 	merged := make([]lineRange, 0, len(lines))

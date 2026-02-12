@@ -212,14 +212,14 @@ func TestWith(t *testing.T) {
 			want: &ast.With{
 				With: &ast.Position{Line: 1, Col: 1},
 				Body: &ast.Scope{
-					LBrace: &ast.Position{Line: 1, Col: len("with ") + 1},
+					LBrace: &ast.Position{Line: 1, Col: ast.Col(len("with ") + 1)},
 					Nodes: []ast.ScopeNode{
 						&ast.Element{
 							Header: &ast.ElementHeader{
 								Name: &ast.ElementReference{
 									Name: &ast.ElementName{
 										Name:     "br",
-										Position: &ast.Position{Line: 2, Col: len("\t") + 1},
+										Position: &ast.Position{Line: 2, Col: ast.Col(len("\t") + 1)},
 									},
 								},
 							},
@@ -237,17 +237,17 @@ func TestWith(t *testing.T) {
 				With: &ast.Position{Line: 1, Col: 1},
 				Identifier: &ast.Identifier{
 					Name:     "foo",
-					Position: &ast.Position{Line: 1, Col: len("with ") + 1},
+					Position: &ast.Position{Line: 1, Col: ast.Col(len("with ") + 1)},
 				},
 				Body: &ast.Scope{
-					LBrace: &ast.Position{Line: 1, Col: len("with foo ") + 1},
+					LBrace: &ast.Position{Line: 1, Col: ast.Col(len("with foo ") + 1)},
 					Nodes: []ast.ScopeNode{
 						&ast.Element{
 							Header: &ast.ElementHeader{
 								Name: &ast.ElementReference{
 									Name: &ast.ElementName{
 										Name:     "br",
-										Position: &ast.Position{Line: 2, Col: len("\t") + 1},
+										Position: &ast.Position{Line: 2, Col: ast.Col(len("\t") + 1)},
 									},
 								},
 							},

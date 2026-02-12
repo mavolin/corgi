@@ -25,7 +25,7 @@ func TestBody(t *testing.T) {
 						Name: &ast.ElementReference{
 							Name: &ast.ElementName{
 								Name:     "br",
-								Position: &ast.Position{Line: 2, Col: 1 + len("\t")},
+								Position: &ast.Position{Line: 2, Col: ast.Col(1 + len("\t"))},
 							},
 						},
 					},
@@ -52,28 +52,28 @@ func testExtend(t *testing.T, f parser.Func[*ast.Extend]) {
 			Header: &ast.ComponentCallHeader{
 				Name: &ast.Identifier{
 					Name:     "bar",
-					Position: &ast.Position{Line: 1, Col: 1 + len(":")},
+					Position: &ast.Position{Line: 1, Col: ast.Col(1 + len(":"))},
 				},
 				Arguments: &ast.Arguments{
-					LParen: &ast.Position{Line: 1, Col: 1 + len(":bar")},
+					LParen: &ast.Position{Line: 1, Col: ast.Col(1 + len(":bar"))},
 					List: []ast.Argument{
 						&ast.ComponentArgument{
 							Name: &ast.Identifier{
 								Name:     "baz",
-								Position: &ast.Position{Line: 1, Col: 1 + len(":bar(")},
+								Position: &ast.Position{Line: 1, Col: ast.Col(1 + len(":bar("))},
 							},
-							Colon: &ast.Position{Line: 1, Col: 1 + len(":bar(baz")},
+							Colon: &ast.Position{Line: 1, Col: ast.Col(1 + len(":bar(baz"))},
 							Value: &ast.Expression{
 								Nodes: ast.Code{
 									&ast.GoCode{
 										Code:     "s",
-										Position: &ast.Position{Line: 1, Col: 1 + len(":bar(baz: ")},
+										Position: &ast.Position{Line: 1, Col: ast.Col(1 + len(":bar(baz: "))},
 									},
 								},
 							},
 						},
 					},
-					RParen: &ast.Position{Line: 1, Col: 1 + len(":bar(baz: s")},
+					RParen: &ast.Position{Line: 1, Col: ast.Col(1 + len(":bar(baz: s"))},
 				},
 			},
 		},

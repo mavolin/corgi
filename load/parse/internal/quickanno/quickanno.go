@@ -13,5 +13,8 @@ func Expected(p *parser.Parser, pos ast.Position, expected string) []diagnostic.
 }
 
 func DeltaPos(p ast.Position, dLine, dCol int) ast.Position {
-	return ast.Position{Line: p.Line + dLine, Col: p.Col + dCol}
+	return ast.Position{
+		Line: ast.Line(int(p.Line) + dLine), //nolint:gosec
+		Col:  ast.Col(int(p.Col) + dCol),    //nolint:gosec
+	}
 }

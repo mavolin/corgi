@@ -26,7 +26,7 @@ func TestComponentCallBody(t *testing.T) {
 						Name: &ast.ElementReference{
 							Name: &ast.ElementName{
 								Name:     "br",
-								Position: &ast.Position{Line: 2, Col: 1 + len("\t")},
+								Position: &ast.Position{Line: 2, Col: ast.Col(1 + len("\t"))},
 							},
 						},
 					},

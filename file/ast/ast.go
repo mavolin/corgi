@@ -104,10 +104,23 @@ type Node interface {
 // ======================================================================================
 
 // Position is a position in a file.
-type Position struct {
-	Line int
-	Col  int
-}
+type (
+	Position struct {
+		Line Line
+		Col  Col
+	}
+
+	// The size of Line and Col are primarily constrained by the parser to
+	// optimize performance:
+	// Because the parser can backtrack/look ahead infinitely, we need to keep
+	// track of a lot of restore points.
+	// At a scale at which we are creating and restoring those points, memory
+	// copying becomes expensive, so we use uint32 instead of int.
+	// This also reduces the memory usage of the parser.
+
+	Line uint32
+	Col  uint32
+)
 
 var NoPosition = Position{}
 
@@ -116,7 +129,7 @@ func (p Position) String() string {
 }
 
 func deltaPos(p Position, delta int) Position {
-	p.Col += delta
+	p.Col += Col(delta)
 	return p
 }
 

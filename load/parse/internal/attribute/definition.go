@@ -311,7 +311,7 @@ func RegexpSelector() parser.Func[*ast.RegexpAttributeSelector] {
 			expr := s.Raw.Unquote()
 			if strings.HasPrefix(expr, "^") {
 				caretPos := s.Raw.Start()
-				caretPos.Col += len(`"`)
+				caretPos.Col += ast.Col(len(`"`))
 				p.CaptureError(&diagnostic.Diagnostic{
 					Message: "regexp attribute selector: unnecessary start anchor",
 					Primary: []diagnostic.Annotation{
@@ -329,7 +329,7 @@ func RegexpSelector() parser.Func[*ast.RegexpAttributeSelector] {
 			}
 			if strings.HasSuffix(expr, "$") {
 				dollarPos := s.Raw.End()
-				dollarPos.Col -= len(`"`)
+				dollarPos.Col -= ast.Col(len(`"`))
 				p.CaptureError(&diagnostic.Diagnostic{
 					Message: "regexp attribute selector: unnecessary end anchor",
 					Primary: []diagnostic.Annotation{

@@ -85,7 +85,7 @@ func New(f *file.File, in string, start ast.Position) *Parser {
 
 	return &Parser{
 		File:      f,
-		state:     newState(uint32(start.Line), uint32(start.Col)),
+		state:     newState(start.Line, start.Col),
 		errs:      make(diagnostic.List, 0, 48),
 		comments:  make([]*ast.CommentGroup, 0, 128),
 		statePool: make(pool[State], 0, 32),
@@ -98,16 +98,16 @@ func (p *Parser) Errors() diagnostic.List       { return slices.Clip(p.errs) }
 func (p *Parser) Comments() []*ast.CommentGroup { return p.comments }
 
 func (p *Parser) ByteIndex() ByteIndex                { return p.state.byteIndex }
-func (p *Parser) ByteLen() ByteIndex                  { return ByteIndex(len(p.in)) }
+func (p *Parser) ByteLen() ByteIndex                  { return ByteIndex(len(p.in)) } //nolint:gosec
 func (p *Parser) ByteAt(i ByteIndex) byte             { return p.in[i] }
 func (p *Parser) TokenAt(start, end ByteIndex) string { return p.in[start:end] }
 
-func (p *Parser) RuneIndex() RuneIndex    { return RuneIndex(p.state.runeIndex) }
-func (p *Parser) RuneLen() RuneIndex      { return RuneIndex(len(p.runes)) }
+func (p *Parser) RuneIndex() RuneIndex    { return p.state.runeIndex }
+func (p *Parser) RuneLen() RuneIndex      { return RuneIndex(len(p.runes)) } //nolint:gosec
 func (p *Parser) RuneAt(i RuneIndex) rune { return p.runes[i] }
 
-func (p *Parser) Line() int         { return int(p.state.line) }
-func (p *Parser) Col() int          { return int(p.state.col) }
+func (p *Parser) Line() ast.Line    { return p.state.line }
+func (p *Parser) Col() ast.Col      { return p.state.col }
 func (p *Parser) Pos() ast.Position { return p.state.Pos() }
 func (p *Parser) PosPtr() *ast.Position {
 	pos := p.Pos()
