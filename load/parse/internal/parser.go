@@ -259,31 +259,6 @@ func MatchesWS(p *Parser, f WhitespaceFunc) bool {
 	return ok
 }
 
-func MatchesToken(p *Parser, s string) bool {
-	start := p.ByteIndex()
-	end := start + ByteIndex(len(s)) //nolint:gosec
-	return end <= p.ByteLen() && p.TokenAt(start, end) == s
-}
-
-func MatchesAnyToken(p *Parser, ss ...string) bool {
-	for _, s := range ss {
-		if MatchesToken(p, s) {
-			return true
-		}
-	}
-	return false
-}
-
-func MatchesAnyRune(p *Parser, rs ...rune) bool {
-	return MatchesRunePredicate(p, func(cmp rune) bool {
-		return slices.Contains(rs, cmp)
-	})
-}
-
-func MatchesRunePredicate(p *Parser, pred func(rune) bool) bool {
-	return pred(p.peek())
-}
-
 func Try[T any](p *Parser, f Func[T]) T {
 	var zero T
 

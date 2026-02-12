@@ -15,7 +15,7 @@ import (
 
 func TextInterpolation() parser.Func[ast.TextInterpolation] {
 	return func(p *parser.Parser) ast.TextInterpolation {
-		if !parser.MatchesAnyRune(p, '#') {
+		if !parser.MatchesRune(p, '#') {
 			return nil
 		}
 
@@ -61,7 +61,7 @@ func TextInterpolation() parser.Func[ast.TextInterpolation] {
 
 func StringInterpolation() parser.Func[ast.StringInterpolation] {
 	return func(p *parser.Parser) ast.StringInterpolation {
-		if !parser.MatchesAnyRune(p, '#') {
+		if !parser.MatchesRune(p, '#') {
 			return nil
 		}
 

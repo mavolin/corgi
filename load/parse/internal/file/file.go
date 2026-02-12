@@ -135,7 +135,7 @@ func File() parser.Func[*ast.File] {
 		f.TopLevel = parser.Try(p, TopLevel())
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 
-		if !parser.MatchesAnyRune(p, parser.EOF) {
+		if !parser.MatchesRune(p, parser.EOF) {
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "unexpected tokens",
 				Primary: quickanno.Expected(p, p.Pos(), "end of file"),

@@ -55,7 +55,7 @@ func componentCallStub(p *parser.Parser) *ast.ComponentCall {
 func expressionStub(p *parser.Parser) *ast.Expression {
 	pos := p.Pos()
 	code := parser.TokenWhile(p, func() bool {
-		return !parser.MatchesAnyRune(p, '}')
+		return !parser.MatchesRune(p, '}')
 	})
 	if code == "" {
 		return nil

@@ -80,7 +80,7 @@ func Import() parser.Func[*ast.Import] {
 			imp.Specs = append(imp.Specs, spec)
 
 			parser.TrySkip(p, comment.OrHorizontalWhitespace())
-			if parser.MatchesAnyRune(p, ')') {
+			if parser.MatchesRune(p, ')') {
 				break
 			}
 

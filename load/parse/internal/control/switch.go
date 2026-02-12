@@ -158,7 +158,7 @@ func CaseBody() parser.Func[[]ast.ScopeNode] {
 				} else if parser.TryKeywordAt(p, "default") != nil {
 					return true
 				}
-				return parser.MatchesAnyRune(p, '}')
+				return parser.MatchesRune(p, '}')
 			})
 			if stop {
 				parser.RestoreWS(p)

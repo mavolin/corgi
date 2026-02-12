@@ -76,7 +76,7 @@ func Text(term rune) parser.Func[*ast.Text] {
 	return func(p *parser.Parser) *ast.Text {
 		text := parser.TokenWhile(p, func() bool {
 			return !parser.MatchesAnyRune(p, term, '\r', '\n') &&
-				(parser.Matches(p, interpolation.UnambiguousHash()) || !parser.MatchesAnyRune(p, '#'))
+				(parser.Matches(p, interpolation.UnambiguousHash()) || !parser.MatchesRune(p, '#'))
 		})
 		trimmedText := strings.TrimRight(text, " \t")
 		if trimmedText == "" {

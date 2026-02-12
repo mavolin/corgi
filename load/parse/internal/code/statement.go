@@ -512,7 +512,7 @@ func ConstDeclaration() parser.Func[*ast.ConstDeclaration] {
 			d.Specs = append(d.Specs, spec)
 
 			parser.TrySkip(p, comment.OrHorizontalWhitespace())
-			if parser.MatchesAnyRune(p, ')') {
+			if parser.MatchesRune(p, ')') {
 				break
 			}
 
@@ -743,7 +743,7 @@ func VarDeclaration() parser.Func[*ast.VarDeclaration] {
 			d.Specs = append(d.Specs, spec)
 
 			parser.TrySkip(p, comment.OrHorizontalWhitespace())
-			if parser.MatchesAnyRune(p, ')') {
+			if parser.MatchesRune(p, ')') {
 				break
 			}
 
@@ -1075,7 +1075,7 @@ func Label() parser.Func[*ast.Label] {
 		parser.TrySkip(p, comment.OrHorizontalWhitespace())
 
 		colon := parser.TryRuneAt(p, ':')
-		if colon == nil || parser.MatchesAnyRune(p, '=') {
+		if colon == nil || parser.MatchesRune(p, '=') {
 			return nil
 		}
 

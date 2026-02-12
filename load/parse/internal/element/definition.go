@@ -46,7 +46,7 @@ func definitionList(elem *ast.Position) parser.Func[*ast.ElementDefinition] {
 		// technically '(' would be a valid element name, so check that we
 		// don't accidentally consume a '(' as a prefix here
 		var prefix *ast.ElementName
-		if !parser.MatchesAnyRune(p, '(') {
+		if !parser.MatchesRune(p, '(') {
 			prefix = parser.TryOptional(p, Name(), comment.OrHorizontalWhitespace())
 		}
 
@@ -69,7 +69,7 @@ func definitionList(elem *ast.Position) parser.Func[*ast.ElementDefinition] {
 			def.Specs = append(def.Specs, spec)
 
 			parser.TrySkip(p, comment.OrHorizontalWhitespace())
-			if parser.MatchesAnyRune(p, ')') {
+			if parser.MatchesRune(p, ')') {
 				break
 			}
 			parser.Try(p, comment.AndMustEOS())

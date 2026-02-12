@@ -16,6 +16,12 @@ func NextRune(p *Parser) rune {
 	return p.next()
 }
 
+func MatchesToken(p *Parser, s string) bool {
+	start := p.ByteIndex()
+	end := start + ByteIndex(len(s)) //nolint:gosec
+	return end <= p.ByteLen() && p.TokenAt(start, end) == s
+}
+
 // TryToken attempts to match the given token verbatim.
 func TryToken(p *Parser, s string) (ok bool) {
 	if !MatchesToken(p, s) {
@@ -39,6 +45,15 @@ func TryOptionalToken(p *Parser, s string, ws WhitespaceFunc) (ok bool) {
 		TrySkip(p, ws)
 	}
 	return true
+}
+
+func MatchesAnyToken(p *Parser, ss ...string) bool {
+	for _, s := range ss {
+		if MatchesToken(p, s) {
+			return true
+		}
+	}
+	return false
 }
 
 func TryAnyToken(p *Parser, ss ...string) string {
@@ -67,6 +82,14 @@ func TryAnyOptionalToken(p *Parser, ws WhitespaceFunc, ss ...string) string {
 	return ""
 }
 
+func TryTokenAt(p *Parser, s string) *ast.Position {
+	ln, col := p.Line(), p.Col()
+	if !TryToken(p, s) {
+		return nil
+	}
+	return &ast.Position{Line: ln, Col: col}
+}
+
 func TryKeywordAt(p *Parser, k string) *ast.Position {
 	ln, col := p.Line(), p.Col()
 	if !TryToken(p, k) {
@@ -81,12 +104,8 @@ func TryKeywordAt(p *Parser, k string) *ast.Position {
 	return &ast.Position{Line: ln, Col: col}
 }
 
-func TryTokenAt(p *Parser, s string) *ast.Position {
-	ln, col := p.Line(), p.Col()
-	if !TryToken(p, s) {
-		return nil
-	}
-	return &ast.Position{Line: ln, Col: col}
+func MatchesRune(p *Parser, r rune) bool {
+	return p.peek() == r
 }
 
 func TryRune(p *Parser, r rune) (ok bool) {
@@ -129,6 +148,12 @@ func TryOptionalRuneAt(p *Parser, r rune, ws WhitespaceFunc) *ast.Position {
 	return &ast.Position{Line: ln, Col: col}
 }
 
+func MatchesAnyRune(p *Parser, rs ...rune) bool {
+	return MatchesRunePredicate(p, func(cmp rune) bool {
+		return slices.Contains(rs, cmp)
+	})
+}
+
 // TryAnyRune attempts to match the next rune against any of the passed runes.
 //
 // It returns the matched rune, or 0 if none matched.
@@ -152,6 +177,10 @@ func TryAnyOptionalRune(p *Parser, ws WhitespaceFunc, rs ...rune) rune {
 		TrySkip(p, ws)
 	}
 	return p.next()
+}
+
+func MatchesRunePredicate(p *Parser, pred func(rune) bool) bool {
+	return pred(p.peek())
 }
 
 // TryRunePredicate attempts to match the next rune against the predicate.

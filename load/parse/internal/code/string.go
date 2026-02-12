@@ -36,7 +36,7 @@ func String() parser.Func[*ast.String] {
 
 func stringContents(p *parser.Parser, s *ast.String) {
 	for {
-		if parser.MatchesAnyRune(p, rune(s.Quote)) {
+		if parser.MatchesRune(p, rune(s.Quote)) {
 			s.Close = parser.TryRuneAt(p, rune(s.Quote))
 			break
 		}

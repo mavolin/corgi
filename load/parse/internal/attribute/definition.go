@@ -49,7 +49,7 @@ func definitionList(attr *ast.Position) parser.Func[*ast.AttributeDefinition] {
 		// technically '(' would be a valid attribute name, so check that we
 		// don't accidentally consume a '(' as a prefix here
 		var prefix *ast.AttributeName
-		if !parser.MatchesAnyRune(p, '(') {
+		if !parser.MatchesRune(p, '(') {
 			prefix = parser.TryOptional(p, Name(), comment.OrHorizontalWhitespace())
 		}
 
@@ -72,7 +72,7 @@ func definitionList(attr *ast.Position) parser.Func[*ast.AttributeDefinition] {
 			def.Specs = append(def.Specs, s)
 
 			parser.TrySkip(p, comment.OrHorizontalWhitespace())
-			if parser.MatchesAnyRune(p, ')') {
+			if parser.MatchesRune(p, ')') {
 				break
 			}
 			parser.Try(p, comment.AndMustEOS())
@@ -104,7 +104,7 @@ func singleDefinitionWithPrefix(attr *ast.Position) parser.Func[*ast.AttributeDe
 			return nil
 		}
 
-		if parser.MatchesAnyRune(p, '{') {
+		if parser.MatchesRune(p, '{') {
 			// prefix was actually start of the spec
 			return nil
 		}

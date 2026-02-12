@@ -22,7 +22,7 @@ func Scope() parser.Func[*ast.Scope] {
 
 		for {
 			parser.TrySkip(p, comment.OrAnyWhitespace())
-			if parser.MatchesAnyRune(p, '}') {
+			if parser.MatchesRune(p, '}') {
 				break
 			}
 
@@ -87,11 +87,11 @@ func BadNode() parser.Func[*ast.BadNode] {
 			parser.TrySkip(p, comment.OrHorizontalWhitespace())
 			if parser.MatchesAnyRune(p, '}', ';') { //nolint:gocritic
 				break
-			} else if parser.MatchesAnyRune(p, '{') {
+			} else if parser.MatchesRune(p, '{') {
 				if parser.TryOptional(p, Scope(), nil) == nil {
 					parser.TryRune(p, '{')
 				}
-			} else if parser.MatchesAnyRune(p, '[') {
+			} else if parser.MatchesRune(p, '[') {
 				if parser.TryOptional(p, BracketText(), nil) == nil {
 					parser.TryRune(p, '[')
 				}

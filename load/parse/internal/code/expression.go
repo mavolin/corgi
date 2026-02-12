@@ -34,7 +34,7 @@ func SimpleExpression() parser.Func[*ast.Expression] {
 // `(foo.bar())`.
 func ParenExpression() parser.Func[*ast.Expression] {
 	return func(p *parser.Parser) *ast.Expression {
-		if !parser.MatchesAnyRune(p, '(') {
+		if !parser.MatchesRune(p, '(') {
 			return nil
 		}
 

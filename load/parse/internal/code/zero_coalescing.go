@@ -17,11 +17,11 @@ func ZeroCoalescing() parser.Func[*ast.ZeroCoalescing] {
 	return func(p *parser.Parser) *ast.ZeroCoalescing {
 		var derefPosition *ast.Position
 		derefCount := len(parser.TokenWhile(p, func() bool {
-			return parser.MatchesAnyRune(p, '*')
+			return parser.MatchesRune(p, '*')
 		}))
 		if derefCount > 0 {
 			derefPosition = p.PosPtr()
-			derefPosition.Col -= ast.Col(derefCount)
+			derefPosition.Col -= ast.Col(derefCount) //nolint:gosec
 			parser.TrySkip(p, comment.OrAnyWhitespace())
 		} else {
 			derefPosition = nil
@@ -289,7 +289,7 @@ func zcTypeAssertionExpression() parser.Func[*zeroCoalescingNodeData[*ast.ZCType
 
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 		tae.PointerCount = len(parser.TokenWhile(p, func() bool {
-			return parser.MatchesAnyRune(p, '*')
+			return parser.MatchesRune(p, '*')
 		}))
 		parser.TrySkip(p, comment.OrAnyWhitespace())
 

@@ -31,7 +31,7 @@ func RuneLit() parser.Func[bool] {
 
 		startPos := p.Pos()
 		unexpected := parser.TokenWhile(p, func() bool {
-			return !parser.MatchesAnyRune(p, '\'') &&
+			return !parser.MatchesRune(p, '\'') &&
 				(parser.MatchesWS(p, whitespace.Horizontal()) || !parser.Matches(p, comment.AndEOS()))
 		})
 		if !parser.TryRune(p, '\'') {
@@ -54,7 +54,7 @@ func RuneLit() parser.Func[bool] {
 
 func UnicodeValue(term rune) parser.Func[bool] {
 	return func(p *parser.Parser) bool {
-		if parser.MatchesAnyRune(p, '\\') {
+		if parser.MatchesRune(p, '\\') {
 			return parser.TryInOrder(p, LittleUValue(), BigUValue(), EscapedChar(term))
 		}
 
@@ -179,7 +179,7 @@ func RawStringLit() parser.Func[*ast.StaticString] {
 		s.Open = open
 
 		s.Contents = parser.TokenWhile(p, func() bool {
-			return !parser.MatchesAnyRune(p, '`')
+			return !parser.MatchesRune(p, '`')
 		})
 
 		s.Close = parser.TryRuneAt(p, '`')
