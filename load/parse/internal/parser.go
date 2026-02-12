@@ -79,6 +79,10 @@ func (p *pool[T]) Put(s *T) {
 // Instead, Parse uses the given input, which must be substring of the file's
 // raw content and which appears at the given start position in the file.
 func New(f *file.File, in string, start ast.Position) *Parser {
+	if len(in) > int(ByteIndex(math.MaxUint32)) {
+		panic("input too large")
+	}
+
 	return &Parser{
 		File:      f,
 		state:     newState(uint32(start.Line), uint32(start.Col)),
@@ -257,7 +261,7 @@ func MatchesWS(p *Parser, f WhitespaceFunc) bool {
 
 func MatchesToken(p *Parser, s string) bool {
 	start := p.ByteIndex()
-	end := start + ByteIndex(len(s))
+	end := start + ByteIndex(len(s)) //nolint:gosec
 	return end <= p.ByteLen() && p.TokenAt(start, end) == s
 }
 
