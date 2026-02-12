@@ -178,8 +178,8 @@ func RawStringLit() parser.Func[*ast.StaticString] {
 		s.Quote = '`'
 		s.Open = open
 
-		s.Contents = parser.TokenWhile(p, func() bool {
-			return !parser.MatchesRune(p, '`')
+		s.Contents = parser.TokenWhileRunePredicate(p, func(r rune) bool {
+			return r != '`'
 		})
 
 		s.Close = parser.TryRuneAt(p, '`')

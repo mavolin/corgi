@@ -23,10 +23,8 @@ func TestBracketList(t *testing.T) {
 
 func testList(t *testing.T, opening, closing rune, f func(belongsTo, singular, plural string, elemFunc parser.Func[string]) parser.Func[*List[string]]) {
 	elemFunc := func(p *parser.Parser) string {
-		return parser.TokenWhile(p, func() bool {
-			return parser.MatchesRunePredicate(p, func(r rune) bool {
-				return r >= 'a' && r <= 'z'
-			})
+		return parser.TokenWhileRunePredicate(p, func(r rune) bool {
+			return r >= 'a' && r <= 'z'
 		})
 	}
 
@@ -69,13 +67,13 @@ func testList(t *testing.T, opening, closing rune, f func(belongsTo, singular, p
 				want := &List[string]{
 					Open: &ast.Position{Line: 1, Col: 1},
 					Close: &ast.Position{
-						Line: ast.Line(strings.Count(in, "\n") + 1),
-						Col:  ast.Col(len(string(opening)) + len(c.elems) + 1),
+						Line: ast.Line(strings.Count(in, "\n") + 1),            //nolint:gosec
+						Col:  ast.Col(len(string(opening)) + len(c.elems) + 1), //nolint:gosec
 					},
 					Elems: c.want,
 				}
 				if want.Close.Line > 1 {
-					want.Close.Col = ast.Col(len(in[strings.LastIndex(in, "\n")+1:]))
+					want.Close.Col = ast.Col(len(in[strings.LastIndex(in, "\n")+1:])) //nolint:gosec
 				}
 
 				got := parsetest.ParsesExact(t, in, f("belongsTo", "singular", "plural", elemFunc))
@@ -158,10 +156,8 @@ func TestCommaList(t *testing.T) {
 	t.Parallel()
 
 	elemFunc := func(p *parser.Parser) string {
-		return parser.TokenWhile(p, func() bool {
-			return parser.MatchesRunePredicate(p, func(r rune) bool {
-				return r >= 'a' && r <= 'z'
-			})
+		return parser.TokenWhileRunePredicate(p, func(r rune) bool {
+			return r >= 'a' && r <= 'z'
 		})
 	}
 

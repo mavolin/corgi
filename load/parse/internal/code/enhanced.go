@@ -106,7 +106,7 @@ func enhancedExpressionParser(p *enhancedParser) {
 			enhancedParenExpressionParser(p)
 		} else if ex := parser.TryOptional(p.Parser, Enhancement(), comment.OrHorizontalWhitespace()); ex != nil {
 			captureNode(p, ex)
-		} else if parser.MatchesAnyRune(p.Parser, '?') { // this is a check for optional chaining
+		} else if parser.MatchesRune(p.Parser, '?') { // this is a check for optional chaining
 			return
 		} else {
 			unenhancedRune(p)

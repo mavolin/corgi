@@ -235,9 +235,7 @@ func CharacterReference() parser.Func[*ast.CharacterReference] {
 		var r ast.CharacterReference
 		r.Hash = hash
 
-		r.Name = parser.TokenWhile(p, func() bool {
-			return parser.MatchesRunePredicate(p, codepoint.ASCIIAlphanumeric)
-		})
+		r.Name = parser.TokenWhileRunePredicate(p, codepoint.ASCIIAlphanumeric)
 		if !parser.TryRune(p, ';') {
 			return nil
 		}

@@ -9,21 +9,22 @@ import (
 
 func Identifier() parser.Func[*ast.Identifier] { // https://go.dev/ref/spec#Identifiers
 	return func(p *parser.Parser) *ast.Identifier {
-		start := p.ByteIndex()
+		start := p.RuneIndex()
 
-		r := parser.TryRunePredicate(p, Letter)
-		if r == 0 {
+		name := parser.TokenWhileRunePredicate(p, func(r rune) bool {
+			return Letter(r) || (p.RuneIndex() != start && Unicode_Digit(r))
+		})
+		if name == "" {
 			return nil
 		}
 
 		var ident ast.Identifier
+		ident.Name = name
 		ident.Position = p.PosPtr()
 		// computing the position instead of using p.Pos() at the top saves us
 		// allocations when Identifier doesn't match
-		ident.Position.Col--
+		ident.Position.Col -= ast.Col(p.RuneIndex() - start)
 
-		parser.Try(p, identTrail())
-		ident.Name = p.TokenAt(start, p.ByteIndex())
 		if IsKeyword(ident.Name) {
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "keyword used as identifier",
@@ -36,19 +37,5 @@ func Identifier() parser.Func[*ast.Identifier] { // https://go.dev/ref/spec#Iden
 		}
 
 		return &ident
-	}
-}
-
-// identTrail consumes the rest of the identifier after the first rune.
-// It always matches, as the single, previously captured, rune is already a
-// valid identifier.
-func identTrail() parser.Func[bool] {
-	return func(p *parser.Parser) bool {
-		s := parser.TokenWhile(p, func() bool {
-			return parser.MatchesRunePredicate(p, func(r rune) bool {
-				return Letter(r) || Unicode_Digit(r)
-			})
-		})
-		return s != ""
 	}
 }

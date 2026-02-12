@@ -188,12 +188,12 @@ func unqualifiedReference() parser.Func[*ast.ElementReference] {
 
 func Name() parser.Func[*ast.ElementName] {
 	return func(p *parser.Parser) *ast.ElementName {
-		name := parser.TokenWhile(p, func() bool {
-			if !parser.MatchesRunePredicate(p, html.AttributeNameRune) {
+		name := parser.TokenWhileRunePredicate(p, func(r rune) bool {
+			switch r {
+			case '.', ',', '\r', '\n', ' ', '\t', ';', '(', '{', '[', '}', ']', ')', '_':
 				return false
 			}
-
-			return !parser.MatchesAnyRune(p, '.', ',', '\r', ';', '(', '{', '[', '}', ']', ')', '_')
+			return html.AttributeNameRune(r)
 		})
 		if name == "" {
 			return nil

@@ -165,20 +165,21 @@ func Name() parser.Func[*ast.AttributeName] {
 		pos := p.Pos()
 
 		var parenCount int
-		nameStr := parser.TokenWhile(p, func() bool {
-			if !parser.MatchesRunePredicate(p, html.AttributeNameRune) {
+		nameStr := parser.TokenWhileRunePredicate(p, func(r rune) bool {
+			if !html.AttributeNameRune(r) {
 				return false
 			}
-
-			if parser.MatchesAnyRune(p, '(', '[') {
+			switch r {
+			case '(', '[':
 				parenCount++
 				return true
-			} else if parser.MatchesAnyRune(p, ')', ']') {
+			case ')', ']':
 				parenCount--
 				return parenCount >= 0
+			case '.', ',', ';', '{', '}':
+				return false
 			}
-
-			return !parser.MatchesAnyRune(p, '.', ',', ';', '{', '}')
+			return true
 		})
 
 		if nameStr == "" {

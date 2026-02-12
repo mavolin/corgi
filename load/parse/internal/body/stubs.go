@@ -45,10 +45,8 @@ func textLineEnd(term rune) parser.Func[bool] {
 
 func scopeNodeStub(p *parser.Parser) ast.ScopeNode {
 	pos := p.Pos()
-	name := parser.TokenWhile(p, func() bool {
-		return parser.MatchesRunePredicate(p, func(r rune) bool {
-			return r >= 'a' && r <= 'z'
-		})
+	name := parser.TokenWhileRunePredicate(p, func(r rune) bool {
+		return r >= 'a' && r <= 'z'
 	})
 	if name == "" {
 		return nil

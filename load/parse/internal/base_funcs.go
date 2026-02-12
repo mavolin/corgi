@@ -195,12 +195,37 @@ func TryRunePredicate(p *Parser, pred func(rune) bool) rune {
 	return p.next()
 }
 
+// TokenWhileRunePredicate consumes runes as long as the predicate returns true.
+//
+// The predicate is called exactly once per rune, and may therefore stateful.
+func TokenWhileRunePredicate(p *Parser, pred func(rune) bool) string {
+	restore := p.takeWSStart()
+	start := p.ByteIndex()
+	r := p.peek()
+	if r == EOF || !pred(r) {
+		p.RestoreState(restore)
+		return ""
+	}
+	p.next()
+	for {
+		r = p.peek()
+		if r == EOF || !pred(r) {
+			break
+		}
+		p.next()
+	}
+	p.statePool.Put(restore)
+	return p.TokenAt(start, p.ByteIndex())
+}
+
 // TokenWhile consumes runes as long as the predicate returns true.
 // The predicate may invoke the parser inside the predicate, but must not
 // consume any runes itself.
 //
 // If TokenWhile doesn't consume any runes, previously consumed whitespace is
 // rolled back.
+//
+// The predicate is called exactly once per rune and may therefore be stateful.
 func TokenWhile(p *Parser, pred func() bool) string {
 	restore := p.takeWSStart()
 	start := p.ByteIndex()
