@@ -166,8 +166,8 @@ func StringCharacterEscape() parser.Func[*ast.CharacterEscape] {
 			return nil
 		}
 
-		symbol := parser.TryAnyRune(p, '#')
-		if symbol == 0 {
+		const symbol = '#'
+		if !parser.TryRune(p, symbol) {
 			return nil
 		}
 
@@ -206,8 +206,8 @@ func VerbatimTextCharacterEscape() parser.Func[*ast.CharacterEscape] {
 			return nil
 		}
 
-		symbol := parser.TryAnyRune(p, ']')
-		if symbol == 0 {
+		const symbol = ']'
+		if !parser.TryRune(p, symbol) {
 			return nil
 		}
 
