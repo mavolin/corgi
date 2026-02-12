@@ -9,7 +9,7 @@ import (
 
 func Identifier() parser.Func[*ast.Identifier] { // https://go.dev/ref/spec#Identifiers
 	return func(p *parser.Parser) *ast.Identifier {
-		start := p.Index()
+		start := p.ByteIndex()
 
 		r := parser.TryRunePredicate(p, Letter)
 		if r == 0 {
@@ -23,7 +23,7 @@ func Identifier() parser.Func[*ast.Identifier] { // https://go.dev/ref/spec#Iden
 		ident.Position.Col--
 
 		parser.Try(p, identTrail())
-		ident.Name = p.AST.Raw[start:p.Index()]
+		ident.Name = p.TokenAt(start, p.ByteIndex())
 		if IsKeyword(ident.Name) {
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message: "keyword used as identifier",

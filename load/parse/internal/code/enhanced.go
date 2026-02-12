@@ -25,16 +25,15 @@ type enhancedParser struct {
 
 	nodes ast.Code
 
-	start    int
-	end      int
-	startPos ast.Position
-	hasWS    bool
+	start, end parser.ByteIndex
+	startPos   ast.Position
+	hasWS      bool
 }
 
 func parseEnhanced(p *parser.Parser, f func(*enhancedParser)) ast.Code {
 	gcp := &enhancedParser{
 		Parser:   p,
-		start:    p.Index(),
+		start:    p.ByteIndex(),
 		startPos: *p.PosPtr(),
 	}
 
@@ -55,7 +54,7 @@ func (p *enhancedParser) commitGoCode() {
 
 	pos := p.startPos
 	p.nodes = append(p.nodes, &ast.GoCode{
-		Code:     p.AST.Raw[p.start:p.end],
+		Code:     p.TokenAt(p.start, p.end),
 		Position: &pos,
 	})
 }
@@ -73,12 +72,12 @@ type comparableNode interface {
 }
 
 func (p *enhancedParser) resetStart() {
-	p.start = p.Index()
+	p.start = p.ByteIndex()
 	p.startPos = *p.PosPtr()
 }
 
 func (p *enhancedParser) skipWS(ws parser.WhitespaceFunc) {
-	p.end = p.Index()
+	p.end = p.ByteIndex()
 	p.hasWS = parser.TrySkip(p.Parser, ws)
 }
 

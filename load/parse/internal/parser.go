@@ -53,6 +53,7 @@ type Parser struct {
 	inline    bool
 	parsingWS bool
 
+	in    string
 	runes []rune
 }
 
@@ -72,15 +73,53 @@ func (p *pool[T]) Put(s *T) {
 	*p = append(*p, s)
 }
 
-func New(f *file.File) *Parser {
+// New creates a new parser for the given file.
+// The file is used only for error reporting, its content/lines are not used by
+// the parser.
+// Instead, Parse uses the given input, which must be substring of the file's
+// raw content and which appears at the given start position in the file.
+func New(f *file.File, in string, start ast.Position) *Parser {
 	return &Parser{
 		File:      f,
-		state:     newState(),
+		state:     newState(uint32(start.Line), uint32(start.Col)),
 		errs:      make(diagnostic.List, 0, 48),
 		comments:  make([]*ast.CommentGroup, 0, 128),
 		statePool: make(pool[State], 0, 32),
-		runes:     []rune(f.AST.Raw),
+		in:        in,
+		runes:     []rune(in),
 	}
+}
+
+func (p *Parser) Errors() diagnostic.List       { return slices.Clip(p.errs) }
+func (p *Parser) Comments() []*ast.CommentGroup { return p.comments }
+
+func (p *Parser) ByteIndex() ByteIndex                { return p.state.byteIndex }
+func (p *Parser) ByteLen() ByteIndex                  { return ByteIndex(len(p.in)) }
+func (p *Parser) ByteAt(i ByteIndex) byte             { return p.in[i] }
+func (p *Parser) TokenAt(start, end ByteIndex) string { return p.in[start:end] }
+
+func (p *Parser) RuneIndex() RuneIndex    { return RuneIndex(p.state.runeIndex) }
+func (p *Parser) RuneLen() RuneIndex      { return RuneIndex(len(p.runes)) }
+func (p *Parser) RuneAt(i RuneIndex) rune { return p.runes[i] }
+
+func (p *Parser) Line() int         { return int(p.state.line) }
+func (p *Parser) Col() int          { return int(p.state.col) }
+func (p *Parser) Pos() ast.Position { return p.state.Pos() }
+func (p *Parser) PosPtr() *ast.Position {
+	pos := p.Pos()
+	return &pos
+}
+
+func (p *Parser) Inline() bool { return p.inline }
+func (p *Parser) DoInline(f func()) {
+	if p.inline {
+		f()
+		return
+	}
+
+	p.inline = true
+	f()
+	p.inline = false
 }
 
 func (p *Parser) next() rune {
@@ -90,8 +129,8 @@ func (p *Parser) next() rune {
 
 	r := p.runes[p.state.runeIndex]
 	if r == utf8.RuneError {
-		_, size := utf8.DecodeRuneInString(p.AST.Raw[p.Index():])
-		p.state.advance(uint32(size), false) //nolint:gosec
+		_, size := utf8.DecodeRuneInString(p.TokenAt(p.ByteIndex(), p.ByteLen()))
+		p.state.advance(ByteIndex(size), false) //nolint:gosec
 		p.CaptureError(&diagnostic.Diagnostic{
 			Message: "invalid UTF-8 encoding",
 			Primary: []diagnostic.Annotation{
@@ -100,7 +139,7 @@ func (p *Parser) next() rune {
 		})
 		return r
 	}
-	p.state.advance(uint32(utf8.RuneLen(r)), r == '\n') //nolint:gosec
+	p.state.advance(ByteIndex(utf8.RuneLen(r)), r == '\n') //nolint:gosec
 	return r
 }
 
@@ -116,31 +155,6 @@ func (p *Parser) skipString(s string) {
 	for range s {
 		p.next()
 	}
-}
-
-func (p *Parser) Line() int         { return int(p.state.line) }
-func (p *Parser) Col() int          { return int(p.state.col) }
-func (p *Parser) Pos() ast.Position { return p.state.Pos() }
-func (p *Parser) Index() int        { return int(p.state.index) }
-func (p *Parser) Inline() bool      { return p.inline }
-
-func (p *Parser) Errors() diagnostic.List       { return slices.Clip(p.errs) }
-func (p *Parser) Comments() []*ast.CommentGroup { return p.comments }
-
-func (p *Parser) PosPtr() *ast.Position {
-	pos := p.Pos()
-	return &pos
-}
-
-func (p *Parser) DoInline(f func()) {
-	if p.inline {
-		f()
-		return
-	}
-
-	p.inline = true
-	f()
-	p.inline = false
 }
 
 func (p *Parser) CaptureError(err *diagnostic.Diagnostic) {
@@ -242,9 +256,9 @@ func MatchesWS(p *Parser, f WhitespaceFunc) bool {
 }
 
 func MatchesToken(p *Parser, s string) bool {
-	start := p.Index()
-	end := start + len(s)
-	return end <= len(p.AST.Raw) && p.AST.Raw[start:end] == s
+	start := p.ByteIndex()
+	end := start + ByteIndex(len(s))
+	return end <= p.ByteLen() && p.TokenAt(start, end) == s
 }
 
 func MatchesAnyToken(p *Parser, ss ...string) bool {

@@ -41,7 +41,7 @@ func ComponentArgument() parser.Func[*ast.ComponentArgument] {
 			}
 		}
 
-		start := p.Index()
+		start := p.RuneIndex()
 		value := parser.Try(p, code.Expression())
 		if value == nil {
 			if name == nil { // only a colon
@@ -67,10 +67,12 @@ func ComponentArgument() parser.Func[*ast.ComponentArgument] {
 			// The only other way we can be sure this is not a named attribute,
 			// is if the value contains no `=` and at least one non-trailing
 			// whitespace.
+			end := p.RuneIndex()
+
 			var haveWS bool
-			for i := start; i < p.Index(); i++ {
-				prev := p.AST.Raw[i-1] // safe because we know start > 0
-				switch p.AST.Raw[i] {
+			for i := start; i < end; i++ {
+				prev := p.RuneAt(i - 1) // safe because we know start > 0
+				switch p.RuneAt(i) {
 				case '=':
 					switch prev {
 					case '!', '<', '>', '=':

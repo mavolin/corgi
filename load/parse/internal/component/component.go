@@ -157,12 +157,12 @@ func Parameter() parser.Func[*ast.ComponentParameter] {
 
 func ParameterType() parser.Func[*ast.Type] {
 	return func(p *parser.Parser) *ast.Type {
-		startI := p.Index()
+		startIndex := p.ByteIndex()
 		startPos := p.Pos()
 		at := parser.Try(p, attribute.Type())
 		if at != nil {
 			return &ast.Type{
-				Type:   p.AST.Raw[startI:p.Index()],
+				Type:   p.TokenAt(startIndex, p.ByteIndex()),
 				Parsed: at,
 				From:   startPos,
 				Until:  p.Pos(),

@@ -174,54 +174,54 @@ func TryRunePredicate(p *Parser, pred func(rune) bool) rune {
 // rolled back.
 func TokenWhile(p *Parser, pred func() bool) string {
 	restore := p.takeWSStart()
-	start := p.Index()
+	start := p.ByteIndex()
 	if !pred() {
-		if p.Index() != start {
+		if p.ByteIndex() != start {
 			panic("TokenWhile: predicate consumed runes")
 		}
 		p.RestoreState(restore)
 		return ""
 	}
 	p.next()
-	i := p.Index()
+	i := p.ByteIndex()
 	for pred() {
-		if p.Index() != i {
+		if p.ByteIndex() != i {
 			panic("TokenWhile: predicate consumed runes")
 		}
 		r := p.next()
 		if r == EOF {
 			break
 		}
-		i = p.Index()
+		i = p.ByteIndex()
 	}
 	CommitWS(p) // the predicate might've set a restore point
 	p.statePool.Put(restore)
-	return p.AST.Raw[start:p.Index()]
+	return p.TokenAt(start, p.ByteIndex())
 }
 
 func OptionalTokenWhile(p *Parser, ws WhitespaceFunc, pred func() bool) string {
-	start := p.Index()
+	start := p.ByteIndex()
 	if !pred() {
-		if p.Index() != start {
+		if p.ByteIndex() != start {
 			panic("TokenWhile: predicate consumed runes")
 		}
 		return ""
 	}
 	p.next()
-	i := p.Index()
+	i := p.ByteIndex()
 	for pred() {
-		if p.Index() != i {
+		if p.ByteIndex() != i {
 			panic("TokenWhile: predicate consumed runes")
 		}
 		r := p.next()
 		if r == EOF {
 			break
 		}
-		i = p.Index()
+		i = p.ByteIndex()
 	}
 	CommitWS(p) // the predicate might've set a restore point
 	if ws != nil {
 		TrySkip(p, ws)
 	}
-	return p.AST.Raw[start:p.Index()]
+	return p.TokenAt(start, p.ByteIndex())
 }

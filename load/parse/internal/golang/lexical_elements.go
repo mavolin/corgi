@@ -204,10 +204,10 @@ func InterpretedStringLit() parser.Func[*ast.StaticString] {
 		s.Quote = '"'
 		s.Open = open
 
-		index := p.Index()
+		startIndex := p.ByteIndex()
 		for parser.TryInOrder(p, ByteValue(), UnicodeValue('"')) {
 		}
-		s.Contents = p.AST.Raw[index:p.Index()]
+		s.Contents = p.TokenAt(startIndex, p.ByteIndex())
 
 		s.Close = parser.TryRuneAt(p, '"')
 		if s.Close == nil {

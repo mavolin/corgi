@@ -166,7 +166,7 @@ func TestAndEOS(t *testing.T) {
 			p := parsetest.NewParser(t, c.in)
 			matches := parser.Try(p, AndEOS())
 			should.Equal(t, matches, true)
-			should.Equal(t, p.Index(), c.wantIndex)
+			should.Equal(t, p.ByteIndex(), parser.ByteIndex(c.wantIndex)) //nolint:gosec
 			should.Equal(t, p.Comments(), wantGroups)
 		})
 	}

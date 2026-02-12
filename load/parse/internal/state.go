@@ -4,33 +4,38 @@ import (
 	"github.com/mavolin/corgi/v2/file/ast"
 )
 
-type State struct {
-	ws *State
+type (
+	State struct {
+		ws *State
 
-	index     uint32
-	runeIndex uint32
-	line, col uint32
+		byteIndex ByteIndex
+		runeIndex RuneIndex
+		line, col uint32
 
-	numComments uint16
-	numErrs     uint8
-}
+		numComments uint16
+		numErrs     uint8
+	}
 
-func newState() *State {
-	return &State{line: 1, col: 1}
+	ByteIndex uint32
+	RuneIndex uint32
+)
+
+func newState(startLine, startCol uint32) *State {
+	return &State{line: startLine, col: startCol}
 }
 
 func (s *State) Pos() ast.Position {
 	return ast.Position{Line: int(s.line), Col: int(s.col)}
 }
 
-func (s *State) advance(size uint32, isNL bool) {
+func (s *State) advance(size ByteIndex, isNL bool) {
 	if isNL {
 		s.line++
 		s.col = 1
 	} else {
 		s.col++
 	}
-	s.index += size
+	s.byteIndex += size
 	s.runeIndex++
 }
 

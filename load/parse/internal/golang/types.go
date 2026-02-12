@@ -18,7 +18,7 @@ import (
 
 func Type() parser.Func[*ast.Type] { // https://go.dev/ref/spec#Type
 	return func(p *parser.Parser) *ast.Type {
-		startIndex := p.Index()
+		startIndex := p.ByteIndex()
 		starPos := p.Pos()
 
 		if parser.TryRune(p, '(') {
@@ -44,7 +44,7 @@ func Type() parser.Func[*ast.Type] { // https://go.dev/ref/spec#Type
 			}
 
 			return &ast.Type{
-				Type:  p.AST.Raw[startIndex:p.Index()],
+				Type:  p.TokenAt(startIndex, p.ByteIndex()),
 				From:  starPos,
 				Until: p.Pos(),
 			}
@@ -58,7 +58,7 @@ func Type() parser.Func[*ast.Type] { // https://go.dev/ref/spec#Type
 		namedType := parser.Try(p, NamedType())
 		if namedType != nil {
 			return &ast.Type{
-				Type:   p.AST.Raw[startIndex:p.Index()],
+				Type:   p.TokenAt(startIndex, p.ByteIndex()),
 				Parsed: namedType,
 				From:   namedType.Start(),
 				Until:  namedType.End(),
@@ -104,7 +104,7 @@ func TypeLit() parser.Func[*ast.Type] { // https://go.dev/ref/spec#TypeLit
 
 func ArrayType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#ArrayType
 	return func(p *parser.Parser) *ast.Type {
-		startIndex := p.Index()
+		startIndex := p.ByteIndex()
 		from := p.Pos()
 
 		if !parser.TryRune(p, '[') {
@@ -140,7 +140,7 @@ func ArrayType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#ArrayType
 			})
 		}
 
-		t.Type = p.AST.Raw[startIndex:p.Index()]
+		t.Type = p.TokenAt(startIndex, p.ByteIndex())
 		t.Until = p.Pos()
 		return &t
 	}
@@ -167,7 +167,8 @@ func ArrayLength() parser.Func[bool] { // https://go.dev/ref/spec#ArrayType
 		var bracketCount int
 		var nRunes int
 		var nWhitespace int
-		for _, r := range p.AST.Raw[p.Index():] {
+		for i := p.RuneIndex(); i < p.RuneLen(); i++ {
+			r := p.RuneAt(i)
 			if r == '[' { //nolint:gocritic
 				bracketCount++
 			} else if r == ']' {
@@ -213,7 +214,7 @@ func ElementType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#ElementTy
 // spec.
 func StructType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#StructType
 	return func(p *parser.Parser) *ast.Type {
-		startIndex := p.Index()
+		startIndex := p.ByteIndex()
 		from := p.Pos()
 
 		if parser.TryKeywordAt(p, "struct") == nil {
@@ -232,7 +233,7 @@ func StructType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#StructType
 				Examples: []diagnostic.Example{{Example: "`struct { Woof string }`"}},
 			})
 			return &ast.Type{
-				Type:  p.AST.Raw[startIndex:p.Index()],
+				Type:  p.TokenAt(startIndex, p.ByteIndex()),
 				From:  from,
 				Until: p.Pos(),
 			}
@@ -247,7 +248,8 @@ func StructType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#StructType
 		var braceCount int
 		var nRunes int
 		var nWhitespace int
-		for _, r := range p.AST.Raw[p.Index():] {
+		for i := p.RuneIndex(); i < p.RuneLen(); i++ {
+			r := p.RuneAt(i)
 			if r == '{' { //nolint:gocritic
 				braceCount++
 			} else if r == '}' {
@@ -280,7 +282,7 @@ func StructType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#StructType
 			p.CaptureError(err)
 		}
 
-		t.Type = p.AST.Raw[startIndex:p.Index()]
+		t.Type = p.TokenAt(startIndex, p.ByteIndex())
 		t.Until = p.Pos()
 		return &t
 	}
@@ -293,7 +295,7 @@ func StructType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#StructType
 func PointerType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#PointerType
 	return func(p *parser.Parser) *ast.Type {
 		from := p.Pos()
-		startIndex := p.Index()
+		startIndex := p.ByteIndex()
 
 		if !parser.TryRune(p, '*') {
 			return nil
@@ -313,7 +315,7 @@ func PointerType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#PointerTy
 			})
 		}
 
-		t.Type = p.AST.Raw[startIndex:p.Index()]
+		t.Type = p.TokenAt(startIndex, p.ByteIndex())
 		t.Until = p.Pos()
 		return &t
 	}
@@ -338,7 +340,7 @@ func BaseType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#BaseType
 func FunctionType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#FunctionType
 	return func(p *parser.Parser) *ast.Type {
 		from := p.Pos()
-		startIndex := p.Index()
+		startIndex := p.ByteIndex()
 
 		if parser.TryKeywordAt(p, "func") == nil {
 			return nil
@@ -357,7 +359,7 @@ func FunctionType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#Function
 			})
 		}
 
-		t.Type = p.AST.Raw[startIndex:p.Index()]
+		t.Type = p.TokenAt(startIndex, p.ByteIndex())
 		t.Until = p.Pos()
 		return &t
 	}
@@ -439,7 +441,7 @@ func UnnamedParameterDecl() parser.Func[bool] { // https://go.dev/ref/spec#Param
 func InterfaceType() parser.Func[*ast.Type] {
 	return func(p *parser.Parser) *ast.Type {
 		from := p.Pos()
-		startIndex := p.Index()
+		startIndex := p.ByteIndex()
 
 		if parser.TryKeywordAt(p, "interface") == nil {
 			return nil
@@ -457,7 +459,7 @@ func InterfaceType() parser.Func[*ast.Type] {
 				Examples: []diagnostic.Example{{Example: "`interface { Foo() }`"}},
 			})
 			return &ast.Type{
-				Type:  p.AST.Raw[startIndex:p.Index()],
+				Type:  p.TokenAt(startIndex, p.ByteIndex()),
 				From:  from,
 				Until: p.Pos(),
 			}
@@ -471,7 +473,8 @@ func InterfaceType() parser.Func[*ast.Type] {
 		var braceCount int
 		var nRunes int
 		var nWhitespace int
-		for _, r := range p.AST.Raw[p.Index():] {
+		for i := p.RuneIndex(); i < p.RuneLen(); i++ {
+			r := p.RuneAt(i)
 			if r == '{' { //nolint:gocritic
 				braceCount++
 			} else if r == '}' {
@@ -504,7 +507,7 @@ func InterfaceType() parser.Func[*ast.Type] {
 			p.CaptureError(err)
 		}
 
-		t.Type = p.AST.Raw[startIndex:p.Index()]
+		t.Type = p.TokenAt(startIndex, p.ByteIndex())
 		t.Until = p.Pos()
 		return &t
 	}
@@ -517,7 +520,7 @@ func InterfaceType() parser.Func[*ast.Type] {
 func SliceType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#SliceType
 	return func(p *parser.Parser) *ast.Type {
 		from := p.Pos()
-		startIndex := p.Index()
+		startIndex := p.ByteIndex()
 
 		if !parser.TryRune(p, '[') {
 			return nil
@@ -547,7 +550,7 @@ func SliceType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#SliceType
 			})
 		}
 
-		t.Type = p.AST.Raw[startIndex:p.Index()]
+		t.Type = p.TokenAt(startIndex, p.ByteIndex())
 		t.Until = p.Pos()
 		return &t
 	}
@@ -560,7 +563,7 @@ func SliceType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#SliceType
 func MapType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#MapType
 	return func(p *parser.Parser) *ast.Type {
 		from := p.Pos()
-		startIndex := p.Index()
+		startIndex := p.ByteIndex()
 
 		if parser.TryKeywordAt(p, "map") == nil {
 			return nil
@@ -610,7 +613,7 @@ func MapType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#MapType
 			})
 		}
 
-		t.Type = p.AST.Raw[startIndex:p.Index()]
+		t.Type = p.TokenAt(startIndex, p.ByteIndex())
 		t.Until = p.Pos()
 		return &t
 	}
@@ -633,7 +636,7 @@ func KeyType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#KeyType
 func ChannelType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#ChannelType
 	return func(p *parser.Parser) *ast.Type {
 		from := p.Pos()
-		startIndex := p.Index()
+		startIndex := p.ByteIndex()
 
 		if parser.TryToken(p, "<-") {
 			parser.TrySkip(p, comment.OrAnyWhitespace())
@@ -668,7 +671,7 @@ func ChannelType() parser.Func[*ast.Type] { // https://go.dev/ref/spec#ChannelTy
 			})
 		}
 
-		t.Type = p.AST.Raw[startIndex:p.Index()]
+		t.Type = p.TokenAt(startIndex, p.ByteIndex())
 		t.Until = p.Pos()
 		return &t
 	}

@@ -64,7 +64,7 @@ func shouldBeAtEnd(t *testing.T, p *parser.Parser, in string) {
 	t.Helper()
 
 	wantLine, wantCol, wantIndex := calcEnd(in)
-	should.Equal(t, p.Line(), wantLine)   // end of input: incorrect line
-	should.Equal(t, p.Col(), wantCol)     // end of input: incorrect col
-	should.Equal(t, p.Index(), wantIndex) // end of input: incorrect index
+	should.Equal(t, p.Line(), wantLine)       // end of input: incorrect line
+	should.Equal(t, p.Col(), wantCol)         // end of input: incorrect col
+	should.Equal(t, p.ByteIndex(), wantIndex) // end of input: incorrect index
 }
