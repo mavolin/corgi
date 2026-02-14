@@ -34,19 +34,27 @@ func TestFile(t *testing.T) {
 	want := &ast.File{
 		Package: &ast.PackageDirective{
 			Package: &ast.Position{Line: 1, Col: 1},
-			Name:    &ast.Identifier{Name: "foo", Position: &ast.Position{Line: 1, Col: 9}},
+			Name: &ast.Identifier{
+				Name:     "foo",
+				Position: &ast.Position{Line: 1, Col: ast.Col(1 + len("package "))},
+			},
 		},
 		Imports: []*ast.Import{
 			{
 				Import: &ast.Position{Line: 3, Col: 1},
-				LParen: &ast.Position{Line: 3, Col: 8},
+				LParen: &ast.Position{Line: 3, Col: ast.Col(1 + len("import "))},
 				Specs: []*ast.ImportSpec{
 					{
-						Path: &ast.StaticString{
-							Open:     &ast.Position{Line: 4, Col: 2},
-							Quote:    '"',
-							Contents: "fmt",
-							Close:    &ast.Position{Line: 4, Col: 6},
+						Path: &ast.String{
+							Open:  &ast.Position{Line: 4, Col: ast.Col(1 + len("\t"))},
+							Quote: '"',
+							Contents: []ast.StringNode{
+								&ast.StringText{
+									Text:     "fmt",
+									Position: &ast.Position{Line: 4, Col: ast.Col(1 + len("\t\""))},
+								},
+							},
+							Close: &ast.Position{Line: 4, Col: ast.Col(1 + len("\t\"fmt"))},
 						},
 					},
 				},

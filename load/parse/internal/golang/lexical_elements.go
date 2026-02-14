@@ -1,7 +1,6 @@
 package golang
 
 import (
-	"github.com/mavolin/corgi/v2/file/ast"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
 	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
@@ -150,74 +149,5 @@ func EscapedChar(term rune) parser.Func[bool] {
 			})
 		}
 		return true
-	}
-}
-
-// ============================================================================
-// String literals
-// ======================================================================================
-
-func StringLit() parser.Func[*ast.StaticString] {
-	return func(p *parser.Parser) *ast.StaticString {
-		s := parser.TryInOrder(p, RawStringLit(), InterpretedStringLit())
-		if s == nil {
-			return nil
-		}
-		return s
-	}
-}
-
-func RawStringLit() parser.Func[*ast.StaticString] {
-	return func(p *parser.Parser) *ast.StaticString {
-		open := parser.TryRuneAt(p, '`')
-		if open == nil {
-			return nil
-		}
-
-		var s ast.StaticString
-		s.Quote = '`'
-		s.Open = open
-
-		s.Contents = parser.TokenWhileRunePredicate(p, func(r rune) bool {
-			return r != '`'
-		})
-
-		s.Close = parser.TryRuneAt(p, '`')
-		if s.Close == nil {
-			p.CaptureError(&diagnostic.Diagnostic{
-				Message: "raw string literal: missing closing backtick",
-				Primary: quickanno.Expected(p, *s.Open, "a closing backtick for the opening backtick here"),
-			})
-		}
-		return &s
-	}
-}
-
-func InterpretedStringLit() parser.Func[*ast.StaticString] {
-	return func(p *parser.Parser) *ast.StaticString {
-		open := parser.TryRuneAt(p, '"')
-		if open == nil {
-			return nil
-		}
-
-		var s ast.StaticString
-		s.Quote = '"'
-		s.Open = open
-
-		startIndex := p.ByteIndex()
-		for parser.TryInOrder(p, ByteValue(), UnicodeValue('"')) {
-		}
-		s.Contents = p.TokenAt(startIndex, p.ByteIndex())
-
-		s.Close = parser.TryRuneAt(p, '"')
-		if s.Close == nil {
-			s.Close = nil
-			p.CaptureError(&diagnostic.Diagnostic{
-				Message: "interpreted string literal: missing closing quote",
-				Primary: quickanno.Expected(p, *s.Open, "a closing quote for the opening quote here"),
-			})
-		}
-
-		return &s
 	}
 }

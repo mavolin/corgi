@@ -5,6 +5,7 @@ import (
 
 	"github.com/mavolin/corgi/v2/file/ast"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
+	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/mavolin/corgi/v2/load/parse/internal/interpolation"
 	"github.com/mavolin/corgi/v2/load/parse/internal/quickanno"
@@ -31,6 +32,38 @@ func String() parser.Func[*ast.String] {
 		}
 
 		return &s
+	}
+}
+
+func ConstantString(usedAsPlural string) parser.Func[*ast.String] {
+	return func(p *parser.Parser) *ast.String {
+		s := parser.Try(p, String())
+		if s == nil {
+			return nil
+		}
+
+		for _, node := range s.Contents {
+			switch node.(type) {
+			case *ast.StringText:
+			case *ast.CharacterEscape:
+			case *ast.CharacterReference:
+			default:
+				p.CaptureError(&diagnostic.Diagnostic{
+					Message: "constant string: use of non-constant expression",
+					Primary: []diagnostic.Annotation{
+						anno.Node(p.File, node, "not a constant"),
+					},
+					Hints: []diagnostic.Hint{
+						{
+							Hint: "Strings used as " + usedAsPlural + " must be constant. " +
+								"A constant string can only contain text, character escapes, and character references.",
+						},
+					},
+				})
+			}
+		}
+
+		return s
 	}
 }
 

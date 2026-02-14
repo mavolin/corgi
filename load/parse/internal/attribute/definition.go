@@ -9,8 +9,8 @@ import (
 	"github.com/mavolin/corgi/v2/file/diagnostic"
 	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
+	"github.com/mavolin/corgi/v2/load/parse/internal/code"
 	"github.com/mavolin/corgi/v2/load/parse/internal/comment"
-	"github.com/mavolin/corgi/v2/load/parse/internal/golang"
 	"github.com/mavolin/corgi/v2/load/parse/internal/list"
 	"github.com/mavolin/corgi/v2/load/parse/internal/quickanno"
 	"github.com/mavolin/corgi/v2/load/parse/internal/unexpected"
@@ -300,71 +300,17 @@ func RegexpSelector() parser.Func[*ast.RegexpAttributeSelector] {
 		s.Regexp = re
 		s.LParen = lParen
 
-		s.Raw = parser.Try(p, golang.StringLit())
-		if s.Raw == nil || s.Raw.Contents == "" {
+		s.Raw = parser.Try(p, code.ConstantString("regular expression selectors"))
+		if s.Raw == nil || len(s.Raw.Contents) == 0 {
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message:  "regexp attribute selector: missing regexp",
 				Primary:  quickanno.Expected(p, p.Pos(), "a string containing a regular expression"),
 				Examples: []diagnostic.Example{{Example: "'regexp(`hx-\\d{3}`)"}},
 			})
 		} else {
-			expr := s.Raw.Unquote()
-			if strings.HasPrefix(expr, "^") {
-				caretPos := s.Raw.Start()
-				caretPos.Col += ast.Col(len(`"`))
-				p.CaptureError(&diagnostic.Diagnostic{
-					Message: "regexp attribute selector: unnecessary start anchor",
-					Primary: []diagnostic.Annotation{
-						anno.Position(p.File, caretPos, "remove this start anchor"),
-					},
-					Explanation: "Matches against a regular expression selector always match the entire attribute name anyway, " +
-						"so there is no point in adding this start anchor.\n" +
-						"Remove it to avoid confusion.",
-					Hints: []diagnostic.Hint{
-						{Hint: "The formatter (`corgi fmt`) can automatically fix this error."},
-					},
-				})
-			} else {
-				expr = "^" + expr
-			}
-			if strings.HasSuffix(expr, "$") {
-				dollarPos := s.Raw.End()
-				dollarPos.Col -= ast.Col(len(`"`))
-				p.CaptureError(&diagnostic.Diagnostic{
-					Message: "regexp attribute selector: unnecessary end anchor",
-					Primary: []diagnostic.Annotation{
-						anno.Position(p.File, dollarPos, "remove this end anchor"),
-					},
-					Explanation: "Matches against a regular expression selector always match the entire attribute name anyway, " +
-						"so there is no point in adding this end anchor.\n" +
-						"Remove it to avoid confusion.",
-					Hints: []diagnostic.Hint{
-						{Hint: "The formatter (`corgi fmt`) can automatically fix this error."},
-					},
-				})
-			} else {
-				expr += "$"
-			}
+			s.Compiled = compileRegexpAttributeSelector(p, s.Raw)
 
-			var err error
-			s.Compiled, err = regexp.Compile(expr)
-			if err != nil {
-				_, origErr := regexp.Compile(s.Raw.Unquote()) // try without anchors to get a better error message
-				if origErr != nil {
-					p.CaptureError(&diagnostic.Diagnostic{
-						Message: "regexp attribute selector: invalid regular expression",
-						Primary: []diagnostic.Annotation{anno.Node(p.File, s.Raw, err.Error())},
-					})
-				} else {
-					p.CaptureError(&diagnostic.Diagnostic{
-						Message: "regexp attribute selector: invalid regular expression: could not apply anchors",
-						Primary: []diagnostic.Annotation{anno.Node(p.File, s.Raw, err.Error())},
-						Explanation: "The anchors (`^` and `$`) are automatically added to the regular expression, " +
-							"to enforce full matches.\n" +
-							"When trying to compile the regular expression with anchors, it fails, but without anchors it succeeds.",
-					})
-				}
-			} else {
+			if s.Compiled != nil {
 				prefix, _ := s.Compiled.LiteralPrefix()
 				for _, r := range prefix {
 					if r >= 'A' && r <= 'Z' {
@@ -400,6 +346,84 @@ func RegexpSelector() parser.Func[*ast.RegexpAttributeSelector] {
 
 		return &s
 	}
+}
+
+func compileRegexpAttributeSelector(p *parser.Parser, s *ast.String) *regexp.Regexp {
+	orig, anchored, ok := anchoredRegexpAttributeExpression(p, s)
+	if !ok {
+		return nil
+	}
+
+	r, err := regexp.Compile(anchored)
+	if err != nil {
+		// try to get a better error message
+		_, origErr := regexp.Compile(orig)
+		if origErr != nil {
+			p.CaptureError(&diagnostic.Diagnostic{
+				Message: "regexp attribute selector: invalid regular expression",
+				Primary: []diagnostic.Annotation{anno.Node(p.File, s, err.Error())},
+			})
+		} else {
+			p.CaptureError(&diagnostic.Diagnostic{
+				Message: "regexp attribute selector: invalid regular expression: could not apply anchors",
+				Primary: []diagnostic.Annotation{anno.Node(p.File, s, err.Error())},
+				Explanation: "The anchors (`^` and `$`) are automatically added to the regular expression, " +
+					"to enforce full matches.\n" +
+					"When trying to compile the regular expression with anchors, it fails, but without anchors it succeeds.",
+			})
+		}
+		return nil
+	}
+
+	return r
+}
+
+func anchoredRegexpAttributeExpression(p *parser.Parser, s *ast.String) (orig, anchored string, ok bool) {
+	orig, ok = s.ConstantValue()
+	if !ok {
+		return "", "", false
+	}
+	anchored = orig
+
+	if strings.HasPrefix(orig, "^") {
+		caretPos := s.Start()
+		caretPos.Col += ast.Col(len(`"`))
+		p.CaptureError(&diagnostic.Diagnostic{
+			Message: "regexp attribute selector: unnecessary start anchor",
+			Primary: []diagnostic.Annotation{
+				anno.Position(p.File, caretPos, "remove this start anchor"),
+			},
+			Explanation: "Matches against a regular expression selector always match the entire attribute name anyway, " +
+				"so there is no point in adding this start anchor.\n" +
+				"Remove it to avoid confusion.",
+			Hints: []diagnostic.Hint{
+				{Hint: "The formatter (`corgi fmt`) can automatically fix this error."},
+			},
+		})
+	} else {
+		anchored = "^" + anchored
+	}
+
+	if strings.HasSuffix(orig, "$") {
+		dollarPos := s.End()
+		dollarPos.Col -= ast.Col(len(`"`))
+		p.CaptureError(&diagnostic.Diagnostic{
+			Message: "regexp attribute selector: unnecessary end anchor",
+			Primary: []diagnostic.Annotation{
+				anno.Position(p.File, dollarPos, "remove this end anchor"),
+			},
+			Explanation: "Matches against a regular expression selector always match the entire attribute name anyway, " +
+				"so there is no point in adding this end anchor.\n" +
+				"Remove it to avoid confusion.",
+			Hints: []diagnostic.Hint{
+				{Hint: "The formatter (`corgi fmt`) can automatically fix this error."},
+			},
+		})
+	} else {
+		anchored += "$"
+	}
+
+	return orig, anchored, true
 }
 
 func ElementSelector() parser.Func[ast.ElementSelector] {

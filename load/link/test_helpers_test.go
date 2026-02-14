@@ -293,13 +293,19 @@ func createRegexpAttributeSpec(
 	definitionAST.Specs = []*ast.AttributeSpec{specAST}
 
 	selAST.LParen = directlyAfter(definitionAST)
-	selAST.Raw = &ast.StaticString{
-		Open:     directlyAfter(definitionAST),
-		Quote:    '"',
-		Contents: strconv.Quote(regex),
+	raw := &ast.String{
+		Open:  directlyAfter(definitionAST),
+		Quote: '"',
+		Contents: []ast.StringNode{
+			&ast.StringText{
+				Text:     interpretedStringContents(regex),
+				Position: directlyAfter(definitionAST),
+			},
+		},
 	}
+	selAST.Raw = raw
+	raw.Close = directlyAfter(raw)
 	selAST.Compiled = regexp.MustCompile(regex)
-	selAST.Raw.Close = deltaPos(definitionAST.End(), len(`"`)+len([]rune(selAST.Raw.Contents)))
 	selAST.RParen = directlyAfter(definitionAST)
 
 	specAST.Ruleset = &ast.AttributeRuleset{LBrace: spaceAfter(definitionAST)}
@@ -361,13 +367,18 @@ func createImport(f *file.File, start *ast.Position, alias file.Qualifier, impPa
 		}
 	}
 
-	impSpecAST.Path = &ast.StaticString{
-		Open:     spaceAfter(impAST),
-		Quote:    '"',
-		Contents: strconv.Quote(string(impPath)),
+	impSpecAST.Path = &ast.String{
+		Open:  spaceAfter(impAST),
+		Quote: '"',
+		Contents: []ast.StringNode{
+			&ast.StringText{
+				Text:     interpretedStringContents(string(impPath)),
+				Position: directlyAfter(impAST),
+			},
+		},
 	}
+	impSpecAST.Path.Close = directlyAfter(impAST)
 	impAST.Specs = []*ast.ImportSpec{impSpecAST}
-	impSpecAST.Path.Close = deltaPos(impAST.End(), len(`"`)+len([]rune(impSpecAST.Path.Contents)))
 
 	imp := &file.Import{
 		AST:       impSpecAST,
@@ -578,6 +589,11 @@ func createArgument(call *file.ComponentCall, start *ast.Position, name file.Ide
 	return arg
 }
 
+func interpretedStringContents(s string) string {
+	q := strconv.Quote(s)
+	return q[len(`"`) : len(q)-len(`"`)]
+}
+
 func clonePos(pos *ast.Position) *ast.Position {
 	pos2 := *pos
 	return &pos2
@@ -586,7 +602,7 @@ func clonePos(pos *ast.Position) *ast.Position {
 func deltaPos(p ast.Position, dCol int) *ast.Position {
 	return &ast.Position{
 		Line: p.Line,
-		Col:  p.Col + dCol,
+		Col:  ast.Col(int(p.Col) + dCol),
 	}
 }
 

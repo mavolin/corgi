@@ -910,7 +910,6 @@ func Node(n ast.Node,
 	ShorthandText func(*ast.ShorthandText),
 	SimpleStatement func(*ast.SimpleStatement),
 	Statement func(*ast.Statement),
-	StaticString func(*ast.StaticString),
 	String func(*ast.String),
 	StringText func(*ast.StringText),
 	Switch func(*ast.Switch),
@@ -1124,8 +1123,6 @@ func Node(n ast.Node,
 		SimpleStatement(n)
 	case *ast.Statement:
 		Statement(n)
-	case *ast.StaticString:
-		StaticString(n)
 	case *ast.String:
 		String(n)
 	case *ast.StringText:
@@ -1275,7 +1272,6 @@ func NodeR[T any](n ast.Node,
 	ShorthandText func(*ast.ShorthandText) T,
 	SimpleStatement func(*ast.SimpleStatement) T,
 	Statement func(*ast.Statement) T,
-	StaticString func(*ast.StaticString) T,
 	String func(*ast.String) T,
 	StringText func(*ast.StringText) T,
 	Switch func(*ast.Switch) T,
@@ -1489,8 +1485,6 @@ func NodeR[T any](n ast.Node,
 		return SimpleStatement(n)
 	case *ast.Statement:
 		return Statement(n)
-	case *ast.StaticString:
-		return StaticString(n)
 	case *ast.String:
 		return String(n)
 	case *ast.StringText:

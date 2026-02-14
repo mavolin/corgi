@@ -3,7 +3,6 @@ package golang
 import (
 	"testing"
 
-	"github.com/mavolin/corgi/v2/file/ast"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/mavolin/corgi/v2/load/parse/internal/parsetest"
 )
@@ -185,56 +184,5 @@ func testEscapedChar(term rune) func(t *testing.T, f parser.Func[bool]) {
 				parsetest.ParsesExact(t, c, f)
 			})
 		}
-	}
-}
-
-// ============================================================================
-// String literals
-// ======================================================================================
-
-func TestStringLit(t *testing.T) {
-	t.Parallel()
-
-	parsetest.AlsoFulfils(t, StringLit(), testRawStringLit)
-	parsetest.AlsoFulfils(t, StringLit(), testInterpretedStringLit)
-}
-
-func TestRawStringLit(t *testing.T) {
-	t.Parallel()
-	testRawStringLit(t, RawStringLit())
-}
-
-func testRawStringLit(t *testing.T, f parser.Func[*ast.StaticString]) {
-	tests := []string{
-		"``",
-		"`woof`",
-		"`woof\n`",
-		"`woof\nbark`",
-	}
-
-	for _, c := range tests {
-		t.Run(c, func(t *testing.T) {
-			t.Parallel()
-			parsetest.ParsesExact(t, c, f)
-		})
-	}
-}
-
-func TestInterpretedStringLit(t *testing.T) {
-	t.Parallel()
-	testInterpretedStringLit(t, InterpretedStringLit())
-}
-
-func testInterpretedStringLit(t *testing.T, f parser.Func[*ast.StaticString]) {
-	tests := []string{
-		`""`,
-		`"woof"`,
-	}
-
-	for _, c := range tests {
-		t.Run(c, func(t *testing.T) {
-			t.Parallel()
-			parsetest.ParsesExact(t, c, f)
-		})
 	}
 }

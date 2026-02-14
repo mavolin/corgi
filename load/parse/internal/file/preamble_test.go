@@ -14,7 +14,13 @@ func TestPackageDirective(t *testing.T) {
 	in := "package foo"
 	want := &ast.PackageDirective{
 		Package: &ast.Position{Line: 1, Col: 1},
-		Name:    &ast.Identifier{Name: "foo", Position: &ast.Position{Line: 1, Col: 9}},
+		Name: &ast.Identifier{
+			Name: "foo",
+			Position: &ast.Position{
+				Line: 1,
+				Col:  ast.Col(1 + len("package ")),
+			},
+		},
 	}
 
 	got := parsetest.ParsesExact(t, in, PackageDirective())
@@ -36,11 +42,16 @@ func TestImport(t *testing.T) {
 				Import: &ast.Position{Line: 1, Col: 1},
 				Specs: []*ast.ImportSpec{
 					{
-						Path: &ast.StaticString{
-							Open:     &ast.Position{Line: 1, Col: 8},
-							Quote:    '"',
-							Contents: "foo",
-							Close:    &ast.Position{Line: 1, Col: 12},
+						Path: &ast.String{
+							Open:  &ast.Position{Line: 1, Col: ast.Col(1 + len("import "))},
+							Quote: '"',
+							Contents: []ast.StringNode{
+								&ast.StringText{
+									Text:     "foo",
+									Position: &ast.Position{Line: 1, Col: ast.Col(1 + len(`import "`))},
+								},
+							},
+							Close: &ast.Position{Line: 1, Col: ast.Col(1 + len(`import "foo`))},
 						},
 					},
 				},
@@ -53,21 +64,31 @@ func TestImport(t *testing.T) {
 				")",
 			want: &ast.Import{
 				Import: &ast.Position{Line: 1, Col: 1},
-				LParen: &ast.Position{Line: 1, Col: 8},
+				LParen: &ast.Position{Line: 1, Col: ast.Col(1 + len("import "))},
 				Specs: []*ast.ImportSpec{
 					{
-						Path: &ast.StaticString{
-							Open:     &ast.Position{Line: 2, Col: 2},
-							Quote:    '"',
-							Contents: "foo",
-							Close:    &ast.Position{Line: 2, Col: 6},
+						Path: &ast.String{
+							Open:  &ast.Position{Line: 2, Col: ast.Col(1 + len("\t"))},
+							Quote: '"',
+							Contents: []ast.StringNode{
+								&ast.StringText{
+									Text:     "foo",
+									Position: &ast.Position{Line: 2, Col: ast.Col(1 + len("\t\""))},
+								},
+							},
+							Close: &ast.Position{Line: 2, Col: ast.Col(1 + len("\t\"foo"))},
 						},
 					}, {
-						Path: &ast.StaticString{
-							Open:     &ast.Position{Line: 3, Col: 2},
-							Quote:    '"',
-							Contents: "bar",
-							Close:    &ast.Position{Line: 3, Col: 6},
+						Path: &ast.String{
+							Open:  &ast.Position{Line: 3, Col: ast.Col(1 + len("\t"))},
+							Quote: '"',
+							Contents: []ast.StringNode{
+								&ast.StringText{
+									Text:     "bar",
+									Position: &ast.Position{Line: 3, Col: ast.Col(1 + len("\t\""))},
+								},
+							},
+							Close: &ast.Position{Line: 3, Col: ast.Col(1 + len("\t\"bar"))},
 						},
 					},
 				},
@@ -98,11 +119,16 @@ func TestImportSpec(t *testing.T) {
 			name: "no alias",
 			in:   "\"foo\"",
 			want: &ast.ImportSpec{
-				Path: &ast.StaticString{
-					Open:     &ast.Position{Line: 1, Col: 1},
-					Quote:    '"',
-					Contents: "foo",
-					Close:    &ast.Position{Line: 1, Col: 5},
+				Path: &ast.String{
+					Open:  &ast.Position{Line: 1, Col: 1},
+					Quote: '"',
+					Contents: []ast.StringNode{
+						&ast.StringText{
+							Text:     "foo",
+							Position: &ast.Position{Line: 1, Col: ast.Col(1 + len(`"`))},
+						},
+					},
+					Close: &ast.Position{Line: 1, Col: ast.Col(1 + len(`"foo`))},
 				},
 			},
 		}, {
@@ -110,11 +136,16 @@ func TestImportSpec(t *testing.T) {
 			in:   "foo \"bar\"",
 			want: &ast.ImportSpec{
 				Alias: &ast.Identifier{Name: "foo", Position: &ast.Position{Line: 1, Col: 1}},
-				Path: &ast.StaticString{
-					Open:     &ast.Position{Line: 1, Col: 5},
-					Quote:    '"',
-					Contents: "bar",
-					Close:    &ast.Position{Line: 1, Col: 9},
+				Path: &ast.String{
+					Open:  &ast.Position{Line: 1, Col: ast.Col(1 + len("foo "))},
+					Quote: '"',
+					Contents: []ast.StringNode{
+						&ast.StringText{
+							Text:     "bar",
+							Position: &ast.Position{Line: 1, Col: ast.Col(1 + len(`foo "`))},
+						},
+					},
+					Close: &ast.Position{Line: 1, Col: ast.Col(1 + len(`foo "bar`))},
 				},
 			},
 		},

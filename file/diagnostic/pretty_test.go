@@ -16,11 +16,16 @@ func TestDiagnostic_Pretty(t *testing.T) {
 		Import: &ast.Position{Line: 3, Col: 1},
 		Specs: []*ast.ImportSpec{
 			{
-				Path: &ast.StaticString{
-					Open:     &ast.Position{Line: 3, Col: 8},
-					Quote:    '"',
-					Contents: "bar",
-					Close:    &ast.Position{Line: 3, Col: 12},
+				Path: &ast.String{
+					Open:  &ast.Position{Line: 3, Col: ast.Col(1 + len("import "))},
+					Quote: '"',
+					Contents: []ast.StringNode{
+						&ast.StringText{
+							Text:     "bar",
+							Position: &ast.Position{Line: 3, Col: ast.Col(1 + len(`import "`))},
+						},
+					},
+					Close: &ast.Position{Line: 3, Col: ast.Col(1 + len(`import "bar"`))},
 				},
 			},
 		},
@@ -44,7 +49,7 @@ func TestDiagnostic_Pretty(t *testing.T) {
 				Package: &ast.Position{Line: 1, Col: 1},
 				Name: &ast.Identifier{
 					Name:     "foo",
-					Position: &ast.Position{Line: 1, Col: 9},
+					Position: &ast.Position{Line: 1, Col: ast.Col(1 + len("package "))},
 				},
 			},
 			Imports: []*ast.Import{imp},

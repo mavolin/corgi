@@ -1,11 +1,5 @@
 package ast
 
-import (
-	"strconv"
-	"strings"
-	"unicode/utf8"
-)
-
 // Types representing their Go counterparts.
 
 // ============================================================================
@@ -141,72 +135,3 @@ func (ident *QualifiedIdentifier) Full() string {
 
 func (*QualifiedIdentifier) _node()      {}
 func (*QualifiedIdentifier) _fullIdent() {}
-
-// ============================================================================
-// Static String
-// ======================================================================================
-
-// StaticString is a string literal with no interpolation, equivalent to the
-// regular Go string literal.
-type StaticString struct {
-	Open     *Position
-	Quote    rune
-	Contents string
-	Close    *Position
-}
-
-var _ Node = (*StaticString)(nil)
-
-func (s *StaticString) Start() Position {
-	if s.Open != nil {
-		return *s.Open
-	}
-	if s.Close != nil {
-		return *s.Close
-	}
-	return NoPosition
-}
-
-func (s *StaticString) End() Position {
-	if s.Close != nil {
-		return deltaPos(*s.Close, len(`"`))
-	}
-	if s.Open != nil {
-		if s.Quote == '"' {
-			return deltaPos(*s.Open, len(`"`)+len([]rune(s.Contents)))
-		}
-
-		i := strings.LastIndexByte(s.Contents, '\n')
-		if i < 0 {
-			return deltaPos(*s.Open, len("`")+len([]rune(s.Contents)))
-		}
-
-		lines := strings.Count(s.Contents[:i], "\n") + 1
-		return Position{
-			Line: s.Open.Line + Line(lines),                       //nolint:gosec
-			Col:  Col(utf8.RuneCountInString(s.Contents[i:]) + 1), //nolint:gosec
-		}
-	}
-
-	return NoPosition
-}
-func (s *StaticString) Walk(func(Node)) {}
-
-func (s *StaticString) Quoted() string {
-	return string(s.Quote) + s.Contents + string(s.Quote)
-}
-
-func (s *StaticString) Unquote() string {
-	if s.Quote == '`' {
-		return s.Contents
-	}
-
-	unq, err := strconv.Unquote(`"` + s.Contents + `"`)
-	if err != nil {
-		return ""
-	}
-
-	return unq
-}
-
-func (*StaticString) _node() {}

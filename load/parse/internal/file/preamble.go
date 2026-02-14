@@ -7,6 +7,7 @@ import (
 	"github.com/mavolin/corgi/v2/file/diagnostic"
 	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
+	"github.com/mavolin/corgi/v2/load/parse/internal/code"
 	"github.com/mavolin/corgi/v2/load/parse/internal/comment"
 	"github.com/mavolin/corgi/v2/load/parse/internal/golang"
 	"github.com/mavolin/corgi/v2/load/parse/internal/quickanno"
@@ -109,7 +110,7 @@ func Import() parser.Func[*ast.Import] {
 func ImportSpec() parser.Func[*ast.ImportSpec] {
 	return func(p *parser.Parser) *ast.ImportSpec {
 		alias := parser.TryOptional(p, golang.Identifier(), comment.OrHorizontalWhitespace())
-		path := parser.Try(p, golang.StringLit())
+		path := parser.Try(p, code.ConstantString("import paths"))
 		if path == nil {
 			if alias == nil {
 				return nil
@@ -118,13 +119,15 @@ func ImportSpec() parser.Func[*ast.ImportSpec] {
 				Message: "import spec: missing path",
 				Primary: quickanno.Expected(p, p.Pos(), "an import path"),
 			})
-		} else if err := module.CheckImportPath(path.Unquote()); err != nil {
-			p.CaptureError(&diagnostic.Diagnostic{
-				Message: "import spec: invalid import path",
-				Primary: []diagnostic.Annotation{
-					anno.Node(p.File, path, err.Error()),
-				},
-			})
+		} else if unq, ok := path.ConstantValue(); ok {
+			if err := module.CheckImportPath(unq); err != nil {
+				p.CaptureError(&diagnostic.Diagnostic{
+					Message: "import spec: invalid import path",
+					Primary: []diagnostic.Annotation{
+						anno.Node(p.File, path, err.Error()),
+					},
+				})
+			}
 		}
 
 		return &ast.ImportSpec{Alias: alias, Path: path}

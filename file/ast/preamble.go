@@ -129,7 +129,7 @@ func (*Import) _node() {}
 type ImportSpec struct {
 	// Alias is the alias of the import, if any.
 	Alias *Identifier
-	Path  *StaticString
+	Path  *String
 }
 
 var _ Node = (*ImportSpec)(nil)

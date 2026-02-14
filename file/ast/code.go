@@ -1,6 +1,10 @@
 package ast
 
-import "slices"
+import (
+	"slices"
+	"strconv"
+	"strings"
+)
 
 // Code is a sequence of Go code with corgi language extensions.
 //
@@ -286,6 +290,49 @@ func (s *String) Walk(w func(Node)) {
 			w(n)
 		}
 	}
+}
+
+// ConstantValue unquotes the string, returning its constant value.
+//
+// If the string is not constant, i.e. if it contains any non-constant
+// interpolation ConstantValue returns false.
+// Furthermore, if the string contains any invalid escape sequences in its text
+// nodes, ConstantValue again returns false.
+//
+// If the string is constant and valid, ConstantValue returns the unquoted
+// value and true.
+func (s *String) ConstantValue() (string, bool) {
+	var unq strings.Builder
+	unq.Grow(int(s.End().Col - s.Start().Col))
+
+	for _, c := range s.Contents {
+		switch n := c.(type) {
+		case *InterpretedStringText:
+			if s.Quote == '"' {
+				unq1, err := strconv.Unquote(`"` + n.Text + `"`)
+				if err != nil {
+					return "", false
+				}
+				unq.WriteString(unq1)
+			} else {
+				for _, r := range n.Text {
+					if r != '\r' {
+						unq.WriteRune(r)
+					}
+				}
+			}
+		case *CharacterEscape:
+			unq.WriteRune(n.Rune)
+		case *CharacterReference:
+			if n.Chars == "" {
+				return "", false
+			}
+			unq.WriteString(n.Chars)
+		default:
+			return "", false
+		}
+	}
+	return unq.String(), true
 }
 
 func (*String) _node()     {}

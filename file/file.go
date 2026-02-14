@@ -103,7 +103,9 @@ func buildSymbols(f *File) {
 				imp.Alias = Qualifier(spec.Alias.Name)
 			}
 			if spec.Path != nil {
-				imp.CorgiPath = CorgiImportPath(spec.Path.Unquote())
+				if unq, ok := spec.Path.ConstantValue(); ok {
+					imp.CorgiPath = CorgiImportPath(unq)
+				}
 			}
 			f.Imports = append(f.Imports, imp)
 		}
