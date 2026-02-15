@@ -80,16 +80,11 @@ func LocalDateTime(t time.Time, f TimeFormat) DateTime {
 //
 // The HTML spec does not support second-level time zone offsets, requiring
 // them to be at least minute-aligned.
-// For times that do have a second-level offset, a safe replacement is returned
-// instead.
+// For times that do have a second-level offset, the seconds will be truncated.
 //
 // [valid global date and time string]: https://html.spec.whatwg.org/multipage/common-microsyntaxes.html#valid-global-date-and-time-string
 func GlobalDateTime(t time.Time, f TimeFormat) DateTime {
-	tzLayout := tzLayout(t)
-	if tzLayout == "" {
-		return "InvalidTimeZoneOffset"
-	}
-	return DateTime(t.Format("2006-01-02T" + f.toLayout(t) + tzLayout))
+	return DateTime(t.Format("2006-01-02T" + f.toLayout(t) + tzLayout(t)))
 }
 
 // TimeZoneOffset returns the [valid time-zone offset string] for the given
@@ -97,23 +92,15 @@ func GlobalDateTime(t time.Time, f TimeFormat) DateTime {
 //
 // The HTML spec does not support second-level time zone offsets, requiring
 // them to be at least minute-aligned.
-// For times that do have a second-level offset, a safe replacement is returned
-// instead.
+// For times that do have a second-level offset, the seconds will be truncated.
 //
 // [valid time-zone offset string]: https://html.spec.whatwg.org/multipage/common-microsyntaxes.html#valid-time-zone-offset-string
 func TimeZoneOffset(t time.Time) DateTime {
-	layout := tzLayout(t)
-	if layout == "" {
-		return "InvalidTimeZoneOffset"
-	}
-	return DateTime(t.Format(layout))
+	return DateTime(t.Format(tzLayout(t)))
 }
 
 func tzLayout(t time.Time) string {
 	_, seconds := t.Zone() // in seconds
-	if seconds%60 != 0 {
-		return ""
-	}
 
 	minutes := seconds / 60
 	if minutes < 0 {
