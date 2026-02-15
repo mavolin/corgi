@@ -33,7 +33,7 @@ func Parse(input string, _ Options) (*file.File, diagnostic.List) {
 	}
 
 	f := &file.File{
-		Name: "<string input>",
+		Name:  "<string input>",
 		Raw:   input,
 		Lines: lines,
 	}
