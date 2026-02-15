@@ -61,9 +61,6 @@ func (*Type) _typeTerm() {}
 // Solving the problem this way, allows us to incrementally expand the list of
 // types as we need, without introducing breaking changes.
 //
-// Currently, the only types parsed are [NamedType], however, that list may
-// be extended in the future.
-//
 // Hence, a ParsedType field will only be set, if the type is one of the types
 // listed above.
 type ParsedType interface {

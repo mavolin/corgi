@@ -88,7 +88,9 @@ type (
 		//
 		// ANALYZER
 
-		// Value is the resolve value of the argument.
+		// Value is the resolved value of the argument.
+		// This is primarily relevant if the parameter is typed as an attribute
+		// type.
 		Value ResolvedValue
 	}
 )
