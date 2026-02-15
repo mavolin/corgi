@@ -12,6 +12,8 @@ import (
 //
 // Special care must be taken to ensure the value does not shadow existing
 // DOM properties, as this can lead to [DOM clobbering attacks].
+//
+// [DOM clobbering attacks]: https://en.wikipedia.org/wiki/DOM_clobbering
 type Identifier struct{ val string }
 
 var identifierPattern = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9_-]*$`)
