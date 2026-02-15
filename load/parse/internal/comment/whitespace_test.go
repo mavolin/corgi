@@ -409,7 +409,7 @@ func TestOrLoneWS(t *testing.T) {
 				wantGroups[i] = &ast.CommentGroup{Comments: []*ast.Comment{comment}}
 			}
 
-			gotGroups := parsetest.SkipsWhitespace(t, c.in, OrLoneWhitespace())
+			gotGroups := parsetest.SkipsWhitespace(t, c.in, orLoneWhitespace())
 			should.Equal(t, gotGroups, wantGroups)
 		})
 	}

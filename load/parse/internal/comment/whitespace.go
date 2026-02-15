@@ -149,12 +149,15 @@ func OrAnyWhitespace() parser.WhitespaceFunc {
 			p.CaptureComment(&ast.CommentGroup{Comments: []*ast.Comment{c}})
 		}
 
-		parser.TrySkip(p, OrLoneWhitespace())
+		parser.TrySkip(p, orLoneWhitespace())
 		return start != p.ByteIndex()
 	}
 }
 
-func OrLoneWhitespace() parser.WhitespaceFunc {
+// orLoneWhitespace must be called before any non-comment node on a line.
+// It consumes any whitespace and captures all comments until the next node or
+// the EOF.
+func orLoneWhitespace() parser.WhitespaceFunc {
 	return func(p *parser.Parser) bool {
 		hasWS := parser.TrySkip(p, whitespace.Any())
 
@@ -178,7 +181,7 @@ func OrLoneWhitespace() parser.WhitespaceFunc {
 			c = parser.Try(p, LineComment())
 		}
 		p.CaptureComment(&ast.CommentGroup{Comments: slices.Clip(cs)})
-		parser.TrySkip(p, OrLoneWhitespace())
+		parser.TrySkip(p, orLoneWhitespace())
 		return true
 	}
 }
