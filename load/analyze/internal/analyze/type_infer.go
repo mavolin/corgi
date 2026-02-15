@@ -38,15 +38,11 @@ func InferType(f *file.File, expr *ast.Expression) (typ file.Type, exact bool) {
 			}
 		},
 		func(n *ast.ZeroCoalescing) { typ, exact = inferZeroCoalescingType(f, n) })
-	if typ != "" {
+	if typ != "" && exact || len(expr.Nodes) == 1 {
 		return typ, exact
 	}
 
-	if len(expr.Nodes) == 1 {
-		return "", false
-	}
-
-	switches.CodeNode(expr.Nodes[0],
+	switches.CodeNode(expr.Nodes[len(expr.Nodes)-1],
 		func(*ast.BlockFunction) { typ, exact = "bool", true },
 		func(*ast.ComponentCall) { typ, exact = "string", true },
 		func(gc *ast.GoCode) { typ, exact = inferLastGoCodeType(gc) },
