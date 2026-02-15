@@ -20,10 +20,14 @@ type options struct {
 
 type Option func(o *options)
 
+// Inline is an option to specify that the test should be run using the parser's
+// DoInline method.
 func Inline() Option {
 	return func(o *options) { o.inline = true }
 }
 
+// WantErrors is an option to specify that the test expects the parser to
+// capture an error with the given messages.
 func WantErrors(wantMessages ...string) Option {
 	return func(o *options) { o.errors = append(o.errors, wantMessages...) }
 }
@@ -36,6 +40,8 @@ func applyOptions(opts ...Option) options {
 	return o
 }
 
+// CmpOpts are the default options to use when comparing parsed values using
+// package should (or when using cmp directly).
 var CmpOpts = []cmp.Option{
 	cmpopts.IgnoreTypes((*regexp.Regexp)(nil)),
 	cmp.Transformer("attrtype", func(t attrtype.Type) string {
@@ -46,8 +52,8 @@ var CmpOpts = []cmp.Option{
 	}),
 }
 
-// ParsesExact asserts that f matches the entire in string, but would not
-// consume any extra space separated in.
+// ParsesExact asserts that f matches the entire input string, but would not
+// consume any extra tokens behind the input.
 func ParsesExact[T any](t *testing.T, in string, f parser.Func[T], opts ...Option) T {
 	t.Helper()
 	var v T
@@ -69,7 +75,7 @@ func ParsesExact[T any](t *testing.T, in string, f parser.Func[T], opts ...Optio
 	return v
 }
 
-// ParsesUntilEOS asserts that f matches the entire in string, and would
+// ParsesUntilEOS asserts that f matches the entire input string, and would
 // stop at the EOS.
 func ParsesUntilEOS[T any](t *testing.T, in string, f parser.Func[T], opts ...Option) T {
 	t.Helper()
@@ -100,7 +106,7 @@ func ParsesUntilEOS[T any](t *testing.T, in string, f parser.Func[T], opts ...Op
 	return v
 }
 
-// ParsesUntilComma asserts that f matches the entire in string, and would
+// ParsesUntilComma asserts that f matches the entire input string, and would
 // stop at a comma or EOF.
 func ParsesUntilComma[T any](t *testing.T, in string, f parser.Func[T], opts ...Option) T {
 	t.Helper()
@@ -123,7 +129,7 @@ func ParsesUntilComma[T any](t *testing.T, in string, f parser.Func[T], opts ...
 	return v
 }
 
-// ParsesUntilBody asserts that f matches the entire in string, and would
+// ParsesUntilBody asserts that f matches the entire input string, and would
 // stop at a body or EOF.
 func ParsesUntilBody[T any](t *testing.T, in string, f parser.Func[T], opts ...Option) T {
 	t.Helper()
@@ -156,6 +162,9 @@ func ParsesUntilBody[T any](t *testing.T, in string, f parser.Func[T], opts ...O
 	return v
 }
 
+// ParsesUntilExtra asserts that f matches the input string, and would stop at
+// the given extra string.
+// The extra string should start with a token that would not be consumed by f.
 func ParsesUntilExtra[T any](t *testing.T, in, extra string, f parser.Func[T], opts ...Option) T {
 	t.Helper()
 
@@ -169,6 +178,8 @@ func ParsesUntilExtra[T any](t *testing.T, in, extra string, f parser.Func[T], o
 	return v
 }
 
+// NoMatch asserts that f does not match the input string, and would not
+// consume any runes.
 func NoMatch[T any](t *testing.T, in string, f parser.Func[T], opts ...Option) {
 	t.Helper()
 

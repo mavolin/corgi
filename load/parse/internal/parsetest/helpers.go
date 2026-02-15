@@ -1,6 +1,7 @@
 package parsetest
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -15,6 +16,10 @@ func CalcEndPos(in string) ast.Position {
 	return ast.Position{Line: line, Col: col}
 }
 
+// NewParser create a new parser for the given input.
+//
+// Most tests won't need to call this directly, but will use one of the
+// ParsesUntil* helpers instead.
 func NewParser(t *testing.T, in string) *parser.Parser {
 	t.Helper()
 
@@ -37,6 +42,8 @@ func isZero[T any](t T) bool {
 	return reflect.ValueOf(&t).Elem().IsZero()
 }
 
+// coerceFunc takes a parser.Func[I] and returns a parser.Func[O], that parses
+// using the input function.
 func coerceFunc[I, O any](t *testing.T, in parser.Func[I]) parser.Func[O] {
 	t.Helper()
 
@@ -50,13 +57,15 @@ func coerceFunc[I, O any](t *testing.T, in parser.Func[I]) parser.Func[O] {
 
 		t, ok := any(v).(O)
 		if !ok {
-			return zero
+			panic(fmt.Sprintf("func %T did not return type %T for its input", in, zero))
 		}
 
 		return t
 	}
 }
 
+// calcEnd calculates the line, column and byte index of the end of the given
+// input.
 func calcEnd(in string) (ast.Line, ast.Col, parser.ByteIndex) {
 	line, col, index := ast.Line(1), ast.Col(1), parser.ByteIndex(0)
 	for _, r := range in {
