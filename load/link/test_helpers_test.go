@@ -293,11 +293,10 @@ func createRegexpAttributeSpec(
 	definitionAST.Specs = []*ast.AttributeSpec{specAST}
 
 	selAST.LParen = directlyAfter(definitionAST)
-	raw := &ast.String{
-		Open:  directlyAfter(definitionAST),
-		Quote: '"',
-		Contents: []ast.StringNode{
-			&ast.StringText{
+	raw := &ast.InterpretedString{
+		Open: directlyAfter(definitionAST),
+		Contents: []ast.InterpretedStringNode{
+			&ast.InterpretedStringText{
 				Text:     interpretedStringContents(regex),
 				Position: directlyAfter(definitionAST),
 			},
@@ -367,17 +366,17 @@ func createImport(f *file.File, start *ast.Position, alias file.Qualifier, impPa
 		}
 	}
 
-	impSpecAST.Path = &ast.String{
-		Open:  spaceAfter(impAST),
-		Quote: '"',
-		Contents: []ast.StringNode{
-			&ast.StringText{
+	p := &ast.InterpretedString{
+		Open: spaceAfter(impAST),
+		Contents: []ast.InterpretedStringNode{
+			&ast.InterpretedStringText{
 				Text:     interpretedStringContents(string(impPath)),
 				Position: directlyAfter(impAST),
 			},
 		},
 	}
-	impSpecAST.Path.Close = directlyAfter(impAST)
+	impSpecAST.Path = p
+	p.Close = directlyAfter(impAST)
 	impAST.Specs = []*ast.ImportSpec{impSpecAST}
 
 	imp := &file.Import{
@@ -602,7 +601,7 @@ func clonePos(pos *ast.Position) *ast.Position {
 func deltaPos(p ast.Position, dCol int) *ast.Position {
 	return &ast.Position{
 		Line: p.Line,
-		Col:  ast.Col(int(p.Col) + dCol),
+		Col:  ast.Col(int(p.Col) + dCol), //nolint:gosec
 	}
 }
 

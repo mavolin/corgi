@@ -404,7 +404,8 @@ func CodeNode(n ast.CodeNode,
 	BlockFunction func(*ast.BlockFunction),
 	ComponentCall func(*ast.ComponentCall),
 	GoCode func(*ast.GoCode),
-	String func(*ast.String),
+	InterpretedString func(*ast.InterpretedString),
+	RawString func(*ast.RawString),
 	Ternary func(*ast.Ternary),
 	ZeroCoalescing func(*ast.ZeroCoalescing),
 ) {
@@ -415,8 +416,10 @@ func CodeNode(n ast.CodeNode,
 		ComponentCall(n)
 	case *ast.GoCode:
 		GoCode(n)
-	case *ast.String:
-		String(n)
+	case *ast.InterpretedString:
+		InterpretedString(n)
+	case *ast.RawString:
+		RawString(n)
 	case *ast.Ternary:
 		Ternary(n)
 	case *ast.ZeroCoalescing:
@@ -430,7 +433,8 @@ func CodeNodeR[T any](n ast.CodeNode,
 	BlockFunction func(*ast.BlockFunction) T,
 	ComponentCall func(*ast.ComponentCall) T,
 	GoCode func(*ast.GoCode) T,
-	String func(*ast.String) T,
+	InterpretedString func(*ast.InterpretedString) T,
+	RawString func(*ast.RawString) T,
 	Ternary func(*ast.Ternary) T,
 	ZeroCoalescing func(*ast.ZeroCoalescing) T,
 ) T {
@@ -441,8 +445,10 @@ func CodeNodeR[T any](n ast.CodeNode,
 		return ComponentCall(n)
 	case *ast.GoCode:
 		return GoCode(n)
-	case *ast.String:
-		return String(n)
+	case *ast.InterpretedString:
+		return InterpretedString(n)
+	case *ast.RawString:
+		return RawString(n)
 	case *ast.Ternary:
 		return Ternary(n)
 	case *ast.ZeroCoalescing:
@@ -511,6 +517,102 @@ func ComponentCallBodyR[T any](n ast.ComponentCallBody,
 		return Scope(n)
 	default:
 		panic(fmt.Sprintf("ComponentCallBody: unknown variant %T: please rerun go generate", n))
+	}
+}
+
+func ConstantInterpretedStringNode(n ast.ConstantInterpretedStringNode,
+	CharacterEscape func(*ast.CharacterEscape),
+	CharacterReference func(*ast.CharacterReference),
+	InterpretedStringText func(*ast.InterpretedStringText),
+) {
+	switch n := n.(type) {
+	case *ast.CharacterEscape:
+		CharacterEscape(n)
+	case *ast.CharacterReference:
+		CharacterReference(n)
+	case *ast.InterpretedStringText:
+		InterpretedStringText(n)
+	default:
+		panic(fmt.Sprintf("ConstantInterpretedStringNode: unknown variant %T: please rerun go generate", n))
+	}
+}
+
+func ConstantInterpretedStringNodeR[T any](n ast.ConstantInterpretedStringNode,
+	CharacterEscape func(*ast.CharacterEscape) T,
+	CharacterReference func(*ast.CharacterReference) T,
+	InterpretedStringText func(*ast.InterpretedStringText) T,
+) T {
+	switch n := n.(type) {
+	case *ast.CharacterEscape:
+		return CharacterEscape(n)
+	case *ast.CharacterReference:
+		return CharacterReference(n)
+	case *ast.InterpretedStringText:
+		return InterpretedStringText(n)
+	default:
+		panic(fmt.Sprintf("ConstantInterpretedStringNode: unknown variant %T: please rerun go generate", n))
+	}
+}
+
+func ConstantRawStringNode(n ast.ConstantRawStringNode,
+	CharacterEscape func(*ast.CharacterEscape),
+	CharacterReference func(*ast.CharacterReference),
+	RawStringText func(*ast.RawStringText),
+) {
+	switch n := n.(type) {
+	case *ast.CharacterEscape:
+		CharacterEscape(n)
+	case *ast.CharacterReference:
+		CharacterReference(n)
+	case *ast.RawStringText:
+		RawStringText(n)
+	default:
+		panic(fmt.Sprintf("ConstantRawStringNode: unknown variant %T: please rerun go generate", n))
+	}
+}
+
+func ConstantRawStringNodeR[T any](n ast.ConstantRawStringNode,
+	CharacterEscape func(*ast.CharacterEscape) T,
+	CharacterReference func(*ast.CharacterReference) T,
+	RawStringText func(*ast.RawStringText) T,
+) T {
+	switch n := n.(type) {
+	case *ast.CharacterEscape:
+		return CharacterEscape(n)
+	case *ast.CharacterReference:
+		return CharacterReference(n)
+	case *ast.RawStringText:
+		return RawStringText(n)
+	default:
+		panic(fmt.Sprintf("ConstantRawStringNode: unknown variant %T: please rerun go generate", n))
+	}
+}
+
+func ConstantStringInterpolation(n ast.ConstantStringInterpolation,
+	CharacterEscape func(*ast.CharacterEscape),
+	CharacterReference func(*ast.CharacterReference),
+) {
+	switch n := n.(type) {
+	case *ast.CharacterEscape:
+		CharacterEscape(n)
+	case *ast.CharacterReference:
+		CharacterReference(n)
+	default:
+		panic(fmt.Sprintf("ConstantStringInterpolation: unknown variant %T: please rerun go generate", n))
+	}
+}
+
+func ConstantStringInterpolationR[T any](n ast.ConstantStringInterpolation,
+	CharacterEscape func(*ast.CharacterEscape) T,
+	CharacterReference func(*ast.CharacterReference) T,
+) T {
+	switch n := n.(type) {
+	case *ast.CharacterEscape:
+		return CharacterEscape(n)
+	case *ast.CharacterReference:
+		return CharacterReference(n)
+	default:
+		panic(fmt.Sprintf("ConstantStringInterpolation: unknown variant %T: please rerun go generate", n))
 	}
 }
 
@@ -816,6 +918,58 @@ func InterpolationR[T any](n ast.Interpolation,
 	}
 }
 
+func InterpretedStringNode(n ast.InterpretedStringNode,
+	BadInterpolation func(*ast.BadInterpolation),
+	CharacterEscape func(*ast.CharacterEscape),
+	CharacterReference func(*ast.CharacterReference),
+	ComponentCallInterpolation func(*ast.ComponentCallInterpolation),
+	ExpressionInterpolation func(*ast.ExpressionInterpolation),
+	InterpretedStringText func(*ast.InterpretedStringText),
+) {
+	switch n := n.(type) {
+	case *ast.BadInterpolation:
+		BadInterpolation(n)
+	case *ast.CharacterEscape:
+		CharacterEscape(n)
+	case *ast.CharacterReference:
+		CharacterReference(n)
+	case *ast.ComponentCallInterpolation:
+		ComponentCallInterpolation(n)
+	case *ast.ExpressionInterpolation:
+		ExpressionInterpolation(n)
+	case *ast.InterpretedStringText:
+		InterpretedStringText(n)
+	default:
+		panic(fmt.Sprintf("InterpretedStringNode: unknown variant %T: please rerun go generate", n))
+	}
+}
+
+func InterpretedStringNodeR[T any](n ast.InterpretedStringNode,
+	BadInterpolation func(*ast.BadInterpolation) T,
+	CharacterEscape func(*ast.CharacterEscape) T,
+	CharacterReference func(*ast.CharacterReference) T,
+	ComponentCallInterpolation func(*ast.ComponentCallInterpolation) T,
+	ExpressionInterpolation func(*ast.ExpressionInterpolation) T,
+	InterpretedStringText func(*ast.InterpretedStringText) T,
+) T {
+	switch n := n.(type) {
+	case *ast.BadInterpolation:
+		return BadInterpolation(n)
+	case *ast.CharacterEscape:
+		return CharacterEscape(n)
+	case *ast.CharacterReference:
+		return CharacterReference(n)
+	case *ast.ComponentCallInterpolation:
+		return ComponentCallInterpolation(n)
+	case *ast.ExpressionInterpolation:
+		return ExpressionInterpolation(n)
+	case *ast.InterpretedStringText:
+		return InterpretedStringText(n)
+	default:
+		panic(fmt.Sprintf("InterpretedStringNode: unknown variant %T: please rerun go generate", n))
+	}
+}
+
 func Node(n ast.Node,
 	AliasElementType func(*ast.AliasElementType),
 	And func(*ast.And),
@@ -893,6 +1047,8 @@ func Node(n ast.Node,
 	Import func(*ast.Import),
 	ImportSpec func(*ast.ImportSpec),
 	IncDec func(*ast.IncDec),
+	InterpretedString func(*ast.InterpretedString),
+	InterpretedStringText func(*ast.InterpretedStringText),
 	Label func(*ast.Label),
 	ListElementSelector func(*ast.ListElementSelector),
 	ModeSwitch func(*ast.ModeSwitch),
@@ -901,6 +1057,8 @@ func Node(n ast.Node,
 	PackageDirective func(*ast.PackageDirective),
 	QualifiedIdentifier func(*ast.QualifiedIdentifier),
 	RawElement func(*ast.RawElement),
+	RawString func(*ast.RawString),
+	RawStringText func(*ast.RawStringText),
 	RegexpAttributeSelector func(*ast.RegexpAttributeSelector),
 	Return func(*ast.Return),
 	Scope func(*ast.Scope),
@@ -910,8 +1068,6 @@ func Node(n ast.Node,
 	ShorthandText func(*ast.ShorthandText),
 	SimpleStatement func(*ast.SimpleStatement),
 	Statement func(*ast.Statement),
-	String func(*ast.String),
-	StringText func(*ast.StringText),
 	Switch func(*ast.Switch),
 	Ternary func(*ast.Ternary),
 	Text func(*ast.Text),
@@ -1089,6 +1245,10 @@ func Node(n ast.Node,
 		ImportSpec(n)
 	case *ast.IncDec:
 		IncDec(n)
+	case *ast.InterpretedString:
+		InterpretedString(n)
+	case *ast.InterpretedStringText:
+		InterpretedStringText(n)
 	case *ast.Label:
 		Label(n)
 	case *ast.ListElementSelector:
@@ -1105,6 +1265,10 @@ func Node(n ast.Node,
 		QualifiedIdentifier(n)
 	case *ast.RawElement:
 		RawElement(n)
+	case *ast.RawString:
+		RawString(n)
+	case *ast.RawStringText:
+		RawStringText(n)
 	case *ast.RegexpAttributeSelector:
 		RegexpAttributeSelector(n)
 	case *ast.Return:
@@ -1123,10 +1287,6 @@ func Node(n ast.Node,
 		SimpleStatement(n)
 	case *ast.Statement:
 		Statement(n)
-	case *ast.String:
-		String(n)
-	case *ast.StringText:
-		StringText(n)
 	case *ast.Switch:
 		Switch(n)
 	case *ast.Ternary:
@@ -1255,6 +1415,8 @@ func NodeR[T any](n ast.Node,
 	Import func(*ast.Import) T,
 	ImportSpec func(*ast.ImportSpec) T,
 	IncDec func(*ast.IncDec) T,
+	InterpretedString func(*ast.InterpretedString) T,
+	InterpretedStringText func(*ast.InterpretedStringText) T,
 	Label func(*ast.Label) T,
 	ListElementSelector func(*ast.ListElementSelector) T,
 	ModeSwitch func(*ast.ModeSwitch) T,
@@ -1263,6 +1425,8 @@ func NodeR[T any](n ast.Node,
 	PackageDirective func(*ast.PackageDirective) T,
 	QualifiedIdentifier func(*ast.QualifiedIdentifier) T,
 	RawElement func(*ast.RawElement) T,
+	RawString func(*ast.RawString) T,
+	RawStringText func(*ast.RawStringText) T,
 	RegexpAttributeSelector func(*ast.RegexpAttributeSelector) T,
 	Return func(*ast.Return) T,
 	Scope func(*ast.Scope) T,
@@ -1272,8 +1436,6 @@ func NodeR[T any](n ast.Node,
 	ShorthandText func(*ast.ShorthandText) T,
 	SimpleStatement func(*ast.SimpleStatement) T,
 	Statement func(*ast.Statement) T,
-	String func(*ast.String) T,
-	StringText func(*ast.StringText) T,
 	Switch func(*ast.Switch) T,
 	Ternary func(*ast.Ternary) T,
 	Text func(*ast.Text) T,
@@ -1451,6 +1613,10 @@ func NodeR[T any](n ast.Node,
 		return ImportSpec(n)
 	case *ast.IncDec:
 		return IncDec(n)
+	case *ast.InterpretedString:
+		return InterpretedString(n)
+	case *ast.InterpretedStringText:
+		return InterpretedStringText(n)
 	case *ast.Label:
 		return Label(n)
 	case *ast.ListElementSelector:
@@ -1467,6 +1633,10 @@ func NodeR[T any](n ast.Node,
 		return QualifiedIdentifier(n)
 	case *ast.RawElement:
 		return RawElement(n)
+	case *ast.RawString:
+		return RawString(n)
+	case *ast.RawStringText:
+		return RawStringText(n)
 	case *ast.RegexpAttributeSelector:
 		return RegexpAttributeSelector(n)
 	case *ast.Return:
@@ -1485,10 +1655,6 @@ func NodeR[T any](n ast.Node,
 		return SimpleStatement(n)
 	case *ast.Statement:
 		return Statement(n)
-	case *ast.String:
-		return String(n)
-	case *ast.StringText:
-		return StringText(n)
 	case *ast.Switch:
 		return Switch(n)
 	case *ast.Ternary:
@@ -1696,6 +1862,58 @@ func ParsedTypeR[T any](n ast.ParsedType,
 	}
 }
 
+func RawStringNode(n ast.RawStringNode,
+	BadInterpolation func(*ast.BadInterpolation),
+	CharacterEscape func(*ast.CharacterEscape),
+	CharacterReference func(*ast.CharacterReference),
+	ComponentCallInterpolation func(*ast.ComponentCallInterpolation),
+	ExpressionInterpolation func(*ast.ExpressionInterpolation),
+	RawStringText func(*ast.RawStringText),
+) {
+	switch n := n.(type) {
+	case *ast.BadInterpolation:
+		BadInterpolation(n)
+	case *ast.CharacterEscape:
+		CharacterEscape(n)
+	case *ast.CharacterReference:
+		CharacterReference(n)
+	case *ast.ComponentCallInterpolation:
+		ComponentCallInterpolation(n)
+	case *ast.ExpressionInterpolation:
+		ExpressionInterpolation(n)
+	case *ast.RawStringText:
+		RawStringText(n)
+	default:
+		panic(fmt.Sprintf("RawStringNode: unknown variant %T: please rerun go generate", n))
+	}
+}
+
+func RawStringNodeR[T any](n ast.RawStringNode,
+	BadInterpolation func(*ast.BadInterpolation) T,
+	CharacterEscape func(*ast.CharacterEscape) T,
+	CharacterReference func(*ast.CharacterReference) T,
+	ComponentCallInterpolation func(*ast.ComponentCallInterpolation) T,
+	ExpressionInterpolation func(*ast.ExpressionInterpolation) T,
+	RawStringText func(*ast.RawStringText) T,
+) T {
+	switch n := n.(type) {
+	case *ast.BadInterpolation:
+		return BadInterpolation(n)
+	case *ast.CharacterEscape:
+		return CharacterEscape(n)
+	case *ast.CharacterReference:
+		return CharacterReference(n)
+	case *ast.ComponentCallInterpolation:
+		return ComponentCallInterpolation(n)
+	case *ast.ExpressionInterpolation:
+		return ExpressionInterpolation(n)
+	case *ast.RawStringText:
+		return RawStringText(n)
+	default:
+		panic(fmt.Sprintf("RawStringNode: unknown variant %T: please rerun go generate", n))
+	}
+}
+
 func ResolvedValue(n file.ResolvedValue,
 	BoolExpression func(*file.BoolExpression),
 	ConstantBool func(file.ConstantBool),
@@ -1864,6 +2082,34 @@ func ShorthandNodeR[T any](n ast.ShorthandNode,
 	}
 }
 
+func String(n ast.String,
+	InterpretedString func(*ast.InterpretedString),
+	RawString func(*ast.RawString),
+) {
+	switch n := n.(type) {
+	case *ast.InterpretedString:
+		InterpretedString(n)
+	case *ast.RawString:
+		RawString(n)
+	default:
+		panic(fmt.Sprintf("String: unknown variant %T: please rerun go generate", n))
+	}
+}
+
+func StringR[T any](n ast.String,
+	InterpretedString func(*ast.InterpretedString) T,
+	RawString func(*ast.RawString) T,
+) T {
+	switch n := n.(type) {
+	case *ast.InterpretedString:
+		return InterpretedString(n)
+	case *ast.RawString:
+		return RawString(n)
+	default:
+		panic(fmt.Sprintf("String: unknown variant %T: please rerun go generate", n))
+	}
+}
+
 func StringInterpolation(n ast.StringInterpolation,
 	BadInterpolation func(*ast.BadInterpolation),
 	CharacterEscape func(*ast.CharacterEscape),
@@ -1907,58 +2153,6 @@ func StringInterpolationR[T any](n ast.StringInterpolation,
 		return ExpressionInterpolation(n)
 	default:
 		panic(fmt.Sprintf("StringInterpolation: unknown variant %T: please rerun go generate", n))
-	}
-}
-
-func StringNode(n ast.StringNode,
-	BadInterpolation func(*ast.BadInterpolation),
-	CharacterEscape func(*ast.CharacterEscape),
-	CharacterReference func(*ast.CharacterReference),
-	ComponentCallInterpolation func(*ast.ComponentCallInterpolation),
-	ExpressionInterpolation func(*ast.ExpressionInterpolation),
-	StringText func(*ast.StringText),
-) {
-	switch n := n.(type) {
-	case *ast.BadInterpolation:
-		BadInterpolation(n)
-	case *ast.CharacterEscape:
-		CharacterEscape(n)
-	case *ast.CharacterReference:
-		CharacterReference(n)
-	case *ast.ComponentCallInterpolation:
-		ComponentCallInterpolation(n)
-	case *ast.ExpressionInterpolation:
-		ExpressionInterpolation(n)
-	case *ast.StringText:
-		StringText(n)
-	default:
-		panic(fmt.Sprintf("StringNode: unknown variant %T: please rerun go generate", n))
-	}
-}
-
-func StringNodeR[T any](n ast.StringNode,
-	BadInterpolation func(*ast.BadInterpolation) T,
-	CharacterEscape func(*ast.CharacterEscape) T,
-	CharacterReference func(*ast.CharacterReference) T,
-	ComponentCallInterpolation func(*ast.ComponentCallInterpolation) T,
-	ExpressionInterpolation func(*ast.ExpressionInterpolation) T,
-	StringText func(*ast.StringText) T,
-) T {
-	switch n := n.(type) {
-	case *ast.BadInterpolation:
-		return BadInterpolation(n)
-	case *ast.CharacterEscape:
-		return CharacterEscape(n)
-	case *ast.CharacterReference:
-		return CharacterReference(n)
-	case *ast.ComponentCallInterpolation:
-		return ComponentCallInterpolation(n)
-	case *ast.ExpressionInterpolation:
-		return ExpressionInterpolation(n)
-	case *ast.StringText:
-		return StringText(n)
-	default:
-		panic(fmt.Sprintf("StringNode: unknown variant %T: please rerun go generate", n))
 	}
 }
 

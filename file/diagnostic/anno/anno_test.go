@@ -170,11 +170,10 @@ func TestNode(t *testing.T) {
 				Position: &start,
 			},
 		}, {
-			node: &ast.String{
-				Open:  &start,
-				Quote: '"',
-				Contents: []ast.StringNode{
-					&ast.StringText{
+			node: &ast.InterpretedString{
+				Open: &start,
+				Contents: []ast.InterpretedStringNode{
+					&ast.InterpretedStringText{
 						Text:     "foo",
 						Position: &ast.Position{Line: start.Line, Col: start.Col + ast.Col(len(`"`))},
 					},

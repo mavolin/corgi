@@ -165,19 +165,19 @@ func (ch *checker) CheckNamedAttribute_NoInterpolationInUnsafeAttribute(
 		return
 	}
 
-	s, _ := expr.Nodes[0].(*ast.String)
+	s, _ := expr.Nodes[0].(ast.InterpretedString)
 	if s == nil {
 		return
 	}
 
-	for _, n := range s.Contents {
+	for _, n := range s.Contents { // todo
 		ok := switches.StringNodeR(n,
 			func(*ast.BadInterpolation) bool { panic("analyzer called with parser errors") },
 			func(*ast.CharacterEscape) bool { return true },
 			func(*ast.CharacterReference) bool { return true },
 			func(*ast.ComponentCallInterpolation) bool { return false },
 			func(*ast.ExpressionInterpolation) bool { return false },
-			func(*ast.StringText) bool { return true })
+			func(*ast.InterpretedStringText) bool { return true })
 		if ok {
 			continue
 		}

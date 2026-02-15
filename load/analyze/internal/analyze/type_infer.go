@@ -15,30 +15,31 @@ import (
 //
 // If InferType returns the empty string, it could not identify the type.
 //
-// The 'sure' return value indicates if this prediction is certain, i.e., that
+// The “exact” return value indicates if this prediction is certain, i.e. that
 // the expression will exactly yield the type returned.
-// If 'sure' is false, InferType encountered an untyped literal:
-// While the expression can be cast to the type returned, but in the context of
-// the expression it might also be used to yield a different, more concrete
-// type.
-func InferType(f *file.File, expr *ast.Expression) (typ file.Type, sure bool) {
+// If “exact” is false, InferType encountered an untyped literal:
+// While the expression can be cast to the type returned, in the context
+// surrounding the expression it might also be used to yield a different, more
+// concrete type.
+func InferType(f *file.File, expr *ast.Expression) (typ file.Type, exact bool) {
 	if expr == nil || len(expr.Nodes) == 0 {
 		return "", false
 	}
 
 	switches.CodeNode(expr.Nodes[0],
-		func(*ast.BlockFunction) { typ, sure = "bool", true },
-		func(*ast.ComponentCall) { typ, sure = "string", true },
-		func(gc *ast.GoCode) { typ, sure = inferGoCodeType(gc) },
-		func(*ast.String) { typ, sure = "string", false },
+		func(*ast.BlockFunction) { typ, exact = "bool", true },
+		func(*ast.ComponentCall) { typ, exact = "string", true },
+		func(gc *ast.GoCode) { typ, exact = inferGoCodeType(gc) },
+		func(*ast.InterpretedString) { typ, exact = "string", false },
+		func(*ast.RawString) { typ, exact = "string", false },
 		func(n *ast.Ternary) {
 			if len(expr.Nodes) == 1 {
-				typ, sure = inferTernaryType(f, n)
+				typ, exact = inferTernaryType(f, n)
 			}
 		},
-		func(n *ast.ZeroCoalescing) { typ, sure = inferZeroCoalescingType(f, n) })
+		func(n *ast.ZeroCoalescing) { typ, exact = inferZeroCoalescingType(f, n) })
 	if typ != "" {
-		return typ, sure
+		return typ, exact
 	}
 
 	if len(expr.Nodes) == 1 {
@@ -46,27 +47,28 @@ func InferType(f *file.File, expr *ast.Expression) (typ file.Type, sure bool) {
 	}
 
 	switches.CodeNode(expr.Nodes[0],
-		func(*ast.BlockFunction) { typ, sure = "bool", true },
-		func(*ast.ComponentCall) { typ, sure = "string", true },
-		func(gc *ast.GoCode) { typ, sure = inferLastGoCodeType(gc) },
-		func(*ast.String) { typ, sure = "string", false },
-		func(n *ast.Ternary) { typ, sure = inferTernaryType(f, n) },
+		func(*ast.BlockFunction) { typ, exact = "bool", true },
+		func(*ast.ComponentCall) { typ, exact = "string", true },
+		func(gc *ast.GoCode) { typ, exact = inferLastGoCodeType(gc) },
+		func(*ast.InterpretedString) { typ, exact = "string", false },
+		func(*ast.RawString) { typ, exact = "string", false },
+		func(n *ast.Ternary) { typ, exact = inferTernaryType(f, n) },
 		func(*ast.ZeroCoalescing) {})
-	return typ, sure
+	return typ, exact
 }
 
-func inferTernaryType(f *file.File, expr *ast.Ternary) (typ file.Type, sure bool) {
+func inferTernaryType(f *file.File, expr *ast.Ternary) (typ file.Type, exact bool) {
 	if expr == nil || (expr.TrueVal == nil && expr.FalseVal == nil) {
 		return "", false
 	}
 
-	trueType, trueSure := InferType(f, expr.TrueVal)
-	if trueSure {
-		return trueType, trueSure
+	trueType, trueExact := InferType(f, expr.TrueVal)
+	if trueExact {
+		return trueType, trueExact
 	}
 
-	falseType, falseSure := InferType(f, expr.FalseVal)
-	if falseSure {
+	falseType, falseExact := InferType(f, expr.FalseVal)
+	if falseExact {
 		return falseType, true
 	}
 
@@ -74,14 +76,14 @@ func inferTernaryType(f *file.File, expr *ast.Ternary) (typ file.Type, sure bool
 	case trueType == falseType:
 		return trueType, false
 	case expr.TrueVal == nil:
-		return falseType, falseSure
+		return falseType, falseExact
 	case expr.FalseVal == nil:
-		return trueType, trueSure
+		return trueType, trueExact
 	}
 	return "", false
 }
 
-func inferZeroCoalescingType(f *file.File, expr *ast.ZeroCoalescing) (typ file.Type, sure bool) {
+func inferZeroCoalescingType(f *file.File, expr *ast.ZeroCoalescing) (typ file.Type, exact bool) {
 	if expr == nil {
 		return "", false
 	}
@@ -98,10 +100,10 @@ func inferZeroCoalescingType(f *file.File, expr *ast.ZeroCoalescing) (typ file.T
 		func(*ast.ZCIndexExpression) {},
 		func(*ast.ZCParenExpression) {},
 		func(*ast.ZCSelectorExpression) {},
-		func(e *ast.ZCTypeAssertionExpression) { typ, sure = file.Type(e.Type.Full()), true },
+		func(e *ast.ZCTypeAssertionExpression) { typ, exact = file.Type(e.Type.Full()), true },
 	)
 	if typ != "" {
-		return typ, sure
+		return typ, exact
 	}
 
 	if expr.Default != nil {
@@ -110,7 +112,7 @@ func inferZeroCoalescingType(f *file.File, expr *ast.ZeroCoalescing) (typ file.T
 	return "", false
 }
 
-func inferGoCodeType(expr *ast.GoCode) (typ file.Type, sure bool) {
+func inferGoCodeType(expr *ast.GoCode) (typ file.Type, exact bool) {
 	if expr == nil {
 		return "", false
 	}
@@ -253,7 +255,7 @@ func inferMakeNewType(expr *ast.GoCode) file.Type {
 	return file.Type(t[1])
 }
 
-func inferLastGoCodeType(expr *ast.GoCode) (typ file.Type, sure bool) {
+func inferLastGoCodeType(expr *ast.GoCode) (typ file.Type, exact bool) {
 	if expr == nil {
 		return "", false
 	}

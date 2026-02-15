@@ -42,11 +42,10 @@ func TestImport(t *testing.T) {
 				Import: &ast.Position{Line: 1, Col: 1},
 				Specs: []*ast.ImportSpec{
 					{
-						Path: &ast.String{
-							Open:  &ast.Position{Line: 1, Col: ast.Col(1 + len("import "))},
-							Quote: '"',
-							Contents: []ast.StringNode{
-								&ast.StringText{
+						Path: &ast.InterpretedString{
+							Open: &ast.Position{Line: 1, Col: ast.Col(1 + len("import "))},
+							Contents: []ast.InterpretedStringNode{
+								&ast.InterpretedStringText{
 									Text:     "foo",
 									Position: &ast.Position{Line: 1, Col: ast.Col(1 + len(`import "`))},
 								},
@@ -67,11 +66,10 @@ func TestImport(t *testing.T) {
 				LParen: &ast.Position{Line: 1, Col: ast.Col(1 + len("import "))},
 				Specs: []*ast.ImportSpec{
 					{
-						Path: &ast.String{
-							Open:  &ast.Position{Line: 2, Col: ast.Col(1 + len("\t"))},
-							Quote: '"',
-							Contents: []ast.StringNode{
-								&ast.StringText{
+						Path: &ast.InterpretedString{
+							Open: &ast.Position{Line: 2, Col: ast.Col(1 + len("\t"))},
+							Contents: []ast.InterpretedStringNode{
+								&ast.InterpretedStringText{
 									Text:     "foo",
 									Position: &ast.Position{Line: 2, Col: ast.Col(1 + len("\t\""))},
 								},
@@ -79,11 +77,10 @@ func TestImport(t *testing.T) {
 							Close: &ast.Position{Line: 2, Col: ast.Col(1 + len("\t\"foo"))},
 						},
 					}, {
-						Path: &ast.String{
-							Open:  &ast.Position{Line: 3, Col: ast.Col(1 + len("\t"))},
-							Quote: '"',
-							Contents: []ast.StringNode{
-								&ast.StringText{
+						Path: &ast.InterpretedString{
+							Open: &ast.Position{Line: 3, Col: ast.Col(1 + len("\t"))},
+							Contents: []ast.InterpretedStringNode{
+								&ast.InterpretedStringText{
 									Text:     "bar",
 									Position: &ast.Position{Line: 3, Col: ast.Col(1 + len("\t\""))},
 								},
@@ -119,11 +116,10 @@ func TestImportSpec(t *testing.T) {
 			name: "no alias",
 			in:   "\"foo\"",
 			want: &ast.ImportSpec{
-				Path: &ast.String{
-					Open:  &ast.Position{Line: 1, Col: 1},
-					Quote: '"',
-					Contents: []ast.StringNode{
-						&ast.StringText{
+				Path: &ast.InterpretedString{
+					Open: &ast.Position{Line: 1, Col: 1},
+					Contents: []ast.InterpretedStringNode{
+						&ast.InterpretedStringText{
 							Text:     "foo",
 							Position: &ast.Position{Line: 1, Col: ast.Col(1 + len(`"`))},
 						},
@@ -136,11 +132,10 @@ func TestImportSpec(t *testing.T) {
 			in:   "foo \"bar\"",
 			want: &ast.ImportSpec{
 				Alias: &ast.Identifier{Name: "foo", Position: &ast.Position{Line: 1, Col: 1}},
-				Path: &ast.String{
-					Open:  &ast.Position{Line: 1, Col: ast.Col(1 + len("foo "))},
-					Quote: '"',
-					Contents: []ast.StringNode{
-						&ast.StringText{
+				Path: &ast.InterpretedString{
+					Open: &ast.Position{Line: 1, Col: ast.Col(1 + len("foo "))},
+					Contents: []ast.InterpretedStringNode{
+						&ast.InterpretedStringText{
 							Text:     "bar",
 							Position: &ast.Position{Line: 1, Col: ast.Col(1 + len(`foo "`))},
 						},

@@ -8,6 +8,7 @@ import (
 	"github.com/mavolin/corgi/v2/file/ast"
 	"github.com/mavolin/corgi/v2/file/diagnostic"
 	"github.com/mavolin/corgi/v2/file/diagnostic/anno"
+	"github.com/mavolin/corgi/v2/file/switches"
 	parser "github.com/mavolin/corgi/v2/load/parse/internal"
 	"github.com/mavolin/corgi/v2/load/parse/internal/code"
 	"github.com/mavolin/corgi/v2/load/parse/internal/comment"
@@ -301,7 +302,11 @@ func RegexpSelector() parser.Func[*ast.RegexpAttributeSelector] {
 		s.LParen = lParen
 
 		s.Raw = parser.Try(p, code.ConstantString("regular expression selectors"))
-		if s.Raw == nil || len(s.Raw.Contents) == 0 {
+
+		isEmpty := s.Raw == nil || switches.StringR(s.Raw,
+			func(s *ast.InterpretedString) bool { return len(s.Contents) == 0 },
+			func(s *ast.RawString) bool { return len(s.Contents) == 0 })
+		if isEmpty {
 			p.CaptureError(&diagnostic.Diagnostic{
 				Message:  "regexp attribute selector: missing regexp",
 				Primary:  quickanno.Expected(p, p.Pos(), "a string containing a regular expression"),
@@ -348,7 +353,7 @@ func RegexpSelector() parser.Func[*ast.RegexpAttributeSelector] {
 	}
 }
 
-func compileRegexpAttributeSelector(p *parser.Parser, s *ast.String) *regexp.Regexp {
+func compileRegexpAttributeSelector(p *parser.Parser, s ast.String) *regexp.Regexp {
 	orig, anchored, ok := anchoredRegexpAttributeExpression(p, s)
 	if !ok {
 		return nil
@@ -378,7 +383,7 @@ func compileRegexpAttributeSelector(p *parser.Parser, s *ast.String) *regexp.Reg
 	return r
 }
 
-func anchoredRegexpAttributeExpression(p *parser.Parser, s *ast.String) (orig, anchored string, ok bool) {
+func anchoredRegexpAttributeExpression(p *parser.Parser, s ast.String) (orig, anchored string, ok bool) {
 	orig, ok = s.ConstantValue()
 	if !ok {
 		return "", "", false

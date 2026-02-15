@@ -79,11 +79,10 @@ func testComponentArgument(t *testing.T, f parser.Func[*ast.ComponentArgument]) 
 					Colon: &ast.Position{Line: 1, Col: 5},
 					Value: &ast.Expression{
 						Nodes: ast.Code{
-							&ast.String{
-								Open:  &ast.Position{Line: 1, Col: 6},
-								Quote: '"',
-								Contents: []ast.StringNode{
-									&ast.StringText{
+							&ast.InterpretedString{
+								Open: &ast.Position{Line: 1, Col: 6},
+								Contents: []ast.InterpretedStringNode{
+									&ast.InterpretedStringText{
 										Text:     "value",
 										Position: &ast.Position{Line: 1, Col: 7},
 									},

@@ -66,7 +66,7 @@ func TestSimpleExpression(t *testing.T) {
 func testSimpleExpression(t *testing.T, f parser.Func[*ast.Expression]) {
 	parsetest.AlsoFulfils(t, f, testEnhancedExpression())
 	parsetest.AlsoFulfils(t, f, nodeAsExpression(testBlockFunction()))
-	parsetest.AlsoFulfils(t, f, nodeAsExpression(testString()))
+	parsetest.AlsoFulfils(t, f, nodeAsExpression(testInterpretedString()))
 	parsetest.AlsoFulfils(t, f, nodeAsExpression(testTernary()))
 	t.Run("mix", func(t *testing.T) {
 		t.Parallel()
@@ -77,11 +77,10 @@ func testSimpleExpression(t *testing.T, f parser.Func[*ast.Expression]) {
 				&ast.GoCode{
 					Code:     "foo(bar,",
 					Position: &ast.Position{Line: 1, Col: 1},
-				}, &ast.String{
-					Open:  &ast.Position{Line: 1, Col: 10},
-					Quote: '"',
-					Contents: []ast.StringNode{
-						&ast.StringText{
+				}, &ast.InterpretedString{
+					Open: &ast.Position{Line: 1, Col: 10},
+					Contents: []ast.InterpretedStringNode{
+						&ast.InterpretedStringText{
 							Text:     "baz ",
 							Position: &ast.Position{Line: 1, Col: 11},
 						}, &ast.ExpressionInterpolation{
@@ -188,11 +187,10 @@ func testEnhancedExpression() func(t *testing.T, f parser.Func[*ast.Expression])
 				code: "(\"foo\")",
 				want: ast.Code{
 					&ast.GoCode{Code: "(", Position: &ast.Position{Line: 1, Col: 1}},
-					&ast.String{
-						Open:  &ast.Position{Line: 1, Col: 2},
-						Quote: '"',
-						Contents: []ast.StringNode{
-							&ast.StringText{Text: "foo", Position: &ast.Position{Line: 1, Col: 3}},
+					&ast.InterpretedString{
+						Open: &ast.Position{Line: 1, Col: 2},
+						Contents: []ast.InterpretedStringNode{
+							&ast.InterpretedStringText{Text: "foo", Position: &ast.Position{Line: 1, Col: 3}},
 						},
 						Close: &ast.Position{Line: 1, Col: 6},
 					},

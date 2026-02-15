@@ -309,8 +309,11 @@ func (z *analyzer) expressionToResolvedValue(f *file.File, expr *ast.Expression)
 					return (*file.UndeterminedExpression)(expr)
 				}
 			},
-			func(s *ast.String) file.ResolvedValue {
-				return z.stringToResolvedValue(s)
+			func(s *ast.InterpretedString) file.ResolvedValue {
+				return z.interpretedStringToText(s)
+			},
+			func(s *ast.RawString) file.ResolvedValue {
+				return z.rawStringToText(s)
 			},
 			func(*ast.Ternary) file.ResolvedValue { return (*file.UndeterminedExpression)(expr) },
 			func(*ast.ZeroCoalescing) file.ResolvedValue { return (*file.UndeterminedExpression)(expr) },
@@ -330,12 +333,12 @@ func (z *analyzer) expressionToResolvedValue(f *file.File, expr *ast.Expression)
 	}
 }
 
-func (z *analyzer) stringToResolvedValue(s *ast.String) file.Text {
+func (z *analyzer) interpretedStringToText(s *ast.InterpretedString) file.Text {
 	v := make(file.Text, 0, len(s.Contents))
 
 	var last file.ConstantPart
 	for _, content := range s.Contents {
-		switches.StringNode(content,
+		switches.InterpretedStringNode(content,
 			func(content *ast.BadInterpolation) {
 				panic("analyzer called with file with parse errors: " + content.Start().String())
 			},
@@ -349,7 +352,32 @@ func (z *analyzer) stringToResolvedValue(s *ast.String) file.Text {
 				last = ""
 				v = append(v, (*file.ExpressionPart)(content.Expression))
 			},
-			func(content *ast.StringText) { addConstant(&v, &last, content.Text) })
+			func(content *ast.InterpretedStringText) { addConstant(&v, &last, content.Text) })
+	}
+
+	return slices.Clip(v)
+}
+
+func (z *analyzer) rawStringToText(s *ast.RawString) file.Text {
+	v := make(file.Text, 0, len(s.Contents))
+
+	var last file.ConstantPart
+	for _, content := range s.Contents {
+		switches.RawStringNode(content,
+			func(content *ast.BadInterpolation) {
+				panic("analyzer called with file with parse errors: " + content.Start().String())
+			},
+			func(content *ast.CharacterEscape) { addConstant(&v, &last, string(content.Rune)) },
+			func(content *ast.CharacterReference) { addConstant(&v, &last, content.Chars) },
+			func(content *ast.ComponentCallInterpolation) {
+				last = ""
+				v = append(v, (*file.ComponentCallPart)(content.ComponentCall))
+			},
+			func(content *ast.ExpressionInterpolation) {
+				last = ""
+				v = append(v, (*file.ExpressionPart)(content.Expression))
+			},
+			func(content *ast.RawStringText) { addConstant(&v, &last, content.Text) })
 	}
 
 	return slices.Clip(v)

@@ -239,18 +239,38 @@ func (*Ternary) _codeNode() {}
 // String
 // ======================================================================================
 
-// String is a Go string literal extended to allow Character References, and
-// StringInterpolation.
-type String struct {
+// String is either an [InterpretedString] or a [RawString].
+type String interface {
+	Node
+	CodeNode
+	_string()
+	ConstantValue() (string, bool)
+	Constant() bool
+}
+
+var (
+	_ String = (*InterpretedString)(nil)
+	_ String = (*RawString)(nil)
+)
+
+// ============================================================================
+// InterpretedString
+// ======================================================================================
+
+// InterpretedString is a Go interpreted string literal extended to allow
+// interpolation
+type InterpretedString struct {
 	Open     *Position
-	Quote    byte // either '"' or '`'
-	Contents []StringNode
+	Contents []InterpretedStringNode
 	Close    *Position
 }
 
-var _ CodeNode = (*String)(nil)
+var (
+	_ CodeNode = (*InterpretedString)(nil)
+	_ String   = (*InterpretedString)(nil)
+)
 
-func (s *String) Start() Position {
+func (s *InterpretedString) Start() Position {
 	if s.Open != nil {
 		return *s.Open
 	}
@@ -267,7 +287,7 @@ func (s *String) Start() Position {
 	return NoPosition
 }
 
-func (s *String) End() Position {
+func (s *InterpretedString) End() Position {
 	if s.Close != nil {
 		return deltaPos(*s.Close, len("\""))
 	}
@@ -284,12 +304,21 @@ func (s *String) End() Position {
 	return NoPosition
 }
 
-func (s *String) Walk(w func(Node)) {
+func (s *InterpretedString) Walk(w func(Node)) {
 	for _, n := range s.Contents {
 		if n != nil {
 			w(n)
 		}
 	}
+}
+
+func (s *InterpretedString) Constant() bool {
+	for _, n := range s.Contents {
+		if cn, _ := n.(ConstantInterpretedStringNode); cn == nil {
+			return false
+		}
+	}
+	return true
 }
 
 // ConstantValue unquotes the string, returning its constant value.
@@ -301,92 +330,265 @@ func (s *String) Walk(w func(Node)) {
 //
 // If the string is constant and valid, ConstantValue returns the unquoted
 // value and true.
-func (s *String) ConstantValue() (string, bool) {
+func (s *InterpretedString) ConstantValue() (string, bool) {
+	if !s.Constant() {
+		return "", false
+	}
+
 	var unq strings.Builder
 	unq.Grow(int(s.End().Col - s.Start().Col))
 
-	for _, c := range s.Contents {
-		switch n := c.(type) {
-		case *InterpretedStringText:
-			if s.Quote == '"' {
-				unq1, err := strconv.Unquote(`"` + n.Text + `"`)
-				if err != nil {
-					return "", false
-				}
-				unq.WriteString(unq1)
-			} else {
-				for _, r := range n.Text {
-					if r != '\r' {
-						unq.WriteRune(r)
-					}
-				}
-			}
-		case *CharacterEscape:
-			unq.WriteRune(n.Rune)
-		case *CharacterReference:
-			if n.Chars == "" {
-				return "", false
-			}
-			unq.WriteString(n.Chars)
-		default:
+	for _, n := range s.Contents {
+		val, ok := n.(ConstantInterpretedStringNode).ConstantValue() //nolint:errcheck
+		if !ok {
 			return "", false
 		}
+		unq.WriteString(val)
 	}
 	return unq.String(), true
 }
 
-func (*String) _node()     {}
-func (*String) _codeNode() {}
+func (*InterpretedString) _node()     {}
+func (*InterpretedString) _string()   {}
+func (*InterpretedString) _codeNode() {}
 
 // ============================================================================
-// String Node
+// Interpreted String Node
 // ======================================================================================
 
-// StringNode is a pointer to either [StringText] or [StringInterpolation].
-type StringNode interface {
+// InterpretedStringNode is either [StringInterpolation] or a pointer to
+// [InterpretedStringText].
+type InterpretedStringNode interface {
 	Node
-	_stringNode()
+	_interpretedStringNode()
 }
 
 // if this is changed, change the comment above
 var (
-	_ StringNode = (*StringText)(nil)
-	_ StringNode = StringInterpolation(nil)
+	_ InterpretedStringNode = (*InterpretedStringText)(nil)
+	_ InterpretedStringNode = StringInterpolation(nil)
 )
 
-// ==================================== String Text =====================================
+// ConstantInterpretedStringNode is the subset of InterpretedStringNode that
+// have a constant value.
+type ConstantInterpretedStringNode interface {
+	InterpretedStringNode
+	ConstantValue() (string, bool)
+}
 
-type StringText struct {
+// ============================== Interpreted String Text ===============================
+
+type InterpretedStringText struct {
 	Text     string
 	Position *Position
 }
 
-var _ StringNode = (*StringText)(nil)
+var _ InterpretedStringNode = (*InterpretedStringText)(nil)
 
-func (t *StringText) Start() Position {
+func (t *InterpretedStringText) Start() Position {
 	if t.Position != nil {
 		return *t.Position
 	}
 	return NoPosition
 }
 
-func (t *StringText) End() Position {
+func (t *InterpretedStringText) End() Position {
 	if t.Position != nil {
 		return deltaPos(*t.Position, len(t.Text))
 	}
 	return NoPosition
 }
-func (t *StringText) Walk(func(Node)) {}
+func (t *InterpretedStringText) Walk(func(Node)) {}
 
-func (*StringText) _node()       {}
-func (*StringText) _stringNode() {}
+// ConstantValue returns the value the text represents, i.e. it replaces the
+// string escape sequences with the characters they represent.
+//
+// If the text contains any invalid escape sequences, ConstantValue returns
+// false.
+func (t *InterpretedStringText) ConstantValue() (string, bool) {
+	unq, err := strconv.Unquote(`"` + t.Text + `"`)
+	if err != nil {
+		return "", false
+	}
+	return unq, true
+}
 
-// ================================ String Interpolation ================================
+func (*InterpretedStringText) _node()                  {}
+func (*InterpretedStringText) _interpretedStringNode() {}
+
+// ============================================================================
+// Raw String
+// ======================================================================================
+
+// RawString is a Go raw string literal extended to allow interpolation.
+type RawString struct {
+	Open     *Position
+	Contents []RawStringNode
+	Close    *Position
+}
+
+var _ CodeNode = (*RawString)(nil)
+
+func (s *RawString) Start() Position {
+	if s.Open != nil {
+		return *s.Open
+	}
+	for _, n := range s.Contents {
+		if n != nil {
+			if start := n.Start(); start != NoPosition {
+				return start
+			}
+		}
+	}
+	if s.Close != nil {
+		return *s.Close
+	}
+	return NoPosition
+}
+
+func (s *RawString) End() Position {
+	if s.Close != nil {
+		return deltaPos(*s.Close, len("\""))
+	}
+	for _, n := range slices.Backward(s.Contents) {
+		if n != nil {
+			if end := n.End(); end != NoPosition {
+				return end
+			}
+		}
+	}
+	if s.Open != nil {
+		return deltaPos(*s.Open, len("\""))
+	}
+	return NoPosition
+}
+
+func (s *RawString) Walk(w func(Node)) {
+	for _, n := range s.Contents {
+		if n != nil {
+			w(n)
+		}
+	}
+}
+
+func (s *RawString) Constant() bool {
+	for _, n := range s.Contents {
+		if cn, _ := n.(ConstantRawStringNode); cn == nil {
+			return false
+		}
+	}
+	return true
+}
+
+// ConstantValue unquotes the string, returning its constant value.
+//
+// If the string is not constant, i.e. if it contains any non-constant
+// interpolation ConstantValue returns false.
+// Furthermore, if the string contains any invalid escape sequences in its text
+// nodes, ConstantValue again returns false.
+//
+// If the string is constant and valid, ConstantValue returns the unquoted
+// value and true.
+func (s *RawString) ConstantValue() (string, bool) {
+	if !s.Constant() {
+		return "", false
+	}
+
+	var unq strings.Builder
+	unq.Grow(int(s.End().Col - s.Start().Col))
+
+	for _, n := range s.Contents {
+		val, ok := n.(ConstantRawStringNode).ConstantValue() //nolint:errcheck
+		if !ok {
+			return "", false
+		}
+		unq.WriteString(val)
+	}
+	return unq.String(), true
+}
+
+func (*RawString) _node()     {}
+func (*RawString) _string()   {}
+func (*RawString) _codeNode() {}
+
+// ============================================================================
+// Raw String Node
+// ======================================================================================
+
+// RawStringNode is either [StringInterpolation] or a pointer to
+// [RawStringText].
+type RawStringNode interface {
+	Node
+	_rawStringNode()
+}
+
+// if this is changed, change the comment above
+var (
+	_ RawStringNode = (*RawStringText)(nil)
+	_ RawStringNode = StringInterpolation(nil)
+)
+
+// ConstantRawStringNode is the subset of RawStringNode that have a constant
+// value.
+type ConstantRawStringNode interface {
+	RawStringNode
+	ConstantValue() (string, bool)
+}
+
+// ================================== Raw String Text ===================================
+
+type RawStringText struct {
+	Text     string
+	Position *Position
+}
+
+var (
+	_ RawStringNode         = (*RawStringText)(nil)
+	_ ConstantRawStringNode = (*RawStringText)(nil)
+)
+
+func (t *RawStringText) Start() Position {
+	if t.Position != nil {
+		return *t.Position
+	}
+	return NoPosition
+}
+
+func (t *RawStringText) End() Position {
+	if t.Position != nil {
+		return deltaPos(*t.Position, len(t.Text))
+	}
+	return NoPosition
+}
+func (t *RawStringText) Walk(func(Node)) {}
+
+// ConstantValue returns the value the text represents, stripped of carriage
+// returns, per the Go spec's section on [string literals].
+//
+// It always returns true.
+//
+// [string literals]: https://go.dev/ref/spec#String_literals
+func (t *RawStringText) ConstantValue() (string, bool) {
+	return strings.ReplaceAll(t.Text, "\r", ""), true
+}
+
+func (*RawStringText) _node()          {}
+func (*RawStringText) _rawStringNode() {}
+
+// ============================================================================
+// String Interpolation
+// ======================================================================================
 
 // StringInterpolation is a pointer to either [BadInterpolation],
 // an [CharacterEscape], an [ExpressionInterpolation], a [CharacterReference],
 // or a [ComponentCallInterpolation].
 type StringInterpolation interface {
-	StringNode
+	InterpretedStringNode
+	RawStringNode
 	Interpolation
+}
+
+type ConstantStringInterpolation interface {
+	StringInterpolation
+	ConstantValue() (string, bool)
 }

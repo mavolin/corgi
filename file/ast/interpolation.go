@@ -22,10 +22,11 @@ func (b *BadInterpolation) Start() Position { return b.From }
 func (b *BadInterpolation) End() Position   { return b.Until }
 func (b *BadInterpolation) Walk(func(Node)) {}
 
-func (*BadInterpolation) _node()          {}
-func (*BadInterpolation) _interpolation() {}
-func (*BadInterpolation) _textNode()      {}
-func (*BadInterpolation) _stringNode()    {}
+func (*BadInterpolation) _node()                  {}
+func (*BadInterpolation) _interpolation()         {}
+func (*BadInterpolation) _textNode()              {}
+func (*BadInterpolation) _interpretedStringNode() {}
+func (*BadInterpolation) _rawStringNode()         {}
 
 // ============================================================================
 // Character Escape
@@ -42,10 +43,11 @@ type CharacterEscape struct {
 }
 
 var (
-	_ TextInterpolation   = (*CharacterEscape)(nil)
-	_ StringInterpolation = (*CharacterEscape)(nil)
-	_ ContentWriter       = (*CharacterEscape)(nil)
-	_ AttributeInhibitor  = (*CharacterEscape)(nil)
+	_ TextInterpolation           = (*CharacterEscape)(nil)
+	_ StringInterpolation         = (*CharacterEscape)(nil)
+	_ ConstantStringInterpolation = (*CharacterEscape)(nil)
+	_ ContentWriter               = (*CharacterEscape)(nil)
+	_ AttributeInhibitor          = (*CharacterEscape)(nil)
 )
 
 func (ce *CharacterEscape) Start() Position {
@@ -64,12 +66,21 @@ func (ce *CharacterEscape) End() Position {
 
 func (ce *CharacterEscape) Walk(func(Node)) {}
 
-func (*CharacterEscape) _node()               {}
-func (*CharacterEscape) _interpolation()      {}
-func (*CharacterEscape) _textNode()           {}
-func (*CharacterEscape) _stringNode()         {}
-func (*CharacterEscape) _contentWriter()      {}
-func (*CharacterEscape) _attributeInhibitor() {}
+// ConstantValue returns the replacement for the character escape, which is the
+// character it represents.
+//
+// It always returns true.
+func (ce *CharacterEscape) ConstantValue() (string, bool) {
+	return string(ce.Rune), true
+}
+
+func (*CharacterEscape) _node()                  {}
+func (*CharacterEscape) _interpolation()         {}
+func (*CharacterEscape) _textNode()              {}
+func (*CharacterEscape) _interpretedStringNode() {}
+func (*CharacterEscape) _rawStringNode()         {}
+func (*CharacterEscape) _contentWriter()         {}
+func (*CharacterEscape) _attributeInhibitor()    {}
 
 // ============================================================================
 // Expression Interpolation
@@ -131,12 +142,13 @@ func (ei *ExpressionInterpolation) Walk(w func(Node)) {
 	}
 }
 
-func (*ExpressionInterpolation) _node()               {}
-func (*ExpressionInterpolation) _interpolation()      {}
-func (*ExpressionInterpolation) _textNode()           {}
-func (*ExpressionInterpolation) _stringNode()         {}
-func (*ExpressionInterpolation) _contentWriter()      {}
-func (*ExpressionInterpolation) _attributeInhibitor() {}
+func (*ExpressionInterpolation) _node()                  {}
+func (*ExpressionInterpolation) _interpolation()         {}
+func (*ExpressionInterpolation) _textNode()              {}
+func (*ExpressionInterpolation) _interpretedStringNode() {}
+func (*ExpressionInterpolation) _rawStringNode()         {}
+func (*ExpressionInterpolation) _contentWriter()         {}
+func (*ExpressionInterpolation) _attributeInhibitor()    {}
 
 // ============================================================================
 // Character Reference
@@ -149,10 +161,11 @@ type CharacterReference struct {
 }
 
 var (
-	_ TextInterpolation   = (*CharacterReference)(nil)
-	_ StringInterpolation = (*CharacterReference)(nil)
-	_ ContentWriter       = (*CharacterReference)(nil)
-	_ AttributeInhibitor  = (*CharacterReference)(nil)
+	_ TextInterpolation           = (*CharacterReference)(nil)
+	_ StringInterpolation         = (*CharacterReference)(nil)
+	_ ConstantStringInterpolation = (*CharacterReference)(nil)
+	_ ContentWriter               = (*CharacterReference)(nil)
+	_ AttributeInhibitor          = (*CharacterReference)(nil)
 )
 
 func (r *CharacterReference) Start() Position {
@@ -170,12 +183,21 @@ func (r *CharacterReference) End() Position {
 }
 func (r *CharacterReference) Walk(func(Node)) {}
 
-func (*CharacterReference) _node()               {}
-func (*CharacterReference) _interpolation()      {}
-func (*CharacterReference) _textNode()           {}
-func (*CharacterReference) _stringNode()         {}
-func (*CharacterReference) _contentWriter()      {}
-func (*CharacterReference) _attributeInhibitor() {}
+// ConstantValue returns the replacement for the character reference, which is
+// the characters it represents.
+//
+// If the character reference is unknown, it returns an empty string and false.
+func (r *CharacterReference) ConstantValue() (string, bool) {
+	return r.Chars, r.Chars != ""
+}
+
+func (*CharacterReference) _node()                  {}
+func (*CharacterReference) _interpolation()         {}
+func (*CharacterReference) _textNode()              {}
+func (*CharacterReference) _interpretedStringNode() {}
+func (*CharacterReference) _rawStringNode()         {}
+func (*CharacterReference) _contentWriter()         {}
+func (*CharacterReference) _attributeInhibitor()    {}
 
 // ============================================================================
 // Mode Switch
@@ -263,6 +285,7 @@ func (cci *ComponentCallInterpolation) Walk(w func(Node)) {
 	}
 }
 
-func (*ComponentCallInterpolation) _node()          {}
-func (*ComponentCallInterpolation) _interpolation() {}
-func (*ComponentCallInterpolation) _stringNode()    {}
+func (*ComponentCallInterpolation) _node()                  {}
+func (*ComponentCallInterpolation) _interpolation()         {}
+func (*ComponentCallInterpolation) _interpretedStringNode() {}
+func (*ComponentCallInterpolation) _rawStringNode()         {}

@@ -469,11 +469,10 @@ func testRegexpSelector(t *testing.T, f parser.Func[*ast.RegexpAttributeSelector
 	in := `'regexp("foo\\d")`
 	want := &ast.RegexpAttributeSelector{
 		LParen: &ast.Position{Line: 1, Col: ast.Col(1 + len(`'regexp`))},
-		Raw: &ast.String{
-			Open:  &ast.Position{Line: 1, Col: ast.Col(1 + len(`'regexp(`))},
-			Quote: '"',
-			Contents: []ast.StringNode{
-				&ast.StringText{
+		Raw: &ast.InterpretedString{
+			Open: &ast.Position{Line: 1, Col: ast.Col(1 + len(`'regexp(`))},
+			Contents: []ast.InterpretedStringNode{
+				&ast.InterpretedStringText{
 					Text:     `foo\\d`,
 					Position: &ast.Position{Line: 1, Col: ast.Col(1 + len(`'regexp("`))},
 				},

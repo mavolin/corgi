@@ -329,11 +329,10 @@ func TestParameter(t *testing.T) {
 				Colon: &ast.Position{Line: 1, Col: 6},
 				Default: &ast.Expression{
 					Nodes: ast.Code{
-						&ast.String{
-							Open:  &ast.Position{Line: 1, Col: 8},
-							Quote: '"',
-							Contents: []ast.StringNode{
-								&ast.StringText{
+						&ast.InterpretedString{
+							Open: &ast.Position{Line: 1, Col: 8},
+							Contents: []ast.InterpretedStringNode{
+								&ast.InterpretedStringText{
 									Text:     "default",
 									Position: &ast.Position{Line: 1, Col: 9},
 								},
@@ -365,11 +364,10 @@ func TestParameter(t *testing.T) {
 				Colon: &ast.Position{Line: 1, Col: 13},
 				Default: &ast.Expression{
 					Nodes: ast.Code{
-						&ast.String{
-							Open:  &ast.Position{Line: 1, Col: 15},
-							Quote: '"',
-							Contents: []ast.StringNode{
-								&ast.StringText{
+						&ast.InterpretedString{
+							Open: &ast.Position{Line: 1, Col: 15},
+							Contents: []ast.InterpretedStringNode{
+								&ast.InterpretedStringText{
 									Text:     "default",
 									Position: &ast.Position{Line: 1, Col: 16},
 								},

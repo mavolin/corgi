@@ -16,11 +16,10 @@ func TestDiagnostic_Pretty(t *testing.T) {
 		Import: &ast.Position{Line: 3, Col: 1},
 		Specs: []*ast.ImportSpec{
 			{
-				Path: &ast.String{
-					Open:  &ast.Position{Line: 3, Col: ast.Col(1 + len("import "))},
-					Quote: '"',
-					Contents: []ast.StringNode{
-						&ast.StringText{
+				Path: &ast.InterpretedString{
+					Open: &ast.Position{Line: 3, Col: ast.Col(1 + len("import "))},
+					Contents: []ast.InterpretedStringNode{
+						&ast.InterpretedStringText{
 							Text:     "bar",
 							Position: &ast.Position{Line: 3, Col: ast.Col(1 + len(`import "`))},
 						},

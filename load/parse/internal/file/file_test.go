@@ -45,11 +45,10 @@ func TestFile(t *testing.T) {
 				LParen: &ast.Position{Line: 3, Col: ast.Col(1 + len("import "))},
 				Specs: []*ast.ImportSpec{
 					{
-						Path: &ast.String{
-							Open:  &ast.Position{Line: 4, Col: ast.Col(1 + len("\t"))},
-							Quote: '"',
-							Contents: []ast.StringNode{
-								&ast.StringText{
+						Path: &ast.InterpretedString{
+							Open: &ast.Position{Line: 4, Col: ast.Col(1 + len("\t"))},
+							Contents: []ast.InterpretedStringNode{
+								&ast.InterpretedStringText{
 									Text:     "fmt",
 									Position: &ast.Position{Line: 4, Col: ast.Col(1 + len("\t\""))},
 								},
